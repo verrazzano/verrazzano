@@ -1703,12 +1703,18 @@ func TestReconcileStopDomain(t *testing.T) {
 			}
 			return nil
 		})
-	// expect a call to update serverRestartPolicy the WebLogic domain CR
+	// expect a call to update server-start-policy annotation the WebLogic workload
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(testServerStartPolicy, workload.ObjectMeta.Annotations[serverStartPolicyAnnotation])
+			return nil
+		})
+	// expect a call to update serverStartPolicy the WebLogic domain CR
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, domain *wls.Domain, opts ...client.UpdateOption) error {
 			assert.Equal("NEVER", domain.Spec.ServerStartPolicy)
-			assert.Equal(testServerStartPolicy, domain.ObjectMeta.Annotations[serverStartPolicyAnnotation])
 			return nil
 		})
 
@@ -1749,7 +1755,6 @@ func TestReconcileStartDomain(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
 			domain.Spec.ServerStartPolicy = "NEVER"
 			domain.ObjectMeta.Annotations = make(map[string]string)
-			domain.ObjectMeta.Annotations[serverStartPolicyAnnotation] = testServerStartPolicy
 			return nil
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -1759,6 +1764,7 @@ func TestReconcileStartDomain(t *testing.T) {
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
+			workload.ObjectMeta.Annotations[serverStartPolicyAnnotation] = testServerStartPolicy
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
@@ -1795,7 +1801,7 @@ func TestReconcileStartDomain(t *testing.T) {
 			}
 			return nil
 		})
-	// expect a call to update serverRestartPolicy the WebLogic domain CR
+	// expect a call to update serverStartPolicy the WebLogic domain CR
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, domain *wls.Domain, opts ...client.UpdateOption) error {

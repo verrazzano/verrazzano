@@ -259,13 +259,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// and domain pods istio proxy is 1.7.3
 	if len(workload.Annotations[appconfig.RestartVersionAnnotation]) > 0 {
 		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
-		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
-		log.Info(fmt.Sprintf("Detected restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in annotations is %s",
+		storedServerStartPolicy := workload.ObjectMeta.Annotations[serverStartPolicyAnnotation]
+		log.Info(fmt.Sprintf("Detected restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in workload annotations is %s",
 			workload.Annotations[appconfig.RestartVersionAnnotation], currentServerStartPolicy, storedServerStartPolicy))
 		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
 			return reconcile.Result{}, r.startDomain(ctx, &existingDomain, storedServerStartPolicy, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log)
 		} else if currentServerStartPolicy != "NEVER" && r.isDomainIstio17(ctx, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log) {
-			return reconcile.Result{}, r.stopDomain(ctx, &existingDomain, u.GetName(), workload.Namespace, log)
+			return reconcile.Result{}, r.stopDomain(ctx, &existingDomain, workload, u.GetName(), workload.Namespace, log)
 		}
 	}
 
@@ -834,22 +834,24 @@ func (r *Reconciler) isDomainIstio17(ctx context.Context, domainName, appName, d
 }
 
 // stopDomain set serverStartPolicy to "NEVER", so that domain will be forced to shut down
-func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain, domainName, domainNamespace string, log logr.Logger) error {
+func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain, workload *vzapi.VerrazzanoWebLogicWorkload, domainName, domainNamespace string, log logr.Logger) error {
 	log.Info(fmt.Sprintf("Stopping the WebLogic domain %s in namespace %s by setting serverStartPolicy to NEVER", domainName, domainNamespace))
 
-	currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
-
-	// set serverStartPolicy back to "NEVER"
-	existingDomain.Spec.ServerStartPolicy = "NEVER"
-
-	// record currentServerStartPolicy in the domain annotations
-	if existingDomain.ObjectMeta.Annotations == nil {
-		existingDomain.ObjectMeta.Annotations = make(map[string]string)
+	// update the workload to store currentServerStartPolicy in the annotations
+	// this will alos trigger the second reconcile to start domain
+	if workload.ObjectMeta.Annotations == nil {
+		workload.ObjectMeta.Annotations = make(map[string]string)
 	}
-	existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation] = currentServerStartPolicy
+	workload.ObjectMeta.Annotations[serverStartPolicyAnnotation] = existingDomain.Spec.ServerStartPolicy
+	log.Info(fmt.Sprintf("Set annotation %s to %s in the workload %s in namespace %s", serverStartPolicyAnnotation, existingDomain.Spec.ServerStartPolicy, domainName, domainNamespace))
+	err := r.Client.Update(ctx, workload)
+	if err != nil {
+		return err
+	}
 
+	// set serverStartPolicy to "NEVER" in the domain
+	existingDomain.Spec.ServerStartPolicy = "NEVER"
 	log.Info(fmt.Sprintf("Set serverStartPolicy to NEVER in the WebLogic domain %s in namespace %s", domainName, domainNamespace))
-	log.Info(fmt.Sprintf("Set annotation %s to %s in the WebLogic domain %s in namespace %s", serverStartPolicyAnnotation, currentServerStartPolicy, domainName, domainNamespace))
 	return r.Client.Update(ctx, existingDomain)
 }
 
