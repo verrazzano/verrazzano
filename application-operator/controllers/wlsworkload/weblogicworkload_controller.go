@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	krand "k8s.io/apimachinery/pkg/util/rand"
+
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
@@ -257,15 +259,26 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// restart domain by setting serverStartPolicy to "NEVER" and back with presence of "restart-version" annotation
 	// and domain pods istio proxy is 1.7.3
-	if len(workload.Annotations[appconfig.RestartVersionAnnotation]) > 0 {
+	restartVersion := workload.Annotations[appconfig.RestartVersionAnnotation]
+	if len(restartVersion) > 0 && restartVersion != existingDomain.Spec.RestartVersion {
 		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
 		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
-		log.Info(fmt.Sprintf("Detected restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in annotations is %s",
-			workload.Annotations[appconfig.RestartVersionAnnotation], currentServerStartPolicy, storedServerStartPolicy))
+		log.Info(fmt.Sprintf("Detected new restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in annotations is %s",
+			restartVersion, currentServerStartPolicy, storedServerStartPolicy))
 		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
-			return reconcile.Result{}, r.startDomain(ctx, &existingDomain, storedServerStartPolicy, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log)
+			// start the domain
+			return reconcile.Result{}, r.startDomain(ctx, &existingDomain, storedServerStartPolicy, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, restartVersion, log)
 		} else if currentServerStartPolicy != "NEVER" && r.isDomainIstio17(ctx, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log) {
-			return reconcile.Result{}, r.stopDomain(ctx, &existingDomain, u.GetName(), workload.Namespace, log)
+			// stop the domain
+			if err = r.stopDomain(ctx, &existingDomain, u.GetName(), workload.Namespace, log); err != nil {
+				return reconcile.Result{}, err
+			}
+			return reconcile.Result{Requeue: true, RequeueAfter: time.Duration(krand.IntnRange(5, 10)) * time.Second}, nil
+		} else {
+			// write out restartVersion in the domain
+			if err = r.addDomainRestartVersion(u, restartVersion, u.GetName(), workload.Namespace, log); err != nil {
+				return reconcile.Result{}, err
+			}
 		}
 	}
 
@@ -315,11 +328,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-	}
-
-	// write out restartVersion in WebLogic domain
-	if err = r.addDomainRestartVersion(u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.Namespace, log); err != nil {
-		return reconcile.Result{}, err
 	}
 
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
@@ -854,7 +862,7 @@ func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain,
 }
 
 // startDomain set serverStartPolicy back to the previous value, so that the domain will start
-func (r *Reconciler) startDomain(ctx context.Context, existingDomain *wls.Domain, serverStartPolicy, domainName, appName, domainNamespace string, log logr.Logger) error {
+func (r *Reconciler) startDomain(ctx context.Context, existingDomain *wls.Domain, serverStartPolicy, domainName, appName, domainNamespace, restartVersion string, log logr.Logger) error {
 	log.Info(fmt.Sprintf("Starting the WebLogic domain %s in namespace %s by setting serverStartPolicy to %s", domainName, domainNamespace, serverStartPolicy))
 
 	// wait for domain to be deleted
@@ -863,6 +871,7 @@ func (r *Reconciler) startDomain(ctx context.Context, existingDomain *wls.Domain
 
 	// set serverStartPolicy back
 	existingDomain.Spec.ServerStartPolicy = serverStartPolicy
+	existingDomain.Spec.RestartVersion = restartVersion
 
 	log.Info(fmt.Sprintf("Set serverStartPolicy to %s in the WebLogic domain %s in namespace %s", serverStartPolicy, domainName, domainNamespace))
 	return r.Client.Update(ctx, existingDomain)

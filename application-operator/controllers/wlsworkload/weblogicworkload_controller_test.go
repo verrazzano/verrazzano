@@ -1719,7 +1719,7 @@ func TestReconcileStopDomain(t *testing.T) {
 
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestReconcileStartDomain tests reconciling a VerrazzanoWebLogicWorkload when the WebLogic
@@ -1800,6 +1800,7 @@ func TestReconcileStartDomain(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, domain *wls.Domain, opts ...client.UpdateOption) error {
 			assert.Equal(testServerStartPolicy, domain.Spec.ServerStartPolicy)
+			assert.Equal(testRestartVersion, domain.Spec.RestartVersion)
 			return nil
 		})
 
