@@ -1653,6 +1653,7 @@ func TestReconcileStopDomain(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -1703,11 +1704,13 @@ func TestReconcileStopDomain(t *testing.T) {
 			}
 			return nil
 		})
-	// expect a call to update server-start-policy annotation the WebLogic workload
-	cli.EXPECT().
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update status DomainServerStartPolicy the WebLogic workload
+	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(testServerStartPolicy, workload.ObjectMeta.Annotations[serverStartPolicyAnnotation])
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			assert.Equal(testServerStartPolicy, workload.Status.DomainServerStartPolicy)
 			return nil
 		})
 	// expect a call to update serverStartPolicy the WebLogic domain CR
@@ -1764,7 +1767,7 @@ func TestReconcileStartDomain(t *testing.T) {
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
-			workload.ObjectMeta.Annotations[serverStartPolicyAnnotation] = testServerStartPolicy
+			workload.Status.DomainServerStartPolicy = testServerStartPolicy
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace

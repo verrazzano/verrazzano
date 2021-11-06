@@ -53,7 +53,6 @@ const (
 	istioProxyContainerName         = "istio-proxy"
 	// TODO change to ghcr.io/verrazzano/proxyv2:1.7.3 when test is done
 	istioProxyImageForHardRestart = "ghcr.io/verrazzano/proxyv2:1.10.2"
-	serverStartPolicyAnnotation   = "server-start-policy"
 )
 
 const defaultMonitoringExporterData = `
@@ -259,8 +258,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// and domain pods istio proxy is 1.7.3
 	if len(workload.Annotations[appconfig.RestartVersionAnnotation]) > 0 {
 		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
-		storedServerStartPolicy := workload.ObjectMeta.Annotations[serverStartPolicyAnnotation]
-		log.Info(fmt.Sprintf("Detected restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in workload annotations is %s",
+		storedServerStartPolicy := workload.Status.DomainServerStartPolicy
+		log.Info(fmt.Sprintf("Detected restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in workload status is %s",
 			workload.Annotations[appconfig.RestartVersionAnnotation], currentServerStartPolicy, storedServerStartPolicy))
 		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
 			return reconcile.Result{}, r.startDomain(ctx, &existingDomain, storedServerStartPolicy, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log)
@@ -837,14 +836,14 @@ func (r *Reconciler) isDomainIstio17(ctx context.Context, domainName, appName, d
 func (r *Reconciler) stopDomain(ctx context.Context, existingDomain *wls.Domain, workload *vzapi.VerrazzanoWebLogicWorkload, domainName, domainNamespace string, log logr.Logger) error {
 	log.Info(fmt.Sprintf("Stopping the WebLogic domain %s in namespace %s by setting serverStartPolicy to NEVER", domainName, domainNamespace))
 
-	// update the workload to store currentServerStartPolicy in the annotations
-	// this will alos trigger the second reconcile to start domain
+	// update the workload to store currentServerStartPolicy in the status
+	// this will trigger the second reconcile to start domain
 	if workload.ObjectMeta.Annotations == nil {
 		workload.ObjectMeta.Annotations = make(map[string]string)
 	}
-	workload.ObjectMeta.Annotations[serverStartPolicyAnnotation] = existingDomain.Spec.ServerStartPolicy
-	log.Info(fmt.Sprintf("Set annotation %s to %s in the workload %s in namespace %s", serverStartPolicyAnnotation, existingDomain.Spec.ServerStartPolicy, domainName, domainNamespace))
-	err := r.Client.Update(ctx, workload)
+	workload.Status.DomainServerStartPolicy = existingDomain.Spec.ServerStartPolicy
+	log.Info(fmt.Sprintf("Set status DomainServerStartPolicy to %s in the workload %s in namespace %s", existingDomain.Spec.ServerStartPolicy, domainName, domainNamespace))
+	err := r.Status().Update(ctx, workload)
 	if err != nil {
 		return err
 	}
