@@ -181,7 +181,7 @@ spec:
         spec:
           domainUID: bobbys-front-end
           domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
-          image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20210728181814-eb1e622
+          image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211027151722-46851d0
           imagePullSecrets:
             - name: bobs-books-repo-credentials
           domainHomeSourceType: "FromModel"

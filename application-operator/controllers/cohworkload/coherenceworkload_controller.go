@@ -215,12 +215,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// write out restart-version in coherence satefulset
+	// write out restart-version in Coherence spec annotations
 	cohName, _, err := unstructured.NestedString(u.Object, "metadata", "name")
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	// write out restart-version in Coherence spec annotations
 	if err = r.addRestartVersionAnnotation(u, workload.Annotations[appconfig.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -717,17 +716,18 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 }
 
 func (r *Reconciler) addRestartVersionAnnotation(coherence *unstructured.Unstructured, restartVersion string, name, namespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("The Coherence %s/%s restart version is set to %s", namespace, name, restartVersion))
-	annotations, _, err := unstructured.NestedStringMap(coherence.Object, specAnnotationsFields...)
-	if err != nil {
-		return errors.New("unable to get annotations from Coherence spec")
-	}
 	if len(restartVersion) > 0 {
+		log.Info(fmt.Sprintf("The Coherence %s/%s restart version is set to %s", namespace, name, restartVersion))
+		annotations, _, err := unstructured.NestedStringMap(coherence.Object, specAnnotationsFields...)
+		if err != nil {
+			return errors.New("unable to get annotations from Coherence spec")
+		}
 		// if no annotations exist initialize the annotations map otherwise update existing annotations.
 		if annotations == nil {
 			annotations = make(map[string]string)
 		}
 		annotations[appconfig.RestartVersionAnnotation] = restartVersion
+		return unstructured.SetNestedStringMap(coherence.Object, annotations, specAnnotationsFields...)
 	}
-	return unstructured.SetNestedStringMap(coherence.Object, annotations, specAnnotationsFields...)
+	return nil
 }
