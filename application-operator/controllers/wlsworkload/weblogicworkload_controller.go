@@ -9,11 +9,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
+	"k8s.io/apimachinery/pkg/util/wait"
+
 	"math/big"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"k8s.io/client-go/util/retry"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -253,6 +258,20 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return reconcile.Result{}, err
 		}
 	}
+
+	// restart domain by setting serverStartPolicy to "NEVER" and back with presence of "restart-version" annotation
+	// and domain pods istio proxy is 1.7.3
+	restartVersion := workload.Annotations[constants.RestartVersionAnnotation]
+	if len(restartVersion) > 0 && restartVersion != existingDomain.Spec.RestartVersion {
+		if r.isDomainForHardRestart(ctx, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log) {
+			return reconcile.Result{}, r.hardRestartDomain(ctx, &existingDomain, restartVersion, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log)
+		}
+		// write out restartVersion in the domain
+		if err = r.addDomainRestartVersion(u, restartVersion, u.GetName(), workload.Namespace, log); err != nil {
+			return reconcile.Result{}, err
+		}
+	}
+
 	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
 	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
 	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
@@ -299,11 +318,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if err != nil {
 			return reconcile.Result{}, err
 		}
-	}
-
-	// write out restartVersion in WebLogic domain
-	if err = r.restartDomain(ctx, &existingDomain, u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log); err != nil {
-		return reconcile.Result{}, err
 	}
 
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
@@ -790,20 +804,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	return nil
 }
 
-func (r *Reconciler) restartDomain(ctx context.Context, existingDomain *wls.Domain, weblogic *unstructured.Unstructured, restartVersion, domainName, appName, domainNamespace string, log logr.Logger) error {
-	if len(restartVersion) > 0 {
-		if r.isDomainForHardRestart(ctx, domainName, appName, domainNamespace, log) {
-			err := r.hardRestartDomain(ctx, existingDomain, restartVersion, domainName, appName, domainNamespace, log)
-			if err != nil {
-				return err
-			}
-		}
-		return r.addDomainRestartVersion(weblogic, restartVersion, domainName, domainNamespace, log)
-	}
-	return nil
-}
-
-func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) (*corev1.PodList, error) {
+func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appName, domainNamespace string) (*corev1.PodList, error) {
 	componentNameReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{domainName})
 	appNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{appName})
 	selector := labels.NewSelector()
@@ -815,7 +816,7 @@ func (r *Reconciler) getPodListForDomain(ctx context.Context, domainName, appNam
 
 // isDomainForHardRestart determines hard restart or rolling restart based on istio-proxy side car image version
 func (r *Reconciler) isDomainForHardRestart(ctx context.Context, domainName, appName, domainNamespace string, log logr.Logger) bool {
-	podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
+	podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace)
 	if err != nil {
 		log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the WebLogic domain %s in namespace %s", domainName, domainNamespace))
 		return false
@@ -835,14 +836,9 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 
 	// get previousServerStartPolicy
 	previousServerStartPolicy := existingDomain.Spec.ServerStartPolicy
-	if previousServerStartPolicy == "NEVER" {
-		log.Info(fmt.Sprintf("serverStartPolicy is already set as NEVER in the WebLogic domain %s in namespace %s", domainName, domainNamespace))
-		return nil
-	}
 
 	// set serverStartPolicy to NEVER
 	existingDomain.Spec.ServerStartPolicy = "NEVER"
-	existingDomain.Spec.RestartVersion = restartVersion
 	log.Info(fmt.Sprintf("Set serverStartPolicy from %s to NEVER in the WebLogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
 	if err := r.Client.Update(ctx, existingDomain); err != nil {
 		return err
@@ -852,9 +848,22 @@ func (r *Reconciler) hardRestartDomain(ctx context.Context, existingDomain *wls.
 	r.waitForDomainDeletion(ctx, domainName, appName, domainNamespace, log)
 
 	// set serverStartPolicy back to previousServerStartPolicy
-	existingDomain.Spec.ServerStartPolicy = previousServerStartPolicy
-	log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the WebLogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
-	return r.Client.Update(ctx, existingDomain)
+	return retry.RetryOnConflict(wait.Backoff{
+		Steps:    10,
+		Duration: 1 * time.Second,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}, func() error {
+		var domain wls.Domain
+		if err := r.Get(ctx, types.NamespacedName{Name: domainName, Namespace: domainNamespace}, &domain); err != nil {
+			return err
+		}
+		domain.Spec.ServerStartPolicy = previousServerStartPolicy
+		domain.Spec.RestartVersion = restartVersion
+		log.Info(fmt.Sprintf("Set serverStartPolicy from NEVER to %s in the WebLogic domain %s in namespace %s", previousServerStartPolicy, domainName, domainNamespace))
+		log.Info(fmt.Sprintf("Set restartVersion to %s in the WebLogic domain %s in namespace %s", restartVersion, domainName, domainNamespace))
+		return r.Client.Update(ctx, &domain)
+	})
 }
 
 // wait for .metadata.deletionTimestamp in all pods
@@ -867,7 +876,7 @@ func (r *Reconciler) waitForDomainDeletion(ctx context.Context, domainName strin
 	go func() {
 		for {
 			time.Sleep(1 * time.Second)
-			podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace, log)
+			podList, err := r.getPodListForDomain(ctx, domainName, appName, domainNamespace)
 			if err != nil {
 				log.Error(err, fmt.Sprintf("Encnoutered error getting pods for the WebLogic domain %s in namespace %s", domainName, domainNamespace))
 				break
