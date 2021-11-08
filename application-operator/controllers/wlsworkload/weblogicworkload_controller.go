@@ -45,17 +45,16 @@ import (
 )
 
 const (
-	specField                       = "spec"
-	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
-	destinationRuleKind             = "DestinationRule"
-	loggingNamePart                 = "logging-stdout"
-	loggingMountPath                = "/fluentd/etc/custom.conf"
-	loggingKey                      = "custom.conf"
-	defaultMode               int32 = 400
-	istioProxyContainerName         = "istio-proxy"
-	// TODO change to ghcr.io/verrazzano/proxyv2:1.7.3 when test is done
-	istioProxyImageForHardRestart = "ghcr.io/verrazzano/proxyv2:1.10.2"
-	serverStartPolicyAnnotation   = "server-start-policy"
+	specField                           = "spec"
+	destinationRuleAPIVersion           = "networking.istio.io/v1alpha3"
+	destinationRuleKind                 = "DestinationRule"
+	loggingNamePart                     = "logging-stdout"
+	loggingMountPath                    = "/fluentd/etc/custom.conf"
+	loggingKey                          = "custom.conf"
+	defaultMode                   int32 = 400
+	istioProxyContainerName             = "istio-proxy"
+	istioProxyImageForHardRestart       = "ghcr.io/verrazzano/proxyv2:1.7.3"
+	serverStartPolicyAnnotation         = "server-start-policy"
 )
 
 const defaultMonitoringExporterData = `
