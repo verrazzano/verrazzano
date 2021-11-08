@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -26,6 +27,8 @@ import (
 const (
 	RestartVersionAnnotation = "verrazzano.io/restart-version"
 )
+
+var containerAnnotationsFields = []string{"metadata", "annotations"}
 
 type Reconciler struct {
 	client.Client
@@ -97,17 +100,29 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 
 	switch workload.GetKind() {
 	case "VerrazzanoCoherenceWorkload":
-		// "verrazzano.io/restart-version" will be automatically set on VerrazzanoCoherenceWorkload
-		// VerrazzanoCoherenceWorkload reconciler processes the annotation on its own
-		// nothing needs to be done here
+		// passs "verrazzano.io/restart-version" to VerrazzanoCoherenceWorkload
+		err = addAnnotation(workload, restartVersion)
+		if err != nil {
+			return err
+		}
 	case "VerrazzanoWebLogicWorkload":
-		// "verrazzano.io/restart-version" will be automatically set on VerrazzanoWebLogicWorkload
-		// VerrazzanoWebLogicWorkload reconciler processes the annotation on its own
-		// nothing needs to be done here
+		// passs "verrazzano.io/restart-version" to VerrazzanoWebLogicWorkload
+		err = addAnnotation(workload, restartVersion)
+		if err != nil {
+			return err
+		}
 	case "VerrazzanoHelidonWorkload":
-		// "verrazzano.io/restart-version" will be automatically set on VerrazzanoHelidonWorkload
-		// VerrazzanoHelidonWorkload reconciler processes the annotation on its own
-		// nothing needs to be done here
+		// passs "verrazzano.io/restart-version" to VerrazzanoHelidonWorkload
+		err = addAnnotation(workload, restartVersion)
+		if err != nil {
+			return err
+		}
+	case "ContainerizedWorkload":
+		// passs "verrazzano.io/restart-version" to ContainerizedWorkload
+		err = addAnnotation(workload, restartVersion)
+		if err != nil {
+			return err
+		}
 	case "Deployment":
 		err = r.restartDeployment(ctx, restartVersion, workload.GetName(), componentNamespace, log)
 		if err != nil {
@@ -128,6 +143,15 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 	}
 
 	return nil
+}
+
+func addAnnotation(workload *unstructured.Unstructured, restartVersion string) error {
+	annotations, found, _ := unstructured.NestedStringMap(workload.Object, containerAnnotationsFields...)
+	if !found {
+		annotations = map[string]string{}
+	}
+	annotations[RestartVersionAnnotation] = restartVersion
+	return unstructured.SetNestedStringMap(workload.Object, annotations, containerAnnotationsFields...)
 }
 
 func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
