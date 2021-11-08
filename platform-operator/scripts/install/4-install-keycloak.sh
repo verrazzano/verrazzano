@@ -575,10 +575,6 @@ if [ "$(is_elasticsearch_console_enabled)" == "true" ]; then
   consoleArr+=("Elasticsearch - https://elasticsearch.vmi.system.${ENV_NAME}.${DNS_SUFFIX}")
 fi
 
-if [ -n "$(kubectl get vz -o jsonpath='{.items[0].status.instance.kialiUrl}')" ]; then
-  consoleArr+=("Kiali - https://kiali.vmi.system.${ENV_NAME}.${DNS_SUFFIX}")
-fi
-
 if [[ "$(is_vz_console_enabled)" == "true" ]]; then
   consoleArr+=("Verrazzano Console - https://verrazzano.${ENV_NAME}.${DNS_SUFFIX}")
 fi
