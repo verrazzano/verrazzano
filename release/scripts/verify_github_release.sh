@@ -14,10 +14,10 @@ usage() {
   Downloads the release artifacts from GitHub and checks the SHA256 hash.
 
   Usage:
-    $(basename $0) <new version for the release>
+    $(basename $0) <release version to verify>
 
   Example:
-    $(basename $0) v.1.0.1
+    $(basename $0) v1.0.1
 EOM
     exit 0
 }
