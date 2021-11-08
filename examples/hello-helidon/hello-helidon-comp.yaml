@@ -13,6 +13,7 @@ spec:
       name: hello-helidon-workload
       labels:
         app: hello-helidon
+        version: v1
     spec:
       deploymentTemplate:
         metadata:
