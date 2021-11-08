@@ -16,9 +16,6 @@ spec:
           name: roberts-coherence
           namespace: bobs-books
         spec:
-          labels:
-            app: robert-coh
-            version: v1
           replicas: 2
           image: container-registry.oracle.com/verrazzano/example-roberts-coherence:1.0.0-1-20210728181814-eb1e622
           imagePullPolicy: IfNotPresent
@@ -62,7 +59,6 @@ spec:
       name: robert-helidon
       labels:
         app: robert-helidon
-        version: v1
     spec:
       deploymentTemplate:
         metadata:
@@ -100,9 +96,6 @@ spec:
           name: bobbys-coherence
           namespace: bobs-books
         spec:
-          labels:
-            app: bobbys-coh
-            version: v1
           replicas: 1
           image: container-registry.oracle.com/verrazzano/example-bobbys-coherence:1.0.0-1-20210728181814-eb1e622
           imagePullPolicy: IfNotPresent
@@ -142,7 +135,6 @@ spec:
       name: bobbys-helidon-stock-application
       labels:
         app: bobbys-helidon-stock-application
-        version: v1
     spec:
       deploymentTemplate:
         metadata:
@@ -227,9 +219,6 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
-            labels:
-              app: bobbys-front-end
-              version: v1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -300,7 +289,7 @@ spec:
       ports:
         - port: 3306
       selector:
-        app: bobs-mysql
+        app: mysql
       clusterIP: None
 ---
 apiVersion: core.oam.dev/v1alpha2
@@ -321,15 +310,14 @@ spec:
       revisionHistoryLimit: 10
       selector:
         matchLabels:
-          app: bobs-mysql
+          app: mysql
       strategy:
         type: Recreate
       template:
         metadata:
           creationTimestamp: null
           labels:
-            app: bobs-mysql
-            version: v1
+            app: mysql
         spec:
           containers:
             - env:
@@ -480,9 +468,6 @@ spec:
                     prefix: wls_jvm_
                     key: name
           serverPod:
-            labels:
-              app: bobs-orders-wls
-              version: v1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
