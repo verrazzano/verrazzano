@@ -124,6 +124,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -145,6 +146,8 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -205,6 +208,17 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
@@ -225,6 +239,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -246,6 +261,8 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -306,6 +323,17 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
@@ -327,6 +355,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -354,6 +383,8 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -419,6 +450,17 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
@@ -440,6 +482,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -463,6 +506,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			workload.Name = workloadName
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
 					UID: types.UID(namespace),
@@ -602,6 +647,17 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
@@ -623,6 +679,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -646,6 +703,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			workload.Name = workloadName
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
 					UID: types.UID(namespace),
@@ -751,6 +810,17 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
@@ -804,6 +874,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			// set the previous upgrade value to be different than what is specified in the associated label
 			// to tell Verrazzano to get the Fluentd image from the env
 			workload.Status.CurrentUpgradeVersion = "oldVersion"
@@ -883,6 +955,9 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
@@ -904,6 +979,7 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -940,6 +1016,8 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			// set the previous upgrade value to match what is specified in the associated label
 			// to tell Verrazzano to get the Fluentd image from existing domain
 			workload.Status.CurrentUpgradeVersion = previousUpgradeVersion
@@ -986,6 +1064,17 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 
 	// Call to Update() is not expected since nothing changed
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
@@ -1006,6 +1095,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -1027,6 +1117,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -1075,6 +1167,9 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 
 			return k8serrors.NewBadRequest("an error has occurred")
 		})
+
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
@@ -1153,6 +1248,7 @@ func TestCopyLabelsFailure(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	//	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload - return a malformed WebLogic resource (spec should be an object
 	// so when we attempt to set the labels field inside spec it will fail) - this is a contrived example but it's the easiest
@@ -1164,6 +1260,8 @@ func TestCopyLabelsFailure(t *testing.T) {
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 
@@ -1531,6 +1629,7 @@ func TestReconcileRestart(t *testing.T) {
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 	annotations := map[string]string{appconfig.RestartVersionAnnotation: restartVersion}
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -1554,6 +1653,8 @@ func TestReconcileRestart(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -1617,6 +1718,17 @@ func TestReconcileRestart(t *testing.T) {
 			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
 			assert.Equal(restartVersion, domainRestartVersion)
 
+			return nil
+		})
+
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 			return nil
 		})
 
