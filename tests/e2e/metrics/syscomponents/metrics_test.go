@@ -310,5 +310,8 @@ func getClusterNameForPromQuery() string {
 	if isManagedClusterProfile {
 		return clusterName
 	}
+	if isMinVersion110 {
+		return "local"
+	}
 	return ""
 }
