@@ -58,8 +58,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	// TODO restart the ContainerizedWorkload
 	log.Info(fmt.Sprintf("Marking ContainerizedWorkload with restart-version %s", restartVersion))
+	for index := range workload.Spec.Containers {
+		container := workload.Spec.Containers[index]
+		log.Info(fmt.Sprintf("Marking container %s with restart-version %s", container.Name, restartVersion))
+		// TODO restart the ContainerizedWorkload
+	}
+
 
 	log.Info("Successfully reconciled ContainerizedWorkload")
 	return reconcile.Result{}, nil
