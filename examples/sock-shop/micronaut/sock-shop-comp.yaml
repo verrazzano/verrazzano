@@ -15,9 +15,6 @@ spec:
         metadata:
           name: carts-coh
         spec:
-          labels:
-            app: carts-coh
-            version: v1
           cluster: SockShopCarts
           role: Carts
           replicas: 1
@@ -60,9 +57,6 @@ spec:
         metadata:
           name: catalog-coh
         spec:
-          labels:
-            app: catalog-coh
-            version: v1
           cluster: SockShopCatalog
           role: Catalog
           replicas: 1
@@ -104,9 +98,6 @@ spec:
         metadata:
           name: orders-coh
         spec:
-          labels:
-            app: orders-coh
-            version: v1
           cluster: SockShopOrders
           role: Orders
           replicas: 1
@@ -148,9 +139,6 @@ spec:
         metadata:
           name: payment-coh
         spec:
-          labels:
-            app: payment-coh
-            version: v1
           cluster: SockShopPayment
           role: Payment
           replicas: 1
@@ -196,9 +184,6 @@ spec:
         metadata:
           name: shipping-coh
         spec:
-          labels:
-            app: shipping-coh
-            version: v1
           cluster: SockShopShipping
           role: Shipping
           replicas: 1
@@ -244,9 +229,6 @@ spec:
         metadata:
           name: users-coh
         spec:
-          labels:
-            app: users-coh
-            version: v1
           cluster: SockShopUsers
           role: Users
           replicas: 1

@@ -36,9 +36,6 @@ spec:
             secrets:
               - tododomain-jdbc-tododb
           serverPod:
-            labels:
-              app: todo-domain
-              version: v1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -127,7 +124,7 @@ spec:
       ports:
         - port: 3306
       selector:
-        app: todo-mysql
+        app: mysql
       clusterIP: None
 ---
 apiVersion: core.oam.dev/v1alpha2
@@ -146,12 +143,11 @@ spec:
       replicas: 1
       selector:
         matchLabels:
-          app: todo-mysql
+          app: mysql
       template:
         metadata:
           labels:
-            app: todo-mysql
-            version: v1
+            app: mysql
         spec:
           containers:
             - env:
