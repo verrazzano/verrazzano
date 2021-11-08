@@ -523,7 +523,7 @@ pipeline {
                                 testHelidonExample("multicluster/examples/helidon")
                             }
                         }
-                        stage ('Examples Helidon Deprecated') {
+/*                        stage ('Examples Helidon Deprecated') {
                             steps {
                                 testHelidonExample("multicluster/examples/helidon-deprecated")
                             }
@@ -545,7 +545,7 @@ pipeline {
                                 testTodoExample("multicluster/examples/todo-list")
                             }
                         }
-                    }
+*/                    }
                 }
                 stage ('Console') {
                     environment {

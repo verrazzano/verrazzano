@@ -191,11 +191,11 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		//		It("Verify automatic deletion on managed cluster", func() {
-		//			Eventually(func() bool {
-		//				return VerifySockShopDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
-		//			}, waitTimeout, pollingInterval).Should(BeTrue())
-		//		})
+		It("Verify automatic deletion on managed cluster", func() {
+			Eventually(func() bool {
+				return VerifySockShopDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 
 		It("Delete test namespace on managed cluster", func() {
 			Eventually(func() error {
