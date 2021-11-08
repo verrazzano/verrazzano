@@ -558,22 +558,34 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log logr
 // mutateDestinationRule mutates the output destinationRule.
 func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, namespace string, appName string) error {
 	// Set the spec content.
-	destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)
-	destinationRule.Spec.TrafficPolicy = &istionet.TrafficPolicy{
-		Tls: &istionet.ClientTLSSettings{
-			Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
-		},
+	// Set the required fields only if not already set
+	if destinationRule.Spec.Host == "" {
+		destinationRule.Spec.Host = fmt.Sprintf("*.%s.svc.cluster.local", namespace)
 	}
-	destinationRule.Spec.TrafficPolicy.PortLevelSettings = []*istionet.TrafficPolicy_PortTrafficPolicy{
-		{
-			// Disable mutual TLS for the Coherence extend port
-			Port: &istionet.PortSelector{
-				Number: coherenceExtendPort,
-			},
+	if destinationRule.Spec.TrafficPolicy == nil {
+		destinationRule.Spec.TrafficPolicy = &istionet.TrafficPolicy{
 			Tls: &istionet.ClientTLSSettings{
-				Mode: istionet.ClientTLSSettings_DISABLE,
+				Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
 			},
-		},
+		}
+	}
+	if destinationRule.Spec.TrafficPolicy.Tls == nil {
+		destinationRule.Spec.TrafficPolicy.Tls = &istionet.ClientTLSSettings{
+			Mode: istionet.ClientTLSSettings_ISTIO_MUTUAL,
+		}
+	}
+	if destinationRule.Spec.TrafficPolicy.PortLevelSettings == nil {
+		destinationRule.Spec.TrafficPolicy.PortLevelSettings = []*istionet.TrafficPolicy_PortTrafficPolicy{
+			{
+				// Disable mutual TLS for the Coherence extend port
+				Port: &istionet.PortSelector{
+					Number: coherenceExtendPort,
+				},
+				Tls: &istionet.ClientTLSSettings{
+					Mode: istionet.ClientTLSSettings_DISABLE,
+				},
+			},
+		}
 	}
 
 	// Set the owner reference.

@@ -1368,6 +1368,85 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	assert.NoError(err)
 }
 
+// TestCreateUpdateDestinationRuleNoOverride tests no override of destination rule fields if already set
+// GIVEN the destination rule exist with all the required fields set
+// WHEN the controller createOrUpdateDestinationRule function is called
+// THEN expect no error to be returned and destination rule fields are not overridden
+func TestCreateUpdateDestinationRuleNoOverride(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// Expect a call to get a destination rule and return that it was found.
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, dr *istioclient.DestinationRule) error {
+			dr.TypeMeta = metav1.TypeMeta{
+				APIVersion: destinationRuleAPIVersion,
+				Kind:       destinationRuleKind}
+			dr.Spec.Host = "test-host"
+			dr.Spec.TrafficPolicy = &istionet.TrafficPolicy{
+				Tls: &istionet.ClientTLSSettings{
+					Mode: istionet.ClientTLSSettings_MUTUAL,
+				},
+			}
+			dr.Spec.TrafficPolicy.PortLevelSettings = []*istionet.TrafficPolicy_PortTrafficPolicy{
+				{
+					// Disable mutual TLS for the Coherence extend port
+					Port: &istionet.PortSelector{
+						Number: 9010,
+					},
+					Tls: &istionet.ClientTLSSettings{
+						Mode: istionet.ClientTLSSettings_DISABLE,
+					},
+				},
+			}
+			return nil
+		})
+
+	// Expect a call to get the appconfig resource to set the owner reference
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-app"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, app *oamcore.ApplicationConfiguration) error {
+			app.TypeMeta = metav1.TypeMeta{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ApplicationConfiguration",
+			}
+			return nil
+		})
+
+	// Expect a call not to override the destinationRule fields and return success
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, dr *istioclient.DestinationRule, opts ...client.CreateOption) error {
+			assert.Equal(destinationRuleKind, dr.Kind)
+			assert.Equal(destinationRuleAPIVersion, dr.APIVersion)
+			assert.Equal("test-host", dr.Spec.Host)
+			assert.Equal(istionet.ClientTLSSettings_MUTUAL, dr.Spec.TrafficPolicy.Tls.Mode)
+			assert.Equal(uint32(9010), dr.Spec.TrafficPolicy.PortLevelSettings[0].Port.Number)
+			assert.Equal(istionet.ClientTLSSettings_DISABLE, dr.Spec.TrafficPolicy.PortLevelSettings[0].Tls.Mode)
+			assert.Equal(1, len(dr.OwnerReferences))
+			assert.Equal("ApplicationConfiguration", dr.OwnerReferences[0].Kind)
+			assert.Equal("core.oam.dev/v1alpha2", dr.OwnerReferences[0].APIVersion)
+			return nil
+		})
+
+	scheme := runtime.NewScheme()
+	istioclient.AddToScheme(scheme)
+	core.AddToScheme(scheme)
+	vzapi.AddToScheme(scheme)
+	reconciler := Reconciler{Client: cli, Scheme: scheme}
+
+	namespaceLabels := make(map[string]string)
+	namespaceLabels["istio-injection"] = "enabled"
+	workloadLabels := make(map[string]string)
+	workloadLabels["app.oam.dev/name"] = "test-app"
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	mocker.Finish()
+	assert.NoError(err)
+}
+
 // TestCreateUpdateDestinationRuleNoOamLabel tests failure when no OAM label found
 // GIVEN no app.oam.dev/name label specified
 // WHEN the controller createOrUpdateDestinationRule function is called
