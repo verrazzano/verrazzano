@@ -127,7 +127,7 @@ spec:
       ports:
         - port: 3306
       selector:
-        app: mysql
+        app: todo-mysql
       clusterIP: None
 ---
 apiVersion: core.oam.dev/v1alpha2
@@ -146,7 +146,7 @@ spec:
       replicas: 1
       selector:
         matchLabels:
-          app: mysql
+          app: todo-mysql
       template:
         metadata:
           labels:

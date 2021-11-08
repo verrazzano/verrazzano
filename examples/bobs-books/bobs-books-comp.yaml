@@ -300,7 +300,7 @@ spec:
       ports:
         - port: 3306
       selector:
-        app: mysql
+        app: bobs-mysql
       clusterIP: None
 ---
 apiVersion: core.oam.dev/v1alpha2
@@ -321,7 +321,7 @@ spec:
       revisionHistoryLimit: 10
       selector:
         matchLabels:
-          app: mysql
+          app: bobs-mysql
       strategy:
         type: Recreate
       template:
