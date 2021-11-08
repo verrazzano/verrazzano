@@ -589,15 +589,13 @@ if [ $console_count -gt 0 ];then
   display_warning_for_secret="true"
   consoleout
   if [ $console_count -eq 1 ];then
-    consoleout "Verrazzano provides the following user interface."
+    consoleout "Verrazzano provides one user interface."
   else
     consoleout "Verrazzano provides various user interfaces."
   fi
   consoleout
-  for consoleValue in "${consoleArr[@]}"
-  do
-    consoleout "$consoleValue"
-  done
+  consoleout "To get the URL for each Verrazzano interface, run the following command:"
+  consoleout "kubectl get vz -o jsonpath={.items[].status.instance} | jq ."
   consoleout
   if [ $console_count -eq 1 ];then
     consoleout "You will need the credentials to access the preceding user interface. The user interface can be accessed by the username/password."
