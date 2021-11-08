@@ -5,6 +5,7 @@ package keycloak
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -13,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	corev1 "k8s.io/api/core/v1"
-	"log"
 	"os/exec"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,6 +36,12 @@ type KeycloakClients []struct {
 type bashFuncSig func(inArgs ...string) (string, string, error)
 
 var bashFunc bashFuncSig = vzos.RunBash
+
+func setBashFunc(f bashFuncSig) {
+	bashFunc = f
+}
+
+var execCommand = exec.Command
 
 // Verify that KeycloakComponent implements Component
 var _ spi.Component = KeycloakComponent{}
@@ -75,32 +81,37 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 			Name:      "keycloak-http",
 		}, secret)
 		if err != nil {
-			log.Fatal(err)
+			ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving Keycloak password: %s", err)
+			return err
 		}
 		pw := secret.Data["password"]
 		keycloakpw := string(pw)
 		if keycloakpw == "" {
-			log.Fatal("Keycloak Post Upgrade: Error retrieving Keycloak password")
+			ctx.Log().Error("Keycloak Post Upgrade: Error retrieving Keycloak password")
+			return errors.New("Keycloak Post Upgrade: Error retrieving Keycloak password")
 		}
 		ctx.Log().Info("Keycloak Post Upgrade: Successfully retrieved Keycloak password")
 
 		// Login to Keycloak
-		cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
+		cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
 			"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
 		_, err = cmd.Output()
 		if err != nil {
-			log.Fatalf("Error = %s", err)
+			ctx.Log().Errorf("Keycloak Post Upgrade: Error logging into Keycloak: %s", err)
+			return err
 		}
 		ctx.Log().Info("Keycloak Post Upgrade: Successfully logged into Keycloak")
 
 		// Get the Client ID JSON array
-		cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 		out, err := cmd.Output()
 		if err != nil {
-			log.Fatalf("Error = %s", err)
+			ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving Keycloak Clients: %s", err)
+			return err
 		}
 		if len(string(out)) == 0 {
-			log.Fatal("Error retrieving Clients JSON from Keycloak, zero length\n")
+			ctx.Log().Error("Keycloak Post Upgrade: Error retrieving Clients JSON from Keycloak, zero length")
+			return errors.New("Keycloak Post Upgrade: error retrieving Clients JSON from Keycloak, zero length")
 		}
 		json.Unmarshal([]byte(out), &keycloakClients)
 
@@ -109,25 +120,27 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 		for _, client := range keycloakClients {
 			if client.ClientID == "verrazzano-pkce" {
 				id = client.ID
-				ctx.Log().Infof("Keycloak Clients ID found = %s", id)
+				ctx.Log().Debugf("Keycloak Clients ID found = %s", id)
 			}
 		}
 		if id == "" {
-			log.Fatal("Error retrieving ID for verrazzano-pkce, zero length\n")
+			ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving ID for Keycloak user, zero length")
+			return errors.New("Keycloak Post Upgrade: Error retrieving ID for Keycloak user, zero length")
 		}
 		ctx.Log().Info("Keycloak Post Upgrade: Successfully retrieved clientID")
 
 		// Get DNS Domain Configuration
 		dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
+			ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving DNS sub domain: %s", err)
 			return err
 		}
-		ctx.Log().Infof("DNSDomain returned = %s", dnsSubDomain)
+		ctx.Log().Infof("Keycloak Post Upgrade: DNSDomain returned %s", dnsSubDomain)
 
 		// Call the Script and Update the URIs
 		scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
 		if _, stderr, err := bashFunc(scriptName, id, dnsSubDomain); err != nil {
-			ctx.Log().Errorf("Failed updating KeyCloak URIs %s: %s", err, stderr)
+			ctx.Log().Errorf("Keycloak Post Upgrade: Failed updating KeyCloak URIs %s: %s", err, stderr)
 			return err
 		}
 	}
