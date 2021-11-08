@@ -29,7 +29,7 @@ VERSION=${1}
 TMPDIR=$(mktemp -d)
 trap 'rm -r "${TMPDIR}"' exit
 
-# Configure sha command based on plarform
+# Configure sha command based on platform
 SHA_CMD="sha256sum -c"
 
 if [ "$(uname)" == "Darwin" ]; then
