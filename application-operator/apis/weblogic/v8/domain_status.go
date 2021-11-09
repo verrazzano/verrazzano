@@ -27,7 +27,7 @@ type DomainStatus struct {
 	Reason string `json:"reason,omitempty"`
 
 	// Unique id of the last introspector job that was processed for this domain.
-	LastIntrospectJobProcessedUID int `json:"lastIntrospectJobProcessedUid,omitempty"`
+	LastIntrospectJobProcessedUID string `json:"lastIntrospectJobProcessedUid,omitempty"`
 
 	// The number of running managed servers in the WebLogic cluster if there is
 	// only one cluster in the domain and where the cluster does not explicitly

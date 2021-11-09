@@ -181,7 +181,7 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "1.1.0-20211102132834-225ffc1",
+              "tag": "1.1.0-20211103193921-f3b3db2",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
@@ -192,7 +192,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20211101174500-1998b28",
+              "tag": "1.1.0-20211102141650-ff61e2c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211011132457-21d029754c",
+              "tag": "15.0.2-20211108162355-fe28841361",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

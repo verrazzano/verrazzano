@@ -785,6 +785,9 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 }
 
 func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
-	log.Info(fmt.Sprintf("The Weblogic domain %s/%s restart version is set to %s", domainNamespace, domainName, restartVersion))
-	return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
+	if len(restartVersion) > 0 {
+		log.Info(fmt.Sprintf("The Weblogic domain %s/%s restart version is set to %s", domainNamespace, domainName, restartVersion))
+		return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
+	}
+	return nil
 }
