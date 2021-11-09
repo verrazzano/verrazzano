@@ -49,7 +49,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        BRANCH_NAME="master"
+        CLEAN_BRANCH_NAME = ${env.BRANCH_NAME.replace("/", "%2F")}
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
     }
 
@@ -109,7 +109,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + GIT_COMMIT_TO_USE
-                    storeLocation="${env.BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
+                    storeLocation="${CLEAN_BRANCH_NAME}-last-clean-periodic-test/${tarfilePrefix}.zip"
                 }
             }
         }
@@ -119,7 +119,7 @@ pipeline {
                 stage('Multi Cluster Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -132,7 +132,7 @@ pipeline {
                 stage('Uninstall Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -145,7 +145,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -159,7 +159,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -173,7 +173,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.20') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -187,7 +187,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.21') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -201,7 +201,7 @@ pipeline {
                 stage('Upgrade tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -215,7 +215,7 @@ pipeline {
                     steps {
                         script {
                             // Do not use Calico
-                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -238,7 +238,7 @@ pipeline {
                     steps {
                         script {
                             // test with sslip.io
-                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -260,7 +260,7 @@ pipeline {
                 stage('Dynamic Configuration Tests') {
                     steps {
                         script {
-                            build job: "verrazzano-dynamic-config-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -281,7 +281,7 @@ pipeline {
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
                         script {
-                            build job: "verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'CERT_ISSUER', value: "acme"),
@@ -304,7 +304,7 @@ pipeline {
                 /*stage('Multi Cluster with OCI DNS/ACME-Staging Tests') {
                     steps {
                         script {
-                            build job: "verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'TEST_ENV', value: 'ocidns_oke'),
@@ -337,16 +337,14 @@ pipeline {
                 stage("Upload Periodic Run Artifacts") {
                     steps {
                         sh """
-                            if [ "${env.BRANCH_NAME}" == "master" ]; then
-                                ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
-                            fi
+                            ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
                         """
                     }
                 }
                 stage('Private Registry Tests') {
                     steps {
                         script {
-                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'ZIPFILE_LOCATION', value: storeLocation)
@@ -358,9 +356,7 @@ pipeline {
                     steps {
                         script {
                             sh """
-                                if [ "${env.BRANCH_NAME}" == "master" ]; then
-                                    ci/scripts/periodic_push_to_ocir.sh
-                                fi
+                                ci/scripts/periodic_push_to_ocir.sh
                             """
                         }
                     }
@@ -390,7 +386,7 @@ pipeline {
 
 def isAlertingEnabled() {
     // this controls whether any alerting happens for these tests
-    if (NOTIFY_PERIODIC_FAILURES.equals("true") && env.BRANCH_NAME.equals("master")) {
+    if (NOTIFY_PERIODIC_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.equals("release-1.*"))) {
         echo "Alert notifications enabled for master"
         return true
     }

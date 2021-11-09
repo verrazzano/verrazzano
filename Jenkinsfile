@@ -52,6 +52,8 @@ pipeline {
     }
 
     environment {
+        CLEAN_BRANCH_NAME = ${env.BRANCH_NAME.replace("/", "%2F")}
+
         DOCKER_ANALYSIS_CI_IMAGE_NAME = 'verrazzano-analysis-jenkins'
         DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME = 'verrazzano-analysis'
         DOCKER_ANALYSIS_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME : env.DOCKER_ANALYSIS_CI_IMAGE_NAME}"

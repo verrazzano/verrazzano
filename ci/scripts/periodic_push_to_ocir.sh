@@ -3,12 +3,16 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+
+# Normally master and release-* branches are the only ones doing this, but when we need to test out pipeline changes we can make use
+# as well
+
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 TOOL_SCRIPT_DIR=${SCRIPT_DIR}/../../tools/scripts
 TEST_SCRIPT_DIR=${SCRIPT_DIR}/../../tests/e2e/config/scripts
 
 if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCIR_SCAN_REGISTRY" ] \
-   || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$OCIR_SCAN_COMPARTMENT" ] || [ -z "$OCIR_SCAN_TARGET" ]; then
+   || [ -z "$OCIR_SCAN_REPOSITORY_PATH" ] || [ -z "$OCIR_SCAN_COMPARTMENT" ] || [ -z "$OCIR_SCAN_TARGET" ] || [ -z "${CLEAN_BRANCH_NAME}" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -22,7 +26,7 @@ fi
 
 # If we have a previous last-ocir-pushed-verrazzno-bom.json, then see if it matches the verrazzano-bom.json used
 # to test with in this run. If they match, then we have already pushed the images for this verrazzano-bom.json
-# into OCIR for Master periodic runs and we do not need to do that again.
+# into OCIR for this branches periodic runs and we do not need to do that again.
 # If they don't match, or if we didn't have one to compare, then we will proceed to push them to OCIR
 if [ -f "${WORKSPACE}/last-ocir-pushed-verrazzano-bom.json" ]; then
   diff ${WORKSPACE}/last-ocir-pushed-verrazzano-bom.json ${WORKSPACE}/verrazzano-bom.json > /dev/null
@@ -54,8 +58,8 @@ sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_
 
 # Finally push the current verrazzano-bom.json up as the last-ocir-pushed-verrazzano-bom.json so we know those were the latest images
 # pushed up. This is used above for avoiding pushing things multiple times for no reason, and it also is used when polling for results
-# to know which images were last pushed for Master (which results are the latest)
-oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json --file ${WORKSPACE}/verrazzano-bom.json
+# to know which images were last pushed for the branch (which results are the latest)
+oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json --file ${WORKSPACE}/verrazzano-bom.json
 
 # TBD: We could also save the list of repositories as well, that may save the polling job some work so it doesn't need to figure that out
 # or simply just rely on the BOM there and compute from that.
