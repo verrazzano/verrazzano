@@ -237,9 +237,11 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 
 	// create role binding for each managed cluster to limit resource access to admin cluster
 	for _, cluster := range vp.Spec.Placement.Clusters {
-		rb := newRoleBindingManagedCluster(namespace, cluster.Name)
-		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
-			return err
+		if cluster.Name != constants.DefaultClusterName {
+			rb := newRoleBindingManagedCluster(namespace, cluster.Name)
+			if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -383,14 +385,6 @@ func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1
 	if err != nil {
 		return err
 	}
-
-	// Add the default local cluster to the VMC list
-	vmc := v1alpha1.VerrazzanoManagedCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.DefaultClusterName,
-		},
-	}
-	vmcList.Items = append(vmcList.Items, vmc)
 
 	for _, vmc := range vmcList.Items {
 		for _, vp := range vpList.Items {

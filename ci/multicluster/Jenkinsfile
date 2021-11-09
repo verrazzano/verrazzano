@@ -545,7 +545,8 @@ pipeline {
                                 testTodoExample("multicluster/examples/todo-list")
                             }
                         }
-*/                    }
+*/
+                    }
                 }
                 stage ('Console') {
                     environment {
