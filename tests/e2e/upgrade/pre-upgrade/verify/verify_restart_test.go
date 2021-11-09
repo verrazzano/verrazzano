@@ -5,24 +5,17 @@ package verify
 
 import (
 	"fmt"
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-const (
-	waitTimeout     = 3 * time.Minute
-	pollingInterval = 10 * time.Second
-)
-
 var _ = Describe("Post-upgrade", func() {
 	const bobNamespace = "bobs-books"
 	const helidonNamespace = "hello-helidon"
-	const springNamespace = "istio-system"
-	const todoNamespace = "istio-system"
+	const springNamespace = "springboot"
+	const todoNamespace = "todo-list"
 
 	ginkgoExt.DescribeTable("applications pods should not be restarted by upgrade",
 		func(namespace string) {
@@ -33,9 +26,9 @@ var _ = Describe("Post-upgrade", func() {
 			}
 			Expect(len(pods)).To(BeZero(), fmt.Sprintf("%v in namespace %s were restarted", len(pods), namespace))
 		},
-		ginkgoExt.Entry(fmt.Sprintf("%s applicaiton pods in %s namespace should not have been restart ", bobNamespace), bobNamespace),
-		ginkgoExt.Entry(fmt.Sprintf("%s applicaiton pods in %s namespace should not have been restart ", todoNamespace), todoNamespace),
-		ginkgoExt.Entry(fmt.Sprintf("%s applicaiton pods in %s namespace should not have been restart ", helidonNamespace), helidonNamespace),
-		ginkgoExt.Entry(fmt.Sprintf("%s applicaiton pods in %s namespace should not have been restart ", springNamespace), springNamespace),
+		ginkgoExt.Entry(fmt.Sprintf("application pods in %s namespace should not have been restarted ", bobNamespace), bobNamespace),
+		ginkgoExt.Entry(fmt.Sprintf("application pods in %s namespace should not have been restarted ", todoNamespace), todoNamespace),
+		ginkgoExt.Entry(fmt.Sprintf("application pods in %s namespace should not have been restarted ", helidonNamespace), helidonNamespace),
+		ginkgoExt.Entry(fmt.Sprintf("application pods in %s namespace should not have been restarted ", springNamespace), springNamespace),
 	)
 })
