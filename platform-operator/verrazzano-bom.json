@@ -198,7 +198,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
