@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
-
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -1530,7 +1528,7 @@ func TestReconcileRestart(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{appconfig.RestartVersionAnnotation: restartVersion}
+	annotations := map[string]string{constants.RestartVersionAnnotation: restartVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage

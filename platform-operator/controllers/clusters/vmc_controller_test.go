@@ -110,7 +110,10 @@ func TestCreateVMC(t *testing.T) {
 		asserts.NotEmpty(scrapeConfig.Search("basic_auth", "password").Data(), "No password")
 		asserts.Equal(prometheusConfigBasePath+"ca-test",
 			scrapeConfig.Search("tls_config", "ca_file").Data(), "Wrong cert path")
-		// assert that the verrazzano_cluster label is added in the static config
+		// assert that BOTH managed_cluster and verrazzano_cluster labels are added in the static config
+		asserts.Equal(testManagedCluster, scrapeConfig.Search(
+			"static_configs", "0", "labels", "managed_cluster").Data(),
+			"Label managed_cluster not set correctly in static_configs")
 		asserts.Equal(testManagedCluster, scrapeConfig.Search(
 			"static_configs", "0", "labels", "verrazzano_cluster").Data(),
 			"Label verrazzano_cluster not set correctly in static_configs")
