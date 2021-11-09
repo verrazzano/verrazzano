@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -22,7 +21,6 @@ import (
 )
 
 // For unit testing
-const actualBomFilePath = "../../../verrazzano-bom.json"
 const testBomFilePath = "../../../controllers//verrazzano/testdata/test_bom.json"
 const invalidTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom.json"
 const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom_path.json"
@@ -405,20 +403,6 @@ func TestGetCurrentBomVersion(t *testing.T) {
 	version, err := GetCurrentBomVersion()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, version)
-}
-
-// TestActualBomFile Tests GetCurrentBomVersion with the actual verrazzano-bom.json that is in this
-// code repo to ensure the file can at least be parsed
-func TestActualBomFile(t *testing.T) {
-	// repeat the test with the _actual_ bom file in the code repository
-	// to make sure it can at least be parsed without an error
-	config.SetDefaultBomFilePath(actualBomFilePath)
-	_, err := GetCurrentBomVersion()
-	absPath, err2 := filepath.Abs(actualBomFilePath)
-	if err2 != nil {
-		absPath = actualBomFilePath
-	}
-	assert.NoError(t, err, "Could not get BOM version from file %s", absPath)
 }
 
 // TestGetCurrentBomVersionFileReadError Tests  getBomVersion() when there is an error reading the BOM file
