@@ -298,7 +298,7 @@ pipeline {
                 }
                 stage('verify pre-upgrade') {
                     steps {
-                        runGinkgoRandomize('upgrade/pre-upgrade/verify-app')
+                        runGinkgoRandomize('upgrade/pre-upgrade/verify')
                     }
                 }
             }
