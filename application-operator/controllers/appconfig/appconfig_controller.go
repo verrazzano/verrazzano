@@ -100,26 +100,26 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 
 	switch workload.GetKind() {
 	case "VerrazzanoCoherenceWorkload":
-		// passs "verrazzano.io/restart-version" to VerrazzanoCoherenceWorkload
-		err = addAnnotation(workload, restartVersion)
+		// pass "verrazzano.io/restart-version" to VerrazzanoCoherenceWorkload
+		err = r.addAnnotation(ctx, workload, restartVersion)
 		if err != nil {
 			return err
 		}
 	case "VerrazzanoWebLogicWorkload":
-		// passs "verrazzano.io/restart-version" to VerrazzanoWebLogicWorkload
-		err = addAnnotation(workload, restartVersion)
+		// pass "verrazzano.io/restart-version" to VerrazzanoWebLogicWorkload
+		err = r.addAnnotation(ctx, workload, restartVersion)
 		if err != nil {
 			return err
 		}
 	case "VerrazzanoHelidonWorkload":
-		// passs "verrazzano.io/restart-version" to VerrazzanoHelidonWorkload
-		err = addAnnotation(workload, restartVersion)
+		// pass "verrazzano.io/restart-version" to VerrazzanoHelidonWorkload
+		err = r.addAnnotation(ctx, workload, restartVersion)
 		if err != nil {
 			return err
 		}
 	case "ContainerizedWorkload":
-		// passs "verrazzano.io/restart-version" to ContainerizedWorkload
-		err = addAnnotation(workload, restartVersion)
+		// pass "verrazzano.io/restart-version" to ContainerizedWorkload
+		err = r.addAnnotation(ctx, workload, restartVersion)
 		if err != nil {
 			return err
 		}
@@ -145,13 +145,17 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 	return nil
 }
 
-func addAnnotation(workload *unstructured.Unstructured, restartVersion string) error {
+func (r *Reconciler) addAnnotation(ctx context.Context, workload *unstructured.Unstructured, restartVersion string) error {
 	annotations, found, _ := unstructured.NestedStringMap(workload.Object, containerAnnotationsFields...)
 	if !found {
 		annotations = map[string]string{}
 	}
 	annotations[RestartVersionAnnotation] = restartVersion
-	return unstructured.SetNestedStringMap(workload.Object, annotations, containerAnnotationsFields...)
+	err := unstructured.SetNestedStringMap(workload.Object, annotations, containerAnnotationsFields...)
+	if err != nil {
+		return err
+	}
+	return r.Update(ctx, workload)
 }
 
 func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
