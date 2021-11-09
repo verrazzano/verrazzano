@@ -1659,7 +1659,7 @@ func TestReconcileStopDomain(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{appconfig.RestartVersionAnnotation: testRestartVersion}
+	annotations := map[string]string{constants.RestartVersionAnnotation: testRestartVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -1736,7 +1736,7 @@ func TestReconcileStartDomain(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{appconfig.RestartVersionAnnotation: testRestartVersion}
+	annotations := map[string]string{constants.RestartVersionAnnotation: testRestartVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage

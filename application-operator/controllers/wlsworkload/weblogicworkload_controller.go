@@ -258,7 +258,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// restart domain by setting serverStartPolicy to "NEVER" and back with presence of "restart-version" annotation
 	// and domain pods istio proxy is 1.7.3
-	restartVersion := workload.Annotations[appconfig.RestartVersionAnnotation]
+	restartVersion := workload.Annotations[constants.RestartVersionAnnotation]
 	if len(restartVersion) > 0 && restartVersion != existingDomain.Spec.RestartVersion {
 		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
 		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
