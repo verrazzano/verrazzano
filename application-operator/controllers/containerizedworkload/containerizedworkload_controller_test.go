@@ -31,12 +31,8 @@ const (
 	testRestartVersion = "new-restart"
 	testNamespace      = "test-namespace"
 
-	appConfigName                 = "test-appconf"
-	componentName                 = "test-component"
-	testContainerizedWorkloadName = "test-containerizedworkload"
-	testComponentName             = "test-component"
-	testNewRestartVersion         = "test-new-restart"
-	testDeploymentName            = "test-deployment"
+	appConfigName = "test-appconf"
+	componentName = "test-component"
 )
 
 // newScheme creates a new scheme that includes this package's object to use for testing
