@@ -452,6 +452,16 @@ pipeline {
                         validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
                     }
                 }
+                stage("Validate todo-list istio upgrade") {
+                    steps {
+                        validateProxyImageCount("todo-list", PROXY_IMAGES_TODO)
+                    }
+                }
+                stage("Validate bobs-books istio upgrade") {
+                    steps {
+                        validateProxyImageCount("bobs-books", PROXY_IMAGES_BOBSBOOKS)
+                    }
+                }
                 stage("Istioctl verify install") {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -472,7 +482,7 @@ pipeline {
                 }
                 success {
                     script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('validate-upgrade-success-cluster-dump')
                         }
                     }
@@ -523,6 +533,11 @@ pipeline {
                 stage('examples todo') {
                     steps {
                         runGinkgo('examples/todo', "true", "false")
+                    }
+                }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "true", "false")
                     }
                 }
             }
@@ -941,10 +956,14 @@ def validateIstioCoreDNSUninstall() {
 
 def restartExampleApps() {
     sh """
-        kubectl rollout restart deployment -n springboot
+        kubectl -n verrazzano-system rollout status deployment/verrazzano-application-operator
+        sleep 60
 
-        kubectl rollout restart deployment -n hello-helidon
-    """
+        kubectl annotate appconfig hello-helidon-appconf -n hello-helidon verrazzano.io/restart-version="aaa" --overwrite
+        kubectl annotate appconfig springboot-appconf -n springboot verrazzano.io/restart-version="aaa" --overwrite
+        kubectl annotate appconfig todo-appconf -n todo-list verrazzano.io/restart-version="aaa" --overwrite
+        kubectl annotate appconfig bobs-books -n bobs-books verrazzano.io/restart-version="aaa" --overwrite
+       """
 }
 
 def getProxyImageCount(namespace)  {
@@ -962,5 +981,6 @@ def validateProxyImageCount(namespace, count) {
         sleep(15)
     }
     echo "Incorrect number of new istio proxy images in namespace ${namespace} after upgrade, found ${upgraded_proxy_images} but expected ${count}"
+    sh """kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image}"""
     exit 1
 }
