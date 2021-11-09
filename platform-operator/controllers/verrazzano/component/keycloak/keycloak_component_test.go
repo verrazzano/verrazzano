@@ -3,6 +3,7 @@
 package keycloak
 
 import (
+	"errors"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -17,10 +18,16 @@ import (
 )
 
 var keycloakClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
+var keycloakErrorClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
 
-// fakeBash verifies that the correct parameter values are passed to upgrade
+// fakeBash mocks a successful script run
 func fakeBash(_ ...string) (string, string, error) {
 	return "success", "", nil
+}
+
+// fakeBashFail mocks a failed script run
+func fakeBashFail(_ ...string) (string, string, error) {
+	return "fail", "Script Failed", errors.New("Script Failed")
 }
 
 func fakeExecCommand(command string, args ...string) *exec.Cmd {
@@ -28,7 +35,6 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	cs = append(cs, args...)
 	firstArg := os.Args[0]
 	cmd := exec.Command(firstArg, cs...)
-	//	cmd := exec.Command(os.Args[0], cs...)
 	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
 	return cmd
 }
@@ -39,6 +45,60 @@ func TestHelperProcess(t *testing.T) {
 	}
 
 	fmt.Fprintf(os.Stdout, keycloakClientIds)
+	os.Exit(0)
+}
+
+func fakeFailExecCommand(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestFailHelperProcess", "--", command}
+	cs = append(cs, args...)
+	firstArg := os.Args[0]
+	cmd := exec.Command(firstArg, cs...)
+	cmd.Env = []string{"GO_WANT_FAIL_HELPER_PROCESS=1"}
+	return cmd
+}
+
+func TestFailHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_FAIL_HELPER_PROCESS") != "1" {
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, keycloakClientIds)
+	os.Exit(1)
+}
+
+func fakeFailExecCommandNoClients(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestFailNoClientsHelperProcess", "--", command}
+	cs = append(cs, args...)
+	firstArg := os.Args[0]
+	cmd := exec.Command(firstArg, cs...)
+	cmd.Env = []string{"GO_WANT_FAIL_NO_CLIENTS_HELPER_PROCESS=1"}
+	return cmd
+}
+
+func TestFailNoClientsHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_FAIL_NO_CLIENTS_HELPER_PROCESS") != "1" {
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "")
+	os.Exit(0)
+}
+
+func fakeFailExecCommandNoUser(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestFailNoUserHelperProcess", "--", command}
+	cs = append(cs, args...)
+	firstArg := os.Args[0]
+	cmd := exec.Command(firstArg, cs...)
+	cmd.Env = []string{"GO_WANT_FAIL_NO_USER_HELPER_PROCESS=1"}
+	return cmd
+}
+
+func TestFailNoUserHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_FAIL_NO_USER_HELPER_PROCESS") != "1" {
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, keycloakErrorClientIds)
 	os.Exit(0)
 }
 
@@ -85,11 +145,217 @@ func Test_updateKeycloakUris(t *testing.T) {
 				false),
 			wantErr: false,
 		},
+		{
+			name: "testFailForNoKeycloakSecret",
+			args: spi.NewContext(zap.S(),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme,
+					&v1.Service{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "ingress-controller-ingress-nginx-controller",
+							Namespace: "ingress-nginx",
+						},
+						Spec: v1.ServiceSpec{},
+						Status: v1.ServiceStatus{
+							LoadBalancer: v1.LoadBalancerStatus{
+								Ingress: []v1.LoadBalancerIngress{
+									{IP: "192.132.111.122",
+										Hostname: ""},
+								},
+							},
+						},
+					}),
+				vz,
+				false),
+			wantErr: true,
+		},
+		{
+			name: "testFailForKeycloakSecretPasswordEmpty",
+			args: spi.NewContext(zap.S(),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-http",
+						Namespace: "keycloak",
+					},
+					Data: map[string][]byte{"password": []byte("")},
+				},
+					&v1.Service{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "ingress-controller-ingress-nginx-controller",
+							Namespace: "ingress-nginx",
+						},
+						Spec: v1.ServiceSpec{},
+						Status: v1.ServiceStatus{
+							LoadBalancer: v1.LoadBalancerStatus{
+								Ingress: []v1.LoadBalancerIngress{
+									{IP: "192.132.111.122",
+										Hostname: ""},
+								},
+							},
+						},
+					}),
+				vz,
+				false),
+			wantErr: true,
+		},
+		{
+			name: "testFailForAuthenticationToKeycloak",
+			args: spi.NewContext(zap.S(),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-http",
+						Namespace: "keycloak",
+					},
+					Data: map[string][]byte{"password": []byte("password")},
+				},
+					&v1.Service{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "ingress-controller-ingress-nginx-controller",
+							Namespace: "ingress-nginx",
+						},
+						Spec: v1.ServiceSpec{},
+						Status: v1.ServiceStatus{
+							LoadBalancer: v1.LoadBalancerStatus{
+								Ingress: []v1.LoadBalancerIngress{
+									{IP: "192.132.111.122",
+										Hostname: ""},
+								},
+							},
+						},
+					}),
+				vz,
+				false),
+			wantErr: true,
+		},
+		{
+			name: "testFailForNoKeycloakClientsReturned",
+			args: spi.NewContext(zap.S(),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-http",
+						Namespace: "keycloak",
+					},
+					Data: map[string][]byte{"password": []byte("password")},
+				},
+					&v1.Service{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "ingress-controller-ingress-nginx-controller",
+							Namespace: "ingress-nginx",
+						},
+						Spec: v1.ServiceSpec{},
+						Status: v1.ServiceStatus{
+							LoadBalancer: v1.LoadBalancerStatus{
+								Ingress: []v1.LoadBalancerIngress{
+									{IP: "192.132.111.122",
+										Hostname: ""},
+								},
+							},
+						},
+					}),
+				vz,
+				false),
+			wantErr: true,
+		},
+		{
+			name: "testFailForKeycloakUserNotFound",
+			args: spi.NewContext(zap.S(),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-http",
+						Namespace: "keycloak",
+					},
+					Data: map[string][]byte{"password": []byte("password")},
+				},
+					&v1.Service{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "ingress-controller-ingress-nginx-controller",
+							Namespace: "ingress-nginx",
+						},
+						Spec: v1.ServiceSpec{},
+						Status: v1.ServiceStatus{
+							LoadBalancer: v1.LoadBalancerStatus{
+								Ingress: []v1.LoadBalancerIngress{
+									{IP: "192.132.111.122",
+										Hostname: ""},
+								},
+							},
+						},
+					}),
+				vz,
+				false),
+			wantErr: true,
+		},
+		{
+			name: "testFailForNoIngress",
+			args: spi.NewContext(zap.S(),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-http",
+						Namespace: "keycloak",
+					},
+					Data: map[string][]byte{"password": []byte("password")},
+				}),
+				vz,
+				false),
+			wantErr: true,
+		},
+		{
+			name: "testScriptFailure",
+			args: spi.NewContext(zap.S(),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-http",
+						Namespace: "keycloak",
+					},
+					Data: map[string][]byte{"password": []byte("password")},
+				},
+					&v1.Service{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "ingress-controller-ingress-nginx-controller",
+							Namespace: "ingress-nginx",
+						},
+						Spec: v1.ServiceSpec{},
+						Status: v1.ServiceStatus{
+							LoadBalancer: v1.LoadBalancerStatus{
+								Ingress: []v1.LoadBalancerIngress{
+									{IP: "192.132.111.122",
+										Hostname: ""},
+								},
+							},
+						},
+					}),
+				vz,
+				false),
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			execCommand = fakeExecCommand
+			if tt.wantErr && tt.name == "testFailForAuthenticationToKeycloak" {
+				execCommand = fakeFailExecCommand
+			}
+			if tt.wantErr && tt.name == "testFailForNoKeycloakClientsReturned" {
+				execCommand = fakeFailExecCommandNoClients
+			}
+			if tt.wantErr && tt.name == "testFailForKeycloakUserNotFound" {
+				execCommand = fakeFailExecCommandNoUser
+			}
 			setBashFunc(fakeBash)
+			if tt.wantErr && tt.name == "testScriptFailure" {
+				setBashFunc(fakeBashFail)
+			}
 			defer func() { execCommand = exec.Command }()
 			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
