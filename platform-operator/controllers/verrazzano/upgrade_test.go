@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -850,6 +851,22 @@ func TestUpgradeHelmError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				HelmComponent: helmcomp.HelmComponent{
+					IsEnabledFunc: func(context spi.ComponentContext) bool {
+						return true
+					},
+				},
+				upgradeFunc: func(ctx spi.ComponentContext) error {
+					return fmt.Errorf("Error running upgrade")
+				},
+			},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -895,9 +912,6 @@ func TestUpgradeHelmError(t *testing.T) {
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeFailed, "Incorrect condition")
 			return nil
 		})
-
-	// Inject a bad cmd runner to the real helm is not called
-	helm.SetCmdRunner(badRunner{})
 
 	// Create and make the request
 	request := newRequest(namespace, name)
