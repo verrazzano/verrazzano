@@ -72,7 +72,7 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 	}
 
 	//  Log get values output
-	log.Infof("helm get values succeeded for %s", releaseName)
+	log.Debugf("helm get values succeeded for %s", releaseName)
 
 	return stdout, nil
 }
@@ -228,12 +228,12 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 	}
 	cmd := exec.Command("helm", args...)
 	stdout, stderr, err := runner.Run(cmd)
-	log.Infof("helm status stdout: %s", string(stdout))
-	log.Infof("helm status stderr: %s", string(stderr))
 
 	if err == nil {
+		log.Debugf("helm status stdout: %s", string(stdout))
 		return true, nil
 	}
+
 	if strings.Contains(string(stderr), "not found") {
 		return false, nil
 	}
