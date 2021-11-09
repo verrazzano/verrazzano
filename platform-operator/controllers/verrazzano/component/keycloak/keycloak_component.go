@@ -73,7 +73,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 func updateKeycloakUris(ctx spi.ComponentContext) error {
 	var keycloakClients KeycloakClients
 
-	if ctx.ActualCR().Spec.Profile != vzapi.ManagedCluster {
+	if ctx.EffectiveCR().Spec.Profile != vzapi.ManagedCluster {
 		// Get the Keycloak admin password
 		secret := &corev1.Secret{}
 		err := ctx.Client().Get(context.TODO(), client.ObjectKey{
