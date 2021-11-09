@@ -466,6 +466,11 @@ pipeline {
                         }
                     }
                 }
+                stage('verify post-upgrade') {
+                    steps {
+                        runGinkgoRandomize('upgrade/verify-app/restart')
+                    }
+                }
             }
             post {
                 failure {

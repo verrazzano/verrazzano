@@ -258,7 +258,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// If the domain already exists, make sure that the domain can be restarted
+	// If the domain already exists, make sure that the domain can be restarted.
+	// If the domain cannot be restarted, don't make any domain changes.
 	if domainExists && !r.isOkToRestartWebLogic(workload) {
 		log.Info("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
 		return ctrl.Result{}, nil
