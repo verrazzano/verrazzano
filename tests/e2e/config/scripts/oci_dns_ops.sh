@@ -45,8 +45,8 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
-  zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY | jq -r ".data | .[\"id\"]")
-  status_code=${PIPESTATUS[0]}
+  zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY | jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+  status_code=$?
   if [ ${status_code} -ne 0 ]; then
     echo "Failed creating zone, attempting to fetch zone to see if it already exists"
     oci dns zone get --zone-name-or-id ${ZONE_NAME}
