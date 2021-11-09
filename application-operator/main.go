@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -356,6 +357,14 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ApplicationConfiguration")
+		os.Exit(1)
+	}
+	if err = (&containerizedworkload.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("ContainerizedWorkload"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ContainerizedWorkload")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

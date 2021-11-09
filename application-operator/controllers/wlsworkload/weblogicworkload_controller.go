@@ -22,7 +22,6 @@ import (
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -314,7 +313,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// write out restartVersion in Weblogic domain
-	if err = r.addDomainRestartVersion(u, workload.Annotations[appconfig.RestartVersionAnnotation], u.GetName(), workload.Namespace, log); err != nil {
+	if err = r.addDomainRestartVersion(u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
 

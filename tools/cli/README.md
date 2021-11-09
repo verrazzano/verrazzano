@@ -26,7 +26,7 @@ Verrazzano installations have a default user `verrazzano` configured in the Verr
    kubectl get secret --namespace verrazzano-system verrazzano -o jsonpath={.data.password} | base64 --decode; echo
 ```
 
-The Verrazzano CLI accesses the Verrazzano API using [JSON Web Token (JWT)](https://en.wikipedia.org/wiki/JSON_Web_Token)-based authentication enabled by the [Keycloak Authorization Services](https://www.keycloak.org/docs/4.8/authorization_services/). The CLI application requests this token from the Keycloak API Server. To access the Keycloak API, the user accessing the CLI application must be logged in to Keycloak and have a valid session. When an existing Keycloak user session is expired or upon the expiration of the [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/), the user has to login again.
+The Verrazzano CLI accesses the Verrazzano API using [JSON Web Token (JWT)](https://en.wikipedia.org/wiki/JSON_Web_Token)-based authentication enabled by the [Keycloak Authorization Services](https://www.keycloak.org/docs/latest/authorization_services/). The CLI application requests this token from the Keycloak API Server. To access the Keycloak API, the user accessing the CLI application must be logged in to Keycloak and have a valid session. When an existing Keycloak user session is expired or upon the expiration of the [refresh token](https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/), the user has to login again.
 
 ## Setting up the environment variables
 ````

@@ -15,16 +15,13 @@ spec:
         metadata:
           name: carts-coh
         spec:
-          labels:
-            app: carts-coh
-            version: v1
-          cluster: SockShop
+          cluster: SockShopCarts
           role: Carts
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-carts:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-carts:1.0.0
           imagePullPolicy: IfNotPresent
           application:
-            type: helidon
+            main: com.oracle.coherence.examples.sockshop.spring.carts.CartsApp
           jvm:
             memory:
               heapSize: 2g
@@ -34,10 +31,10 @@ spec:
               enabled: true
           ports:
             - name: http
-              port: 7001
+              port: 8080
               service:
                 name: carts
-                port: 7001
+                port: 8080
               serviceMonitor:
                 enabled: true
 # these additional metrics ports are commented out here and elsewhere until VZ-3760 is fixed
@@ -60,16 +57,13 @@ spec:
         metadata:
           name: catalog-coh
         spec:
-          labels:
-            app: catalog-coh
-            version: v1
-          cluster: SockShop
+          cluster: SockShopCatalog
           role: Catalog
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-catalog:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-catalog:1.0.0
           imagePullPolicy: IfNotPresent
           application:
-            type: helidon
+            main: com.oracle.coherence.examples.sockshop.spring.catalog.CatalogApp
           jvm:
             memory:
               heapSize: 2g
@@ -83,10 +77,10 @@ spec:
 #              serviceMonitor:
 #                enabled: true
             - name: http
-              port: 7001
+              port: 8080
               service:
                 name: catalogue  # for compatibility with the existing front-end implementation
-                port: 7001
+                port: 8080
               serviceMonitor:
                 enabled: true
 ---
@@ -104,16 +98,13 @@ spec:
         metadata:
           name: orders-coh
         spec:
-          labels:
-            app: orders-coh
-            version: v1
-          cluster: SockShop
+          cluster: SockShopOrders
           role: Orders
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-orders:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-orders:1.0.0
           imagePullPolicy: IfNotPresent
           application:
-            type: helidon
+            main: com.oracle.coherence.examples.sockshop.spring.orders.OrdersApp
           jvm:
             memory:
               heapSize: 2g
@@ -123,10 +114,10 @@ spec:
               enabled: true
           ports:
             - name: http
-              port: 7001
+              port: 8080
               service:
                 name: orders
-                port: 7001
+                port: 8080
               serviceMonitor:
                 enabled: true
 #            - name: metrics
@@ -148,16 +139,13 @@ spec:
         metadata:
           name: payment-coh
         spec:
-          labels:
-            app: payment-coh
-            version: v1
-          cluster: SockShop
+          cluster: SockShopPayment
           role: Payment
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-payment:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-payment:1.0.0
           imagePullPolicy: IfNotPresent
           application:
-            type: helidon
+            main: com.oracle.coherence.examples.sockshop.spring.payment.PaymentApp
           jvm:
             memory:
               heapSize: 2g
@@ -171,10 +159,10 @@ spec:
               service:
                 name: payment
             - name: http
-              port: 7001
+              port: 8080
               service:
                 name: payment-http
-                port: 7001
+                port: 8080
               serviceMonitor:
                 enabled: true
 #            - name: metrics
@@ -196,16 +184,13 @@ spec:
         metadata:
           name: shipping-coh
         spec:
-          labels:
-            app: shipping-coh
-            version: v1
-          cluster: SockShop
+          cluster: SockShopShipping
           role: Shipping
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-shipping:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-shipping:1.0.0
           imagePullPolicy: IfNotPresent
           application:
-            type: helidon
+            main: com.oracle.coherence.examples.sockshop.spring.shipping.ShippingApp
           jvm:
             memory:
               heapSize: 2g
@@ -215,10 +200,10 @@ spec:
               enabled: true
           ports:
             - name: http
-              port: 7001
+              port: 8080
               service:
                 name: shipping-http
-                port: 7001
+                port: 8080
               serviceMonitor:
                 enabled: true
             - name: grpc
@@ -244,16 +229,13 @@ spec:
         metadata:
           name: users-coh
         spec:
-          labels:
-            app: users-coh
-            version: v1
-          cluster: SockShop
+          cluster: SockShopUsers
           role: Users
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-users:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-users:1.0.0
           imagePullPolicy: IfNotPresent
           application:
-            type: helidon
+            main: com.oracle.coherence.examples.sockshop.spring.users.UsersApplication
           jvm:
             memory:
               heapSize: 2g
@@ -263,10 +245,10 @@ spec:
               enabled: true
           ports:
             - name: http
-              port: 7001
+              port: 8080
               service:
                 name: user  # for compatibility with the existing front-end implementation
-                port: 7001
+                port: 8080
               serviceMonitor:
                 enabled: true
 #            - name: metrics

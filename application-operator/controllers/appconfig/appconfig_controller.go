@@ -6,6 +6,7 @@ package appconfig
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -21,10 +22,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-const (
-	RestartVersionAnnotation = "verrazzano.io/restart-version"
 )
 
 type Reconciler struct {
@@ -60,21 +57,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
-	restartVersion, ok := appConfig.Annotations[RestartVersionAnnotation]
+	restartVersion, ok := appConfig.Annotations[constants.RestartVersionAnnotation]
 	if !ok || len(restartVersion) == 0 {
 		log.Info("No restart version annotation found, nothing to do")
 		return reconcile.Result{}, nil
 	}
 
 	// restart all components in the appconfig
-	log.Info(fmt.Sprintf("Restarting application with restart-version %s", restartVersion))
+	log.Info(fmt.Sprintf("Reconciling application with restart-version %s", restartVersion))
 	for index := range appConfig.Spec.Components {
 		componentName := appConfig.Spec.Components[index].ComponentName
 		componentNamespace := appConfig.Namespace
-		log.Info(fmt.Sprintf("Restarting component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
+		log.Info(fmt.Sprintf("Marking component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
 		err := r.restartComponent(ctx, componentName, componentNamespace, restartVersion, log)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Enountered error restarting component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
+			log.Error(err, fmt.Sprintf("Enountered error marking component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
 			return reconcile.Result{}, err
 		}
 	}
@@ -124,7 +121,7 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 			return err
 		}
 	default:
-		log.Info(fmt.Sprintf("Skip restarting for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
+		log.Info(fmt.Sprintf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
 	}
 
 	return nil
@@ -141,7 +138,7 @@ func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion strin
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Restarting deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Info(fmt.Sprintf("Marking deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
 	return DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log)
 }
 
@@ -156,7 +153,7 @@ func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion stri
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Restarting statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Info(fmt.Sprintf("Marking statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
 	return DoRestartStatefulSet(ctx, r.Client, restartVersion, &statefulSet, log)
 }
 
@@ -171,7 +168,7 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Restarting daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Info(fmt.Sprintf("Marking daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
 	return DoRestartDaemonSet(ctx, r.Client, restartVersion, &daemonSet, log)
 }
 
@@ -185,7 +182,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			deployment.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
+			deployment.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
@@ -203,7 +200,7 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
+			statefulSet.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
@@ -221,7 +218,7 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations[RestartVersionAnnotation] = restartVersion
+			daemonSet.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
