@@ -49,25 +49,25 @@
           "name": "cert-manager",
           "images": [
             {
-              "image": "cert-manager-controller",
-              "tag": "1.2.0-20210818200209-6bbae6645",
+              "image": "cert-manager-controller-jenkins",
+              "tag": "20211109090658-e17ffba6f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
-              "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20210818200159-6bbae6645",
+              "image": "cert-manager-acmesolver-jenkins",
+              "tag": "20211109090806-e17ffba6f",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
-              "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20210818200209-6bbae6645",
+              "image": "cert-manager-cainjector-jenkins",
+              "tag": "20211109090658-e17ffba6f",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
-              "image": "cert-manager-webhook",
-              "tag": "1.2.0-20210818200209-6bbae6645",
+              "image": "cert-manager-webhook-jenkins",
+              "tag": "20211109090658-e17ffba6f",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
