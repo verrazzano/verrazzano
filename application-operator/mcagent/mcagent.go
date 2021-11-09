@@ -97,14 +97,14 @@ func (s *Syncer) ProcessAgentThread() error {
 	}
 
 	// Create the client for accessing the admin cluster when there is a change in the secret
-	//	if secret.ResourceVersion != s.SecretResourceVersion {
-	adminClient, err := getAdminClient(&secret)
-	if err != nil {
-		return fmt.Errorf("Failed to get the client for cluster %q with error %v", managedClusterName, err)
+	if secret.ResourceVersion != s.SecretResourceVersion {
+		adminClient, err := getAdminClient(&secret)
+		if err != nil {
+			return fmt.Errorf("Failed to get the client for cluster %q with error %v", managedClusterName, err)
+		}
+		s.AdminClient = adminClient
+		s.SecretResourceVersion = secret.ResourceVersion
 	}
-	s.AdminClient = adminClient
-	s.SecretResourceVersion = secret.ResourceVersion
-	//	}
 
 	// Update the status of our VMC on the admin cluster to record the last time we connected
 	err = s.updateVMCStatus()

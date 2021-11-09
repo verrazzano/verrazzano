@@ -572,11 +572,6 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 	// Expect call to delete rolebinding in the namespace
 	mockClient.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
-	// expect a call to fetch a rolebinding for the local role and return not found
-	//	clusterNameRef = generateRoleBindingManagedClusterRef(constants.DefaultClusterName)
-	//	mockClient.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: "existingNS", Name: clusterNameRef}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
-	//		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "RoleBinding"}, existingNS.Metadata.Name))
-
 	// the status update should be to success status/conditions on the VerrazzanoProject
 	mockClient.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersv1alpha1.VerrazzanoProject{})).
@@ -644,11 +639,6 @@ func mockClusterRoleBindingNoDelete(assert *asserts.Assertions, mockClient *mock
 			}}
 			return nil
 		})
-
-	// expect a call to fetch a rolebinding for the local role and return not found
-	//	clusterNameRef := generateRoleBindingManagedClusterRef(constants.DefaultClusterName)
-	//	mockClient.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: "existingNS", Name: clusterNameRef}, gomock.AssignableToTypeOf(&rbacv1.RoleBinding{})).
-	//		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "RoleBinding"}, existingNS.Metadata.Name))
 }
 
 // mockNewManagedClusterRoleBindingExpectations mocks the expectations for a managed cluster role binding
