@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verify
+package restart
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = Describe("Post-upgrade", func() {
+var _ = Describe("verify app restart", func() {
 	const bobNamespace = "bobs-books"
 	const helidonNamespace = "hello-helidon"
 	const springNamespace = "springboot"

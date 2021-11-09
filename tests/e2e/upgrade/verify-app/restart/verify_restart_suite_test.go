@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verify
+package restart
 
 import (
 	"fmt"
@@ -12,8 +12,8 @@ import (
 	"testing"
 )
 
-func TestPostUpgrade(t *testing.T) {
+func TestVerifyAppRestart(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("istio-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Post-upgrade Suite", []ginkgo.Reporter{junitReporter})
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("pre-upgrade-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Upgrade Verify App Restart Suite", []ginkgo.Reporter{junitReporter})
 }
