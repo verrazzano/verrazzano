@@ -156,10 +156,8 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 
 		It("admin cluster has the expected metrics from managed cluster", func() {
-			clusterNameMetricsLabel := getClusterNameMetricLabel()
-			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
-				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName)
+				return pkg.MetricsExist("up", "managed_cluster", managedClusterName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
 
@@ -344,13 +342,4 @@ func assertRegistrationSecret() {
 
 func getVmiEsIngressURL() string {
 	return fmt.Sprintf("%s:443", pkg.GetSystemElasticSearchIngressURL(os.Getenv("ADMIN_KUBECONFIG")))
-}
-
-func getClusterNameMetricLabel() string {
-	// ignore error getting the metric label - we'll just use the default value returned
-	lbl, err := pkg.GetClusterNameMetricLabel()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster name metric label: %s", err.Error()))
-	}
-	return lbl
 }

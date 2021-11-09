@@ -35,6 +35,7 @@ const (
 	keycloakNamespace         = "keycloak"
 
 	// Constants for various metric labels, used in the validation
+	labelManagedCluster = "managed_cluster"
 	nodeExporter        = "node-exporter"
 	istiod              = "istiod"
 	prometheus          = "prometheus"
@@ -50,10 +51,6 @@ const (
 
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
-
-// will be initialized in BeforeSuite so that any log messages during init are available
-var clusterNameMetricsLabel = ""
-var isMinVersion110 bool
 
 var adminKubeConfig string
 var isManagedClusterProfile bool
@@ -82,7 +79,6 @@ var excludePodsIstio = []string{
 
 var _ = BeforeSuite(func() {
 	present := false
-	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
 	isManagedClusterProfile = pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
@@ -92,15 +88,11 @@ var _ = BeforeSuite(func() {
 	} else {
 		// Include the namespace keycloak for the validation for admin cluster and single cluster installation
 		envoyStatsNamespaces = append(envoyStatsNamespaces, keycloakNamespace)
+		var err error
 		adminKubeConfig, err = k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			Fail(err.Error())
 		}
-	}
-
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
-	if err != nil {
-		Fail(err.Error())
 	}
 })
 
@@ -170,7 +162,7 @@ var _ = Describe("Prometheus Metrics", func() {
 
 // Validate the Istio envoy stats for the pods in the namespaces defined in envoyStatsNamespaces
 func verifyEnvoyStats(metricName string) bool {
-	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), getClusterNameForPromQuery())
+	envoyStatsMetric, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -211,40 +203,21 @@ func verifyEnvoyStats(metricName string) bool {
 	return true
 }
 
-func getClusterNameMetricLabel() string {
-	if clusterNameMetricsLabel == "" {
-		// ignore error getting the metric label - we'll just use the default value returned
-		lbl, err := pkg.GetClusterNameMetricLabel()
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster name metric label: %s", err.Error()))
-		}
-		clusterNameMetricsLabel = lbl
-	}
-	return clusterNameMetricsLabel
-}
-
 // Assert the existence of labels for namespace and pod in the envoyStatsMetric
 func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 	metrics := pkg.JTq(envoyStatsMetric, "data", "result").([]interface{})
 	for _, metric := range metrics {
 		if pkg.Jq(metric, "metric", namespace) == ns && pkg.Jq(metric, "metric", podName) == pod {
 			if isManagedClusterProfile {
-				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
+				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
+				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {
 					return true
 				}
 			} else {
-				// the metrics for the admin cluster or in the single cluster installation should contain the label
-				// verrazzano_cluster with the value "local" when version 1.1 or higher.
-				if isMinVersion110 {
-					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
-						return true
-					}
-				} else {
-					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
-						return true
-					}
+				// the metrics for the admin cluster or in the single cluster installation should not contain the label managed_cluster
+				if pkg.Jq(metric, "metric", labelManagedCluster) == nil {
+					return true
 				}
 			}
 		}
@@ -254,9 +227,7 @@ func verifyLabels(envoyStatsMetric string, ns string, pod string) bool {
 
 // Validate the metrics contain the labels with values specified as key-value pairs of the map
 func metricsContainLabels(metricName string, kv map[string]string) bool {
-	clusterNameValue := getClusterNameForPromQuery()
-	pkg.Log(pkg.Debug, fmt.Sprintf("Looking for metric name %s with label %s = %s", metricName, getClusterNameMetricLabel(), clusterNameValue))
-	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, getClusterNameMetricLabel(), clusterNameValue)
+	compMetrics, err := pkg.QueryMetricWithLabel(metricName, adminKubeConfig, labelManagedCluster, getClusterNameForPromQuery())
 	if err != nil {
 		return false
 	}
@@ -272,22 +243,15 @@ func metricsContainLabels(metricName string, kv map[string]string) bool {
 
 		if metricFound {
 			if isManagedClusterProfile {
-				// when the admin cluster scrapes the metrics from a managed cluster, as label verrazzano_cluster with value
+				// when the admin cluster scrapes the metrics from a managed cluster, as label managed_cluster with value
 				// name of the managed cluster is added to the metrics
-				if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == clusterName {
+				if pkg.Jq(metric, "metric", labelManagedCluster) == clusterName {
 					return true
 				}
 			} else {
-				// the metrics for the admin cluster or in the single cluster installation should contain the label
-				// verrazzano_cluster with the local cluster as its value when version 1.1 or higher
-				if isMinVersion110 {
-					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == "local" {
-						return true
-					}
-				} else {
-					if pkg.Jq(metric, "metric", getClusterNameMetricLabel()) == nil {
-						return true
-					}
+				// the metrics for the admin cluster or in the single cluster installation should not contain the label managed_cluster
+				if pkg.Jq(metric, "metric", labelManagedCluster) == nil {
+					return true
 				}
 			}
 		}
@@ -309,9 +273,6 @@ func excludePods(pod string, excludeList []string) bool {
 func getClusterNameForPromQuery() string {
 	if isManagedClusterProfile {
 		return clusterName
-	}
-	if isMinVersion110 {
-		return "local"
 	}
 	return ""
 }
