@@ -46,7 +46,7 @@ if [ $OPERATION == "create" ]; then
   # exit
   sudo yum -y install patch >/dev/null 2>&1
   zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY | jq -r ".data | .[\"id\"]")
-  status_code=$?
+  status_code=${PIPESTATUS[0]}
   if [ ${status_code} -ne 0 ]; then
     echo "Failed creating zone, attempting to fetch zone to see if it already exists"
     oci dns zone get --zone-name-or-id ${ZONE_NAME}
