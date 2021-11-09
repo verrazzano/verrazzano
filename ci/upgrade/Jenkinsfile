@@ -394,9 +394,6 @@ pipeline {
                     cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
                 """
-
-                restartExampleApps()
-
             }
             post {
                 always {
@@ -490,6 +487,85 @@ pipeline {
             }
         }
 
+        stage("Restart Apps") {
+            steps {
+                restartExampleApps()
+            }
+            post {
+                always {
+                    dumpVerrazzanoPlatformOperatorLogs("restart-apps")
+                    archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Post-upgrade Acceptance Tests') {
+            environment {
+                TEST_ENV = "KIND"
+            }
+            parallel {
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/restapi')
+                    }
+                }
+                stage('verify-infra oam') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/oam')
+                    }
+                }
+                stage('verify-infra vmi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+                stage('examples socks') {
+                    steps {
+                        runGinkgo('examples/socks', "true", "false")
+                    }
+                }
+                stage('examples spring') {
+                    steps {
+                        runGinkgo('examples/springboot', "true", "false")
+                    }
+                }
+                stage('examples helidon') {
+                    steps {
+                        runGinkgo('examples/helidon', "true", "false")
+                    }
+                }
+                stage('examples todo') {
+                    steps {
+                        runGinkgo('examples/todo', "true", "false")
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('upgrade-failure-cluster-dump')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('upgrade-success-cluster-dump')
+                        }
+                    }
+                }
+            }
+        }
         stage('Post-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
