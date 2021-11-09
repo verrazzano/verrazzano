@@ -21,7 +21,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -264,12 +263,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
-	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
-
-	// Add the Fluentd sidecar container required for logging to the Domain
-	if err = r.addLogging(ctx, log, workload, upgradeApp, u, &existingDomain); err != nil {
+	// Add the Fluentd sidecar container required for logging to the Domain.  If the image is old, update it
+	if err = r.addLogging(ctx, log, workload, true, u, &existingDomain); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -416,18 +411,8 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 }
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LogInfo
+// If the Fluentd image changed during an upgrade, then the new image will be used
 func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, upgradeApp bool, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
-	// If the Domain already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
-	// current Domain
-	var existingFluentdImage string
-	if !upgradeApp {
-		for _, container := range existingDomain.Spec.ServerPod.Containers {
-			if container.Name == logging.FluentdStdoutSidecarName {
-				existingFluentdImage = container.Image
-				break
-			}
-		}
-	}
 
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
@@ -467,7 +452,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err := fluentdManager.Apply(logging.NewLogInfo(existingFluentdImage), resource, fluentdPod); err != nil {
+	if _, err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
 		return err
 	}
 

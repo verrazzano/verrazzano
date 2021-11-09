@@ -28,12 +28,8 @@ type Handler interface {
 }
 
 // NewLogInfo creates and populates a new logging info
-func NewLogInfo(fluentdImageOrverride string) *LogInfo {
-	info := LogInfo{}
-	if len(fluentdImageOrverride) != 0 {
-		info.FluentdImage = fluentdImageOrverride
-	} else {
-		info.FluentdImage = DefaultFluentdImage
+func NewLogInfo() *LogInfo {
+	return &LogInfo{
+		FluentdImage: DefaultFluentdImage,
 	}
-	return &info
 }
