@@ -982,3 +982,20 @@ func DoesVerrazzanoProjectExistInCluster(name string, kubeconfigPath string) (bo
 
 	return vp != nil && len(vp.Name) > 0, nil
 }
+
+// Get the list of pods that were restarted
+func GetRestartedPods(namespace string) ([]corev1.Pod, error){
+	var restartedPods []corev1.Pod
+	pods, err := ListPods(namespace, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, pod := range pods.Items {
+		for _, status := range pod.Status.ContainerStatuses {
+			if status.RestartCount > 0 {
+				restartedPods = append(restartedPods, pod)
+			}
+		}
+	}
+	return restartedPods, nil
+}

@@ -296,6 +296,11 @@ pipeline {
                         }
                     }
                 }
+                stage('verify pre-upgrade') {
+                    steps {
+                        runGinkgoRandomize('upgrade/pre-upgrade/verify-app')
+                    }
+                }
             }
             post {
                 always {
