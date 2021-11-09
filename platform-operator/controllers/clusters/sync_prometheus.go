@@ -47,6 +47,7 @@ static_configs:
 - targets:
   - ##HOST##
   labels: # add the labels if not already present on managed cluster (this will no op if present)
+    managed_cluster: '##CLUSTER_NAME##'
     verrazzano_cluster: '##CLUSTER_NAME##'
 basic_auth:
   username: verrazzano-prom-internal

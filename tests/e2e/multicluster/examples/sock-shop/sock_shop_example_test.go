@@ -142,41 +142,37 @@ var _ = Describe("Multi-cluster verify sock-shop", func() {
 	PContext("Prometheus Metrics", func() {
 
 		It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
-				m[clusterNameMetricsLabel] = clusterName
+				m["managed_cluster"] = clusterName
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
 		})
 
 		It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
-				m[clusterNameMetricsLabel] = "DNE"
+				m["managed_cluster"] = "DNE"
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
 		})
 
 		It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
-				m[clusterNameMetricsLabel] = clusterName
+				m["managed_cluster"] = clusterName
 				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
 		})
 
 		It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
-				m[clusterNameMetricsLabel] = clusterName
+				m["managed_cluster"] = clusterName
 				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
 		})
