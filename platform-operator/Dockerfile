@@ -25,9 +25,11 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 RUN yum update -y \
     && yum install -y openssl jq patch \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
+    && yum-config-manager --enable ol7_u8_security_validation \
     && yum install -y kubectl-1.20.6-2.el7 \
     && yum install -y helm-3.5.4-1.el7 \
     && yum install -y istio-istioctl-1.10.2-2.el7 \
+    && yum install -y openssl \
     && yum clean all \
     && rm -rf /var/cache/yum
 
