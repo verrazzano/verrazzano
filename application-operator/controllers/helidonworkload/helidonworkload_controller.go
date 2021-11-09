@@ -146,7 +146,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// write out restart-version in helidon deployment
-	if err = r.restartHelidon(ctx, workload.Annotations[appconfig.RestartVersionAnnotation], &workload, log); err != nil {
+	if err = r.restartHelidon(ctx, workload.Annotations[constants.RestartVersionAnnotation], &workload, log); err != nil {
 		return reconcile.Result{}, err
 	}
 

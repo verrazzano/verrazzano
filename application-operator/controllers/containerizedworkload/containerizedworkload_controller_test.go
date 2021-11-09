@@ -5,13 +5,12 @@ package containerizedworkload
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"io/ioutil"
 	"strings"
 	"testing"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -72,7 +71,7 @@ func TestReconcileRestart(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	annotations := map[string]string{appconfig.RestartVersionAnnotation: testRestartVersion}
+	annotations := map[string]string{constants.RestartVersionAnnotation: testRestartVersion}
 
 	// expect a call to fetch the ContainerizedWorkload
 	params := map[string]string{
@@ -114,7 +113,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[appconfig.RestartVersionAnnotation])
+			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation])
 			return nil
 		})
 
@@ -196,5 +195,5 @@ func getTestDeployment(restartVersion string) *appsv1.Deployment {
 
 func annotateRestartVersion(deployment *appsv1.Deployment, restartVersion string) {
 	deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	deployment.Spec.Template.ObjectMeta.Annotations[appconfig.RestartVersionAnnotation] = restartVersion
+	deployment.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 }

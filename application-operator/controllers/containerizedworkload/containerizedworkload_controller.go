@@ -6,6 +6,7 @@ package containerizedworkload
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
@@ -20,10 +21,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-const (
-	RestartVersionAnnotation = "verrazzano.io/restart-version"
 )
 
 type Reconciler struct {
@@ -58,7 +55,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
-	restartVersion, ok := workload.Annotations[RestartVersionAnnotation]
+	restartVersion, ok := workload.Annotations[constants.RestartVersionAnnotation]
 	if !ok || len(restartVersion) == 0 {
 		log.Info("No restart version annotation found, nothing to do")
 		return reconcile.Result{}, nil
