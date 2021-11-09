@@ -16,16 +16,20 @@ type upgradeFuncSig func(ctx spi.ComponentContext) error
 // installFuncSig is a function needed for unit test override
 type installFuncSig func(ctx spi.ComponentContext) error
 
+// isInstalledFuncSig is a function needed for unit test override
+type isInstalledFuncSig func(ctx spi.ComponentContext) (bool, error)
+
 // fakeComponent allows for using dummy Component implementations for controller testing
 type fakeComponent struct {
 	helm.HelmComponent
 
-	upgradeFunc upgradeFuncSig
-	installFunc installFuncSig
-	installed   string `default:"true"`
-	ready       string `default:"true"`
-	enabled     string `default:"true"`
-	minVersion  string
+	upgradeFunc     upgradeFuncSig
+	installFunc     installFuncSig
+	isInstalledFunc isInstalledFuncSig
+	installed       string `default:"true"`
+	ready           string `default:"true"`
+	enabled         string `default:"true"`
+	minVersion      string
 }
 
 func (f fakeComponent) Name() string {
@@ -83,7 +87,10 @@ func (f fakeComponent) PostInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
+func (f fakeComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+	if f.isInstalledFunc != nil {
+		return f.isInstalledFunc(ctx)
+	}
 	return getBool(f.installed, "installed"), nil
 }
 
@@ -105,14 +112,11 @@ func (f fakeComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_0_0
 }
 
+// getBool implements defaults for boolean fields
 func getBool(val string, fieldName string) bool {
-	// TypeOf returns type of
-	// interface value passed to it
 	typ := reflect.TypeOf(fakeComponent{})
-
 	// checking if null string
 	if val == "" {
-
 		// returns the struct field
 		// with the given parameter "name"
 		f, _ := typ.FieldByName(fieldName)

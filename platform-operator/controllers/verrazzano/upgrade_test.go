@@ -40,9 +40,6 @@ type goodRunner struct {
 type badRunner struct {
 }
 
-// Generate mocs for the Kerberos Client and StatusWriter interfaces for use in tests.
-//go:generate mockgen -destination=../mocks/controller_mock.go -package=mocks -copyright_file=../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
-
 // TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after install is completed
 // WHEN a verrazzano version is empty
@@ -923,6 +920,250 @@ func TestUpgradeHelmError(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestUpgradeIsCompInstalledFailure tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an upgrade
+// WHEN when the comp.IsInstalled() function returns an error
+// THEN an error is returned and the VZ status is not updated
+func TestUpgradeIsCompInstalledFailure(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+
+	config.SetDefaultBomFilePath(unitTestBomFile)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	vz := vzapi.Verrazzano{}
+	vz.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	vz.ObjectMeta = metav1.ObjectMeta{
+		Namespace:  namespace,
+		Name:       name,
+		Finalizers: []string{finalizerName},
+	}
+	vz.Spec = vzapi.VerrazzanoSpec{
+		Version: "0.2.0"}
+	vz.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Upgrading,
+		Conditions: []vzapi.Condition{
+			{
+				Type: vzapi.UpgradeStarted,
+			},
+		},
+		Components: makeVerrazzanoComponentStatusMap(),
+	}
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{
+				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
+					return false, fmt.Errorf("Error running isInstalled")
+				},
+			},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
+	// Expect a call to update annotations and ensure annotations are accurate
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
+			return nil
+		}).Times(0)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			return nil
+		}).Times(0)
+
+	// Reconcile upgrade
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.Error(err)
+	asserts.Equal(true, result.Requeue)
+}
+
+// TestUpgradeComponent tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an upgrade
+// WHEN the component upgrades normally
+// THEN no error is returned and the correct spi.Component upgrade methods have been returned
+func TestUpgradeComponent(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+
+	config.SetDefaultBomFilePath(unitTestBomFile)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	vz := vzapi.Verrazzano{}
+	vz.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	vz.ObjectMeta = metav1.ObjectMeta{
+		Namespace:  namespace,
+		Name:       name,
+		Finalizers: []string{finalizerName},
+	}
+	vz.Spec = vzapi.VerrazzanoSpec{
+		Version: "0.2.0"}
+	vz.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Upgrading,
+		Conditions: []vzapi.Condition{
+			{
+				Type: vzapi.UpgradeStarted,
+			},
+		},
+		Components: makeVerrazzanoComponentStatusMap(),
+	}
+
+	mockComp := mocks.NewMockComponent(mocker)
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			mockComp,
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
+	// Set mock component expectations
+	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
+			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.UpgradeComplete, "Incorrect condition")
+			assert.Equal(t, vzapi.Ready, verrazzano.Status.State)
+			return nil
+		}).Times(1)
+
+	// Reconcile upgrade
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+}
+
+// TestUpgradeMultipleComponentsOneDisabled tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an upgrade
+// WHEN where one component is enabled and another is disabled
+// THEN the upgrade completes normally and the correct spi.Component upgrade methods have not been invoked for the disabled component
+func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+
+	config.SetDefaultBomFilePath(unitTestBomFile)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	vz := vzapi.Verrazzano{}
+	vz.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	vz.ObjectMeta = metav1.ObjectMeta{
+		Namespace:  namespace,
+		Name:       name,
+		Finalizers: []string{finalizerName},
+	}
+	vz.Spec = vzapi.VerrazzanoSpec{
+		Version: "0.2.0"}
+	vz.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.Upgrading,
+		Conditions: []vzapi.Condition{
+			{
+				Type: vzapi.UpgradeStarted,
+			},
+		},
+		Components: makeVerrazzanoComponentStatusMap(),
+	}
+
+	mockEnabledComp := mocks.NewMockComponent(mocker)
+	mockDisabledComp := mocks.NewMockComponent(mocker)
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			mockEnabledComp,
+			mockDisabledComp,
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
+	// Set enabled mock component expectations
+	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
+	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
+	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+
+	// Set disabled mock component expectations
+	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1)
+	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil)
+	mockDisabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(0)
+	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
+	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
+			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.UpgradeComplete, "Incorrect condition")
+			assert.Equal(t, vzapi.Ready, verrazzano.Status.State)
+			return nil
+		}).Times(1)
+
+	// Reconcile upgrade
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
 }
 
 // TestRetryUpgrade tests the retryUpgrade method for the following use case
