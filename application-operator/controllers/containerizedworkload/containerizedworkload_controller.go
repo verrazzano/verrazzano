@@ -7,6 +7,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -58,14 +64,30 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	log.Info(fmt.Sprintf("Marking ContainerizedWorkload with restart-version %s", restartVersion))
-	for index := range workload.Spec.Containers {
-		container := workload.Spec.Containers[index]
-		log.Info(fmt.Sprintf("Marking container %s with restart-version %s", container.Name, restartVersion))
-		// TODO restart the ContainerizedWorkload
+	if err := r.restartWorkload(ctx, restartVersion, &workload, log); err != nil {
+		return reconcile.Result{}, err
 	}
-
 
 	log.Info("Successfully reconciled ContainerizedWorkload")
 	return reconcile.Result{}, nil
+}
+
+func (r *Reconciler) restartWorkload(ctx context.Context, restartVersion string, workload *oamv1.ContainerizedWorkload, log logr.Logger) error {
+	log.Info(fmt.Sprintf("Marking container %s with restart-version %s", workload.Name, restartVersion))
+	var deploymentList appsv1.DeploymentList
+	componentNameReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{workload.ObjectMeta.Labels[oam.LabelAppComponent]})
+	appNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{workload.ObjectMeta.Labels[oam.LabelAppName]})
+	selector := labels.NewSelector()
+	selector = selector.Add(*componentNameReq, *appNameReq)
+	err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: workload.Namespace, LabelSelector: selector})
+	if err != nil {
+		return err
+	}
+	for index := range deploymentList.Items {
+		deployment := &deploymentList.Items[index]
+		if err := appconfig.DoRestartDeployment(ctx, r.Client, restartVersion, deployment, log); err != nil {
+			return err
+		}
+	}
+	return nil
 }
