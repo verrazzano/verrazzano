@@ -56,7 +56,7 @@ pipeline {
     }
 
     environment {
-        CLEAN_BRANCH_NAME = ${env.BRANCH_NAME.replace("/", "%2F")}
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         KUBERNETES_VERSION = '1.19,1.20,1.21,1.22'
