@@ -444,16 +444,6 @@ pipeline {
                         validateProxyImageCount("keycloak", PROXY_IMAGES_KEYCLOAK)
                     }
                 }
-                stage("Validate springboot istio upgrade") {
-                    steps {
-                        validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
-                    }
-                }
-                stage("Validate helidon istio upgrade") {
-                    steps {
-                        validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
-                    }
-                }
                 stage("Istioctl verify install") {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -504,6 +494,16 @@ pipeline {
                 TEST_ENV = "KIND"
             }
             parallel {
+                stage("Validate springboot istio upgrade") {
+                    steps {
+                        validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
+                    }
+                }
+                stage("Validate helidon istio upgrade") {
+                    steps {
+                        validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
+                    }
+                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -566,7 +566,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Uninstall') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
