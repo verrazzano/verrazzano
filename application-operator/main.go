@@ -43,6 +43,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 )
 
 var (
@@ -126,6 +127,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MetricsTrait")
 		os.Exit(1)
 	}
+
 	if enableWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
 		caCert, err := certificates.SetupCertificates(certDir)
@@ -334,10 +336,12 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.MultiClusterAppConfigKind)
 		os.Exit(1)
 	}
+	scheme := mgr.GetScheme()
+	vmcclient.AddToScheme(scheme)
 	if err = (&verrazzanoproject.Reconciler{
 		Client:       mgr.GetClient(),
 		Log:          ctrl.Log.WithName("controllers").WithName(clustersv1alpha1.VerrazzanoProjectKind),
-		Scheme:       mgr.GetScheme(),
+		Scheme:       scheme,
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", clustersv1alpha1.VerrazzanoProjectKind)
