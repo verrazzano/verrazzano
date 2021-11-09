@@ -266,7 +266,7 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist(" ", "destination_canonical_service", "bobbys-front-end")
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
