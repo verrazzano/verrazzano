@@ -1,16 +1,15 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verify_app
+package verify
 
 import (
 	"fmt"
-	"testing"
-
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
+	"testing"
 )
 
 func TestPostUpgrade(t *testing.T) {
