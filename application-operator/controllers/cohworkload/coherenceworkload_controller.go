@@ -16,7 +16,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -220,7 +219,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = r.addRestartVersionAnnotation(u, workload.Annotations[appconfig.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
+	if err = r.addRestartVersionAnnotation(u, workload.Annotations[constants.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -726,7 +725,7 @@ func (r *Reconciler) addRestartVersionAnnotation(coherence *unstructured.Unstruc
 		if annotations == nil {
 			annotations = make(map[string]string)
 		}
-		annotations[appconfig.RestartVersionAnnotation] = restartVersion
+		annotations[constants.RestartVersionAnnotation] = restartVersion
 		return unstructured.SetNestedStringMap(coherence.Object, annotations, specAnnotationsFields...)
 	}
 	return nil

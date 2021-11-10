@@ -107,3 +107,6 @@ const VerrazzanoUsernameData = "username"
 
 // VerrazzanoPasswordData - the field name in verrazzano secret that contains the password
 const VerrazzanoPasswordData = "password"
+
+// RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
+const RestartVersionAnnotation = "verrazzano.io/restart-version"
