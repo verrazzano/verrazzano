@@ -7,13 +7,18 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
 	namespace = "cert-manager"
+	certManifest = "../../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
+	certManifestPatch = "./utils/cert-manager.crds.patch"
 )
 
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
@@ -27,22 +32,35 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
+		compContext.Log().Errorf("Failed to create the cert-manager namespace: %v", err)
 		return err
 	}
 
-	// get dns type from config
-	// patch crd if necessary
-	return nil
-}
-
-func (c certManagerComponent) Install(compContext spi.ComponentContext) error {
-	// kubectl install crd
-	// helm install and intermediate steps
+	// Apply the cert-manager manifest
+	err := c.ApplyManifest(compContext)
+	if err != nil {
+		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %v", err)
+		return err
+	}
 	return nil
 }
 
 func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) error {
 	// setup component issuer
+	return nil
+}
+
+// PatchManifest uses the patch file to patch the cert manager manifest
+func (c certManagerComponent) ApplyManifest(compContext spi.ComponentContext) error {
+	script := filepath.Join(config.GetInstallDir(), "apply-cert-manager-manifest.sh")
+
+	if compContext.EffectiveCR().Spec.Components.DNS != nil && compContext.EffectiveCR().Spec.Components.DNS.OCI != nil {
+		script = "DNS_TYPE=\"oci\"; " + script
+	}
+	if _, stderr, err := vzos.RunBash(script); err != nil {
+		compContext.Log().Errorf("Failed to apply the cert-manager manifest %s: %s", err, stderr)
+		return err
+	}
 	return nil
 }
 
