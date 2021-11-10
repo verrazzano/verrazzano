@@ -109,6 +109,11 @@ pipeline {
                         error "Invalid source branch ${env.GIT_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
                     }
 
+                    // if CREATE_BRANCH_ONLY is checked, make sure the source branch is master
+                    if (!params.TEST_RUN && params.CREATE_BRANCH_ONLY && env.BRANCH_NAME != "master") {
+                        error "Release branch must be created from master, ${env.BRANCH_NAME} is an invalid source branch"
+                    }
+
                     echo "Patch release? ${IS_PATCH_RELEASE}"
                 }
             }
