@@ -622,7 +622,7 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   fi
 fi
 
-action "Installing cert manager" install_cert_manager || exit 1
+platform_operator_install_message "Installing cert-manager"
 if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi

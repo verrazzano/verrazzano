@@ -334,6 +334,8 @@ type CertManagerComponent struct {
 	// Certificate used for an install
 	// +optional
 	Certificate Certificate `json:"certificate,omitempty"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // CoherenceOperatorComponent specifies the Coherence Operator configuration
