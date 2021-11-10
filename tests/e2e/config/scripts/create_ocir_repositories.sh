@@ -212,6 +212,8 @@ IMAGES_DIR=.
 REGION=""
 REGION_SHORT_NAME=""
 OCIR_SCAN_TARGET_ID=""
+COMPARTMENT_ID=""
+PARENT_REPO=""
 
 while getopts ":s:c:r:p:d:t:" opt; do
   case ${opt} in
