@@ -213,7 +213,7 @@
             },
             {
               "image": "elasticsearch-jenkins",
-              "tag": "20211109211809-4fc6e65f699",
+              "tag": "20211110002011-4b91f2bf930",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
