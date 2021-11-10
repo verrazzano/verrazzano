@@ -125,7 +125,7 @@ pipeline {
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
 
                 // The minimum required scopes for the token are: "repo", "read:org".
-                GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-assets')
+                GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-process')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
             }
             steps {
