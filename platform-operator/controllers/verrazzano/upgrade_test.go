@@ -1203,6 +1203,14 @@ func TestUpgradeComponent(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
+	// Expect a call to list the VMC resources
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, vmcList *vmcv1alpha1.VerrazzanoManagedClusterList) error {
+			vmcList.Items = []vmcv1alpha1.VerrazzanoManagedCluster{}
+			return nil
+		})
+
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
@@ -1290,6 +1298,14 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to list the VMC resources
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, vmcList *vmcv1alpha1.VerrazzanoManagedClusterList) error {
+			vmcList.Items = []vmcv1alpha1.VerrazzanoManagedCluster{}
+			return nil
+		})
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
