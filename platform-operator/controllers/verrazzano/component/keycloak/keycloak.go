@@ -200,7 +200,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 			return err
 		}
 		if len(string(out)) == 0 {
-			return errors.New("Keycloak Post Upgrade: error retrieving Clients JSON from Keycloak, zero length")
+			return errors.New("Keycloak Post Upgrade: Error retrieving Clients JSON from Keycloak, zero length")
 		}
 		json.Unmarshal([]byte(out), &keycloakClients)
 
