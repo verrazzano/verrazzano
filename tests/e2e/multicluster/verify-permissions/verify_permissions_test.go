@@ -499,6 +499,10 @@ func findSecret(namespace, name string) (bool, error) {
 	}
 	secretList := v1.SecretList{}
 	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	// Handle the case of forbidden as secret not found
+	if err != nil && errors.IsForbidden(err) {
+		return false, nil
+	}
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list secrets with error: %v", err))
 		return false, err
