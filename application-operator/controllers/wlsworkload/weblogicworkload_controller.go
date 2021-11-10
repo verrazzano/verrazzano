@@ -259,25 +259,26 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// restart domain by setting serverStartPolicy to "NEVER" and back with presence of "restart-version" annotation
 	// and domain pods istio proxy is 1.7.3
 	restartVersion := workload.Annotations[constants.RestartVersionAnnotation]
-	if len(restartVersion) > 0 && restartVersion != existingDomain.Spec.RestartVersion {
-		currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
-		storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
-		log.Info(fmt.Sprintf("Detected new restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in annotations is %s",
-			restartVersion, currentServerStartPolicy, storedServerStartPolicy))
-		if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
-			// start the domain
-			return reconcile.Result{}, r.startDomain(ctx, &existingDomain, storedServerStartPolicy, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, restartVersion, log)
-		} else if currentServerStartPolicy != "NEVER" && r.isDomainIstio17(ctx, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log) {
-			// stop the domain
-			if err = r.stopDomain(ctx, &existingDomain, u.GetName(), workload.Namespace, log); err != nil {
-				return reconcile.Result{}, err
+	if len(restartVersion) > 0 {
+		if restartVersion != existingDomain.Spec.RestartVersion {
+			currentServerStartPolicy := existingDomain.Spec.ServerStartPolicy
+			storedServerStartPolicy := existingDomain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
+			log.Info(fmt.Sprintf("Detected new restart-version %s.  The current domain serverStartPolicy is %s, the domain serverStartPolicy in annotations is %s",
+				restartVersion, currentServerStartPolicy, storedServerStartPolicy))
+			if storedServerStartPolicy != "NEVER" && currentServerStartPolicy == "NEVER" {
+				// start the domain
+				return reconcile.Result{}, r.startDomain(ctx, &existingDomain, storedServerStartPolicy, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, restartVersion, log)
+			} else if currentServerStartPolicy != "NEVER" && r.isDomainIstio17(ctx, u.GetName(), workload.ObjectMeta.Labels[oam.LabelAppName], workload.Namespace, log) {
+				// stop the domain
+				if err = r.stopDomain(ctx, &existingDomain, u.GetName(), workload.Namespace, log); err != nil {
+					return reconcile.Result{}, err
+				}
+				return reconcile.Result{Requeue: true, RequeueAfter: time.Duration(krand.IntnRange(5, 10)) * time.Second}, nil
 			}
-			return reconcile.Result{Requeue: true, RequeueAfter: time.Duration(krand.IntnRange(5, 10)) * time.Second}, nil
-		} else {
-			// write out restartVersion in the domain
-			if err = r.addDomainRestartVersion(u, restartVersion, u.GetName(), workload.Namespace, log); err != nil {
-				return reconcile.Result{}, err
-			}
+		}
+		// write out restartVersion in the domain
+		if err = r.addDomainRestartVersion(u, restartVersion, u.GetName(), workload.Namespace, log); err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
