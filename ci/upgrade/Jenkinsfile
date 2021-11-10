@@ -971,7 +971,7 @@ def restartExampleApps() {
         kubectl get verrazzanoweblogicworkloads.oam.verrazzano.io -n todo-list todo-domain -o yaml | grep "verrazzano.io/restart-version: aaa"
 
         kubectl get verrazzanocoherenceworkloads.oam.verrazzano.io -n bobs-books bobby-coh -o yaml | grep "verrazzano.io/restart-version: aaa"
-        kubectl get verrazzanocoherenceworkloads.oam.verrazzano.io -n bobs-books robert-coh-o yaml | grep "verrazzano.io/restart-version: aaa"
+        kubectl get verrazzanocoherenceworkloads.oam.verrazzano.io -n bobs-books robert-coh -o yaml | grep "verrazzano.io/restart-version: aaa"
 
         kubectl get verrazzanohelidonworkloads.oam.verrazzano.io -n bobs-books bobbys-helidon-stock-application -o yaml | grep "verrazzano.io/restart-version: aaa"
         kubectl get verrazzanohelidonworkloads.oam.verrazzano.io -n bobs-books robert-helidon -o yaml | grep "verrazzano.io/restart-version: aaa"
