@@ -963,7 +963,22 @@ def restartExampleApps() {
         kubectl annotate appconfig springboot-appconf -n springboot verrazzano.io/restart-version="aaa" --overwrite
         kubectl annotate appconfig todo-appconf -n todo-list verrazzano.io/restart-version="aaa" --overwrite
         kubectl annotate appconfig bobs-books -n bobs-books verrazzano.io/restart-version="aaa" --overwrite
-       """
+
+        sleep 10
+
+        kubectl get verrazzanoweblogicworkloads.oam.verrazzano.io -n bobs-books bobby-wls -o yaml | grep "verrazzano.io/restart-version: aaa"
+        kubectl get verrazzanoweblogicworkloads.oam.verrazzano.io -n bobs-books bobs-orders-wls -o yaml | grep "verrazzano.io/restart-version: aaa"
+        kubectl get verrazzanoweblogicworkloads.oam.verrazzano.io -n todo-list todo-domain -o yaml | grep "verrazzano.io/restart-version: aaa"
+
+        kubectl get verrazzanocoherenceworkloads.oam.verrazzano.io -n bobs-books bobby-coh -o yaml | grep "verrazzano.io/restart-version: aaa"
+        kubectl get verrazzanocoherenceworkloads.oam.verrazzano.io -n bobs-books robert-coh-o yaml | grep "verrazzano.io/restart-version: aaa"
+
+        kubectl get verrazzanohelidonworkloads.oam.verrazzano.io -n bobs-books bobbys-helidon-stock-application -o yaml | grep "verrazzano.io/restart-version: aaa"
+        kubectl get verrazzanohelidonworkloads.oam.verrazzano.io -n bobs-books robert-helidon -o yaml | grep "verrazzano.io/restart-version: aaa"
+        kubectl get verrazzanohelidonworkloads.oam.verrazzano.io -n hello-helidon hello-helidon-workload -o yaml | grep "verrazzano.io/restart-version: aaa"
+
+        kubectl get containerizedworkloads.core.oam.dev -n springboot springboot-workload -o yaml | grep "verrazzano.io/restart-version: aaa"
+    """
 }
 
 def getProxyImageCount(namespace)  {
