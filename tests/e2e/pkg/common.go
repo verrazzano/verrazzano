@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -70,7 +70,7 @@ func Concurrently(assertions ...func()) {
 
 func assert(wg *sync.WaitGroup, assertion func()) {
 	defer wg.Done()
-	defer GinkgoRecover()
+	defer ginkgo.GinkgoRecover()
 	assertion()
 }
 
@@ -353,7 +353,7 @@ func SliceContainsString(slice []string, s string) bool {
 func GetRequiredEnvVarOrFail(name string) string {
 	value, found := os.LookupEnv(name)
 	if !found {
-		Fail(fmt.Sprintf("Environment variable '%s' required.", name))
+		ginkgo.Fail(fmt.Sprintf("Environment variable '%s' required.", name))
 	}
 	return value
 }
@@ -404,11 +404,11 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 func WhenMinVersionV11It(description string, f interface{}) {
 	supported, err := IsVerrazzanoMinVersion("1.1.0")
 	if err != nil {
-		Fail(err.Error())
+		ginkgo.Fail(err.Error())
 	}
 	// Run It if the minimum version of Verrazzano is v1.1
 	if supported {
-		It(description, f)
+		ginkgo.It(description, f)
 	} else {
 		Log(Info, fmt.Sprintf("Skipping check '%v', Verrazzano minimum version is not V1.1.0", description))
 	}
@@ -418,11 +418,11 @@ func WhenMinVersionV11It(description string, f interface{}) {
 func WhenVersionV10It(description string, f interface{}) {
 	supported, err := IsVerrazzanoMinVersion("1.1.0")
 	if err != nil {
-		Fail(err.Error())
+		ginkgo.Fail(err.Error())
 	}
 	// Run It if the minimum version of Verrazzano is not v1.1
 	if !supported {
-		It(description, f)
+		ginkgo.It(description, f)
 	} else {
 		Log(Info, fmt.Sprintf("Skipping check '%v', Verrazzano minimum version is less than V1.1.0", description))
 	}
