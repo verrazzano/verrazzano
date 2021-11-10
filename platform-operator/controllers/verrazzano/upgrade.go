@@ -131,7 +131,6 @@ func fmtGeneration(gen int64) string {
 }
 
 // postUpgrade - global post upgrade function
-// postUpgrade - global post upgrade function
 func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
 	// Perform post upgrade steps for multicluster
 	return postUpgradeMulticluster(log, client)
