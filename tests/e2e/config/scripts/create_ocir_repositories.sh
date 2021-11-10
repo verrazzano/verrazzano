@@ -184,15 +184,15 @@ function create_image_repos_from_archives() {
       fi
       # If we got here, we will at least need to target it, so add it to the list of new ones
       added_repositories+=("$repo_path")
-	  
-	  # Check if it exists already first
-	  oci --region ${REGION} artifacts container repository list --display-name ${repo_path} \
+
+      # Check if it exists already first
+      oci --region ${REGION} artifacts container repository list --display-name ${repo_path} \
           --compartment-id ${COMPARTMENT_ID} > /dev/null
-	  if [ $? -eq 0 ]; then
-	    echo "$repo_path is not targeted but already exists"
-		continue
-	  fi
-	  echo "$repo_path is not targeted and needs to be created"
+      if [ $? -eq 0 ]; then
+        echo "$repo_path is not targeted but already exists"
+        continue
+      fi
+      echo "$repo_path is not targeted and needs to be created"
     fi
 
     echo "Creating repository ${repo_path} in ${REGION}, public: ${is_public}"
@@ -202,8 +202,9 @@ function create_image_repos_from_archives() {
 
   # If we added new repositories, we need to get them added to the target so they will get scanned
   if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
-    addNewRepositoriesToTarget "${added_repositories}" $target_file
-	rm $target_file
+    # FIXME: Do not enable until we are sure the VSS lifecycle state issues with update are understood and handled
+    #  addNewRepositoriesToTarget "${added_repositories}" $target_file
+    rm $target_file
   fi
 }
 

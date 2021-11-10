@@ -15,10 +15,10 @@ usage() {
   Generates OCIR image scan report
 
   Usage:
-    $(basename $0) FIXME
+    $(basename $0) scan-bom-file
 
   Example:
-    $(basename $0) FIXME
+    $(basename $0) verrazzano-bom.json
 
   The script expects the OCI CLI is installed. It also expects the following environment variables -
     OCI_REGION - OCI region
@@ -27,13 +27,12 @@ usage() {
     OCIR_COMPARTMENT_ID - Compartment the OCIR repository is in
     OCIR_PATH_FILTER - Regular expression to limit repository paths to include in report
     SCAN_RESULTS_DIR
-    SCAN_BOM_FILE
 EOM
     exit 0
 }
 
 [ -z "$OCI_REGION" ] || [ -z "$OCIR_SCAN_REGISTRY" ] || [ -z "$OCIR_REPOSITORY_BASE" ] || [ -z "$OCIR_COMPARTMENT_ID" ] || [ -z "$OCIR_PATH_FILTER" ] \
-|| [ -z "$SCAN_RESULTS_DIR" ] || [ ! -f "$SCAN_BOM_FILE" ] || [ "$1" == "-h" ] && { usage; }
+|| [ -z "$SCAN_RESULTS_DIR" ] || [ "$1" == "-h" ] || [ ! -f "$1" ]&& { usage; }
 
 function get_repository_list() {
   # TBD: See if we can just filter of the OCI list results to use the path filter, limit the json as well
@@ -102,9 +101,13 @@ function get_scan_details() {
 # This will get the scan summaries and details for all of the repositories
 #
 # It will also verify that all repositories found have scan results as well
+#
+# $1 Scan BOM file
 function get_all_scan_details() {
+  [ ! -f "$1" ] && { echo "ERROR: get_all_scan_details invalid args: $1"; return; }
+
   local bomimages=$(mktemp temp-bom-images-XXXXXX.out)
-  sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -m $bomimages -t $OCIR_SCAN_REGISTRY -r $OCIR_REPOSITORY_BASE -b $SCAN_BOM_FILE
+  sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -m $bomimages -t $OCIR_SCAN_REGISTRY -r $OCIR_REPOSITORY_BASE -b $1
 
   # trim off the registry and base info so the images we have can be used for lookups in the CSV data
   sed -i "s;$OCIR_SCAN_REGISTRY/$OCIR_REPOSITORY_BASE/;;g" $bomimages
@@ -149,4 +152,4 @@ validate_oci_cli || exit 1
 
 mkdir -p $SCAN_RESULTS_DIR
 
-get_all_scan_details || exit 1
+get_all_scan_details $1 || exit 1

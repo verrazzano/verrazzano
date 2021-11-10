@@ -40,6 +40,7 @@ pipeline {
     }
 
     environment {
+        IS_PERIODIC_PIPELINE = "true"
         OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
         OCIR_SCAN_TARGET = credentials('ocir-scan-target')
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
@@ -356,7 +357,8 @@ pipeline {
                     steps {
                         script {
                             sh """
-                                ci/scripts/periodic_push_to_ocir.sh
+                                echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
+                                ci/scripts/push_to_ocir.sh
                             """
                         }
                     }
