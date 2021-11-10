@@ -36,33 +36,6 @@ var vmiEsIngressURL = getVmiEsIngressURL()
 var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 
 var _ = Describe("Multi Cluster Verify Register", func() {
-	// WhenMinVersionV11It - It Wrapper to only run spec if Verrazzano minimum version is V1.1.0
-	WhenMinVersionV11It := func(description string, f interface{}) {
-		supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
-		if err != nil {
-			Fail(err.Error())
-		}
-		// Run It if the minimum version of Verrazzano is v1.1
-		if supported {
-			It(description, f)
-		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano minimum version is not V1.1.0", description))
-		}
-	}
-
-	WhenVersionV10It := func(description string, f interface{}) {
-		supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
-		if err != nil {
-			Fail(err.Error())
-		}
-		// Run It if the minimum version of Verrazzano is not v1.1
-		if !supported {
-			It(description, f)
-		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano minimum version is less than V1.1.0", description))
-		}
-	}
-
 	Context("Admin Cluster", func() {
 		BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
@@ -95,7 +68,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
-		It("admin cluster has the expected ServiceAccounts and RoleBindings", func() {
+		It("admin cluster has the expected ServiceAccounts", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
@@ -105,16 +78,32 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		WhenMinVersionV11It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
-			Eventually(func() (bool, error) {
-				return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
-			}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected not to find ClusterRoleBinding")
+		It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
+			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+			if err != nil {
+				Fail(err.Error())
+			}
+			if supported {
+				Eventually(func() (bool, error) {
+					return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+				}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected not to find ClusterRoleBinding")
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
 		})
 
-		WhenVersionV10It("admin cluster has a ClusterRoleBinding for a managed cluster", func() {
-			Eventually(func() (bool, error) {
-				return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find ClusterRoleBinding")
+		It("admin cluster has a ClusterRoleBinding for a managed cluster", func() {
+			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+			if err != nil {
+				Fail(err.Error())
+			}
+			if !supported {
+				Eventually(func() (bool, error) {
+					return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find ClusterRoleBinding")
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not less than V1.1.0")
+			}
 		})
 
 		It("admin cluster has the expected secrets", func() {
