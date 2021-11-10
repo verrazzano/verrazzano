@@ -165,12 +165,10 @@ func (f *Fluentd) ensureFluentdConfigMapExists(namespace string) error {
 		return err
 	}
 
-	if !configMapExists {
-		if err = f.Create(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.CreateOptions{}); err != nil {
-			return err
-		}
+	if configMapExists {
+		return f.Update(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.UpdateOptions{})
 	}
-	return err
+	return f.Create(f.Context, f.createFluentdConfigMap(namespace), &k8sclient.CreateOptions{})
 }
 
 // createFluentdConfigMap creates the FLUENTD configmap per given namespace.
