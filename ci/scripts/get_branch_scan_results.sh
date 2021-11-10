@@ -79,7 +79,7 @@ if [ $? -eq 0 ]; then
 fi
 
 # If there is a snapshot BOM file for this branch, get those results
-oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_SNAPSHOT_PATH} --file ${SCAN_LAST_SNAPSHOT_BOM_FILE}
+oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_SNAPSHOT_PATH} --file ${SCAN_LAST_SNAPSHOT_BOM_FILE} > /dev/null
 if [ $? -eq 0 ]; then
   echo "Fetching scan results for BOM: ${SCAN_LAST_SNAPSHOT_BOM_FILE}"
   export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/last-snapshot-possibly-old
@@ -89,7 +89,7 @@ fi
 
 # If this is a feature branch, get those results
 if [[ "${CLEAN_BRANCH_NAME}" != "master" ]] && [[ "${CLEAN_BRANCH_NAME}" != release-* ]]; then
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_SNAPSHOT_PATH} --file ${SCAN_LAST_SNAPSHOT_BOM_FILE}
+  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_FEATURE_PATH} --file ${SCAN_LAST_FEATURE_BOM_FILE}
   if [ $? -eq 0 ]; then
     echo "Fetching scan results for BOM: ${SCAN_LAST_FEATURE_BOM_FILE}"
     export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/feature-branch-latest
