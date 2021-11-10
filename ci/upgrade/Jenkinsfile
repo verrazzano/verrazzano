@@ -296,11 +296,6 @@ pipeline {
                         }
                     }
                 }
-                stage('verify pre-upgrade') {
-                    steps {
-                        runGinkgoRandomize('upgrade/verify-app/restart')
-                    }
-                }
             }
             post {
                 always {
@@ -394,6 +389,9 @@ pipeline {
                     cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
                 """
+
+                restartExampleApps()
+
             }
             post {
                 always {
@@ -444,6 +442,16 @@ pipeline {
                         validateProxyImageCount("keycloak", PROXY_IMAGES_KEYCLOAK)
                     }
                 }
+                stage("Validate springboot istio upgrade") {
+                    steps {
+                        validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
+                    }
+                }
+                stage("Validate helidon istio upgrade") {
+                    steps {
+                        validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
+                    }
+                }
                 stage("Istioctl verify install") {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -451,11 +459,6 @@ pipeline {
                                 istioctl verify-install
                             """
                         }
-                    }
-                }
-                stage('verify post-upgrade') {
-                    steps {
-                        runGinkgoRandomize('upgrade/verify-app/restart')
                     }
                 }
             }
@@ -477,33 +480,11 @@ pipeline {
             }
         }
 
-        stage("Restart Apps") {
-            steps {
-                restartExampleApps()
-            }
-            post {
-                always {
-                    dumpVerrazzanoPlatformOperatorLogs("restart-apps")
-                    archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
-                }
-            }
-        }
-
         stage('Post-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
             }
             parallel {
-                stage("Validate springboot istio upgrade") {
-                    steps {
-                        validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
-                    }
-                }
-                stage("Validate helidon istio upgrade") {
-                    steps {
-                        validateProxyImageCount("hello-helidon", PROXY_IMAGES_HELIDON)
-                    }
-                }
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -566,7 +547,6 @@ pipeline {
                 }
             }
         }
-
         stage('Uninstall') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
