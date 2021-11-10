@@ -399,31 +399,3 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 	}
 	return false
 }
-
-// WhenMinVersionV11It - It Wrapper to only run spec if Verrazzano minimum version is V1.1.0
-func WhenMinVersionV11It(description string, f interface{}) {
-	supported, err := IsVerrazzanoMinVersion("1.1.0")
-	if err != nil {
-		ginkgo.Fail(err.Error())
-	}
-	// Run It if the minimum version of Verrazzano is v1.1
-	if supported {
-		ginkgo.It(description, f)
-	} else {
-		Log(Info, fmt.Sprintf("Skipping check '%v', Verrazzano minimum version is not V1.1.0", description))
-	}
-}
-
-// WhenVersionV10It - It Wrapper to only run spec if Verrazzano version is less than V1.1.0
-func WhenVersionV10It(description string, f interface{}) {
-	supported, err := IsVerrazzanoMinVersion("1.1.0")
-	if err != nil {
-		ginkgo.Fail(err.Error())
-	}
-	// Run It if the minimum version of Verrazzano is not v1.1
-	if !supported {
-		ginkgo.It(description, f)
-	} else {
-		Log(Info, fmt.Sprintf("Skipping check '%v', Verrazzano minimum version is less than V1.1.0", description))
-	}
-}
