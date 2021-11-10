@@ -159,7 +159,7 @@ func postUpgradeMulticluster(log *zap.SugaredLogger, client clipkg.Client) error
 			if err != nil {
 				errorList = append(errorList, fmt.Sprintf("failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
 			} else {
-				log.Info("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
+				log.Infof("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
 			}
 		}
 	}

@@ -78,10 +78,16 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
+		pkg.WhenMinVersionV11It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
 			Eventually(func() (bool, error) {
 				return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected not to find ClusterRoleBinding")
+		})
+
+		pkg.WhenVersionV10It("admin cluster has a ClusterRoleBinding for a managed cluster", func() {
+			Eventually(func() (bool, error) {
+				return pkg.DoesClusterRoleBindingExist(fmt.Sprintf("verrazzano-cluster-%s", managedClusterName))
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find ClusterRoleBinding")
 		})
 
 		It("admin cluster has the expected secrets", func() {
