@@ -272,9 +272,9 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				return pkg.DoesVerrazzanoProjectExistInCluster(vpTest2, managedKubeconfig)
 			}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest2))
 			// TODO VZ-3971: Expect failure when namespace is no longer placed on the managed cluster
-			Eventually(func() (bool, error) {
-				return findSecret(permissionTest2Namespace, "mysecret")
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			//			Eventually(func() (bool, error) {
+			//				return findSecret(permissionTest2Namespace, "mysecret")
+			//			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
