@@ -62,6 +62,9 @@ mkdir -p ${SCAN_RESULTS_DIR}
 
 # Get the last pushed BOMs for the branch
 echo "Attempting to fetch BOM from object storage for branch: ${CLEAN_BRANCH_NAME}"
+mkdir -p ${BOM_DIR}/${CLEAN_BRANCH_NAME}-last-clean-periodic-test
+mkdir -p ${BOM_DIR}/${CLEAN_BRANCH_NAME}-last-snapshot
+mkdir -p ${BOM_DIR}/${CLEAN_BRANCH_NAME}
 export SCAN_BOM_PERIODIC_PATH=${CLEAN_BRANCH_NAME}-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json
 export SCAN_BOM_SNAPSHOT_PATH=${CLEAN_BRANCH_NAME}-last-snapshot/last-ocir-pushed-verrazzano-bom.json
 export SCAN_BOM_FEATURE_PATH=${CLEAN_BRANCH_NAME}/last-ocir-pushed-verrazzano-bom.json
