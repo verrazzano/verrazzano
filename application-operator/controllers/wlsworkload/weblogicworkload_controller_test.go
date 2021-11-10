@@ -213,7 +213,6 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
-			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 			return nil
 		})
 
@@ -328,7 +327,6 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
-			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
 			return nil
 		})
 
