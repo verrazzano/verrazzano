@@ -311,6 +311,10 @@ pipeline {
             }
             steps {
                 sh """
+                # dump the app pods before updating the VPO so they can be compared after the VPO is updated
+                echo "Application pods before VPO update:"
+                dumpAppPods(${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out)
+                cat ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out
                 echo "Upgrading the Verrazzano platform operator"
                 # Download the operator.yaml for the target version that we are upgrading to
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -322,6 +326,12 @@ pipeline {
 
                 # need to sleep since the old operator needs to transition to terminating state
                 sleep 45
+                echo "Application pods after VPO update:"
+                dumpAppPods(${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out)
+                cat ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out
+                echo "Ensuring that the application pods did you restart after the VPO was updated"
+                cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out
+
             """
             }
             post {
@@ -952,4 +962,12 @@ def validateProxyImageCount(namespace, count) {
     }
     echo "Incorrect number of new istio proxy images in namespace ${namespace} after upgrade, found ${upgraded_proxy_images} but expected ${count}"
     exit 1
+}
+
+def dumpAppPods(outfile)  {
+    sh(returnStdout: true, script: "${TEST_SCRIPTS_DIR}/dump_pods.sh todo-list > ${outfile}")
+    sh(returnStdout: true, script: "${TEST_SCRIPTS_DIR}/dump_pods.sh bobs-books >> ${outfile}")
+    sh(returnStdout: true, script: "${TEST_SCRIPTS_DIR}/dump_pods.sh springboot >> ${outfile}")
+    sh(returnStdout: true, script: "${TEST_SCRIPTS_DIR}/dump_pods.sh hello-helidon >> ${outfile}")
+    sh(returnStdout: true, script: "${TEST_SCRIPTS_DIR}/dump_pods.sh sockshop >> ${outfile}")
 }
