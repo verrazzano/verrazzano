@@ -1460,7 +1460,7 @@ func newRequest(namespace string, name string) ctrl.Request {
 	}
 }
 
-// validateDefaultMonitoringExporter validates the default monitoringExporter in the Weblogic domain spec
+// validateDefaultMonitoringExporter validates the default monitoringExporter in the WebLogic domain spec
 func validateDefaultMonitoringExporter(u *unstructured.Unstructured, t *testing.T) {
 	_, found, err := unstructured.NestedFieldNoCopy(u.Object, specMonitoringExporterFields...)
 	asserts.Nil(t, err, "Expect no error finding monitoringExporter in WebLogic domain CR")
@@ -1478,7 +1478,7 @@ func validateDefaultMonitoringExporter(u *unstructured.Unstructured, t *testing.
 	asserts.Equal(t, "WebAppComponentRuntime", runtimeType, "query runtime type should be WebAppComponentRuntime")
 }
 
-// validateTestMonitoringExporter validates the test monitoringExporter in the Weblogic domain spec
+// validateTestMonitoringExporter validates the test monitoringExporter in the WebLogic domain spec
 func validateTestMonitoringExporter(u *unstructured.Unstructured, t *testing.T) {
 	_, found, err := unstructured.NestedFieldNoCopy(u.Object, specMonitoringExporterFields...)
 	asserts.Nil(t, err, "Expect no error finding monitoringExporter in WebLogic domain CR")
