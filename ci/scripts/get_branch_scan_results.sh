@@ -73,31 +73,37 @@ export SCAN_LAST_SNAPSHOT_BOM_FILE=${BOM_DIR}/${SCAN_BOM_SNAPSHOT_PATH}
 export SCAN_LAST_FEATURE_BOM_FILE=${BOM_DIR}/${SCAN_BOM_FEATURE_PATH}
 
 # If there is a periodic BOM file for this branch, get those results
-oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_PERIODIC_PATH} --file ${SCAN_LAST_PERIODIC_BOM_FILE}
+oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_PERIODIC_PATH} --file ${SCAN_LAST_PERIODIC_BOM_FILE} 2> /dev/null
 if [ $? -eq 0 ]; then
   echo "Fetching scan results for BOM: ${SCAN_LAST_PERIODIC_BOM_FILE}"
   export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/latest-periodic
   mkdir -p ${SCAN_RESULTS_DIR}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_PERIODIC_BOM_FILE}
+else
+  echo "INFO: Did not find a periodic BOM for ${CLEAN_BRANCH_NAME}"
 fi
 
 # If there is a snapshot BOM file for this branch, get those results
-oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_SNAPSHOT_PATH} --file ${SCAN_LAST_SNAPSHOT_BOM_FILE} > /dev/null
+oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_SNAPSHOT_PATH} --file ${SCAN_LAST_SNAPSHOT_BOM_FILE} 2> /dev/null
 if [ $? -eq 0 ]; then
   echo "Fetching scan results for BOM: ${SCAN_LAST_SNAPSHOT_BOM_FILE}"
   export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/last-snapshot-possibly-old
   mkdir -p ${SCAN_RESULTS_DIR}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_SNAPSHOT_BOM_FILE}
+else
+  echo "INFO: Did not find a snapshot BOM for ${CLEAN_BRANCH_NAME}"
 fi
 
 # If this is a feature branch, get those results
 if [[ "${CLEAN_BRANCH_NAME}" != "master" ]] && [[ "${CLEAN_BRANCH_NAME}" != release-* ]]; then
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_FEATURE_PATH} --file ${SCAN_LAST_FEATURE_BOM_FILE}
+  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_BOM_FEATURE_PATH} --file ${SCAN_LAST_FEATURE_BOM_FILE} 2> /dev/null
   if [ $? -eq 0 ]; then
     echo "Fetching scan results for BOM: ${SCAN_LAST_FEATURE_BOM_FILE}"
     export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/feature-branch-latest
     mkdir -p ${SCAN_RESULTS_DIR}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_FEATURE_BOM_FILE}
+  else
+    echo "INFO: Did not find a feature BOM for ${CLEAN_BRANCH_NAME}"
   fi
 fi
 
