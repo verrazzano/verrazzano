@@ -280,22 +280,6 @@ pipeline {
                         }
                     }
                 }
-                stage('examples todo-list') {
-                    steps {
-                        runGinkgo('examples/todo', "false", "true")
-                        script {
-                            PROXY_IMAGES_TODO = getProxyImageCount("todo-list")
-                        }
-                    }
-                }
-                stage('examples bobs-books') {
-                    steps {
-                        runGinkgo('examples/bobsbooks', "false", "true")
-                        script {
-                            PROXY_IMAGES_BOBSBOOKS = getProxyImageCount("bobs-books")
-                        }
-                    }
-                }
             }
             post {
                 always {
@@ -522,7 +506,12 @@ pipeline {
                 }
                 stage('examples todo') {
                     steps {
-                        runGinkgo('examples/todo', "true", "false")
+                        runGinkgo('examples/todo', "false", "false")
+                    }
+                }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "false", "false")
                     }
                 }
             }
