@@ -705,7 +705,9 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 		}
 		cr.Status.Components[componentName] = componentStatus
 	}
-
+	if conditionType == installv1alpha1.InstallComplete {
+		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, cr)
+	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
 
 	// Set the state of resource

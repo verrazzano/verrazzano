@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -23,8 +25,10 @@ func (s *Syncer) syncSecretObjects(namespace string) error {
 	allAdminMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
 	listOptions := &client.ListOptions{Namespace: namespace}
 	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs, listOptions)
-	if err != nil {
-		return client.IgnoreNotFound(err)
+	// When placements are changed a forbidden error can be returned.  In this case,
+	// we want to fall through and delete orphaned resources.
+	if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
+		return err
 	}
 
 	// Write each of the secrets that are targeted for the local cluster
