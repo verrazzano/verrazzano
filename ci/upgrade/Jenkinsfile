@@ -98,7 +98,11 @@ pipeline {
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
-         // used to emit metrics
+        OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
+        NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"
+        APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
+
+        // used to emit metrics
          PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
@@ -316,9 +320,6 @@ pipeline {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
-                OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
-                NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"
-                APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
             }
             steps {
                 sh """
@@ -337,11 +338,6 @@ pipeline {
 
                 # need to sleep since the old operator needs to transition to terminating state
                 sleep 45
-                echo "Application pods after VPO update:"
-                ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
-                cat ${NEW_PODS_FILE}
-                echo "Ensuring that the application pods did you restart after the VPO was updated"
-                cmp -s ${OLD_PODS_FILE} ${NEW_PODS_FILE}
             """
 
             }
@@ -394,14 +390,46 @@ pipeline {
                     cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
                 """
-
-                restartExampleApps()
-
             }
             post {
                 always {
                     dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
                     archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage("Restart Apps") {
+            parallel {
+                stage("Restart Apps") {
+                    steps {
+                        sh """
+                            echo "Application pods after upgrade:"
+                            ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
+                            cat ${NEW_PODS_FILE}
+                            echo "Ensuring that the application pods did not restart after upgrade"
+                            cmp -s ${OLD_PODS_FILE} ${NEW_PODS_FILE}
+
+                            echo "Restarting apps"
+                            restartExampleApps()
+                        """
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-failure-cluster-dump')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-success-cluster-dump')
+                        }
+                    }
                 }
             }
         }
