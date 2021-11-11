@@ -280,6 +280,14 @@ pipeline {
                         }
                     }
                 }
+                stage('examples todo') {
+                    steps {
+                        runGinkgo('examples/todo', "false", "false")
+                        script {
+                            PROXY_IMAGES_HELIDON = getProxyImageCount("todo-list")
+                        }
+                    }
+                }
             }
             post {
                 always {
@@ -515,11 +523,6 @@ pipeline {
                 stage('examples helidon') {
                     steps {
                         runGinkgo('examples/helidon', "true", "false")
-                    }
-                }
-                stage('examples todo') {
-                    steps {
-                        runGinkgo('examples/todo', "false", "false")
                     }
                 }
                 stage('examples bobs-books') {
