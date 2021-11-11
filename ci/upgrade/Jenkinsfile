@@ -318,7 +318,7 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
                 OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
                 NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"
-                APP_NAMEPACES="todo-list bobs-books hello-helidon springboot shopsock"
+                APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot shopsock'"
             }
             steps {
                 sh """
