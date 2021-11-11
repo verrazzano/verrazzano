@@ -324,7 +324,7 @@ pipeline {
                 sh """
                 # dump the app pods before updating the VPO so they can be compared after the VPO is updated
                 echo "Application pods before VPO update:"
-                ${TEST_SCRIPTS_DIR}/dump_pods.sh ${OLD_PODS_FILE} ${APP_NAMEPACES} 
+                ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${OLD_PODS_FILE}
                 cat ${OLD_PODS_FILE}
                 echo "Upgrading the Verrazzano platform operator"
                 # Download the operator.yaml for the target version that we are upgrading to
@@ -338,7 +338,7 @@ pipeline {
                 # need to sleep since the old operator needs to transition to terminating state
                 sleep 45
                 echo "Application pods after VPO update:"
-                ${TEST_SCRIPTS_DIR}/dump_pods.sh ${NEW_PODS_FILE} ${APP_NAMEPACES}
+                ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
                 cat ${NEW_PODS_FILE}
                 echo "Ensuring that the application pods did you restart after the VPO was updated"
                 cmp -s ${OLD_PODS_FILE} ${NEW_PODS_FILE}

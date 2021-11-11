@@ -4,10 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 set -x
-OUTFILE=${1}
-NAMESPACES=${2}
-rm ${OUTFILE}
+NAMESPACES=${1}
 for ns in ${NAMESPACES[@]}
 do
-  kubectl get pods -n ${ns} -o jsonpath='{range .items[*]}{.metadata.name}{" "}{..uid}{"\n"}{end}' >> ${OUTFILE}
+  kubectl get pods -n ${ns} -o jsonpath='{range .items[*]}{.metadata.name}{" "}{..uid}{"\n"}{end}'
 done
