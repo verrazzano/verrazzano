@@ -284,7 +284,7 @@ pipeline {
                     steps {
                         runGinkgo('examples/todo', "false", "true")
                         script {
-                            PROXY_IMAGES_HELIDON = getProxyImageCount("todo-list")
+                            PROXY_IMAGES_TODO = getProxyImageCount("todo-list")
                         }
                     }
                 }

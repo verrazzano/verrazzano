@@ -262,7 +262,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
+	if err = r.updateStatusReconcileDone(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -590,9 +590,9 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	return nil
 }
 
-func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
+func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+	if workload.Status.LastGeneration != strconv.Itoa(int(workload.Generation)) {
+		workload.Status.LastGeneration = strconv.Itoa(int(workload.Generation))
 		return r.Status().Update(ctx, workload)
 	}
 	return nil

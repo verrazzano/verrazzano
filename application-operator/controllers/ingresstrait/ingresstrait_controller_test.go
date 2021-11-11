@@ -116,8 +116,8 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition
 	mock.EXPECT(). // get workload definition
-			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			workloadDef.Namespace = name.Namespace
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []v1alpha2.ChildResourceKind{
@@ -274,8 +274,8 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition
 	mock.EXPECT(). // get workload definition
-			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			workloadDef.Namespace = name.Namespace
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []v1alpha2.ChildResourceKind{
@@ -412,8 +412,8 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition
 	mock.EXPECT(). // get workload definition
-			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			workloadDef.Namespace = name.Namespace
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []v1alpha2.ChildResourceKind{
@@ -568,8 +568,8 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition
 	mock.EXPECT(). // get workload definition
-			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			workloadDef.Namespace = name.Namespace
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []v1alpha2.ChildResourceKind{
@@ -668,8 +668,8 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition
 	mock.EXPECT(). // get workload definition
-			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			workloadDef.Namespace = name.Namespace
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []v1alpha2.ChildResourceKind{
@@ -997,8 +997,8 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition and return an error
 	mock.EXPECT(). // get workload definition
-			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			return k8serrors.NewNotFound(schema.GroupResource{Group: "", Resource: "WorkloadDefinition"}, "containerizedworkloads.core.oam.dev")
 		})
 
@@ -1057,8 +1057,8 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		})
 	// Expect a call to get the containerized workload resource definition
 	mock.EXPECT(). // get workload definition
-			Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			workloadDef.Namespace = name.Namespace
 			workloadDef.Name = name.Name
 			workloadDef.Spec.ChildResourceKinds = []v1alpha2.ChildResourceKind{
@@ -1131,8 +1131,8 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
 	mock.EXPECT(). // get ingress (for createOrUpdate)
-			Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
-			Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-space-myapp-gw"}, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Gateway"}, "test-space-myapp-gw"))
 	// Expect a call to create the ingress resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
@@ -1141,8 +1141,8 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
 	mock.EXPECT(). // get ingress (for createOrUpdate)
-			Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
-			Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Virtualservice"}, "test-trait-name-rule-0-vs"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name-rule-0-vs"}, gomock.Not(gomock.Nil())).
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Virtualservice"}, "test-trait-name-rule-0-vs"))
 	// Expect a call to create the ingress resource and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).

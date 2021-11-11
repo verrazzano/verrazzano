@@ -17,8 +17,6 @@ type VerrazzanoCoherenceWorkloadSpec struct {
 
 // VerrazzanoCoherenceWorkloadStatus defines the observed state of VerrazzanoCoherenceWorkload
 type VerrazzanoCoherenceWorkloadStatus struct {
-	// CurrentUpgradeVersion is the version that was specified when the application was last upgraded with Verrazzano
-	CurrentUpgradeVersion string `json:"currentUpgradeVersion,omitempty"`
 	// LastGeneration is the last generation of the spec that was reconciled
 	LastGeneration string `json:"lastGeneration,omitempty"`
 	// LastRestartVersion is the last value of the verrazzano.io/restart-version annotation

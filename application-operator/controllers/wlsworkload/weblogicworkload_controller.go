@@ -332,7 +332,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateStatus(ctx, workload); err != nil {
+	if err = r.updateStatusReconcileDone(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -608,17 +608,9 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *Reconciler) updateStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-	needUpdate := false
-	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
-		needUpdate = true
-	}
+func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
 	if workload.Status.LastGeneration != strconv.Itoa(int(workload.Generation)) {
 		workload.Status.LastGeneration = strconv.Itoa(int(workload.Generation))
-		needUpdate = true
-	}
-	if needUpdate {
 		return r.Status().Update(ctx, workload)
 	}
 	return nil
