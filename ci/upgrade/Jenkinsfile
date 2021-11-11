@@ -525,6 +525,11 @@ pipeline {
                         runGinkgo('examples/helidon', "true", "false")
                     }
                 }
+                stage('examples todo') {
+                    steps {
+                        runGinkgo('examples/todo', "false", "false")
+                    }
+                }
                 stage('examples bobs-books') {
                     steps {
                         runGinkgo('examples/bobsbooks', "false", "false")
