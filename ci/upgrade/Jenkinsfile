@@ -263,11 +263,6 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-                stage('examples socks') {
-                    steps {
-                        runGinkgo('examples/socks', "false", "true")
-                    }
-                }
                 stage('examples spring') {
                     steps {
                         runGinkgo('examples/springboot', "false", "true")
@@ -284,12 +279,9 @@ pipeline {
                         }
                     }
                 }
-                stage('examples todo') {
+                stage('examples bobs-books') {
                     steps {
-                        runGinkgo('examples/todo', "false", "true")
-                        script {
-                            PROXY_IMAGES_TODO = getProxyImageCount("todo-list")
-                        }
+                        runGinkgo('examples/bobsbooks', "false", "true")
                     }
                 }
             }
@@ -552,11 +544,6 @@ pipeline {
                 stage('examples todo') {
                     steps {
                         runGinkgo('examples/todo', "false", "false")
-                    }
-                }
-                stage('examples bobs-books') {
-                    steps {
-                        runGinkgo('examples/bobsbooks', "false", "false")
                     }
                 }
             }
