@@ -49,25 +49,25 @@
           "name": "cert-manager",
           "images": [
             {
-              "image": "cert-manager-controller-jenkins",
-              "tag": "20211110101655-e07529457",
+              "image": "cert-manager-controller",
+              "tag": "1.2.0-20211111042807-90c22ba5f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
-              "image": "cert-manager-acmesolver-jenkins",
-              "tag": "20211110101654-e07529457",
+              "image": "cert-manager-acmesolver",
+              "tag": "1.2.0-20211111042920-90c22ba5f",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
-              "image": "cert-manager-cainjector-jenkins",
-              "tag": "20211110101655-e07529457",
+              "image": "cert-manager-cainjector",
+              "tag": "1.2.0-20211111042807-90c22ba5f",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
-              "image": "cert-manager-webhook-jenkins",
-              "tag": "20211110101655-e07529457",
+              "image": "cert-manager-webhook",
+              "tag": "1.2.0-20211111042807-90c22ba5f",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -83,8 +83,8 @@
           "name": "external-dns",
           "images": [
             {
-              "image": "external-dns-jenkins",
-              "tag": "20211110101151-6474efe3",
+              "image": "external-dns",
+              "tag": "v0.7.1-20211111043303-15f77bb5",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -180,19 +180,19 @@
           "name": "verrazzano",
           "images": [
             {
-              "image": "verrazzano-operator-jenkins",
-              "tag": "1.1.0-20211110062858-34054ba",
+              "image": "verrazzano-operator",
+              "tag": "1.1.0-20211111042722-3596e48",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
             {
-              "image": "node-exporter-jenkins",
-              "tag": "20211110094322-c0a3121",
+              "image": "node-exporter",
+              "tag": "1.0.0-20211111042754-ac7cea6",
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
-              "image": "verrazzano-monitoring-operator-jenkins",
-              "tag": "1.1.0-20211110105402-6ecec9e",
+              "image": "verrazzano-monitoring-operator",
+              "tag": "1.1.0-20211111042717-44b66d0",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
