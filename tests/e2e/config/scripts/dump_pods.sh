@@ -4,8 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 set -x
-NAMESPACES=${1}
-OUTFILE=${2}
+OUTFILE=${1}
+NAMESPACES=${2}
 rm ${OUTFILE}
 for ns in ${NAMESPACES[@]}
 do
