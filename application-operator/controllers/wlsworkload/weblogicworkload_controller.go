@@ -45,7 +45,6 @@ const (
 	loggingNamePart                 = "logging-stdout"
 	loggingMountPath                = "/fluentd/etc/custom.conf"
 	loggingKey                      = "custom.conf"
-	restartVersionAnnotation        = "verrazzano.io/restart-version"
 	defaultMode               int32 = 400
 )
 
@@ -264,7 +263,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Add the Fluentd sidecar container required for logging to the Domain.  If the image is old, update it
-	if err = r.addLogging(ctx, log, workload, true, u, &existingDomain); err != nil {
+	if err = r.addLogging(ctx, log, workload, u, &existingDomain); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -333,7 +332,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateStatus(ctx, workload); err != nil {
+	if err = r.updateStatusReconcileDone(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -371,7 +370,7 @@ func (r *Reconciler) ensureLastGeneration(wl *vzapi.VerrazzanoWebLogicWorkload) 
 // Make sure that it is OK to restart WebLogic
 func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload) bool {
 	// Check if user created or changed the restart annotation
-	if wl.Annotations != nil && wl.Annotations[restartVersionAnnotation] != wl.Status.LastRestartVersion {
+	if wl.Annotations != nil && wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
 		return true
 	}
 	if wl.Status.LastGeneration == strconv.Itoa(int(wl.Generation)) {
@@ -412,8 +411,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LogInfo
 // If the Fluentd image changed during an upgrade, then the new image will be used
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, upgradeApp bool, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
-
+func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
@@ -452,7 +450,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err := fluentdManager.Apply(logging.NewLogInfo(""), resource, fluentdPod); err != nil {
+	if _, err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -610,17 +608,9 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *Reconciler) updateStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-	needUpdate := false
-	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
-		needUpdate = true
-	}
+func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
 	if workload.Status.LastGeneration != strconv.Itoa(int(workload.Generation)) {
 		workload.Status.LastGeneration = strconv.Itoa(int(workload.Generation))
-		needUpdate = true
-	}
-	if needUpdate {
 		return r.Status().Update(ctx, workload)
 	}
 	return nil
