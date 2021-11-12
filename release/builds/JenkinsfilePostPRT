@@ -131,7 +131,8 @@ pipeline {
             steps {
                 script {
                   sh """
-                    export GITHUB_TOKEN=
+                    echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
+
                     cd ${WORKSPACE}/release/scripts
                     ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
                   """

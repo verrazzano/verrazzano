@@ -35,3 +35,12 @@ func NewComponent() spi.Component {
 		},
 	}
 }
+
+// PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
+func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	ctx.Log().Infof("Keycloak post-upgrade")
+	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
+		return err
+	}
+	return updateKeycloakUris(ctx)
+}

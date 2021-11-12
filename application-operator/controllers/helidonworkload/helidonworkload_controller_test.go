@@ -10,8 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
-
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	appsv1 "k8s.io/api/apps/v1"
@@ -1022,7 +1020,7 @@ func getTestDeployment(restartVersion string) *appsv1.Deployment {
 
 func annotateRestartVersion(deployment *appsv1.Deployment, restartVersion string) {
 	deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	deployment.Spec.Template.ObjectMeta.Annotations[appconfig.RestartVersionAnnotation] = restartVersion
+	deployment.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 }
 
 // TestReconcileRestart tests reconciling a VerrazzanoHelidonWorkload when the restart-version specified in the annotations.
@@ -1042,7 +1040,7 @@ func TestReconcileRestart(t *testing.T) {
 	appConfigName := "test-appconf"
 	componentName := "test-component"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	annotations := map[string]string{appconfig.RestartVersionAnnotation: testRestartVersion}
+	annotations := map[string]string{constants.RestartVersionAnnotation: testRestartVersion}
 
 	fluentdImage := "unit-test-image:latest"
 	// set the Fluentd image which is obtained via env then reset at end of test
@@ -1142,7 +1140,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[appconfig.RestartVersionAnnotation])
+			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation])
 			return nil
 		})
 	// expect a call to status update

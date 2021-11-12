@@ -98,6 +98,13 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 
 			return nil
 		})
+	mockClient.EXPECT().
+		Update(fluentd.Context, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, configMap *v1.ConfigMap, options *client.UpdateOptions) error {
+			asserts.Equal(t, *fluentd.createFluentdConfigMap(testNamespace), *configMap)
+			asserts.Equal(t, client.UpdateOptions{}, *options)
+			return nil
+		})
 
 	// invoke method being tested
 	changesMade, err := fluentd.Apply(logInfo, resource, fluentdPod)

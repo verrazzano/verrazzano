@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -198,7 +198,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -315,7 +315,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.3",
+              "tag": "3.3.4",
               "helmFullImageKey": "image"
             }
           ]
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211011132457-21d029754c",
+              "tag": "15.0.2-20211108162355-fe28841361",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

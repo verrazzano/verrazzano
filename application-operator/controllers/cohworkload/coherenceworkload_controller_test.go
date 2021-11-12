@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -1458,7 +1457,7 @@ func TestReconcileRestart(t *testing.T) {
 	componentName := "unit-test-component"
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	annotations := map[string]string{appconfig.RestartVersionAnnotation: testRestartVersion}
+	annotations := map[string]string{constants.RestartVersionAnnotation: testRestartVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -1537,7 +1536,7 @@ func TestReconcileRestart(t *testing.T) {
 
 			// make sure sidecar.istio.io/inject annotation was added
 			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
-			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false", appconfig.RestartVersionAnnotation: testRestartVersion})
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false", constants.RestartVersionAnnotation: testRestartVersion})
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
