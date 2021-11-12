@@ -6,6 +6,8 @@ package verrazzano_test
 import (
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/framework"
+
 	. "github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -111,7 +113,7 @@ var _ = Describe("Verrazzano", func() {
 	Describe("ClusterRole verrazzano-admin", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		framework.VzBeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -122,7 +124,7 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		framework.VzIt("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(11),
 				"there should be eleven rules")
 		})
@@ -148,7 +150,7 @@ var _ = Describe("Verrazzano", func() {
 	Describe("ClusterRole verrazzano-monitor", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		framework.VzBeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -159,7 +161,7 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		framework.VzIt("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(5),
 				"there should be five rules")
 		})
@@ -179,7 +181,7 @@ var _ = Describe("Verrazzano", func() {
 	Describe("ClusterRole verrazzano-project-admin", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		framework.VzBeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -190,7 +192,7 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		framework.VzIt("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(6),
 				"there should be six rules")
 		})
@@ -211,7 +213,7 @@ var _ = Describe("Verrazzano", func() {
 	Describe("ClusterRole verrazzano-project-monitor", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		framework.VzBeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -222,7 +224,7 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		framework.VzIt("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(3),
 				"there should be three rules")
 		})
@@ -238,7 +240,7 @@ var _ = Describe("Verrazzano", func() {
 	})
 
 	Describe("ClusterRoleBinding verrazzano-admin", func() {
-		It("has correct subjects and refs", func() {
+		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -266,7 +268,7 @@ var _ = Describe("Verrazzano", func() {
 	})
 
 	Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
-		It("has correct subjects and refs", func() {
+		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -294,7 +296,7 @@ var _ = Describe("Verrazzano", func() {
 	})
 
 	Describe("ClusterRoleBinding verrazzano-monitor", func() {
-		It("has correct subjects and refs", func() {
+		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -322,7 +324,7 @@ var _ = Describe("Verrazzano", func() {
 	})
 
 	Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
-		It("has correct subjects and refs", func() {
+		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
