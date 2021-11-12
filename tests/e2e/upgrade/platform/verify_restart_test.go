@@ -20,19 +20,40 @@ var _ = Describe("verify platform pods restarted", func() {
 
 	It("Verify pods in verrazzano-system restarted post upgrade", func() {
 		Eventually(func() bool {
-			return pkg.PodsHasAnnotation(constants.VerrazzanoSystemNamespace, constants.VerrazzanoRestartAnnotation)
+			return pkg.PodsHaveAnnotation(constants.VerrazzanoSystemNamespace, constants.VerrazzanoRestartAnnotation)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in verrazzano-system")
 	})
 
 	It("Verify pods in ingress-nginx restarted post upgrade", func() {
 		Eventually(func() bool {
-			return pkg.PodsHasAnnotation(constants.IngressNginxNamespace, constants.VerrazzanoRestartAnnotation)
+			return pkg.PodsHaveAnnotation(constants.IngressNginxNamespace, constants.VerrazzanoRestartAnnotation)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in ingress-nginx")
 	})
 
 	It("Verify pods in keycloak restarted post upgrade", func() {
 		Eventually(func() bool {
-			return pkg.PodsHasAnnotation(constants.KeycloakNamespace, constants.VerrazzanoRestartAnnotation)
+			return pkg.PodsHaveAnnotation(constants.KeycloakNamespace, constants.VerrazzanoRestartAnnotation)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in keycloak")
+	})
+})
+
+var _ = Describe("verify platform pods have correct istio proxy image", func() {
+
+	It("Verify pods in verrazzano-system have correct istio proxy image", func() {
+		Eventually(func() bool {
+			return pkg.PodsHaveIstioSidecar(constants.VerrazzanoSystemNamespace)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
+	})
+
+	It("Verify pods in ingress-nginx have correct istio proxy image", func() {
+		Eventually(func() bool {
+			return pkg.PodsHaveIstioSidecar(constants.IngressNginxNamespace)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
+	})
+
+	It("Verify pods in keycloak have correct istio proxy image", func() {
+		Eventually(func() bool {
+			return pkg.PodsHaveIstioSidecar(constants.KeycloakNamespace)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")
 	})
 })
