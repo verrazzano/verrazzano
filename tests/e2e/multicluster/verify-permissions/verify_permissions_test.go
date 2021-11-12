@@ -271,10 +271,9 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			Eventually(func() (bool, error) {
 				return pkg.DoesVerrazzanoProjectExistInCluster(vpTest2, managedKubeconfig)
 			}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest2))
-			// TODO VZ-3971: Expect failure when namespace is no longer placed on the managed cluster
-			//			Eventually(func() (bool, error) {
-			//				return findSecret(permissionTest2Namespace, "mysecret")
-			//			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			Eventually(func() (bool, error) {
+				return findSecret(permissionTest2Namespace, "mysecret")
+			}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
@@ -500,6 +499,10 @@ func findSecret(namespace, name string) (bool, error) {
 	}
 	secretList := v1.SecretList{}
 	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	// Handle the case of forbidden as secret not found
+	if err != nil && errors.IsForbidden(err) {
+		return false, nil
+	}
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list secrets with error: %v", err))
 		return false, err

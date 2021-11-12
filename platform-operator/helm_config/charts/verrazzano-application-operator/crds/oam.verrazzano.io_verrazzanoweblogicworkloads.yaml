@@ -59,6 +59,14 @@ spec:
                 description: LastRestartVersion is the last value of the verrazzano.io/restart-version
                   annotation
                 type: string
+              lastGeneration:
+                description: LastGeneration is the last generation of the spec that
+                  was reconciled
+                type: string
+              lastRestartVersion:
+                description: LastRestartVersion is the last value of the verrazzano.io/restart-version
+                  annotation
+                type: string
             type: object
         type: object
     served: true
