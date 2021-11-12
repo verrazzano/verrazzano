@@ -1,28 +1,9 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
-
-# create kubeconfig before importing common
-function create-kubeconfig {
-  # Get the name of the secret containing the certificate for accessing the cluster
-  default_secret=$(kubectl get serviceaccount default -o json | jq -r '.secrets[].name')
-
-  # Get the certificate for accessing the kubernetes cluster
-  default_cert=$(kubectl get secret $default_secret -o json | jq -r '.data."ca.crt"')
-
-  # Get the endpoint for the kubernetes master server
-  # The sed command is to strip out color escape sequences
-  master_server=$(kubectl cluster-info | grep master | awk '{ print $6 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
-
-  # Create a kubeconfig for the pod
-  cp /verrazzano/config/kubeconfig-template $VERRAZZANO_KUBECONFIG
-  sed -i -e "s|CERTIFICATE|$default_cert|g" -e "s|SERVER_ADDRESS|$master_server|g" $VERRAZZANO_KUBECONFIG
-  export KUBECONFIG=$VERRAZZANO_KUBECONFIG
-}
-create-kubeconfig
+MANIFESTS_DIR=$(cd $SCRIPT_DIR/../../thirdparty/manifests; pwd -P)
 
 . ${SCRIPT_DIR}/logging.sh
-. $SCRIPT_DIR/common.sh
 
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true; _logging_exit_handler $rc' EXIT

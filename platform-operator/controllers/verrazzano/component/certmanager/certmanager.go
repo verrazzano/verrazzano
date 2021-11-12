@@ -11,14 +11,13 @@ import (
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
 	namespace = "cert-manager"
-	certManifest = "../../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
-	certManifestPatch = "./utils/cert-manager.crds.patch"
 )
 
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
@@ -32,14 +31,15 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create the cert-manager namespace: %v", err)
+		compContext.Log().Errorf("Failed to create the cert-manager namespace: %s", err)
 		return err
 	}
 
 	// Apply the cert-manager manifest
+	compContext.Log().Info("Applying cert-manager crds")
 	err := c.ApplyManifest(compContext)
 	if err != nil {
-		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %v", err)
+		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %s", err)
 		return err
 	}
 	return nil
@@ -55,7 +55,12 @@ func (c certManagerComponent) ApplyManifest(compContext spi.ComponentContext) er
 	script := filepath.Join(config.GetInstallDir(), "apply-cert-manager-manifest.sh")
 
 	if compContext.EffectiveCR().Spec.Components.DNS != nil && compContext.EffectiveCR().Spec.Components.DNS.OCI != nil {
-		script = "DNS_TYPE=\"oci\"; " + script
+		compContext.Log().Info("Patch cert-manager crds to use OCI DNS")
+		err := os.Setenv("DNS_TYPE", "oci")
+		if err != nil {
+			compContext.Log().Errorf("Could not set DNS_TYPE environment variable: %s", err)
+			return err
+		}
 	}
 	if _, stderr, err := vzos.RunBash(script); err != nil {
 		compContext.Log().Errorf("Failed to apply the cert-manager manifest %s: %s", err, stderr)
@@ -64,7 +69,7 @@ func (c certManagerComponent) ApplyManifest(compContext spi.ComponentContext) er
 	return nil
 }
 
-// isCertManagerEnabled returns true if the WebLogic is enabled, which is the default
+// isCertManagerEnabled returns true if the cert-manager is enabled, which is the default
 func isCertManagerEnabled(compContext spi.ComponentContext) bool {
 	comp := compContext.EffectiveCR().Spec.Components.CertManager
 	if comp == nil || comp.Enabled == nil {
@@ -74,6 +79,10 @@ func isCertManagerEnabled(compContext spi.ComponentContext) bool {
 }
 
 // AppendOverrides Build the set of cert-manager overrides for the helm install
-func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	return []bom.KeyValue{}, nil
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	cr := compContext.EffectiveCR()
+	if namespace := cr.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace; namespace != "" {
+		kvs = append(kvs, bom.KeyValue{Key: "clusterResourceNamespace", Value: namespace})
+	}
+	return kvs, nil
 }
