@@ -315,6 +315,27 @@ func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubecon
 	return false
 }
 
+func PodsHasAnnotation(namespace string, annotation string) bool {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
+		return false
+	}
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+	hasAnnotation := true
+	for _, pod := range pods.Items {
+		_, hasAnnotation := pod.Annotations[annotation]
+		if !hasAnnotation {
+			return hasAnnotation
+		}
+	}
+	return hasAnnotation
+}
+
 // JTq queries JSON text with a JSON path
 func JTq(jtext string, path ...string) interface{} {
 	var j map[string]interface{}
