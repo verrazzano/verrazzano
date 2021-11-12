@@ -827,13 +827,13 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	assert.Equal(false, result.Requeue)
 }
 
-// TestReconcileAlreadyExistsUpgrade tests reconciling a VerrazzanoWebLogicWorkload when the WebLogic
-// domain CR already exists and the upgrade version specified in the labels differs from the current upgrade version.
-// This should result in the latest Fluentd image being pulled from the env.
-// GIVEN a VerrazzanoWebLogicWorkload resource
-// WHEN the controller Reconcile function is called and the WebLogic domain CR already exists and the upgrade version differs
-// THEN the Fluentd image should be retrieved from the env and the new update version should be set on the workload status
-func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
+// TestReconcileUpdateFluentdImage tests reconciling a VerrazzanoWebLogicWorkload when the Fluentd image
+// in the managed server pod sidecar is old and a new image is available. This should result in the latest Fluentd
+// image being pulled from the env and replaced in the sidecar
+// GIVEN a VerrazzanoWebLogicWorkload resource that is using an old Fluentd image
+// WHEN the controller Reconcile function is called
+// THEN the Fluentd image should be replaced in the Fluentd sidecar
+func TestReconcileUpdateFluentdImage(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -843,10 +843,8 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
 	fluentdImage := "unit-test-image:latest"
-	newUpgradeVersion := "new-upgrade"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{constants.AnnotationUpgradeVersion: newUpgradeVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -866,15 +864,11 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
 			workload.ObjectMeta.Labels = labels
-			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
-			// set the previous upgrade value to be different than what is specified in the associated label
-			// to tell Verrazzano to get the Fluentd image from the env
-			workload.Status.CurrentUpgradeVersion = "oldVersion"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -947,7 +941,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			assert.Equal(newUpgradeVersion, workload.Status.CurrentUpgradeVersion)
 			return nil
 		})
 

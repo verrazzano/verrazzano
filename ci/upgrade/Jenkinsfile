@@ -279,9 +279,14 @@ pipeline {
                         }
                     }
                 }
-                stage('examples todo') {
+                stage('examples bobs-books') {
                     steps {
-                        runGinkgo('examples/todo', "false", "false")
+                        runGinkgo('examples/bobsbooks', "false", "true")
+                    }
+                }
+                stage('examples socks') {
+                    steps {
+                        runGinkgo('examples/socks', "false", "true")
                     }
                 }
             }
@@ -541,9 +546,9 @@ pipeline {
                         runGinkgo('examples/helidon', "true", "false")
                     }
                 }
-                stage('examples bobs-books') {
+                stage('examples todo') {
                     steps {
-                        runGinkgo('examples/bobsbooks', "false", "false")
+                        runGinkgo('examples/todo', "false", "false")
                     }
                 }
             }
