@@ -6,11 +6,9 @@ package verrazzano_test
 import (
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/framework"
-
-	. "github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
@@ -20,7 +18,7 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var _ = Describe("Verrazzano", func() {
+var _ = framework.VzDescribe("Verrazzano", func() {
 
 	vzInstallReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
@@ -110,7 +108,7 @@ var _ = Describe("Verrazzano", func() {
 		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
 	)
 
-	Describe("ClusterRole verrazzano-admin", func() {
+	framework.VzDescribe("ClusterRole verrazzano-admin", func() {
 		var rules []rbacv1.PolicyRule
 
 		framework.VzBeforeEach(func() {
@@ -147,7 +145,7 @@ var _ = Describe("Verrazzano", func() {
 		)
 	})
 
-	Describe("ClusterRole verrazzano-monitor", func() {
+	framework.VzDescribe("ClusterRole verrazzano-monitor", func() {
 		var rules []rbacv1.PolicyRule
 
 		framework.VzBeforeEach(func() {
@@ -178,7 +176,7 @@ var _ = Describe("Verrazzano", func() {
 		)
 	})
 
-	Describe("ClusterRole verrazzano-project-admin", func() {
+	framework.VzDescribe("ClusterRole verrazzano-project-admin", func() {
 		var rules []rbacv1.PolicyRule
 
 		framework.VzBeforeEach(func() {
@@ -210,7 +208,7 @@ var _ = Describe("Verrazzano", func() {
 		)
 	})
 
-	Describe("ClusterRole verrazzano-project-monitor", func() {
+	framework.VzDescribe("ClusterRole verrazzano-project-monitor", func() {
 		var rules []rbacv1.PolicyRule
 
 		framework.VzBeforeEach(func() {
@@ -239,7 +237,7 @@ var _ = Describe("Verrazzano", func() {
 		)
 	})
 
-	Describe("ClusterRoleBinding verrazzano-admin", func() {
+	framework.VzDescribe("ClusterRoleBinding verrazzano-admin", func() {
 		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
@@ -267,7 +265,7 @@ var _ = Describe("Verrazzano", func() {
 		})
 	})
 
-	Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
+	framework.VzDescribe("ClusterRoleBinding verrazzano-admin-k8s", func() {
 		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
@@ -295,7 +293,7 @@ var _ = Describe("Verrazzano", func() {
 		})
 	})
 
-	Describe("ClusterRoleBinding verrazzano-monitor", func() {
+	framework.VzDescribe("ClusterRoleBinding verrazzano-monitor", func() {
 		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
@@ -323,7 +321,7 @@ var _ = Describe("Verrazzano", func() {
 		})
 	})
 
-	Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
+	framework.VzDescribe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
 		framework.VzIt("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
