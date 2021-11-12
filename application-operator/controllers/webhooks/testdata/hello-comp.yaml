@@ -16,12 +16,12 @@ spec:
         app: hello-helidon
     spec:
       containers:
-        - name: hello
-          image: ghcr.io/oracle/oraclelinux:7-slim
-          args:
-            - /bin/sh
-            - -c
-            - echo 'sleeping'; sleep 50000;
-          ports:
-            - containerPort: 8080
-              name: http
+      - name: hello
+        image: ghcr.io/oracle/oraclelinux:7-slim
+        args:
+          - /bin/sh
+          - -c
+          - echo 'sleeping'; sleep 50000;
+        ports:
+          - containerPort: 8080
+            name: http
