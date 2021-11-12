@@ -6,13 +6,15 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -24,6 +26,8 @@ import (
 const ComponentName = "verrazzano"
 
 const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
+
+var execCommand = exec.Command
 
 // ResolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace
 // is specified
@@ -135,4 +139,35 @@ func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs [
 
 	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
+}
+
+// fixupElasticSearchReplicaCount fixes the wrong replica count set for single node Elasticsearch cluster
+func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
+	ctx.Log().Debug("Elasticsearch Post Upgrade: Version is %v", ctx.EffectiveCR().Spec.Version)
+	// While upgrading to 1.1.0 version, fix the wrong number of replicas seen in single node Elasticsearch cluster
+	if ctx.EffectiveCR().Spec.Profile != vzapi.ManagedCluster && strings.HasPrefix(ctx.EffectiveCR().Spec.Version, "v1.1.0") {
+		ctx.Log().Info("Elasticsearch Post Upgrade: Getting the health of the Elasticsearch cluster")
+		cmd := execCommand("kubectl", "exec", "vmi-system-es-master-0", "-n", namespace, "-c", "es-master", "--", "sh", "-c",
+			"curl -v -XGET -s -k  --fail http://localhost:9200/_cluster/health")
+		output, err := cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch cluster health: %s", err)
+			return err
+		}
+		ctx.Log().Info("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %v", string(output))
+		// If the data node count is seen as 1 then the node is considered as single node cluster
+		if strings.Contains(string(output), "\"number_of_data_nodes\":1,") {
+			// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
+			putCmd := execCommand("kubectl", "exec", "vmi-system-es-master-0", "-n", namespace, "-c", "es-master", "--", "sh", "-c",
+				"curl -v -XPUT -d '{\"index\":{\"auto_expand_replicas\":\"0-1\"}}' --header 'Content-Type: application/json' -s -k  --fail http://localhost:9200/verrazzano-*/_settings")
+			_, err = putCmd.Output()
+			if err != nil {
+				ctx.Log().Errorf("Elasticsearch Post Upgrade: Error logging into Elasticsearch: %s", err)
+				return err
+			}
+			ctx.Log().Info("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
+		}
+	}
+	ctx.Log().Info("Elasticsearch Post Upgrade: Completed Successfully")
+	return nil
 }
