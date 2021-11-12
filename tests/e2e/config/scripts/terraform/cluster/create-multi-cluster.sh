@@ -16,6 +16,8 @@ $SCRIPT_DIR/terraform workspace new $workspace -no-color
 
 $SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -no-color
 
+set -o pipefail
+
 # retry 3 times, 30 seconds apart
 tries=0
 MAX_TRIES=3
@@ -77,7 +79,7 @@ fi
 
 # get current ingress-security-rules
 oci network security-list get --security-list-id "${SEC_LIST_ID}" | jq '.data."ingress-security-rules"' > ingress-security-rules-${CLUSTER_INDEX}.json
-if [ ${PIPESTATUS[@]} -eq 0 ]; then
+if [ $? -eq 0 ]; then
   echo "ingress-security-rules for security-list ${TF_VAR_label_prefix}-private-workers:"
   cat ingress-security-rules-${CLUSTER_INDEX}.json
 else
