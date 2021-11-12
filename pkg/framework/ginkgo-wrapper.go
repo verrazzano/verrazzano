@@ -3,16 +3,16 @@
 
 package framework
 
-import . "github.com/onsi/ginkgo"
+import "github.com/onsi/ginkgo"
 
 // VzIt - wrapper function for ginkgo It
 func VzIt(text string, body interface{}, timeout ...float64) bool {
-	It(text, body, timeout...)
+	ginkgo.It(text, body, timeout...)
 	return true
 }
 
 // VzBeforeEach - wrapper function for ginkgo BeforeEach
 func VzBeforeEach(body interface{}, timeout ...float64) bool {
-	BeforeEach(body, timeout...)
+	ginkgo.BeforeEach(body, timeout...)
 	return true
 }
