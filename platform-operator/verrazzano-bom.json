@@ -125,40 +125,47 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f",
+              "tag": "v2.5.9-20211103183518-ec72f6a2f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f"
-            },
+              "tag": "v2.5.9-20211103183518-ec72f6a2f"
+            }
+          ]
+        },
+        {
+          "registry": "ghcr.io",
+          "repository": "verrazzano/rancher",
+          "name": "additional-rancher",
+          "images": [
             {
-              "image": "rancher/shell",
+              "image": "shell",
               "tag": "v0.1.6"
             },
             {
-              "image": "rancher/rancher-webhook",
+              "image": "rancher-webhook",
               "tag": "v0.1.1"
             },
             {
-              "image": "rancher/fleet-agent",
+              "image": "fleet-agent",
               "tag": "v0.3.5"
             },
             {
-              "image": "rancher/fleet",
+              "image": "fleet",
               "tag": "v0.3.5"
             },
             {
-              "image": "rancher/gitjob",
+              "image": "gitjob",
               "tag": "v0.1.15"
             },
             {
-              "image": "rancher/rancher-operator",
+              "image": "rancher-operator",
               "tag": "v0.1.4"
             },
             {
-              "image": "rancher/local-path-provisioner",
+              "image": "local-path-provisioner",
               "tag": "v0.0.14"
             }
           ]
