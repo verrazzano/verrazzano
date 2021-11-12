@@ -23,4 +23,16 @@ var _ = Describe("verify platform pods restarted", func() {
 			return pkg.PodsHasAnnotation(constants.VerrazzanoSystemNamespace, constants.VerrazzanoRestartAnnotation)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in verrazzano-system")
 	})
+
+	It("Verify pods in ingress-nginx restarted post upgrade", func() {
+		Eventually(func() bool {
+			return pkg.PodsHasAnnotation(constants.IngressNginxNamespace, constants.VerrazzanoRestartAnnotation)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in ingress-nginx")
+	})
+
+	It("Verify pods in keycloak restarted post upgrade", func() {
+		Eventually(func() bool {
+			return pkg.PodsHasAnnotation(constants.KeycloakNamespace, constants.VerrazzanoRestartAnnotation)
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in keycloak")
+	})
 })

@@ -328,12 +328,12 @@ func PodsHasAnnotation(namespace string, annotation string) bool {
 	}
 	hasAnnotation := true
 	for _, pod := range pods.Items {
-		_, hasAnnotation := pod.Annotations[annotation]
-		if !hasAnnotation {
-			return hasAnnotation
+		_, hasAnnotation = pod.Annotations[annotation]
+		if !hasAnnotation && !strings.Contains(pod.Name, "vmi-system-kiali") {
+			return false
 		}
 	}
-	return hasAnnotation
+	return true
 }
 
 // JTq queries JSON text with a JSON path
