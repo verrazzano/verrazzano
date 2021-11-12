@@ -64,7 +64,7 @@ pipeline {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file ${WORKSPACE}/last-stable-commit.txt
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file ${WORKSPACE}/last-stable-commit.txt
                 """
 
                 script {
