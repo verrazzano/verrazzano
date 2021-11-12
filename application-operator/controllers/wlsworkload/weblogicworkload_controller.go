@@ -202,7 +202,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanoweblogicworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano weblogic workload")
+	log.Info("Reconciling Verrazzano WebLogic workload")
 
 	// fetch the workload and unwrap the WebLogic resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
@@ -307,7 +307,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// write out restartVersion in Weblogic domain
+	// write out restartVersion in WebLogic domain
 	if err = r.addDomainRestartVersion(u, workload.Annotations[constants.RestartVersionAnnotation], u.GetName(), workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
@@ -822,7 +822,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 
 func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured, restartVersion string, domainName, domainNamespace string, log logr.Logger) error {
 	if len(restartVersion) > 0 {
-		log.Info(fmt.Sprintf("The Weblogic domain %s/%s restart version is set to %s", domainNamespace, domainName, restartVersion))
+		log.Info(fmt.Sprintf("The WebLogic domain %s/%s restart version is set to %s", domainNamespace, domainName, restartVersion))
 		return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
 	}
 	return nil
