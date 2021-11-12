@@ -390,7 +390,9 @@ data:
       "settings" : {
         "index.refresh_interval" : "5s",
         "index.mapping.total_fields.limit" : "2000",
-        "number_of_shards": 5
+        "number_of_shards": 5,
+        "index.number_of_replicas" : 0,
+        "index.auto_expand_replicas" : "0-all"
       },
       "mappings" : {
         "dynamic_templates" : [ {
