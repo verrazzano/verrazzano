@@ -13,31 +13,31 @@ import (
 
 // TestVzAfterEach
 func TestVzAfterEach(t *testing.T) {
-	result := VzAfterEach(func() { return })
+	result := VzAfterEach(func() {})
 	assert.True(t, result)
 }
 
 // TestVzAfterSuite
 func TestVzAfterSuite(t *testing.T) {
-	result := VzAfterSuite(func() { return })
+	result := VzAfterSuite(func() {})
 	assert.True(t, result)
 }
 
 // TestVzBeforeEach
 func TestVzBeforeEach(t *testing.T) {
-	result := VzBeforeEach(func() { return })
+	result := VzBeforeEach(func() {})
 	assert.True(t, result)
 }
 
 // TestVzBeforeSuite
 func TestVzBeforeSuite(t *testing.T) {
-	result := VzBeforeSuite(func() { return })
+	result := VzBeforeSuite(func() {})
 	assert.True(t, result)
 }
 
 // TestVzContext
 func TestVzContext(t *testing.T) {
-	result := VzContext("Test Context", func() { return })
+	result := VzContext("Test Context", func() {})
 	assert.True(t, result)
 }
 
@@ -49,12 +49,12 @@ func TestVzCurrentGinkgoTestDescription(t *testing.T) {
 
 // TestVzDescribe
 func TestVzDescribe(t *testing.T) {
-	result := VzDescribe("Test Describe", func() { return })
+	result := VzDescribe("Test Describe", func() {})
 	assert.True(t, result)
 }
 
 // TestVzIt
 func TestVzIt(t *testing.T) {
-	result := VzIt("Test It", func() { return })
+	result := VzIt("Test It", func() {})
 	assert.True(t, result)
 }
