@@ -403,5 +403,5 @@ func verifyURIs(uriArray []string, name string, numToFind int) bool {
 			ctr++
 		}
 	}
-	return ctr != numToFind
+	return ctr == numToFind
 }
