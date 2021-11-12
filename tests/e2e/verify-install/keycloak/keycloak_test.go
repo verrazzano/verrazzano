@@ -401,7 +401,7 @@ func verifyKeycloakClientURIs() bool {
 func verifyURIs(uriArray []string, name string, numToFind int) bool {
 	ctr := 0
 	for _, uri := range uriArray{
-		if strings.Contains(uri, name) { ctr += 1 }
+		if strings.Contains(uri, name) { ctr++ }
 	}
 	if ctr != numToFind { return false }
 	return true
