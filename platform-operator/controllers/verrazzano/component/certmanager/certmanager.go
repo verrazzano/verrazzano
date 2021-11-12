@@ -5,15 +5,21 @@ package certmanager
 
 import (
 	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	yaml "k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"os"
 	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -31,7 +37,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create the cert-manager namespace: %s", err)
+		compContext.Log().Errorf("Failed to create or update the cert-manager namespace: %s", err)
 		return err
 	}
 
@@ -46,7 +52,58 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 }
 
 func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) error {
-	// setup component issuer
+	if compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Provider != "" {
+		// Initialize variables for future use
+		ociDNSConfigSecret := compContext.EffectiveCR().Spec.Components.DNS.OCI.OCIConfigSecret
+		emailAddress := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.EmailAddress
+		ociDNSZoneName := compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName
+
+		// Create secret for retieval
+		secret := v1.Secret{}
+		if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: namespace}, &secret); err != nil {
+			compContext.Log().Errorf("Failed to retireve the OCI DNS config secret: %s", err)
+			return err
+		}
+
+		// Verify the acme environment
+		acmeURL := "https://acme-v02.api.letsencrypt.org/directory"
+		if acmeEnvironment := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Environment; acmeEnvironment != "" && acmeEnvironment != "production" {
+			acmeURL = "https://acme-staging-v02.api.letsencrypt.org/directory"
+		}
+
+		clusterIssuer := []byte(fmt.Sprintf(`
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: verrazzano-cluster-issuer
+spec:
+  acme:
+    email: %s
+    server: %s
+      privateKeySecretRef:
+	    name: verrazzano-cert-acme-secret
+	  solvers:
+		- dns01:
+	        ocidns:
+            useInstancePrincipals: false
+			serviceAccountSecretRef:
+			  name: %s
+			  key: "oci.yaml"
+			ocizonename: %s
+		`, emailAddress, acmeURL, ociDNSConfigSecret, ociDNSZoneName))
+
+		clusterIssuerObject := unstructured.Unstructured{}
+
+		yamlSerializer := yaml.NewDecodingSerializer(runtime.NewCodec(runtime.NoopEncoder{}, runtime.NoopDecoder{}))
+		yamlSerializer.Decode(clusterIssuer, &schema.GroupVersionKind{Group: "cert-manager.io", Version: "v1", Kind: "ClusterIssuer"}, &clusterIssuerObject)
+
+		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuerObject, func() error {
+			return nil
+		}); err != nil {
+			compContext.Log().Errorf("Failed to create or update the cert-manager ClusterIsuer: %s", err)
+			return err
+		}
+	}
 	return nil
 }
 

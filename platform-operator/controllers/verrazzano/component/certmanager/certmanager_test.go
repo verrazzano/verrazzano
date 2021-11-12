@@ -9,7 +9,7 @@ import (
 
 const (
 	testUtilDir = "./test_utils/"
-	utilDir = "./utils/"
+	utilDir     = "./utils/"
 )
 
 var crEnabled = vzapi.Verrazzano{
