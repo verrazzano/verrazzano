@@ -20,8 +20,7 @@ import (
 )
 
 const (
-	// was 10
-	waitTimeout              = 2 * time.Minute
+	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
 	keycloakNamespace string = "keycloak"
 )
@@ -243,12 +242,6 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 	return true
 }
 
-func assertPersistentVolume(key string, size string) {
-	Expect(volumeClaims).To(HaveKey(key))
-	pvc := volumeClaims[key]
-	Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
-}
-
 func verifyKeycloakClientURIs() bool {
 	var keycloakClients KeycloakClients
 	var keycloakClient Client
@@ -396,6 +389,12 @@ func verifyKeycloakClientURIs() bool {
 	}
 
 	return true
+}
+
+func assertPersistentVolume(key string, size string) {
+	Expect(volumeClaims).To(HaveKey(key))
+	pvc := volumeClaims[key]
+	Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(size))
 }
 
 func verifyURIs(uriArray []string, name string, numToFind int) bool {
