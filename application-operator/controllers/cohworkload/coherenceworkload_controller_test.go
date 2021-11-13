@@ -93,6 +93,7 @@ func TestReconcileCreateCoherence(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -114,6 +115,8 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -174,6 +177,15 @@ func TestReconcileCreateCoherence(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update the status upgrade version
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -195,6 +207,7 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -222,6 +235,8 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -288,6 +303,15 @@ func TestReconcileCreateCoherenceWithLogging(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update the status upgrade version
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -309,6 +333,7 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -338,6 +363,8 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			workload.Name = workloadName
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
 					UID: types.UID(namespace),
@@ -477,6 +504,15 @@ func TestReconcileCreateCoherenceWithCustomLogging(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update the status upgrade version
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -498,6 +534,7 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -527,6 +564,8 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
 			workload.Name = workloadName
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
 					UID: types.UID(namespace),
@@ -632,6 +671,15 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update the status upgrade version
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -642,13 +690,13 @@ func TestReconcileCreateCoherenceWithCustomLoggingConfigMapExists(t *testing.T) 
 	assert.Equal(false, result.Requeue)
 }
 
-// TestReconcileAlreadyExistsUpgrade tests reconciling a VerrazzanoCoherenceWorkload when the Coherence StatefulSet CR already
-// exists and the upgrade version specified in the labels differs from the current upgrade version.
-// This should result in the latest Fluentd image being pulled from the env.
-// GIVEN a VerrazzanoCoherenceWorkload resource that already exists and the current upgrade version differs from the existing upgrade version
+// TestReconcileUpdateFluentdImage tests reconciling a VerrazzanoCoherenceWorkload when the Fluentd image
+// in the Coherence sidecar is old and a new image is available. This should result in the latest Fluentd
+// image being pulled from the env and replaced in the sidecar
+// GIVEN a VerrazzanoCoherenceWorkload resource that is using an old Fluentd image
 // WHEN the controller Reconcile function is called
-// THEN the Fluentd image should be retrieved from the env and the new update version should be set on the workload status
-func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
+// THEN the Fluentd image should be replaced in the Fluentd sidecar
+func TestReconcileUpdateFluentdImage(t *testing.T) {
 	assert := asserts.New(t)
 
 	var mocker = gomock.NewController(t)
@@ -658,10 +706,7 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
 	fluentdImage := "unit-test-image:latest"
-	existingUpgradeVersion := "existing-upgrade-version"
-	newUpgradeVersion := "new-upgrade-version"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	annotations := map[string]string{constants.AnnotationUpgradeVersion: newUpgradeVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -682,11 +727,11 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
 			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
 			workload.ObjectMeta.Labels = labels
-			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
-			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -763,113 +808,6 @@ func TestReconcileAlreadyExistsUpgrade(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			assert.Equal(newUpgradeVersion, workload.Status.CurrentUpgradeVersion)
-			return nil
-		})
-
-	// create a request and reconcile it
-	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
-	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(request)
-
-	mocker.Finish()
-	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
-}
-
-// TestReconcileAlreadyExistsNoUpgrade tests reconciling a VerrazzanoCoherenceWorkload when the Coherence StatefulSet CR already
-// exists and the upgrade version specified in the labels matches the current upgrade version.
-// This should result in the current Fluentd image being reused.
-// GIVEN a VerrazzanoCoherenceWorkload resource that already exists and the current upgrade version matches the existing upgrade version
-// WHEN the controller Reconcile function is called
-// THEN the existing Fluentd image should be reused
-func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
-	assert := asserts.New(t)
-
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
-
-	appConfigName := "unit-test-app-config"
-	componentName := "unit-test-component"
-	fluentdImage := "unit-test-image:latest"
-	existingFluentdImage := "unit-test-image:existing"
-	existingUpgradeVersion := "existing-upgrade-version"
-	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	annotations := map[string]string{constants.AnnotationUpgradeVersion: existingUpgradeVersion}
-	containers := []corev1.Container{{Name: logging.FluentdStdoutSidecarName, Image: existingFluentdImage}}
-
-	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := logging.DefaultFluentdImage
-	logging.DefaultFluentdImage = fluentdImage
-	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
-
-	// expect call to fetch existing coherence StatefulSet
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, coherence *v1.StatefulSet) error {
-			coherence.Spec.Template.Spec.Containers = containers
-			// return nil error because Coherence StatefulSet exists
-			return nil
-		})
-	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
-			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the VerrazzanoCoherenceWorkload
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-coherence-workload"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-			json := `{"metadata":{"name":"unit-test-cluster"},"spec":{"replicas":3}}`
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
-			workload.ObjectMeta.Labels = labels
-			workload.ObjectMeta.Annotations = annotations
-			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoCoherenceWorkload"
-			workload.Namespace = namespace
-			workload.Status.CurrentUpgradeVersion = existingUpgradeVersion
-			return nil
-		})
-	// expect a call to list the FLUENTD config maps
-	cli.EXPECT().
-		List(gomock.Any(), getUnstructuredConfigMapList(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
-			// return no resources
-			return nil
-		})
-	// no config maps found, so expect a call to create a config map with our parsing rules
-	cli.EXPECT().
-		Create(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
-			assert.Equal(strings.Join(strings.Split(cohFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
-			return nil
-		})
-	// expect a call to attempt to get the Coherence CR
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
-			// set the old Fluentd image on the returned obj
-			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "sideCars")
-			unstructured.SetNestedField(containers[0].(map[string]interface{}), existingFluentdImage, "image")
-			unstructured.SetNestedSlice(u.Object, containers, "spec", "sideCars")
-			// return nil error because Coherence StatefulSet exists
-			return nil
-		})
-	// Update not expected because the the Fluentd image shouldn't have changed
-	// expect a call to get the application configuration for the workload
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
-			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
-			return nil
-		})
-	// expect a call to get the namespace for the Coherence resource
-	cli.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
 
@@ -893,6 +831,7 @@ func TestReconcileUpdateCR(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -929,6 +868,8 @@ func TestReconcileUpdateCR(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -979,6 +920,15 @@ func TestReconcileUpdateCR(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update the status upgrade version
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -1001,6 +951,7 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -1038,6 +989,8 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -1095,6 +1048,15 @@ func TestReconcileWithLoggingWithJvmArgs(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update the status upgrade version
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(namespace, "unit-test-verrazzano-coherence-workload")
 	reconciler := newReconciler(cli)
@@ -1144,6 +1106,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to list the FLUENTD config maps
@@ -1452,6 +1416,7 @@ func TestReconcileRestart(t *testing.T) {
 
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
@@ -1482,6 +1447,8 @@ func TestReconcileRestart(t *testing.T) {
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoCoherenceWorkload"
 			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
 			return nil
 		})
 	// expect a call to fetch the OAM application configuration (and the component has an attached logging scope)
@@ -1550,6 +1517,15 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
+
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// expect a call to update the status upgrade version
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
 			return nil
 		})
 
