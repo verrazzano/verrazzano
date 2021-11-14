@@ -98,7 +98,6 @@ function wait_for_deployment {
       log "Waited for ${deployment} for $(( ${iter}*${intervalWaitSeconds} )) seconds, checking for slow image pulls in namespace $ns"
       check_for_slow_image_pulls $ns || true  # eat the failure error code, we want to keep checking
     fi
-    log "Waiting for deployment ${deployment}..."
   done
   log "Wait for deployment ${deployment} FAILED, deployment ${ns}/${deployment} state:"
   kubectl  describe deployment -n ${ns} ${deployment} || true
