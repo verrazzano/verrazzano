@@ -4,9 +4,13 @@
 package framework
 
 import (
+	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
+
+var emitMetricInitialized = false
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
 func VzBeforeSuite(body interface{}, timeout ...float64) bool {
@@ -46,6 +50,15 @@ func VzAfterEach(body interface{}, timeout ...float64) bool {
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
 	pkg.Log(pkg.Info, "VzDescribe wrapper")
+	if !emitMetricInitialized {
+		ginkgo.JustBeforeEach(func() {
+			pkg.Log(pkg.Info, fmt.Sprintf("emit metric for for begin of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
+		})
+		ginkgo.JustAfterEach(func() {
+			pkg.Log(pkg.Info, fmt.Sprintf("emit metric for for end of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
+		})
+		emitMetricInitialized = true
+	}
 	ginkgo.Describe(text, body)
 	return true
 }
