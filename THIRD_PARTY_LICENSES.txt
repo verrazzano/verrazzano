@@ -2170,6 +2170,7 @@ Portions Copyright © 2009 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors.  All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 const license = `// Copyright 2013 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
@@ -2621,4 +2622,4 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 1edaa4e92d4c9c4eb2f18e3d4cd8dcf1
+License file based on go.mod with md5 sum: b5e1422f8dd3c3759d770ccba1f1f551

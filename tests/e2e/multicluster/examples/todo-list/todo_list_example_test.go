@@ -63,7 +63,7 @@ var _ = BeforeSuite(func() {
 		return pkg.CreateDockerSecretInCluster(testNamespace, "tododomain-repo-credentials", regServ, regUser, regPass, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	// create Weblogic credentials secret
+	// create WebLogic credentials secret
 	Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateCredentialsSecretInCluster(testNamespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
@@ -145,11 +145,11 @@ var _ = Describe("Multi-cluster verify todo-list", func() {
 		}
 	})
 
-	Context("Verify Weblogic app componenets", func() {
+	Context("Verify WebLogic app componenets", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the servers in the WebLogic domain is ready
 		// THEN the domain.servers.status.health.overallHeath fields should be ok
-		It("Verify Weblogic 'todo-domain' overall health is ok", func() {
+		It("Verify WebLogic 'todo-domain' overall health is ok", func() {
 			Eventually(func() bool {
 				domain, err := weblogic.GetDomainInCluster(testNamespace, "todo-domain", managedKubeconfig)
 				if err != nil {

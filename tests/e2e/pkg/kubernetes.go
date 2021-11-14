@@ -604,7 +604,7 @@ func DoesClusterRoleBindingExist(name string) (bool, error) {
 		return false, err
 	}
 
-	return clusterrolebinding != nil, nil
+	return clusterrolebinding != nil && len(clusterrolebinding.Name) > 0, nil
 }
 
 // GetClusterRoleBinding returns the cluster role with the given name

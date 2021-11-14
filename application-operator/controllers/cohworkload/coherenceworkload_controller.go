@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -15,7 +16,6 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -127,12 +127,18 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanocoherenceworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano coherence workload")
+	log.Info("Reconciling Verrazzano Coherence workload")
 
 	// fetch the workload and unwrap the Coherence resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
 	if err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// Make sure the last generation exists in the status
+	result, err := r.ensureLastGeneration(workload)
+	if err != nil || result.Requeue {
+		return result, err
 	}
 
 	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
@@ -171,21 +177,27 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// which are defined by Verrazzano such as the Fluentd image used by logging. In this case we obtain the previous
 	// Fluentd image and set that on the new Coherence StatefulSet.
 	var existingCoherence v1.StatefulSet
+	domainExists := true
 	coherenceKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
 	if err := r.Get(ctx, coherenceKey, &existingCoherence); err != nil {
 		if k8serrors.IsNotFound(err) {
 			log.Info("No existing Coherence StatefulSet found")
+			domainExists = false
 		} else {
 			log.Error(err, "An error occurred trying to obtain an existing Coherence StatefulSet")
 			return reconcile.Result{}, err
 		}
 	}
-	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
-	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
+
+	// If the Coherence cluster already exists, make sure that it can be restarted.
+	// If the cluster cannot be restarted, don't make any Coherence changes.
+	if domainExists && !r.isOkToRestartCoherence(workload) {
+		log.Info("There have been no changes to the Coherence workload, nor has the restart annotation changed. The Coherence resource will not be modified.")
+		return ctrl.Result{}, nil
+	}
 
 	// Add the Fluentd sidecar container required for logging to the Coherence StatefulSet
-	if err = r.addLogging(ctx, log, workload, upgradeApp, spec, &existingCoherence); err != nil {
+	if err = r.addLogging(ctx, log, workload, spec, &existingCoherence); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -250,7 +262,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
+	if err = r.updateStatusReconcileDone(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -320,19 +332,7 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 }
 
 // addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LogInfo
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, upgradeApp bool, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
-	// If the Coherence StatefulSet already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
-	// current Coherence StatefulSet
-	var existingFluentdImage string
-	if !upgradeApp {
-		for _, container := range existingCoherence.Spec.Template.Spec.Containers {
-			if container.Name == logging.FluentdStdoutSidecarName {
-				existingFluentdImage = container.Image
-				break
-			}
-		}
-	}
-
+func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
 	// extract just enough of the Coherence data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
@@ -364,7 +364,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err := fluentdManager.Apply(logging.NewLogInfo(existingFluentdImage), resource, fluentdPod); err != nil {
+	if _, err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -590,9 +590,9 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	return nil
 }
 
-func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
-	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
+func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, workload *vzapi.VerrazzanoCoherenceWorkload) error {
+	if workload.Status.LastGeneration != strconv.Itoa(int(workload.Generation)) {
+		workload.Status.LastGeneration = strconv.Itoa(int(workload.Generation))
 		return r.Status().Update(ctx, workload)
 	}
 	return nil
@@ -729,4 +729,30 @@ func (r *Reconciler) addRestartVersionAnnotation(coherence *unstructured.Unstruc
 		return unstructured.SetNestedStringMap(coherence.Object, annotations, specAnnotationsFields...)
 	}
 	return nil
+}
+
+// Make sure that the last generation exists in the status
+func (r *Reconciler) ensureLastGeneration(wl *vzapi.VerrazzanoCoherenceWorkload) (ctrl.Result, error) {
+	if len(wl.Status.LastGeneration) > 0 {
+		return ctrl.Result{}, nil
+	}
+
+	// Update the status generation and always requeue
+	wl.Status.LastGeneration = strconv.Itoa(int(wl.Generation))
+	err := r.Status().Update(context.TODO(), wl)
+	return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+}
+
+// Make sure that it is OK to restart Coherence
+func (r *Reconciler) isOkToRestartCoherence(coh *vzapi.VerrazzanoCoherenceWorkload) bool {
+	// Check if user created or changed the restart annotation
+	if coh.Annotations != nil && coh.Annotations[constants.RestartVersionAnnotation] != coh.Status.LastRestartVersion {
+		return true
+	}
+	if coh.Status.LastGeneration == strconv.Itoa(int(coh.Generation)) {
+		// nothing in the spec has changed
+		return false
+	}
+	// The spec has changed because the generation is different from the saved one
+	return true
 }
