@@ -35,8 +35,9 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
-			IsEnabledFunc:           isCertManagerEnabled,
+			IsEnabledFunc:           IsCertManagerEnabled,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
+			ReadyStatusFunc: 		 IsReady,
 		},
 	}
 }

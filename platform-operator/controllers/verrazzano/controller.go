@@ -23,6 +23,7 @@ import (
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
+	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
@@ -77,6 +78,9 @@ var unitTesting bool
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
+
+	// Add cert-manager components to the scheme
+	cmapiv1.AddToScheme(r.Scheme)
 
 	log.Info("Reconciler called")
 
