@@ -19,22 +19,20 @@ import (
 	"testing"
 )
 
-const (
-	testUtilDir = "./test_utils/"
-	utilDir     = "./utils/"
-)
-
+// default CA object
 var ca = vzapi.CA{
-	SecretName: "testSecret",
+	SecretName:               "testSecret",
 	ClusterResourceNamespace: namespace,
 }
 
+// Default Acme object
 var acme = vzapi.Acme{
-	Provider: "testProvider",
+	Provider:     "testProvider",
 	EmailAddress: "testEmail",
-	Environment: "myenv",
+	Environment:  "myenv",
 }
 
+// Default Verrazzano object
 var vz = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
@@ -46,12 +44,13 @@ var vz = &vzapi.Verrazzano{
 	},
 }
 
+// Fake certManagerComponent resource for function calls
 var fakeComponent = certManagerComponent{}
 
 // TestIsCertManagerEnabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
-//  WHEN I have cert-manager enabled
-//  THEN the function returns true
+// WHEN cert-manager is enabled
+// THEN the function returns true
 func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
@@ -60,19 +59,18 @@ func TestIsCertManagerEnabled(t *testing.T) {
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
-//  WHEN I have cert-manager disabled
-//  THEN the function returns false
+// WHEN cert-manager is disabled
+// THEN the function returns false
 func TestIsCertManagerDisabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
 	assert.False(t, IsCertManagerEnabled(spi.NewContext(zap.S(), nil, localvz, false)))
 }
 
-
 // TestAppendCertManagerOverrides tests the AppendOverrides fn
 // GIVEN a call to AppendOverrides
-//  WHEN I pass a VZ spec with defaults
-//  THEN the values created properly
+// WHEN a VZ spec is passed with defaults
+// THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, vz, false), ComponentName, namespace, "", []bom.KeyValue{})
@@ -82,8 +80,8 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 
 // TestAppendCertManagerOverridesWithInstallArgs tests the AppendOverrides fn
 // GIVEN a call to AppendOverrides
-//  WHEN I pass a VZ spec with install args
-//  THEN the values created properly
+// WHEN a VZ spec is passed with install args
+// THEN the values created properly
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
@@ -94,8 +92,8 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 
 // TestCertManagerPreInstall tests the PreInstall fn
 // GIVEN a call to this fn
-//  WHEN I call PreInstall
-//  THEN no errors are returned
+// WHEN I call PreInstall with dry-run = true
+// THEN no errors are returned
 func TestCertManagerPreInstallDryRun(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	err := fakeComponent.PreInstall(spi.NewContext(zap.S(), client, &vzapi.Verrazzano{}, true))
@@ -104,8 +102,8 @@ func TestCertManagerPreInstallDryRun(t *testing.T) {
 
 // TestCertManagerPreInstall tests the PreInstall fn
 // GIVEN a call to this fn
-//  WHEN I call PreInstall
-//  THEN no errors are returned
+// WHEN I call PreInstall
+// THEN no errors are returned
 func TestCertManagerPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	setBashFunc(fakeBash)
@@ -113,11 +111,10 @@ func TestCertManagerPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-
 // TestIsCertManagerReady tests the IsReady function
 // GIVEN a call to IsReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+// WHEN the deployment object has enough replicas available
+// THEN true is returned
 func TestIsCertManagerReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		newDeployment(certManagerDeploymentName, true),
@@ -129,8 +126,8 @@ func TestIsCertManagerReady(t *testing.T) {
 
 // TestIsCertManagerNotReady tests the IsReady function
 // GIVEN a call to IsReady
-//  WHEN the deployment object does not have enough replicas available
-//  THEN false is returned
+// WHEN the deployment object does not have enough replicas available
+// THEN false is returned
 func TestIsCertManagerNotReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		newDeployment(certManagerDeploymentName, false),
@@ -142,18 +139,18 @@ func TestIsCertManagerNotReady(t *testing.T) {
 
 // TestGetCertificateConfigNil tests the getCertificateConfig function
 // GIVEN a call to getCertificateConfig
-//  WHEN the CertManager component is nil
-//  THEN the CA field is added
+// WHEN the CertManager component is nil
+// THEN the CA field is added
 func TestGetCertificateConfigNil(t *testing.T) {
 	assert.Equal(t, vzapi.CA{
-			ClusterResourceNamespace: defaultCAClusterResourceName,
-			SecretName: defaultCASecretName}, *getCertificateConfig(vz).CA)
+		ClusterResourceNamespace: defaultCAClusterResourceName,
+		SecretName:               defaultCASecretName}, *getCertificateConfig(vz).CA)
 }
 
 // TestGetCertificateConfigCA tests the getCertificateConfig function
 // GIVEN a call to getCertificateConfig
-//  WHEN the certificate is of type CA
-//  THEN the CA field is added
+// WHEN the certificate is of type CA
+// THEN the CA field is added
 func TestGetCertificateConfigCA(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
@@ -162,8 +159,8 @@ func TestGetCertificateConfigCA(t *testing.T) {
 
 // TestGetCertificateConfigAcme tests the getCertificateConfig function
 // GIVEN a call to getCertificateConfig
-//  WHEN the deployment object does not have enough replicas available
-//  THEN false is returned
+// WHEN the certificate is of type Acme
+// THEN the Acme field is added
 func TestGetCertificateConfigAcme(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
@@ -178,6 +175,7 @@ func TestPostInstallCA(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	scheme := k8scheme.Scheme
+	// Add cert-manager CRDs to scheme
 	certv1.AddToScheme(scheme)
 	client := fake.NewFakeClientWithScheme(scheme)
 	err := fakeComponent.PostInstall(spi.NewContext(zap.S(), client, localvz, false))
@@ -192,9 +190,16 @@ func TestPostInstallAcme(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	// set OCI DNS secret value and create secret
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{
+		OCI: &vzapi.OCI{
+			OCIConfigSecret: "ociDNSSecret",
+			DNSZoneName:     "example.dns.io",
+		},
+	}
 	client.Create(context.TODO(), &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "verrazzano-container-registry",
+			Name:      "ociDNSSecret",
 			Namespace: namespace,
 		},
 	})
@@ -207,6 +212,7 @@ func fakeBash(_ ...string) (string, string, error) {
 	return "success", "", nil
 }
 
+// Create a new deployment object for testing
 func newDeployment(name string, ready bool) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -232,6 +238,7 @@ func newDeployment(name string, ready bool) *appsv1.Deployment {
 	return deployment
 }
 
+// Create a bool pointer
 func getBoolPtr(b bool) *bool {
 	return &b
 }

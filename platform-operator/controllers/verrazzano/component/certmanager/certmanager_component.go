@@ -37,7 +37,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			IsEnabledFunc:           IsCertManagerEnabled,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
-			ReadyStatusFunc: 		 IsReady,
+			ReadyStatusFunc:         IsReady,
 		},
 	}
 }
