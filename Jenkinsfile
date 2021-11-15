@@ -549,6 +549,14 @@ pipeline {
                     }
                 }
                 stage("Push Images to OCIR") {
+                    environment {
+                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                        OCI_CLI_REGION = "us-ashburn-1"
+                        OCI_REGION = "${env.OCI_CLI_REGION}"
+                    }
                     when {
                         expression{params.PUSH_TO_OCIR == true}
                     }

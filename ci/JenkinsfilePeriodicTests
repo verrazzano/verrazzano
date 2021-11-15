@@ -7,6 +7,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
 def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
+def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
@@ -22,6 +23,10 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
+    }
+
+    triggers {
+        cron(branchSpecificSchedule)
     }
 
     parameters {
@@ -360,6 +365,14 @@ pipeline {
                     }
                 }
                 stage('Push to OCIR') {
+                    environment {
+                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                        OCI_CLI_REGION = "us-ashburn-1"
+                        OCI_REGION = "${env.OCI_CLI_REGION}"
+                    }
                     steps {
                         script {
                             sh """
@@ -408,4 +421,13 @@ def isPagerDutyEnabled() {
         return true
     }
     return false
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+        return "H */2 * * *"
+    } else if (env.BRANCH_NAME.startsWith("release-1")) {
+        return "@Daily"
+    }
+    return ""
 }

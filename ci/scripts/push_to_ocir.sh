@@ -72,13 +72,13 @@ sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -t $OCIR_SCAN_REGISTRY -r $OCIR_
 echo "Pushing verrazzano-bom.json to object storage"
 if [ "$IS_PERIODIC_PIPELINE" == "true" ]; then
   echo "Pushing verrazzano-bom.json to object storage for periodic pipeline. Scan results will show up under latest for ${CLEAN_BRANCH_NAME}"
-  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json --file ${BOM_FILE}
+  oci --auth instance_principal --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/last-ocir-pushed-verrazzano-bom.json --file ${BOM_FILE}
 else
   if [[ "${CLEAN_BRANCH_NAME}" == "master" ]] || [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
     echo "Pushing verrazzano-bom.json to object storage for non-periodic pipeline for master or release, Scan results are not normally tracked, these are stored under ${CLEAN_BRANCH_NAME}-last-snapshot/last-ocir-pushed-verrazzano-bom.json"
-    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-snapshot/last-ocir-pushed-verrazzano-bom.json --file ${BOM_FILE}
+    oci --auth instance_principal --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-snapshot/last-ocir-pushed-verrazzano-bom.json --file ${BOM_FILE}
   else
     echo "Pushing verrazzano-bom.json to object storage for non-periodic pipeline, Scan results are NOT automatically tracked from this"
-    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-ocir-pushed-verrazzano-bom.json --file ${BOM_FILE}
+    oci --auth instance_principal --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-ocir-pushed-verrazzano-bom.json --file ${BOM_FILE}
   fi
 fi
