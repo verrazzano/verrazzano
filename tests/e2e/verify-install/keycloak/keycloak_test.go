@@ -169,14 +169,17 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 
 var _ = Describe("Verify Keycloak URIs", func() {
 	var _ = Context("Verify redirect and weborigins URIs", func() {
-		isManagedClusterProfile := pkg.IsManagedClusterProfile()
-		It("Verify redirect and weborigins URIs", func() {
-			if !isManagedClusterProfile {
-				// GIVEN installation/upgrade of Keycloak has happened
-				// THEN verify that the correct redirect and weborigins URIs are created for verrazzano
-				Eventually(verifyKeycloakClientURIs, waitTimeout, pollingInterval).Should(BeTrue())
-			}
-		})
+		pkg.MinVersionSpec("Verify redirect and weborigins URIs", "1.1.0",
+			func() {
+				isManagedClusterProfile := pkg.IsManagedClusterProfile()
+				//				It("Verify redirect and weborigins URIs", func() {
+				if !isManagedClusterProfile {
+					// GIVEN installation/upgrade of Keycloak has happened
+					// THEN verify that the correct redirect and weborigins URIs are created for verrazzano
+					Eventually(verifyKeycloakClientURIs, waitTimeout, pollingInterval).Should(BeTrue())
+				}
+				//				})
+			})
 	})
 })
 
