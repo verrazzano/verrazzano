@@ -35,6 +35,7 @@ DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 function install_mysql {
   MYSQL_CHART_DIR=${CHARTS_DIR}/mysql
+#  Dont need this check anymore
   if is_chart_deployed mysql ${KEYCLOAK_NS} ${MYSQL_CHART_DIR} ; then
     return 0
   fi
@@ -52,6 +53,7 @@ function install_mysql {
   fi
 
   # Handle any additional MySQL install args that cannot be in mysql-values.yaml
+#  done in nginx
   local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
   EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set mysqlUser=${MYSQL_USERNAME}"
 
@@ -63,6 +65,8 @@ function install_mysql {
   EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db\.sql=${TMP_DIR}/create-db.sql"
 
   IMAGE_PULL_SECRETS_ARGUMENT=""
+  # looks at istio or kiali to do this, just add it to the component declaration
+#  ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
   if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
     IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
   fi
