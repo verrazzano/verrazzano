@@ -6,15 +6,17 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/framework"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 const (
@@ -24,14 +26,14 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var _ = Describe("Kiali", func() {
+var _ = framework.VzDescribe("Kiali", func() {
 	var (
 		client     *kubernetes.Clientset
 		httpClient *retryablehttp.Client
 		kialiErr   error
 	)
 
-	BeforeSuite(func() {
+	framework.VzBeforeSuite(func() {
 		client, kialiErr = k8sutil.GetKubernetesClientset()
 		Expect(kialiErr).ToNot(HaveOccurred())
 		httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
@@ -52,7 +54,7 @@ var _ = Describe("Kiali", func() {
 		}
 	}
 
-	Context("Successful Install", func() {
+	framework.VzContext("Successful Install", func() {
 		WhenKialiInstalledIt("should have a monitoring crd", func() {
 			Eventually(func() bool {
 				exists, err := pkg.DoesCRDExist("monitoringdashboards.monitoring.kiali.io")
@@ -70,7 +72,7 @@ var _ = Describe("Kiali", func() {
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		Context("Ingress", func() {
+		framework.VzContext("Ingress", func() {
 			var (
 				ingress   *networking.Ingress
 				kialiHost string

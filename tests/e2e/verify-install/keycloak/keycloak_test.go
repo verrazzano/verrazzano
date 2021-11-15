@@ -5,13 +5,13 @@ package keycloak_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"path"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/framework"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +25,7 @@ const (
 
 var volumeClaims map[string]*corev1.PersistentVolumeClaim
 
-var _ = BeforeSuite(func() {
+var _ = framework.VzBeforeSuite(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
 		volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
@@ -33,10 +33,10 @@ var _ = BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
 
-var _ = Describe("Verify Keycloak configuration", func() {
-	var _ = Context("Verify password policies", func() {
+var _ = framework.VzDescribe("Verify Keycloak configuration", func() {
+	var _ = framework.VzContext("Verify password policies", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
-		It("Verify master realm password policy", func() {
+		framework.VzIt("Verify master realm password policy", func() {
 			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the master realm during installation
 				// WHEN valid and invalid password changes are attempted
@@ -44,7 +44,7 @@ var _ = Describe("Verify Keycloak configuration", func() {
 				Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(BeTrue())
 			}
 		})
-		It("Verify verrazzano-system realm password policy", func() {
+		framework.VzIt("Verify verrazzano-system realm password policy", func() {
 			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the verrazzano-system realm during installation
 				// WHEN valid and invalid password changes are attempted
@@ -55,8 +55,8 @@ var _ = Describe("Verify Keycloak configuration", func() {
 	})
 })
 
-var _ = Describe("Verify MySQL Persistent Volumes based on install profile", func() {
-	var _ = Context("Verify Persistent volumes allocated per install profile", func() {
+var _ = framework.VzDescribe("Verify MySQL Persistent Volumes based on install profile", func() {
+	var _ = framework.VzContext("Verify Persistent volumes allocated per install profile", func() {
 
 		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
@@ -70,7 +70,7 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 			if override != nil {
 				expectedKeyCloakPVCs = 1
 			}
-			It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
+			framework.VzIt("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
 				if expectedKeyCloakPVCs > 0 {
@@ -78,7 +78,7 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 				}
 			})
 		} else if pkg.IsManagedClusterProfile() {
-			It("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
+			framework.VzIt("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
 				// There is no keycloak namespace in a managed cluster install
 				Eventually(func() bool {
 					_, err := pkg.GetNamespace(keycloakNamespace)
@@ -86,7 +86,7 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		} else if pkg.IsProdProfile() {
-			It("Verify persistent volumes in namespace keycloak based on Prod install profile", func() {
+			framework.VzIt("Verify persistent volumes in namespace keycloak based on Prod install profile", func() {
 				// 50 GB Persistent Volume create for MySQL in a prod install
 				Expect(len(volumeClaims)).To(Equal(1))
 				assertPersistentVolume("mysql", size)

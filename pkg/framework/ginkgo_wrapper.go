@@ -14,42 +14,42 @@ var emitMetricInitialized = false
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
 func VzBeforeSuite(body interface{}, timeout ...float64) bool {
-	pkg.Log(pkg.Info, "VzBeforeSuite wrapper")
+	pkg.Log(pkg.Debug, "VzBeforeSuite wrapper")
 	ginkgo.BeforeSuite(body, timeout...)
 	return true
 }
 
 // VzAfterSuite - wrapper function for ginkgo AfterSuite
 func VzAfterSuite(body interface{}, timeout ...float64) bool {
-	pkg.Log(pkg.Info, "VzAfterSuite wrapper")
+	pkg.Log(pkg.Debug, "VzAfterSuite wrapper")
 	ginkgo.AfterSuite(body, timeout...)
 	return true
 }
 
 // VzIt - wrapper function for ginkgo It
 func VzIt(text string, body interface{}, timeout ...float64) bool {
-	pkg.Log(pkg.Info, "VzIt wrapper")
+	pkg.Log(pkg.Debug, "VzIt wrapper")
 	ginkgo.It(text, body, timeout...)
 	return true
 }
 
 // VzBeforeEach - wrapper function for ginkgo BeforeEach
 func VzBeforeEach(body interface{}, timeout ...float64) bool {
-	pkg.Log(pkg.Info, "VzBeforeEach wrapper")
+	pkg.Log(pkg.Debug, "VzBeforeEach wrapper")
 	ginkgo.BeforeEach(body, timeout...)
 	return true
 }
 
 // VzAfterEach - wrapper function for ginkgo AfterEach
 func VzAfterEach(body interface{}, timeout ...float64) bool {
-	pkg.Log(pkg.Info, "VzAfterEach wrapper")
+	pkg.Log(pkg.Debug, "VzAfterEach wrapper")
 	ginkgo.AfterEach(body, timeout...)
 	return true
 }
 
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
-	pkg.Log(pkg.Info, "VzDescribe wrapper")
+	pkg.Log(pkg.Debug, "VzDescribe wrapper")
 	if !emitMetricInitialized {
 		ginkgo.JustBeforeEach(func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("emit metric for for begin of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
@@ -65,13 +65,20 @@ func VzDescribe(text string, body func()) bool {
 
 // VzContext - wrapper function for ginkgo Context
 func VzContext(text string, body func()) bool {
-	pkg.Log(pkg.Info, "VzContext wrapper")
+	pkg.Log(pkg.Debug, "VzContext wrapper")
 	ginkgo.Context(text, body)
 	return true
 }
 
 // VzCurrentGinkgoTestDescription - wrapper function for ginkgo CurrentGinkgoTestDescription
 func VzCurrentGinkgoTestDescription() ginkgo.GinkgoTestDescription {
-	pkg.Log(pkg.Info, "VzCurrentGinkgoTestDescription wrapper")
+	pkg.Log(pkg.Debug, "VzCurrentGinkgoTestDescription wrapper")
 	return ginkgo.CurrentGinkgoTestDescription()
+}
+
+// VzWhen - wrapper function for ginkgo When
+func VzWhen(text string, body func()) bool {
+	pkg.Log(pkg.Debug, "VzWhen wrapper")
+	ginkgo.When(text, body)
+	return true
 }
