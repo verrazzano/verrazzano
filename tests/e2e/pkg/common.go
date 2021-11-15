@@ -264,6 +264,59 @@ func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) 
 	}
 }
 
+func PodsHaveAnnotation(namespace string, annotation string) bool {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
+		return false
+	}
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+	for _, pod := range pods.Items {
+		_, hasAnnotation := pod.Annotations[annotation]
+		if !hasAnnotation && !strings.Contains(pod.Name, "vmi-system-kiali") {
+			return false
+		}
+	}
+	return true
+}
+
+func CheckPodsForIstioImage(namespace string) bool {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
+		return false
+	}
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+	for _, pod := range pods.Items {
+		_, ok := pod.Labels["istio.io/rev"]
+		if ok {
+			containers := pod.Spec.Containers
+			found := false
+			for _, container := range containers {
+				if strings.Contains(container.Image, "proxyv2:1.10") {
+					found = true
+					break
+				}
+
+			}
+			if !found {
+				Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
+				return false
+			}
+		}
+
+	}
+	return true
+}
+
 // SliceContainsString checks if the input slice (an array of strings)
 // contains an entry which matches the string s
 func SliceContainsString(slice []string, s string) bool {
