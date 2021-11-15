@@ -6,6 +6,7 @@ package nginx
 import (
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"log"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -121,6 +123,7 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 // Identify the service type, LB vs NodePort
 func GetServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
 	ingressConfig := cr.Spec.Components.Ingress
+	spew.Dump(ingressConfig)
 	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
 		return vzapi.LoadBalancer, nil
 	}
@@ -142,7 +145,8 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if serviceType == vzapi.LoadBalancer {
+	if serviceType == vzapi.LoadBalancer || serviceType == vzapi.NodePort {
+		log.Printf("Service type = %v\n",serviceType)
 		svc := v1.Service{}
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svc); err != nil {
 			return "", err
