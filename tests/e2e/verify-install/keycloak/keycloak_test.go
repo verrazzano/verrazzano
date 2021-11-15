@@ -324,68 +324,79 @@ func verifyKeycloakClientURIs() bool {
 	}
 
 	// Verify Num URIs per product endpoint
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		fmt.Printf("Error retrieving Kubeconfig Path: %s\n", err)
+		return false
+	}
+	env, err := pkg.GetEnvName(kubeconfigPath)
+	if err != nil {
+		fmt.Printf("Error retrieving Verrazzano Env: %s\n", err)
+		return false
+	}
+	fmt.Printf("Env = %s\n", env)
 	// Kiali
-	if !verifyURIs(keycloakClient.RedirectUris, "kiali.vmi.system.default", 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "kiali.vmi.system."+env, 2) {
 		fmt.Printf("Expected 2 Kiali redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "kiali.vmi.system.default", 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "kiali.vmi.system."+env, 1) {
 		fmt.Printf("Expected 1 Kiali weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
 	// Prometheus
-	if !verifyURIs(keycloakClient.RedirectUris, "prometheus.vmi.system.default", 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "prometheus.vmi.system."+env, 2) {
 		fmt.Printf("Expected 2 Prometheus redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "prometheus.vmi.system.default", 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "prometheus.vmi.system."+env, 1) {
 		fmt.Printf("Expected 1 Prometheus weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
 	// Grafana
-	if !verifyURIs(keycloakClient.RedirectUris, "grafana.vmi.system.default", 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "grafana.vmi.system."+env, 2) {
 		fmt.Printf("Expected 2 Grafana redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "grafana.vmi.system.default", 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "grafana.vmi.system."+env, 1) {
 		fmt.Printf("Expected 1 Grafana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
 	// Elasticsearch
-	if !verifyURIs(keycloakClient.RedirectUris, "elasticsearch.vmi.system.default", 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "elasticsearch.vmi.system."+env, 2) {
 		fmt.Printf("Expected 2 Elasticsearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "elasticsearch.vmi.system.default", 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "elasticsearch.vmi.system."+env, 1) {
 		fmt.Printf("Expected 1 Elasticsearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
 	// Kibana
-	if !verifyURIs(keycloakClient.RedirectUris, "kibana.vmi.system.default", 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "kibana.vmi.system."+env, 2) {
 		fmt.Printf("Expected 2 Kibana redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "kibana.vmi.system.default", 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "kibana.vmi.system."+env, 1) {
 		fmt.Printf("Expected 1 Kibana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
 	// Verrazzano
-	if !verifyURIs(keycloakClient.RedirectUris, "verrazzano.default", 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "verrazzano."+env, 2) {
 		fmt.Printf("Expected 2 Verrazzano redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "verrazzano.default", 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "verrazzano."+env, 1) {
 		fmt.Printf("Expected 1 Verrazzano weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
 		return false
 	}
