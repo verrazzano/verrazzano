@@ -350,7 +350,7 @@ var _ = Describe("Verify ToDo List example application.", func() {
 					})
 			},
 			func() {
-				pkg.MinVersionSpec("Verify recent fluentd-stdout-sidecar server log record exists", "1.1.0",
+				pkg.MinVersionSpec("Verify recent fluentd-stdout-sidecar domain log record exists", "1.1.0",
 					func() {
 						Eventually(func() bool {
 							return pkg.FindLog(indexName,
@@ -363,7 +363,7 @@ var _ = Describe("Verify ToDo List example application.", func() {
 					})
 			},
 			func() {
-				pkg.MinVersionSpec("Verify recent fluentd-stdout-sidecar server log record exists", "1.1.0",
+				pkg.MinVersionSpec("Verify recent fluentd-stdout-sidecar nodemanager log record exists", "1.1.0",
 					func() {
 						Eventually(func() bool {
 							return pkg.FindLog(indexName,
