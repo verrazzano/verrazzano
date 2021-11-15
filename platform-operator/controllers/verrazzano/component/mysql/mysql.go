@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,11 +22,12 @@ import (
 
 // ComponentName is the name of the component
 const (
-	secretName   = "mysql"
-	helmPwd      = "mysqlPassword"
-	helmRootPwd  = "mysqlRootPassword"
-	mysqlKey     = "mysql-password"
-	mysqlRootKey = "mysql-root-password"
+	secretName    = "mysql"
+	mysqlUsername = "keycloak"
+	helmPwd       = "mysqlPassword"
+	helmRootPwd   = "mysqlRootPassword"
+	mysqlKey      = "mysql-password"
+	mysqlRootKey  = "mysql-root-password"
 )
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
@@ -37,6 +39,7 @@ func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 
 // AppendMySQLOverrides appends the the password for database user and root user.
 func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	cr := compContext.EffectiveCR()
 	secret := &v1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: vzconst.KeycloakNamespace,
@@ -55,6 +58,12 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		Key:   helmRootPwd,
 		Value: string(secret.Data[mysqlRootKey]),
 	})
+
+	kvs = append(kvs, bom.KeyValue{Key: "mysqlUser", Value: mysqlUsername})
+
+	// Convert NGINX install-args to helm overrides
+	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
+
 	return kvs, nil
 }
 
@@ -70,7 +79,7 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = "ingress-nginx"
+		ns.Labels["verrazzano.io/namespace"] = namespace
 		ns.Labels["istio-injection"] = "enabled"
 		return nil
 	}); err != nil {
