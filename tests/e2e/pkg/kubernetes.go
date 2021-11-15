@@ -292,7 +292,11 @@ func GetVerrazzanoVersion() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return vz.Status.Version, nil
+	vzVer := vz.Spec.Version
+	if vzVer == "" {
+		vzVer = vz.Status.Version
+	}
+	return vzVer, nil
 }
 
 // IsVerrazzanoMinVersion returns true if the Verrazzano version >= minVersion
@@ -604,7 +608,7 @@ func DoesClusterRoleBindingExist(name string) (bool, error) {
 		return false, err
 	}
 
-	return clusterrolebinding != nil, nil
+	return clusterrolebinding != nil && len(clusterrolebinding.Name) > 0, nil
 }
 
 // GetClusterRoleBinding returns the cluster role with the given name

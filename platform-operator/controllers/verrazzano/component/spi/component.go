@@ -64,6 +64,9 @@ type ComponentUpgrader interface {
 	PostUpgrade(context ComponentContext) error
 }
 
+// Generate mocs for the spi.Component interface for use in tests.
+//go:generate mockgen -destination=../../../../mocks/component_mock.go -package=mocks -copyright_file=../../../../hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi Component
+
 // Component interface defines the methods implemented by components
 type Component interface {
 	ComponentInfo

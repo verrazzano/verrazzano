@@ -8,16 +8,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/util/rand"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
-	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 
@@ -83,13 +84,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
-		// and the verrazzano resource has been deleted, so there is nothing left to do.
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
 
-		// Error getting the verrazzano resource - don't requeue.
-		log.Errorf("Failed to fetch verrazzano resource: %v", err)
+		// Error getting the Verrazzano resource - don't requeue.
+		log.Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -141,7 +142,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
 
-	// Check if verrazzano resource is being deleted
+	// Check if Verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
 	}
@@ -217,7 +218,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
 
-	// Check if verrazzano resource is being deleted
+	// Check if Verrazzano resource is being deleted
 	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, vz)
 	}
@@ -613,27 +614,27 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 	return nil
 }
 
-// buildInstallJobName returns the name of an install job based on verrazzano resource name.
+// buildInstallJobName returns the name of an install job based on Verrazzano resource name.
 func buildInstallJobName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s", name)
 }
 
-// buildUninstallJobName returns the name of an uninstall job based on verrazzano resource name.
+// buildUninstallJobName returns the name of an uninstall job based on Verrazzano resource name.
 func buildUninstallJobName(name string) string {
 	return fmt.Sprintf("verrazzano-uninstall-%s", name)
 }
 
-// buildServiceAccountName returns the service account name for jobs based on verrazzano resource name.
+// buildServiceAccountName returns the service account name for jobs based on Verrazzano resource name.
 func buildServiceAccountName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s", name)
 }
 
-// buildClusterRoleBindingName returns the ClusgterRoleBinding name for jobs based on verrazzano resource name.
+// buildClusterRoleBindingName returns the ClusgterRoleBinding name for jobs based on Verrazzano resource name.
 func buildClusterRoleBindingName(namespace string, name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-%s", namespace, name)
 }
 
-// buildConfigMapName returns the name of a config map for an install job based on verrazzano resource name.
+// buildConfigMapName returns the name of a config map for an install job based on Verrazzano resource name.
 func buildConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s", name)
 }
@@ -643,7 +644,7 @@ func buildInternalConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-internal", name)
 }
 
-// updateStatus updates the status in the verrazzano CR
+// updateStatus updates the status in the Verrazzano CR
 func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
@@ -658,27 +659,27 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 
 	// Set the state of resource
 	cr.Status.State = checkCondtitionType(conditionType)
-	log.Infof("Setting verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
+	log.Infof("Setting Verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
 	if err != nil {
-		log.Errorf("Failed to update verrazzano resource status: %v", err)
+		log.Errorf("Failed to update Verrazzano resource status: %v", err)
 		return err
 	}
 	return nil
 }
 
-// updateState updates the status state in the verrazzano CR
+// updateState updates the status state in the Verrazzano CR
 func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
 	// Set the state of resource
 	cr.Status.State = state
-	log.Infof("Setting verrazzano state: %v", cr.Status.State)
+	log.Infof("Setting Verrazzano state: %v", cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
 	if err != nil {
-		log.Errorf("Failed to update verrazzano resource status: %v", err)
+		log.Errorf("Failed to update Verrazzano resource status: %v", err)
 		return err
 	}
 	return nil
@@ -705,7 +706,9 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 		}
 		cr.Status.Components[componentName] = componentStatus
 	}
-
+	if conditionType == installv1alpha1.InstallComplete {
+		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, cr)
+	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
 
 	// Set the state of resource
@@ -714,7 +717,7 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
 	if err != nil {
-		log.Errorf("Failed to update verrazzano resource status: %v", err)
+		log.Errorf("Failed to update Verrazzano resource status: %v", err)
 		return err
 	}
 	return nil
@@ -749,7 +752,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	return installv1alpha1.Ready
 }
 
-// setInstallCondition sets the verrazzano resource condition in status for install
+// setInstallCondition sets the Verrazzano resource condition in status for install
 func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
@@ -829,7 +832,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	return ctrl.Result{Requeue: true}, err
 }
 
-// setUninstallCondition sets the verrazzano resource condition in status for uninstall
+// setUninstallCondition sets the Verrazzano resource condition in status for uninstall
 func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
@@ -839,7 +842,7 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 			}
 		}
 
-		// Remove the owner reference so that the install job is not deleted when the verrazzano resource is deleted
+		// Remove the owner reference so that the install job is not deleted when the Verrazzano resource is deleted
 		job.SetOwnerReferences([]metav1.OwnerReference{})
 
 		// Update the job
@@ -951,7 +954,7 @@ func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alph
 	return installConfig, err
 }
 
-// createVerrazzanoSystemNamespace creates the verrazzano system namespace if it does not already exist
+// createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
 func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *zap.SugaredLogger) error {
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
@@ -1207,7 +1210,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 			return newRequeueWithDelay(), err
 		}
 
-		// Remove the finalizer and update the verrazzano resource if the uninstall has finished.
+		// Remove the finalizer and update the Verrazzano resource if the uninstall has finished.
 		for _, condition := range vz.Status.Conditions {
 			if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
 				err := r.cleanup(ctx, log, vz)
@@ -1296,7 +1299,7 @@ func shouldRequeue(r ctrl.Result) bool {
 // when a job is updated.
 func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLogger) error {
 
-	// Define a mapping to the verrazzano resource
+	// Define a mapping to the Verrazzano resource
 	mapFn := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			return []reconcile.Request{
