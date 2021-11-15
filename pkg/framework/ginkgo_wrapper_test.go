@@ -58,3 +58,9 @@ func TestVzIt(t *testing.T) {
 	result := VzIt("Test It", func() {})
 	assert.True(t, result)
 }
+
+// TestVzWhen
+func TestVzWhen(t *testing.T) {
+	result := VzWhen("Test When", func() {})
+	assert.True(t, result)
+}

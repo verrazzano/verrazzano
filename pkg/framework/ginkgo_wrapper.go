@@ -13,16 +13,24 @@ import (
 var emitMetricInitialized = false
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
-func VzBeforeSuite(body interface{}, timeout ...float64) bool {
+func VzBeforeSuite(body func(), timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzBeforeSuite wrapper")
-	ginkgo.BeforeSuite(body, timeout...)
+	ginkgo.BeforeSuite(func() {
+		pkg.Log(pkg.Info, "Emit metric in BeforeSuite - started")
+		body()
+		pkg.Log(pkg.Info, "Emit metric in BeforeSuite - ended")
+	}, timeout...)
 	return true
 }
 
 // VzAfterSuite - wrapper function for ginkgo AfterSuite
-func VzAfterSuite(body interface{}, timeout ...float64) bool {
+func VzAfterSuite(body func(), timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzAfterSuite wrapper")
-	ginkgo.AfterSuite(body, timeout...)
+	ginkgo.AfterSuite(func() {
+		pkg.Log(pkg.Info, "Emit metric in AfterSuite - started")
+		body()
+		pkg.Log(pkg.Info, "Emit metric in AfterSuite - ended")
+	}, timeout...)
 	return true
 }
 
@@ -52,10 +60,10 @@ func VzDescribe(text string, body func()) bool {
 	pkg.Log(pkg.Debug, "VzDescribe wrapper")
 	if !emitMetricInitialized {
 		ginkgo.JustBeforeEach(func() {
-			pkg.Log(pkg.Info, fmt.Sprintf("emit metric for for begin of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
+			pkg.Log(pkg.Info, fmt.Sprintf("Emit metric for for begin of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
 		})
 		ginkgo.JustAfterEach(func() {
-			pkg.Log(pkg.Info, fmt.Sprintf("emit metric for for end of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
+			pkg.Log(pkg.Info, fmt.Sprintf("Emit metric for for end of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
 		})
 		emitMetricInitialized = true
 	}
