@@ -317,7 +317,6 @@ func CheckPodsForIstioImage(namespace string) bool {
 	return true
 }
 
-
 // SliceContainsString checks if the input slice (an array of strings)
 // contains an entry which matches the string s
 func SliceContainsString(slice []string, s string) bool {
