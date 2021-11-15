@@ -5,12 +5,12 @@ package kubernetes_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
-	. "github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/framework"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,19 +43,19 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 //"vmi-system-prometheus",
 //"vmi-system-prometheus-gw"}
 
-var _ = Describe("Kubernetes Cluster",
+var _ = framework.VzDescribe("Kubernetes Cluster",
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
 
-		It("has the expected number of nodes", func() {
+		framework.VzIt("has the expected number of nodes", func() {
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
 			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
-		It("has the expected namespaces", func() {
+		framework.VzIt("has the expected namespaces", func() {
 			var namespaces *v1.NamespaceList
 			Eventually(func() (*v1.NamespaceList, error) {
 				var err error
@@ -188,7 +188,7 @@ var _ = Describe("Kubernetes Cluster",
 			ginkgoExt.Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
-		It("Expected pods are running", func() {
+		framework.VzIt("Expected pods are running", func() {
 			pkg.Concurrently(
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
