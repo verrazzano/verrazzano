@@ -437,7 +437,7 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -p --randomize-all -v -keepGoing --no-color ${testSuitePath}/...
         """
     }
 }
@@ -446,7 +446,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --no-color ${testSuitePath}/...
         """
     }
 }
@@ -539,7 +539,7 @@ def runGinkgoWithKubeClient(testSuitePath) {
             cd ${GO_REPO_PATH}/verrazzano
             ./tools/scripts/create-test-kube-client.sh
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v -keepGoing --no-color ${testSuitePath}/...
         """
     }
 }
