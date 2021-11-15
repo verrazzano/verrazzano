@@ -515,9 +515,9 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
-                stage('platform upgrade') {
+                stage('verify-upgrade post-upgrade') {
                     steps {
-                        runGinkgoRandomize('upgrade/platform')
+                        runGinkgoRandomize('verify-upgrade/postupgrade')
                     }
                 }
                 stage('examples socks') {
