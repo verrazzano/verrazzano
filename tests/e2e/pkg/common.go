@@ -326,9 +326,8 @@ func PodsHaveAnnotation(namespace string, annotation string) bool {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
-	hasAnnotation := true
 	for _, pod := range pods.Items {
-		_, hasAnnotation = pod.Annotations[annotation]
+		_, hasAnnotation := pod.Annotations[annotation]
 		if !hasAnnotation && !strings.Contains(pod.Name, "vmi-system-kiali") {
 			return false
 		}
