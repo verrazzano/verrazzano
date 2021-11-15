@@ -32,7 +32,7 @@ function read_config() {
   local key
   [ $# -eq 3 ] && key=$3
 
- local lines=$(awk '/\[/{prefix=$0; next} $1{print prefix $0}' $ocifile)
+ local lines=$(awk '/\[/{prefix=$0; next} $1{print prefix $0}' $ocifile | sed 's/[ ]=[ ]/=/g')
   for line in $lines; do
     if [[ "$line" = \[$SECTION\]* ]]; then
       local keyval=$(echo $line | sed -e "s/^\[$SECTION\]//")
