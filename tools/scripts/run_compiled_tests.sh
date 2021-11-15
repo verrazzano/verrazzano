@@ -31,8 +31,6 @@ file_exists() {
     [[ -f "$1" && -s "$1" ]]
 }
 
-
-OUTPUT_DIR="./"
 TEST_BINARY=""
 KUBECONFIG_TEXT=""
 KUBECONFIG_LOCATION=""
@@ -139,7 +137,7 @@ ginkgo -v -keepGoing --reportFile="/tmp/${TEST_LOG_ARCHIVE}/test.report" -output
 
 if [ ! -z "${TEST_LOG_BUCKET}" ]; then
   tar -czvf /tmp/${TEST_LOG_ARCHIVE}.tgz /tmp/${TEST_LOG_ARCHIVE}/*
-  oci os object put --bucket-name "${TEST_LOG_BUCKET}" --file "/tmp/${TEST_LOG_ARCHIVE}.tgz"
+  oci os object put --bucket-name "${TEST_LOG_BUCKET}" --file /tmp/${TEST_LOG_ARCHIVE}.tgz
 fi
 
 status=`sed -n -e '$p' /tmp/${TEST_LOG_ARCHIVE}/test.log`
