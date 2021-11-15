@@ -562,7 +562,7 @@ def runGinkgoRandomize(testSuitePath, dumpDir = '') {
                 export DUMP_DIRECTORY=${dumpDir}
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all-v -keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -p --randomize-all -v -keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
         """
     }
 }
