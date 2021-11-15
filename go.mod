@@ -9,6 +9,7 @@ require (
 	github.com/Jeffail/gabs/v2 v2.2.0
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.2
+	github.com/davecgh/go-spew v1.1.1
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/go-logr/logr v0.4.0
 	github.com/go-logr/zapr v0.4.0 // indirect
