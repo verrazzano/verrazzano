@@ -10,8 +10,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-const argShape = `
-gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
+const argShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"`
 
 // Specify the install args
 var cr1 = vzapi.IstioComponent{
@@ -19,6 +18,14 @@ var cr1 = vzapi.IstioComponent{
 		{
 			Name:  argShape,
 			Value: "10Mbps",
+		},
+		{
+			Name:  "global.defaultPodDisruptionBudget.enabled",
+			Value: "false",
+		},
+		{
+			Name:  "gateways.istio-ingressgateway.replicaCount",
+			Value: "3",
 		},
 		{
 			Name:  ExternalIPArg,
@@ -48,10 +55,13 @@ spec:
   # Please keep this in sync with manifests/charts/global.yaml
   values:
     global:
-      gateways:
-        istio-ingressgateway:
-          serviceAnnotations:
-            service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+      defaultPodDisruptionBudget:
+        enabled: false
+    gateways:
+      istio-ingressgateway:
+        serviceAnnotations:
+          service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+        replicaCount: 3
 `
 
 // TestBuildIstioOperatorYaml tests the BuildIstioOperatorYaml function
