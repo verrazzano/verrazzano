@@ -3,19 +3,11 @@
 package appoper
 
 import (
-	"context"
-	"errors"
-	"fmt"
-	"path/filepath"
-	"strings"
-
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 type applicationOperatorComponent struct {
@@ -42,35 +34,14 @@ func NewComponent() spi.Component {
 
 // PostUpgrade processing for the application-operator
 func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("application-operator post-upgrade")
 
-	var clientCtx = context.TODO()
-
-	// In v1.1 the use of ClusterRoleBindings to control access for a managed cluster
-	// was changed to use RoleBindings instead.  Delete any ClusterRoleBindings left on
-	// the system for multicluster.
-	vmcList := vmcv1alpha1.VerrazzanoManagedClusterList{}
-	err := ctx.Client().List(clientCtx, &vmcList)
-	if err != nil {
+	if err := deleteClusterRoleBindins(ctx); err != nil {
 		return err
 	}
-	var errorList []string
-	for _, vmc := range vmcList.Items {
-		clusterRoleBinding := rbacv1.ClusterRoleBinding{}
-		err := ctx.Client().Get(clientCtx, types.NamespacedName{Name: fmt.Sprintf("verrazzano-cluster-%s", vmc.Name)}, &clusterRoleBinding)
-		if err == nil {
-			// Delete the ClusterRoleBinding
-			err = ctx.Client().Delete(clientCtx, &clusterRoleBinding)
-			if err != nil {
-				errorList = append(errorList, fmt.Sprintf("failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
-			} else {
-				ctx.Log().Infof("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
-			}
-		}
-	}
-	if len(errorList) > 0 {
-		return errors.New(strings.Join(errorList, "\n"))
-	}
-	return nil
 
+	if err := stopWebLogicApps(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

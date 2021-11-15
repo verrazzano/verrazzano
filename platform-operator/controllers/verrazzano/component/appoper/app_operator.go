@@ -5,10 +5,14 @@ package appoper
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"io/ioutil"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -157,5 +161,46 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _
 		}
 	}
 
+	return nil
+}
+
+
+// Delete ClusterRoleBindinding that are no longer needed for multicluster
+func deleteClusterRoleBindins(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("application-operator post-upgrade")
+
+	var clientCtx = context.TODO()
+
+	// In v1.1 the use of ClusterRoleBindings to control access for a managed cluster
+	// was changed to use RoleBindings instead.  Delete any ClusterRoleBindings left on
+	// the system for multicluster.
+	vmcList := vmcv1alpha1.VerrazzanoManagedClusterList{}
+	err := ctx.Client().List(clientCtx, &vmcList)
+	if err != nil {
+		return err
+	}
+	var errorList []string
+	for _, vmc := range vmcList.Items {
+		clusterRoleBinding := rbacv1.ClusterRoleBinding{}
+		err := ctx.Client().Get(clientCtx, types.NamespacedName{Name: fmt.Sprintf("verrazzano-cluster-%s", vmc.Name)}, &clusterRoleBinding)
+		if err == nil {
+			// Delete the ClusterRoleBinding
+			err = ctx.Client().Delete(clientCtx, &clusterRoleBinding)
+			if err != nil {
+				errorList = append(errorList, fmt.Sprintf("failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
+			} else {
+				ctx.Log().Infof("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
+			}
+		}
+	}
+	if len(errorList) > 0 {
+		return errors.New(strings.Join(errorList, "\n"))
+	}
+	return nil
+}
+
+// stopApps stops WebLogic apps in the Istio mesh
+func stopWebLogicApps(ctx spi.ComponentContext) error {
+	
 	return nil
 }
