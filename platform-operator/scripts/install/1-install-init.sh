@@ -54,23 +54,7 @@ function wait_for_nodes_to_exist {
 }
 
 function wait_for_istio {
-  for iter in {1..60}; do
-    if ! kubectl  get ns istio-system 2>&1 > /dev/null; then
-      echo "Waiting for istio-sytem namespace..."
-      sleep 5s
-    else
-      break
-    fi
-  done
-  for iter in {1..60}; do
-    if ! kubectl  get deployment istiod -n istio-system 2>&1 > /dev/null; then
-      echo "Waiting for istiod deployement..."
-      sleep 5s
-    else
-      break
-    fi
-  done
-  kubectl  wait --for=condition=available deployment -n istio-system istiod --timeout=7m
+  wait_for_deployment istio-system istiod
   return $?
 }
 
