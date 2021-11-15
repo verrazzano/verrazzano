@@ -60,11 +60,6 @@ spec:
 {{.ExternalIps}}
 `
 
-// templateValuesIstioHelm is needed for template rendering of helm values
-type templateValuesIstioHelm struct {
-	Values string
-}
-
 // templateValuesExternalIPs needed for template rendering of external IPs.
 type templateValuesExternalIPs struct {
 	ExternalIps string
