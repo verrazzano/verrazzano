@@ -10,15 +10,13 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var emitMetricInitialized = false
-
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
 func VzBeforeSuite(body func(), timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzBeforeSuite wrapper")
 	ginkgo.BeforeSuite(func() {
-		pkg.Log(pkg.Info, "Emit metric in BeforeSuite - started")
+		pkg.Log(pkg.Info, "BeforeSuite started - placeholder for making API call to emit test related metric(s)")
 		body()
-		pkg.Log(pkg.Info, "Emit metric in BeforeSuite - ended")
+		pkg.Log(pkg.Info, "BeforeSuite ended - placeholder for making API call to emit test related metric(s)")
 	}, timeout...)
 	return true
 }
@@ -27,17 +25,21 @@ func VzBeforeSuite(body func(), timeout ...float64) bool {
 func VzAfterSuite(body func(), timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzAfterSuite wrapper")
 	ginkgo.AfterSuite(func() {
-		pkg.Log(pkg.Info, "Emit metric in AfterSuite - started")
+		pkg.Log(pkg.Info, "AfterSuite started - placeholder for making API call to emit test related metric(s)")
 		body()
-		pkg.Log(pkg.Info, "Emit metric in AfterSuite - ended")
+		pkg.Log(pkg.Info, "AfterSuite ended - placeholder for making API call to emit test related metric(s)")
 	}, timeout...)
 	return true
 }
 
 // VzIt - wrapper function for ginkgo It
-func VzIt(text string, body interface{}, timeout ...float64) bool {
+func VzIt(text string, body func(), timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzIt wrapper")
-	ginkgo.It(text, body, timeout...)
+	ginkgo.It(text, func() {
+		pkg.Log(pkg.Info, fmt.Sprintf("It block %q started - placeholder for making API call to emit test related metric(s)", ginkgo.CurrentGinkgoTestDescription().TestText))
+		body()
+		pkg.Log(pkg.Info, fmt.Sprintf("It block %q ended - placeholder for making API call to emit test related metric(s)", ginkgo.CurrentGinkgoTestDescription().TestText))
+	}, timeout...)
 	return true
 }
 
@@ -58,15 +60,6 @@ func VzAfterEach(body interface{}, timeout ...float64) bool {
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
 	pkg.Log(pkg.Debug, "VzDescribe wrapper")
-	if !emitMetricInitialized {
-		ginkgo.JustBeforeEach(func() {
-			pkg.Log(pkg.Info, fmt.Sprintf("Emit metric for for begin of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
-		})
-		ginkgo.JustAfterEach(func() {
-			pkg.Log(pkg.Info, fmt.Sprintf("Emit metric for for end of It %s", ginkgo.CurrentGinkgoTestDescription().TestText))
-		})
-		emitMetricInitialized = true
-	}
 	ginkgo.Describe(text, body)
 	return true
 }
