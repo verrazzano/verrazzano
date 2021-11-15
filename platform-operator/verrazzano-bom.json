@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20210818200209-6bbae6645",
+              "tag": "1.2.0-20211111042807-90c22ba5f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20210818200159-6bbae6645",
+              "tag": "1.2.0-20211111042920-90c22ba5f",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20210818200209-6bbae6645",
+              "tag": "1.2.0-20211111042807-90c22ba5f",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20210818200209-6bbae6645",
+              "tag": "1.2.0-20211111042807-90c22ba5f",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.7.1-20210817193218-4d353845",
+              "tag": "v0.7.1-20211111043303-15f77bb5",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -181,24 +181,24 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "1.1.0-20211102132834-225ffc1",
+              "tag": "1.1.0-20211111042722-3596e48",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
             {
               "image": "node-exporter",
-              "tag": "1.0.0-20211005172311-8bd6244",
+              "tag": "1.0.0-20211111042754-ac7cea6",
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20211101174500-1998b28",
+              "tag": "1.1.0-20211112180721-e0d19c8",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.2",
+              "tag": "1.10.4",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -315,7 +315,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.3",
+              "tag": "3.3.4",
               "helmFullImageKey": "image"
             }
           ]

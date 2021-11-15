@@ -168,11 +168,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		},
 	}
 
-	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) ||
-		workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
-
+	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) {
 		workload.Status.Resources = statusResources
-		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		if err := r.Status().Update(ctx, &workload); err != nil {
 			return reconcile.Result{}, err
 		}
