@@ -46,6 +46,9 @@ const (
 	loggingMountPath                = "/fluentd/etc/custom.conf"
 	loggingKey                      = "custom.conf"
 	defaultMode               int32 = 400
+	serverStartPolicyAnnotation     = "verrazzano-io/last-server-start-policy"
+ 	Never 							= "NEVER"
+ 	IfNeeded 						= "IF_NEEDED"
 )
 
 const defaultMonitoringExporterData = `
@@ -262,6 +265,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
+	// If the domain already exists, make sure that the domain can be restarted.
+	// If the domain cannot be restarted, don't make any domain changes.
+	if domainExists && !r.isOkToRestartWebLogic(workload) {
+		log.Info("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
+		return ctrl.Result{}, nil
+	}
+
 	// Add the Fluentd sidecar container required for logging to the Domain.  If the image is old, update it
 	if err = r.addLogging(ctx, log, workload, u, &existingDomain); err != nil {
 		return reconcile.Result{}, err
@@ -319,6 +329,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// If the domain already exists set any fields related to restart
+	if domainExists {
+		setDomainLifecycleFields(log, workload, &existingDomain)
+	}
+
 	// write out the WebLogic resource
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
 		return unstructured.SetNestedField(u.Object, specCopy, specField)
@@ -369,10 +384,6 @@ func (r *Reconciler) ensureLastGeneration(wl *vzapi.VerrazzanoWebLogicWorkload) 
 
 // Make sure that it is OK to restart WebLogic
 func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload) bool {
-	// Check if user created or changed the restart annotation
-	if wl.Annotations != nil && wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
-		return true
-	}
 	if wl.Status.LastGeneration == strconv.Itoa(int(wl.Generation)) {
 		// nothing in the spec has changed
 		return false
@@ -816,4 +827,59 @@ func (r *Reconciler) addDomainRestartVersion(weblogic *unstructured.Unstructured
 		return unstructured.SetNestedField(weblogic.Object, restartVersion, specRestartVersionFields...)
 	}
 	return nil
+}
+
+// If any domainlifecycle start, stop, or restart is requested, then set the appropriate field in the domain resource
+func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *wls.Domain)  {
+	if wl.Annotations != nil && wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
+		restartWebLogic(log, domain, wl.Annotations[constants.RestartVersionAnnotation])
+	}
+	if len(wl.Annotations[constants.LifecycleActionAnnotation])  > 0 && wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
+		action, _ := wl.Annotations[constants.LifecycleActionAnnotation]
+		if action == constants.LifecycleActionStart {
+			stopWebLogicDomain(log, domain)
+		} else if action == constants.LifecycleActionStop {
+			startWebLogicDomain(log, domain)
+		}
+	}
+}
+
+// Set domain restart version.  If it is changed from the previous value, then the WebLogic Operator will restart the domain
+func restartWebLogic(log logr.Logger, domain *wls.Domain, version string)  {
+	log.Info(fmt.Sprintf("Seeting WebLogic domain %s RestartVersion to %s", domain.Name, version))
+	domain.Spec.RestartVersion = version
+}
+
+// Stop the WebLogic domain
+func stopWebLogicDomain(log logr.Logger, domain *wls.Domain)  {
+	currentServerStartPolicy := domain.Spec.ServerStartPolicy
+	if currentServerStartPolicy == Never {
+		return
+	}
+	// set serverStartPolicy to "NEVER" to shutdown the domain
+	domain.Spec.ServerStartPolicy = Never
+
+	// save currentServerStartPolicy in the domain annotations, default to IfNeeded
+	if len(currentServerStartPolicy) == 0 {
+		currentServerStartPolicy = IfNeeded
+	}
+	if domain.ObjectMeta.Annotations == nil {
+		domain.ObjectMeta.Annotations = make(map[string]string)
+	}
+	domain.ObjectMeta.Annotations[serverStartPolicyAnnotation] = currentServerStartPolicy
+	log.Info(fmt.Sprintf("Stopping WebLogic domain %s.  Old serverStartPolicy is %s", domain.Name, currentServerStartPolicy))
+
+}
+
+// Start the WebLogic domain
+func startWebLogicDomain(log logr.Logger, domain *wls.Domain) {
+	var startPolicy = IfNeeded
+	if domain.ObjectMeta.Annotations != nil {
+		oldPolicy, _ := domain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
+		if len(oldPolicy) > 0 {
+			startPolicy = oldPolicy
+		}
+	}
+	domain.Spec.ServerStartPolicy = startPolicy
+	log.Info(fmt.Sprintf("Starting the WebLogic domain %s by setting serverStartPolicy to %s", domain.Name, domain.Spec.ServerStartPolicy))
 }
