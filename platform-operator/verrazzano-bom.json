@@ -125,31 +125,25 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20211103183518-ec72f6a2f",
+              "tag": "v2.5.9-20211013170111-ec72f6a2f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20211103183518-ec72f6a2f"
+              "tag": "v2.5.9-20211013170111-ec72f6a2f"
             }
           ]
         },
         {
           "registry": "ghcr.io",
           "repository": "verrazzano/rancher",
-          "name": "rancher-shell",
+          "name": "additional-rancher",
           "images": [
             {
               "image": "shell",
               "tag": "v0.1.6"
-            }
-          ]
-        },
-        { "registry": "docker.io",
-          "repository": "rancher",
-          "name" : "additional-rancher",
-          "images": [
+            },
             {
               "image": "rancher-webhook",
               "tag": "v0.1.1"
