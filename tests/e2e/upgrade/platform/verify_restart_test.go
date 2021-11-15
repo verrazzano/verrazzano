@@ -65,7 +65,7 @@ var _ = Describe("verify platform pods post upgrade", func() {
 	// THEN verify that each pod that uses istio has the correct istio proxy image
 	MinimumVerrazzanoIt("Verify pods in verrazzano-system have correct istio proxy image", func() {
 		Eventually(func() bool {
-			return pkg.CheckPodsForImage(constants.VerrazzanoSystemNamespace)
+			return pkg.CheckPodsForIstioImage(constants.VerrazzanoSystemNamespace)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
 	})
 
@@ -74,7 +74,7 @@ var _ = Describe("verify platform pods post upgrade", func() {
 	// THEN verify that each pod that uses istio has the correct istio proxy image
 	MinimumVerrazzanoIt("Verify pods in ingress-nginx have correct istio proxy image", func() {
 		Eventually(func() bool {
-			return pkg.CheckPodsForImage(constants.IngressNginxNamespace)
+			return pkg.CheckPodsForIstioImage(constants.IngressNginxNamespace)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
 	})
 
@@ -83,7 +83,7 @@ var _ = Describe("verify platform pods post upgrade", func() {
 	// THEN verify that each pod that uses istio has the correct istio proxy image
 	MinimumVerrazzanoIt("Verify pods in keycloak have correct istio proxy image", func() {
 		Eventually(func() bool {
-			return pkg.CheckPodsForImage(constants.KeycloakNamespace)
+			return pkg.CheckPodsForIstioImage(constants.KeycloakNamespace)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")
 	})
 })

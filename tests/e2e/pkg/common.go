@@ -335,7 +335,7 @@ func PodsHaveAnnotation(namespace string, annotation string) bool {
 	return true
 }
 
-func CheckPodsForImage(namespace string) bool {
+func CheckPodsForIstioImage(namespace string) bool {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
