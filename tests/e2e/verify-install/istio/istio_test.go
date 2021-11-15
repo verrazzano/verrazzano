@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo"
 	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	appsv1 "k8s.io/api/apps/v1"
 )
@@ -19,7 +19,7 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-var _ = framework.VzDescribe("Istio", func() {
+var _ = Describe("Istio", func() {
 	const istioNamespace = "istio-system"
 
 	ginkgoExt.DescribeTable("namespace",
