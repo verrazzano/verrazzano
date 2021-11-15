@@ -13,7 +13,8 @@ go test -coverpkg=./... -coverprofile ./coverage.raw.cov $(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/clients | \
   grep -Ev github.com/verrazzano/verrazzano/tools | \
-  grep -Ev github.com/verrazzano/verrazzano/tests)
+  grep -Ev github.com/verrazzano/verrazzano/tests | \
+  grep -Ev github.com/verrazzano/verrazzano/pkg/framework)
 
 TEST_STATUS=$?
 
