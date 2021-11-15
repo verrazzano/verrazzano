@@ -92,6 +92,30 @@ func TestContextProfilesMerge(t *testing.T) {
 			actualCR:     devKeycloakOverrides,
 			expectedYAML: devKeycloakOveridesMerged,
 		},
+		{
+			name:         "TestProdProfileElasticsearchOverrides",
+			description:  "Tests prod profile with Elasticsearch installArg and persistence overrides",
+			actualCR:     prodElasticSearchOverrides,
+			expectedYAML: prodElasticSearchOveridesMerged,
+		},
+		{
+			name:         "TestProdProfileIngressIstioOverrides",
+			description:  "Test prod profile with Istio and NGINX Ingress overrides",
+			actualCR:     prodIngressIstioOverrides,
+			expectedYAML: prodIngressIstioOverridesMerged,
+		},
+		{
+			name:         "TestProdProfileFluentdOverrides",
+			description:  "Test prod profile with Fluentd overrides",
+			actualCR:     prodFluentdOverrides,
+			expectedYAML: prodFluentdOverridesMerged,
+		},
+		{
+			name:         "TestManagedClusterEnableAllOverrides",
+			description:  "Test managed-cluster profile with overrides to enable everything",
+			actualCR:     managedClusterEnableAllOverride,
+			expectedYAML: managedClusterEnableAllMerged,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
