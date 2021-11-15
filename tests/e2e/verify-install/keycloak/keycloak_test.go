@@ -334,7 +334,6 @@ func verifyKeycloakClientURIs() bool {
 		fmt.Printf("Error retrieving Verrazzano Env: %s\n", err)
 		return false
 	}
-	fmt.Printf("Env = %s\n", env)
 	// Kiali
 	if !verifyURIs(keycloakClient.RedirectUris, "kiali.vmi.system."+env, 2) {
 		fmt.Printf("Expected 2 Kiali redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
