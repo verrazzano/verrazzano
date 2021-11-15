@@ -254,7 +254,7 @@ var _ = Describe("Sock Shop Application", func() {
 
 var failed = false
 var _ = AfterEach(func() {
-	failed = failed || CurrentGinkgoTestDescription().Failed
+	failed = failed || CurrentSpecReport().Failed()
 })
 
 // undeploys the application, components, and namespace

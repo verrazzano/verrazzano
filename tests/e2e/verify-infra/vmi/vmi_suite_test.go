@@ -4,8 +4,6 @@
 package vmi_test
 
 import (
-	"fmt"
-	"github.com/onsi/ginkgo/reporters"
 	"testing"
 
 	"github.com/onsi/ginkgo"
@@ -14,6 +12,5 @@ import (
 
 func TestVmi(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("vmi-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "VMI Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "VMI Suite")
 }

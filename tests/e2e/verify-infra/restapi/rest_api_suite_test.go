@@ -4,16 +4,13 @@
 package restapi_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
 func TestRestApi(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("rest-api-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "REST API Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "REST API Suite")
 }

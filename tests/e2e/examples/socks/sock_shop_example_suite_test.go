@@ -5,9 +5,7 @@ package socks
 
 import (
 	"flag"
-	"fmt"
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	"testing"
 )
@@ -22,6 +20,5 @@ func init() {
 
 func TestSockShopApplication(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("sock-shop-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Sock Shop Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Sock Shop Suite")
 }

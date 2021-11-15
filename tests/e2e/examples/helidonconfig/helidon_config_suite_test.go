@@ -5,11 +5,9 @@ package helidonconfig
 
 import (
 	"flag"
-	"fmt"
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
@@ -23,6 +21,5 @@ func init() {
 
 func TestHelidonExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("helidon-config-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Helidon Config Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Helidon Config Suite")
 }

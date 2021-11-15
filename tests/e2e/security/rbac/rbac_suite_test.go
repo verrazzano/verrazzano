@@ -4,16 +4,13 @@
 package rbac_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
 func TestSecurityRBACExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("security-RBAC-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Verrazzano Role Based Access Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Verrazzano Role Based Access Suite")
 }

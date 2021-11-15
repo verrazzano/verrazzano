@@ -4,16 +4,13 @@
 package defaultresource_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
 func TestKubernetes(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("defaultresource-%d-test-result.xml", ginkgo.GinkgoParallelNode()))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Default Resource multi-cluster Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Default Resource multi-cluster Suite")
 }
