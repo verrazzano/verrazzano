@@ -5,11 +5,10 @@ package keycloak_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"path"
 	"strings"
 	"time"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

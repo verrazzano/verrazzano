@@ -6,8 +6,6 @@ package kiali
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,6 +14,7 @@ import (
 	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"time"
 )
 
 const (
