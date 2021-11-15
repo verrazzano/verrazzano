@@ -136,9 +136,17 @@ function create_image_repos_from_archives() {
   declare -a added_repositories=()
   local target_file=""
 
-  # If we have a scan target
+  # If we have a scan target, and if it is usable.
+  # NOTE: We are having issues with the scan target getting into a bad state, the lookup can start failing
+  # with a 404. If that happens we proceed without it and do NOT fail.
+  local target_accessed="false"
   if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
     getTargetJson "target_file"
+    if [ $? -ne 0 ]; then
+      echo "No target JSON was retrieved, target related operations will be skipped but other processing will proceed based on target id being specified"
+    else
+      target_accessed="true"
+    fi
   fi
 
   # Loop through tar files
@@ -168,31 +176,36 @@ function create_image_repos_from_archives() {
 
     # If we have a scan target, we can see if it is targeted already (if it is we can skip creating it)
     # if not we track the ones we go ahead and create so we can target them afterwards
-	local create_repo=1
     if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
-      isRepositoryTargeted $repo_path $target_file
-      local repository_targeted=$?
-      if [ $repository_targeted -eq 2 ]; then
-        echo "Error checking if repository was targeted ${repo_path}"
-        rm $target_file
-        exit 1
+      # Only try target related operations if we were able to access the target, skip otherwise
+      if [ "$target_accessed" == "true" ]; then
+        isRepositoryTargeted $repo_path $target_file
+        local repository_targeted=$?
+        if [ $repository_targeted -eq 2 ]; then
+          echo "Error checking if repository was targeted ${repo_path}"
+          rm $target_file
+          exit 1
+        fi
+        # If it is targeted already, then it exists and we skip creating a new repository
+        if [ $repository_targeted -eq 0 ]; then
+          echo "$repo_path is already targeted"
+          continue
+        fi
+        # If we got here, we will add it to the list to try to target it
+        added_repositories+=("$repo_path")
+        echo "$repo_path needs to be targeted"
+      else
+        echo "skipping target checking for $repo_path (target not accessible)"
       fi
-      # If it is targeted already, then it exists and we skip creating a new repository
-      if [ $repository_targeted -eq 0 ]; then
-        echo "$repo_path is already targeted"
-        continue
-      fi
-      # If we got here, we will at least need to target it, so add it to the list of new ones
-      added_repositories+=("$repo_path")
 
       # Check if it exists already first
       oci --region ${REGION} artifacts container repository list --display-name ${repo_path} \
           --compartment-id ${COMPARTMENT_ID} > /dev/null
       if [ $? -eq 0 ]; then
-        echo "$repo_path is not targeted but already exists"
+        echo "$repo_path already exists and doesn't need to be created"
         continue
       fi
-      echo "$repo_path is not targeted and needs to be created"
+      echo "$repo_path needs to be created"
     fi
 
     echo "Creating repository ${repo_path} in ${REGION}, public: ${is_public}"
@@ -201,7 +214,7 @@ function create_image_repos_from_archives() {
   done
 
   # If we added new repositories, we need to get them added to the target so they will get scanned
-  if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
+  if [ ! -z $OCIR_SCAN_TARGET_ID ] && [ "$target_accessed" == "true" ]; then
     # FIXME: Do not enable until we are sure the VSS lifecycle state issues with update are understood and handled
     #  addNewRepositoriesToTarget "${added_repositories}" $target_file
     rm $target_file
