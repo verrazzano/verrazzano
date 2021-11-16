@@ -5,39 +5,49 @@ package framework
 
 import (
 	"fmt"
+	"reflect"
 
 	ginkgo "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
-func VzBeforeSuite(body func(), timeout ...float64) bool {
+func VzBeforeSuite(body interface{}, timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzBeforeSuite wrapper")
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
 	ginkgo.BeforeSuite(func() {
 		pkg.Log(pkg.Info, "BeforeSuite started - placeholder for making API call to emit test related metric(s)")
-		body()
+		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, "BeforeSuite ended - placeholder for making API call to emit test related metric(s)")
 	}, timeout...)
 	return true
 }
 
 // VzAfterSuite - wrapper function for ginkgo AfterSuite
-func VzAfterSuite(body func(), timeout ...float64) bool {
+func VzAfterSuite(body interface{}, timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzAfterSuite wrapper")
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
 	ginkgo.AfterSuite(func() {
 		pkg.Log(pkg.Info, "AfterSuite started - placeholder for making API call to emit test related metric(s)")
-		body()
+		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, "AfterSuite ended - placeholder for making API call to emit test related metric(s)")
 	}, timeout...)
 	return true
 }
 
 // VzIt - wrapper function for ginkgo It
-func VzIt(text string, body func(), timeout ...float64) bool {
+func VzIt(text string, body interface{}, timeout ...float64) bool {
 	pkg.Log(pkg.Debug, "VzIt wrapper")
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
 	ginkgo.It(text, func() {
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q started - placeholder for making API call to emit test related metric(s)", ginkgo.CurrentGinkgoTestDescription().TestText))
-		body()
+		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q ended - placeholder for making API call to emit test related metric(s)", ginkgo.CurrentGinkgoTestDescription().TestText))
 	}, timeout...)
 	return true
