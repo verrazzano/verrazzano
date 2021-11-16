@@ -39,17 +39,17 @@ import (
 )
 
 const (
-	metadataField                	  = "metadata"
-	specField                         = "spec"
-	destinationRuleAPIVersion         = "networking.istio.io/v1alpha3"
-	destinationRuleKind               = "DestinationRule"
-	loggingNamePart                   = "logging-stdout"
-	loggingMountPath                  = "/fluentd/etc/custom.conf"
-	loggingKey                        = "custom.conf"
-	defaultMode                 int32 = 400
-	serverStartPolicyAnnotation       = "verrazzano-io/last-server-start-policy"
-	Never                             = "NEVER"
-	IfNeeded                          = "IF_NEEDED"
+	metadataField                         = "metadata"
+	specField                             = "spec"
+	destinationRuleAPIVersion             = "networking.istio.io/v1alpha3"
+	destinationRuleKind                   = "DestinationRule"
+	loggingNamePart                       = "logging-stdout"
+	loggingMountPath                      = "/fluentd/etc/custom.conf"
+	loggingKey                            = "custom.conf"
+	defaultMode                     int32 = 400
+	lastServerStartPolicyAnnotation       = "verrazzano-io/last-server-start-policy"
+	Never                                 = "NEVER"
+	IfNeeded                              = "IF_NEEDED"
 )
 
 const defaultMonitoringExporterData = `
@@ -164,6 +164,7 @@ const defaultMonitoringExporterData = `
     "imagePullPolicy": "IfNotPresent"
   }
 `
+
 var metaAnnotationFields = []string{metadataField, "annotations"}
 var specServerPodFields = []string{specField, "serverPod"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
@@ -848,10 +849,10 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *unstructured.Unstructured) error {
 	if len(wl.Annotations[constants.LifecycleActionAnnotation]) > 0 && wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
 		action, _ := wl.Annotations[constants.LifecycleActionAnnotation]
-		if strings.EqualFold(action,constants.LifecycleActionStart) {
+		if strings.EqualFold(action, constants.LifecycleActionStart) {
 			return startWebLogicDomain(log, domain)
 		}
-		if strings.EqualFold(action,constants.LifecycleActionStop) {
+		if strings.EqualFold(action, constants.LifecycleActionStop) {
 			return stopWebLogicDomain(log, domain)
 		}
 	}
@@ -874,7 +875,7 @@ func restartWebLogic(log logr.Logger, domain *unstructured.Unstructured, version
 // Set the serverStartPolicy to stop WebLogic domain, return the current serverStartPolicy
 func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
 	// Return if serverStartPolicy is already never
-	currentServerStartPolicy, found, _  := unstructured.NestedString(domain.Object, specServerStartPolicyFields...)
+	currentServerStartPolicy, found, _ := unstructured.NestedString(domain.Object, specServerStartPolicyFields...)
 	if currentServerStartPolicy == Never {
 		return nil
 	}
@@ -891,7 +892,7 @@ func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) erro
 	if !found {
 		annos = map[string]string{}
 	}
-	annos[serverStartPolicyAnnotation] = currentServerStartPolicy
+	annos[lastServerStartPolicyAnnotation] = currentServerStartPolicy
 	err = unstructured.SetNestedStringMap(domain.Object, annos, metaAnnotationFields...)
 	if err != nil {
 		log.Error(err, "Unable to set annotations in domain")
@@ -918,7 +919,7 @@ func startWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) err
 		return err
 	}
 	if found {
-		oldPolicy, _ := annos[serverStartPolicyAnnotation]
+		oldPolicy, _ := annos[lastServerStartPolicyAnnotation]
 		if len(oldPolicy) > 0 {
 			startPolicy = oldPolicy
 		}

@@ -1614,7 +1614,6 @@ func TestReconcileRestart(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
-
 // TestReconcileStopDomain tests reconciling a VerrazzanoWebLogicWorkload when the WebLogic
 // domain CR already exists and the lifecycle-action==stop is specified in the annotations.
 // GIVEN a VerrazzanoWebLogicWorkload resource
@@ -1709,7 +1708,7 @@ func TestReconcileStopDomain(t *testing.T) {
 			assert.Equal(Never, policy)
 
 			annos, _, _ := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
-			assert.Equal(annos[serverStartPolicyAnnotation], IfNeeded)
+			assert.Equal(annos[lastServerStartPolicyAnnotation], IfNeeded)
 			return nil
 		})
 
@@ -1720,7 +1719,123 @@ func TestReconcileStopDomain(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
-			//		asserts.NotZero(len(verrazzano.Status.Components), "Status.Components len should not be zero")
+			assert.Equal(constants.LifecycleActionStop, wl.Status.LastLifecycleAction)
+			return nil
+		})
+
+	// create a request and reconcile it
+	request := newRequest(namespace, "unit-test-verrazzano-weblogic-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileStartDomain tests reconciling a VerrazzanoWebLogicWorkload when the WebLogic
+// domain CR already exists and the lifecycle-action==start is specified in the annotations.
+// GIVEN a VerrazzanoWebLogicWorkload resource
+// WHEN the controller Reconcile function is called and the WebLogic domain CR already exists and the restart-version is specified
+// THEN the WLS domain has restartVersion
+//   This should result in:
+//     1. IF_NEEDED written to the WLS domain serverStartPolicy
+//     2. The WebLogic workload.Status.LastLifeCycleAction should have start
+func TestReconcileStartDomain(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	appConfigName := "unit-test-app-config"
+	componentName := "unit-test-component"
+
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
+		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+	annotations := map[string]string{constants.LifecycleActionAnnotation: constants.LifecycleActionStart}
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+
+	// expect call to fetch existing WebLogic Domain
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+			// return nil error to simulate domain existing
+			return nil
+		})
+	// expect a call to fetch the VerrazzanoWebLogicWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.ObjectMeta.Labels = labels
+			workload.ObjectMeta.Annotations = annotations
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
+			return nil
+		})
+	// expect a call to list the FLUENTD config maps
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list runtime.Object, opts ...client.ListOption) error {
+			// return no resources
+			return nil
+		})
+	// no config maps found, so expect a call to create a config map with our parsing rules
+	cli.EXPECT().
+		Create(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, configMap *corev1.ConfigMap, opts ...client.CreateOption) error {
+			assert.Equal(strings.Join(strings.Split(WlsFluentdParsingRules, "{{ .CAFile}}"), ""), configMap.Data["fluentd.conf"])
+			return nil
+		})
+	// expect a call to get the namespace for the domain
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: namespace}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
+			return nil
+		})
+	// expect a call to attempt to get the WebLogic CR
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
+			// set the old Fluentd image on the returned obj
+			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
+			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
+			// return nil error because Coherence StatefulSet exists
+			return nil
+		})
+	// expect a call to get the application configuration for the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespace, Name: appConfigName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{{ComponentName: componentName}}
+			return nil
+		})
+	// expect a call to update the WebLogic domain CR
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
+			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
+			assert.Equal(weblogicKind, u.GetKind())
+
+			// make sure the restartVersion was added to the domain
+			policy, _, _ := unstructured.NestedString(u.Object, specServerStartPolicyFields...)
+			assert.Equal(IfNeeded, policy)
+
+			return nil
+		})
+
+	// expect a call to status update
+	cli.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource to update components
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			assert.Equal(constants.LifecycleActionStart, wl.Status.LastLifecycleAction)
 			return nil
 		})
 
