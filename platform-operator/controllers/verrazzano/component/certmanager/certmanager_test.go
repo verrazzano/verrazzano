@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,7 +53,7 @@ var fakeComponent = certManagerComponent{}
 func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
-	assert.True(t, IsCertManagerEnabled(spi.NewContext(zap.S(), nil, localvz, false)))
+	assert.True(t, IsCertManagerEnabled(spi.NewFakeContext(nil, localvz, false)))
 }
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
@@ -64,7 +63,7 @@ func TestIsCertManagerEnabled(t *testing.T) {
 func TestIsCertManagerDisabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
-	assert.False(t, IsCertManagerEnabled(spi.NewContext(zap.S(), nil, localvz, false)))
+	assert.False(t, IsCertManagerEnabled(spi.NewFakeContext(nil, localvz, false)))
 }
 
 // TestAppendCertManagerOverrides tests the AppendOverrides fn
@@ -73,7 +72,7 @@ func TestIsCertManagerDisabled(t *testing.T) {
 // THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, vz, false), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext( nil, vz, false), ComponentName, namespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 0)
 }
@@ -85,7 +84,7 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, localvz, false), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext( nil, localvz, false), ComponentName, namespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
@@ -96,7 +95,7 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 // THEN no errors are returned
 func TestCertManagerPreInstallDryRun(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := fakeComponent.PreInstall(spi.NewContext(zap.S(), client, &vzapi.Verrazzano{}, true))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, true))
 	assert.NoError(t, err)
 }
 
@@ -107,7 +106,7 @@ func TestCertManagerPreInstallDryRun(t *testing.T) {
 func TestCertManagerPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	setBashFunc(fakeBash)
-	err := fakeComponent.PreInstall(spi.NewContext(zap.S(), client, &vzapi.Verrazzano{}, false))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
 	assert.NoError(t, err)
 }
 
@@ -116,12 +115,12 @@ func TestCertManagerPreInstall(t *testing.T) {
 // WHEN the deployment object has enough replicas available
 // THEN true is returned
 func TestIsCertManagerReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		newDeployment(certManagerDeploymentName, true),
 		newDeployment(cainjectorDeploymentName, true),
 		newDeployment(webhookDeploymentName, true),
 	)
-	assert.True(t, IsReady(spi.NewContext(zap.S(), fakeClient, nil, false), ComponentName, namespace))
+	assert.True(t, IsReady(spi.NewFakeContext(client, nil, false), ComponentName, namespace))
 }
 
 // TestIsCertManagerNotReady tests the IsReady function
@@ -129,12 +128,12 @@ func TestIsCertManagerReady(t *testing.T) {
 // WHEN the deployment object does not have enough replicas available
 // THEN false is returned
 func TestIsCertManagerNotReady(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		newDeployment(certManagerDeploymentName, false),
 		newDeployment(cainjectorDeploymentName, false),
 		newDeployment(webhookDeploymentName, false),
 	)
-	assert.False(t, IsReady(spi.NewContext(zap.S(), fakeClient, nil, false), ComponentName, namespace))
+	assert.False(t, IsReady(spi.NewFakeContext(client, nil, false), ComponentName, namespace))
 }
 
 // TestGetCertificateConfigNil tests the getCertificateConfig function
@@ -178,7 +177,7 @@ func TestPostInstallCA(t *testing.T) {
 	// Add cert-manager CRDs to scheme
 	certv1.AddToScheme(scheme)
 	client := fake.NewFakeClientWithScheme(scheme)
-	err := fakeComponent.PostInstall(spi.NewContext(zap.S(), client, localvz, false))
+	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
 	assert.NoError(t, err)
 }
 
@@ -203,7 +202,7 @@ func TestPostInstallAcme(t *testing.T) {
 			Namespace: namespace,
 		},
 	})
-	err := fakeComponent.PostInstall(spi.NewContext(zap.S(), client, localvz, false))
+	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
 	assert.NoError(t, err)
 }
 
