@@ -83,7 +83,10 @@ fi
 
 if [ ! -z "${TEST_LOG_BUCKET}" ] ; then
     kubectl create ns ${JOB_NAMESPACE}
-    ${SCRIPT_DIR}/../../platform-operator/scripts/install/create_oci_config_secret.sh ${JOB_NAMESPACE}
+    kubectl get secret oci -n ${JOB_NAMESPACE} > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+      ${SCRIPT_DIR}/../../platform-operator/scripts/install/create_oci_config_secret.sh ${JOB_NAMESPACE}
+    fi
 fi
 
 CM_DATA_KUBECONFIG=`cat ${TARGET_KUBECONFIG}`
@@ -100,7 +103,9 @@ data:
     ${CM_DATA_KUBECONFIG}
   run_compiled_tests.sh: |
     ${CM_DATA_RUN_COMPILED_TESTS_SH}
----
+EOF
+
+kubectl apply -f - <<-EOF
 apiVersion: batch/v1
 kind: Job
 metadata:
