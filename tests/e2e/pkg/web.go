@@ -200,6 +200,17 @@ func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 	return newRetryableHTTPClient(vmiRawClient), nil
 }
 
+func GetEnvName(kubeconfigPath string) (string, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	if len(vz.Spec.EnvironmentName) == 0 {
+		return defaultEnvName, nil
+	}
+	return vz.Spec.EnvironmentName, nil
+}
+
 func AssertOauthURLAccessibleAndUnauthorized(httpClient *retryablehttp.Client, url string) bool {
 	httpClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		Log(Info, fmt.Sprintf("oidcUnauthorized req: %v \nvia: %v\n", req, via))
@@ -317,20 +328,9 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 	return &http.Client{Transport: tr}, nil
 }
 
-func getEnvName(kubeconfigPath string) (string, error) {
-	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-	if err != nil {
-		return "", err
-	}
-	if len(vz.Spec.EnvironmentName) == 0 {
-		return defaultEnvName, nil
-	}
-	return vz.Spec.EnvironmentName, nil
-}
-
 // getVerrazzanoCACert returns the verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := getEnvName(kubeconfigPath)
+	envName, err := GetEnvName(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +344,7 @@ func getRancherCACert(kubeconfigPath string) ([]byte, error) {
 
 // getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := getEnvName(kubeconfigPath)
+	envName, err := GetEnvName(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
