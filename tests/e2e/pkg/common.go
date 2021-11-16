@@ -41,7 +41,7 @@ type UsernamePassword struct {
 	Password string
 }
 
-// GetVerrazzanoPassword returns the password credential for the Cerrazzano secret
+// GetVerrazzanoPassword returns the password credential for the Verrazzano secret
 func GetVerrazzanoPassword() string {
 	secret, _ := GetSecret("verrazzano-system", "verrazzano")
 	return string(secret.Data["password"])
