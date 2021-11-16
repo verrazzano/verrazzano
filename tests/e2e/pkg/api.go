@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	// Username - the username of the verrazzano admin user
+	// Username - the username of the Verrazzano admin user
 	Username               = "verrazzano"
 	realm                  = "verrazzano-system"
 	verrazzanoAPIURLPrefix = "20210501"

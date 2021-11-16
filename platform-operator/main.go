@@ -63,7 +63,7 @@ func main() {
 	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
-		"Specify the root directory of verrazzano (used for development)")
+		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 
 	// Add the zap logger flag set to the CLI.

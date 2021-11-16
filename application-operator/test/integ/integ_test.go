@@ -102,17 +102,17 @@ var _ = Describe("verrazzano-application namespace resources ", func() {
 
 	It(fmt.Sprintf("ServiceAccount %s exists", verrazzanoOperator), func() {
 		Expect(K8sClient.DoesServiceAccountExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
-			"The verrazzano operator service account should exist")
+			"The Verrazzano operator service account should exist")
 	})
 	It(fmt.Sprintf("Deployment %s exists", verrazzanoOperator), func() {
 		Expect(K8sClient.DoesDeploymentExist(verrazzanoOperator, verrazzanoSystem)).To(BeTrue(),
-			"The verrazzano operator doesn't exist")
+			"The Verrazzano operator doesn't exist")
 	})
 	It(fmt.Sprintf("Pod prefixed by %s exists", verrazzanoOperator), func() {
 		Eventually(isOperatorRunning, for3m).Should(BeTrue(),
-			"The verrazzano operator pod is not urnning")
+			"The Verrazzano operator pod is not urnning")
 		Eventually(operatorServiceExists, for3m).Should(BeTrue(),
-			"The verrazzano operator service is not urnning")
+			"The Verrazzano operator service is not urnning")
 	})
 })
 

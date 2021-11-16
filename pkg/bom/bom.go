@@ -59,7 +59,7 @@ type BomSubComponent struct {
 
 	// Repository is the name of the repository within a registry.  This is combined
 	// with the registry Value to form the image URL prefix, for example: ghcr.io/verrazzano,
-	// where ghci.io is the registry and verrazzano is the repository name.
+	// where ghci.io is the registry and Verrazzano is the repository name.
 	Repository string `json:"repository"`
 
 	// Override the registry within a subcomponent
