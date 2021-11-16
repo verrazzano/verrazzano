@@ -151,8 +151,7 @@ function create_image_repos_from_archives() {
 
   local repositories_listed="false"
   local reposfile=$(mktemp temp-repositories-XXXXXX.json)
-  oci --region ${REGION} artifacts container repository list --display-name ${repo_path} \
-          --compartment-id ${COMPARTMENT_ID} > $reposfile
+  oci --region ${REGION} artifacts container repository list --compartment-id ${COMPARTMENT_ID} --all > $reposfile
   if [ $? -eq 0 ]; then
     repositories_listed="true"
   else
