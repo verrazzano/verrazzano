@@ -76,7 +76,8 @@ func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer SetDefaultIstioUpgradeFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
+
+	err := comp.Upgrade(spi.NewFakeContext(getMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -111,7 +112,7 @@ func TestPostUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
+	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
@@ -255,6 +256,6 @@ func TestIsReady(t *testing.T) {
 	},
 	)
 	var iComp IstioComponent
-	compContext := spi.NewContext(zap.S(), fakeClient, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, nil, false)
 	assert.True(t, iComp.IsReady(compContext))
 }

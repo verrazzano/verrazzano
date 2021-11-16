@@ -1,0 +1,55 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+metadata:
+  name: "dev-disable-all-override"
+spec:
+  profile: "dev"
+  environmentName: default
+  defaultVolumeSource:
+    emptyDir: {}
+  volumeClaimSpecTemplates: []
+  components:
+    certManager:
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    coherenceOperator:
+      enabled: false
+    console:
+      enabled: false
+    dns:
+      wildcard:
+        domain: "nip.io"
+    elasticsearch:
+      enabled: false
+      installArgs:
+        - name: nodes.master.replicas
+          value: "1"
+        - name: nodes.master.requests.memory
+          value: "1G"
+        - name: nodes.ingest.replicas
+          value: "0"
+        - name: nodes.data.replicas
+          value: "0"
+    fluentd:
+      enabled: false
+    grafana:
+      enabled: false
+    ingress:
+      type: LoadBalancer
+    kiali:
+      enabled: false
+    keycloak:
+      enabled: false
+      mysql:
+        volumeSource:
+          emptyDir: {}
+    kibana:
+      enabled: false
+    prometheus:
+      enabled: false
+    rancher:
+      enabled: false
+    weblogicOperator:
+      enabled: false
