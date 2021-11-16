@@ -4,7 +4,6 @@
 package installscript_test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,9 +11,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	vzClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -55,7 +52,7 @@ var _ = Describe("Verify Verrazzano install scripts", func() {
 
 				// Validation for managed clusters
 				for i := 2; i <= clusterCount; i++ {
-					consoleUrls, err := getConsoleURLsFromResource()
+					consoleUrls, err := getConsoleURLsFromResource(kubeConfigFromEnv)
 					Expect(err).ShouldNot(HaveOccurred(), "There is an error getting console URLs from the installed verrazzano resource")
 
 					// By default, install logs of the managed clusters do not contain the console URLs
@@ -74,7 +71,7 @@ var _ = Describe("Verify Verrazzano install scripts", func() {
 
 // Validate the console URLs for the admin cluster and single cluster installation
 func validateConsoleUrlsCluster(kubeconfig string) bool {
-	consoleUrls, err := getConsoleURLsFromResource()
+	consoleUrls, err := getConsoleURLsFromResource(kubeconfig)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the installed verrazzano resource - %v", err))
 		return false
@@ -89,45 +86,36 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 }
 
 // Get the list of console URLs from the status block of the installed verrrazzano resource
-func getConsoleURLsFromResource() ([]string, error) {
+func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	var consoleUrls []string
-	var client *vzClient.Clientset
-
-	vzList, err := client.VerrazzanoV1alpha1().Verrazzanos("default").List(context.TODO(), metav1.ListOptions{})
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting list of verrazzano resources - %v", err))
 		return consoleUrls, err
 	}
 
-	if len(vzList.Items) > 1 {
-		msg := "expected only one verrazzano resource to be found"
-		pkg.Log(pkg.Error, msg)
-		return consoleUrls, fmt.Errorf(msg)
+	if vz.Status.VerrazzanoInstance.ConsoleURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ConsoleURL)
 	}
-
-	if vzList.Items[0].Status.VerrazzanoInstance.ConsoleURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.ConsoleURL)
+	if vz.Status.VerrazzanoInstance.GrafanaURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.GrafanaURL)
 	}
-	if vzList.Items[0].Status.VerrazzanoInstance.GrafanaURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.GrafanaURL)
+	if vz.Status.VerrazzanoInstance.ElasticURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.ElasticURL)
 	}
-	if vzList.Items[0].Status.VerrazzanoInstance.ElasticURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.ElasticURL)
+	if vz.Status.VerrazzanoInstance.KeyCloakURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KeyCloakURL)
 	}
-	if vzList.Items[0].Status.VerrazzanoInstance.KeyCloakURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.KeyCloakURL)
+	if vz.Status.VerrazzanoInstance.KibanaURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KibanaURL)
 	}
-	if vzList.Items[0].Status.VerrazzanoInstance.KibanaURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.KibanaURL)
+	if vz.Status.VerrazzanoInstance.KialiURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.KialiURL)
 	}
-	if vzList.Items[0].Status.VerrazzanoInstance.KialiURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.KialiURL)
+	if vz.Status.VerrazzanoInstance.PrometheusURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.PrometheusURL)
 	}
-	if vzList.Items[0].Status.VerrazzanoInstance.PrometheusURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.PrometheusURL)
-	}
-	if vzList.Items[0].Status.VerrazzanoInstance.RancherURL != nil {
-		consoleUrls = append(consoleUrls, *vzList.Items[0].Status.VerrazzanoInstance.RancherURL)
+	if vz.Status.VerrazzanoInstance.RancherURL != nil {
+		consoleUrls = append(consoleUrls, *vz.Status.VerrazzanoInstance.RancherURL)
 	}
 
 	return consoleUrls, nil
