@@ -17,7 +17,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
@@ -31,11 +30,11 @@ const (
 	namespace = "cert-manager"
 
 	certManagerDeploymentName = "cert-manager"
-	cainjectorDeploymentName  = "cert-manager-cainjector"
-	webhookDeploymentName     = "cert-manager-webhook"
+	cainjectorDeploymentName = "cert-manager-cainjector"
+	webhookDeploymentName = "cert-manager-webhook"
 
-	defaultCAClusterResourceName string = "cert-manager"
-	defaultCASecretName          string = "verrazzano-ca-certificate-secret"
+	defaultCAClusterResourceName = "cert-manager"
+	defaultCASecName = "verrazzano-ca-certificate-secret"
 )
 
 // Template for ClusterIssuer for Acme certificates
@@ -65,13 +64,6 @@ type templateData struct {
 	Server      string
 	SecretName  string
 	OCIZoneName string
-}
-
-// namespace group, version, resource
-var nsGvr = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "namespaces",
 }
 
 // CertIssuerType identifies the certificate issuer type
@@ -239,12 +231,12 @@ func getCAClusterResourceNamespace(cmConfig *vzapi.CertManagerComponent) string 
 // getCASecretName returns the secret name for a CA certificate
 func getCASecretName(cmConfig *vzapi.CertManagerComponent) string {
 	if cmConfig == nil {
-		return defaultCASecretName
+		return defaultCASecName
 	}
 	ca := cmConfig.Certificate.CA
 	// Use default value if not specified
 	if ca.SecretName == "" {
-		return defaultCASecretName
+		return defaultCASecName
 	}
 
 	return ca.SecretName
