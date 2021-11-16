@@ -42,7 +42,6 @@ spec:
           ISTIO_META_REQUESTED_NETWORK_VIEW: "external"
         autoscaleEnabled: false
       istio-ingressgateway:
-        type: NodePort
         autoscaleEnabled: false
 
     meshConfig:

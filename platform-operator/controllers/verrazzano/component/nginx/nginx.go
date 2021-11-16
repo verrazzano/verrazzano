@@ -6,7 +6,6 @@ package nginx
 import (
 	"context"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -122,7 +121,6 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 // Identify the service type, LB vs NodePort
 func GetServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
 	ingressConfig := cr.Spec.Components.Ingress
-	spew.Dump(ingressConfig)
 	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
 		return vzapi.LoadBalancer, nil
 	}
