@@ -6,7 +6,7 @@ package certmanager
 import (
 	"bytes"
 	"context"
-	"github.com/go-openapi/errors"
+	"errors"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -207,20 +207,20 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 func isCA(compContext spi.ComponentContext) (bool, error) {
 	components := compContext.EffectiveCR().Spec.Components
 	if components.CertManager == nil {
-		return false, errors.NotFound("CertManager object nil")
+		return false, errors.New("CertManager object is nil")
 	}
 	// Check if Ca or Acme is empty
 	caNotEmpty := components.CertManager.Certificate.CA != vzapi.CA{}
 	acmeNotEmpty := components.CertManager.Certificate.Acme != vzapi.Acme{}
 	if caNotEmpty && acmeNotEmpty {
-		return false, errors.DuplicateItems("Certificate object Acme and CA", "")
+		return false, errors.New("Certificate object Acme and CA cannot be simultaneously populated")
 	}
 	if caNotEmpty {
 		return true, nil
 	} else if acmeNotEmpty {
 		return false, nil
 	} else {
-		return false, errors.NotFound("Both Acme and CA fields are empty")
+		return false, errors.New("Both Acme and CA fields are empty")
 	}
 }
 
