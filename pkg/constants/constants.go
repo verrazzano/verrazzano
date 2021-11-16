@@ -14,3 +14,6 @@ const LifecycleActionStop = "stop"
 
 // LifecycleActionStart - the annotation value used to start a workload
 const LifecycleActionStart = "start"
+
+// VerrazzanoWebLogicWorkloadKind - the VerrazzanoWebLogicWorkload resource kind
+const VerrazzanoWebLogicWorkloadKind = "VerrazzanoWebLogicWorkload"

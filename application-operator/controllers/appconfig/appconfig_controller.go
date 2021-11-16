@@ -6,7 +6,7 @@ package appconfig
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -57,7 +57,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
-	restartVersion, ok := appConfig.Annotations[constants.RestartVersionAnnotation]
+	restartVersion, ok := appConfig.Annotations[vzconst.RestartVersionAnnotation]
 	if !ok || len(restartVersion) == 0 {
 		log.Info("No restart version annotation found, nothing to do")
 		return reconcile.Result{}, nil
@@ -182,7 +182,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			deployment.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
+			deployment.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
@@ -200,7 +200,7 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
+			statefulSet.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
@@ -218,7 +218,7 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
+			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})

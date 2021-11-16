@@ -6,8 +6,14 @@ package istio
 import (
 	"context"
 	"fmt"
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +32,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // ComponentName is the name of the component
@@ -424,3 +431,75 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 	}
 	return kvs, nil
 }
+
+
+// stopDomainsWithOldEnvoy stops all the WebLogic domains using Envoy 1.7.3
+func stopDomainsWithOldEnvoy(ctx spi.ComponentContext) error {
+	// get all the app configs
+	appConfigs := oam.ApplicationConfigurationList{}
+	if err := ctx.Client().List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
+		ctx.Log().Errorf("Error Listing appConfigs %v", err)
+		return err
+	}
+
+	// Loop through the WebLogic workloads and stop the ones that need to be stopped
+	for _, appConfig := range appConfigs.Items {
+		for _, wl := range appConfig.Status.Workloads {
+			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
+				if err := stopDomainIfNeeded(ctx, &appConfig, wl.Reference.Name); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// Determine if the WebLogic operator needs to be stopped, if so then stop it
+func stopDomainIfNeeded(ctx spi.ComponentContext,appConfig *oam.ApplicationConfiguration, wlName string ) error {
+
+	// Get the domain pods for this workload
+	weblogicReq, _ := labels.NewRequirement("verrazzano.io/workload-type", selection.Equals, []string{"weblogic"})
+	compReq, _ := labels.NewRequirement("app.oam.dev/component", selection.Equals, []string{wlName})
+	appConfNameReq, _ := labels.NewRequirement("app.oam.dev/component", selection.Equals, []string{appConfig.Name})
+	selector := labels.NewSelector()
+	selector = selector.Add(*weblogicReq).Add(*compReq).Add(*appConfNameReq)
+
+	var podList corev1.PodList
+	if err := ctx.Client().List(context.TODO(), &podList, &clipkg.ListOptions{Namespace: appConfig.Namespace, LabelSelector: selector}); err != nil {
+		return err
+	}
+
+	// If any pod is using Isito 1.7.3 then stop the domain and return
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2:1.7.3") {
+				return stopDomain(ctx, appConfig.Namespace, wlName)
+			}
+		}
+	}
+	return nil
+}
+
+// Stop the WebLogic domain by setting the lifecycle annotation on the VerrazzanoWebLogicWorkload
+func stopDomain(ctx spi.ComponentContext, wlNamespace string, wlName string ) error {
+	// Get the WebLogic workload
+	wl := vzapp.VerrazzanoWebLogicWorkload{}
+	if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: wlName, Namespace: wlNamespace}, &wl); err != nil {
+		ctx.Log().Errorf("Error getting VerrazzanoWebLogicWorkload %s:  %v", wlName, err)
+		return err
+	}
+	// Nothing to do if annotation is already set to stop
+	if wl.ObjectMeta.Annotations == nil {
+		wl.ObjectMeta.Annotations = make(map[string]string)
+	}
+	if wl.ObjectMeta.Annotations[vzconst.LifecycleActionAnnotation] == vzconst.LifecycleActionStop {
+		return nil
+	}
+	
+
+	return nil
+}
+
+
