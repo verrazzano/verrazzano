@@ -106,8 +106,6 @@ if [ $? -eq 0 ]; then
 fi
 kubectl ${K8SCONTEXT} create secret -n $OCI_CONFIG_SECRET_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
 
-kubectl create secret -n verrazzano-system  generic oci --from-file=/home/opc/src/oci.yaml
-
 
 
 
