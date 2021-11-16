@@ -1,0 +1,72 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+metadata:
+  name: "dev-keycloak-override"
+spec:
+  profile: "dev"
+  environmentName: default
+  defaultVolumeSource:
+    emptyDir: { }
+  volumeClaimSpecTemplates:
+    - metadata:
+        name: vmi
+      spec:
+        resources:
+          requests:
+            storage: 100Gi
+  components:
+    certManager:
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    coherenceOperator:
+      enabled: true
+    console:
+      enabled: true
+    dns:
+      wildcard:
+        domain: "nip.io"
+    elasticsearch:
+      enabled: true
+      installArgs:
+        - name: nodes.master.replicas
+          value: "1"
+        - name: nodes.master.requests.memory
+          value: "1G"
+        - name: nodes.ingest.replicas
+          value: "0"
+        - name: nodes.data.replicas
+          value: "0"
+    fluentd:
+      enabled: true
+    grafana:
+      enabled: true
+    ingress:
+      type: LoadBalancer
+    kiali:
+      enabled: true
+    keycloak:
+      enabled: true
+      keycloakInstallArgs:
+        - name: some.keycloak.arg1
+          value: "val1"
+        - name: some.keycloak.arg2
+          value: "val2"
+      mysql:
+        volumeSource:
+          persistentVolumeClaim:
+            claimName: vmi
+        mysqlInstallArgs:
+          - name: some.mysql.arg1
+            value: "val1"
+          - name: some.mysql.arg2
+            value: "val2"
+    kibana:
+      enabled: true
+    prometheus:
+      enabled: true
+    rancher:
+      enabled: true
+    weblogicOperator:
+      enabled: true

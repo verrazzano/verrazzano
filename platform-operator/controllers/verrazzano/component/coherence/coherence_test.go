@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -33,7 +32,7 @@ func TestIsCoherenceOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsCoherenceOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, IsCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 // TestIsCoherenceOperatorNotReady tests the IsApplicationOperatorReady function
@@ -54,5 +53,5 @@ func TestIsCoherenceOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsCoherenceOperatorReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, IsCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
