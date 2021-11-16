@@ -142,11 +142,21 @@ function create_image_repos_from_archives() {
   local target_accessed="false"
   if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
     getTargetJson "target_file"
-    if [ $? -ne 0 ]; then
-      echo "No target JSON was retrieved, target related operations will be skipped but other processing will proceed based on target id being specified"
-    else
+    if [ $? -eq 0 ]; then
       target_accessed="true"
+    else
+      echo "No target JSON was retrieved, target related operations will be skipped but other processing will proceed based on target id being specified"
     fi
+  fi
+
+  local repositories_listed="false"
+  local reposfile=$(mktemp temp-repositories-XXXXXX.json)
+  oci --region ${REGION} artifacts container repository list --display-name ${repo_path} \
+          --compartment-id ${COMPARTMENT_ID} > $reposfile
+  if [ $? -eq 0 ]; then
+    repositories_listed="true"
+  else
+    echo "Unable to list the existing repositories to check for existence"
   fi
 
   # Loop through tar files
@@ -199,8 +209,12 @@ function create_image_repos_from_archives() {
       fi
 
       # Check if it exists already first
-      oci --region ${REGION} artifacts container repository list --display-name ${repo_path} \
-          --compartment-id ${COMPARTMENT_ID} > /dev/null
+      if [ "$repositories_listed" == "false" ]; then
+        echo "skipping existing repository check for $repo_path (repositories unable to be listed)"
+        continue
+      fi
+
+      grep "${repo_path}" $reposfile > /dev/nul
       if [ $? -eq 0 ]; then
         echo "$repo_path already exists and doesn't need to be created"
         continue
@@ -218,6 +232,10 @@ function create_image_repos_from_archives() {
     # FIXME: Do not enable until we are sure the VSS lifecycle state issues with update are understood and handled
     #  addNewRepositoriesToTarget "${added_repositories}" $target_file
     rm $target_file
+  fi
+
+  if [ "$repositories_listed" == "true" ]; then
+    rm $reposfile
   fi
 }
 
