@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"math/big"
 	"os"
 	"reflect"
@@ -384,10 +385,10 @@ func (r *Reconciler) ensureLastGeneration(wl *vzapi.VerrazzanoWebLogicWorkload) 
 func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload) bool {
 	// Check if user created or changed the restart of lifecycle annotation
 	if wl.Annotations != nil {
-		if wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
+		if wl.Annotations[vzconst.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
 			return true
 		}
-		if wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
+		if wl.Annotations[vzconst.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
 			return true
 		}
 	}
@@ -634,12 +635,12 @@ func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, wl *vzapi.Ve
 		update = true
 	}
 	if wl.Annotations != nil {
-		if wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
-			wl.Status.LastRestartVersion = wl.Annotations[constants.RestartVersionAnnotation]
+		if wl.Annotations[vzconst.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
+			wl.Status.LastRestartVersion = wl.Annotations[vzconst.RestartVersionAnnotation]
 			update = true
 		}
-		if wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
-			wl.Status.LastLifecycleAction = wl.Annotations[constants.LifecycleActionAnnotation]
+		if wl.Annotations[vzconst.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
+			wl.Status.LastLifecycleAction = wl.Annotations[vzconst.LifecycleActionAnnotation]
 			update = true
 		}
 	}
@@ -847,17 +848,17 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 // Note that it is valid to a have new restartVersion value along with a lifecycle action change.  This
 // will not result in additional restarts.
 func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *unstructured.Unstructured) error {
-	if len(wl.Annotations[constants.LifecycleActionAnnotation]) > 0 && wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
-		action := wl.Annotations[constants.LifecycleActionAnnotation]
-		if strings.EqualFold(action, constants.LifecycleActionStart) {
+	if len(wl.Annotations[vzconst.LifecycleActionAnnotation]) > 0 && wl.Annotations[vzconst.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
+		action := wl.Annotations[vzconst.LifecycleActionAnnotation]
+		if strings.EqualFold(action, vzconst.LifecycleActionStart) {
 			return startWebLogicDomain(log, domain)
 		}
-		if strings.EqualFold(action, constants.LifecycleActionStop) {
+		if strings.EqualFold(action, vzconst.LifecycleActionStop) {
 			return stopWebLogicDomain(log, domain)
 		}
 	}
-	if wl.Annotations != nil && wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
-		return restartWebLogic(log, domain, wl.Annotations[constants.RestartVersionAnnotation])
+	if wl.Annotations != nil && wl.Annotations[vzconst.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
+		return restartWebLogic(log, domain, wl.Annotations[vzconst.RestartVersionAnnotation])
 	}
 	return nil
 }

@@ -5,10 +5,20 @@ package appoper
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	vzoam "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+
+	vzString "github.com/verrazzano/verrazzano/pkg/string"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"io/ioutil"
+	appsv1 "k8s.io/api/apps/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -159,3 +169,55 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _
 
 	return nil
 }
+
+// cleanupClusterRoleBindings deletes ClusterRoleBindinds no longer needed
+func (c applicationOperatorComponent) cleanupClusterRoleBindings(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("application-operator post-upgrade")
+
+	var clientCtx = context.TODO()
+
+	// In v1.1 the use of ClusterRoleBindings to control access for a managed cluster
+	// was changed to use RoleBindings instead.  Delete any ClusterRoleBindings left on
+	// the system for multicluster.
+	vmcList := vmcv1alpha1.VerrazzanoManagedClusterList{}
+	err := ctx.Client().List(clientCtx, &vmcList)
+	if err != nil {
+		return err
+	}
+	var errorList []string
+	for _, vmc := range vmcList.Items {
+		clusterRoleBinding := rbacv1.ClusterRoleBinding{}
+		err := ctx.Client().Get(clientCtx, types.NamespacedName{Name: fmt.Sprintf("verrazzano-cluster-%s", vmc.Name)}, &clusterRoleBinding)
+		if err == nil {
+			// Delete the ClusterRoleBinding
+			err = ctx.Client().Delete(clientCtx, &clusterRoleBinding)
+			if err != nil {
+				errorList = append(errorList, fmt.Sprintf("failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
+			} else {
+				ctx.Log().Infof("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
+			}
+		}
+	}
+	if len(errorList) > 0 {
+		return errors.New(strings.Join(errorList, "\n"))
+	}
+	return nil
+}
+
+// stopWebLogicIfNeeded stops all the WebLogic domains if Istio is being upgraded from 1.7.3 to 1.10.*
+func (c applicationOperatorComponent) stopWebLogicIfNeeded(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("application-operator post-upgrade")
+
+	appConfigs := oam.ApplicationConfigurationList{}
+	if err := ctx.Client().List(context.TODO(), &appConfigs, &client.ListOptions{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c applicationOperatorComponent) getAppConfigs(ctx spi.ComponentContext) error {
+
+	oam
+}
+
