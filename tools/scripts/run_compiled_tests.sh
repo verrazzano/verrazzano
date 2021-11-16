@@ -137,6 +137,17 @@ ginkgo -v -keepGoing --reportFile="/tmp/${TEST_LOG_ARCHIVE}/test.report" -output
 
 if [ ! -z "${TEST_LOG_BUCKET}" ]; then
   tar -czvf /tmp/${TEST_LOG_ARCHIVE}.tgz /tmp/${TEST_LOG_ARCHIVE}/*
+  if file_exists "/etc/ocisecret/oci.yaml"
+  then
+    export OCI_CLI_PROFILE="DEFAULT"
+    export OCI_CLI_USER=`yq e .auth.user /etc/ocisecret/oci.yaml`
+    export OCI_CLI_FINGERPRINT=`yq e .auth.fingerprint /etc/ocisecret/oci.yaml`
+    yq e .auth.key /etc/ocisecret/oci.yaml > /tmp/ocikey.pem
+    export OCI_CLI_KEY_FILE=/tmp/ocikey.pem
+    export OCI_CLI_TENANCY=`yq e .auth.tenancy /etc/ocisecret/oci.yaml`
+    export OCI_CLI_REGION=`yq e .auth.region /etc/ocisecret/oci.yaml`
+    export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING="True"
+  fi
   oci os object put --bucket-name "${TEST_LOG_BUCKET}" --file /tmp/${TEST_LOG_ARCHIVE}.tgz
 fi
 

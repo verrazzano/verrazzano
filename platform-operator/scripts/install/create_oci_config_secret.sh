@@ -11,6 +11,7 @@ if [ -z "${KUBECONFIG:-}" ] ; then
 fi
 
 TMP_DIR=$(mktemp -d)
+echo $TMP_DIR
 trap 'rc=$?; rm -rf ${TMP_DIR} || true' EXIT
 
 # read a config item from a specified section of an oci config file
@@ -65,7 +66,7 @@ OCI_CONFIG_FILE=~/.oci/config
 SECTION=DEFAULT
 OCI_CONFIG_SECRET_NAME=oci
 K8SCONTEXT=""
-VERRAZZANO_INSTALL_NS=verrazzano-install
+OCI_CONFIG_SECRET_NS=${1:-verrazzano-install}
 
 while getopts c:o:s:k:h flag
 do
@@ -97,14 +98,15 @@ fi
 # create the secret in verrazzano-install namespace
 create_secret=true
 
-kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS > /dev/null 2>&1
+kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $OCI_CONFIG_SECRET_NS > /dev/null 2>&1
 if [ $? -eq 0 ]; then
   # secret exists
-  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_INSTALL_NS} namespace. Please delete that and try again."
+  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${OCI_CONFIG_SECRET_NS} namespace. Please delete that and try again."
   exit 1
 fi
-kubectl ${K8SCONTEXT} create secret -n $VERRAZZANO_INSTALL_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
+kubectl ${K8SCONTEXT} create secret -n $OCI_CONFIG_SECRET_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
 
+kubectl create secret -n verrazzano-system  generic oci --from-file=/home/opc/src/oci.yaml
 
 
 
