@@ -26,7 +26,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
 	if upgradeFailureCount(cr.Status, cr.Generation) > failedUpgradeLimit {
-		log.Info("Upgrade failure limit reached, upgrade will not be attempted")
+		log.Warn("Upgrade failure limit reached, upgrade will not be attempted")
 		return ctrl.Result{}, nil
 	}
 
@@ -50,7 +50,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			return newRequeueWithDelay(), err
 		}
 		if !installed {
-			log.Infof("Skip upgrade for %s, not installed", comp.Name())
+			log.Debugf("Skip upgrade for %s, not installed", comp.Name())
 			continue
 		}
 		if err := comp.PreUpgrade(upgradeContext); err != nil {
