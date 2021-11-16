@@ -4,8 +4,6 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def PROXY_IMAGES_INGRESS_NGINX
-def PROXY_IMAGES_KEYCLOAK
 def PROXY_IMAGES_SPRINGBOOT
 def PROXY_IMAGES_HELIDON
 def PROXY_IMAGES_TODO
@@ -98,7 +96,11 @@ pipeline {
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
-         // used to emit metrics
+        OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
+        NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"
+        APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
+
+        // used to emit metrics
          PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
@@ -238,10 +240,6 @@ pipeline {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
-                        script {
-                            PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
-                            PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
-                        }
                     }
                 }
                 stage('verify-infra restapi') {
@@ -257,11 +255,6 @@ pipeline {
                 stage('verify-infra vmi') {
                     steps {
                         runGinkgoRandomize('verify-infra/vmi')
-                    }
-                }
-                stage('examples socks') {
-                    steps {
-                        runGinkgo('examples/socks', "false", "true")
                     }
                 }
                 stage('examples spring') {
@@ -280,20 +273,14 @@ pipeline {
                         }
                     }
                 }
-                stage('examples todo-list') {
-                    steps {
-                        runGinkgo('examples/todo', "false", "true")
-                        script {
-                            PROXY_IMAGES_TODO = getProxyImageCount("todo-list")
-                        }
-                    }
-                }
                 stage('examples bobs-books') {
                     steps {
                         runGinkgo('examples/bobsbooks', "false", "true")
-                        script {
-                            PROXY_IMAGES_BOBSBOOKS = getProxyImageCount("bobs-books")
-                        }
+                    }
+                }
+                stage('examples socks') {
+                    steps {
+                        runGinkgo('examples/socks', "false", "true")
                     }
                 }
             }
@@ -327,6 +314,10 @@ pipeline {
             }
             steps {
                 sh """
+                # dump the app pods before updating the VPO so they can be compared after the VPO is updated
+                echo "Application pods before VPO update:"
+                ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${OLD_PODS_FILE}
+                cat ${OLD_PODS_FILE}
                 echo "Upgrading the Verrazzano platform operator"
                 # Download the operator.yaml for the target version that we are upgrading to
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -339,6 +330,7 @@ pipeline {
                 # need to sleep since the old operator needs to transition to terminating state
                 sleep 45
             """
+
             }
             post {
                 always {
@@ -389,14 +381,42 @@ pipeline {
                     cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
                 """
-
-                restartExampleApps()
-
             }
             post {
                 always {
                     dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
                     archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage("Restart Apps") {
+            steps {
+                sh """
+                    echo "Application pods after upgrade:"
+                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
+                    cat ${NEW_PODS_FILE}
+                    echo "Ensuring that the application pods did not restart after upgrade"
+                    cmp -s ${OLD_PODS_FILE} ${NEW_PODS_FILE}
+
+                    echo "Restarting apps"
+                """
+                restartExampleApps()
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-failure-cluster-dump')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-success-cluster-dump')
+                        }
+                    }
                 }
             }
         }
@@ -430,16 +450,6 @@ pipeline {
                 stage("Validate istiocoredns uninstalled") {
                     steps {
                         validateIstioCoreDNSUninstall()
-                    }
-                }
-                stage("Validate ingress-nginx istio upgrade") {
-                    steps {
-                        validateProxyImageCount("ingress-nginx", PROXY_IMAGES_INGRESS_NGINX)
-                    }
-                }
-                stage("Validate keycloak istio upgrade") {
-                    steps {
-                        validateProxyImageCount("keycloak", PROXY_IMAGES_KEYCLOAK)
                     }
                 }
                 stage("Validate springboot istio upgrade") {
@@ -505,6 +515,11 @@ pipeline {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
+                stage('verify-upgrade post-upgrade') {
+                    steps {
+                        runGinkgoRandomize('verify-upgrade/postupgrade')
+                    }
+                }
                 stage('examples socks') {
                     steps {
                         runGinkgo('examples/socks', "true", "false")
@@ -522,7 +537,7 @@ pipeline {
                 }
                 stage('examples todo') {
                     steps {
-                        runGinkgo('examples/todo', "true", "false")
+                        runGinkgo('examples/todo', "false", "false")
                     }
                 }
             }

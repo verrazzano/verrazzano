@@ -4,9 +4,13 @@
 package controllers
 
 import (
-	"strings"
+	"context"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"strconv"
+	"strings"
 )
 
 // ConvertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.
@@ -22,11 +26,14 @@ func ConvertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 	return parts[0], parts[1]
 }
 
-// IsWorkloadMarkedForUpgrade checks to see if a workload needs to be upgraded to the latest
-// Verrazzano version. Verrazzano defines some resources which are used by applications and when Verrazzano is upgraded,
-// a user can mark an application to indicate that it should use the latest resources defined by Verrazzano.
-// A response of 'true' indicates that reconcile should use the latest resources defined by Verrazzano and a response
-// of 'false' indicates that the application should continue to use the current values.
-func IsWorkloadMarkedForUpgrade(annotations map[string]string, previousUpgrade string) bool {
-	return annotations[constants.AnnotationUpgradeVersion] != previousUpgrade
+// EnsureLastGenerationInStatus ensures that the status has the last generation saved
+func EnsureLastGenerationInStatus(client clipkg.Client, wl *vzapi.VerrazzanoWebLogicWorkload) (ctrl.Result, error) {
+	if len(wl.Status.LastGeneration) > 0 {
+		return ctrl.Result{}, nil
+	}
+
+	// Update the status generation and always requeue
+	wl.Status.LastGeneration = strconv.Itoa(int(wl.Generation))
+	err := client.Status().Update(context.TODO(), wl)
+	return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 }
