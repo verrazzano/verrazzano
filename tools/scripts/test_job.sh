@@ -35,7 +35,7 @@ TS=`date "+%Y%m%d-%H%M%S%s"`
 JOB_NAME_DEFAULT="testjob-${TS}"
 JOB_NAMESPACE_DEFAULT=default
 
-while getopts c:k:t:r:o:l flag
+while getopts c:k:t:r:o:l:j:n:i:h flag
 do
     case "${flag}" in
         c) SOURCE_KUBECONFIG=${OPTARG};;
