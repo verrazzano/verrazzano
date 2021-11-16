@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -16,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type rancherComponent struct {
@@ -26,7 +28,7 @@ type rancherComponent struct {
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			Dependencies:            []string{nginx.ComponentName},
+			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          "cattle-system",
@@ -34,12 +36,13 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
+			AppendOverridesFunc:     AppendOverrides,
 		},
 	}
 }
 
-//AppendOverridesFunc set the Rancher overrides for Helm
-func (r rancherComponent) AppendOverridesFunc(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+//AppendOverrides set the Rancher overrides for Helm
+func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	kvs = appendRegistryOverrides(kvs)
 	return appendCAOverrides(kvs, ctx)
 }
@@ -90,6 +93,9 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 			}, bom.KeyValue{
 				Key:   ingressTLSSourceKey,
 				Value: letsEncryptTLSSource,
+			}, bom.KeyValue{
+				Key:   additionalTrustedCAsKey,
+				Value: strconv.FormatBool(useAdditionalCAs(cm.Certificate.Acme)),
 			})
 	} else { // Certificate issuer type is CA
 		kvs = append(kvs, bom.KeyValue{
@@ -107,22 +113,14 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 	return kvs, nil
 }
 
-// IsEnabledFunc Rancher is always enabled on admin clusters,
+// IsEnabled Rancher is always enabled on admin clusters,
 // and never enabled on managed clusters
-func (r rancherComponent) IsEnabledFunc(ctx spi.ComponentContext) bool {
-	// Check if Rancher is supported on the current cluster profile
-	spec := ctx.EffectiveCR().Spec
-	// Rancher is never enabled on managed clusters
-	if spec.Profile == vzapi.ManagedCluster {
-		return false
+func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.Rancher
+	if comp != nil && comp.Enabled != nil {
+		return *comp.Enabled
 	}
-
-	comp := spec.Components.Rancher
-	if comp == nil || comp.Enabled == nil {
-		// by default, Rancher is enabled on admin clusters
-		return true
-	}
-	return *comp.Enabled
+	return r.HelmComponent.IsEnabledFunc(ctx)
 }
 
 // PreInstall
@@ -159,11 +157,11 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 		return err
 	}
 	log.Infof("Pached Rancher deployment to support MKNOD")
-	// Add TLS Certificate(s) to Rancher ingress
+	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	log.Infof("Patched Rancher ingress with TLS Certificate(s)")
+	log.Infof("Patched Rancher ingress")
 
 	return nil
 }
@@ -175,7 +173,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 		// Try to retrieve the Rancher ingress IP
 		ip, err := getRancherIngressIp(log, c)
 		if err != nil {
-			log.Warnf("could not get Rancher ingress IP: %v", err.Error())
+			log.Errorf("Rancher IsReady: Failed to get Ingress IP: %s", err)
 			return false
 		}
 

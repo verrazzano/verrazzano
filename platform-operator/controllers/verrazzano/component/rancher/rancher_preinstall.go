@@ -10,7 +10,6 @@ import (
 	os2 "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
@@ -19,35 +18,28 @@ import (
 )
 
 func createCattleSystemNamespaceIfNotExists(log *zap.SugaredLogger, c client.Client) error {
-	namespacedName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      ComponentNamespace,
+	namespace := &v1.Namespace{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ComponentNamespace,
+			Labels: map[string]string{
+				namespaceLabelKey: ComponentNamespace,
+			},
+		},
 	}
-	namespace := &v1.Namespace{}
-	err := c.Get(context.TODO(), namespacedName, namespace)
-	if err != nil {
-		if apierrors.IsNotFound(err) { // if the namespace does not exist, create it
-			log.Debugf("Creating %v namespace for Rancher", ComponentNamespace)
-			return c.Create(context.TODO(), &v1.Namespace{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: ComponentNamespace,
-					Labels: map[string]string{
-						NamespaceLabelKey: ComponentNamespace,
-					},
-				},
-			})
-		}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
+		namespace.Labels[namespaceLabelKey] = ComponentName
+		return nil
+	}); err != nil {
 		log.Errorf("Failed to create %v namespace", ComponentNamespace)
 		return err
-	} else { // namespace exists, and needs to be labelled
-		namespaceMerge := client.MergeFrom(namespace.DeepCopy())
-		namespace.Labels[NamespaceLabelKey] = ComponentName
-		log.Debugf("Patching %v namespace", ComponentNamespace)
-		return c.Patch(context.TODO(), namespace, namespaceMerge)
 	}
+
+	return nil
 }
 
+//copyDefaultCACertificate copies the defaultVerrazzanoSecretName TLS Secret to the ComponentNamespace for use by Rancher
+//This method will only copy defaultVerrazzanoSecretName if default CA certificates are being used.
 func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if isUsingDefaultCACertificate(cm) {
@@ -63,7 +55,7 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      RancherTlsSecret,
+				Name:      rancherTLSSecretName,
 			},
 			Data: secretData,
 		}
@@ -88,7 +80,7 @@ func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
 
 func createAdditionalCertificates(log *zap.SugaredLogger, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
-	if (cm != nil && cm.Certificate.Acme != vzapi.Acme{} && cm.Certificate.Acme.Environment != "production") {
+	if (cm != nil && cm.Certificate.Acme != vzapi.Acme{} && useAdditionalCAs(cm.Certificate.Acme)) {
 		log.Infof("Creating additional Rancher certificates for non-production environment")
 		script := filepath.Join(config.GetInstallDir(), "install-rancher-certificates.sh")
 		if _, stderr, err := os2.RunBash(script); err != nil {

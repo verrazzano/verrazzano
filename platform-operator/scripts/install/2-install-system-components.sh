@@ -20,6 +20,11 @@ function wait_for_nginx() {
   return $?
 }
 
+function wait_for_rancher() {
+  wait_for_deployment cattle-system rancher
+  return $?
+}
+
 function install_nginx_ingress_controller()
 {
     local ingress_nginx_ns=ingress-nginx
@@ -357,24 +362,14 @@ function install_rancher()
     local EXTRA_RANCHER_ARGUMENTS=""
     local RANCHER_PATCH_DATA=""
     local useAdditionalCAs=false
-    # DONE
     if ! is_chart_deployed rancher cattle-system ${RANCHER_CHART_DIR} ; then
-         # CERT_ISSUER_TYPE=$(get_config_value ".certificates.issuerType")
       if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
         INGRESS_TLS_SOURCE="letsEncrypt"
-
-#          if [ -z "$(get_config_value '.certificates.acme.environment')" ]; then
-#            echo "production"
-#          else
-#            get_config_value ".certificates.acme.environment"
-#          fi
         if [ "$(get_acme_environment)" != "production" ]; then
           log "Using ACME staging, enable use of additional trusted CAs for Rancher"
           useAdditionalCAs=true
         fi
-         # Defer to append overrides
         EXTRA_RANCHER_ARGUMENTS="--set letsEncrypt.ingress.class=rancher --set letsEncrypt.email=$(get_config_value ".certificates.acme.emailAddress") --set letsEncrypt.environment=$(get_acme_environment) --set additionalTrustedCAs=${useAdditionalCAs}"
-        # Defer to Patch Ingress in post-install
         RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${DNS_SUFFIX} auth\",\"external-dns.alpha.kubernetes.io/target\":\"verrazzano-ingress.${NAME}.${DNS_SUFFIX}\",\"cert-manager.io/issuer\":null,\"cert-manager.io/issuer-kind\":null,\"external-dns.alpha.kubernetes.io/ttl\":\"60\"}}}"
       elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
         INGRESS_TLS_SOURCE="secret"
@@ -399,15 +394,12 @@ function install_rancher()
           log "Copy CA certificate which is used by the Rancher Agent to validate the connection to the server."
           kubectl -n cattle-system create secret generic tls-ca --from-file=cacerts.pem=${TMP_DIR}/cacerts.pem || return $?
         fi
-        # Defer to Patch ingress in post install
-
         RANCHER_PATCH_DATA="{\"metadata\":{\"annotations\":{\"kubernetes.io/tls-acme\":\"true\",\"nginx.ingress.kubernetes.io/auth-realm\":\"${NAME}.${DNS_SUFFIX} auth\",\"cert-manager.io/cluster-issuer\":\"verrazzano-cluster-issuer\"}}}"
       else
         fail "certificates issuerType $CERT_ISSUER_TYPE is not supported.";
       fi
 
       # Settings required to point Rancher at a registry for background helm install
-      # DONE
       if [ -n "${REGISTRY}" ]; then
         local sys_default_reg=${REGISTRY}
 
@@ -449,13 +441,6 @@ function install_rancher()
       local chart_name=rancher
       build_image_overrides rancher ${chart_name}
 
-
-#  local dns_type=$(get_config_value '.dns.type')
-#  if [ "$dns_type" == "external" ]; then
-#    echo "true"
-#  else
-#    echo "false"
-#  fi
       # Check if this install is using a dns type "external".
       if [ $(is_external_dns) == "true" ]; then # We do not need this check
         log "Installing cattle-system/${chart_name}"
@@ -495,7 +480,6 @@ function install_rancher()
     # Make sure rancher ingress has an IP
     wait_for_ingress_ip rancher cattle-system || exit 1
 
-    # TODO
     reset_rancher_admin_password || return $?
 }
 
@@ -620,17 +604,6 @@ set -eu
 # We can only know the ingress IP after installing nginx ingress controller
 INGRESS_IP=$(get_verrazzano_ingress_ip)
 
-#  local ingress_ip=$1
-#  local dns_type=$(get_config_value ".dns.type")
-#  if [ $dns_type == "wildcard" ]; then
-#    dns_suffix="${ingress_ip}".$(get_config_value ".dns.wildcard.domain")
-#  elif [ $dns_type == "oci" ]; then
-#    dns_suffix=$(get_config_value ".dns.oci.dnsZoneName")
-#  elif [ $dns_type == "external" ]; then
-#    dns_suffix=$(get_config_value ".dns.external.suffix")
-#  fi
-#  echo ${dns_suffix}
-# DNS_SUFFIX is only used by install_rancher
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
 RANCHER_HOSTNAME=rancher.${NAME}.${DNS_SUFFIX}
@@ -640,8 +613,5 @@ if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
 
-if [ $(is_rancher_enabled) == "true" ]; then
-  action "Installing Rancher" install_rancher || exit 1
-  action "Setting Rancher Server URL" set_rancher_server_url || true
-  action "Patching Rancher Agents" patch_rancher_agents || true
-fi
+platform_operator_install_message "Rancher"
+action "Wait for Rancher availability" wait_for_rancher || exit 1
