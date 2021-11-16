@@ -4,8 +4,6 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def PROXY_IMAGES_INGRESS_NGINX
-def PROXY_IMAGES_KEYCLOAK
 def PROXY_IMAGES_SPRINGBOOT
 def PROXY_IMAGES_HELIDON
 def PROXY_IMAGES_TODO
@@ -242,10 +240,6 @@ pipeline {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
-                        script {
-                            PROXY_IMAGES_INGRESS_NGINX = getProxyImageCount("ingress-nginx")
-                            PROXY_IMAGES_KEYCLOAK = getProxyImageCount("keycloak")
-                        }
                     }
                 }
                 stage('verify-infra restapi') {
@@ -458,16 +452,6 @@ pipeline {
                         validateIstioCoreDNSUninstall()
                     }
                 }
-                stage("Validate ingress-nginx istio upgrade") {
-                    steps {
-                        validateProxyImageCount("ingress-nginx", PROXY_IMAGES_INGRESS_NGINX)
-                    }
-                }
-                stage("Validate keycloak istio upgrade") {
-                    steps {
-                        validateProxyImageCount("keycloak", PROXY_IMAGES_KEYCLOAK)
-                    }
-                }
                 stage("Validate springboot istio upgrade") {
                     steps {
                         validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
@@ -529,6 +513,11 @@ pipeline {
                 stage('verify-infra vmi') {
                     steps {
                         runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+                stage('verify-upgrade post-upgrade') {
+                    steps {
+                        runGinkgoRandomize('verify-upgrade/postupgrade')
                     }
                 }
                 stage('examples socks') {

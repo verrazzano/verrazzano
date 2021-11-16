@@ -41,7 +41,10 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
-		upgradeContext := spi.NewContext(log, r, cr, r.DryRun)
+		upgradeContext, err := spi.NewContext(log, r, cr, r.DryRun)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
 		installed, err := comp.IsInstalled(upgradeContext)
 		if err != nil {
 			return newRequeueWithDelay(), err

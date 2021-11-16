@@ -190,6 +190,11 @@ var _ = Describe("VMI", func() {
 			)
 		})
 
+		It("Elasticsearch health should be green", func() {
+			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
+			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
+		})
+
 		It("Elasticsearch systemd journal Index should be accessible", func() {
 			Eventually(func() bool {
 				return pkg.FindAnyLog("verrazzano-systemd-journal",
@@ -362,6 +367,14 @@ func elasticIndicesCreated() bool {
 
 func elasticConnected() bool {
 	return elastic.Connect()
+}
+
+func elasticHealth() bool {
+	return elastic.CheckHealth()
+}
+
+func elasticIndicesHealth() bool {
+	return elastic.CheckIndicesHealth()
 }
 
 func elasticTLSSecret() bool {

@@ -216,7 +216,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), deployment); err != nil {
 				return err
 			}
@@ -238,7 +238,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			statefulSet.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), statefulSet); err != nil {
 				return err
 			}
@@ -260,7 +260,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			daemonSet.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), daemonSet); err != nil {
 				return err
 			}

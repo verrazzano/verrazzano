@@ -10,28 +10,28 @@ import (
 	vzyaml "github.com/verrazzano/verrazzano/platform-operator/internal/yaml"
 )
 
-// MergeProfiles merges a list of Verrazzano profile files with an existing VerrazzanpSpec.
-// The profiles must be in the VerrazzanoSpec format
-func MergeProfiles(cr *vzapi.VerrazzanoSpec, profileFiles ...string) (*vzapi.VerrazzanoSpec, error) {
+// MergeProfiles merges a list of Verrazzano profile files with an existing Verrazzano CR.
+// The profiles must be in the Verrazzano CR format
+func MergeProfiles(cr *vzapi.Verrazzano, profileFiles ...string) (*vzapi.Verrazzano, error) {
 	// First merge the profiles
-	merged, err := vzyaml.StrategicMergeFiles(vzapi.VerrazzanoSpec{}, profileFiles...)
+	merged, err := vzyaml.StrategicMergeFiles(vzapi.Verrazzano{}, profileFiles...)
 	if err != nil {
 		return nil, err
 	}
 
 	// Now merge the the profiles on top of the Verrazzano CR
-	bYAML, err := yaml.Marshal(cr)
+	crYAML, err := yaml.Marshal(cr)
 	if err != nil {
 		return nil, err
 	}
 
-	merged, err = vzyaml.StrategicMerge(vzapi.VerrazzanoSpec{}, string(bYAML), merged)
+	merged, err = vzyaml.StrategicMerge(vzapi.Verrazzano{}, merged, string(crYAML))
 	if err != nil {
 		return nil, err
 	}
 
 	// Return a new CR
-	var newCR vzapi.VerrazzanoSpec
+	var newCR vzapi.Verrazzano
 	yaml.Unmarshal([]byte(merged), &newCR)
 
 	return &newCR, nil
