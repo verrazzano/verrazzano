@@ -4,12 +4,16 @@
 package mysql
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -28,6 +32,7 @@ const (
 	helmRootPwd   = "mysqlRootPassword"
 	mysqlKey      = "mysql-password"
 	mysqlRootKey  = "mysql-root-password"
+	mysqlDBFile   = "create-mysql-db.sql"
 )
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
@@ -119,10 +124,37 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	return nil
 }
 
-// getInstallArgs get the install args for NGINX
+func createDBFile(ctx spi.ComponentContext) error {
+	tmpDBFile, err := os.Create(mysqlDBFile)
+	if err != nil {
+		ctx.Log().Errorf("Failed to create temporary MySQL DB file: %v", err)
+		return err
+	}
+
+	_, err = tmpDBFile.Write([]byte(fmt.Sprintf(
+		"CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;"+
+			"USE keycloak;"+
+			"GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';"+
+			"FLUSH PRIVILEGES;",
+		mysqlUsername,
+	)))
+	if err != nil {
+		ctx.Log().Errorf("Failed to write to temporary file: %v", err)
+		return err
+	}
+
+	// Close the file
+	if err := tmpDBFile.Close(); err != nil {
+		ctx.Log().Errorf("Failed to close temporary file: %v", err)
+		return err
+	}
+	return nil
+}
+
+// getInstallArgs get the install args for MySQL
 func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if cr.Spec.Components.Ingress == nil {
+	if cr.Spec.Components.Keycloak == nil {
 		return []vzapi.InstallArgs{}
 	}
-	return cr.Spec.Components.Ingress.NGINXInstallArgs
+	return cr.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
 }
