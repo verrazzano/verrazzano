@@ -6,6 +6,7 @@ package certmanager
 import (
 	"bytes"
 	"context"
+	"github.com/go-openapi/errors"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -33,8 +34,8 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 
-	defaultCAClusterResourceName = "cert-manager"
-	defaultCASecName             = "verrazzano-ca-certificate-secret"
+	letsEncryptProd 		  = "https://acme-v02.api.letsencrypt.org/directory"
+	letsEncryptStage		  = "https://acme-staging-v02.api.letsencrypt.org/directory"
 )
 
 // Template for ClusterIssuer for Acme certificates
@@ -78,12 +79,6 @@ func setBashFunc(f bashFuncSig) {
 	bashFunc = f
 }
 
-// Certificate configuration
-type Certificate struct {
-	CA   *vzapi.CA   `json:"ca,omitempty"`
-	ACME *vzapi.Acme `json:"acme,omitempty"`
-}
-
 // PreInstall runs before cert-manager components are installed
 // The cert-manager namespace is created
 // The cert-manager manifest is patched if needed and applied to create necessary CRDs
@@ -124,18 +119,21 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 		return nil
 	}
 
-	// Verify the certificate information and type
-	certificate := getCertificateConfig(compContext.EffectiveCR())
-	if certificate.ACME != nil {
+	isCAValue, err := isCA(compContext)
+	if err != nil {
+		compContext.Log().Errorf("Failed to verify the config type: %s", err)
+		return err
+	}
+	if !isCAValue {
 		// Create resources needed for Acme certificates
-		err := createAcmeResources(compContext, certificate)
+		err := createAcmeResources(compContext)
 		if err != nil {
 			compContext.Log().Errorf("Failed creating Acme resources: %s", err)
 			return err
 		}
-	} else if certificate.CA != nil {
+	} else {
 		// Create resources needed for CA certificates
-		err := createCAResources(compContext, certificate)
+		err := createCAResources(compContext)
 		if err != nil {
 			compContext.Log().Errorf("Failed creating CA resources: %s", err)
 			return err
@@ -167,8 +165,8 @@ func (c certManagerComponent) ApplyManifest(compContext spi.ComponentContext) er
 	return nil
 }
 
-// IsCertManagerEnabled returns true if the cert-manager is enabled, which is the default
-func IsCertManagerEnabled(compContext spi.ComponentContext) bool {
+// IsEnabled returns true if the cert-manager is enabled, which is the default
+func (c certManagerComponent) IsEnabled(compContext spi.ComponentContext) bool {
 	comp := compContext.EffectiveCR().Spec.Components.CertManager
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -178,16 +176,20 @@ func IsCertManagerEnabled(compContext spi.ComponentContext) bool {
 
 // AppendOverrides Build the set of cert-manager overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	certmanager := compContext.EffectiveCR().Spec.Components.CertManager
 	// Verify that we are using CA certs before appending override
-	if certmanager != nil && (certmanager.Certificate.CA != vzapi.CA{}) {
+	isCAValue, err := isCA(compContext)
+	if err != nil {
+		compContext.Log().Errorf("Failed to verify the config type: %s", err)
+		return []bom.KeyValue{}, err
+	}
+	if isCAValue {
 		kvs = append(kvs, bom.KeyValue{Key: "clusterResourceNamespace", Value: namespace})
 	}
 	return kvs, nil
 }
 
 // IsReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
-func IsReady(context spi.ComponentContext, _ string, namespace string) bool {
+func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: certManagerDeploymentName, Namespace: namespace},
 		{Name: cainjectorDeploymentName, Namespace: namespace},
@@ -196,63 +198,44 @@ func IsReady(context spi.ComponentContext, _ string, namespace string) bool {
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
-// getCertificateConfig creates a new Certificate object with pointers and handles the case where CertManager is nil
-func getCertificateConfig(vz *vzapi.Verrazzano) Certificate {
-	if vz.Spec.Components.CertManager != nil && (vz.Spec.Components.CertManager.Certificate.Acme != vzapi.Acme{}) {
-		return Certificate{
-			ACME: &vzapi.Acme{
-				Provider:     vz.Spec.Components.CertManager.Certificate.Acme.Provider,
-				EmailAddress: vz.Spec.Components.CertManager.Certificate.Acme.EmailAddress,
-				Environment:  vz.Spec.Components.CertManager.Certificate.Acme.Environment,
-			},
-		}
+// Check if cert-type is CA, if not it is assumed to be Acme
+func isCA(compContext spi.ComponentContext) (bool, error) {
+	components := compContext.EffectiveCR().Spec.Components
+	if components.CertManager == nil {
+		return false, errors.NotFound("CertManager object nil")
 	}
-	return Certificate{
-		CA: &vzapi.CA{
-			ClusterResourceNamespace: getCAClusterResourceNamespace(vz.Spec.Components.CertManager),
-			SecretName:               getCASecretName(vz.Spec.Components.CertManager),
-		},
+	// Check if Ca or Acme is empty
+	caNotEmpty := components.CertManager.Certificate.CA != vzapi.CA{}
+	acmeNotEmpty := components.CertManager.Certificate.Acme != vzapi.Acme{}
+	if caNotEmpty && acmeNotEmpty {
+		return false, errors.DuplicateItems("Certificate object Acme and CA", "")
+	}
+	if caNotEmpty {
+		return true, nil
+	} else if acmeNotEmpty {
+		return false, nil
+	} else {
+		return false, errors.NotFound("Both Acme and CA fields are empty")
 	}
 }
 
-// getCAClusterResourceNamespace returns the cluster resource name for a CA certificate
-func getCAClusterResourceNamespace(cmConfig *vzapi.CertManagerComponent) string {
-	if cmConfig == nil {
-		return defaultCAClusterResourceName
-	}
-	ca := cmConfig.Certificate.CA
-	// Use default value if not specified
-	if ca.ClusterResourceNamespace == "" {
-		return defaultCAClusterResourceName
-	}
-	return ca.ClusterResourceNamespace
-}
-
-// getCASecretName returns the secret name for a CA certificate
-func getCASecretName(cmConfig *vzapi.CertManagerComponent) string {
-	if cmConfig == nil {
-		return defaultCASecName
-	}
-	ca := cmConfig.Certificate.CA
-	// Use default value if not specified
-	if ca.SecretName == "" {
-		return defaultCASecName
-	}
-
-	return ca.SecretName
+func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
+	acmeEnvironment := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Environment
+	return acmeEnvironment != "" && acmeEnvironment != "production"
 }
 
 // createAcmeResources creates all of the post install resources necessary for cert-manager
-func createAcmeResources(compContext spi.ComponentContext, certificate Certificate) error {
+func createAcmeResources(compContext spi.ComponentContext) error {
 	// Initialize Acme variables for the cluster issuer
 	var ociDNSConfigSecret string
 	var ociDNSZoneName string
 	vzDNS := compContext.EffectiveCR().Spec.Components.DNS
+	vzCertAcme := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme
 	if vzDNS != nil && vzDNS.OCI != nil {
 		ociDNSConfigSecret = vzDNS.OCI.OCIConfigSecret
 		ociDNSZoneName = vzDNS.OCI.DNSZoneName
 	}
-	emailAddress := certificate.ACME.EmailAddress
+	emailAddress := vzCertAcme.EmailAddress
 
 	// Verify that the secret exists
 	secret := v1.Secret{}
@@ -262,9 +245,9 @@ func createAcmeResources(compContext spi.ComponentContext, certificate Certifica
 	}
 
 	// Verify the acme environment and set the server
-	acmeServer := "https://acme-v02.api.letsencrypt.org/directory"
-	if acmeEnvironment := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Environment; acmeEnvironment != "" && acmeEnvironment != "production" {
-		acmeServer = "https://acme-staging-v02.api.letsencrypt.org/directory"
+	acmeServer := letsEncryptProd
+	if isLetsEncryptStaging(compContext) {
+		acmeServer = letsEncryptStage
 	}
 
 	// Create the buffer and the cluster issuer data struct
@@ -298,7 +281,7 @@ func createAcmeResources(compContext spi.ComponentContext, certificate Certifica
 	}
 
 	// Update or create the unstructured object
-	compContext.Log().Info("Applying ClusterIssuer with OCI DNS")
+	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), ciObject, func() error {
 		return nil
 	}); err != nil {
@@ -308,13 +291,14 @@ func createAcmeResources(compContext spi.ComponentContext, certificate Certifica
 	return nil
 }
 
-func createCAResources(compContext spi.ComponentContext, certificate Certificate) error {
+func createCAResources(compContext spi.ComponentContext) error {
 	// Create the issuer resource for CA certs
-	compContext.Log().Info("Applying Issuer for CA cert")
+	compContext.Log().Debug("Applying Issuer for CA cert")
+	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
 	issuer := certv1.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-selfsigned-issuer",
-			Namespace: certificate.CA.ClusterResourceNamespace,
+			Namespace: vzCertCA.ClusterResourceNamespace,
 		},
 		Spec: certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
@@ -331,14 +315,14 @@ func createCAResources(compContext spi.ComponentContext, certificate Certificate
 	}
 
 	// Create the certificate resource for CA cert
-	compContext.Log().Info("Applying Certificate for CA cert")
+	compContext.Log().Debug("Applying Certificate for CA cert")
 	certObject := certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano-ca-certificate",
-			Namespace: certificate.CA.ClusterResourceNamespace,
+			Namespace: vzCertCA.ClusterResourceNamespace,
 		},
 		Spec: certv1.CertificateSpec{
-			SecretName: certificate.CA.SecretName,
+			SecretName: vzCertCA.SecretName,
 			CommonName: "verrazzano-root-ca",
 			IsCA:       true,
 			IssuerRef: certmetav1.ObjectReference{
@@ -355,7 +339,7 @@ func createCAResources(compContext spi.ComponentContext, certificate Certificate
 	}
 
 	// Create the cluster issuer resource for CA cert
-	compContext.Log().Info("Applying ClusterIssuer with OCI DNS")
+	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "verrazzano-cluster-issuer",
@@ -363,7 +347,7 @@ func createCAResources(compContext spi.ComponentContext, certificate Certificate
 		Spec: certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
 				CA: &certv1.CAIssuer{
-					SecretName: certificate.CA.SecretName,
+					SecretName: vzCertCA.SecretName,
 				},
 			},
 		},

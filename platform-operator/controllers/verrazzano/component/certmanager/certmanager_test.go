@@ -18,6 +18,10 @@ import (
 	"testing"
 )
 
+const (
+	profileDir = "../../../../manifests/profiles"
+)
+
 // default CA object
 var ca = vzapi.CA{
 	SecretName:               "testSecret",
@@ -53,7 +57,7 @@ var fakeComponent = certManagerComponent{}
 func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
-	assert.True(t, IsCertManagerEnabled(spi.NewFakeContext(nil, localvz, false)))
+	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
 }
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
@@ -63,7 +67,7 @@ func TestIsCertManagerEnabled(t *testing.T) {
 func TestIsCertManagerDisabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
-	assert.False(t, IsCertManagerEnabled(spi.NewFakeContext(nil, localvz, false)))
+	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
 }
 
 // TestAppendCertManagerOverrides tests the AppendOverrides fn
@@ -120,7 +124,7 @@ func TestIsCertManagerReady(t *testing.T) {
 		newDeployment(cainjectorDeploymentName, true),
 		newDeployment(webhookDeploymentName, true),
 	)
-	assert.True(t, IsReady(spi.NewFakeContext(client, nil, false), ComponentName, namespace))
+	assert.True(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
 }
 
 // TestIsCertManagerNotReady tests the IsReady function
@@ -133,37 +137,67 @@ func TestIsCertManagerNotReady(t *testing.T) {
 		newDeployment(cainjectorDeploymentName, false),
 		newDeployment(webhookDeploymentName, false),
 	)
-	assert.False(t, IsReady(spi.NewFakeContext(client, nil, false), ComponentName, namespace))
+	assert.False(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
 }
 
-// TestGetCertificateConfigNil tests the getCertificateConfig function
-// GIVEN a call to getCertificateConfig
+// TestIsCANil tests the isCA function
+// GIVEN a call to isCA
 // WHEN the CertManager component is nil
-// THEN the CA field is added
-func TestGetCertificateConfigNil(t *testing.T) {
-	assert.Equal(t, vzapi.CA{
-		ClusterResourceNamespace: defaultCAClusterResourceName,
-		SecretName:               defaultCASecName}, *getCertificateConfig(vz).CA)
+// THEN an error is returned
+func TestIsCANil(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	_, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
+	assert.Error(t, err)
 }
 
-// TestGetCertificateConfigCA tests the getCertificateConfig function
-// GIVEN a call to getCertificateConfig
-// WHEN the certificate is of type CA
-// THEN the CA field is added
-func TestGetCertificateConfigCA(t *testing.T) {
+// TestIsCANil tests the isCA function
+// GIVEN a call to isCA
+// WHEN the CertManager component is populated by the profile
+// THEN true is returned
+func TestIsCANilWithProfile(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	isCAValue, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profileDir))
+	assert.Nil(t, err)
+	assert.True(t, isCAValue)
+}
+
+// TestIsCANilTrue tests the isCA function
+// GIVEN a call to isCA
+// WHEN the Certificate CA is populated
+// THEN true is returned
+func TestIsCATrue(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-	assert.Equal(t, Certificate{CA: &ca}, getCertificateConfig(localvz))
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	assert.Nil(t, err)
+	assert.True(t, isCAValue)
 }
 
-// TestGetCertificateConfigAcme tests the getCertificateConfig function
-// GIVEN a call to getCertificateConfig
-// WHEN the certificate is of type Acme
-// THEN the Acme field is added
-func TestGetCertificateConfigAcme(t *testing.T) {
+// TestIsCANilFalse tests the isCA function
+// GIVEN a call to isCA
+// WHEN the Certificate Acme is populated
+// THEN false is returned
+func TestIsCAFalse(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
-	assert.Equal(t, Certificate{ACME: &acme}, getCertificateConfig(localvz))
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	assert.Nil(t, err)
+	assert.False(t, isCAValue)
+}
+
+// TestIsCANilFalse tests the isCA function
+// GIVEN a call to isCA
+// WHEN the Certificate Acme is populated
+// THEN false is returned
+func TestIsCABothPopulated(t *testing.T) {
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.CertManager.Certificate.CA = ca
+	localvz.Spec.Components.CertManager.Certificate.Acme = acme
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	_, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	assert.Error(t, err)
 }
 
 // TestPostInstallCA tests the PostInstall function
