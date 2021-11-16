@@ -89,23 +89,10 @@ if [ ! -z "${TEST_LOG_BUCKET}" ] ; then
     fi
 fi
 
-export CM_DATA_KUBECONFIG=`cat ${TARGET_KUBECONFIG}`
-export CM_DATA_RUN_COMPILED_TESTS_SH=`cat ${SCRIPT_DIR}/run_compiled_tests.sh`
-echo ${CM_DATA_KUBECONFIG}
-echo ${CM_DATA_RUN_COMPILED_TESTS_SH}
-
-kubectl apply -f - <<-EOF
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: test-config
-  namespace: ${JOB_NAMESPACE}
-data:
-  kubeconfig: |
-    ${CM_DATA_KUBECONFIG}
-  run_compiled_tests.sh: |
-    ${CM_DATA_RUN_COMPILED_TESTS_SH}
-EOF
+mkdir -p /tmp/test-config
+cp ${TARGET_KUBECONFIG} /tmp/test-config/kubeconfig
+cp ${SCRIPT_DIR}/run_compiled_tests.sh /tmp/test-config/run_compiled_tests.sh
+kubectl create configmap test-config -n ${JOB_NAMESPACE} --from-file=/tmp/test-config/
 
 kubectl apply -f - <<-EOF
 apiVersion: batch/v1
