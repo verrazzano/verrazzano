@@ -550,6 +550,7 @@ pipeline {
                 }
                 stage("Push Images to OCIR") {
                     environment {
+                        OCI_CLI_AUTH="api_key"
                         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
                         OCI_CLI_USER = credentials('oci-dev-user-ocid')
                         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
