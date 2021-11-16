@@ -21,7 +21,7 @@ import (
 
 // default CA object
 var ca = vzapi.CA{
-	SecretName: "testSecret",
+	SecretName:               "testSecret",
 	ClusterResourceNamespace: namespace,
 }
 
