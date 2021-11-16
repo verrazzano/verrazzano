@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -21,8 +20,8 @@ import (
 )
 
 func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
-	err, ok := adminSecretExists(c)
-	if ok {
+	err := adminSecretExists(c)
+	if err == nil {
 		log.Infof("Rancher Post Install: admin secret exists, skipping object creation")
 		return nil
 	}
@@ -41,12 +40,12 @@ func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error
 }
 
 // adminSecretExists creates the rancher admin secret if it does not exist
-func adminSecretExists(c client.Client) (error, bool) {
+func adminSecretExists(c client.Client) error {
 	if _, err := getAdminSecret(c); err != nil {
-		return err, false
-	} else {
-		return nil, true
+		return err
 	}
+
+	return nil
 }
 
 func getAdminPassword(c client.Client) (string, error) {
@@ -80,7 +79,7 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", errors.New("no Rancher pods found")
 	}
 	podName := podMeta.Items[0].Name
-	stdout, stderr, err := vzos.RunBash("kubectl", "exec", podName, "-n", ComponentNamespace, "--", "reset-password", "|", "tail", "-1")
+	stdout, stderr, err := bashFunc("kubectl", "exec", podName, "-n", ComponentNamespace, "--", "reset-password", "|", "tail", "-1")
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", err, stderr)
 	}
@@ -104,7 +103,7 @@ func newAdminSecret(c client.Client, password string) error {
 // patchAgents patches the cattle agents with the Rancher host and ip
 func patchAgents(log *zap.SugaredLogger, c client.Client, host, ip string) error {
 	hostAliases := []v1.HostAlias{
-		v1.HostAlias{
+		{
 			IP: ip,
 			Hostnames: []string{
 				host,
@@ -146,7 +145,7 @@ func patchAgents(log *zap.SugaredLogger, c client.Client, host, ip string) error
 	return nil
 }
 
-func getRancherIngressIp(log *zap.SugaredLogger, c client.Client) (string, error) {
+func getRancherIngressIP(log *zap.SugaredLogger, c client.Client) (string, error) {
 	namespacedName := types.NamespacedName{
 		Namespace: ComponentNamespace,
 		Name:      ComponentName,
@@ -163,9 +162,9 @@ func getRancherIngressIp(log *zap.SugaredLogger, c client.Client) (string, error
 	return "", errors.New("load balancer IP not found")
 }
 
-func setServerUrl(log *zap.SugaredLogger, password, hostname string) error {
+func setServerURL(log *zap.SugaredLogger, password, hostname string) error {
 	script := filepath.Join(config.GetInstallDir(), "put-rancher-server-url.sh")
-	if _, stderr, err := vzos.RunBash(script, password, hostname); err != nil {
+	if _, stderr, err := bashFunc(script, password, hostname); err != nil {
 		log.Errorf("Rancher post install: Failed to update Rancher server url: %s: %s", err, stderr)
 		return err
 	}

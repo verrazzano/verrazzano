@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -28,7 +27,7 @@ type rancherComponent struct {
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:            []string{nginx.ComponentName},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          "cattle-system",
@@ -171,13 +170,11 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 		log := ctx.Log()
 		c := ctx.Client()
 		// Try to retrieve the Rancher ingress IP
-		ip, err := getRancherIngressIp(log, c)
+		_, err := getRancherIngressIP(log, c)
 		if err != nil {
 			log.Errorf("Rancher IsReady: Failed to get Ingress IP: %s", err)
 			return false
 		}
-
-		r.ingressIp = ip
 		return true
 	}
 
@@ -194,7 +191,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return err
 	}
-	ip, err := getRancherIngressIp(log, c)
+	ip, err := getRancherIngressIP(log, c)
 	if err != nil {
 		return err
 	}
@@ -207,7 +204,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	if err := setServerUrl(log, password, rancherHostname); err != nil {
+	if err := setServerURL(log, password, rancherHostname); err != nil {
 		return err
 	}
 	if err := patchAgents(log, c, rancherHostname, ip); err != nil {

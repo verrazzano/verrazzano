@@ -7,7 +7,6 @@ import (
 	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	os2 "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,13 +37,13 @@ func createCattleSystemNamespaceIfNotExists(log *zap.SugaredLogger, c client.Cli
 	return nil
 }
 
-//copyDefaultCACertificate copies the defaultVerrazzanoSecretName TLS Secret to the ComponentNamespace for use by Rancher
-//This method will only copy defaultVerrazzanoSecretName if default CA certificates are being used.
+//copyDefaultCACertificate copies the defaultVerrazzanoName TLS Secret to the ComponentNamespace for use by Rancher
+//This method will only copy defaultVerrazzanoName if default CA certificates are being used.
 func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if isUsingDefaultCACertificate(cm) {
 		log.Infof("Copying default Verrazzano secret to Rancher namespace")
-		namespacedName := types.NamespacedName{Namespace: defaultSecretNamespace, Name: defaultVerrazzanoSecretName}
+		namespacedName := types.NamespacedName{Namespace: defaultSecretNamespace, Name: defaultVerrazzanoName}
 		defaultSecret := &v1.Secret{}
 		if err := c.Get(context.TODO(), namespacedName, defaultSecret); err != nil {
 			return err
@@ -74,7 +73,7 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
 	return cm != nil &&
 		cm.Certificate.CA != vzapi.CA{} &&
-		cm.Certificate.CA.SecretName == defaultVerrazzanoSecretName &&
+		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
 		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
 }
 
@@ -83,7 +82,7 @@ func createAdditionalCertificates(log *zap.SugaredLogger, vz *vzapi.Verrazzano) 
 	if (cm != nil && cm.Certificate.Acme != vzapi.Acme{} && useAdditionalCAs(cm.Certificate.Acme)) {
 		log.Infof("Creating additional Rancher certificates for non-production environment")
 		script := filepath.Join(config.GetInstallDir(), "install-rancher-certificates.sh")
-		if _, stderr, err := os2.RunBash(script); err != nil {
+		if _, stderr, err := bashFunc(script); err != nil {
 			log.Errorf("Rancher pre install: Failed to install letsEncrypt certificates: %s: %s", err, stderr)
 			return err
 		}

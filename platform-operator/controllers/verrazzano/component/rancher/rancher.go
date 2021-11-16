@@ -13,14 +13,14 @@ const (
 	// ComponentName is the name of the component
 	ComponentName = "rancher"
 	// ComponentNamespace is the namespace of the component
-	ComponentNamespace          = "cattle-system"
-	defaultSecretNamespace      = "cert-manager"
-	namespaceLabelKey           = "verrazzano.io/namespace"
-	adminSecretName             = "rancher-admin-secret"
-	rancherTLSSecretName        = "tls-ca"
-	defaultVerrazzanoSecretName = "verrazzano-ca-certificate-secret"
-	clusterAgentDeployName      = "cattle-cluster-agent"
-	nodeAgentDaemonsetName      = "cattle-node-agent"
+	ComponentNamespace     = "cattle-system"
+	defaultSecretNamespace = "cert-manager"
+	namespaceLabelKey      = "verrazzano.io/namespace"
+	adminSecretName        = "rancher-admin-secret"
+	rancherTLSSecretName   = "tls-ca"
+	defaultVerrazzanoName  = "verrazzano-ca-certificate-secret"
+	clusterAgentDeployName = "cattle-cluster-agent"
+	nodeAgentDaemonsetName = "cattle-node-agent"
 )
 
 // Helm Chart setter keys
@@ -44,9 +44,13 @@ const (
 	caTLSSource          = "secret"
 )
 
-var (
-	runner = vzos.DefaultRunner{}
-)
+type bashFuncSig func(inArgs ...string) (string, string, error)
+
+var bashFunc bashFuncSig = vzos.RunBash
+
+func setBashFunc(f bashFuncSig) {
+	bashFunc = f
+}
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"
