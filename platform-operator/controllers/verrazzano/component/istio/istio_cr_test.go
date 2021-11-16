@@ -28,6 +28,10 @@ var cr1 = vzapi.IstioComponent{
 			Value: "3",
 		},
 		{
+			Name:  "pilot.resources.requests.memory",
+			Value: "128Mi",
+		},
+		{
 			Name:  ExternalIPArg,
 			Value: "1.2.3.4",
 		},
@@ -57,6 +61,10 @@ spec:
     global:
       defaultPodDisruptionBudget:
         enabled: false
+    pilot:
+      resources:
+        requests:
+          memory: 128Mi
     gateways:
       istio-ingressgateway:
         serviceAnnotations:
