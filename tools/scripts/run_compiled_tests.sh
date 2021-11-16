@@ -3,6 +3,10 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+# This script can be used to execute a compiled test binary against a verrazzano cluster and (optionally) push the test logs
+# and report to objectstorage.
+#
+
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 function usage {
     echo
@@ -133,10 +137,13 @@ touch /tmp/${TEST_LOG_ARCHIVE}/test.log
 chmod a+x "${KUBECONFIG_LOCATION}"
 chmod a+x "${TEST_BINARY}"
 export KUBECONFIG="${KUBECONFIG_LOCATION}"
+# Remove a warning that suggests using Ginkgo 2.0
+export ACK_GINKGO_DEPRECATIONS=1.16.5
 ginkgo -v -keepGoing --reportFile="/tmp/${TEST_LOG_ARCHIVE}/test.report" -outputdir="/tmp/${TEST_LOG_ARCHIVE}" --trace --focus="${TEST_REGEX}" "${TEST_BINARY}" | tee /tmp/${TEST_LOG_ARCHIVE}/test.log
 
 if [ ! -z "${TEST_LOG_BUCKET}" ]; then
   tar -czvf /tmp/${TEST_LOG_ARCHIVE}.tgz /tmp/${TEST_LOG_ARCHIVE}/*
+  # When this script is run in a k8s job, it expects the OCI creds to be present in /etc/ocisecret/oci.yaml. 
   if file_exists "/etc/ocisecret/oci.yaml"
   then
     export OCI_CLI_PROFILE="DEFAULT"

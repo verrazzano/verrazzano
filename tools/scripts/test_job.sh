@@ -3,6 +3,9 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+# This script can be used to execute a compiled test binary as a kubernetes job in a cluster. The target cluster where the tests
+# will run can be different than where the job is being executed.
+
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 function usage {
     echo
@@ -144,7 +147,7 @@ spec:
           optional: true
 EOF
 
-kubectl wait --for=condition=ContainersReady --timeout=100s pod --selector job-name=${JOB_NAME}
+kubectl -n ${JOB_NAMESPACE} wait --for=condition=ContainersReady --timeout=100s pod --selector job-name=${JOB_NAME}
 kubectl logs -f -n ${JOB_NAMESPACE} \
     -f $(kubectl get pod \
     -n ${JOB_NAMESPACE} \

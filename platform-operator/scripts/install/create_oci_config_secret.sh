@@ -11,7 +11,6 @@ if [ -z "${KUBECONFIG:-}" ] ; then
 fi
 
 TMP_DIR=$(mktemp -d)
-echo $TMP_DIR
 trap 'rc=$?; rm -rf ${TMP_DIR} || true' EXIT
 
 # read a config item from a specified section of an oci config file
