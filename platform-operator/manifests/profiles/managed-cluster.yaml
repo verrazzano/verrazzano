@@ -2,13 +2,17 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 spec:
   components:
-    console:
+    keycloak:
       enabled: false
-    elasticSearch:
+    rancher:
+      enabled: false
+    elasticsearch:
       enabled: false
     grafana:
       enabled: false
     kibana:
       enabled: false
-    keycloak:
+    console:
+      enabled: false
+    kiali:
       enabled: false

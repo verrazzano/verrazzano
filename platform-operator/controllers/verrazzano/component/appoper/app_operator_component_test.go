@@ -12,7 +12,6 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"go.uber.org/zap"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +43,7 @@ func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 				Name: clusterName,
 			},
 		})
-	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.NoError(t, err)
 }
 
@@ -78,7 +77,7 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 			Subjects: nil,
 			RoleRef:  rbacv1.RoleRef{},
 		})
-	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 
 	// Verify the ClusterRolebinding was deleted
