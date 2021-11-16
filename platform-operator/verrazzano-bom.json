@@ -141,10 +141,6 @@
           "name": "additional-rancher",
           "images": [
             {
-              "image": "shell",
-              "tag": "v0.1.6"
-            },
-            {
               "image": "rancher-webhook",
               "tag": "v0.1.1"
             },
