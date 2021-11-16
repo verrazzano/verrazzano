@@ -81,13 +81,25 @@ if [ -z "${JOB_NAMESPACE}" ] ; then
     JOB_NAMESPACE=${JOB_NAMESPACE_DEFAULT}
 fi
 
+CMD=""
 if [ ! -z "${TEST_LOG_BUCKET}" ] ; then
     kubectl create ns ${JOB_NAMESPACE}
     kubectl get secret oci -n ${JOB_NAMESPACE} > /dev/null 2>&1
     if [ $? -ne 0 ]; then
       ${SCRIPT_DIR}/../../platform-operator/scripts/install/create_oci_config_secret.sh ${JOB_NAMESPACE}
     fi
+    CMD="$CMD-o ${TEST_LOG_BUCKET} "
 fi
+
+if [ ! -z "${TEST_REGEX}" ] ; then
+  CMD="$CMD-r ${TEST_REGEX} "
+fi
+
+if [ ! -z "${TEST_LOG_ARCHIVE}" ] ; then
+  CMD="$CMD-l ${TEST_LOG_ARCHIVE} "
+fi
+
+
 
 mkdir -p /tmp/test-config
 cp ${TARGET_KUBECONFIG} /tmp/test-config/kubeconfig
@@ -113,7 +125,7 @@ spec:
               mountPath: /test-config
             - name: ocisecret
               mountPath: /etc/ocisecret
-          command: [ "sh", "-c", "sleep 5s;/test-config/run_compiled_tests.sh -t ${TEST_BINARY} -c /test-config/kubeconfig -o ${TEST_LOG_BUCKET} -r ${TEST_REGEX} -l ${TEST_LOG_ARCHIVE}" ]
+          command: [ "sh", "-c", "sleep 5s;/test-config/run_compiled_tests.sh -t ${TEST_BINARY} -c /test-config/kubeconfig ${CMD} ]
       restartPolicy: Never
       volumes:
       - name: test-config
@@ -134,7 +146,7 @@ spec:
           optional: true
 EOF
 
-kubectl logs -n ${JOB_NAMESPACE} \
+kubectl logs -f -n ${JOB_NAMESPACE} \
     -f $(kubectl get pod \
     -n ${JOB_NAMESPACE} \
     -l job-name=${JOB_NAME} \
