@@ -875,7 +875,7 @@ func restartWebLogic(log logr.Logger, domain *unstructured.Unstructured, version
 // Set the serverStartPolicy to stop WebLogic domain, return the current serverStartPolicy
 func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
 	// Return if serverStartPolicy is already never
-	currentServerStartPolicy, found, _ := unstructured.NestedString(domain.Object, specServerStartPolicyFields...)
+	currentServerStartPolicy, _, _ := unstructured.NestedString(domain.Object, specServerStartPolicyFields...)
 	if currentServerStartPolicy == Never {
 		return nil
 	}
