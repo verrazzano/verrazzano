@@ -72,7 +72,7 @@ func TestIsCertManagerDisabled(t *testing.T) {
 // THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	kvs, err := AppendOverrides(spi.NewFakeContext( nil, vz, false), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, namespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 0)
 }
@@ -84,7 +84,7 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-	kvs, err := AppendOverrides(spi.NewFakeContext( nil, localvz, false), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, namespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
