@@ -137,5 +137,10 @@ spec:
         secret:
           secretName: oci
           optional: true
+EOF
 
-
+kubectl logs -n ${JOB_NAMESPACE} \
+    -f $(kubectl get pod \
+    -n ${JOB_NAMESPACE} \
+    -l job-name=${JOB_NAMESPACE}-${JOB_NAME} \
+    -o jsonpath="{.items[0].metadata.name}")
