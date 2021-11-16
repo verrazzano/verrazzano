@@ -105,6 +105,7 @@ func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err er
 // Note that operation name as of now does not affect the istioctl call (both upgrade and install call istioctl install)
 // The operationName field is just used for visibility of operation in logging at the moment
 func runIstioctl(log *zap.SugaredLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
+	cmdArgs = append(cmdArgs,"--force")
 	cmd := exec.Command("istioctl", cmdArgs...)
 	log.Infof("Running command: %s", cmd.String())
 

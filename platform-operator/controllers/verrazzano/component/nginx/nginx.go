@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"log"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -146,7 +145,6 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 		return "", err
 	}
 	if serviceType == vzapi.LoadBalancer || serviceType == vzapi.NodePort {
-		log.Printf("Service type = %v\n",serviceType)
 		svc := v1.Service{}
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svc); err != nil {
 			return "", err
