@@ -75,10 +75,9 @@ func TestIsCertManagerDisabled(t *testing.T) {
 // WHEN a VZ spec is passed with defaults
 // THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
-	vz := &vzapi.Verrazzano{}
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profileDir), ComponentName, namespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 0)
+	assert.Len(t, kvs, 1)
 }
 
 // TestAppendCertManagerOverridesWithInstallArgs tests the AppendOverrides fn

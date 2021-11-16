@@ -34,12 +34,17 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 
-	letsEncryptProd 		  = "https://acme-v02.api.letsencrypt.org/directory"
-	letsEncryptStage		  = "https://acme-staging-v02.api.letsencrypt.org/directory"
+	letsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
+	letsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+	caSelfSignedIssuerName = "verrazzano-selfsigned-issuer"
+	caCertificateName      = "verrazzano-ca-certificate"
+	caCertCommonName       = "verrazzano-root-ca"
+	caClusterIssuerName    = "verrazzano-cluster-issuer"
 )
 
 // Template for ClusterIssuer for Acme certificates
-const custerIssuerTemplate = `
+const clusterIssuerTemplate = `
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -260,7 +265,7 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	}
 
 	// Parse the template string and create the template object
-	template, err := template.New("clusterIssuer").Parse(custerIssuerTemplate)
+	template, err := template.New("clusterIssuer").Parse(clusterIssuerTemplate)
 	if err != nil {
 		compContext.Log().Errorf("Failed to parse the ClusterIssuer yaml template: %s", err)
 		return err
@@ -297,7 +302,7 @@ func createCAResources(compContext spi.ComponentContext) error {
 	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
 	issuer := certv1.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-selfsigned-issuer",
+			Name:      caSelfSignedIssuerName,
 			Namespace: vzCertCA.ClusterResourceNamespace,
 		},
 		Spec: certv1.IssuerSpec{
@@ -318,12 +323,12 @@ func createCAResources(compContext spi.ComponentContext) error {
 	compContext.Log().Debug("Applying Certificate for CA cert")
 	certObject := certv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-ca-certificate",
+			Name:      caCertificateName,
 			Namespace: vzCertCA.ClusterResourceNamespace,
 		},
 		Spec: certv1.CertificateSpec{
 			SecretName: vzCertCA.SecretName,
-			CommonName: "verrazzano-root-ca",
+			CommonName: caCertCommonName,
 			IsCA:       true,
 			IssuerRef: certmetav1.ObjectReference{
 				Name: issuer.Name,
@@ -342,7 +347,7 @@ func createCAResources(compContext spi.ComponentContext) error {
 	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "verrazzano-cluster-issuer",
+			Name: caClusterIssuerName,
 		},
 		Spec: certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
