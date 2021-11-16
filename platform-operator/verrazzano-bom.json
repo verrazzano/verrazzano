@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20210721121859-ec72f6a2f",
+              "tag": "v2.5.9-20211110060017-ec72f6a2f",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20210721121859-ec72f6a2f"
+              "tag": "v2.5.9-20211110060017-ec72f6a2f"
             }
           ]
         },
@@ -140,6 +140,10 @@
           "repository": "verrazzano/rancher",
           "name": "additional-rancher",
           "images": [
+            {
+              "image": "shell",
+              "tag": "20211116101625-6092f60"
+            },
             {
               "image": "rancher-webhook",
               "tag": "v0.1.1"
