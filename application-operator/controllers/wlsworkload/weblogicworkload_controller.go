@@ -848,7 +848,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 // will not result in additional restarts.
 func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *unstructured.Unstructured) error {
 	if len(wl.Annotations[constants.LifecycleActionAnnotation]) > 0 && wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
-		action, _ := wl.Annotations[constants.LifecycleActionAnnotation]
+		action := wl.Annotations[constants.LifecycleActionAnnotation]
 		if strings.EqualFold(action, constants.LifecycleActionStart) {
 			return startWebLogicDomain(log, domain)
 		}
@@ -919,7 +919,7 @@ func startWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) err
 		return err
 	}
 	if found {
-		oldPolicy, _ := annos[lastServerStartPolicyAnnotation]
+		oldPolicy := annos[lastServerStartPolicyAnnotation]
 		if len(oldPolicy) > 0 {
 			startPolicy = oldPolicy
 		}
