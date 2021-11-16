@@ -4,24 +4,21 @@
 package mysql
 
 import (
-	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -50,7 +47,8 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		Namespace: vzconst.KeycloakNamespace,
 		Name:      secretName}
 
-	if err := compContext.Client().Get(context.TODO(), nsName, secret); err != nil {
+	err := compContext.Client().Get(context.TODO(), nsName, secret)
+	if err != nil {
 		return []bom.KeyValue{}, err
 	}
 
@@ -63,8 +61,12 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		Key:   helmRootPwd,
 		Value: string(secret.Data[mysqlRootKey]),
 	})
-
 	kvs = append(kvs, bom.KeyValue{Key: "mysqlUser", Value: mysqlUsername})
+	err, dbFile := createDBFile(compContext)
+	if err != nil {
+		return []bom.KeyValue{}, err
+	}
+	kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: dbFile, SetFile: true})
 
 	// Convert NGINX install-args to helm overrides
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
@@ -99,6 +101,9 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 		ctx.Log().Infof("NGINX PostInstall dry run")
 		return nil
 	}
+
+	// TODO: delete db file
+
 	// Add any port specs needed to the service after boot
 	ingressConfig := ctx.EffectiveCR().Spec.Components.Ingress
 	if ingressConfig == nil {
@@ -110,7 +115,8 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 
 	c := ctx.Client()
 	svcPatch := v1.Service{}
-	if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
+	//if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
+	if err := c.Get(context.TODO(), types.NamespacedName{Name: "mysql", Namespace: "keycloak"}, &svcPatch); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
@@ -124,11 +130,12 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	return nil
 }
 
-func createDBFile(ctx spi.ComponentContext) error {
+func createDBFile(ctx spi.ComponentContext) (error, string) {
+	fmt.Println(os.Getwd())
 	tmpDBFile, err := os.Create(mysqlDBFile)
 	if err != nil {
 		ctx.Log().Errorf("Failed to create temporary MySQL DB file: %v", err)
-		return err
+		return err, ""
 	}
 
 	_, err = tmpDBFile.Write([]byte(fmt.Sprintf(
@@ -140,15 +147,15 @@ func createDBFile(ctx spi.ComponentContext) error {
 	)))
 	if err != nil {
 		ctx.Log().Errorf("Failed to write to temporary file: %v", err)
-		return err
+		return err, ""
 	}
 
 	// Close the file
 	if err := tmpDBFile.Close(); err != nil {
 		ctx.Log().Errorf("Failed to close temporary file: %v", err)
-		return err
+		return err, ""
 	}
-	return nil
+	return nil, tmpDBFile.Name()
 }
 
 // getInstallArgs get the install args for MySQL
