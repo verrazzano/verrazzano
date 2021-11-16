@@ -55,6 +55,9 @@ spec:
                 description: LastGeneration is the last generation of the spec that
                   was reconciled
                 type: string
+              lastLifecycleAction:
+                description: LastLifecycleAction is the last value of the verrazzano.io/lifecycle-action
+                type: string
               lastRestartVersion:
                 description: LastRestartVersion is the last value of the verrazzano.io/restart-version
                   annotation
