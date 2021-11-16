@@ -1707,6 +1707,9 @@ func TestReconcileStopDomain(t *testing.T) {
 			// make sure the restartVersion was added to the domain
 			policy, _, _ := unstructured.NestedString(u.Object, specServerStartPolicyFields...)
 			assert.Equal(Never, policy)
+
+			annos, _, _ := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
+			assert.Equal(annos[serverStartPolicyAnnotation], IfNeeded)
 			return nil
 		})
 

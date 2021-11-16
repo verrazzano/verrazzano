@@ -39,6 +39,7 @@ import (
 )
 
 const (
+	metadataField                	  = "metadata"
 	specField                         = "spec"
 	destinationRuleAPIVersion         = "networking.istio.io/v1alpha3"
 	destinationRuleKind               = "DestinationRule"
@@ -163,7 +164,7 @@ const defaultMonitoringExporterData = `
     "imagePullPolicy": "IfNotPresent"
   }
 `
-
+var metaAnnotationFields = []string{metadataField, "annotations"}
 var specServerPodFields = []string{specField, "serverPod"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
@@ -317,17 +318,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	// If the domain already exists set any fields related to restart
+	if domainExists {
+		setDomainLifecycleFields(log, workload, u)
+	}
+
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
 	// if the WebLogic CR exists
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
 	if err != nil {
 		log.Error(err, "Unable to make a copy of the WebLogic spec")
 		return reconcile.Result{}, err
-	}
-
-	// If the domain already exists set any fields related to restart
-	if domainExists {
-		setDomainLifecycleFields(log, workload, &existingDomain)
 	}
 
 	// write out the WebLogic resource
@@ -844,55 +845,84 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 // If any domainlifecycle start, stop, or restart is requested, then set the appropriate field in the domain resource
 // Note that it is valid to a have new restartVersion value along with a lifecycle action change.  This
 // will not result in additional restarts.
-func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *wls.Domain) {
+func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *unstructured.Unstructured) error {
 	if len(wl.Annotations[constants.LifecycleActionAnnotation]) > 0 && wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
 		action, _ := wl.Annotations[constants.LifecycleActionAnnotation]
 		if strings.EqualFold(action,constants.LifecycleActionStart) {
-			startWebLogicDomain(log, domain)
-		} else if strings.EqualFold(action,constants.LifecycleActionStop) {
-			stopWebLogicDomain(log, domain)
+			return startWebLogicDomain(log, domain)
+		}
+		if strings.EqualFold(action,constants.LifecycleActionStop) {
+			return stopWebLogicDomain(log, domain)
 		}
 	}
 	if wl.Annotations != nil && wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
-		restartWebLogic(log, domain, wl.Annotations[constants.RestartVersionAnnotation])
+		return restartWebLogic(log, domain, wl.Annotations[constants.RestartVersionAnnotation])
 	}
+	return nil
 }
 
 // Set domain restart version.  If it is changed from the previous value, then the WebLogic Operator will restart the domain
-func restartWebLogic(log logr.Logger, domain *wls.Domain, version string) {
-	log.Info(fmt.Sprintf("Seeting WebLogic domain %s RestartVersion to %s", domain.Name, version))
-	domain.Spec.RestartVersion = version
+func restartWebLogic(log logr.Logger, domain *unstructured.Unstructured, version string) error {
+	err := unstructured.SetNestedField(domain.Object, version, specRestartVersionFields...)
+	if err != nil {
+		log.Error(err, "Error setting restartVersion in domain")
+		return err
+	}
+	return nil
 }
 
-// Stop the WebLogic domain
-func stopWebLogicDomain(log logr.Logger, domain *wls.Domain) {
-	currentServerStartPolicy := domain.Spec.ServerStartPolicy
+// Set the serverStartPolicy to stop WebLogic domain, return the current serverStartPolicy
+func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
+	// Return if serverStartPolicy is already never
+	currentServerStartPolicy, found, _  := unstructured.NestedString(domain.Object, specServerStartPolicyFields...)
 	if currentServerStartPolicy == Never {
-		return
+		return nil
 	}
-	// set serverStartPolicy to "NEVER" to shutdown the domain
-	domain.Spec.ServerStartPolicy = Never
 
-	// save currentServerStartPolicy in the domain annotations, default to IfNeeded
+	// Save the last policy so that it can be used when starting the domain
 	if len(currentServerStartPolicy) == 0 {
 		currentServerStartPolicy = IfNeeded
 	}
-	if domain.ObjectMeta.Annotations == nil {
-		domain.ObjectMeta.Annotations = make(map[string]string)
+	annos, found, err := unstructured.NestedStringMap(domain.Object, metaAnnotationFields...)
+	if err != nil {
+		log.Error(err, "Error getting domain annotations")
+		return err
 	}
-	domain.ObjectMeta.Annotations[serverStartPolicyAnnotation] = currentServerStartPolicy
-	log.Info(fmt.Sprintf("Stopping WebLogic domain %s.  Old serverStartPolicy is %s", domain.Name, currentServerStartPolicy))
+	if !found {
+		annos = map[string]string{}
+	}
+	annos[serverStartPolicyAnnotation] = currentServerStartPolicy
+	err = unstructured.SetNestedStringMap(domain.Object, annos, metaAnnotationFields...)
+	if err != nil {
+		log.Error(err, "Unable to set annotations in domain")
+		return err
+	}
+
+	// set serverStartPolicy to "NEVER" to shutdown the domain
+	err = unstructured.SetNestedField(domain.Object, Never, specServerStartPolicyFields...)
+	if err != nil {
+		log.Error(err, "Unable to set serverStartPolicy in domain")
+		return err
+	}
+	return nil
 }
 
-// Start the WebLogic domain
-func startWebLogicDomain(log logr.Logger, domain *wls.Domain) {
+// Set the serverStartPolicy to start the WebLogic domain
+func startWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
 	var startPolicy = IfNeeded
-	if domain.ObjectMeta.Annotations != nil {
-		oldPolicy, _ := domain.ObjectMeta.Annotations[serverStartPolicyAnnotation]
+
+	// Get the last serverStartPolicy if it exists
+	annos, found, err := unstructured.NestedStringMap(domain.Object, metaAnnotationFields...)
+	if err != nil {
+		log.Error(err, "Error getting domain annotations")
+		return err
+	}
+	if found {
+		oldPolicy, _ := annos[serverStartPolicyAnnotation]
 		if len(oldPolicy) > 0 {
 			startPolicy = oldPolicy
 		}
 	}
-	domain.Spec.ServerStartPolicy = startPolicy
-	log.Info(fmt.Sprintf("Starting the WebLogic domain %s by setting serverStartPolicy to %s", domain.Name, domain.Spec.ServerStartPolicy))
+	unstructured.SetNestedField(domain.Object, startPolicy, specServerStartPolicyFields...)
+	return nil
 }
