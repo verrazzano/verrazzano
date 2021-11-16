@@ -189,18 +189,10 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		ReadyStatusFunc: nil,
 		Dependencies:    []string{istio.ComponentName, "cert-manager"},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "istio-system",
-			Name:      "istiod",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, newReadyDeployment("istiod", "istio-system"),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace))
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
