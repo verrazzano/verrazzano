@@ -213,7 +213,7 @@ function create_image_repos_from_archives() {
         continue
       fi
 
-      grep "${repo_path}" $reposfile > /dev/nul
+      grep "${repo_path}" $reposfile > /dev/null
       if [ $? -eq 0 ]; then
         echo "$repo_path already exists and doesn't need to be created"
         continue
