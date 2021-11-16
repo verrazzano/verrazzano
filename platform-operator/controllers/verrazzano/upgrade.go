@@ -50,7 +50,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			return newRequeueWithDelay(), err
 		}
 		if !installed {
-			log.Debugf("Skip upgrade for %s, not installed", comp.Name())
+			log.Infof("Skip upgrade for %s, not installed", comp.Name())
 			continue
 		}
 		if err := comp.PreUpgrade(upgradeContext); err != nil {
