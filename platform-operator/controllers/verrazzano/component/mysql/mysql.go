@@ -19,6 +19,7 @@ import (
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
 )
 
 // ComponentName is the name of the component
@@ -31,6 +32,13 @@ const (
 	mysqlRootKey  = "mysql-root-password"
 	mysqlDBFile   = "create-mysql-db.sql"
 )
+
+// Keycloak configuration
+type Keycloak struct {
+	KeycloakInstallArgs []InstallArg `json:"keycloakInstallArgs,omitempty"`
+	MySQL               MySQL        `json:"mysql,omitempty"`
+	Enabled             string       `json:"enabled,omitempty"`
+}
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
@@ -156,6 +164,112 @@ func createDBFile(ctx spi.ComponentContext) (error, string) {
 		return err, ""
 	}
 	return nil, tmpDBFile.Name()
+}
+
+func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	effectiveCR := compContext.EffectiveCR()
+	//defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
+
+	keycloak := effectiveCR.Spec.Components.Keycloak
+	// keycloak was not specified in CR so return defaults
+	if keycloak == nil {
+		keycloakConfig := Keycloak{Enabled: "true"}
+		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
+			var mySQLArgs []InstallArg
+			mySQLArgs = append(mySQLArgs, InstallArg{
+				Name:  "persistence.enabled",
+				Value: "false",
+			})
+			keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
+		}
+		return keycloakConfig, nil
+	}
+
+	// Get the explicit helm args for MySQL
+	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
+
+	var enabled string
+	if keycloak.Enabled != nil {
+		enabled = strconv.FormatBool(*keycloak.Enabled)
+	} else {
+		enabled = "true"
+	}
+	keycloakConfig := Keycloak{
+		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
+		MySQL: MySQL{
+			MySQLInstallArgs: mySQLArgs,
+		},
+		Enabled: enabled,
+	}
+
+	// Use a volume source specified in the Keycloak config, otherwise use the default spec
+	mysqlVolumeSource := keycloak.MySQL.VolumeSource
+	if mysqlVolumeSource == nil {
+		mysqlVolumeSource = defaultVolumeSpec
+	}
+
+	// Use a volume source specified in the Keycloak config, otherwise use the default spec
+	mysqlVolumeSource := effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
+	if mysqlVolumeSource == nil {
+		return kvs, nil
+	}
+
+	if mysqlVolumeSource.EmptyDir != nil {
+		// EmptyDir, disable persistence
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "persistence.enabled",
+			Value: "false",
+		})
+	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
+		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
+		pvcs := mysqlVolumeSource.PersistentVolumeClaim
+		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		if !found {
+			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return kvs, err
+		}
+		storageClass := storageSpec.StorageClassName
+		if storageClass != nil && len(*storageClass) > 0 {
+			kvs = append(kvs, bom.KeyValue{
+				Key:       "persistence.storageClass",
+				Value:     *storageClass,
+				SetString: true,
+			})
+		}
+		storage := storageSpec.Resources.Requests.Storage()
+		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
+			kvs = append(kvs, bom.KeyValue{
+				Key:       "persistence.size",
+				Value:     storage.String(),
+				SetString: true,
+			})
+		}
+		accessModes := storageSpec.AccessModes
+		if len(accessModes) > 0 {
+			// MySQL only allows a single AccessMode value, so just choose the first
+			kvs = append(kvs, bom.KeyValue{
+				Key:       "persistence.accessMode",
+				Value:     string(accessModes[0]),
+				SetString: true,
+			})
+		}
+		// Enable MySQL persistence
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "persistence.enabled",
+			Value: "true",
+		})
+	}
+	return kvs, nil
+}
+
+// findVolumeTemplate Find a named VolumeClaimTemplate in the list
+func findVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
+	for i, template := range templates {
+		if templateName == template.Name {
+			return &templates[i].Spec, true
+		}
+	}
+	return nil, false
 }
 
 // getInstallArgs get the install args for MySQL
