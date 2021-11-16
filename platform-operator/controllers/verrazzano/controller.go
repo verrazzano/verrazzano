@@ -355,7 +355,7 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 	log.Debugf("Checking if install cluster role binding %s exist", binding.Name)
 	err := r.Get(ctx, types.NamespacedName{Name: binding.Name, Namespace: binding.Namespace}, bindingFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Debugf("Creating install cluster role binding %s", binding.Name)
+		log.Infof("Creating install cluster role binding %s", binding.Name)
 		err = r.Create(ctx, binding)
 		if err != nil {
 			return err
@@ -1336,7 +1336,7 @@ func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLo
 	if err != nil {
 		return err
 	}
-	log.Debugf("Watching for jobs to activate reconcile for Verrrazzano CR %s/%s", namespace, name)
+	log.Debugf("Watching for jobs to activate reconcile for Verrazzano CR %s/%s", namespace, name)
 
 	return nil
 }
