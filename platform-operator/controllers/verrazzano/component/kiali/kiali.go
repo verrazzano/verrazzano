@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -38,16 +37,6 @@ func isKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 		{Name: kialiSystemName, Namespace: namespace},
 	}
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
-}
-
-// isKialiEnabled returns true if the component is enabled, which is the default
-func isKialiEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Kiali
-	if comp == nil || comp.Enabled == nil {
-		// Default to false for managed cluster
-		return !(ctx.EffectiveCR().Spec.Profile == vzapi.ManagedCluster)
-	}
-	return *comp.Enabled
 }
 
 // AppendOverrides Build the set of Kiali overrides for the helm install

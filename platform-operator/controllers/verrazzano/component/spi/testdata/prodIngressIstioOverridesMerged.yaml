@@ -1,0 +1,86 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+metadata:
+  name: "prod-ingress-istio-override"
+spec:
+  profile: "prod"
+  environmentName: prodenv
+  defaultVolumeSource:
+    persistentVolumeClaim:
+      claimName: default-storage
+  volumeClaimSpecTemplates:
+    - metadata:
+        name: default-storage
+      spec:
+        resources:
+          requests:
+            storage: 50Gi
+  components:
+    certManager:
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    coherenceOperator:
+      enabled: true
+    console:
+      enabled: true
+    dns:
+      wildcard:
+        domain: "nip.io"
+    elasticsearch:
+      enabled: true
+    fluentd:
+      enabled: true
+    grafana:
+      enabled: true
+    ingress:
+      type: LoadBalancer
+      nginxInstallArgs:
+        - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
+          value: "10Mbps"
+        - name: controller.service.externalTrafficPolicy
+          value: Local
+        - name: controller.autoscaling.enabled
+          value: "true"
+        - name: controller.autoscaling.minReplicas
+          value: "3"
+        - name: controller.service.externalIPs
+          valueList:
+          - 11.22.33.44
+      ports:
+        - name: http
+          nodePort: 30080
+          port: 80
+          protocol: TCP
+          targetPort: 0
+        - name: https
+          nodePort: 30443
+          port: 443
+          protocol: TCP
+          targetPort: 0
+    istio:
+      istioInstallArgs:
+        - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
+          value: "10Mbps"
+        - name: gateways.istio-ingressgateway.replicaCount
+          value: "3"
+        - name: gateways.istio-ingressgateway.externalIPs
+          valueList:
+          - 11.22.33.44
+    kiali:
+      enabled: true
+    keycloak:
+      enabled: true
+      mysql:
+        volumeSource:
+          persistentVolumeClaim:
+            claimName: default-storage
+    kibana:
+      enabled: true
+    prometheus:
+      enabled: true
+    rancher:
+      enabled: true
+    weblogicOperator:
+      enabled: true

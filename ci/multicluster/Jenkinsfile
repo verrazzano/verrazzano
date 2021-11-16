@@ -548,19 +548,8 @@ pipeline {
                     }
                 }
                 stage ('Console') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                        CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
-                        // Set app information used by the application page UI tests to assert for app info
-                        CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
-                        CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
-                        CONSOLE_APP_CLUSTER="managed1"
-                        CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
-                    }
                     steps {
-                        // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
-                        // Make sure that application page tests are also run
-                        sh "KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                        runConsoleTests()
                     }
                     post {
                         always {
@@ -589,50 +578,6 @@ pipeline {
                         }
                     }
                 }
-                stage ('verify deregister') {
-                    steps {
-                        verifyDeregisterManagedClusters()
-                    }
-                }
-                stage ('Uninstall Verrazzano') {
-                    steps {
-                        script {
-                            // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-                            // - the first one will always be the Admin cluster
-                            // - clusters 2-max are managed clusters
-                            def verrazzanoUninstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for(int count=1; count<=clusterCount; count++) {
-                                def installerPath="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                                def key = "vz-mgd-${count-1}"
-                                if (count == 1) {
-                                    key = "vz-admin"
-                                }
-                                verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
-                            }
-                            parallel verrazzanoUninstallStages
-                        }
-                    }
-                }
-                stage("Verify Uninstall") {
-                    steps {
-                        script {
-                            // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-                            // - the first one will always be the Admin cluster
-                            // - clusters 2-max are managed clusters
-                            def verifyUninstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for(int count=1; count<=clusterCount; count++) {
-                                def key = "vz-mgd-${count-1}"
-                                if (count == 1) {
-                                    key = "vz-admin"
-                                }
-                                verifyUninstallStages["${key}"] = verifyUninstall(count)
-                            }
-                            parallel verifyUninstallStages
-                        }
-                    }
-                }
             }
             post {
                 failure {
@@ -652,6 +597,54 @@ pipeline {
                         METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-dump")
+                        }
+                    }
+                }
+            }
+        }
+        stage('Cleanup Tests') {
+            stages {
+                stage('verify deregister') {
+                    steps {
+                        verifyDeregisterManagedClusters()
+                    }
+                }
+                stage('Uninstall Verrazzano') {
+                    steps {
+                        script {
+                            // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+                            // - the first one will always be the Admin cluster
+                            // - clusters 2-max are managed clusters
+                            def verrazzanoUninstallStages = [:]
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for (int count = 1; count <= clusterCount; count++) {
+                                def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                                def key = "vz-mgd-${count - 1}"
+                                if (count == 1) {
+                                    key = "vz-admin"
+                                }
+                                verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
+                            }
+                            parallel verrazzanoUninstallStages
+                        }
+                    }
+                }
+                stage("Verify Uninstall") {
+                    steps {
+                        script {
+                            // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+                            // - the first one will always be the Admin cluster
+                            // - clusters 2-max are managed clusters
+                            def verifyUninstallStages = [:]
+                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                            for (int count = 1; count <= clusterCount; count++) {
+                                def key = "vz-mgd-${count - 1}"
+                                if (count == 1) {
+                                    key = "vz-admin"
+                                }
+                                verifyUninstallStages["${key}"] = verifyUninstall(count)
+                            }
+                            parallel verifyUninstallStages
                         }
                     }
                 }
@@ -1538,4 +1531,20 @@ def runMulticlusterVerifyApi() {
           ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
         """
     }
+}
+
+def runConsoleTests() {
+    // Set app information used by the application page UI tests to assert for app info
+    // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
+    // Make sure that application page tests are also run by setting RUN_APP_TESTS=true since we deployed
+    // a sample app for that purpose
+    sh """
+        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+        export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
+        export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
+        export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
+        export CONSOLE_APP_CLUSTER="managed1"
+        export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
+        KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
+   """
 }

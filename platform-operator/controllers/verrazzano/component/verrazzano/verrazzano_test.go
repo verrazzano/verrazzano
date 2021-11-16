@@ -166,7 +166,7 @@ func Test_appendOverrides(t *testing.T) {
 	assert := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, nil, false), "", "", "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, nil, false), "", "", "", []bom.KeyValue{})
 
 	assert.NoError(err)
 	assert.Len(kvs, 2)

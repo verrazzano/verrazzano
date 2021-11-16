@@ -6,19 +6,86 @@ package spi
 
 import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+)
+
+const (
+	// implicit base profile (defaults)
+	baseProfile = "base"
 )
 
 // NewContext creates a ComponentContext from a raw CR
-func NewContext(log *zap.SugaredLogger, c clipkg.Client, cr *vzapi.Verrazzano, dryRun bool) ComponentContext {
+func NewContext(log *zap.SugaredLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
+	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	effectiveCR, err := getEffectiveCR(actualCR)
+	if err != nil {
+		return nil, err
+	}
 	return componentContext{
 		log:         log,
 		client:      c,
 		dryRun:      dryRun,
-		cr:          cr,
-		effectiveCR: cr, // Eventually we will compute the merged effective CR
+		cr:          actualCR,
+		effectiveCR: effectiveCR,
+	}, nil
+}
+
+// NewFakeContext creates a fake ComponentContext for unit testing purposes
+// c Kubernetes client
+// actualCR The user-supplied Verrazzano CR
+// dryRun Dry-run indicator
+// profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
+func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
+	effectiveCR := actualCR
+	log := zap.S()
+	if len(profilesDir) > 0 {
+		config.TestProfilesDir = profilesDir[0]
+		log.Infof("Profiles location: %s", config.TestProfilesDir)
+		defer func() { config.TestProfilesDir = "" }()
+
+		var err error
+		effectiveCR, err = getEffectiveCR(actualCR)
+		if err != nil {
+			log.Errorf("Unexpected error building fake context: %v", err)
+			return nil
+		}
 	}
+	return componentContext{
+		log:         zap.S(),
+		client:      c,
+		dryRun:      dryRun,
+		cr:          actualCR,
+		effectiveCR: effectiveCR,
+	}
+}
+
+// getEffectiveCR Creates an "effective" Verrazzano CR based on the user defined resource merged with the profile definitions
+// - Effective CR == base profile + declared profiles + ActualCR (in order)
+// - last definition wins
+func getEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
+	if actualCR == nil {
+		return nil, nil
+	}
+	// Identify the set of profiles, base + declared
+	profiles := []string{baseProfile, string(vzapi.Prod)}
+	if len(actualCR.Spec.Profile) > 0 {
+		profiles = append([]string{baseProfile}, strings.Split(string(actualCR.Spec.Profile), ",")...)
+	}
+	var profileFiles []string
+	for _, profile := range profiles {
+		profileFiles = append(profileFiles, config.GetProfile(profile))
+	}
+	// Merge the profile files into an effective profile YAML string
+	effectiveCR, err := transform.MergeProfiles(actualCR, profileFiles...)
+	if err != nil {
+		return nil, err
+	}
+	effectiveCR.Status = vzapi.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
+	return effectiveCR, nil
 }
 
 type componentContext struct {

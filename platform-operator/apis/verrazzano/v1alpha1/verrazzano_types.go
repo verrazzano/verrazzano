@@ -76,11 +76,13 @@ type VerrazzanoSpec struct {
 	// at present only EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
-	DefaultVolumeSource *corev1.VolumeSource `json:"defaultVolumeSource,omitempty"`
+	// +patchStrategy=replace
+	DefaultVolumeSource *corev1.VolumeSource `json:"defaultVolumeSource,omitempty" patchStrategy:"replace"`
 
 	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
-	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty"`
+	// +patchStrategy=replace
+	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"replace"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano
@@ -252,7 +254,8 @@ type ComponentSpec struct {
 
 	// DNS contains the DNS component configuration
 	// +optional
-	DNS *DNSComponent `json:"dns,omitempty"`
+	// +patchStrategy=replace
+	DNS *DNSComponent `json:"dns,omitempty" patchStrategy:"replace"`
 
 	// Elasticsearch configuration
 	// +optional
@@ -311,7 +314,9 @@ type ElasticsearchComponent struct {
 
 	// Arguments for installing Elasticsearch
 	// +optional
-	ESInstallArgs []InstallArgs `json:"installArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	ESInstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
@@ -333,7 +338,8 @@ type PrometheusComponent struct {
 type CertManagerComponent struct {
 	// Certificate used for an install
 	// +optional
-	Certificate Certificate `json:"certificate,omitempty"`
+	// +patchStrategy=replace
+	Certificate Certificate `json:"certificate,omitempty" patchStrategy:"replace"`
 }
 
 // CoherenceOperatorComponent specifies the Coherence Operator configuration
@@ -373,7 +379,9 @@ type IngressNginxComponent struct {
 	Type IngressType `json:"type,omitempty"`
 	// Arguments for installing NGINX
 	// +optional
-	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// Ports to be used for NGINX
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
@@ -383,14 +391,18 @@ type IngressNginxComponent struct {
 type IstioComponent struct {
 	// Arguments for installing Istio
 	// +optional
-	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
 type KeycloakComponent struct {
 	// Arguments for installing Keycloak
 	// +optional
-	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	KeycloakInstallArgs []InstallArgs `json:"keycloakInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// MySQL contains the MySQL component configuration needed for Keycloak
 	// +optional
 	MySQL MySQLComponent `json:"mysql,omitempty"`
@@ -402,12 +414,15 @@ type KeycloakComponent struct {
 type MySQLComponent struct {
 	// Arguments for installing MySQL
 	// +optional
-	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty"`
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	MySQLInstallArgs []InstallArgs `json:"mysqlInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// VolumeSource Defines the type of volume to be used for persistence; at present only EmptyDirVolumeSource or
 	// PersistentVolumeClaimVolumeSource are supported. If PersistentVolumeClaimVolumeSource
 	// is used, it must reference a VolumeClaimSpecTemplate in the VolumeClaimSpecTemplates section.
 	// +optional
-	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty"`
+	// +patchStrategy=replace
+	VolumeSource *corev1.VolumeSource `json:"volumeSource,omitempty" patchStrategy:"replace"`
 }
 
 // RancherComponent specifies the Rancher configuration
@@ -422,7 +437,8 @@ type FluentdComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
-	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty"`
+	// +patchStrategy=merge,retainKeys
+	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"source"`
 	// +optional
 	ElasticsearchURL string `json:"elasticsearchURL,omitempty"`
 	// +optional
@@ -448,7 +464,8 @@ type InstallArgs struct {
 	SetString bool `json:"setString,omitempty"`
 	// List of values for named install argument
 	// +optional
-	ValueList []string `json:"valueList,omitempty"`
+	// +patchStrategy=replace
+	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
 }
 
 // VolumeMount defines a hostPath type Volume mount
