@@ -30,11 +30,11 @@ const (
 	namespace = "cert-manager"
 
 	certManagerDeploymentName = "cert-manager"
-	cainjectorDeploymentName = "cert-manager-cainjector"
-	webhookDeploymentName = "cert-manager-webhook"
+	cainjectorDeploymentName  = "cert-manager-cainjector"
+	webhookDeploymentName     = "cert-manager-webhook"
 
 	defaultCAClusterResourceName = "cert-manager"
-	defaultCASecName = "verrazzano-ca-certificate-secret"
+	defaultCASecName             = "verrazzano-ca-certificate-secret"
 )
 
 // Template for ClusterIssuer for Acme certificates

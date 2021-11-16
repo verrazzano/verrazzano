@@ -21,7 +21,7 @@ import (
 
 // default CA object
 var ca = vzapi.CA{
-	SecretName:               "testSecret",
+	SecretName: "testSecret",
 	ClusterResourceNamespace: namespace,
 }
 
@@ -144,7 +144,7 @@ func TestIsCertManagerNotReady(t *testing.T) {
 func TestGetCertificateConfigNil(t *testing.T) {
 	assert.Equal(t, vzapi.CA{
 		ClusterResourceNamespace: defaultCAClusterResourceName,
-		SecretName:               defaultCASecretName}, *getCertificateConfig(vz).CA)
+		SecretName:               defaultCASecName}, *getCertificateConfig(vz).CA)
 }
 
 // TestGetCertificateConfigCA tests the getCertificateConfig function
