@@ -89,8 +89,10 @@ if [ ! -z "${TEST_LOG_BUCKET}" ] ; then
     fi
 fi
 
-CM_DATA_KUBECONFIG=`cat ${TARGET_KUBECONFIG}`
-CM_DATA_RUN_COMPILED_TESTS_SH=`cat ${SCRIPT_DIR}/run_compiled_tests.sh`
+export CM_DATA_KUBECONFIG=`cat ${TARGET_KUBECONFIG}`
+export CM_DATA_RUN_COMPILED_TESTS_SH=`cat ${SCRIPT_DIR}/run_compiled_tests.sh`
+echo ${CM_DATA_KUBECONFIG}
+echo ${CM_DATA_RUN_COMPILED_TESTS_SH}
 
 kubectl apply -f - <<-EOF
 kind: ConfigMap
@@ -148,5 +150,5 @@ EOF
 kubectl logs -n ${JOB_NAMESPACE} \
     -f $(kubectl get pod \
     -n ${JOB_NAMESPACE} \
-    -l job-name=${JOB_NAMESPACE}-${JOB_NAME} \
+    -l job-name=${JOB_NAME} \
     -o jsonpath="{.items[0].metadata.name}")
