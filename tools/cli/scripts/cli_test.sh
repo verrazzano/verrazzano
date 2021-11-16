@@ -27,6 +27,10 @@ echo ADMIN_KUBECONFIG: ${ADMIN_KUBECONFIG}
 echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
 
+#update to ginkgo version 2.0
+go get github.com/onsi/ginkgo/ginkgo@ver2
+go install github.com/onsi/ginkgo/ginkgo@ver2
+
 # check whether vz is built or not
 if ! vz; then
   echo "CLI is not built, exiting ..."
@@ -85,7 +89,7 @@ kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_N
 
 # run verify-register test
 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
+ginkgo -p --randomize-all -v --keep-going --no-color multicluster/verify-register/...
 
 echo "vz cluster list"
 vz cluster list

@@ -64,6 +64,10 @@ OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
 
 CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
 
+#update to ginkgo version 2.0
+$(shell go get github.com/onsi/ginkgo/ginkgo@ver2)
+$(shell go install github.com/onsi/ginkgo/ginkgo@ver2)
+
 .PHONY: build
 build: go-fmt go-vet
 	go build -o bin/manager main.go
@@ -188,7 +192,7 @@ setup-cluster: create-cluster
 .PHONY: integ-test
 integ-test: setup-cluster
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	ginkgo -v --keep-going -cover test/integ/... || (echo 'Application operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 
 .PHONY: cleanup-cluster
 cleanup-cluster:

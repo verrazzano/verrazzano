@@ -193,6 +193,14 @@ pipeline {
     }
 
     stages {
+        stage('Update ginkgo to ver 2') {
+            steps {
+                sh """
+                    go get github.com/onsi/ginkgo/ginkgo@ver2
+                    go install github.com/onsi/ginkgo/ginkgo@ver2
+                """
+            }
+        }
         stage('Clean workspace and checkout') {
             steps {
                 sh """
@@ -983,7 +991,7 @@ def verifyRegisterManagedClusters() {
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v -keepGoing --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-register/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/...
                 """
             }
         }
@@ -1002,7 +1010,7 @@ def verifyDeregisterManagedClusters() {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v -keepGoing --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-deregister/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/...
                 """
             }
         }
@@ -1020,7 +1028,7 @@ def verifyManagedClusterPermissions() {
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export MANAGED_ACCESS_KUBECONFIG="${KUBECONFIG_DIR}/${count}/managed_kube_config"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -v -stream -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-permissions/...
+                    ginkgo -v -stream --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-permissions/...
                 """
             }
         }
@@ -1038,7 +1046,7 @@ def testHelidonExample(testSuitePath) {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -1054,7 +1062,7 @@ def testSockExample(testSuitePath) {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-sock"
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -1077,7 +1085,7 @@ def runGinkgoRandomize(testSuitePath) {
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v -keepGoing --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
                 """
             }
         }
@@ -1091,7 +1099,7 @@ def runGinkgo(testSuitePath, kubeConfig, clusterCount) {
             export KUBECONFIG="${kubeConfig}"
             export CLUSTER_COUNT="${clusterCount}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -1499,7 +1507,7 @@ def runHelidonNsOpsTest() {
       cd ${GO_REPO_PATH}/verrazzano/tests/e2e
       export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
       export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-ns-ops"
-      ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/examples/helidon-ns-ops/...
+      ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/examples/helidon-ns-ops/...
     """
 }
 
@@ -1510,7 +1518,7 @@ def runMulticlusterVerifyApi() {
           export MANAGED_CLUSTER_NAME="managed${count-1}"
           export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
           cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-          ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true multicluster/verify-api/...
+          ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-api/...
         """
     }
 }

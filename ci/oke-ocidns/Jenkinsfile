@@ -170,7 +170,14 @@ pipeline {
     }
 
     stages {
-
+        stage('Update ginkgo to ver 2') {
+            steps {
+                sh """
+                    go get github.com/onsi/ginkgo/ginkgo@ver2
+                    go install github.com/onsi/ginkgo/ginkgo@ver2
+                """
+            }
+        }
         stage('Initialize') {
             steps {
                 script {
@@ -445,7 +452,7 @@ pipeline {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             sh """
                                 cd ${WORKSPACE}/tests/e2e
-                                ginkgo -p --randomize-all -v -keepGoing --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true verify-install/...
+                                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
                             """
                         }
                     }
@@ -654,7 +661,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v -keepGoing --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -663,7 +670,7 @@ def runGinkgoFailFast(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v --fail-fast --no-color -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --fail-fast --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
