@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -13,6 +14,7 @@ import (
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -38,6 +40,10 @@ func init() {
 
 	_ = istioclinet.AddToScheme(scheme)
 	_ = istioclisec.AddToScheme(scheme)
+
+	_ = oam.AddToScheme(scheme)
+
+	_ = vzapp.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
