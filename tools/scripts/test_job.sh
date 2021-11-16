@@ -144,6 +144,7 @@ spec:
           optional: true
 EOF
 
+kubectl wait --for=condition=ContainersReady --timeout=100s pod --selector job-name=${JOB_NAME}
 kubectl logs -f -n ${JOB_NAMESPACE} \
     -f $(kubectl get pod \
     -n ${JOB_NAMESPACE} \
