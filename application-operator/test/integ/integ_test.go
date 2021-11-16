@@ -110,9 +110,9 @@ var _ = Describe("verrazzano-application namespace resources ", func() {
 	})
 	It(fmt.Sprintf("Pod prefixed by %s exists", verrazzanoOperator), func() {
 		Eventually(isOperatorRunning, for3m).Should(BeTrue(),
-			"The Verrazzano operator pod is not urnning")
+			"The Verrazzano operator pod is not running")
 		Eventually(operatorServiceExists, for3m).Should(BeTrue(),
-			"The Verrazzano operator service is not urnning")
+			"The Verrazzano operator service is not running")
 	})
 })
 
