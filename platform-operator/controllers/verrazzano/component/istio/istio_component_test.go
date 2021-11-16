@@ -76,7 +76,8 @@ func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer SetDefaultIstioUpgradeFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
+
+	err := comp.Upgrade(spi.NewFakeContext(getMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -111,7 +112,7 @@ func TestPostUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewContext(zap.S(), getMock(t), crInstall, false))
+	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
@@ -154,7 +155,7 @@ func getMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
+			deploy.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -162,7 +163,7 @@ func getMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
 			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
+			ss.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -170,7 +171,7 @@ func getMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
 			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = "some time"
+			ds.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -255,6 +256,6 @@ func TestIsReady(t *testing.T) {
 	},
 	)
 	var iComp IstioComponent
-	compContext := spi.NewContext(zap.S(), fakeClient, nil, false)
+	compContext := spi.NewFakeContext(fakeClient, nil, false)
 	assert.True(t, iComp.IsReady(compContext))
 }

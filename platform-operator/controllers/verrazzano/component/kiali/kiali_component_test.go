@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
-	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,6 +32,8 @@ var crEnabled = vzapi.Verrazzano{
 }
 
 var testScheme = runtime.NewScheme()
+
+const profilesRelativePath = "../../../../manifests/profiles"
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
@@ -69,7 +70,7 @@ func TestIsKialiReady(t *testing.T) {
 		},
 	})
 
-	assert.True(t, NewComponent().IsReady(spi.NewContext(zap.S(), fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.True(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsKialiNotReady tests the IsReady function
@@ -94,7 +95,7 @@ func TestIsKialiNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, NewComponent().IsReady(spi.NewContext(zap.S(), fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsKialiNotReadyChartNotFound tests the IsReady function
@@ -108,7 +109,7 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 
 	fakeClient := fake.NewFakeClientWithScheme(testScheme)
-	assert.False(t, NewComponent().IsReady(spi.NewContext(zap.S(), fakeClient, &vzapi.Verrazzano{}, false)))
+	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
@@ -116,7 +117,7 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &vzapi.Verrazzano{}, false)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
 }
 
 // TestIsEnabledNilKiali tests the IsEnabled function
@@ -126,7 +127,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKiali(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
-	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -136,7 +137,7 @@ func TestIsEnabledNilKiali(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = nil
-	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -146,7 +147,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(true)
-	assert.True(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -156,18 +157,40 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(false)
-	assert.False(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
 }
 
-// TestIsEnabledManaged tests the IsEnabled function
+// TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
 //  WHEN The Kiali enabled flag is nil and managed cluster profile
 //  THEN false is returned
-func TestIsEnabledManaged(t *testing.T) {
+func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, isKialiEnabled(spi.NewContext(zap.S(), nil, &cr, false)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledProdProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali enabled flag is nil and prod profile
+//  THEN false is returned
+func TestIsEnabledProdProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali = nil
+	cr.Spec.Profile = vzapi.Prod
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledDevProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Kiali enabled flag is nil and dev profile
+//  THEN false is returned
+func TestIsEnabledDevProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Kiali = nil
+	cr.Spec.Profile = vzapi.Dev
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
 }
 
 // TestKialiPostInstallUpdateResources tests the PostInstall function
@@ -193,7 +216,7 @@ func TestKialiPostInstallUpdateResources(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
-	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
 
@@ -214,7 +237,7 @@ func TestKialiPostInstallCreateResources(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(testScheme)
-	err := NewComponent().PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
 
@@ -241,7 +264,7 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
-	err := NewComponent().PostUpgrade(spi.NewContext(zap.S(), fakeClient, vz, false))
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
 

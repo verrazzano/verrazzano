@@ -43,7 +43,7 @@ import (
 const testBomFilePath = "testdata/test_bom.json"
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
-//go:generate mockgen -destination=../mocks/controller_mock.go -package=mocks -copyright_file=../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+//go:generate mockgen -destination=../../mocks/controller_mock.go -package=mocks -copyright_file=../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 
 const installPrefix = "verrazzano-install-"
 const uninstallPrefix = "verrazzano-uninstall-"
@@ -116,6 +116,10 @@ func TestSuccessfulInstall(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	config.TestHelmConfigDir = "../../helm_config"
+	defer func() { config.TestHelmConfigDir = "" }()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -206,10 +210,10 @@ func TestSuccessfulInstall(t *testing.T) {
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(request)
+	asserts.NoError(err)
 
 	// Validate the results
 	mocker.Finish()
-	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
@@ -230,6 +234,9 @@ func TestInstallInitComponents(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	config.TestHelmConfigDir = "../../helm_config"
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -275,12 +282,12 @@ func TestInstallInitComponents(t *testing.T) {
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(request)
-
-	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+
+	// Validate the results
+	mocker.Finish()
 }
 
 // TestCreateLocalRegistrationSecret tests the syncLocalRegistrationSecret method for the following use case
@@ -398,6 +405,9 @@ func TestCreateVerrazzano(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
@@ -568,6 +578,9 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)

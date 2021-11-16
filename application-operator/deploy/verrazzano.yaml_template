@@ -84,6 +84,7 @@ rules:
   - apiGroups:
       - clusters.verrazzano.io
     resources:
+      - verrazzanomanagedclusters
       - multiclusterapplicationconfigurations
       - multiclustercomponents
       - multiclusterconfigmaps

@@ -6,7 +6,6 @@ package pkg
 import (
 	"context"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -265,77 +264,57 @@ func GetRetryPolicy() func(ctx context.Context, resp *http.Response, err error) 
 	}
 }
 
-// findMetric parses a Prometheus response to find a specified set of metric values
-func findMetric(metrics []interface{}, keyMap map[string]string) bool {
-	for _, metric := range metrics {
-
-		// allExist only remains true if all metrics are found in a given JSON response
-		allExist := true
-
-		for key, value := range keyMap {
-			exists := false
-			if Jq(metric, "metric", key) == value {
-				// exists is true if the specific key-value pair is found in a given JSON response
-				exists = true
-			}
-			allExist = exists && allExist
-		}
-		if allExist {
-			return true
-		}
-	}
-	return false
-}
-
-// MetricsExist is identical to MetricsExistInCluster, except that it uses the cluster specified in the environment
-func MetricsExist(metricsName, key, value string) bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+func PodsHaveAnnotation(namespace string, annotation string) bool {
+	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
 		return false
 	}
-
-	// map with single key-value pair
-	m := make(map[string]string)
-	m[key] = value
-
-	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
-}
-
-// MetricsExist validates the availability of a given metric in the given cluster
-func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
-	metric, err := QueryMetric(metricsName, kubeconfigPath)
+	pods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
-	metrics := JTq(metric, "data", "result").([]interface{})
-	if metrics != nil {
-		return findMetric(metrics, keyMap)
-	}
-	return false
-}
-
-// JTq queries JSON text with a JSON path
-func JTq(jtext string, path ...string) interface{} {
-	var j map[string]interface{}
-	json.Unmarshal([]byte(jtext), &j)
-	return Jq(j, path...)
-}
-
-// Jq queries JSON nodes with a JSON path
-func Jq(node interface{}, path ...string) interface{} {
-	for _, p := range path {
-		if node == nil {
-			return nil
+	for _, pod := range pods.Items {
+		_, hasAnnotation := pod.Annotations[annotation]
+		if !hasAnnotation && !strings.Contains(pod.Name, "vmi-system-kiali") {
+			return false
 		}
-		var nodeMap, ok = node.(map[string]interface{})
+	}
+	return true
+}
+
+func CheckPodsForIstioImage(namespace string) bool {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
+		return false
+	}
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+	for _, pod := range pods.Items {
+		_, ok := pod.Labels["istio.io/rev"]
 		if ok {
-			node = nodeMap[p]
-		} else {
-			return nil
+			containers := pod.Spec.Containers
+			found := false
+			for _, container := range containers {
+				if strings.Contains(container.Image, "proxyv2:1.10") {
+					found = true
+					break
+				}
+
+			}
+			if !found {
+				Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
+				return false
+			}
 		}
+
 	}
-	return node
+	return true
 }
 
 // SliceContainsString checks if the input slice (an array of strings)
