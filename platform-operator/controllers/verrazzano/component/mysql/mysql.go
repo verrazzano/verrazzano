@@ -65,7 +65,10 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		return []bom.KeyValue{}, err
 	}
 	kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + "/" + mysqlDBFile, SetFile: true})
-
+	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
+	if err != nil {
+		return []bom.KeyValue{}, err
+	}
 	// Convert NGINX install-args to helm overrides
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
 
@@ -133,6 +136,18 @@ func createDBFile(ctx spi.ComponentContext) error {
 
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := compContext.EffectiveCR()
+	defaultVolumeSpec := effectiveCR.Spec.DefaultVolumeSource
+
+	// keycloak was not specified in CR so return defaults
+	if effectiveCR.Spec.Components.Keycloak == nil {
+		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
+			kvs = append(kvs, bom.KeyValue{
+				Key:   "persistence.enabled",
+				Value: "false",
+			})
+		}
+		return kvs, nil
+	}
 
 	// Use a volume source specified in the Keycloak config, otherwise use the default spec
 	mysqlVolumeSource := effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
