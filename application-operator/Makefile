@@ -64,10 +64,6 @@ OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
 
 CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
 
-#update to ginkgo version 2.0
-$(shell go get github.com/onsi/ginkgo/ginkgo@ver2)
-$(shell go install github.com/onsi/ginkgo/ginkgo@ver2)
-
 .PHONY: build
 build: go-fmt go-vet
 	go build -o bin/manager main.go

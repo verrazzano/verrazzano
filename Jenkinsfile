@@ -105,14 +105,6 @@ pipeline {
     }
 
     stages {
-        stage('Update ginkgo to ver 2') {
-            steps {
-                sh """
-                    go get github.com/onsi/ginkgo/ginkgo@ver2
-                    go install github.com/onsi/ginkgo/ginkgo@ver2
-                """
-            }
-        }
         stage('Clean workspace and checkout') {
             steps {
                 sh """

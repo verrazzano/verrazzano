@@ -65,10 +65,6 @@ CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
 CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
 
-#update to ginkgo version 2.0
-$(shell go get github.com/onsi/ginkgo/ginkgo@ver2)
-$(shell go install github.com/onsi/ginkgo/ginkgo@ver2)
-
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:

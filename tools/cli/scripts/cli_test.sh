@@ -27,10 +27,6 @@ echo ADMIN_KUBECONFIG: ${ADMIN_KUBECONFIG}
 echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
 
-#update to ginkgo version 2.0
-go get github.com/onsi/ginkgo/ginkgo@ver2
-go install github.com/onsi/ginkgo/ginkgo@ver2
-
 # check whether vz is built or not
 if ! vz; then
   echo "CLI is not built, exiting ..."
