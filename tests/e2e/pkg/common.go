@@ -47,13 +47,13 @@ func GetVerrazzanoPassword() string {
 	return string(secret.Data["password"])
 }
 
-func GetVerrazzanoPasswordInCluster(kubeconfigPath string) string {
+func GetVerrazzanoPasswordInCluster(kubeconfigPath string) (string, error) {
 	secret, err := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get verrazzano secret: %v", err))
-		return ""
+		return "", err
 	}
-	return string(secret.Data["password"])
+	return string(secret.Data["password"]), nil
 }
 
 // Concurrently executes the given assertions in parallel and waits for them all to complete

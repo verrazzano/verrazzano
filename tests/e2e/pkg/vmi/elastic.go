@@ -70,7 +70,11 @@ func (e *Elastic) Connect() bool {
 	if err != nil {
 		return false
 	}
-	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return false
+	}
+	body, err := e.retryGet(esURL, pkg.Username, password, kubeconfigPath)
 	if err != nil {
 		return false
 	}
@@ -145,7 +149,11 @@ func (e *Elastic) getIndices(kubeconfigPath string) map[string]interface{} {
 		return nil
 	}
 	esURL = esURL + "/_all"
-	body, err := e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return nil
+	}
+	body, err := e.retryGet(esURL, pkg.Username, password, kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices %v error: %v", esURL, err))
 		return nil
