@@ -1110,7 +1110,7 @@ data:
         return serverUrl
     end
 
-    function isOriginAllowed(origin)
+    function me.isOriginAllowed(origin)
         local allowedOrigins = os.getenv("VZ_API_ALLOWED_ORIGINS")
         if not allowedOrigins or allowedOrigins == "" then
             return false
