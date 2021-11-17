@@ -5,7 +5,6 @@ package appconfig
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"strings"
 	"testing"
 
@@ -17,6 +16,7 @@ import (
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	asserts "github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -109,7 +109,7 @@ func TestReconcileRestartVersion(t *testing.T) {
 	request := newRequest(testNamespace, testAppConfigName)
 
 	appConfig := newAppConfig()
-	appConfig.Annotations[constants.RestartVersionAnnotation] = "1"
+	appConfig.Annotations[vzconst.RestartVersionAnnotation] = "1"
 	err := client.Create(context.TODO(), appConfig)
 	assert.NoError(err)
 
@@ -129,7 +129,7 @@ func TestReconcileEmptyRestartVersion(t *testing.T) {
 	request := newRequest(testNamespace, testAppConfigName)
 
 	appConfig := newAppConfig()
-	appConfig.Annotations[constants.RestartVersionAnnotation] = ""
+	appConfig.Annotations[vzconst.RestartVersionAnnotation] = ""
 	err := client.Create(context.TODO(), appConfig)
 	assert.NoError(err)
 
@@ -196,7 +196,7 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -230,7 +230,7 @@ func TestReconcileRestartCoherence(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -264,7 +264,7 @@ func TestReconcileRestartHelidon(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -298,7 +298,7 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -330,7 +330,7 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			assert.Equal(testNewRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			return nil
 		})
 	// create a request and reconcile it
@@ -354,7 +354,7 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -373,7 +373,7 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 			deploy.Name = testDeploymentName
 			deploy.Namespace = testNamespace
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = testNewRestartVersion
+			deploy.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 	// expect a call to fetch the deployment
@@ -383,7 +383,7 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 			deploy.Name = testDeploymentName
 			deploy.Namespace = testNamespace
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = testNewRestartVersion
+			deploy.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 
@@ -408,7 +408,7 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -440,7 +440,7 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, daemonset *appsv1.DaemonSet) error {
-			assert.Equal(testNewRestartVersion, daemonset.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, daemonset.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			return nil
 		})
 
@@ -465,7 +465,7 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -484,7 +484,7 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 			daemonset.Name = testDaemonSetName
 			daemonset.Namespace = testNamespace
 			daemonset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			daemonset.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = testNewRestartVersion
+			daemonset.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 	// expect a call to fetch the daemonset
@@ -494,7 +494,7 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 			daemonset.Name = testDaemonSetName
 			daemonset.Namespace = testNamespace
 			daemonset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			daemonset.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = testNewRestartVersion
+			daemonset.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 
@@ -519,7 +519,7 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -551,7 +551,7 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, statefulset *appsv1.StatefulSet) error {
-			assert.Equal(testNewRestartVersion, statefulset.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation])
+			assert.Equal(testNewRestartVersion, statefulset.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			return nil
 		})
 
@@ -576,7 +576,7 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
-			appConfig.Annotations = map[string]string{constants.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
 			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
 			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
 			return nil
@@ -595,7 +595,7 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 			statefulset.Name = testStatefulSetName
 			statefulset.Namespace = testNamespace
 			statefulset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			statefulset.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = testNewRestartVersion
+			statefulset.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 	// expect a call to fetch the statefulset
@@ -605,7 +605,7 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 			statefulset.Name = testStatefulSetName
 			statefulset.Namespace = testNamespace
 			statefulset.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			statefulset.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = testNewRestartVersion
+			statefulset.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = testNewRestartVersion
 			return nil
 		})
 

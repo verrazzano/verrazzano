@@ -7,13 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"reflect"
 	"strconv"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
