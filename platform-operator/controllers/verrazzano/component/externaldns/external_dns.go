@@ -27,6 +27,12 @@ const (
 )
 
 func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error {
+	// If it is a dry-run, do nothing
+	if compContext.IsDryRun() {
+		compContext.Log().Infof("cert-manager PreInstall dry run")
+		return nil
+	}
+
 	// Get OCI DNS secret from the verrazzano-install namespace
 	dns := compContext.EffectiveCR().Spec.Components.DNS
 	dnsSecret := v1.Secret{}
