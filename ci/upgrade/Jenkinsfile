@@ -278,6 +278,11 @@ pipeline {
                         runGinkgo('examples/bobsbooks', "false", "true")
                     }
                 }
+                stage('examples todo') {
+                    steps {
+                        runGinkgo('examples/todo', "false", "true")
+                    }
+                }
                 stage('examples socks') {
                     steps {
                         runGinkgo('examples/socks', "false", "true")
@@ -390,7 +395,7 @@ pipeline {
             }
         }
 
-        stage("Restart Apps") {
+        stage("Validate Apps Restarted") {
             steps {
                 sh """
                     echo "Application pods after upgrade:"
@@ -398,10 +403,7 @@ pipeline {
                     cat ${NEW_PODS_FILE}
                     echo "Ensuring that the application pods did not restart after upgrade"
                     cmp -s ${OLD_PODS_FILE} ${NEW_PODS_FILE}
-
-                    echo "Restarting apps"
                 """
-                restartExampleApps()
             }
             post {
                 failure {
@@ -537,7 +539,12 @@ pipeline {
                 }
                 stage('examples todo') {
                     steps {
-                        runGinkgo('examples/todo', "false", "false")
+                        runGinkgo('examples/todo', "true", "false")
+                    }
+                }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "true", "false")
                     }
                 }
             }
