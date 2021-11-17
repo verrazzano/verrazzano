@@ -3,15 +3,18 @@
 package mysql
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
+	"os"
 	"testing"
 )
 
 func TestCreateDBFile(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
+	fmt.Println(os.TempDir() + "nih" + mysqlDBFile)
 	err := createDBFile(spi.NewContext(zap.S(), nil, vz, false))
 	assert.Nil(t, err, "error creating db file")
 }

@@ -13,13 +13,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strconv"
 )
 
 // ComponentName is the name of the component
@@ -32,13 +29,6 @@ const (
 	mysqlRootKey  = "mysql-root-password"
 	mysqlDBFile   = "create-mysql-db.sql"
 )
-
-// Keycloak configuration
-type Keycloak struct {
-	KeycloakInstallArgs []InstallArg `json:"keycloakInstallArgs,omitempty"`
-	MySQL               MySQL        `json:"mysql,omitempty"`
-	Enabled             string       `json:"enabled,omitempty"`
-}
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
@@ -70,11 +60,11 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		Value: string(secret.Data[mysqlRootKey]),
 	})
 	kvs = append(kvs, bom.KeyValue{Key: "mysqlUser", Value: mysqlUsername})
-	err, dbFile := createDBFile(compContext)
+	err = createDBFile(compContext)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: dbFile, SetFile: true})
+	kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + mysqlDBFile, SetFile: true})
 
 	// Convert NGINX install-args to helm overrides
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
@@ -106,44 +96,19 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 // PostInstall Patch the controller service ports based on any user-supplied overrides
 func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Infof("NGINX PostInstall dry run")
+		ctx.Log().Infof("MySQL PostInstall dry run")
 		return nil
 	}
-
-	// TODO: delete db file
-
-	// Add any port specs needed to the service after boot
-	ingressConfig := ctx.EffectiveCR().Spec.Components.Ingress
-	if ingressConfig == nil {
-		return nil
-	}
-	if len(ingressConfig.Ports) == 0 {
-		return nil
-	}
-
-	c := ctx.Client()
-	svcPatch := v1.Service{}
-	//if err := c.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svcPatch); err != nil {
-	if err := c.Get(context.TODO(), types.NamespacedName{Name: "mysql", Namespace: "keycloak"}, &svcPatch); err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-	mergeFromSvc := client.MergeFrom(svcPatch.DeepCopy())
-	svcPatch.Spec.Ports = ingressConfig.Ports
-	if err := c.Patch(context.TODO(), &svcPatch, mergeFromSvc); err != nil {
-		return err
-	}
-	return nil
+	// Delete create-mysql-db.sql after install
+	return os.Remove(os.TempDir() + mysqlDBFile)
 }
 
-func createDBFile(ctx spi.ComponentContext) (error, string) {
+func createDBFile(ctx spi.ComponentContext) error {
 	fmt.Println(os.Getwd())
-	tmpDBFile, err := os.Create(mysqlDBFile)
+	tmpDBFile, err := os.Create(os.TempDir() + mysqlDBFile)
 	if err != nil {
 		ctx.Log().Errorf("Failed to create temporary MySQL DB file: %v", err)
-		return err, ""
+		return err
 	}
 
 	_, err = tmpDBFile.Write([]byte(fmt.Sprintf(
@@ -155,58 +120,19 @@ func createDBFile(ctx spi.ComponentContext) (error, string) {
 	)))
 	if err != nil {
 		ctx.Log().Errorf("Failed to write to temporary file: %v", err)
-		return err, ""
+		return err
 	}
 
 	// Close the file
 	if err := tmpDBFile.Close(); err != nil {
 		ctx.Log().Errorf("Failed to close temporary file: %v", err)
-		return err, ""
+		return err
 	}
-	return nil, tmpDBFile.Name()
+	return nil
 }
 
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := compContext.EffectiveCR()
-	//defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
-
-	keycloak := effectiveCR.Spec.Components.Keycloak
-	// keycloak was not specified in CR so return defaults
-	if keycloak == nil {
-		keycloakConfig := Keycloak{Enabled: "true"}
-		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
-			var mySQLArgs []InstallArg
-			mySQLArgs = append(mySQLArgs, InstallArg{
-				Name:  "persistence.enabled",
-				Value: "false",
-			})
-			keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
-		}
-		return keycloakConfig, nil
-	}
-
-	// Get the explicit helm args for MySQL
-	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
-
-	var enabled string
-	if keycloak.Enabled != nil {
-		enabled = strconv.FormatBool(*keycloak.Enabled)
-	} else {
-		enabled = "true"
-	}
-	keycloakConfig := Keycloak{
-		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
-		MySQL: MySQL{
-			MySQLInstallArgs: mySQLArgs,
-		},
-		Enabled: enabled,
-	}
-
-	// Use a volume source specified in the Keycloak config, otherwise use the default spec
-	mysqlVolumeSource := keycloak.MySQL.VolumeSource
-	if mysqlVolumeSource == nil {
-		mysqlVolumeSource = defaultVolumeSpec
-	}
 
 	// Use a volume source specified in the Keycloak config, otherwise use the default spec
 	mysqlVolumeSource := effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
