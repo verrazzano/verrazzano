@@ -13,6 +13,34 @@ import (
 	"testing"
 )
 
+func TestCreateOperatorNamespace(t *testing.T) {
+	log := getTestLogger(t)
+
+	var tests = []struct {
+		testName string
+		c        client.Client
+	}{
+		{
+			"should create the rancher operator namespace",
+			fake.NewFakeClientWithScheme(getScheme()),
+		},
+		{
+			"should not fail if the rancher operator namespace already exists",
+			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: OperatorNamespace,
+				},
+			}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			assert.Nil(t, createRancherOperatorNamespace(log, tt.c))
+		})
+	}
+}
+
 func TestCreateCattleNamespace(t *testing.T) {
 	log := getTestLogger(t)
 
@@ -36,7 +64,7 @@ func TestCreateCattleNamespace(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			assert.Nil(t, createCattleSystemNamespaceIfNotExists(log, tt.c))
+			assert.Nil(t, createCattleSystemNamespace(log, tt.c))
 		})
 	}
 }

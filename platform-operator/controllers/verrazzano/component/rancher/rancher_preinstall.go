@@ -16,9 +16,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func createCattleSystemNamespaceIfNotExists(log *zap.SugaredLogger, c client.Client) error {
+func createRancherOperatorNamespace(log *zap.SugaredLogger, c client.Client) error {
 	namespace := &v1.Namespace{
-		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: OperatorNamespace,
+		},
+	}
+	log.Debugf("Creating %s namespace", OperatorNamespace)
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error {
+	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ComponentNamespace,
 			Labels: map[string]string{
@@ -26,12 +40,12 @@ func createCattleSystemNamespaceIfNotExists(log *zap.SugaredLogger, c client.Cli
 			},
 		},
 	}
+	log.Debugf("Creating %s namespace", ComponentNamespace)
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
 		log.Debugf("Cattle namespace already exists, ensuring %s label is present", namespaceLabelKey)
 		namespace.Labels[namespaceLabelKey] = ComponentName
 		return nil
 	}); err != nil {
-		log.Errorf("Failed to create %v namespace", ComponentNamespace)
 		return err
 	}
 

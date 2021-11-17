@@ -62,24 +62,6 @@ func TestAddCAIngressAnnotations(t *testing.T) {
 	assert.Equal(t, out, in)
 }
 
-func TestGetRancherContainer(t *testing.T) {
-	var tests = []struct {
-		in  []v1.Container
-		out bool
-	}{
-		{[]v1.Container{{Name: "foo"}}, false},
-		{[]v1.Container{{Name: "rancher"}}, true},
-		{[]v1.Container{{Name: "baz"}, {Name: "rancher"}}, true},
-		{[]v1.Container{{Name: "bar"}, {Name: "foo"}}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.in[0].Name, func(t *testing.T) {
-			_, res := getRancherContainer(tt.in)
-			assert.Equal(t, tt.out, res)
-		})
-	}
-}
-
 func TestPatchRancherIngress(t *testing.T) {
 	ingress := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -169,10 +151,10 @@ func TestPatchRancherDeployment(t *testing.T) {
 		t.Run(tt.testName, func(t *testing.T) {
 			c := fake.NewFakeClientWithScheme(getScheme(), tt.deployment)
 			err := patchRancherDeployment(c)
-			if err == nil && tt.isError {
-				assert.Fail(t, "there should be an error")
-			} else if err != nil && !tt.isError {
-				assert.Fail(t, "there should NOT be an error")
+			if tt.isError {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
 			}
 		})
 	}

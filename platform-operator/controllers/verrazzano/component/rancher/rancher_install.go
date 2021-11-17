@@ -24,28 +24,23 @@ func patchRancherDeployment(c client.Client) error {
 		return err
 	}
 	deploymentMerge := client.MergeFrom(deployment.DeepCopy())
-	containers := deployment.Spec.Template.Spec.Containers
-	container, ok := getRancherContainer(containers)
+	ok := false
+	for i, container := range deployment.Spec.Template.Spec.Containers {
+		if container.Name == ComponentName {
+			container.SecurityContext = &v1.SecurityContext{
+				Capabilities: &v1.Capabilities{
+					Add: []v1.Capability{"MKNOD"},
+				},
+			}
+			ok = true
+			deployment.Spec.Template.Spec.Containers[i] = container
+		}
+	}
 	if !ok {
 		return errors.New("rancher container was not found")
 	}
-	container.SecurityContext = &v1.SecurityContext{
-		Capabilities: &v1.Capabilities{
-			Add: []v1.Capability{"MKNOD"},
-		},
-	}
 
 	return c.Patch(context.TODO(), &deployment, deploymentMerge)
-}
-
-func getRancherContainer(containers []v1.Container) (v1.Container, bool) {
-	for _, container := range containers {
-		if container.Name == ComponentName {
-			return container, true
-		}
-	}
-
-	return v1.Container{}, false
 }
 
 //patchRancherIngress annotates the Rancher ingress with environment specific values

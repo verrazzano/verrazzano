@@ -134,7 +134,7 @@ func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 
 // PreInstall
 /* Sets up the environment for Rancher
-1. Create the Rancher namespace if it does not exist
+1. Create the Rancher namespaces if they are not present
 2. Copy TLS certificates for Rancher if using the default Verrazzano CA
 3. Create additional LetsEncrypt TLS certificates for Rancher if using LE
 */
@@ -142,7 +142,10 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
 	c := ctx.Client()
 	log := ctx.Log()
-	if err := createCattleSystemNamespaceIfNotExists(log, c); err != nil {
+	if err := createRancherOperatorNamespace(log, c); err != nil {
+		return err
+	}
+	if err := createCattleSystemNamespace(log, c); err != nil {
 		return err
 	}
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {

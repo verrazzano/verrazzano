@@ -17,6 +17,7 @@ const (
 	ComponentName = "rancher"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace     = "cattle-system"
+	OperatorNamespace      = "rancher-operator-system"
 	defaultSecretNamespace = "cert-manager"
 	namespaceLabelKey      = "verrazzano.io/namespace"
 	adminSecretName        = "rancher-admin-secret"
