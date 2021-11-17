@@ -812,6 +812,8 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	if cr.Status.Components != nil {
 		return ctrl.Result{}, nil
 	}
+
+	log.Debugf("initializeComponentStatus for all components")
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
@@ -824,6 +826,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
+					log.Errorf("IsInstalled error for component %s: %s", comp.Name(), err)
 					return newRequeueWithDelay(), err
 				}
 				if installed {

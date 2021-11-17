@@ -51,7 +51,7 @@ spec:
       enabled: true
       mysql:
         volumeSource:
-          emptyDir: {}
+          emptyDir: { }
     kibana:
       enabled: true
     prometheus:
