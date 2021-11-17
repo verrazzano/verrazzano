@@ -900,7 +900,7 @@ def upgradeVerrazzano() {
                 kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
                   
                 echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
                 cd ${GO_REPO_PATH}/verrazzano
                 cp ${v8oInstallFile} ${v8oUpgradeFile}
                 ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
@@ -1348,7 +1348,7 @@ def dumpInstallLogs() {
                 namespace = "default"
             }
             sh """
-                ## dump verrazzano install logs
+                ## dump Verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 kubectl -n ${namespace} logs --selector=job-name=verrazzano-install-my-verrazzano > ${LOG_DIR}/${VERRAZZANO_INSTALL_LOG} --tail -1
@@ -1365,7 +1365,7 @@ def dumpUninstallLogs() {
         for(int count=1; count<=clusterCount; count++) {
             LOG_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/uninstall/build/logs/cluster-$count"
             sh """
-                ## dump verrazzano uninstall logs
+                ## dump Verrazzano uninstall logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
                 mkdir -p ${LOG_DIR}
                 kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${LOG_DIR}/verrazzano-uninstall.log --tail -1

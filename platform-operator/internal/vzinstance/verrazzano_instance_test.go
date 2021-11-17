@@ -40,7 +40,7 @@ func TestGetInstanceInfo(t *testing.T) {
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
@@ -148,7 +148,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
@@ -212,7 +212,7 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
@@ -235,7 +235,7 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {

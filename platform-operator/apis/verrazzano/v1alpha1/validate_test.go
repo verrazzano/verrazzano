@@ -607,7 +607,7 @@ func TestValidateEnable(t *testing.T) {
 	}
 }
 
-// TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the verrazzano CR does not exist
+// TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the Verrazzano CR does not exist
 // GIVEN a Verrazzano spec containing a secret that does not exist
 // WHEN ValidateOciDNSSecret is called
 // THEN an error is returned from ValidateOciDNSSecret
@@ -636,7 +636,7 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	assert.Equal(t, "The secret \"oci-bad-secret\" must be created in the verrazzano-install namespace before installing Verrrazzano for OCI DNS", err.Error())
 }
 
-// TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the verrazzano CR exists
+// TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the Verrazzano CR exists
 // GIVEN a Verrazzano spec containing a secret that exists
 // WHEN ValidateOciDNSSecret is called
 // THEN success is returned from ValidateOciDNSSecret

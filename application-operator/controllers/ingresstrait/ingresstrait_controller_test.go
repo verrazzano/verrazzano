@@ -164,7 +164,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -851,7 +851,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1116,7 +1116,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1191,7 +1191,7 @@ func TestBuildAppHostNameForDNS(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1240,7 +1240,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 		},
 	}
 
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1265,7 +1265,7 @@ func TestBuildAppHostNameIgnoreWildcardForDNS(t *testing.T) {
 
 // TestFailureBuildAppHostNameForDNS tests failure of building a DNS hostname for the application
 // GIVEN an appName and a trait
-// WHEN the ingress domain is not nip.io and the verrazzano annotation is missing
+// WHEN the ingress domain is not nip.io and the Verrazzano annotation is missing
 // THEN ensure that an error is returned
 func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	assert := asserts.New(t)
@@ -1283,7 +1283,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1302,7 +1302,7 @@ func TestFailureBuildAppHostNameForDNS(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.Error(err)
-	assert.Contains(err.Error(), "Annotation external-dns.alpha.kubernetes.io/target missing from verrazzano ingress")
+	assert.Contains(err.Error(), "Annotation external-dns.alpha.kubernetes.io/target missing from Verrazzano ingress")
 }
 
 // TestBuildAppHostNameLoadBalancerNIP tests building a hostname for the application
@@ -1324,7 +1324,7 @@ func TestBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1383,7 +1383,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1440,7 +1440,7 @@ func TestBuildAppHostNameExternalLoadBalancerNIPNotFound(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1495,7 +1495,7 @@ func TestFailureBuildAppHostNameLoadBalancerNIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1551,7 +1551,7 @@ func TestBuildAppHostNameNodePortNIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1619,7 +1619,7 @@ func TestFailureBuildAppHostNameNodePortNIP(t *testing.T) {
 			Labels:    map[string]string{oam.LabelAppName: "myapp"},
 		},
 	}
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -1788,7 +1788,7 @@ func TestCreateHostsFromIngressTraitRuleWildcards(t *testing.T) {
 		},
 	}
 
-	// Expect a call to get the verrazzano ingress and return the ingress.
+	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
@@ -2281,7 +2281,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create verrazzano ingress
+	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("verrazzano-ingress.1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
@@ -2381,7 +2381,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create verrazzano ingress
+	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
@@ -2482,7 +2482,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create verrazzano ingress
+	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
@@ -2593,7 +2593,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create verrazzano ingress
+	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
@@ -2718,7 +2718,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 
 	// Create namespace
 	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
-	// Create verrazzano ingress
+	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("1.2.3.4")))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService("10.11.12.13", "1.2.3.4")))
