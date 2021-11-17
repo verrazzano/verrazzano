@@ -196,13 +196,16 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 
+	// Generate a restart version that will not change for this Verrazzano version
+	restartVersion := context.EffectiveCR().Spec.Version + "-upgrade"
+
 	// Start WebLogic domains that were shutdown
-	if err := StartDomainsStoppedByUpgrade(context.Log(), context.Client()); err != nil {
+	if err := StartDomainsStoppedByUpgrade(context.Log(), context.Client(), restartVersion); err != nil {
 		return err
 	}
 
-	// Restart all apps if needed
-	if err := RestartAllApps(context.Log(), context.Client(), context.EffectiveCR().Spec.Version+"-upgrade"); err != nil {
+	// Restart all other apps
+	if err := RestartAllApps(context.Log(), context.Client(), restartVersion); err != nil {
 		return err
 	}
 	return nil

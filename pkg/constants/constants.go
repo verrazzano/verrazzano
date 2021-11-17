@@ -17,3 +17,6 @@ const LifecycleActionStart = "start"
 
 // VerrazzanoWebLogicWorkloadKind - the VerrazzanoWebLogicWorkload resource kind
 const VerrazzanoWebLogicWorkloadKind = "VerrazzanoWebLogicWorkload"
+
+// VerrazzanoCoherenceWorkloadKind - the VerrazzanoCoherenceWorkload resource kind
+const VerrazzanoCoherenceWorkloadKind = "VerrazzanoCoherenceWorkload"

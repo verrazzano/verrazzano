@@ -30,7 +30,7 @@ func StopDomainsUsingOldEnvoy(log *zap.SugaredLogger, client clipkg.Client) erro
 	for _, appConfig := range appConfigs.Items {
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
-				if err := stopDomainIfNeeded(log, client, &appConfig, wl.Reference.Name); err != nil {
+				if err := stopDomainIfNeeded(log, client, appConfig, wl.Reference.Name); err != nil {
 					return err
 				}
 			}
@@ -40,7 +40,7 @@ func StopDomainsUsingOldEnvoy(log *zap.SugaredLogger, client clipkg.Client) erro
 }
 
 // Determine if the WebLogic operator needs to be stopped, if so then stop it
-func stopDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, appConfig *oam.ApplicationConfiguration, wlName string) error {
+func stopDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string) error {
 	// Get the domain pods for this workload
 	weblogicReq, _ := labels.NewRequirement("verrazzano.io/workload-type", selection.Equals, []string{"weblogic"})
 	compReq, _ := labels.NewRequirement("app.oam.dev/component", selection.Equals, []string{wlName})
@@ -85,7 +85,7 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 }
 
 // StartDomainsStoppedByUpgrade starts all the WebLogic domains that upgrade previously stopped
-func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
+func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client, restartVersion string) error {
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
@@ -97,7 +97,7 @@ func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client) 
 	for _, appConfig := range appConfigs.Items {
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
-				if err := startDomainIfNeeded(client, appConfig.Namespace, wl.Reference.Name); err != nil {
+				if err := startDomainIfNeeded(client, appConfig.Namespace, wl.Reference.Name, restartVersion); err != nil {
 					return err
 				}
 			}
@@ -107,7 +107,7 @@ func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client) 
 }
 
 // Start the WebLogic domain if upgrade stopped it
-func startDomainIfNeeded(client clipkg.Client, wlNamespace string, wlName string) error {
+func startDomainIfNeeded(client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
 	// Set the lifecycle annotation on the VerrazzanoWebLogicWorkload
 	var wl vzapp.VerrazzanoWebLogicWorkload
 	wl.Namespace = wlNamespace
@@ -119,6 +119,9 @@ func startDomainIfNeeded(client clipkg.Client, wlNamespace string, wlName string
 		if wl.ObjectMeta.Annotations[vzconst.LifecycleActionAnnotation] == vzconst.LifecycleActionStop {
 			wl.ObjectMeta.Annotations[vzconst.LifecycleActionAnnotation] = vzconst.LifecycleActionStart
 		}
+		// Set the restart version also so that when the app config is modified to use that
+		// restart version, it will the same version so WebLogic will not start twice
+		wl.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		return nil
 	})
 	return err
