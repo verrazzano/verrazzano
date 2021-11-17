@@ -43,7 +43,8 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
-		log.Infof("Upgrading %s", comp.Name())
+		compName := comp.Name()
+		log.Infof("Upgrading %s", compName)
 		upgradeContext, err := spi.NewContext(log, r, cr, r.DryRun)
 		if err != nil {
 			return newRequeueWithDelay(), err
@@ -53,23 +54,23 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			return newRequeueWithDelay(), err
 		}
 		if !installed {
-			log.Infof("Skip upgrade for %s, not installed", comp.Name())
+			log.Infof("Skip upgrade for %s, not installed", compName)
 			continue
 		}
-		log.Infof("Running pre-upgrade for %s", comp.Name())
+		log.Infof("Running pre-upgrade for %s", compName)
 		if err := comp.PreUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
-		log.Infof("Running upgrade for %s", comp.Name())
+		log.Infof("Running upgrade for %s", compName)
 		if err := comp.Upgrade(upgradeContext); err != nil {
-			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
-			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
+			log.Errorf("Error upgrading component %s: %v", compName, err)
+			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", compName,
 				fmtGeneration(cr.Generation), err.Error())
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
 			return ctrl.Result{}, err
 		}
-		log.Infof("Running post-upgrade for %s", comp.Name())
+		log.Infof("Running post-upgrade for %s", compName)
 		if err := comp.PostUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err

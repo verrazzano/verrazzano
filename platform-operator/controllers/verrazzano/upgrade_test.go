@@ -1076,6 +1076,7 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().Name().Return("testcomp").Times(1)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
