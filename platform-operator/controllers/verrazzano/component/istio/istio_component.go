@@ -197,11 +197,15 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 	}
 
 	// Restart all apps if needed
-	return RestartAllApps(context.Log(), context.Client(), context.EffectiveCR().Spec.Version+"-upgrade")
-
-	// Restart WebLogic domains that were shutdown
-	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
-
+	if err := RestartAllApps(context.Log(), context.Client(), context.EffectiveCR().Spec.Version+"-upgrade"); err != nil {
+		return err
+	}
+	//
+	//// Restart WebLogic domains that were shutdown
+	//if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
+	//	return err
+	//}
+	return nil
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets

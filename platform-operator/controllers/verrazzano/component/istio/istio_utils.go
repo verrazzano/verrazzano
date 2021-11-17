@@ -41,11 +41,10 @@ func StopDomainsUsingOldEnvoy(log *zap.SugaredLogger, client clipkg.Client) erro
 
 // Determine if the WebLogic operator needs to be stopped, if so then stop it
 func stopDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, appConfig *oam.ApplicationConfiguration, wlName string) error {
-
 	// Get the domain pods for this workload
 	weblogicReq, _ := labels.NewRequirement("verrazzano.io/workload-type", selection.Equals, []string{"weblogic"})
 	compReq, _ := labels.NewRequirement("app.oam.dev/component", selection.Equals, []string{wlName})
-	appConfNameReq, _ := labels.NewRequirement("app.oam.dev/component", selection.Equals, []string{appConfig.Name})
+	appConfNameReq, _ := labels.NewRequirement("app.oam.dev/name", selection.Equals, []string{appConfig.Name})
 	selector := labels.NewSelector()
 	selector = selector.Add(*weblogicReq).Add(*compReq).Add(*appConfNameReq)
 

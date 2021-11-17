@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"os"
 	"path/filepath"
 	"strings"
@@ -77,11 +76,8 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-
 	ctx := context.TODO()
 	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
-
-	r.debug(log)
 
 	log.Info("Reconciler called")
 
@@ -1379,9 +1375,4 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 // This is needed for unit testing
 func initUnitTesing() {
 	unitTesting = true
-}
-
-func (r *Reconciler) debug(log *zap.SugaredLogger) {
-
-	istio.StopDomainsUsingOldEnvoy(log, r)
 }
