@@ -18,6 +18,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	certManagerDeploymentName = "cert-manager"
+	cainjectorDeploymentName  = "cert-manager-cainjector"
+	webhookDeploymentName     = "cert-manager-webhook"
+	certManagerNamespace      = "cert-manager"
+)
+
 // TestGetComponents tests getting the components
 // GIVEN a component
 //  WHEN I call GetComponents
@@ -182,18 +189,10 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		ReadyStatusFunc: nil,
 		Dependencies:    []string{istio.ComponentName, "cert-manager"},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "istio-system",
-			Name:      "istiod",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, newReadyDeployment("istiod", "istio-system"),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace))
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -214,18 +213,11 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		ReadyStatusFunc: nil,
 		Dependencies:    []string{"istiod", "cert-manager", "istiod"},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "istio-system",
-			Name:      "istiod",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		newReadyDeployment("istiod", "istio-system"),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace))
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -247,4 +239,20 @@ func TestNoComponentDependencies(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.True(t, ready)
+}
+
+// Create a new deployment object for testing
+func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:            1,
+			ReadyReplicas:       1,
+			AvailableReplicas:   1,
+			UnavailableReplicas: 0,
+		},
+	}
 }
