@@ -1,9 +1,0 @@
-{
-  "consolesEnabled": {
-    "grafana": true,
-    "kibana": true,
-    "elasticSearch": true,
-    "prometheus": true,
-    "console": true
-  }
-}

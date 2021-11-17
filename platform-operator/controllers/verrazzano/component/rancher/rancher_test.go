@@ -80,7 +80,7 @@ func createCASecret() v1.Secret {
 
 func createRancherIngress() networking.Ingress {
 	ingresses := []v1.LoadBalancerIngress{
-		{"ip", "hostname"},
+		{IP: "IP", Hostname: "hostname"},
 	}
 	objectMeta := metav1.ObjectMeta{
 		Name:      ComponentName,

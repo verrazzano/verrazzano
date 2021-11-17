@@ -47,7 +47,7 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 			"should fail when resetting admin password fails",
 			fake.NewFakeClientWithScheme(getScheme(), &podList),
 			func(a ...string) (string, string, error) {
-				return "", "", errors.New("something bad happened!")
+				return "", "", errors.New("something bad happened")
 			},
 			true,
 		},
@@ -114,7 +114,7 @@ func TestGetRancherIP(t *testing.T) {
 	log := getTestLogger(t)
 
 	in := createRancherIngress()
-	inNoIp := networking.Ingress{
+	inNoIP := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
@@ -138,7 +138,7 @@ func TestGetRancherIP(t *testing.T) {
 		},
 		{
 			"ingress ip should not be found",
-			fake.NewFakeClientWithScheme(getScheme(), &inNoIp),
+			fake.NewFakeClientWithScheme(getScheme(), &inNoIP),
 			true,
 		},
 	}
@@ -150,7 +150,7 @@ func TestGetRancherIP(t *testing.T) {
 				assert.NotNil(t, err)
 			} else {
 				assert.Nil(t, err)
-				assert.Equal(t, "ip", ip)
+				assert.Equal(t, "IP", ip)
 			}
 		})
 	}
