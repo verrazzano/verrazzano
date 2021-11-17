@@ -21,6 +21,8 @@ const failedUpgradeLimit = 5
 
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+	log.Debugf("enter reconcileUpgrade")
+
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
@@ -41,6 +43,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
+		log.Infof("Upgrading %s", comp.Name())
 		upgradeContext, err := spi.NewContext(log, r, cr, r.DryRun)
 		if err != nil {
 			return newRequeueWithDelay(), err
@@ -53,10 +56,12 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			log.Infof("Skip upgrade for %s, not installed", comp.Name())
 			continue
 		}
+		log.Infof("Running pre-upgrade for %s", comp.Name())
 		if err := comp.PreUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
+		log.Infof("Running upgrade for %s", comp.Name())
 		if err := comp.Upgrade(upgradeContext); err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
@@ -64,6 +69,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
 			return ctrl.Result{}, err
 		}
+		log.Infof("Running post-upgrade for %s", comp.Name())
 		if err := comp.PostUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
@@ -73,6 +79,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	// Invoke the global post upgrade function after all components are upgraded.
 	err := postUpgrade(log, r)
 	if err != nil {
+		log.Errorf("Error running Verrazzano system-level post-upgrade")
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 

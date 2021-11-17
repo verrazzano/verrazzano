@@ -64,7 +64,7 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 	}
 
 	cmd := exec.Command("helm", args...)
-	log.Infof("Running command: %s", cmd.String())
+	log.Debugf("Running command: %s", cmd.String())
 	stdout, stderr, err := runner.Run(cmd)
 	if err != nil {
 		log.Errorf("helm get values for %s failed with stderr: %s", releaseName, string(stderr))
@@ -159,14 +159,14 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
-			log.Infof("helm %s for %s succeeded: %s", operation, releaseName, stdout)
+			log.Debugf("helm %s for %s succeeded: %s", operation, releaseName, stdout)
 			break
 		}
 		log.Errorf("helm %s for %s failed with stderr: %s", operation, releaseName, string(stderr))
 		if i == maxRetry {
 			return stdout, stderr, err
 		}
-		log.Infof("Retrying %s for %s, attempt %v", operation, releaseName, i+1)
+		log.Warnf("Retrying %s for %s, attempt %v", operation, releaseName, i+1)
 	}
 
 	//  Log upgrade output

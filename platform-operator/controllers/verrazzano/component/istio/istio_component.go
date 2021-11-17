@@ -183,6 +183,7 @@ func (i IstioComponent) GetDependencies() []string {
 }
 
 func (i IstioComponent) PreUpgrade(context spi.ComponentContext) error {
+	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
 	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
 }
 
@@ -200,11 +201,13 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 	restartVersion := context.EffectiveCR().Spec.Version + "-upgrade"
 
 	// Start WebLogic domains that were shutdown
+	context.Log().Infof("Starting WebLogic domains that were stopped pre-upgrade")
 	if err := StartDomainsStoppedByUpgrade(context.Log(), context.Client(), restartVersion); err != nil {
 		return err
 	}
 
 	// Restart all other apps
+	context.Log().Infof("Restarting all applications so they can get the new Envoy sidecar")
 	if err := RestartAllApps(context.Log(), context.Client(), restartVersion); err != nil {
 		return err
 	}
