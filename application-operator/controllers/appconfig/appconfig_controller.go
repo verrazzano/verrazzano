@@ -72,7 +72,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Info(fmt.Sprintf("Marking component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
 		err := r.restartComponent(ctx, componentName, componentNamespace, restartVersion, log)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Enountered error marking component %s in namespace %swith restart-version %s", componentName, componentNamespace, restartVersion))
+			log.Error(err, fmt.Sprintf("Error marking component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
 			return reconcile.Result{}, err
 		}
 	}
@@ -100,28 +100,26 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 
 	switch workload.GetKind() {
 	case "VerrazzanoCoherenceWorkload":
-		return updateRestartVersion(ctx, r, workload, restartVersion)
+		log.Info(fmt.Sprintf("Setting Coherence workload %s restart-version", componentName))
+		return updateRestartVersion(ctx, r, workload, restartVersion, log)
 	case "VerrazzanoWebLogicWorkload":
-		return updateRestartVersion(ctx, r, workload, restartVersion)
+		log.Info(fmt.Sprintf("Setting WebLogic workload %s restart-version", componentName))
+		return updateRestartVersion(ctx, r, workload, restartVersion, log)
 	case "VerrazzanoHelidonWorkload":
-		return updateRestartVersion(ctx, r, workload, restartVersion)
-	case "VerrazzanoContainerizedWorkload":
-		return updateRestartVersion(ctx, r, workload, restartVersion)
+		log.Info(fmt.Sprintf("Setting Helidon workload %s restart-version", componentName))
+		return updateRestartVersion(ctx, r, workload, restartVersion, log)
+	case "ContainerizedWorkload":
+		log.Info(fmt.Sprintf("Setting Containerized workload %s restart-version", componentName))
+		return updateRestartVersion(ctx, r, workload, restartVersion, log)
 	case "Deployment":
-		err = r.restartDeployment(ctx, restartVersion, workload.GetName(), componentNamespace, log)
-		if err != nil {
-			return err
-		}
+		log.Info(fmt.Sprintf("Setting Deployment workload %s restart-version", componentName))
+		return r.restartDeployment(ctx, restartVersion, workload.GetName(), componentNamespace, log)
 	case "StatefulSet":
-		err = r.restartStatefulSet(ctx, restartVersion, workload.GetName(), componentNamespace, log)
-		if err != nil {
-			return err
-		}
+		log.Info(fmt.Sprintf("Setting StatefulSet workload %s restart-version", componentName))
+		return r.restartStatefulSet(ctx, restartVersion, workload.GetName(), componentNamespace, log)
 	case "DaemonSet":
-		err = r.restartDaemonSet(ctx, restartVersion, workload.GetName(), componentNamespace, log)
-		if err != nil {
-			return err
-		}
+		log.Info(fmt.Sprintf("Setting DaemonSet workload %s restart-version", componentName))
+		return r.restartDaemonSet(ctx, restartVersion, workload.GetName(), componentNamespace, log)
 	default:
 		log.Info(fmt.Sprintf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
 	}
@@ -232,13 +230,15 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 }
 
 // Update the workload annotation with the restart version. This will cause the workload to be restarted if the version changed
-func updateRestartVersion(ctx context.Context, client client.Client, u *unstructured.Unstructured, restartVersion string) error {
+func updateRestartVersion(ctx context.Context, client client.Client, u *unstructured.Unstructured, restartVersion string, log logr.Logger) error {
 	const metadataField = "metadata"
 	var metaAnnotationFields = []string{metadataField, "annotations"}
 
+	log.Info(fmt.Sprintf("Setting workload %s restartVersion to %s", u.GetName(), restartVersion))
 	_, err := controllerutil.CreateOrUpdate(ctx, client, u, func() error {
 		annotations, found, err := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
 		if err != nil {
+			log.Info(fmt.Sprintf("Error getting NestedStringMap for workload %s", u.GetName()))
 			return err
 		}
 		if !found {
@@ -247,6 +247,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		err = unstructured.SetNestedStringMap(u.Object, annotations, metaAnnotationFields...)
 		if err != nil {
+			log.Info(fmt.Sprintf("Error setting NestedStringMap for workload %s", u.GetName()))
 			return err
 		}
 		return nil
