@@ -98,6 +98,7 @@ pipeline {
 
         OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
         NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"
+        NEW_PODS_FILE2="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods-2.out"
         APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
 
         // used to emit metrics
@@ -484,6 +485,32 @@ pipeline {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('validate-upgrade-success-cluster-dump')
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Validate Apps Restarted2") {
+            steps {
+                sh """
+                    echo "Application pods after post-upgrade verify:"
+                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE2}
+                    cat ${NEW_PODS_FILE2}
+                """
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-failure-cluster-dump2')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-success-cluster-dump2')
                         }
                     }
                 }
