@@ -84,7 +84,7 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 // GIVEN a call to AppendOverrides
 // WHEN a VZ spec is passed with defaults
 // THEN the values created properly
-func TestAppendCertManagerOverrides(t *testing.T) {
+func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, externalDNSNamespace, "", []bom.KeyValue{})

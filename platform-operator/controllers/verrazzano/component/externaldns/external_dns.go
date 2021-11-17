@@ -84,14 +84,17 @@ func (e externalDNSComponent) IsEnabled(compContext spi.ComponentContext) bool {
 // AppendOverrides builds the set of external-dns overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append all helm overrides for external DNS
-	kvs = append(kvs, bom.KeyValue{Key: "domainFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName})
-	kvs = append(kvs, bom.KeyValue{Key: "zoneIDFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneOCID})
 	nameTimeString := fmt.Sprintf("v8o-local-%s-%s", compContext.EffectiveCR().Spec.EnvironmentName, strconv.FormatInt(time.Now().Unix(), 10))
-	kvs = append(kvs, bom.KeyValue{Key: "txtOwnerId", Value: nameTimeString})
-	kvs = append(kvs, bom.KeyValue{Key: "txtPrefix", Value: "_" + nameTimeString})
-	kvs = append(kvs, bom.KeyValue{Key: "extraVolumes[0].name", Value: "config"})
-	kvs = append(kvs, bom.KeyValue{Key: "extraVolumes[0].secret.secretName", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.OCIConfigSecret})
-	kvs = append(kvs, bom.KeyValue{Key: "extraVolumeMounts[0].name", Value: "config"})
-	kvs = append(kvs, bom.KeyValue{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"})
+	arguments := []bom.KeyValue{
+		{Key: "domainFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName},
+		{Key: "zoneIDFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneOCID},
+		{Key: "txtOwnerId", Value: nameTimeString},
+		{Key: "txtPrefix", Value: "_" + nameTimeString},
+		{Key: "extraVolumes[0].name", Value: "config"},
+		{Key: "extraVolumes[0].secret.secretName", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.OCIConfigSecret},
+		{Key: "extraVolumeMounts[0].name", Value: "config"},
+		{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"},
+	}
+	kvs = append(kvs, arguments...)
 	return kvs, nil
 }
