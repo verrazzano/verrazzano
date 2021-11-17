@@ -1073,7 +1073,7 @@ func getIngressIP(c client.Client) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
+	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer || nginxService.Spec.Type == corev1.ServiceTypeNodePort {
 		nginxIngress := nginxService.Status.LoadBalancer.Ingress
 		if len(nginxIngress) == 0 {
 			// In case of OLCNE, need to obtain the External IP from the Spec
@@ -1083,8 +1083,6 @@ func getIngressIP(c client.Client) (string, error) {
 			return nginxService.Spec.ExternalIPs[0], nil
 		}
 		return nginxIngress[0].IP, nil
-	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
-		return "127.0.0.1", nil
 	}
 	return "", fmt.Errorf("Unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
 }
