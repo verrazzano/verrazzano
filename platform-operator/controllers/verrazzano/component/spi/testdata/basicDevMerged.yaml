@@ -6,8 +6,8 @@ spec:
   profile: "dev"
   environmentName: default
   defaultVolumeSource:
-    emptyDir: { }
-  volumeClaimSpecTemplates: [ ]
+    emptyDir: {}
+  volumeClaimSpecTemplates: []
   components:
     certManager:
       certificate:
@@ -44,7 +44,7 @@ spec:
       enabled: true
       mysql:
         volumeSource:
-          emptyDir: { }
+          emptyDir: {}
     kibana:
       enabled: true
     prometheus:
