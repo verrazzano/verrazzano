@@ -4,8 +4,11 @@
 package rancher
 
 import (
+	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Constants for Kubernetes resource names
@@ -54,4 +57,13 @@ func setBashFunc(f bashFuncSig) {
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"
+}
+
+func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
+	dnsSuffix, err := nginx.GetDNSSuffix(c, vz)
+	if err != nil {
+		return "", err
+	}
+	rancherHostname := fmt.Sprintf("%s.%s.%s", ComponentName, vz.Spec.EnvironmentName, dnsSuffix)
+	return rancherHostname, nil
 }

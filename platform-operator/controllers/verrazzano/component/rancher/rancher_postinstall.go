@@ -17,7 +17,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
+
+type AccessToken struct {
+	Token string `json:"token"`
+}
 
 func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
 	err := adminSecretExists(c)
@@ -69,21 +74,24 @@ func getAdminSecret(c client.Client) (*v1.Secret, error) {
 
 // retryResetPassword retries resetting the rancher admin password using the rancher shell
 func resetAdminPassword(c client.Client) (string, error) {
-	podMeta := &metav1.PartialObjectMetadataList{}
-	labelMatcher := client.MatchingLabels{"app": "rancher"}
+	podList := &v1.PodList{}
+	labelMatcher := client.MatchingLabels{"app": ComponentName}
 	namespaceMatcher := client.InNamespace(ComponentNamespace)
-	if err := c.List(context.TODO(), podMeta, namespaceMatcher, labelMatcher); err != nil {
+	if err := c.List(context.TODO(), podList, namespaceMatcher, labelMatcher); err != nil {
 		return "", err
 	}
-	if len(podMeta.Items) < 1 {
+	if len(podList.Items) < 1 {
 		return "", errors.New("no Rancher pods found")
 	}
-	podName := podMeta.Items[0].Name
-	stdout, stderr, err := bashFunc("kubectl", "exec", podName, "-n", ComponentNamespace, "--", "reset-password", "|", "tail", "-1")
+	podName := podList.Items[0].Name
+	script := filepath.Join(config.GetInstallDir(), "reset-rancher-password.sh")
+	stdout, stderr, err := bashFunc(script, podName, ComponentNamespace)
 	if err != nil {
 		return "", fmt.Errorf("%s: %s", err, stderr)
 	}
-	return stdout, nil
+	// Shell output may have a trailing newline
+	password := strings.TrimSuffix(stdout, "\n")
+	return password, nil
 }
 
 // newAdminSecret generates the admin secret for rancher
@@ -120,11 +128,12 @@ func patchAgents(log *zap.SugaredLogger, c client.Client, host, ip string) error
 		} else {
 			return err
 		}
-	}
-	deployment.Spec.Template.Spec.HostAliases = hostAliases
-	deploymentMerge := client.MergeFrom(deployment.DeepCopy())
-	if err := c.Patch(context.TODO(), deployment, deploymentMerge); err != nil {
-		return err
+	} else {
+		deployment.Spec.Template.Spec.HostAliases = hostAliases
+		deploymentMerge := client.MergeFrom(deployment.DeepCopy())
+		if err := c.Patch(context.TODO(), deployment, deploymentMerge); err != nil {
+			return err
+		}
 	}
 
 	// Patch the agent Daemonset if it exists
@@ -136,11 +145,12 @@ func patchAgents(log *zap.SugaredLogger, c client.Client, host, ip string) error
 		} else {
 			return err
 		}
-	}
-	daemonset.Spec.Template.Spec.HostAliases = hostAliases
-	daemonsetMerge := client.MergeFrom(daemonset.DeepCopy())
-	if err := c.Patch(context.TODO(), daemonset, daemonsetMerge); err != nil {
-		return err
+	} else {
+		daemonset.Spec.Template.Spec.HostAliases = hostAliases
+		daemonsetMerge := client.MergeFrom(daemonset.DeepCopy())
+		if err := c.Patch(context.TODO(), daemonset, daemonsetMerge); err != nil {
+			return err
+		}
 	}
 	return nil
 }

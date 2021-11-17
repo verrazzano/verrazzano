@@ -6,14 +6,18 @@ package rancher
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -21,13 +25,14 @@ import (
 
 type rancherComponent struct {
 	helm.HelmComponent
-	ingressIp string
+	ingressIp  string
+	httpClient *retryablehttp.Client
 }
 
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			Dependencies:            []string{nginx.ComponentName},
+			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          "cattle-system",
@@ -37,11 +42,20 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 		},
+		httpClient: retryablehttp.NewClient(),
 	}
 }
 
 //AppendOverrides set the Rancher overrides for Helm
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
+	if err != nil {
+		return kvs, err
+	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "hostname",
+		Value: rancherHostName,
+	})
 	kvs = appendRegistryOverrides(kvs)
 	return appendCAOverrides(kvs, ctx)
 }
@@ -169,6 +183,15 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
 		log := ctx.Log()
 		c := ctx.Client()
+		rancherDeploy := []types.NamespacedName{
+			{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+		}
+		if ready := status.DeploymentsReady(log, c, rancherDeploy, 1); ready != true {
+			return false
+		}
 		// Try to retrieve the Rancher ingress IP
 		_, err := getRancherIngressIP(log, c)
 		if err != nil {
@@ -195,19 +218,19 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	dnsSuffix, err := nginx.GetDNSSuffix(c, vz)
-	if err != nil {
-		return err
-	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", ComponentName, vz.Spec.EnvironmentName, dnsSuffix)
 	password, err := getAdminPassword(c)
 	if err != nil {
 		return err
 	}
-	if err := setServerURL(log, password, rancherHostname); err != nil {
+	rancherHostName, err := getRancherHostname(c, vz)
+	if err != nil {
 		return err
 	}
-	if err := patchAgents(log, c, rancherHostname, ip); err != nil {
+
+	if err := setServerURL(log, password, rancherHostName); err != nil {
+		return err
+	}
+	if err := patchAgents(log, c, rancherHostName, ip); err != nil {
 		return err
 	}
 	return nil

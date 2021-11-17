@@ -9,7 +9,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -19,9 +18,6 @@ func patchRancherDeployment(c client.Client) error {
 	deployment := appsv1.Deployment{}
 	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
 	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
 		return err
 	}
 	deploymentMerge := client.MergeFrom(deployment.DeepCopy())
@@ -36,11 +32,7 @@ func patchRancherDeployment(c client.Client) error {
 		},
 	}
 
-	if err := c.Patch(context.TODO(), &deployment, deploymentMerge); err != nil {
-		return err
-	}
-
-	return nil
+	return c.Patch(context.TODO(), &deployment, deploymentMerge)
 }
 
 func getRancherContainer(containers []v1.Container) (v1.Container, bool) {
