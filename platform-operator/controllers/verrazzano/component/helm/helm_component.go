@@ -360,7 +360,7 @@ func (h HelmComponent) buildOverridesString(context spi.ComponentContext, namesp
 				if setFileOverridesBldr.Len() > 0 {
 					setFileOverridesBldr.WriteString(",")
 				}
-				setStringOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
+				setFileOverridesBldr.WriteString(fmt.Sprintf("%s=%s", kv.Key, kv.Value))
 			} else {
 				if setOverridesBldr.Len() > 0 {
 					setOverridesBldr.WriteString(",")
