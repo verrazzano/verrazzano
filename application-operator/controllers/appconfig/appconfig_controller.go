@@ -11,8 +11,6 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
-
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -64,66 +62,55 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	// restart all components in the appconfig
-	log.Info(fmt.Sprintf("Reconciling application with restart-version %s", restartVersion))
-	for index := range appConfig.Spec.Components {
-		componentName := appConfig.Spec.Components[index].ComponentName
-		componentNamespace := appConfig.Namespace
-		log.Info(fmt.Sprintf("Marking component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
-		err := r.restartComponent(ctx, componentName, componentNamespace, restartVersion, log)
+	// restart all workloads in the appconfig
+	log.Info(fmt.Sprintf("Setting restart version %s for workloads in application %s", restartVersion, appConfig.Name))
+	for _, wlStatus := range appConfig.Status.Workloads {
+		err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Error marking component %s in namespace %s with restart-version %s", componentName, componentNamespace, restartVersion))
+			log.Error(err, fmt.Sprintf("Error marking component %s in namespace %s with restart-version %s", wlStatus.ComponentName, appConfig.Namespace, restartVersion))
 			return reconcile.Result{}, err
 		}
 	}
-
 	log.Info("Successfully reconciled ApplicationConfiguration")
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) restartComponent(ctx context.Context, componentName, componentNamespace string, restartVersion string, log logr.Logger) error {
-	var component oamv1.Component
-	err := r.Client.Get(ctx, types.NamespacedName{Name: componentName, Namespace: componentNamespace}, &component)
+func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, wlStatus oamv1.WorkloadStatus, restartVersion string, log logr.Logger) error {
+	// Get the workload as an unstructured object
+	var wlName = wlStatus.Reference.Name
+	var workload unstructured.Unstructured
+	workload.SetAPIVersion(wlStatus.Reference.APIVersion)
+	workload.SetKind(wlStatus.Reference.Kind)
+	err := r.Client.Get(ctx, types.NamespacedName{Name: wlName, Namespace: wlNamespace}, &workload)
 	if err != nil {
 		return err
 	}
-
-	workload, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
-	if err != nil {
-		return err
-	}
-
-	// make sure the namespace is set to the namespace of the component
-	if err = unstructured.SetNestedField(workload.Object, componentNamespace, "metadata", "namespace"); err != nil {
-		return err
-	}
-
+	// Set the annotation based on the workload kind
 	switch workload.GetKind() {
-	case "VerrazzanoCoherenceWorkload":
-		log.Info(fmt.Sprintf("Setting Coherence workload %s restart-version", componentName))
-		return updateRestartVersion(ctx, r, workload, restartVersion, log)
-	case "VerrazzanoWebLogicWorkload":
-		log.Info(fmt.Sprintf("Setting WebLogic workload %s restart-version", componentName))
-		return updateRestartVersion(ctx, r, workload, restartVersion, log)
-	case "VerrazzanoHelidonWorkload":
-		log.Info(fmt.Sprintf("Setting Helidon workload %s restart-version", componentName))
-		return updateRestartVersion(ctx, r, workload, restartVersion, log)
-	case "ContainerizedWorkload":
-		log.Info(fmt.Sprintf("Setting Containerized workload %s restart-version", componentName))
-		return updateRestartVersion(ctx, r, workload, restartVersion, log)
-	case "Deployment":
-		log.Info(fmt.Sprintf("Setting Deployment workload %s restart-version", componentName))
-		return r.restartDeployment(ctx, restartVersion, workload.GetName(), componentNamespace, log)
-	case "StatefulSet":
-		log.Info(fmt.Sprintf("Setting StatefulSet workload %s restart-version", componentName))
-		return r.restartStatefulSet(ctx, restartVersion, workload.GetName(), componentNamespace, log)
-	case "DaemonSet":
-		log.Info(fmt.Sprintf("Setting DaemonSet workload %s restart-version", componentName))
-		return r.restartDaemonSet(ctx, restartVersion, workload.GetName(), componentNamespace, log)
+	case vzconst.VerrazzanoCoherenceWorkloadKind:
+		log.Info(fmt.Sprintf("Setting Coherence workload %s restart-version", wlName))
+		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+	case vzconst.VerrazzanoWebLogicWorkloadKind:
+		log.Info(fmt.Sprintf("Setting WebLogic workload %s restart-version", wlName))
+		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+	case vzconst.VerrazzanoHelidonWorkloadKind:
+		log.Info(fmt.Sprintf("Setting Helidon workload %s restart-version", wlName))
+		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+	case vzconst.ContainerizedWorkloadKind:
+		log.Info(fmt.Sprintf("Setting Containerized workload %s restart-version", wlName))
+		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
+	case vzconst.DeploymentWorkloadKind:
+		log.Info(fmt.Sprintf("Setting Deployment workload %s restart-version", wlName))
+		return r.restartDeployment(ctx, restartVersion, wlName, wlNamespace, log)
+	case vzconst.StatefulSetWorkloadKind:
+		log.Info(fmt.Sprintf("Setting StatefulSet workload %s restart-version", wlName))
+		return r.restartStatefulSet(ctx, restartVersion, wlName, wlNamespace, log)
+	case vzconst.DaemonSetWorkloadKind:
+		log.Info(fmt.Sprintf("Setting DaemonSet workload %s restart-version", wlName))
+		return r.restartDaemonSet(ctx, restartVersion, wlName, wlNamespace, log)
 	default:
-		log.Info(fmt.Sprintf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), componentNamespace))
+		log.Info(fmt.Sprintf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), wlNamespace))
 	}
-
 	return nil
 }
 

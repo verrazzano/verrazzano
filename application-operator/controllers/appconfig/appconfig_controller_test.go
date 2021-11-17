@@ -5,8 +5,8 @@ package appconfig
 
 import (
 	"context"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"strings"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -198,15 +198,14 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the component
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicWorkload, " ", ""), "\n", ""))}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testComponentName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.VerrazzanoWebLogicWorkloadKind,
+					Name:       testComponentName,
+				},
+			}}
 			return nil
 		})
 
@@ -215,7 +214,7 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
-		})
+		}).Times(2)
 
 	// expect a call to update the workload
 	cli.EXPECT().
@@ -246,15 +245,14 @@ func TestReconcileRestartCoherence(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the component
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(coherenceWorkload, " ", ""), "\n", ""))}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testComponentName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.VerrazzanoCoherenceWorkloadKind,
+					Name:       testComponentName,
+				},
+			}}
 			return nil
 		})
 
@@ -263,7 +261,7 @@ func TestReconcileRestartCoherence(t *testing.T) {
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
-		})
+		}).Times(2)
 
 	// expect a call to update the workload
 	cli.EXPECT().
@@ -294,15 +292,14 @@ func TestReconcileRestartHelidon(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
-			return nil
-		})
-	// expect a call to fetch the component
-	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(helidonWorkload, " ", ""), "\n", ""))}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testComponentName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.VerrazzanoHelidonWorkloadKind,
+					Name:       testComponentName,
+				},
+			}}
 			return nil
 		})
 
@@ -311,7 +308,7 @@ func TestReconcileRestartHelidon(t *testing.T) {
 		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
-		})
+		}).Times(2)
 
 	// expect a call to update the workload
 	cli.EXPECT().
@@ -342,17 +339,24 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testDeploymentName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					Name:       testDeploymentName,
+				},
+			}}
 			return nil
 		})
-	// expect a call to fetch the component
+
+	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(deploymentWorkload, " ", ""), "\n", ""))}
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
 		})
+
 	// expect a call to fetch the deployment
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
@@ -398,17 +402,24 @@ func TestReconcileDeploymentNoRestart(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testDeploymentName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					Name:       testDeploymentName,
+				},
+			}}
 			return nil
 		})
-	// expect a call to fetch the component
+
+	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(deploymentWorkload, " ", ""), "\n", ""))}
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
 		})
+
 	// expect a call to fetch the deployment
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
@@ -452,15 +463,20 @@ func TestReconcileDaemonSetRestartDaemonSet(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testDaemonSetName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.DaemonSetWorkloadKind,
+					Name:       testDaemonSetName,
+				},
+			}}
 			return nil
 		})
-	// expect a call to fetch the component
+	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(daemonsetWorkload, " ", ""), "\n", ""))}
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
 		})
 	// expect a call to fetch the daemonset
@@ -509,15 +525,20 @@ func TestReconcileDaemonSetNoRestartDaemonSet(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testDaemonSetName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.DaemonSetWorkloadKind,
+					Name:       testDaemonSetName,
+				},
+			}}
 			return nil
 		})
-	// expect a call to fetch the component
+	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(daemonsetWorkload, " ", ""), "\n", ""))}
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
 		})
 	// expect a call to fetch the daemonset
@@ -563,15 +584,20 @@ func TestReconcileStatefulSetRestart(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testStatefulSetName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.StatefulSetWorkloadKind,
+					Name:       testStatefulSetName,
+				},
+			}}
 			return nil
 		})
-	// expect a call to fetch the component
+	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(statefulsetWorkload, " ", ""), "\n", ""))}
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
 		})
 	// expect a call to fetch the statefulset
@@ -620,15 +646,20 @@ func TestReconcileStatefulSetNoRestart(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
 			appConfig.Namespace = testNamespace
 			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
-			component := oamv1.ApplicationConfigurationComponent{ComponentName: testComponentName}
-			appConfig.Spec.Components = []oamv1.ApplicationConfigurationComponent{component}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testStatefulSetName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.StatefulSetWorkloadKind,
+					Name:       testStatefulSetName,
+				},
+			}}
 			return nil
 		})
-	// expect a call to fetch the component
+	// expect a call to fetch the workload
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
-			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(statefulsetWorkload, " ", ""), "\n", ""))}
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
 			return nil
 		})
 	// expect a call to fetch the statefulset

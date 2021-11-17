@@ -20,3 +20,18 @@ const VerrazzanoWebLogicWorkloadKind = "VerrazzanoWebLogicWorkload"
 
 // VerrazzanoCoherenceWorkloadKind - the VerrazzanoCoherenceWorkload resource kind
 const VerrazzanoCoherenceWorkloadKind = "VerrazzanoCoherenceWorkload"
+
+// VerrazzanoHelidonWorkloadKind - the VerrazzanoHelidonWorkload resource kind
+const VerrazzanoHelidonWorkloadKind = "VerrazzanoHelidonWorkload"
+
+// ContainerizedWorkloadKind - the ContainerizedWorkload resource kind
+const ContainerizedWorkloadKind = "ContainerizedWorkload"
+
+// DeploymentWorkloadKind - the Deployment workload resource kind
+const DeploymentWorkloadKind = "Deployment"
+
+// StatefulSetWorkloadKind - the StatefulSet workload resource kind
+const StatefulSetWorkloadKind = "StatefulSet"
+
+// DaemonSetWorkloadKind - the DaemonSet workload resource kind
+const DaemonSetWorkloadKind = "DaemonSet"
