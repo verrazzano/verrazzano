@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -92,19 +93,20 @@ func (r *Reconciler) restartComponent(ctx context.Context, componentName, compon
 		return err
 	}
 
+	// make sure the namespace is set to the namespace of the component
+	if err = unstructured.SetNestedField(workload.Object, componentNamespace, "metadata", "namespace"); err != nil {
+		return err
+	}
+
 	switch workload.GetKind() {
 	case "VerrazzanoCoherenceWorkload":
-		// "verrazzano.io/restart-version" will be automatically set on VerrazzanoCoherenceWorkload
-		// VerrazzanoCoherenceWorkload reconciler processes the annotation on its own
-		// nothing needs to be done here
+		return updateRestartVersion(ctx, r, workload, restartVersion)
 	case "VerrazzanoWebLogicWorkload":
-		// "verrazzano.io/restart-version" will be automatically set on VerrazzanoWebLogicWorkload
-		// VerrazzanoWebLogicWorkload reconciler processes the annotation on its own
-		// nothing needs to be done here
+		return updateRestartVersion(ctx, r, workload, restartVersion)
 	case "VerrazzanoHelidonWorkload":
-		// "verrazzano.io/restart-version" will be automatically set on VerrazzanoHelidonWorkload
-		// VerrazzanoHelidonWorkload reconciler processes the annotation on its own
-		// nothing needs to be done here
+		return updateRestartVersion(ctx, r, workload, restartVersion)
+	case "VerrazzanoContainerizedWorkload":
+		return updateRestartVersion(ctx, r, workload, restartVersion)
 	case "Deployment":
 		err = r.restartDeployment(ctx, restartVersion, workload.GetName(), componentNamespace, log)
 		if err != nil {
@@ -227,4 +229,27 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 		return err
 	}
 	return nil
+}
+
+// Update the workload annotation with the restart version. This will cause the workload to be restarted if the version changed
+func updateRestartVersion(ctx context.Context, client client.Client, u *unstructured.Unstructured, restartVersion string) error {
+	const metadataField = "metadata"
+	var metaAnnotationFields = []string{metadataField, "annotations"}
+
+	_, err := controllerutil.CreateOrUpdate(ctx, client, u, func() error {
+		annotations, found, err := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
+		if err != nil {
+			return err
+		}
+		if !found {
+			annotations = map[string]string{}
+		}
+		annotations[vzconst.RestartVersionAnnotation] = restartVersion
+		err = unstructured.SetNestedStringMap(u.Object, annotations, metaAnnotationFields...)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
 }

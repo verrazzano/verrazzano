@@ -5,6 +5,7 @@ package appconfig
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 	"testing"
 
@@ -209,6 +210,20 @@ func TestReconcileRestartWeblogic(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to fetch the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+			return nil
+		})
+
+	// expect a call to update the workload
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, component *unstructured.Unstructured) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
@@ -243,6 +258,20 @@ func TestReconcileRestartCoherence(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to fetch the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+			return nil
+		})
+
+	// expect a call to update the workload
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, component *unstructured.Unstructured) error {
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(testNamespace, testAppConfigName)
 	reconciler := newReconciler(cli)
@@ -274,6 +303,20 @@ func TestReconcileRestartHelidon(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testComponentName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *oamv1.Component) error {
 			component.Spec.Workload = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(helidonWorkload, " ", ""), "\n", ""))}
+			return nil
+		})
+
+	// expect a call to fetch the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+			return nil
+		})
+
+	// expect a call to update the workload
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, component *unstructured.Unstructured) error {
 			return nil
 		})
 
