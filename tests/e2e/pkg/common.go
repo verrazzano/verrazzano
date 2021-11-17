@@ -42,11 +42,15 @@ type UsernamePassword struct {
 }
 
 // GetVerrazzanoPassword returns the password credential for the verrazzano secret
-func GetVerrazzanoPassword() string {
-	secret, _ := GetSecret("verrazzano-system", "verrazzano")
-	return string(secret.Data["password"])
+func GetVerrazzanoPassword() (string, error) {
+	secret, err := GetSecret("verrazzano-system", "verrazzano")
+	if err != nil {
+		return "", err
+	}
+	return string(secret.Data["password"]), nil
 }
 
+// GetVerrazzanoPasswordInCluster returns the password credential for the verrazzano secret in the "verrazzano-system" namespace for the given cluster
 func GetVerrazzanoPasswordInCluster(kubeconfigPath string) (string, error) {
 	secret, err := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
 	if err != nil {
