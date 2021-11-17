@@ -401,8 +401,6 @@ pipeline {
                     echo "Application pods after upgrade:"
                     ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
                     cat ${NEW_PODS_FILE}
-                    echo "Ensuring that the application pods did not restart after upgrade"
-                    cmp -s ${OLD_PODS_FILE} ${NEW_PODS_FILE}
                 """
             }
             post {
