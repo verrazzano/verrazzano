@@ -81,7 +81,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 		return err
 	}
 
-	// Add the verrazzano cluster into config
+	// Add the Verrazzano cluster into config
 	err = helpers.SetClusterInKubeConfig(helpers.KubeConfigKeywordVerrazzano,
 		verrazzanoAPIURL,
 		caData,
@@ -96,7 +96,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 	}
 
 	// Add new context with name verrazzano@oldcontext
-	// This context uses verrazzano cluster and logged-in user
+	// This context uses Verrazzano cluster and logged-in user
 	// We need oldcontext to fall back after logout
 	currentContext, err := helpers.GetCurrentContextFromKubeConfig()
 	if err != nil {

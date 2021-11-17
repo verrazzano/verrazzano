@@ -142,7 +142,7 @@ func TestCreateVMC(t *testing.T) {
 
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
-// WHEN a VerrazzanoManagedCluster resource has been applied on a verrazzano install configured with external ES
+// WHEN a VerrazzanoManagedCluster resource has been applied on a Verrazzano install configured with external ES
 // THEN ensure all the objects are created
 func TestCreateVMCWithExternalES(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// To be used as nick name for verrazzano related clusters,contexts,users,etc in kubeconfig
+// To be used as nick name for Verrazzano related clusters,contexts,users,etc in kubeconfig
 const KubeConfigKeywordVerrazzano = "verrazzano"
 
 // Assuming that the api call will take place within Buffer seconds from checking validity of token
