@@ -119,7 +119,7 @@ func Delete(url string, hostHeader string) (*HTTPResponse, error) {
 	return doReq(url, "DELETE", "", hostHeader, "", "", nil, client)
 }
 
-// GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the verrazzano CA cert
+// GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the Verrazzano CA cert
 func GetVerrazzanoNoRetryHTTPClient(kubeconfigPath string) (*http.Client, error) {
 	caCert, err := getVerrazzanoCACert(kubeconfigPath)
 	if err != nil {
@@ -132,7 +132,7 @@ func GetVerrazzanoNoRetryHTTPClient(kubeconfigPath string) (*http.Client, error)
 	return client, nil
 }
 
-// GetVerrazzanoHTTPClient returns a retryable Http client configured with the verrazzano CA cert
+// GetVerrazzanoHTTPClient returns a retryable Http client configured with the Verrazzano CA cert
 func GetVerrazzanoHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	client, err := GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
 	if err != nil {
@@ -328,7 +328,7 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 	return &http.Client{Transport: tr}, nil
 }
 
-// getVerrazzanoCACert returns the verrazzano CA cert in the specified cluster
+// getVerrazzanoCACert returns the Verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
 	envName, err := GetEnvName(kubeconfigPath)
 	if err != nil {

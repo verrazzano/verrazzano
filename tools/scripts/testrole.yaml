@@ -16,7 +16,7 @@ rules:
       - ingresses
       # Access to ingresses, mostly required for istio-system namespaces to find ingress ip from istio-ingressgateway service
       - services
-      # Access to secrets, mostly for verrazzano secret in verrazzano-system to access vmi
+      # Access to secrets, mostly for Verrazzano secret in verrazzano-system to access vmi
       - secrets
       - destinationrules
       - deployments

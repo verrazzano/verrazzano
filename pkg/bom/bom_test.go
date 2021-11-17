@@ -171,7 +171,7 @@ const testBomSubcomponentOverridesPath = "testdata/test_bom_sc_overrides.json"
 // TestFakeBom tests loading a fake bom json into a struct
 // GIVEN a json file
 // WHEN I call loadBom
-// THEN the correct verrazzano bom is returned
+// THEN the correct Verrazzano bom is returned
 func TestFakeBom(t *testing.T) {
 	assert := assert.New(t)
 	bom, err := NewBom(testBomFilePath)
@@ -185,7 +185,7 @@ func TestFakeBom(t *testing.T) {
 // TestRealBom tests loading the real bom json into a struct
 // GIVEN a json file
 // WHEN I call loadBom
-// THEN the correct verrazzano bom is returned
+// THEN the correct Verrazzano bom is returned
 func TestRealBom(t *testing.T) {
 	assert := assert.New(t)
 	bom, err := NewBom(realBomFilePath)

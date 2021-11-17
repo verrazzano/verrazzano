@@ -51,7 +51,7 @@ func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte,
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
-//  THEN the correct verrazzano name is returned
+//  THEN the correct Verrazzano name is returned
 func TestGetName(t *testing.T) {
 	comp := HelmComponent{
 		ReleaseName: "release1",
