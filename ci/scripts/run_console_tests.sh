@@ -10,7 +10,7 @@ if [ -z "$KUBECONFIG" ] || [ -z "$GO_REPO_PATH" ] || [ -z "${DOCKER_CREDS_USR}" 
   exit 1
 fi
 
-# Temporarily clone the console repo until it is moved to the verrazzano repo
+# Temporarily clone the console repo until it is moved to the Verrazzano repo
 cd ${GO_REPO_PATH}
 git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/console.git
 cd console

@@ -81,7 +81,7 @@ type HelmComponent struct {
 	// This is for the istio helm components
 	SkipUpgrade bool
 
-	// The minimum required verrazzano version.
+	// The minimum required Verrazzano version.
 	MinVerrazzanoVersion string
 }
 

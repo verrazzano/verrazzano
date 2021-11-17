@@ -203,7 +203,7 @@ pipeline {
                                 }
                         }
 
-                        stage('Configure verrazzano prerequisites') {
+                        stage('Configure Verrazzano prerequisites') {
                             environment {
                                 OCI_CLI_AUTH="instance_principal"
                                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')

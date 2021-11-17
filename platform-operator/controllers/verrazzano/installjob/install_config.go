@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // NOTE: the code in this source file is specifically for transforming data from
-// the verrazzano custom resource to the json config format needed by the bash installer scripts.
+// the Verrazzano custom resource to the json config format needed by the bash installer scripts.
 
 package installjob
 

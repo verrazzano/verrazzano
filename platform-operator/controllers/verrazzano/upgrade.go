@@ -26,7 +26,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
 	if upgradeFailureCount(cr.Status, cr.Generation) > failedUpgradeLimit {
-		log.Info("Upgrade failure limit reached, upgrade will not be attempted")
+		log.Warn("Upgrade failure limit reached, upgrade will not be attempted")
 		return ctrl.Result{}, nil
 	}
 
@@ -86,7 +86,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	return ctrl.Result{}, nil
 }
 
-// Return true if verrazzano is installed
+// Return true if Verrazzano is installed
 func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
 	for _, cond := range st.Conditions {
 		if cond.Type == installv1alpha1.InstallComplete {

@@ -50,7 +50,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	err := r.Get(ctx, req.NamespacedName, vmc)
 	if err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
-		// and the verrazzano resource has been deleted, so there is nothing left to do.
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
@@ -67,7 +67,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 				return reconcile.Result{}, err
 			}
 
-			// Remove the finalizer and update the verrazzano resource if the deletion has finished.
+			// Remove the finalizer and update the Verrazzano resource if the deletion has finished.
 			log.Infof("Removing finalizer %s", finalizerName)
 			vmc.ObjectMeta.Finalizers = removeString(vmc.ObjectMeta.Finalizers, finalizerName)
 			err := r.Update(ctx, vmc)

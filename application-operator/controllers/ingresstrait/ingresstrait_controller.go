@@ -864,7 +864,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 
-	// Extract the domain name from the verrazzano ingress
+	// Extract the domain name from the Verrazzano ingress
 	ingress := k8net.Ingress{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
 	if err != nil {
@@ -872,7 +872,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	}
 	externalDNSAnno, ok := ingress.Annotations[externalDNSKey]
 	if !ok || len(externalDNSAnno) == 0 {
-		return "", fmt.Errorf("Annotation %s missing from verrazzano ingress, unable to generate DNS name", externalDNSKey)
+		return "", fmt.Errorf("Annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
 	}
 
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]

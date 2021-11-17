@@ -3,10 +3,10 @@
 
 package constants
 
-// VerrazzanoSystemNamespace is the system namespace for verrazzano
+// VerrazzanoSystemNamespace is the system namespace for Verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
-// VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
+// VerrazzanoMultiClusterNamespace is the multi-cluster namespace for Verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 
 // MCAgentSecret contains information needed by the agent to access the admin cluster, such as the admin kubeconfig.
@@ -67,7 +67,7 @@ const StatusUpdateChannelBufferSize = 50
 // process each time it wakes up
 const StatusUpdateBatchSize = 10
 
-// VzConsoleIngress - the name of the ingress for verrazzano console and api
+// VzConsoleIngress - the name of the ingress for Verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
 
 // IstioSystemNamespace - the Istio system namespace
@@ -94,11 +94,20 @@ const FluentdElasticsearchUserEnvVar = "ELASTICSEARCH_USER"
 // Elasticsearch password for fluentd
 const FluentdElasticsearchPwdEnvVar = "ELASTICSEARCH_PASSWORD"
 
-// VerrazzanoUsernameData - the field name in verrazzano secret that contains the username
+// VerrazzanoUsernameData - the field name in Verrazzano secret that contains the username
 const VerrazzanoUsernameData = "username"
 
-// VerrazzanoPasswordData - the field name in verrazzano secret that contains the password
+// VerrazzanoPasswordData - the field name in Verrazzano secret that contains the password
 const VerrazzanoPasswordData = "password"
 
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
+
+// LifecycleAnnotation - the annotation perform lifecycle actions on a workload
+const LifecycleActionAnnotation = "verrazzano.io/lifecycle-action"
+
+// LifecycleActionStop - the annotation value used to stop a workload
+const LifecycleActionStop = "stop"
+
+// LifecycleActionStart - the annotation value used to start a workload
+const LifecycleActionStart = "start"

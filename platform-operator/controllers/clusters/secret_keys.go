@@ -27,10 +27,10 @@ const RegistrationPasswordKey = "password"
 // RegistrationUsernameKey is the username key in registration secret
 const RegistrationUsernameKey = "username"
 
-// VerrazzanoPasswordKey is the password key in verrazzano secret
+// VerrazzanoPasswordKey is the password key in Verrazzano secret
 const VerrazzanoPasswordKey = "password"
 
-// VerrazzanoUsernameKey is the username key in verrazzano secret
+// VerrazzanoUsernameKey is the username key in Verrazzano secret
 const VerrazzanoUsernameKey = "username"
 
 // TokenKey is the key for the service account token
