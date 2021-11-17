@@ -64,7 +64,7 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + mysqlDBFile, SetFile: true})
+	kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + "/" + mysqlDBFile, SetFile: true})
 
 	// Convert NGINX install-args to helm overrides
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
@@ -100,12 +100,12 @@ func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 		return nil
 	}
 	// Delete create-mysql-db.sql after install
-	return os.Remove(os.TempDir() + mysqlDBFile)
+	return os.Remove(os.TempDir() + "/" + mysqlDBFile)
 }
 
 func createDBFile(ctx spi.ComponentContext) error {
 	fmt.Println(os.Getwd())
-	tmpDBFile, err := os.Create(os.TempDir() + mysqlDBFile)
+	tmpDBFile, err := os.Create(os.TempDir() + "/" + mysqlDBFile)
 	if err != nil {
 		ctx.Log().Errorf("Failed to create temporary MySQL DB file: %v", err)
 		return err

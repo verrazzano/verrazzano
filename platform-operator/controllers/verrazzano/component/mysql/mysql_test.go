@@ -14,7 +14,7 @@ import (
 
 func TestCreateDBFile(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	fmt.Println(os.TempDir() + "nih" + mysqlDBFile)
+	fmt.Println(os.TempDir() + "/" + mysqlDBFile)
 	err := createDBFile(spi.NewContext(zap.S(), nil, vz, false))
 	assert.Nil(t, err, "error creating db file")
 }
