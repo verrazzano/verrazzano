@@ -93,7 +93,7 @@ func TestPatchRancherIngress(t *testing.T) {
 		vzapi vzapi.Verrazzano
 	}{
 		{ingress, vzAcmeDev},
-		{ingress, vzCA},
+		{ingress, vzDefaultCA},
 	}
 
 	for _, tt := range tests {

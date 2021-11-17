@@ -25,7 +25,7 @@ type AccessToken struct {
 }
 
 func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
-	err := adminSecretExists(c)
+	_, err := getAdminPassword(c)
 	if err == nil {
 		log.Infof("Rancher Post Install: admin secret exists, skipping object creation")
 		return nil
@@ -37,20 +37,12 @@ func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error
 			log.Errorf("Rancher Post Install: Failed to reset admin password: %s", resetPasswordErr)
 			return resetPasswordErr
 		}
+		log.Infof("Rancher Post Install: Creating new admin secret")
 		return newAdminSecret(c, password)
 	}
 
-	log.Errorf("Rancher Post Install: Error checking availability of admin secret: %s", err)
+	log.Errorf("Rancher Post Install: Error checking admin secret availability: %s", err)
 	return err
-}
-
-// adminSecretExists creates the rancher admin secret if it does not exist
-func adminSecretExists(c client.Client) error {
-	if _, err := getAdminSecret(c); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func getAdminPassword(c client.Client) (string, error) {

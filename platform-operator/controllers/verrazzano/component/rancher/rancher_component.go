@@ -6,7 +6,6 @@ package rancher
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -25,8 +24,6 @@ import (
 
 type rancherComponent struct {
 	helm.HelmComponent
-	ingressIp  string
-	httpClient *retryablehttp.Client
 }
 
 func NewComponent() spi.Component {
@@ -42,7 +39,6 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 		},
-		httpClient: retryablehttp.NewClient(),
 	}
 }
 
@@ -77,7 +73,7 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 			Value: rancherRegistry,
 		}, bom.KeyValue{
 			Key:   useBundledSystemChartKey,
-			Value: "true",
+			Value: useBundledSystemChartValue,
 		})
 	}
 
@@ -118,7 +114,7 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 		if isUsingDefaultCACertificate(cm) {
 			kvs = append(kvs, bom.KeyValue{
 				Key:   privateCAKey,
-				Value: "true",
+				Value: privateCAValue,
 			})
 		}
 	}
@@ -139,7 +135,8 @@ func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 // PreInstall
 /* Sets up the environment for Rancher
 1. Create the Rancher namespace if it does not exist
-2. Create Rancher TLS Certificate(s) as appropriate for the environment
+2. Copy TLS certificates for Rancher if using the default Verrazzano CA
+3. Create additional LetsEncrypt TLS certificates for Rancher if using LE
 */
 func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
@@ -157,7 +154,12 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Install installs the Helm chart, and patches the resulting objects
+//Install
+/* Installs the Helm chart, and patches the resulting objects
+1. ensure Helm chart is installed
+2. Patch Rancher deployment with MKNOD capability
+3. Patch Rancher ingress with NGINX/TLS annotations
+*/
 func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.Install(ctx); err != nil {
 		return err
@@ -179,6 +181,12 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	return nil
 }
 
+//IsReady
+/* Checks that the Rancher component is in a 'Ready' state, as defined
+in the body of this function
+1. Wait for at least one Rancher pod to be Ready in Kubernetes
+2. Ensure that the Rancher ingress has an IP address
+*/
 func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
 		log := ctx.Log()
@@ -189,7 +197,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			},
 		}
-		if ready := status.DeploymentsReady(log, c, rancherDeploy, 1); ready != true {
+		if ready := status.DeploymentsReady(log, c, rancherDeploy, 1); !ready {
 			return false
 		}
 		// Try to retrieve the Rancher ingress IP
@@ -205,7 +213,14 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // PostInstall
-// Configures the environment after Rancher has been created
+/* Additional setup for Rancher after the component is installed
+1. Create the Rancher admin secret if it does not already exist
+2. Retrieve the Rancher ingress IP address
+3. Retrieve the Rancher admin password
+4. Retrieve the Rancher hostname
+5. Set the Rancher server URL using the admin password and the hostname
+6. Patch any existing Rancher agents to use the hostname and IP as a host alias
+*/
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	vz := ctx.EffectiveCR()

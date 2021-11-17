@@ -43,8 +43,10 @@ const (
 )
 
 const (
-	letsEncryptTLSSource = "letsEncrypt"
-	caTLSSource          = "secret"
+	letsEncryptTLSSource       = "letsEncrypt"
+	caTLSSource                = "secret"
+	privateCAValue             = "true"
+	useBundledSystemChartValue = "true"
 )
 
 type bashFuncSig func(inArgs ...string) (string, string, error)

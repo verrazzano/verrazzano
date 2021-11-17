@@ -27,6 +27,7 @@ func createCattleSystemNamespaceIfNotExists(log *zap.SugaredLogger, c client.Cli
 		},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
+		log.Debugf("Cattle namespace already exists, ensuring %s label is present", namespaceLabelKey)
 		namespace.Labels[namespaceLabelKey] = ComponentName
 		return nil
 	}); err != nil {
@@ -42,7 +43,6 @@ func createCattleSystemNamespaceIfNotExists(log *zap.SugaredLogger, c client.Cli
 func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if isUsingDefaultCACertificate(cm) {
-		log.Infof("Copying default Verrazzano secret to Rancher namespace")
 		namespacedName := types.NamespacedName{Namespace: defaultSecretNamespace, Name: defaultVerrazzanoName}
 		defaultSecret := &v1.Secret{}
 		if err := c.Get(context.TODO(), namespacedName, defaultSecret); err != nil {
@@ -58,11 +58,11 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 			},
 			Data: secretData,
 		}
-		_, err := controllerruntime.CreateOrUpdate(context.TODO(), c, rancherCaSecret, func() error {
+		log.Infof("Copying default Verrazzano secret to Rancher namespace")
+		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, rancherCaSecret, func() error {
 			rancherCaSecret.Data = secretData
 			return nil
-		})
-		if err != nil {
+		}); err != nil {
 			return err
 		}
 	}
