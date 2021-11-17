@@ -14,8 +14,8 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/framework"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	networkingv1 "k8s.io/api/networking/v1"
