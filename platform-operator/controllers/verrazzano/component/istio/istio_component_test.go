@@ -56,7 +56,7 @@ const testBomFilePath = "../../testdata/test_bom.json"
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
-//  THEN the correct verrazzano name is returned
+//  THEN the correct Verrazzano name is returned
 func TestGetName(t *testing.T) {
 	assert := assert.New(t)
 	assert.Equal("istio", comp.Name(), "Wrong component name")

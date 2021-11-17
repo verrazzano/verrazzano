@@ -19,11 +19,12 @@ import (
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 
+	"os"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -67,7 +68,7 @@ func main() {
 	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
-		"Specify the root directory of verrazzano (used for development)")
+		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 
 	// Add the zap logger flag set to the CLI.
@@ -91,7 +92,7 @@ func main() {
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {
-		setupLog.Info("Setting up certificates for webhook")
+		setupLog.Debug("Setting up certificates for webhook")
 		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
 			setupLog.Errorf("unable to setup certificates for webhook: %v", err)
@@ -110,7 +111,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		setupLog.Info("Updating webhook configuration")
+		setupLog.Debug("Updating webhook configuration")
 		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
 			setupLog.Errorf("unable to update validation webhook configuration: %v", err)
@@ -123,13 +124,13 @@ func main() {
 			os.Exit(1)
 		}
 
-		setupLog.Info("Creating or updating network policies")
+		setupLog.Debug("Creating or updating network policies")
 		opResult, err := netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
 		if err != nil {
 			setupLog.Errorf("unable to create or update network policies: %v", err)
 			os.Exit(1)
 		}
-		setupLog.Infof("Network policy operation result: %s", opResult)
+		setupLog.Debugf("Network policy operation result: %s", opResult)
 
 		return
 	}
@@ -159,7 +160,7 @@ func main() {
 
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
-		setupLog.Info("Setting up Verrazzano webhook with manager")
+		setupLog.Debug("Setting up Verrazzano webhook with manager")
 		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Errorf("unable to setup webhook with manager: %v", err)
 			os.Exit(1)
@@ -178,7 +179,7 @@ func main() {
 
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
-		setupLog.Info("Setting up VerrazzanoManagedCluster webhook with manager")
+		setupLog.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 		if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Errorf("unable to setup webhook with manager: %v", err)
 			os.Exit(1)
@@ -188,7 +189,7 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
-	setupLog.Info("starting manager")
+	setupLog.Debug("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Errorf("problem running manager: %v", err)
 		os.Exit(1)
