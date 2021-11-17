@@ -82,156 +82,6 @@ function install_nginx_ingress_controller()
     kubectl wait --for=condition=ready pods --all -n ${ingress_nginx_ns} --timeout=10m
 }
 
-function setup_cert_manager_crd() {
-  local CERT_MANAGER_MANIFEST_DIR=${MANIFESTS_DIR}/cert-manager
-  cp "$CERT_MANAGER_MANIFEST_DIR/cert-manager.crds.yaml" "$TMP_DIR/cert-manager.crds.yaml"
-  if [ "$DNS_TYPE" == "oci" ]; then
-    command -v patch >/dev/null 2>&1 || {
-      fail "patch is required but cannot be found on the path. Aborting.";
-    }
-    log "Patching cert-manager.crds.yaml to add OCI DNS"
-    patch "$TMP_DIR/cert-manager.crds.yaml" "$SCRIPT_DIR/config/cert-manager.crds.patch"
-  fi
-}
-
-function setup_cluster_issuer() {
-  log "In setup_cluster_issuer. Cert Issuer Type = ${CERT_ISSUER_TYPE}"
-  if [ "$CERT_ISSUER_TYPE" == "acme" ]; then
-    local OCI_DNS_CONFIG_SECRET=$(get_config_value ".dns.oci.ociConfigSecret")
-    local EMAIL_ADDRESS=$(get_config_value ".certificates.acme.emailAddress")
-    local OCI_DNS_ZONE_OCID=$(get_config_value ".dns.oci.dnsZoneOcid")
-    local OCI_DNS_ZONE_NAME=$(get_config_value ".dns.oci.dnsZoneName")
-
-    if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n $VERRAZZANO_INSTALL_NS ; then
-        fail "The OCI Configuration Secret $OCI_DNS_CONFIG_SECRET does not exist in the namespace $VERRAZZANO_INSTALL_NS"
-    fi
-
-    acmeURL="https://acme-v02.api.letsencrypt.org/directory"
-    if [ "$(get_acme_environment)" != "production" ]; then
-      log "Non-production case, using the ACME staging environment"
-      acmeURL="https://acme-staging-v02.api.letsencrypt.org/directory"
-    fi
-
-    # attempt first kubectl command with retry to ensure that cert-manager webhook is fully initialized
-    kubectl_apply_with_retry "
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: verrazzano-cluster-issuer
-spec:
-  acme:
-    email: $EMAIL_ADDRESS
-    server: "${acmeURL}"
-    privateKeySecretRef:
-      name: verrazzano-cert-acme-secret
-    solvers:
-      - dns01:
-          ocidns:
-            useInstancePrincipals: false
-            serviceAccountSecretRef:
-              name: $OCI_DNS_CONFIG_SECRET
-              key: "oci.yaml"
-            ocizonename: $DNS_SUFFIX
-"
-  elif [ "$CERT_ISSUER_TYPE" == "ca" ]; then
-    if [ $(get_config_value ".certificates.ca.secretName") == "$VERRAZZANO_DEFAULT_SECRET_NAME" ] &&
-       [ $(get_config_value ".certificates.ca.clusterResourceNamespace") == "$VERRAZZANO_DEFAULT_SECRET_NAMESPACE" ]; then
-    log "Certificate not specified. Creating default Verrazzano Issuer and Certificate in verrazzano-install namespace"
-
-    # attempt first kubectl command with retry to ensure that cert-manager webhook is fully initialized
-    kubectl_apply_with_retry "
-apiVersion: cert-manager.io/v1
-kind: Issuer
-metadata:
-  name: verrazzano-selfsigned-issuer
-  namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
-spec:
-  selfSigned: {}
-"
-
-    kubectl apply -f <(echo "
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: verrazzano-ca-certificate
-  namespace: $(get_config_value ".certificates.ca.clusterResourceNamespace")
-spec:
-  secretName: $(get_config_value ".certificates.ca.secretName")
-  commonName: verrazzano-root-ca
-  isCA: true
-  issuerRef:
-    name: verrazzano-selfsigned-issuer
-    kind: Issuer
-")
-    fi
-    kubectl apply -f <(echo "
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: verrazzano-cluster-issuer
-spec:
-  ca:
-    secretName: $(get_config_value ".certificates.ca.secretName")
-")
-  else
-    fail "certificates issuerType $CERT_ISSUER_TYPE is not supported.";
-  fi
-}
-
-function install_cert_manager()
-{
-    local CERT_MANAGER_CHART_DIR=${CHARTS_DIR}/cert-manager
-    local chartName=cert-manager
-    local cert_manager_ns=cert-manager
-
-    # Create the namespace for cert-manager
-    if ! kubectl get namespace ${cert_manager_ns} ; then
-        kubectl create namespace ${cert_manager_ns}
-    fi
-
-    setup_cert_manager_crd
-    local yaml=$(<"$TMP_DIR/cert-manager.crds.yaml")
-    kubectl_apply_with_retry "$yaml" --validate=false
-
-    if ! is_chart_deployed ${chartName} ${cert_manager_ns} ${CERT_MANAGER_CHART_DIR} ; then
-      log "cert-manager hasn't been previously installed"
-    else
-      log "cert-manager has been previously installed"
-    fi
-
-    local EXTRA_CERT_MANAGER_ARGUMENTS=""
-    if [ "$CERT_ISSUER_TYPE" == "ca" ]; then
-      EXTRA_CERT_MANAGER_ARGUMENTS="--set clusterResourceNamespace=$(get_config_value ".certificates.ca.clusterResourceNamespace")"
-    fi
-
-    if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${cert_manager_ns} > /dev/null 2>&1 ; then
-          action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${cert_manager_ns} namespace" \
-            copy_registry_secret ${cert_manager_ns}
-      fi
-      EXTRA_CERT_MANAGER_ARGUMENTS="${EXTRA_CERT_MANAGER_ARGUMENTS} --set global.imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-
-    build_image_overrides cert-manager ${chartName}
-
-    helm_install_retry ${chartName} ${CERT_MANAGER_CHART_DIR} ${cert_manager_ns} \
-        --version v1.2.0 \
-        -f $VZ_OVERRIDES_DIR/cert-manager-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        ${EXTRA_CERT_MANAGER_ARGUMENTS} \
-        || return $?
-
-    kubectl -n cert-manager rollout status -w deploy/cert-manager
-
-    log "Waiting for all the pods in cert-manager namespace to reach ready state"
-    kubectl wait --for=condition=ready pods --all -n ${cert_manager_ns} --timeout=10m
-
-    log "Waiting for cert-manager-webhook to reach ready state"
-    kubectl rollout status deploy/cert-manager-webhook -n ${cert_manager_ns}  --timeout=10m
-
-    setup_cluster_issuer
-}
-
 function install_external_dns()
 {
   local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
@@ -319,10 +169,10 @@ INGRESS_IP=$(get_verrazzano_ingress_ip)
 
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
 
-action "Installing cert manager" install_cert_manager || exit 1
+platform_operator_install_message "Installing cert-manager"
 if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
 
-platform_operator_install_message "Rancher"
+platform_operator_install_message "Installing Rancher"
 action "Wait for Rancher availability" wait_for_rancher || exit 1

@@ -172,13 +172,11 @@ var _ = Describe("Verify Keycloak URIs", func() {
 		pkg.MinVersionSpec("Verify redirect and weborigins URIs", "1.1.0",
 			func() {
 				isManagedClusterProfile := pkg.IsManagedClusterProfile()
-				//				It("Verify redirect and weborigins URIs", func() {
 				if !isManagedClusterProfile {
 					// GIVEN installation/upgrade of Keycloak has happened
 					// THEN verify that the correct redirect and weborigins URIs are created for verrazzano
 					Eventually(verifyKeycloakClientURIs, waitTimeout, pollingInterval).Should(BeTrue())
 				}
-				//				})
 			})
 	})
 })
