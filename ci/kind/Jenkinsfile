@@ -236,7 +236,7 @@ pipeline {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
-                            // enable debug logging of verrazzano api istio proxy
+                            // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
                                     sh '''

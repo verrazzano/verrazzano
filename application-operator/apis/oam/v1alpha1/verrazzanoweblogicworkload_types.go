@@ -21,6 +21,8 @@ type VerrazzanoWebLogicWorkloadStatus struct {
 	LastGeneration string `json:"lastGeneration,omitempty"`
 	// LastRestartVersion is the last value of the verrazzano.io/restart-version annotation
 	LastRestartVersion string `json:"lastRestartVersion,omitempty"`
+	// LastLifecycleAction is the last value of the verrazzano.io/lifecycle-action
+	LastLifecycleAction string `json:"lastLifecycleAction,omitempty"`
 }
 
 // +kubebuilder:object:root=true

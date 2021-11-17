@@ -10,7 +10,7 @@ import (
 )
 
 // NewClusterRoleBinding returns a ClusterRoleBinding resource for installing Verrazzano
-// vz - pointer to verrazzano resource
+// vz - pointer to Verrazzano resource
 // name - name of the ClusterRoleBinding resource
 // saNamespace - name of ServiceAccount namespace
 // saName - name of ServiceAccount resource

@@ -245,7 +245,7 @@ pipeline {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
-                            // enable debug logging of verrazzano api istio proxy
+                            // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
                                     sh '''
@@ -671,7 +671,7 @@ def getEffectiveDumpOnSuccess() {
 def acceptanceTestsConsole(dumpRoot) {
     try {
         sh """
-            # Temporarily clone the console repo until it is moved to the verrazzano repo
+            # Temporarily clone the console repo until it is moved to the Verrazzano repo
             export DUMP_DIRECTORY=${dumpRoot}/console
             cd ${GO_REPO_PATH}
             if [ ! -d console ]; then
