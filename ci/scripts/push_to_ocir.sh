@@ -52,10 +52,15 @@ fi
 
 # This assumes that the docker login has happened, and that the OCI CLI has access as well with default profile
 
+# We provide a single OCIR_SCAN_REPOSITORY_PATH as input, however the OCI CLI and the docker CLI requirements
+# differ in terms of what needs to be included in the path. For the OCI CLI usages we need to trim the tenancy
+# namespace from the path
+TRIMMED_REPOSITORY_PATH=$(echo "$OCIR_SCAN_REPOSITORY_PATH" | cut -d / -f2-)
+
 # We call the create repositories script, supplying the existing target information. If repositories are not
 # targeted they will be created and targeted. If they are already targeted the script will skip trying to create them
 # or updating the target. This is done to catch new images that get added in over time.
-sh $TEST_SCRIPT_DIR/create_ocir_repositories.sh -p $OCIR_SCAN_REPOSITORY_PATH -r us-ashburn-1 -c $OCIR_SCAN_COMPARTMENT -t $OCIR_SCAN_TARGET -d ${WORKSPACE}/tar-files
+sh $TEST_SCRIPT_DIR/create_ocir_repositories.sh -p $TRIMMED_REPOSITORY_PATH -r us-ashburn-1 -c $OCIR_SCAN_COMPARTMENT -t $OCIR_SCAN_TARGET -d ${WORKSPACE}/tar-files
 
 # Push the images. NOTE: If a new image was added before we do the above "ensure" step, this may have the side
 # effect of pushing that image to the root compartment rather than the desired sub-compartment (OCIR behaviour),
