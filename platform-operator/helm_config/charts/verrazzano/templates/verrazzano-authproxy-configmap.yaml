@@ -55,9 +55,11 @@ data:
         --      null in allowed origins.
 
         if h ~= null then
-            ngx.header["Access-Control-Allow-Origin"] = h
-            ngx.header["Access-Control-Allow-Credentials"] = "true"
-            ngx.header["Vary"] = "Origin"
+            if h == ingressUri or auth.isOriginAllowed(h) then
+                ngx.header["Access-Control-Allow-Origin"] = h
+                ngx.header["Access-Control-Allow-Credentials"] = "true"
+                ngx.header["Vary"] = "Origin"
+            end
 
             if ngx.req.get_method() == "OPTIONS" then
                 -- auth.info("Processing OPTIONS request, URI is '"..ngx.var.request_uri.."'")
@@ -1108,6 +1110,20 @@ data:
         return serverUrl
     end
 
+    function isOriginAllowed(origin)
+        local allowedOrigins = os.getenv("VZ_API_ALLOWED_ORIGINS")
+        if not allowedOrigins or allowedOrigins == "" then
+            return false
+        end
+
+        for allowedOrigin in string.gmatch(allowedOrigins, '([^,]+)') do
+            if origin == allowedOrigin then
+                return true
+            end
+        end
+        return false
+    end
+
     return me
   nginx.conf: |
     #user  nobody;
@@ -1120,6 +1136,7 @@ data:
     env KUBERNETES_SERVICE_PORT;
     env VZ_API_HOST;
     env VZ_API_VERSION;
+    env VZ_API_ALLOWED_ORIGINS;
 
     events {
         worker_connections  1024;
