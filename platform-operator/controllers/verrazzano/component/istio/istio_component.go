@@ -198,7 +198,9 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 	}
 
 	// Generate a restart version that will not change for this Verrazzano version
+	// Valid labels cannot contain + sign
 	restartVersion := context.EffectiveCR().Spec.Version + "-upgrade"
+	restartVersion = strings.ReplaceAll(restartVersion, "+", "-")
 
 	// Start WebLogic domains that were shutdown
 	context.Log().Infof("Starting WebLogic domains that were stopped pre-upgrade")
