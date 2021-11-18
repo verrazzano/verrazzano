@@ -25,7 +25,9 @@ func TestNewPrometheusMetricsReceiver(t *testing.T) {
 }
 
 func TestPrometheusMetricsReceiver_SetGauge(t *testing.T) {
-	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
+	cfg := PrometheusMetricsReceiverConfig{
+		PushGatewayURL: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass",
+		Name: "Test1"}
 	receiver, err := NewPrometheusMetricsReceiver(cfg)
 	assert.NoError(t, err)
 	err = receiver.SetGauge("MyGauge1", 10.5)
