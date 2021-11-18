@@ -30,6 +30,7 @@ func NewMetricsReceiver(cfg MetricsReceiverConfig) (MetricsReceiver, error) {
 		if pushInterval == 0 {
 			pushInterval = defaultPushInterval
 		}
+		promConfig.PushInterval = pushInterval
 		return NewPrometheusMetricsReceiver(*promConfig)
 	case "FileMetricsReceiver":
 		return nil,nil

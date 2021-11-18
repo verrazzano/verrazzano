@@ -32,9 +32,9 @@ func TestPrometheusMetricsReceiver_SetGauge(t *testing.T) {
 	assert.NoError(t, err)
 	// again, to test existing gauge
 	err = receiver.SetGauge("MyGauge1", 12.5)
+	assert.NoError(t, err)
 	// TODO mock pusher
 }
-
 
 func TestPrometheusMetricsReceiver_IncrementCounter(t *testing.T) {
 	cfg := PrometheusMetricsReceiverConfig{PushGatewayUrl: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
