@@ -141,51 +141,6 @@ func TestReconcileEmptyRestartVersion(t *testing.T) {
 	assert.NoError(err)
 }
 
-const weblogicWorkload = `
-{
-   "kind": "VerrazzanoWebLogicWorkload"
-}
-`
-
-const coherenceWorkload = `
-{
-   "kind": "VerrazzanoCoherenceWorkload"
-}
-`
-
-const helidonWorkload = `
-{
-   "kind": "VerrazzanoHelidonWorkload"
-}
-`
-
-const deploymentWorkload = `
-{
-   "kind": "Deployment",
-   "metadata": {
-      "name": "test-deployment"
-   }
-}
-`
-
-const daemonsetWorkload = `
-{
-   "kind": "DaemonSet",
-   "metadata": {
-      "name": "test-daemonset"
-   }
-}
-`
-
-const statefulsetWorkload = `
-{
-   "kind": "StatefulSet",
-   "metadata": {
-      "name": "test-statefulset"
-   }
-}
-`
-
 func TestReconcileRestartWeblogic(t *testing.T) {
 	assert := asserts.New(t)
 
