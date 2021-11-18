@@ -23,6 +23,7 @@ spec:
       name: helidon-config-workload
       labels:
         app: helidon-config
+        version: v1
     spec:
       deploymentTemplate:
         metadata:

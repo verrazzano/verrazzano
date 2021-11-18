@@ -10,14 +10,14 @@ if [ -z "$KUBECONFIG" ] || [ -z "$GO_REPO_PATH" ] || [ -z "${DOCKER_CREDS_USR}" 
   exit 1
 fi
 
-# Temporarily clone the console repo until it is moved to the verrazzano repo
+# Temporarily clone the console repo until it is moved to the Verrazzano repo
 cd ${GO_REPO_PATH}
 git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/console.git
 cd console
 git checkout ${CONSOLE_REPO_BRANCH}
 
-# Run the basic UI tests
-make run-ui-tests
+# Run the basic UI tests, and if they fail make sure to exit with a fail status
+make run-ui-tests || exit 1
 
 # Run the application page UI tests if specified
 if [ "true" == "${RUN_APP_TESTS}" ]; then

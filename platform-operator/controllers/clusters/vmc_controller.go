@@ -24,7 +24,7 @@ import (
 const finalizerName = "managedcluster.verrazzano.io"
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
-// The reconciler will create a ServiceAcount, ClusterRoleBinding, and a Secret which
+// The reconciler will create a ServiceAcount, RoleBinding, and a Secret which
 // contains the kubeconfig to be used by the Multi-Cluster Agent to access the admin cluster.
 type VerrazzanoManagedClusterReconciler struct {
 	client.Client
@@ -32,13 +32,11 @@ type VerrazzanoManagedClusterReconciler struct {
 	log    *zap.SugaredLogger
 }
 
-// bindingParams used to mutate the ClusterRoleBinding
+// bindingParams used to mutate the RoleBinding
 type bindingParams struct {
-	vmc                     *clustersv1alpha1.VerrazzanoManagedCluster
-	roleBindingName         string
-	roleName                string
-	serviceAccountName      string
-	serviceAccountNamespace string
+	vmc                *clustersv1alpha1.VerrazzanoManagedCluster
+	roleName           string
+	serviceAccountName string
 }
 
 // Reconcile reconciles a VerrazzanoManagedCluster object
@@ -52,7 +50,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	err := r.Get(ctx, req.NamespacedName, vmc)
 	if err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
-		// and the verrazzano resource has been deleted, so there is nothing left to do.
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
@@ -69,7 +67,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 				return reconcile.Result{}, err
 			}
 
-			// Remove the finalizer and update the verrazzano resource if the deletion has finished.
+			// Remove the finalizer and update the Verrazzano resource if the deletion has finished.
 			log.Infof("Removing finalizer %s", finalizerName)
 			vmc.ObjectMeta.Finalizers = removeString(vmc.ObjectMeta.Finalizers, finalizerName)
 			err := r.Update(ctx, vmc)
@@ -90,35 +88,35 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	// Sync the service account
-	log.Infof("Syncing the ServiceAccount for VMC %s", vmc.Name)
+	log.Debugf("Syncing the ServiceAccount for VMC %s", vmc.Name)
 	err = r.syncServiceAccount(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the ServiceAccount", err, log)
 		return ctrl.Result{}, err
 	}
 
-	log.Infof("Syncing the RoleBinding for VMC %s", vmc.Name)
-	err = r.syncManagedRoleBinding(vmc)
+	log.Debugf("Syncing the RoleBinding for VMC %s", vmc.Name)
+	_, err = r.syncManagedRoleBinding(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the RoleBinding", err, log)
 		return ctrl.Result{}, err
 	}
 
-	log.Infof("Syncing the Agent secret for VMC %s", vmc.Name)
+	log.Debugf("Syncing the Agent secret for VMC %s", vmc.Name)
 	err = r.syncAgentSecret(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the agent secret", err, log)
 		return ctrl.Result{}, err
 	}
 
-	log.Infof("Syncing the Registration secret for VMC %s", vmc.Name)
+	log.Debugf("Syncing the Registration secret for VMC %s", vmc.Name)
 	err = r.syncRegistrationSecret(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the registration secret", err, log)
 		return ctrl.Result{}, err
 	}
 
-	log.Infof("Syncing the Manifest secret for VMC %s", vmc.Name)
+	log.Debugf("Syncing the Manifest secret for VMC %s", vmc.Name)
 	err = r.syncManifestSecret(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
@@ -135,7 +133,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, nil
 	}
 
-	log.Infof("Syncing the prometheus scraper for VMC %s", vmc.Name)
+	log.Debugf("Syncing the prometheus scraper for VMC %s", vmc.Name)
 	err = r.syncPrometheusScraper(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to setup the prometheus scraper for managed cluster", err, log)
@@ -184,48 +182,31 @@ func (r *VerrazzanoManagedClusterReconciler) mutateServiceAccount(vmc *clustersv
 	serviceAccount.Name = generateManagedResourceName(vmc.Name)
 }
 
-// syncManagedRoleBinding syncs the ClusterRoleBinding that binds the service account used by the managed cluster
+// syncManagedRoleBinding syncs the RoleBinding that binds the service account used by the managed cluster
 // to the role containing the permission
-func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	bindingName := generateManagedResourceName(vmc.Name)
-	var binding rbacv1.ClusterRoleBinding
-	binding.Name = bindingName
+func (r *VerrazzanoManagedClusterReconciler) syncManagedRoleBinding(vmc *clustersv1alpha1.VerrazzanoManagedCluster) (controllerutil.OperationResult, error) {
+	var roleBinding rbacv1.RoleBinding
+	roleBinding.Namespace = vmc.Namespace
+	roleBinding.Name = generateManagedResourceName(vmc.Name)
 
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &binding, func() error {
-		mutateBinding(&binding, bindingParams{
-			vmc:                     vmc,
-			roleBindingName:         bindingName,
-			roleName:                constants.MCClusterRole,
-			serviceAccountName:      vmc.Spec.ServiceAccount,
-			serviceAccountNamespace: vmc.Namespace,
+	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &roleBinding, func() error {
+		mutateBinding(&roleBinding, bindingParams{
+			vmc:                vmc,
+			roleName:           constants.MCClusterRole,
+			serviceAccountName: vmc.Spec.ServiceAccount,
 		})
-		return nil
+		// This SetControllerReference call will trigger garbage collection i.e. the roleBinding
+		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
+		return controllerutil.SetControllerReference(vmc, &roleBinding, r.Scheme)
 	})
-	return err
 }
 
-// mutateBinding mutates the ClusterRoleBinding to ensure it has the valid params
-func mutateBinding(binding *rbacv1.ClusterRoleBinding, p bindingParams) {
-	binding.ObjectMeta = metav1.ObjectMeta{
-		Name:   p.roleBindingName,
-		Labels: p.vmc.Labels,
-		// Set owner reference here instead of calling controllerutil.SetControllerReference
-		// which does not allow cluster-scoped resources.
-		// This reference will result in the clusterrolebinding resource being deleted
-		// when the verrazzano CR is deleted.
-		OwnerReferences: []metav1.OwnerReference{
-			{
-				APIVersion: p.vmc.APIVersion,
-				Kind:       p.vmc.Kind,
-				Name:       p.vmc.Name,
-				UID:        p.vmc.UID,
-				Controller: func() *bool {
-					flag := true
-					return &flag
-				}(),
-			},
-		},
-	}
+// mutateBinding mutates the RoleBinding to ensure it has the valid params
+func mutateBinding(binding *rbacv1.RoleBinding, p bindingParams) {
+	binding.Name = generateManagedResourceName(p.vmc.Name)
+	binding.Namespace = p.vmc.Namespace
+	binding.Labels = p.vmc.Labels
+
 	binding.RoleRef = rbacv1.RoleRef{
 		APIGroup: "rbac.authorization.k8s.io",
 		Kind:     "ClusterRole",
@@ -235,7 +216,7 @@ func mutateBinding(binding *rbacv1.ClusterRoleBinding, p bindingParams) {
 		{
 			Kind:      "ServiceAccount",
 			Name:      p.serviceAccountName,
-			Namespace: p.serviceAccountNamespace,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 	}
 }

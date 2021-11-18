@@ -71,12 +71,12 @@ func deployBobsBooksExample() {
 		return pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Bobbys front end Weblogic credentials secret")
+	pkg.Log(pkg.Info, "Create Bobbys front end WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Bobs Bookstore Weblogic credentials secret")
+	pkg.Log(pkg.Info, "Create Bobs Bookstore WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
@@ -266,12 +266,12 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end-adminserver")
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-bookstore-adminserver")
+						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-orders-wls")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
@@ -380,20 +380,6 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
-			// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-			func() {
-				It("Verify recent 'pattern not matched' log records do not exist", func() {
-					Eventually(func() bool {
-						return pkg.FindLog(bobsIndexName,
-							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-								{Key: "message", Value: "pattern not matched"}},
-							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected to find No pattern not matched log records")
-				})
-			},
-			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
 			func() {
 				It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
@@ -446,6 +432,16 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				})
 			},
 		)
+		// GIVEN a WebLogic application with logging enabled
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
+		It("Verify recent 'pattern not matched' log records do not exist", func() {
+			Expect(pkg.NoLog(bobsIndexName,
+				[]pkg.Match{
+					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+					{Key: "message", Value: "pattern not matched"}},
+				[]pkg.Match{})).To(BeTrue())
+		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index

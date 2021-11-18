@@ -43,7 +43,7 @@ import (
 const testBomFilePath = "testdata/test_bom.json"
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
-//go:generate mockgen -destination=../mocks/controller_mock.go -package=mocks -copyright_file=../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+//go:generate mockgen -destination=../../mocks/controller_mock.go -package=mocks -copyright_file=../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 
 const installPrefix = "verrazzano-install-"
 const uninstallPrefix = "verrazzano-uninstall-"
@@ -100,8 +100,8 @@ func TestGetInstallJobName(t *testing.T) {
 }
 
 // TestSuccessfulInstall tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
-// WHEN a verrazzano resource has been applied
+// GIVEN a request to reconcile an Verrazzano resource
+// WHEN a Verrazzano resource has been applied
 // THEN ensure all the objects are already created
 func TestSuccessfulInstall(t *testing.T) {
 	unitTesting = true
@@ -116,6 +116,10 @@ func TestSuccessfulInstall(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	config.TestHelmConfigDir = "../../helm_config"
+	defer func() { config.TestHelmConfigDir = "" }()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -140,7 +144,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -152,7 +156,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	// Expect a call to get the ConfigMap
 	expectConfigMapExists(mock, name, labels)
 
-	// Expect a call to get the verrazzano system namespace (return exists)
+	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return that it exists
@@ -189,7 +193,7 @@ func TestSuccessfulInstall(t *testing.T) {
 			return nil
 		}).Times(1)
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
@@ -206,16 +210,16 @@ func TestSuccessfulInstall(t *testing.T) {
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(request)
+	asserts.NoError(err)
 
 	// Validate the results
 	mocker.Finish()
-	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestInstallInitComponents tests the reconcile method for the following use case
-// GIVEN a request to reconcile a verrazzano resource when Status.Components is empty
+// GIVEN a request to reconcile a Verrazzano resource when Status.Components is empty
 // THEN ensure that the Status.components is populated
 func TestInstallInitComponents(t *testing.T) {
 	unitTesting = true
@@ -230,6 +234,9 @@ func TestInstallInitComponents(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	config.TestHelmConfigDir = "../../helm_config"
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -251,7 +258,7 @@ func TestInstallInitComponents(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -275,12 +282,12 @@ func TestInstallInitComponents(t *testing.T) {
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconciler.Reconcile(request)
-
-	// Validate the results
-	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+
+	// Validate the results
+	mocker.Finish()
 }
 
 // TestCreateLocalRegistrationSecret tests the syncLocalRegistrationSecret method for the following use case
@@ -361,8 +368,8 @@ func TestCreateLocalRegistrationSecretUnexpectedError(t *testing.T) {
 }
 
 // TestCreateVerrazzano tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
-// WHEN a verrazzano resource has been created
+// GIVEN a request to reconcile an Verrazzano resource
+// WHEN a Verrazzano resource has been created
 // THEN ensure all the objects are created
 func TestCreateVerrazzano(t *testing.T) {
 	unitTesting = true
@@ -399,7 +406,10 @@ func TestCreateVerrazzano(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	// Expect a call to get the verrazzano resource.
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
@@ -449,7 +459,7 @@ func TestCreateVerrazzano(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the verrazzano system namespace (mock does not exist) and to create it
+	// Expect a call to get the Verrazzano system namespace (mock does not exist) and to create it
 	expectVerrazzanoSystemNamespaceDoesNotExist(mock, asserts)
 
 	// Expect a call to get the Job - return that it does not exist
@@ -524,8 +534,8 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 }
 
 // TestCreateVerrazzanoWithOCIDNS tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource with OCI DNS configured
-// WHEN a verrazzano resource has been created
+// GIVEN a request to reconcile an Verrazzano resource with OCI DNS configured
+// WHEN a Verrazzano resource has been created
 // THEN ensure all the objects are created
 func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	unitTesting = true
@@ -569,7 +579,10 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	// Expect a call to get the verrazzano resource.
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, vzToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it does not exist
@@ -639,7 +652,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			return nil
 		})
 
-	// Expect a call to get the verrazzano system namespace (return exists)
+	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return that it does not exist
@@ -695,8 +708,8 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 }
 
 // TestUninstallComplete tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
-// WHEN a verrazzano resource has been deleted
+// GIVEN a request to reconcile an Verrazzano resource
+// WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallComplete(t *testing.T) {
 	unitTesting = true
@@ -715,7 +728,7 @@ func TestUninstallComplete(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
+	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -801,8 +814,8 @@ func TestUninstallComplete(t *testing.T) {
 }
 
 // TestUninstallStarted tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
-// WHEN a verrazzano resource has been deleted
+// GIVEN a request to reconcile an Verrazzano resource
+// WHEN a Verrazzano resource has been deleted
 // THEN ensure an unisntall job is started
 func TestUninstallStarted(t *testing.T) {
 	unitTesting = true
@@ -823,7 +836,7 @@ func TestUninstallStarted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
+	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -893,7 +906,7 @@ func TestUninstallStarted(t *testing.T) {
 
 // TestUninstallFailed tests the Reconcile method for the following use case
 // GIVEN an uninstall job has failed
-// WHEN a verrazzano resource has been deleted
+// WHEN a Verrazzano resource has been deleted
 // THEN ensure the error is handled
 func TestUninstallFailed(t *testing.T) {
 	unitTesting = true
@@ -912,7 +925,7 @@ func TestUninstallFailed(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
+	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -998,7 +1011,7 @@ func TestUninstallFailed(t *testing.T) {
 
 // TestUninstallSucceeded tests the Reconcile method for the following use case
 // GIVEN an uninstall job has succeeded
-// WHEN a verrazzano resource has been deleted
+// WHEN a Verrazzano resource has been deleted
 // THEN ensure all the objects are deleted
 func TestUninstallSucceeded(t *testing.T) {
 	unitTesting = true
@@ -1017,7 +1030,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource.  Return resource with deleted timestamp.
+	// Expect a call to get the Verrazzano resource.  Return resource with deleted timestamp.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -1102,7 +1115,7 @@ func TestUninstallSucceeded(t *testing.T) {
 }
 
 // TestVerrazzanoNotFound tests the Reconcile method for the following use case
-// GIVEN an reqyest for a verrazzano custom resource
+// GIVEN an reqyest for a Verrazzano custom resource
 // WHEN it does not exist
 // THEN ensure the error not found is handled
 func TestVerrazzanoNotFound(t *testing.T) {
@@ -1116,7 +1129,7 @@ func TestVerrazzanoNotFound(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource - return that it does not exist
+	// Expect a call to get the Verrazzano resource - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Verrazzano"}, name))
@@ -1134,7 +1147,7 @@ func TestVerrazzanoNotFound(t *testing.T) {
 }
 
 // TestVerrazzanoGetError tests the Reconcile method for the following use case
-// GIVEN an reqyest for a verrazzano custom resource
+// GIVEN an reqyest for a Verrazzano custom resource
 // WHEN there is a failure getting it
 // THEN ensure the error is handled
 func TestVerrazzanoGetError(t *testing.T) {
@@ -1147,7 +1160,7 @@ func TestVerrazzanoGetError(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the verrazzano resource - return that it does not exist
+	// Expect a call to get the Verrazzano resource - return that it does not exist
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get Verrazzano custom resource"))
@@ -1165,8 +1178,8 @@ func TestVerrazzanoGetError(t *testing.T) {
 }
 
 // TestServiceAccountGetError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
-// WHEN a verrazzano resource has been applied
+// GIVEN a request to reconcile an Verrazzano resource
+// WHEN a Verrazzano resource has been applied
 // THEN return error if failure getting ServiceAccount
 func TestServiceAccountGetError(t *testing.T) {
 	namespace := "verrazzano"
@@ -1189,7 +1202,7 @@ func TestServiceAccountGetError(t *testing.T) {
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return a failure error
@@ -1210,7 +1223,7 @@ func TestServiceAccountGetError(t *testing.T) {
 }
 
 // TestServiceAccountCreateError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is a failure creating a ServiceAccount
 // THEN return error
 func TestServiceAccountCreateError(t *testing.T) {
@@ -1235,7 +1248,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return not found
@@ -1261,7 +1274,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 }
 
 // TestClusterRoleBindingGetError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is an error getting the ClusterRoleBinding
 // THEN return error
 func TestClusterRoleBindingGetError(t *testing.T) {
@@ -1286,7 +1299,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it exists
@@ -1310,7 +1323,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 }
 
 // TestClusterRoleBindingCreateError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is a failure creating a ClusterRoleBinding
 // THEN return error
 func TestClusterRoleBindingCreateError(t *testing.T) {
@@ -1335,7 +1348,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
 		State: vzapi.Ready}
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the ServiceAccount - return that it exists
@@ -1364,7 +1377,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 }
 
 // TestConfigMapGetError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is an error getting the ConfigMap
 // THEN return error
 func TestConfigMapGetError(t *testing.T) {
@@ -1390,7 +1403,7 @@ func TestConfigMapGetError(t *testing.T) {
 		State: vzapi.Ready}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -1417,7 +1430,7 @@ func TestConfigMapGetError(t *testing.T) {
 }
 
 // TestConfigMapCreateError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is a failure creating a ConfigMap
 // THEN return error
 func TestConfigMapCreateError(t *testing.T) {
@@ -1443,7 +1456,7 @@ func TestConfigMapCreateError(t *testing.T) {
 		State: vzapi.Ready}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -1475,8 +1488,8 @@ func TestConfigMapCreateError(t *testing.T) {
 }
 
 // TestVZSystemNamespaceGetError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
-// WHEN a there is an error getting the verrazzano system namespace
+// GIVEN a request to reconcile an Verrazzano resource
+// WHEN a there is an error getting the Verrazzano system namespace
 // THEN return error
 func TestVZSystemNamespaceGetError(t *testing.T) {
 	unitTesting = true
@@ -1501,7 +1514,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		State: vzapi.Ready}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -1514,7 +1527,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 	expectConfigMapExists(mock, name, labels)
 
 	errMsg := "get vz system namespace error"
-	// Expect a call to get the verrazzano system namespace - return a failure error
+	// Expect a call to get the Verrazzano system namespace - return a failure error
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest(errMsg))
@@ -1532,8 +1545,8 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 }
 
 // TestVZSystemNamespaceCreateError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
-// WHEN a there is an error creating the verrazzano system namespace
+// GIVEN a request to reconcile an Verrazzano resource
+// WHEN a there is an error creating the Verrazzano system namespace
 // THEN return error
 func TestVZSystemNamespaceCreateError(t *testing.T) {
 	unitTesting = true
@@ -1558,7 +1571,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 		State: vzapi.Ready}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -1571,12 +1584,12 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 	expectConfigMapExists(mock, name, labels)
 
 	errMsg := "create vz system namespace error"
-	// Expect a call to get the verrazzano system namespace - return an IsNotFound
+	// Expect a call to get the Verrazzano system namespace - return an IsNotFound
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.ParseGroupResource("namespaces"), constants.VerrazzanoSystemNamespace))
 
-	// Expect a call to create the verrazzano system namespace - return a failure error
+	// Expect a call to create the Verrazzano system namespace - return a failure error
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).
 		Return(errors.NewBadRequest(errMsg))
@@ -1594,7 +1607,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 }
 
 // TestJobGetError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is an error getting the Job
 // THEN return error
 func TestJobGetError(t *testing.T) {
@@ -1620,7 +1633,7 @@ func TestJobGetError(t *testing.T) {
 		State: vzapi.Ready}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -1632,7 +1645,7 @@ func TestJobGetError(t *testing.T) {
 	// Expect a call to get the ConfigMap
 	expectConfigMapExists(mock, name, labels)
 
-	// Expect a call to get the verrazzano system namespace (return exists)
+	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return a failure error
@@ -1653,7 +1666,7 @@ func TestJobGetError(t *testing.T) {
 }
 
 // TestGetOCIConfigSecretError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is an error getting the OCI CR secret
 // THEN return error
 func TestGetOCIConfigSecretError(t *testing.T) {
@@ -1687,7 +1700,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 		State: vzapi.Ready}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -1714,7 +1727,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 }
 
 // TestJobCreateError tests the Reconcile method for the following use case
-// GIVEN a request to reconcile an verrazzano resource
+// GIVEN a request to reconcile an Verrazzano resource
 // WHEN a there is a failure creating a Job
 // THEN return error
 func TestJobCreateError(t *testing.T) {
@@ -1740,7 +1753,7 @@ func TestJobCreateError(t *testing.T) {
 		State: vzapi.Ready}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
-	// Expect a call to get the verrazzano resource.
+	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
 	// Expect a call to get the service account
@@ -1752,7 +1765,7 @@ func TestJobCreateError(t *testing.T) {
 	// Expect a call to get the ConfigMap
 	expectConfigMapExists(mock, name, labels)
 
-	// Expect a call to get the verrazzano system namespace (return exists)
+	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to get the Job - return not found
@@ -2207,7 +2220,7 @@ func expectSyncLocalRegistration(t *testing.T, mock *mocks.MockClient, name stri
 		Return(nil)
 }
 
-// expectGetVerrazzanoSystemNamespaceExists expects a call to get the verrazzano system namespace and returns
+// expectGetVerrazzanoSystemNamespaceExists expects a call to get the Verrazzano system namespace and returns
 // that it exists
 func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *assert.Assertions) {
 	mock.EXPECT().
@@ -2219,7 +2232,7 @@ func expectGetVerrazzanoSystemNamespaceExists(mock *mocks.MockClient, asserts *a
 		})
 }
 
-// expectVerrazzanoSystemNamespaceDoesNotExist expects a call to get the verrazzano system namespace and returns
+// expectVerrazzanoSystemNamespaceDoesNotExist expects a call to get the Verrazzano system namespace and returns
 // that it does not exist, then expects a call to create it
 func expectVerrazzanoSystemNamespaceDoesNotExist(mock *mocks.MockClient, asserts *assert.Assertions) {
 	mock.EXPECT().

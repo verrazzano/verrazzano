@@ -19,6 +19,7 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -437,43 +438,54 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, err
 	}
-	configmap := &k8score.ConfigMap{
-		TypeMeta:   metav1.TypeMeta{APIVersion: k8score.SchemeGroupVersion.Identifier(), Kind: configMapKind},
-		ObjectMeta: metav1.ObjectMeta{Namespace: deployment.Namespace, Name: configmapName},
+
+	configmap := &k8score.ConfigMap{}
+	err = r.Get(ctx, client.ObjectKey{Namespace: deployment.Namespace, Name: configmapName}, configmap)
+	if err != nil {
+		// Don't create the config map if it doesn't already exist - that is the sole responsibility of
+		// the Verrazzano Monitoring Operator
+		return rel, controllerutil.OperationResultNone, client.IgnoreNotFound(err)
 	}
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, configmap, func() error {
-		if configmap.CreationTimestamp.IsZero() {
-			r.Log.V(1).Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
-		} else {
-			r.Log.V(1).Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
-		}
-		yamlStr, exists := configmap.Data[prometheusConfigKey]
-		if !exists {
-			yamlStr = ""
-		}
-		prometheusConf, err := parseYAMLString(yamlStr)
-		if err != nil {
-			return err
-		}
-		prometheusConf, err = mutatePrometheusScrapeConfig(ctx, trait, traitDefaults, prometheusConf, secret, workload, r.Client)
-		if err != nil {
-			return err
-		}
-		yamlStr, err = writeYAMLString(prometheusConf)
-		if err != nil {
-			return err
-		}
-		if configmap.Data == nil {
-			configmap.Data = map[string]string{}
-		}
-		configmap.Data[prometheusConfigKey] = yamlStr
-		return nil
-	})
+
+	existingConfigmap := configmap.DeepCopyObject()
+
+	if configmap.CreationTimestamp.IsZero() {
+		r.Log.V(1).Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+	} else {
+		r.Log.V(1).Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+	}
+	yamlStr, exists := configmap.Data[prometheusConfigKey]
+	if !exists {
+		yamlStr = ""
+	}
+	prometheusConf, err := parseYAMLString(yamlStr)
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
+	}
+	prometheusConf, err = mutatePrometheusScrapeConfig(ctx, trait, traitDefaults, prometheusConf, secret, workload, r.Client)
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
+	}
+	yamlStr, err = writeYAMLString(prometheusConf)
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
+	}
+	if configmap.Data == nil {
+		configmap.Data = map[string]string{}
+	}
+	configmap.Data[prometheusConfigKey] = yamlStr
+
+	// compare and don't update if unchanged
+	if equality.Semantic.DeepEqual(existingConfigmap, configmap) {
+		return rel, controllerutil.OperationResultNone, nil
+	}
+
+	err = r.Update(ctx, configmap)
 	// If the Prometheus configmap was updated, the VMI Prometheus has ConfigReloader sidecar to signal Prometheus to reload config
-	if res == controllerutil.OperationResultUpdated {
-		return rel, res, nil
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
 	}
-	return rel, res, err
+	return rel, controllerutil.OperationResultUpdated, nil
 }
 
 // fetchPrometheusDeploymentFromTrait fetches the Prometheus deployment from information in the trait.

@@ -9,8 +9,8 @@ import (
 )
 
 // NewServiceAccount returns a service account resource for installing Verrazzano
-// namespace - namespace of verrazzano resource
-// name - name of verrazzano resource
+// namespace - namespace of Verrazzano resource
+// name - name of Verrazzano resource
 func NewServiceAccount(namespace string, name string, imagePullSecrets []string, labels map[string]string) *corev1.ServiceAccount {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{

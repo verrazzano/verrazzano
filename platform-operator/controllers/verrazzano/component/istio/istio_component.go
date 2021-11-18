@@ -182,8 +182,9 @@ func (i IstioComponent) GetDependencies() []string {
 	return []string{}
 }
 
-func (i IstioComponent) PreUpgrade(_ spi.ComponentContext) error {
-	return nil
+func (i IstioComponent) PreUpgrade(context spi.ComponentContext) error {
+	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
+	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
 }
 
 func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
@@ -192,7 +193,27 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 	err = removeIstioHelmSecrets(context)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Generate a restart version that will not change for this Verrazzano version
+	// Valid labels cannot contain + sign
+	restartVersion := context.EffectiveCR().Spec.Version + "-upgrade"
+	restartVersion = strings.ReplaceAll(restartVersion, "+", "-")
+
+	// Start WebLogic domains that were shutdown
+	context.Log().Infof("Starting WebLogic domains that were stopped pre-upgrade")
+	if err := StartDomainsStoppedByUpgrade(context.Log(), context.Client(), restartVersion); err != nil {
+		return err
+	}
+
+	// Restart all other apps
+	context.Log().Infof("Restarting all applications so they can get the new Envoy sidecar")
+	if err := RestartAllApps(context.Log(), context.Client(), restartVersion); err != nil {
+		return err
+	}
+	return nil
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
@@ -216,7 +237,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), deployment); err != nil {
 				return err
 			}
@@ -238,7 +259,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			statefulSet.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), statefulSet); err != nil {
 				return err
 			}
@@ -260,7 +281,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			daemonSet.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), daemonSet); err != nil {
 				return err
 			}

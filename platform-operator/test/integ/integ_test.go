@@ -93,7 +93,7 @@ var _ = Describe("Verrazzano cluster roles and bindings for platform operator", 
 
 })
 
-var _ = Describe("Custom Resource Definition for verrazzano install", func() {
+var _ = Describe("Custom Resource Definition for Verrazzano install", func() {
 	It("verrazzanos.install.verrazzano.io exists", func() {
 		Expect(K8sClient.DoesCRDExist("verrazzanos.install.verrazzano.io")).To(BeTrue(),
 			"The verrazzanos.install.verrazzano.io CRD should exist")

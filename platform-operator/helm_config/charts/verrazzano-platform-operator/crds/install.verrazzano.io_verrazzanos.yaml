@@ -89,6 +89,8 @@ spec:
                             - secretName
                             type: object
                         type: object
+                      enabled:
+                        type: boolean
                     type: object
                   coherenceOperator:
                     description: CoherenceOperator configuration

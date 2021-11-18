@@ -6,17 +6,20 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,6 +36,7 @@ const (
 	finalizerName               = "project.verrazzano.io"
 	keyPolicyName               = "policy-name"
 	keyNamespace                = "namespace"
+	managedClusterRole          = "verrazzano-managed-cluster"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -61,7 +65,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
-		// and the verrazzano resource has been deleted, so there is nothing left to do.
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
@@ -78,7 +82,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if err := r.deleteNetworkPolicies(ctx, &vp, nil, logger); err != nil {
 				return reconcile.Result{}, err
 			}
-			// Remove the finalizer and update the verrazzano resource if the deletion has finished.
+			if err := r.deleteRoleBindings(ctx, &vp, logger); err != nil {
+				return reconcile.Result{}, err
+			}
+			// Remove the finalizer and update the Verrazzano resource if the deletion has finished.
 			vp.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vp.ObjectMeta.Finalizers, finalizerName)
 			err := r.Update(ctx, &vp)
 			if err != nil {
@@ -160,6 +167,10 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 			if err = r.createOrUpdateRoleBindings(ctx, nsTemplate.Metadata.Name, vp, logger); err != nil {
 				return err
 			}
+
+			if err = r.deleteRoleBindings(ctx, nil, logger); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -169,7 +180,7 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	namespace.Annotations = nsTemplate.Metadata.Annotations
 	namespace.Spec = nsTemplate.Spec
 
-	// Add verrazzano generated labels if not already present
+	// Add Verrazzano generated labels if not already present
 	if namespace.Labels == nil {
 		namespace.Labels = map[string]string{}
 	}
@@ -211,6 +222,7 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 			return err
 		}
 	}
+
 	// create two role bindings, one for the project monitor role and one for the k8s monitor role
 	if len(monitorSubjects) > 0 {
 		rb := newRoleBinding(namespace, projectMonitorRole, monitorSubjects)
@@ -220,6 +232,16 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 		rb = newRoleBinding(namespace, projectMonitorK8sRole, monitorSubjects)
 		if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
 			return err
+		}
+	}
+
+	// create role binding for each managed cluster to limit resource access to admin cluster
+	for _, cluster := range vp.Spec.Placement.Clusters {
+		if cluster.Name != constants.DefaultClusterName {
+			rb := newRoleBindingManagedCluster(namespace, cluster.Name)
+			if err := r.createOrUpdateRoleBinding(ctx, rb, logger); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -270,6 +292,31 @@ func newRoleBinding(namespace string, roleName string, subjects []rbacv1.Subject
 	}
 }
 
+// newRoleBinding returns a populated RoleBinding struct for a given managed cluster
+func newRoleBindingManagedCluster(namespace string, name string) *rbacv1.RoleBinding {
+	clusterNameRef := generateRoleBindingManagedClusterRef(name)
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      clusterNameRef,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     managedClusterRole,
+		},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      clusterNameRef,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		},
+	}
+}
+func generateRoleBindingManagedClusterRef(name string) string {
+	return fmt.Sprintf("verrazzano-cluster-%s", name)
+}
+
 // getDefaultRoleBindingSubjects returns the default binding subjects for project admin/monitor roles
 func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.VerrazzanoProject) ([]rbacv1.Subject, []rbacv1.Subject) {
 	adminSubjects := []rbacv1.Subject{{
@@ -310,6 +357,62 @@ func (r *Reconciler) createOrUpdateNetworkPolicy(ctx context.Context, desiredPol
 		desiredPolicy.Spec.DeepCopyInto(&policy.Spec)
 		return nil
 	})
+}
+
+func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, logger logr.Logger) error {
+	// Get the list of VerrazzanoProject resources
+	vpList := clustersv1alpha1.VerrazzanoProjectList{}
+	if err := r.List(ctx, &vpList, client.InNamespace(constants.VerrazzanoMultiClusterNamespace)); err != nil {
+		return err
+	}
+
+	// Create map of expected namespace/cluster pairs for rolebindings
+	expectedPairs := make(map[string]bool)
+	for _, vp := range vpList.Items {
+		if project != nil && project.Name == vp.Name {
+			continue
+		}
+		for _, ns := range vp.Spec.Template.Namespaces {
+			for _, cluster := range vp.Spec.Placement.Clusters {
+				expectedPairs[ns.Metadata.Name+cluster.Name] = true
+			}
+		}
+	}
+
+	// Get the list of VerrazzanoManagedCluster resources
+	vmcList := v1alpha1.VerrazzanoManagedClusterList{}
+	err := r.List(ctx, &vmcList, client.InNamespace(constants.VerrazzanoMultiClusterNamespace))
+	if err != nil {
+		return err
+	}
+
+	for _, vmc := range vmcList.Items {
+		for _, vp := range vpList.Items {
+			for _, ns := range vp.Spec.Template.Namespaces {
+				// rolebinding is expected for this namespace/cluster pairing
+				// so nothing to delete
+				if _, ok := expectedPairs[ns.Metadata.Name+vmc.Name]; ok {
+					continue
+				}
+				// rolebinding is not expected for this namespace/cluster pairing
+				objectKey := types.NamespacedName{
+					Namespace: ns.Metadata.Name,
+					Name:      generateRoleBindingManagedClusterRef(vmc.Name),
+				}
+				rb := rbacv1.RoleBinding{}
+				if err := r.Get(ctx, objectKey, &rb); err != nil {
+					continue
+				}
+				// This is an orphaned rolebinding so we delete it
+				logger.Info("Deleting rolebinding for project", "namespace", rb.ObjectMeta.Namespace, "roleName", rb.ObjectMeta.Name)
+				if err := r.Delete(ctx, &rb); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // deleteNetworkPolicies deletes policies that exist in the project namespaces, but are not defined in the project spec

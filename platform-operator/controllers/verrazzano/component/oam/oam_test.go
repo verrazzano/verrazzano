@@ -3,12 +3,12 @@
 package oam
 
 import (
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -33,7 +33,7 @@ func TestIsOAMOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsOAMReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, IsOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 // TestIsOAMOperatorNotReady tests the IsOAMReady function
@@ -54,5 +54,5 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsOAMReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, IsOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", constants.VerrazzanoSystemNamespace))
 }
