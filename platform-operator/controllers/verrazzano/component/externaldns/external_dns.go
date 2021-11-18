@@ -41,7 +41,7 @@ func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error
 		return err
 	}
 
-	// Attach compartment to secret and apply it in the external DNS namespace
+	// Attach compartment field to secret and apply it in the external DNS namespace
 	externalDNSSecret := v1.Secret{}
 	externalDNSSecret.Data = make(map[string][]byte)
 	compContext.Log().Debug("Creating the external DNS secret")

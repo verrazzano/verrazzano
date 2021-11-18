@@ -429,7 +429,7 @@ fi
 
 platform_operator_install_message "Installing cert-manager"
 if [ "$DNS_TYPE" == "oci" ]; then
-  platform_operator_install_message "Installing external DNS"
+  platform_operator_install_message "External DNS"
 fi
 
 if [ $(is_rancher_enabled) == "true" ]; then
