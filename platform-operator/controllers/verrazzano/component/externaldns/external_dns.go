@@ -26,7 +26,7 @@ const (
 	ociSecretFileName         = "oci.yaml"
 )
 
-func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error {
+func preInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
 		compContext.Log().Infof("cert-manager PreInstall dry run")
@@ -45,19 +45,19 @@ func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error
 	externalDNSSecret := v1.Secret{}
 	externalDNSSecret.Data = make(map[string][]byte)
 	compContext.Log().Debug("Creating the external DNS secret")
-
-	// Verify that the oci secret has one value
-	if len(dnsSecret.Data) != 1 {
-		compContext.Log().Errorf("OCI secret for OCI DNS should be created from one file")
-	}
-
-	// Extract data and create secret in the external DNS namespace
-	for k := range dnsSecret.Data {
-		externalDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("  compartment: %s", dns.OCI.DNSZoneCompartmentOCID))...)
-	}
 	externalDNSSecret.Namespace = externalDNSNamespace
 	externalDNSSecret.Name = dnsSecret.Name
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &externalDNSSecret, func() error {
+		// Verify that the oci secret has one value
+		if len(dnsSecret.Data) != 1 {
+			return fmt.Errorf("OCI secret for OCI DNS should be created from one file")
+		}
+
+		// Extract data and create secret in the external DNS namespace
+		for k := range dnsSecret.Data {
+			externalDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("  compartment: %s", dns.OCI.DNSZoneCompartmentOCID))...)
+		}
+
 		return nil
 	}); err != nil {
 		compContext.Log().Errorf("Failed to create or update the external DNS secret: %s", err)
@@ -66,14 +66,14 @@ func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error
 	return nil
 }
 
-func (e externalDNSComponent) IsReady(compContext spi.ComponentContext) bool {
+func isReady(compContext spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
 	}
 	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1)
 }
 
-func (e externalDNSComponent) IsEnabled(compContext spi.ComponentContext) bool {
+func isEnabled(compContext spi.ComponentContext) bool {
 	dns := compContext.EffectiveCR().Spec.Components.DNS
 	if dns != nil && dns.OCI != nil {
 		return true

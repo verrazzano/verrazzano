@@ -33,3 +33,15 @@ func NewComponent() spi.Component {
 		},
 	}
 }
+
+func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error {
+	return preInstall(compContext)
+}
+
+func (e externalDNSComponent) IsReady(compContext spi.ComponentContext) bool {
+	return isReady(compContext)
+}
+
+func (e externalDNSComponent) IsEnabled(compContext spi.ComponentContext) bool {
+	return isEnabled(compContext)
+}
