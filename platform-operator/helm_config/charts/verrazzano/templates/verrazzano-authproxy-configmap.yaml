@@ -79,6 +79,10 @@ data:
     end
 
     auth.info("Processing request for backend '"..ingressHost.."'")
+    if backend == 'console' or backend == 'verrazzano' and not auth.isBodyValidJson() then
+        auth.bad_request("Invalid request")
+    end
+    
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
@@ -125,10 +129,6 @@ data:
     -- token will be an id token except when console calls api proxy, then it's an access token
     if not auth.isAuthorized(token) then
         auth.forbidden("Not authorized")
-    end
-
-    if backend == 'console' or backend == 'verrazzano' and not auth.isBodyValidJson() then
-        auth.bad_request("Invalid request")
     end
 
     if backend == 'verrazzano' then
