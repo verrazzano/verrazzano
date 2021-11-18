@@ -6,7 +6,6 @@ package rancher
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
-	appsv1 "k8s.io/api/apps/v1"
 	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,44 +67,6 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 			}
-		})
-	}
-}
-
-func TestPatchAgents(t *testing.T) {
-	log := getTestLogger(t)
-	ip, host := "ip", "host"
-
-	deploy := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      clusterAgentDeployName,
-		},
-	}
-	daemonset := appsv1.DaemonSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      nodeAgentDaemonsetName,
-		},
-	}
-
-	var tests = []struct {
-		testName string
-		c        client.Client
-	}{
-		{
-			"should patch agents when present",
-			fake.NewFakeClientWithScheme(getScheme(), &deploy, &daemonset),
-		},
-		{
-			"should not fail when agents are not present",
-			fake.NewFakeClientWithScheme(getScheme()),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			assert.Nil(t, patchAgents(log, tt.c, host, ip))
 		})
 	}
 }

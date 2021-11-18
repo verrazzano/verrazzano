@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -98,53 +97,6 @@ func newAdminSecret(c client.Client, password string) error {
 		},
 	}
 	return c.Create(context.TODO(), adminSecret)
-}
-
-// patchAgents patches the cattle agents with the Rancher host and ip
-func patchAgents(log *zap.SugaredLogger, c client.Client, host, ip string) error {
-	hostAliases := []v1.HostAlias{
-		{
-			IP: ip,
-			Hostnames: []string{
-				host,
-			},
-		},
-	}
-
-	// Patch the agent Deployment if it exists
-	deployment := &appsv1.Deployment{}
-	deployNamespacedName := types.NamespacedName{Name: clusterAgentDeployName, Namespace: ComponentNamespace}
-	if err := c.Get(context.TODO(), deployNamespacedName, deployment); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Infof("%v is not deployed, patching skipped", clusterAgentDeployName)
-		} else {
-			return err
-		}
-	} else {
-		deployment.Spec.Template.Spec.HostAliases = hostAliases
-		deploymentMerge := client.MergeFrom(deployment.DeepCopy())
-		if err := c.Patch(context.TODO(), deployment, deploymentMerge); err != nil {
-			return err
-		}
-	}
-
-	// Patch the agent Daemonset if it exists
-	daemonset := &appsv1.DaemonSet{}
-	daemonsetNamespacedName := types.NamespacedName{Name: nodeAgentDaemonsetName, Namespace: ComponentNamespace}
-	if err := c.Get(context.TODO(), daemonsetNamespacedName, daemonset); err != nil {
-		if apierrors.IsNotFound(err) {
-			log.Infof("%v is not deployed, patching skipped", nodeAgentDaemonsetName)
-		} else {
-			return err
-		}
-	} else {
-		daemonset.Spec.Template.Spec.HostAliases = hostAliases
-		daemonsetMerge := client.MergeFrom(daemonset.DeepCopy())
-		if err := c.Patch(context.TODO(), daemonset, daemonsetMerge); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func getRancherIngressIP(log *zap.SugaredLogger, c client.Client) (string, error) {

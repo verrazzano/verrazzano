@@ -232,10 +232,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return err
 	}
-	ip, err := getRancherIngressIP(log, c)
-	if err != nil {
-		return err
-	}
 	password, err := getAdminPassword(c)
 	if err != nil {
 		return err
@@ -246,9 +242,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	if err := setServerURL(log, password, rancherHostName); err != nil {
-		return err
-	}
-	if err := patchAgents(log, c, rancherHostName, ip); err != nil {
 		return err
 	}
 	return nil

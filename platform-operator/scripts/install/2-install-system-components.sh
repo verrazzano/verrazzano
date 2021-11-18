@@ -174,5 +174,7 @@ if [ "$DNS_TYPE" == "oci" ]; then
   action "Installing external DNS" install_external_dns || exit 1
 fi
 
-platform_operator_install_message "Installing Rancher"
-action "Wait for Rancher availability" wait_for_rancher || exit 1
+if [ $(is_rancher_enabled) == "true" ]; then
+  platform_operator_install_message "Installing Rancher"
+  action "Wait for Rancher availability" wait_for_rancher || exit 1
+fi
