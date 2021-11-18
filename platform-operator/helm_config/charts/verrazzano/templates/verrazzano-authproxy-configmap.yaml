@@ -1120,8 +1120,10 @@ data:
             local decoded_data, err = decoder(data)
             if err then
                 me.logJson(ngx.ERR, "Invalid request payload:" .. data)
+                return false
             end
         end
+        return true
     end
 
     return me
