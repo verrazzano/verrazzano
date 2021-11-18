@@ -43,7 +43,14 @@ func (rcvr *PrometheusMetricsReceiver) SetGauge(name string, value float64) erro
 	}
 	gauge.Set(value)
 	pkg.Log(pkg.Info, fmt.Sprintf("Emitting gauge %s with value %f", metricName, value))
-	// TODO push the gauge
+
+	// push the gauge to the gateway
+	if err := rcvr.promPusher.Collector(gauge).Add(); err != nil {
+		fmt.Println("Could not push to Pushgateway:", err)
+	} else {
+		pkg.Log(pkg.Info, fmt.Sprintf("Successfully emitted guage %s with value %f", metricName, value))
+	}
+
 	return nil
 }
 
@@ -59,7 +66,14 @@ func (rcvr *PrometheusMetricsReceiver) IncrementCounter(name string) error {
 	}
 	ctr.Inc()
 	pkg.Log(pkg.Info, fmt.Sprintf("Incrementing counter %s", metricName))
-	// TODO push the counter
+
+	// push the counter to the gateway
+	if err := rcvr.promPusher.Collector(ctr).Add(); err != nil {
+		fmt.Println("Could not push to Pushgateway:", err)
+	} else {
+		pkg.Log(pkg.Info, fmt.Sprintf("Successfully incremented counter %s", metricName))
+	}
+
 	return nil
 }
 
