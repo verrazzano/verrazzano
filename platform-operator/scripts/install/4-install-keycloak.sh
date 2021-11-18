@@ -541,16 +541,14 @@ if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
   fi
 fi
 
-if [ $(is_keycloak_enabled) == "true" ]; then
-  action "Installing MySQL" install_mysql
-    if [ "$?" -ne 0 ]; then
-      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "pods" -n "${KEYCLOAK_NS}" -m "install_mysql"
-      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "jobs" -n "${KEYCLOAK_NS}" -m "install_mysql"
-      "$SCRIPT_DIR"/k8s-dump-objects.sh -o "nodes" -n "default" -m "install_mysql"
-      log "For additional detailed information on the cluster at the time of this error, please check the diagnostics log file"
-      fail "Installation of MySQL failed"
-    fi
+# Scaffolding while we move things into the VPO; we need to wait for MySQL before installing keyclaok
+function wait_for_mysql() {
+  wait_for_deployment keycloak mysql
+  return $?
+}
 
+if [ $(is_keycloak_enabled) == "true" ]; then
+  action "Waiting for MySQL to become available" wait_for_mysql || exit 1
   action "Installing Keycloak" install_keycloak || exit 1
 else
   log "Skip Keycloak installation, disabled"
@@ -559,7 +557,7 @@ fi
 rm -rf $TMP_DIR
 
 consoleout
-consoleout "Installation Complete."
+consoleout "Insallation Complete."
 
 # Determine the consoles enabled for the profile and display the URLs accordingly
 consoleArr=()
