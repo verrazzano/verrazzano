@@ -11,19 +11,18 @@ import (
 )
 
 type PrometheusMetricsReceiverConfig struct {
-	PushGatewayUrl string
-	PushGatewayUser string
+	PushGatewayUrl      string
+	PushGatewayUser     string
 	PushGatewayPassword string
-	PushInterval time.Duration
-	Name string
+	PushInterval        time.Duration
+	Name                string
 }
 
 type PrometheusMetricsReceiver struct {
 	promPusher *push.Pusher
-	counters map[string]prometheus.Counter
-	gauges map[string]prometheus.Gauge
+	counters   map[string]prometheus.Counter
+	gauges     map[string]prometheus.Gauge
 }
-
 
 func (pcfg *PrometheusMetricsReceiverConfig) GetReceiverType() string {
 	return "PrometheusMetricsReceiver"

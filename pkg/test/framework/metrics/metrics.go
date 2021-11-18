@@ -14,7 +14,7 @@ const (
 
 type MetricsReceiver interface {
 	SetGauge(name string, value float64) error
-	IncrementCounter(name string) error 
+	IncrementCounter(name string) error
 }
 
 type MetricsReceiverConfig interface {
@@ -33,7 +33,7 @@ func NewMetricsReceiver(cfg MetricsReceiverConfig) (MetricsReceiver, error) {
 		promConfig.PushInterval = pushInterval
 		return NewPrometheusMetricsReceiver(*promConfig)
 	case "FileMetricsReceiver":
-		return nil,nil
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown MetricsReceiver type %s", cfg.GetReceiverType())
 	}
