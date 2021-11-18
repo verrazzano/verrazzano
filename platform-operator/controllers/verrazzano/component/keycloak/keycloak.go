@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"os/exec"
 	"path/filepath"
@@ -218,7 +218,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 		ctx.Log().Info("Keycloak Post Upgrade: Successfully retrieved clientID")
 
 		// Get DNS Domain Configuration
-		dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
 			ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving DNS sub domain: %s", err)
 			return err

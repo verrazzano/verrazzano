@@ -31,20 +31,22 @@ spec:
     elasticsearch:
       enabled: true
       installArgs:
-        - name: nodes.master.replicas
+        - name: elasticSearch.nodes.master.replicas
           value: "3"
-        - name: nodes.master.requests.memory
+        - name: elasticSearch.nodes.master.requests.memory
           value: "3G"
-        - name: nodes.ingest.replicas
+        - name: elasticSearch.nodes.ingest.replicas
           value: "6"
-        - name: nodes.ingest.requests.memory
+        - name: elasticSearch.nodes.ingest.requests.memory
           value: "32G"
-        - name: nodes.data.replicas
+        - name: elasticSearch.nodes.data.replicas
           value: "6"
-        - name: nodes.data.requests.memory
+        - name: elasticSearch.nodes.data.requests.memory
           value: "32G"
     fluentd:
       enabled: true
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano
     grafana:
       enabled: true
     ingress:

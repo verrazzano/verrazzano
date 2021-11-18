@@ -972,6 +972,7 @@ func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alph
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
 func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *zap.SugaredLogger) error {
+
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
 	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)

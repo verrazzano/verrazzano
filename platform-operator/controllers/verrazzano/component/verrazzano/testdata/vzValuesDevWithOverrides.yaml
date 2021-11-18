@@ -1,0 +1,22 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+api:
+  proxy:
+    OidcProviderHost: keycloak.myenv.11.22.33.44.xip.io
+    OidcProviderHostInCluster: keycloak-http.keycloak.svc.cluster.local
+config:
+  dnsSuffix: 11.22.33.44.xip.io
+  envName: myenv
+console:
+  enabled: false
+dns:
+  wildcard:
+    domain: xip.io
+keycloak:
+  enabled: false
+monitoringOperator:
+  enabled: false
+rancher:
+  enabled: false
+verrazzanoOperator:
+  enabled: false

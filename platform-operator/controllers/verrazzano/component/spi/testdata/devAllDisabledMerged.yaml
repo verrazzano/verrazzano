@@ -23,16 +23,18 @@ spec:
     elasticsearch:
       enabled: false
       installArgs:
-        - name: nodes.master.replicas
+        - name: elasticSearch.nodes.master.replicas
           value: "1"
-        - name: nodes.master.requests.memory
+        - name: elasticSearch.nodes.master.requests.memory
           value: "1G"
-        - name: nodes.ingest.replicas
+        - name: elasticSearch.nodes.ingest.replicas
           value: "0"
-        - name: nodes.data.replicas
+        - name: elasticSearch.nodes.data.replicas
           value: "0"
     fluentd:
       enabled: false
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano
     grafana:
       enabled: false
     ingress:
