@@ -108,7 +108,13 @@ func TestExternalDNSPreInstallDryRun(t *testing.T) {
 // THEN no errors are returned
 func TestExternalDNSPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "oci", Namespace: constants.VerrazzanoInstallNamespace}})
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "oci",
+				Namespace: constants.VerrazzanoInstallNamespace,
+			},
+			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
+		})
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
