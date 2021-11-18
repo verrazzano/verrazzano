@@ -317,14 +317,17 @@ function configure_keycloak_realms() {
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
         "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX/*",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX/_authentication_callback"
       ],
       "webOrigins": [
         "https://verrazzano.$ENV_NAME.$DNS_SUFFIX",
         "https://elasticsearch.vmi.system.$ENV_NAME.$DNS_SUFFIX",
         "https://prometheus.vmi.system.$ENV_NAME.$DNS_SUFFIX",
         "https://grafana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
-        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX"
+        "https://kibana.vmi.system.$ENV_NAME.$DNS_SUFFIX",
+        "https://kiali.vmi.system.$ENV_NAME.$DNS_SUFFIX"
       ],
       "notBefore": 0,
       "bearerOnly": false,
@@ -525,41 +528,6 @@ EOF
   export DEBUG=${PRESERVE_DEBUG}
 }
 
-# configure the prometheus deployment
-#   If keycloak is installed, limit Istio proxy based communication to the keycloak service only.  Other
-#   outbound requests (scrapings) are done by prometheus using the mounted istio certs.
-#
-#   If keycloak is not installed, exclude Istio sidecar for metrics scraping
-function patch_prometheus {
-  if [ $(is_prometheus_console_enabled) == "false" ]; then
-    log "Skipping patch of Prometheus because the console is not enabled"
-    return 0
-  fi
-
-  log "Waiting for the deployment vmi-system-prometheus-0 in verrazzano-system to be ready"
-  wait_for_deployment ${VERRAZZANO_NS} vmi-system-prometheus-0
-  if [ $? -ne 0 ]; then
-    log "Skipping patch of Prometheus because deployment not found"
-    return 0
-  fi
-
-  if [ $(is_keycloak_enabled) == "true" ]; then
-    # get the keycloak service IP
-    keycloak_service_ip=$(kubectl get service/keycloak-http -n keycloak -o jsonpath='{.spec.clusterIP}')
-    log "Setting ${keycloak_service_ip} as keycloak http pod IP for prometheus deployment"
-    # patch the prometheus deployment
-    if ! kubectl patch deployment vmi-system-prometheus-0 -n ${VERRAZZANO_NS} --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1includeOutboundIPRanges", "value":'\"${keycloak_service_ip}'/32"}]'; then
-      fail "Failed to patch the prometheus deployment"
-    fi
-  else
-    # Avoid the Istio sidecar for metrics scraping
-    log "Setting 0.0.0.0/0 as excludeOutboundIPRanges for prometheus deployment"
-    if ! kubectl patch deployment vmi-system-prometheus-0 -n ${VERRAZZANO_NS} --type='json' -p='[{"op": "add", "path": "/spec/template/metadata/annotations/traffic.sidecar.istio.io~1excludeOutboundIPRanges", "value": "0.0.0.0/0"}]'; then
-      fail "Failed to patch the prometheus deployment"
-    fi
-  fi
-}
-
 DNS_TARGET_NAME=verrazzano-ingress.${ENV_NAME}.${DNS_SUFFIX}
 REGISTRY_SECRET_EXISTS=$(check_registry_secret_exists)
 
@@ -583,8 +551,6 @@ if [ $(is_keycloak_enabled) == "true" ]; then
 else
   log "Skip Keycloak installation, disabled"
 fi
-
-action "patching the prometheus deployment" patch_prometheus || exit 1
 
 rm -rf $TMP_DIR
 
@@ -619,15 +585,13 @@ if [ $console_count -gt 0 ];then
   display_warning_for_secret="true"
   consoleout
   if [ $console_count -eq 1 ];then
-    consoleout "Verrazzano provides the following user interface."
+    consoleout "Verrazzano provides one user interface."
   else
     consoleout "Verrazzano provides various user interfaces."
   fi
   consoleout
-  for consoleValue in "${consoleArr[@]}"
-  do
-    consoleout "$consoleValue"
-  done
+  consoleout "To get the URL for each Verrazzano interface, run the following command:"
+  consoleout "kubectl get vz -o jsonpath={.items[].status.instance} | jq ."
   consoleout
   if [ $console_count -eq 1 ];then
     consoleout "You will need the credentials to access the preceding user interface. The user interface can be accessed by the username/password."

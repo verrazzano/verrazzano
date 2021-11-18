@@ -41,7 +41,7 @@ var dispatchFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot stri
 
 // AnalyzeVerrazzanoInstallIssue is called when we have reason to believe that the installation has failed
 func AnalyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	// Skip if it is not the verrazzano install job pod
+	// Skip if it is not the Verrazzano install job pod
 	if !IsVerrazzanoInstallJobPod(pod) {
 		return nil
 	}

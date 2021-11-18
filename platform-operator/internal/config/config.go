@@ -12,6 +12,8 @@ import (
 const (
 	rootDir                  = "/verrazzano"
 	platformDirSuffix        = "/platform-operator"
+	manifestsDirSuffix       = "/platform-operator/manifests"
+	profilesDirSuffix        = "/platform-operator/manifests/profiles"
 	installDirSuffix         = "/platform-operator/scripts/install"
 	thirdPartyDirSuffix      = "/platform-operator/thirdparty/charts"
 	helmConfigDirSuffix      = "/platform-operator/helm_config"
@@ -28,6 +30,9 @@ var bomFilePathOverride string
 
 // TestHelmConfigDir is needed for unit tests
 var TestHelmConfigDir string
+
+// TestProfilesDir is needed for unit tests
+var TestProfilesDir string
 
 // OperatorConfig specfies the Verrazzano Platform Operator Config
 type OperatorConfig struct {
@@ -53,7 +58,7 @@ type OperatorConfig struct {
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
-	// VerrazzanoRootDir is the root verrazzano directory in the image
+	// VerrazzanoRootDir is the root Verrazzano directory in the image
 	VerrazzanoRootDir string
 
 	// DryRun Run installs in a dry-run mode
@@ -137,6 +142,18 @@ func GetThirdPartyDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, thirdPartyDirSuffix)
 }
 
+// GetProfilesDir returns the profiles dir
+func GetProfilesDir() string {
+	if TestProfilesDir != "" {
+		return TestProfilesDir
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, profilesDirSuffix)
+}
+
+func GetProfile(profile string) string {
+	return filepath.Join(GetProfilesDir(), profile+".yaml")
+}
+
 // SetDefaultBomFilePath Sets the global default location for the BOM file
 func SetDefaultBomFilePath(p string) {
 	bomFilePathOverride = p
@@ -148,6 +165,11 @@ func GetDefaultBOMFilePath() string {
 		return bomFilePathOverride
 	}
 	return filepath.Join(GetPlatformDir(), defaultBomFilename)
+}
+
+// GetManifestsDir() return the manifests dir
+func GetManifestsDir() string {
+	return filepath.Join(instance.VerrazzanoRootDir, manifestsDirSuffix)
 }
 
 func GetInjectedSystemNamespaces() []string {

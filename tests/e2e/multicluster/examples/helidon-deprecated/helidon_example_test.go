@@ -163,8 +163,9 @@ var _ = Describe("Multi-cluster verify hello-helidon", func() {
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	Context("Metrics", func() {
 		It("Verify Prometheus metrics exist on admin cluster", func() {
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 			Eventually(func() bool {
-				var m = map[string]string{"managed_cluster": clusterName}
+				var m = map[string]string{clusterNameMetricsLabel: clusterName}
 				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})

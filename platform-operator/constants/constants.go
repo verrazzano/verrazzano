@@ -12,7 +12,7 @@ const VerrazzanoSystemNamespace = "verrazzano-system"
 // VerrazzanoInstallNamespace is the namespace that the platform operator lives in
 const VerrazzanoInstallNamespace = "verrazzano-install"
 
-// Verrazzano is the name of the verrazzano secret in the Verrazzano system namespace
+// Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 
 // VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
@@ -48,7 +48,7 @@ const AdminClusterConfigMapName = "verrazzano-admin-cluster"
 // ServerDataKey is the key into ConfigMap data for cluster server address
 const ServerDataKey = "server"
 
-// VzConsoleIngress - the name of the ingress for verrazzano console and api
+// VzConsoleIngress - the name of the ingress for Verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
 
 // KeycloakIngress - the name of the ingress for Keycloak console and api
@@ -87,8 +87,35 @@ const GlobalImagePullSecName = "verrazzano-container-registry"
 // IngressNginxNamespace is the nginx ingress namespace name
 const IngressNginxNamespace = "ingress-nginx"
 
+// IstioSystemNamespace - the Istio system namespace
+const IstioSystemNamespace = "istio-system"
+
 //  KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
 
+// VerrazzanoAuthProxyServiceName is the name of the Verrazzano auth proxy service
+const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
+
+// VerrazzanoAuthProxyServicePort is the port exposed by the Verrazzano auth proxy service
+const VerrazzanoAuthProxyServicePort = 8775
+
+// VerrazzanoSystemTLSSecretName is the name of the system TLS secret
+const VerrazzanoSystemTLSSecretName = "system-tls"
+
 // The default name for install environment
 const DefaultEnvironmentName = "default"
+
+// Verrazzano version string for 1.0.0
+const VerrazzanoVersion1_0_0 = "1.0.0"
+
+// Verrazzano version string for 1.1.0
+const VerrazzanoVersion1_1_0 = "1.1.0"
+
+// VerrazzanoRestartAnnotation is the annotation used to restart platform workloads
+const VerrazzanoRestartAnnotation = "verrazzano.io/restartedAt"
+
+// UpgradeRetryVersion is the restart version annotation field
+const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
+
+// ObservedUpgradeRetryVersion is the previous restart version annotation field
+const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"

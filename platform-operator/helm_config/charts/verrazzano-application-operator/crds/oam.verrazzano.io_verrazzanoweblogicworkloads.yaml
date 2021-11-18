@@ -51,9 +51,16 @@ spec:
             description: VerrazzanoWebLogicWorkloadStatus defines the observed state
               of VerrazzanoWebLogicWorkload
             properties:
-              currentUpgradeVersion:
-                description: CurrentUpgradeVersion is the version that was specified
-                  when the application was last upgraded with Verrazzano
+              lastGeneration:
+                description: LastGeneration is the last generation of the spec that
+                  was reconciled
+                type: string
+              lastLifecycleAction:
+                description: LastLifecycleAction is the last value of the verrazzano.io/lifecycle-action
+                type: string
+              lastRestartVersion:
+                description: LastRestartVersion is the last value of the verrazzano.io/restart-version
+                  annotation
                 type: string
             type: object
         type: object

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 )
 
 // TestConvertAPIVersionToGroupAndVersion tests multiple use cases for parsing APIVersion
@@ -37,21 +36,4 @@ func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
 	g, v = ConvertAPIVersionToGroupAndVersion("version")
 	assert.Equal("", g)
 	assert.Equal("version", v)
-}
-
-// TestIsWorkloadMarkedForUpgrade tests IsWorkloadMarkedForUpgrade to ensure that it returns the correct response
-// based on a map of annotations and a current version.
-func TestIsWorkloadMarkedForUpgrade(t *testing.T) {
-	assert := asserts.New(t)
-	annotations := map[string]string{"foo": "bar", constants.AnnotationUpgradeVersion: "12345"}
-
-	// GIVEN a current upgrade version that matches the corresponding annotation
-	// WHEN IsWorkloadMarkedForUpgrade is called
-	// THEN false is returned
-	assert.False(IsWorkloadMarkedForUpgrade(annotations, "12345"))
-
-	// GIVEN a current upgrade version that doesn't match the corresponding annotation
-	// WHEN IsWorkloadMarkedForUpgrade is called
-	// THEN true is returned
-	assert.True(IsWorkloadMarkedForUpgrade(annotations, "99999"))
 }

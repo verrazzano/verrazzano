@@ -28,6 +28,7 @@ pipeline {
         string (description: 'The target version (major.minor.patch format, e.g. 1.0.1)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
         booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
+        booleanParam (description: 'Only create release branch (skips release validation, build, and image push)', name: 'CREATE_BRANCH_ONLY', defaultValue: false)
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: false)
     }
 
@@ -93,8 +94,8 @@ pipeline {
         stage('Pipeline inputs validation') {
             steps {
                 script {
-                    // major or minor release should be leveraging master branch and have a target version that ends in 0
-                    if ((params.TEST_RUN || env.BRANCH_NAME.equals('master')) && params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
+                    // major or minor release has a target version that ends in 0
+                    if (params.TARGET_VERSION =~ /^\d+\.\d+\.0$/) {
                         echo "major/minor release detected. test=${params.TEST_RUN}"
                         IS_PATCH_RELEASE = 'false'
                     // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
@@ -108,12 +109,20 @@ pipeline {
                         error "Invalid source branch ${env.GIT_BRANCH} or a mismatch between source branch and the specified target version ${params.TARGET_VERSION}"
                     }
 
+                    // if CREATE_BRANCH_ONLY is checked, make sure the source branch is master
+                    if (!params.TEST_RUN && params.CREATE_BRANCH_ONLY && env.BRANCH_NAME != "master") {
+                        error "Release branch must be created from master, ${env.BRANCH_NAME} is an invalid source branch"
+                    }
+
                     echo "Patch release? ${IS_PATCH_RELEASE}"
                 }
             }
         }
 
         stage('Pre-release validation') {
+            when {
+                expression { !params.CREATE_BRANCH_ONLY }
+            }
             environment {
                 IGNORE_FAILURES = "${params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES}"
                 JIRA_USERNAME = credentials('jira-username')
@@ -151,6 +160,9 @@ pipeline {
                 }
 
                 stage('Verrazzano Build') {
+                    when {
+                        expression { !params.CREATE_BRANCH_ONLY }
+                    }
                     steps {
                         script {
                             if (IS_PATCH_RELEASE == 'true') {
@@ -180,14 +192,16 @@ pipeline {
 
                         retry(count: env.BUILD_RETRIES) {
                             script {
-                                echo "Triggering Verrazzano build for release"
+                                echo "Triggering Verrazzano build for release, this will wait for triggered tests to finish"
                                 releaseBuild = build job: "${RELEASE_JOB_NAME}",
                                     parameters: [
                                         booleanParam(name: 'RUN_ACCEPTANCE_TESTS', value: true),
                                         booleanParam(name: 'RUN_SLOW_TESTS', value: true),
                                         booleanParam(name: 'TRIGGER_FULL_TESTS', value: true),
+                                        booleanParam(name: 'WAIT_FOR_TRIGGERED', value: true),
                                         booleanParam(name: 'GENERATE_TARBALL', value: true),
-                                        booleanParam(name: 'GENERATE_TOOL', value: true)
+                                        booleanParam(name: 'GENERATE_TOOL', value: true),
+                                        booleanParam(name: 'PUSH_TO_OCIR', value: true)
                                     ], wait: true
                             }
                         }
@@ -206,7 +220,10 @@ pipeline {
 
         stage('Push images to OCR') {
             when {
-                expression { !params.TEST_RUN }
+                allOf {
+                    expression { !params.TEST_RUN }
+                    expression { !params.CREATE_BRANCH_ONLY }
+                }
             }
             steps {
                 retry(count: env.BUILD_RETRIES) {

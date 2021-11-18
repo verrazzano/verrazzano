@@ -7,16 +7,20 @@
 SECONDS=0
 retval_success=1
 retval_failed=1
-while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]; do
-  sleep 5
+i=0
+
+while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 30 ]]  ; do
+  sleep 60
   output=$(kubectl wait --for=condition=InstallFailed verrazzano/my-verrazzano --timeout=0 2>&1)
   retval_failed=$?
   output=$(kubectl wait --for=condition=InstallComplete verrazzano/my-verrazzano --timeout=0 2>&1)
   retval_success=$?
+  i=$((i+1))
 done
 
-if [ $retval_failed -eq 0 ]; then
+if [[ $retval_failed -eq 0 ]] || [[ $i -eq 30 ]] ; then
     echo "Installation Failed"
+    kubectl get vz my-verrazzano -o yaml
     exit 1
 fi
 

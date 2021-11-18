@@ -6,7 +6,6 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -25,16 +24,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const waitTimeout = 10 * time.Minute
 const pollingInterval = 10 * time.Second
 
 const testNamespace = "multiclustertest"
-const anotherTestNamespace = "anothermulticlustertest"
+const permissionTest1Namespace = "permissions-test1-ns"
+const permissionTest2Namespace = "permissions-test2-ns"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
+var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+
+const vpTest1 = "permissions-test1"
+const vpTest2 = "permissions-test2"
 
 var _ = BeforeSuite(func() {
 	// Do set up for multi cluster tests
@@ -84,13 +88,13 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		It("admin cluster - verify mc secret", func() {
 			Eventually(func() (bool, error) {
-				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+				return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 
 			Eventually(func() bool {
 				// Verify we have the expected status update
 				secret := clustersv1alpha1.MultiClusterSecret{}
-				err := getMultiClusterResource(anotherTestNamespace, "mymcsecret", &secret)
+				err := getMultiClusterResource(permissionTest1Namespace, "mymcsecret", &secret)
 				pkg.Log(pkg.Debug, fmt.Sprintf("Size of clusters array: %d", len(secret.Status.Clusters)))
 				if len(secret.Status.Clusters) > 0 {
 					pkg.Log(pkg.Debug, string("cluster reported status: "+secret.Status.Clusters[0].State))
@@ -137,12 +141,12 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
-						return findSecret(anotherTestNamespace, "mymcsecret")
+						return findSecret(permissionTest1Namespace, "mymcsecret")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find secret")
 				},
 				func() {
 					Eventually(func() (bool, error) {
-						return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+						return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 				},
 			)
@@ -161,19 +165,19 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -181,23 +185,23 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		It("managed cluster can access MultiClusterSecret but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
-				return findMultiClusterSecret(anotherTestNamespace, "mymcsecret")
+				return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_update.yaml", &v1.Secret{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &v1.Secret{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -205,50 +209,71 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 		It("managed cluster can access OAM Component but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
-				return findOAMComponent(anotherTestNamespace, "oam-component")
+				return findOAMComponent(permissionTest1Namespace, "oam-component")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		It("managed cluster can access secrets but not modify it on admin", func() {
+		It("managed cluster can access secrets on admin from a namespace placed by a VerrazzanoProject", func() {
 			Eventually(func() (bool, error) {
-				return findSecret(anotherTestNamespace, "mysecret")
+				return findSecret(permissionTest1Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := CreateOrUpdateResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from CreateOrUpdateResourceFromFile")
+					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := DeleteResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+				err := pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from DeleteResourceFromFile")
+					return false, goerrors.New("expected error from DeleteResourceFromFile")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+		})
+
+		It("managed cluster cannot access secrets on admin for namespaces not placed by a VerrazzanoProject", func() {
+
+			// Expect success while namespace is placed on the managed cluster
+			Eventually(func() (bool, error) {
+				return findSecret(permissionTest2Namespace, "mysecret")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
+			// Change the placement to be on the admin cluster
+			pkg.Log(pkg.Info, fmt.Sprintf("Change the placement of the namespace %s to be on the admin cluster", permissionTest2Namespace))
+			Eventually(func() error {
+				return pkg.CreateOrUpdateResourceFromFileInCluster("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", adminKubeconfig)
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+			// Wait for the project resource to be deleted from the managed cluster
+			pkg.Log(pkg.Info, "Wait for the VerrazzanoProject to be removed from the managed cluster")
+			Eventually(func() (bool, error) {
+				return pkg.DoesVerrazzanoProjectExistInCluster(vpTest2, managedKubeconfig)
+			}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest2))
+			Eventually(func() (bool, error) {
+				return findSecret(permissionTest2Namespace, "mysecret")
+			}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected to get a forbidden error")
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
@@ -263,7 +288,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := updateObject(&cluster)
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from updateObject")
+					return false, goerrors.New("expected error from updateObject")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -272,7 +297,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := deleteObject(&cluster)
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from deleteObject")
+					return false, goerrors.New("expected error from deleteObject")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -284,7 +309,7 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
+					return false, goerrors.New("expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
@@ -292,38 +317,21 @@ var _ = Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 				err := listResource("verrazzano-mc", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
 				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
+					return false, goerrors.New("expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "expected to get a forbidden error")
 			Eventually(func() (bool, error) {
 				err := listResource(testNamespace, &v1.ConfigMapList{})
 				// if we didn't get an error, fail immediately
 				if err == nil {
-					return false, goerrors.New("Expected error from listResource")
+					return false, goerrors.New("expected error from listResource")
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 	})
 })
-
-// CreateOrUpdateResourceFromFile creates or updates a resource using the provided yaml file
-func CreateOrUpdateResourceFromFile(yamlFile string, object runtime.Object) error {
-	found, err := pkg.FindTestDataFile(yamlFile)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := ioutil.ReadFile(found)
-	if err != nil {
-		return fmt.Errorf("failed to read test data file: %w", err)
-	}
-	err = yaml.Unmarshal(bytes, object)
-	if err != nil {
-		return err
-	}
-	return updateObject(object)
-}
 
 // updateObject updates a resource using the provided object
 func updateObject(object runtime.Object) error {
@@ -337,23 +345,6 @@ func updateObject(object runtime.Object) error {
 	}
 
 	return err
-}
-
-// DeleteResourceFromFile deletes a resource using the provided yaml file and object reference
-func DeleteResourceFromFile(yamlFile string, object runtime.Object) error {
-	found, err := pkg.FindTestDataFile(yamlFile)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := ioutil.ReadFile(found)
-	if err != nil {
-		return fmt.Errorf("failed to read test data file: %w", err)
-	}
-	err = yaml.Unmarshal(bytes, object)
-	if err != nil {
-		return err
-	}
-	return deleteObject(object)
 }
 
 // deleteObject deletes the given object
@@ -371,10 +362,13 @@ func deployTestResources() {
 
 	os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 
-	// create the test project
-	pkg.Log(pkg.Info, "Creating test project")
+	// create the test projects
+	pkg.Log(pkg.Info, "Creating test projects")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the namespaces to be created
@@ -383,31 +377,37 @@ func deployTestResources() {
 		return pkg.DoesNamespaceExist(testNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", testNamespace))
 	Eventually(func() (bool, error) {
-		return pkg.DoesNamespaceExist(anotherTestNamespace)
-	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", anotherTestNamespace))
+		return pkg.DoesNamespaceExist(permissionTest1Namespace)
+	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", permissionTest1Namespace))
+	Eventually(func() (bool, error) {
+		return pkg.DoesNamespaceExist(permissionTest2Namespace)
+	}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find namespace %s", permissionTest2Namespace))
 
 	// create a MC config map
 	pkg.Log(pkg.Info, "Creating MC config map")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a MC secret
 	pkg.Log(pkg.Info, "Creating MC secret")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a OAM Component
 	pkg.Log(pkg.Info, "Creating OAM Component")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a k8s secret
-	pkg.Log(pkg.Info, "Creating k8s secret")
+	pkg.Log(pkg.Info, "Creating k8s secrets")
 	Eventually(func() error {
-		return CreateOrUpdateResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
@@ -420,31 +420,74 @@ func undeployTestResources() {
 	// delete a MC config map
 	pkg.Log(pkg.Info, "Deleting MC config map")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml", &clustersv1alpha1.MultiClusterConfigMap{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a MC secret
 	pkg.Log(pkg.Info, "Deleting MC secret")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/multicluster_secret.yaml", &clustersv1alpha1.MultiClusterSecret{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a OAM Component
 	pkg.Log(pkg.Info, "Deleting OAM Component")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/oam_component.yaml", &oamv1alpha2.Component{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	// delete a k8s secret
-	pkg.Log(pkg.Info, "Deleting k8s secret")
+	// delete k8s secrets
+	pkg.Log(pkg.Info, "Deleting k8s secrets")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/secret.yaml", &v1.Secret{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	// delete the test project
-	pkg.Log(pkg.Info, "Deleting test project")
+	// delete the test projects
+	pkg.Log(pkg.Info, "Deleting test projects")
 	Eventually(func() error {
-		return DeleteResourceFromFile("testdata/multicluster/verrazzanoproject-permissiontest.yaml", &clustersv1alpha1.VerrazzanoProject{})
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	Eventually(func() error {
+		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	// Wait for the project resources to be deleted from the managed cluster
+	pkg.Log(pkg.Info, "Wait for the VerrazzanoProject resources to be removed from the managed cluster")
+	Eventually(func() (bool, error) {
+		return pkg.DoesVerrazzanoProjectExistInCluster(vpTest1, managedKubeconfig)
+	}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest1))
+	Eventually(func() (bool, error) {
+		return pkg.DoesVerrazzanoProjectExistInCluster(vpTest2, managedKubeconfig)
+	}, waitTimeout, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected VerrazzanoProject %s to be removed from managed cluster", vpTest2))
+
+	// delete the test namespaces
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", permissionTest1Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest1Namespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on managed cluster", permissionTest1Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest1Namespace, managedKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", permissionTest2Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest2Namespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on managed cluster", permissionTest2Namespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(permissionTest2Namespace, managedKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on admin cluster", testNamespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("Deleting namespace %s on managed cluster", testNamespace))
+	Eventually(func() error {
+		return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 }
 
@@ -456,6 +499,10 @@ func findSecret(namespace, name string) (bool, error) {
 	}
 	secretList := v1.SecretList{}
 	err = clustersClient.List(context.TODO(), &secretList, &client.ListOptions{Namespace: namespace})
+	// Handle the case of forbidden as secret not found
+	if err != nil && errors.IsForbidden(err) {
+		return false, nil
+	}
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to list secrets with error: %v", err))
 		return false, err
@@ -564,7 +611,7 @@ func findOAMComponent(namespace, name string) (bool, error) {
 func getClustersClient() (client.Client, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", os.Getenv(k8sutil.EnvVarTestKubeConfig))
 	if err != nil {
-		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to build config from %s with error: %v", os.Getenv(k8sutil.EnvVarTestKubeConfig), err)))
+		pkg.Log(pkg.Error, fmt.Sprintf("failed to build config from %s with error: %v", os.Getenv(k8sutil.EnvVarTestKubeConfig), err))
 		return nil, err
 	}
 
@@ -577,7 +624,7 @@ func getClustersClient() (client.Client, error) {
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {
-		pkg.Log(pkg.Error, (fmt.Sprintf("Failed to get clusters client with error: %v", err)))
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get clusters client with error: %v", err))
 		return nil, err
 	}
 	return clustersClient, nil

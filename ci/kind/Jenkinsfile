@@ -236,7 +236,7 @@ pipeline {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
                             }
-                            // enable debug logging of verrazzano api istio proxy
+                            // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
                                     sh '''
@@ -403,6 +403,7 @@ pipeline {
                             steps {
                                 runSocksVariant('helidon')
                                 runSocksVariant('micronaut')
+                                runSocksVariant('spring')
                             }
                         }
                         stage('examples spring') {
@@ -540,11 +541,8 @@ pipeline {
                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}"
             script {
-                if (env.BRANCH_NAME == "master") {
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
             }

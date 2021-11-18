@@ -13,11 +13,13 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -51,6 +53,7 @@ const (
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
 	prometheusJobNameLabel       = "job_name"
+	prometheusClusterNameLabel   = "verrazzano_cluster"
 
 	// Annotation names for metrics read by the controller
 	prometheusPortAnnotation = "prometheus.io/port"
@@ -73,11 +76,12 @@ const (
 	basicPathPasswordLabel = "password"
 
 	// Template placeholders for the Prometheus scrape config template
-	appNameHolder     = "##APP_NAME##"
-	compNameHolder    = "##COMP_NAME##"
-	jobNameHolder     = "##JOB_NAME##"
-	namespaceHolder   = "##NAMESPACE##"
-	sslProtocolHolder = "##SSL_PROTOCOL##"
+	appNameHolder       = "##APP_NAME##"
+	compNameHolder      = "##COMP_NAME##"
+	jobNameHolder       = "##JOB_NAME##"
+	namespaceHolder     = "##NAMESPACE##"
+	sslProtocolHolder   = "##SSL_PROTOCOL##"
+	vzClusterNameHolder = "##VERRAZZANO_CLUSTER_NAME##"
 
 	// Roles for use in qualified resource relations
 	scraperRole = "scraper"
@@ -103,6 +107,10 @@ kubernetes_sd_configs:
     names:
     - ##NAMESPACE##
 relabel_configs:
+- action: replace
+  source_labels: null
+  target_label: ` + prometheusClusterNameLabel + `
+  replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
   source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
   regex: true;##APP_NAME##;##COMP_NAME##
@@ -144,6 +152,10 @@ kubernetes_sd_configs:
     names:
     - ##NAMESPACE##
 relabel_configs:
+- action: replace
+  source_labels: null
+  target_label: ` + prometheusClusterNameLabel + `
+  replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
   source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
   regex: true;##APP_NAME##;##COMP_NAME##
@@ -426,43 +438,54 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, err
 	}
-	configmap := &k8score.ConfigMap{
-		TypeMeta:   metav1.TypeMeta{APIVersion: k8score.SchemeGroupVersion.Identifier(), Kind: configMapKind},
-		ObjectMeta: metav1.ObjectMeta{Namespace: deployment.Namespace, Name: configmapName},
+
+	configmap := &k8score.ConfigMap{}
+	err = r.Get(ctx, client.ObjectKey{Namespace: deployment.Namespace, Name: configmapName}, configmap)
+	if err != nil {
+		// Don't create the config map if it doesn't already exist - that is the sole responsibility of
+		// the Verrazzano Monitoring Operator
+		return rel, controllerutil.OperationResultNone, client.IgnoreNotFound(err)
 	}
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, configmap, func() error {
-		if configmap.CreationTimestamp.IsZero() {
-			r.Log.V(1).Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
-		} else {
-			r.Log.V(1).Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
-		}
-		yamlStr, exists := configmap.Data[prometheusConfigKey]
-		if !exists {
-			yamlStr = ""
-		}
-		prometheusConf, err := parseYAMLString(yamlStr)
-		if err != nil {
-			return err
-		}
-		prometheusConf, err = mutatePrometheusScrapeConfig(ctx, trait, traitDefaults, prometheusConf, secret, workload, r.Client)
-		if err != nil {
-			return err
-		}
-		yamlStr, err = writeYAMLString(prometheusConf)
-		if err != nil {
-			return err
-		}
-		if configmap.Data == nil {
-			configmap.Data = map[string]string{}
-		}
-		configmap.Data[prometheusConfigKey] = yamlStr
-		return nil
-	})
+
+	existingConfigmap := configmap.DeepCopyObject()
+
+	if configmap.CreationTimestamp.IsZero() {
+		r.Log.V(1).Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+	} else {
+		r.Log.V(1).Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+	}
+	yamlStr, exists := configmap.Data[prometheusConfigKey]
+	if !exists {
+		yamlStr = ""
+	}
+	prometheusConf, err := parseYAMLString(yamlStr)
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
+	}
+	prometheusConf, err = mutatePrometheusScrapeConfig(ctx, trait, traitDefaults, prometheusConf, secret, workload, r.Client)
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
+	}
+	yamlStr, err = writeYAMLString(prometheusConf)
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
+	}
+	if configmap.Data == nil {
+		configmap.Data = map[string]string{}
+	}
+	configmap.Data[prometheusConfigKey] = yamlStr
+
+	// compare and don't update if unchanged
+	if equality.Semantic.DeepEqual(existingConfigmap, configmap) {
+		return rel, controllerutil.OperationResultNone, nil
+	}
+
+	err = r.Update(ctx, configmap)
 	// If the Prometheus configmap was updated, the VMI Prometheus has ConfigReloader sidecar to signal Prometheus to reload config
-	if res == controllerutil.OperationResultUpdated {
-		return rel, res, nil
+	if err != nil {
+		return rel, controllerutil.OperationResultNone, err
 	}
-	return rel, res, err
+	return rel, controllerutil.OperationResultUpdated, nil
 }
 
 // fetchPrometheusDeploymentFromTrait fetches the Prometheus deployment from information in the trait.
@@ -931,11 +954,12 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 	if workload != nil {
 		// Populate the Prometheus scrape config template
 		context := map[string]string{
-			appNameHolder:     trait.Labels[appObjectMetaLabel],
-			compNameHolder:    trait.Labels[compObjectMetaLabel],
-			jobNameHolder:     job,
-			namespaceHolder:   trait.Namespace,
-			sslProtocolHolder: httpProtocol}
+			appNameHolder:       trait.Labels[appObjectMetaLabel],
+			compNameHolder:      trait.Labels[compObjectMetaLabel],
+			jobNameHolder:       job,
+			namespaceHolder:     trait.Namespace,
+			sslProtocolHolder:   httpProtocol,
+			vzClusterNameHolder: clusters.GetClusterName(ctx, c)}
 
 		var configTemplate string
 		https, err := useHTTPSForScrapeTarget(ctx, c, trait)

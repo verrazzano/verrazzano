@@ -864,7 +864,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"
 	const wildcardDomainKey = "verrazzano.io/dns.wildcard.domain"
 
-	// Extract the domain name from the verrazzano ingress
+	// Extract the domain name from the Verrazzano ingress
 	ingress := k8net.Ingress{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: constants.VzConsoleIngress, Namespace: constants.VerrazzanoSystemNamespace}, &ingress)
 	if err != nil {
@@ -872,7 +872,7 @@ func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (st
 	}
 	externalDNSAnno, ok := ingress.Annotations[externalDNSKey]
 	if !ok || len(externalDNSAnno) == 0 {
-		return "", fmt.Errorf("Annotation %s missing from verrazzano ingress, unable to generate DNS name", externalDNSKey)
+		return "", fmt.Errorf("Annotation %s missing from Verrazzano ingress, unable to generate DNS name", externalDNSKey)
 	}
 
 	domain := externalDNSAnno[len(constants.VzConsoleIngress)+1:]
@@ -907,11 +907,13 @@ func buildDomainNameForWildcard(cli client.Reader, trait *vzapi.IngressTrait, su
 	}
 	var IP string
 	if istio.Spec.Type == corev1.ServiceTypeLoadBalancer {
-		istioIngress := istio.Status.LoadBalancer.Ingress
-		if len(istioIngress) == 0 {
+		if len(istio.Status.LoadBalancer.Ingress) > 0 {
+			IP = istio.Status.LoadBalancer.Ingress[0].IP
+		} else if len(istio.Spec.ExternalIPs) > 0 {
+			IP = istio.Spec.ExternalIPs[0]
+		} else {
 			return "", fmt.Errorf("%s is missing loadbalancer IP", istioIngressGateway)
 		}
-		IP = istioIngress[0].IP
 	} else if istio.Spec.Type == corev1.ServiceTypeNodePort {
 		// Do the equiv of the following command to get the IP
 		// kubectl -n istio-system get pods --selector app=istio-ingressgateway,istio=ingressgateway -o jsonpath='{.items[0].status.hostIP}'

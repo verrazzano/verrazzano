@@ -25,9 +25,12 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 	allAdminMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
 	listOptions := &client.ListOptions{Namespace: namespace}
 	err := s.AdminClient.List(s.Context, &allAdminMCAppConfigs, listOptions)
-	if err != nil {
-		return client.IgnoreNotFound(err)
+	// When placements are changed a forbidden error can be returned.  In this case,
+	// we want to fall through and delete orphaned resources.
+	if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsForbidden(err) {
+		return err
 	}
+
 	for _, mcAppConfig := range allAdminMCAppConfigs.Items {
 		if s.isThisCluster(mcAppConfig.Spec.Placement) {
 			// Synchronize the components referenced by the application

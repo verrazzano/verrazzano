@@ -15,6 +15,7 @@ def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 pipeline {
     options {
         skipDefaultCheckout true
+        copyArtifactPermission('*');
         timestamps ()
     }
 
@@ -36,7 +37,9 @@ pipeline {
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
+        booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
@@ -102,6 +105,10 @@ pipeline {
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+
+        OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
+        OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
+        DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
     }
 
     stages {
@@ -491,18 +498,22 @@ pipeline {
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                             booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                        ], wait: false
+                        ], wait: params.WAIT_FOR_TRIGGERED
                 }
             }
         }
         stage('Zip Build and Test') {
             // If the tests are clean and this is a release branch or GENERATE_TARBALL == true,
-            // generate the Verrazzano full product zip and run the Private Registry tests
+            // generate the Verrazzano full product zip and run the Private Registry tests.
+            // Optionally push images to OCIR for scanning.
             when {
                 allOf {
                     not { buildingTag() }
                     expression {SKIP_TRIGGERED_TESTS == false}
-                    expression{params.GENERATE_TARBALL == true}
+                    anyOf {
+                        expression{params.GENERATE_TARBALL == true};
+                        expression{params.PUSH_TO_OCIR == true};
+                    }
                 }
             }
             stages{
@@ -532,6 +543,33 @@ pipeline {
                         }
                     }
                 }
+                stage("Push Images to OCIR") {
+                    when {
+                        expression{params.PUSH_TO_OCIR == true}
+                    }
+                    steps {
+                        script {
+                            try {
+                                sh """
+                                    echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                                """
+                            } catch(error) {
+                                echo "docker login failed, retrying after sleep"
+                                retry(4) {
+                                    sleep(30)
+                                    sh """
+                                    echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                                    """
+                                }
+                            }
+
+                            sh """
+                                echo "Pushing images to OCIR"
+                                ci/scripts/push_to_ocir.sh
+                            """
+                        }
+                    }
+                }
             }
         }
     }
@@ -551,14 +589,11 @@ pipeline {
                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
-            mail to: "${env.BUILD_NOTIFICATION_TO_EMAIL}", from: "${env.BUILD_NOTIFICATION_FROM_EMAIL}",
-            subject: "Verrazzano: ${env.JOB_NAME} - Failed",
-            body: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}"
             script {
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*") {
-                    if (isPagerDutyEnabled()) {
-                        pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
-                    }
+                if (isPagerDutyEnabled() && env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*") {
+                    pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
+                }
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }

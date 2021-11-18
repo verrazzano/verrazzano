@@ -34,11 +34,20 @@ metrics_path: '/federate'
 params:
   'match[]':
    - '{__name__=~"..*"}'
+# If an existing verrazzano_cluster metric is present, make sure it is always replaced to
+# the right managed cluster name for the cluster. Do this with a metric_relabel_config so it
+# happens at the end i.e. _after_ scraping is completed, before ingesting into data source.
+metric_relabel_configs:
+  - action: replace
+    source_labels:
+    - verrazzano_cluster
+    target_label: verrazzano_cluster
+    replacement: '##CLUSTER_NAME##'
 static_configs:
 - targets:
   - ##HOST##
-  labels:
-    managed_cluster: '##CLUSTER_NAME##'
+  labels: # add the labels if not already present on managed cluster (this will no op if present)
+    verrazzano_cluster: '##CLUSTER_NAME##'
 basic_auth:
   username: verrazzano-prom-internal
   password: ##PASSWORD##

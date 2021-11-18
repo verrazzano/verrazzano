@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
@@ -103,8 +102,13 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the component is enabled, which is the default
-func IsEnabled(_ *v1alpha1.IstioComponent) bool {
+func (i IstioComponent) IsEnabled(context spi.ComponentContext) bool {
 	return true
+}
+
+// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
+func (i IstioComponent) GetMinVerrazzanoVersion() string {
+	return constants.VerrazzanoVersion1_0_0
 }
 
 // Name returns the component name
@@ -212,7 +216,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			deployment.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			deployment.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), deployment); err != nil {
 				return err
 			}
@@ -234,7 +238,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			statefulSet.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), statefulSet); err != nil {
 				return err
 			}
@@ -256,7 +260,7 @@ func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, clie
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+			daemonSet.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 			if err := client.Update(context.TODO(), daemonSet); err != nil {
 				return err
 			}

@@ -45,10 +45,15 @@ https://verrazzano.example.com
 https://verrazzano.xyz.nip.io
 
 # Partial URLs (ie: things that get substitutions at runtime that result in valid URLs)
+https://api.github.com/repos/jetstack/cert-manager/tags
 https://github.com/jetstack/cert-manager/releases/download/v
 https://github.com/projectcalico/calico/releases/download/v
-https://github.com/verrazzano/verrazzano/releases/download/
+https://github.com/verrazzano/verrazzano/releases/download/v
+https://github.com/verrazzano/verrazzano/releases/latest/download/
 
+# Skipping URLs since the code generation manifests are out of date.
+https://git.k8s.io/enhancements/keps/sig-node/20190226-pod-overhead.md
+https://git.k8s.io/enhancements/keps/sig-node/runtime-class.md
 
 # In files we don't own/control
 https://keda.sh/docs/			./platform-operator/thirdparty/charts/ingress-nginx/templates/controller-keda.yaml

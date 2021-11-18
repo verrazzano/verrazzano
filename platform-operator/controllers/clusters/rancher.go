@@ -78,7 +78,7 @@ var rancherHTTPClient requestSender = &httpRequestSender{}
 // registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
 func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log *zap.SugaredLogger) (string, error) {
-	log.Infof("Registering managed cluster in Rancher with name: %s", clusterName)
+	log.Debugf("Registering managed cluster in Rancher with name: %s", clusterName)
 
 	rc := &rancherConfig{baseURL: "https://" + nginxIngressHostName}
 

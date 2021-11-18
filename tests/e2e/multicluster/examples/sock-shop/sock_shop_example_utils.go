@@ -9,6 +9,7 @@ import (
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -177,7 +178,7 @@ func componentExists(kubeconfigPath string, namespace string, component string) 
 
 // resourceExists Check if given resource exists
 func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kubeconfigPath string) bool {
-	config, err := pkg.GetKubeConfigGivenPath(kubeconfigPath)
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not get kube config: %v\n", err))
 		return false

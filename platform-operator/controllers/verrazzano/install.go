@@ -5,11 +5,10 @@ package verrazzano
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"go.uber.org/zap"
@@ -23,24 +22,36 @@ import (
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
 func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
-
 	var requeue bool
 
-	compContext := spi.NewContext(log, r, cr, r.DryRun)
+	compContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		if !comp.IsOperatorInstallSupported() {
 			continue
 		}
-		componentState := cr.Status.Components[comp.Name()].State
-		switch componentState {
+		componentStatus, ok := cr.Status.Components[comp.Name()]
+		if !ok {
+			log.Warn("Did not find status details in map for component %s", comp.Name())
+			continue
+		}
+		switch componentStatus.State {
 		case vzapi.Ready:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			continue
 		case vzapi.Disabled:
-			if !isComponentEnabled(cr, comp.Name()) {
+			if !comp.IsEnabled(compContext) {
 				// User has disabled component in Verrazzano CR, don't install
+				continue
+			}
+			if !isVersionOk(log, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
+				// User needs to do upgrade before this component can be installed
+				log.Infof("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
+					comp.Name(), comp.GetMinVerrazzanoVersion())
 				continue
 			}
 			if err := r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall); err != nil {
@@ -51,7 +62,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		case vzapi.PreInstalling:
 			log.Infof("PreInstalling component %s", comp.Name())
 			if !registry.ComponentDependenciesMet(comp, compContext) {
-				log.Infof("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
+				log.Debugf("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
 				requeue = true
 				continue
 			}
@@ -96,15 +107,23 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 	return ctrl.Result{}, nil
 }
 
-// IsEnabled returns true if the component spec has enabled set to true
-// Enabled=true is the default
-func isComponentEnabled(cr *vzapi.Verrazzano, componentName string) bool {
-	switch componentName {
-	case coherence.ComponentName:
-		return coherence.IsEnabled(cr.Spec.Components.CoherenceOperator)
-	case weblogic.ComponentName:
-		return weblogic.IsEnabled(cr.Spec.Components.WebLogicOperator)
+// Check if the component can be installed in this Verrazzano installation based on version
+// Components might require a specific a minimum version of Verrazzano > 1.0.0
+func isVersionOk(log *zap.SugaredLogger, compVersion string, vzVersion string) bool {
+	if len(vzVersion) == 0 {
+		return true
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		log.Errorf("Unexpected error getting semver from status")
+		return false
+	}
+	compSemver, err := semver.NewSemVersion(compVersion)
+	if err != nil {
+		log.Errorf("Unexpected error getting semver from component")
+		return false
 	}
 
-	return true
+	// return false if VZ version is too low to install component, else true
+	return !vzSemver.IsLessThan(compSemver)
 }

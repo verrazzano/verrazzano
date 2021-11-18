@@ -87,7 +87,7 @@ if [ -n "${CLUSTER_DUMP_DIR}" ]; then
   ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
 fi
 
-# Configure the custom resource to install verrazzano on Kind
+# Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 
 echo "Wait for Operator to be ready"
@@ -109,7 +109,7 @@ until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
   fi
 done
 
-${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump -r ${WORKSPACE}/debug-new-kind-acceptance-tests-cluster-dump/analysis.report
+${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
 
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh

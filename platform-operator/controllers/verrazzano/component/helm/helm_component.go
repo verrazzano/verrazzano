@@ -5,6 +5,7 @@ package helm
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -61,6 +62,9 @@ type HelmComponent struct {
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
+	// IsEnabledFunc is a required function to determine if the component is enabled
+	IsEnabledFunc isEnabledFuncSig
+
 	//SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
@@ -76,10 +80,16 @@ type HelmComponent struct {
 	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
 	// This is for the istio helm components
 	SkipUpgrade bool
+
+	// The minimum required Verrazzano version.
+	MinVerrazzanoVersion string
 }
 
 // Verify that HelmComponent implements Component
 var _ spi.Component = HelmComponent{}
+
+// isEnabledFuncSig is the signature for the isEnabled function
+type isEnabledFuncSig func(context spi.ComponentContext) bool
 
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
 type preInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string) error
@@ -131,6 +141,14 @@ func (h HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
 }
 
+// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by this component
+func (h HelmComponent) GetMinVerrazzanoVersion() string {
+	if len(h.MinVerrazzanoVersion) == 0 {
+		return constants.VerrazzanoVersion1_0_0
+	}
+	return h.MinVerrazzanoVersion
+}
+
 // IsInstalled Indicates whether or not the component is installed
 func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	if context.IsDryRun() {
@@ -157,6 +175,15 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
+// IsEnabled Indicates whether or not a component is enabled for installation
+func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
+	if h.IsEnabledFunc == nil {
+		return true
+	}
+	return h.IsEnabledFunc(context)
+}
+
+// Install installs the component using Helm
 func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
@@ -204,7 +231,9 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	if h.PostInstallFunc != nil {
-		h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
+		if err := h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace)); err != nil {
+			return err
+		}
 	}
 	return nil
 }

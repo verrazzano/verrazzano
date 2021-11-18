@@ -5,21 +5,19 @@ package verrazzano
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"strconv"
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
-
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// The max upgrade failures for a given upgrade attempt is 2
-const failedUpgradeLimit = 2
+// The max upgrade failures for a given upgrade attempt is 5
+const failedUpgradeLimit = 5
 
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
@@ -28,7 +26,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 
 	// Only allow upgrade to retry a certain amount of times during any upgrade attempt.
 	if upgradeFailureCount(cr.Status, cr.Generation) > failedUpgradeLimit {
-		log.Info("Upgrade failure limit reached, upgrade will not be attempted")
+		log.Warn("Upgrade failure limit reached, upgrade will not be attempted")
 		return ctrl.Result{}, nil
 	}
 
@@ -43,13 +41,23 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
-		upgradeContext := spi.NewContext(log, r, cr, r.DryRun)
+		upgradeContext, err := spi.NewContext(log, r, cr, r.DryRun)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+		installed, err := comp.IsInstalled(upgradeContext)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+		if !installed {
+			log.Infof("Skip upgrade for %s, not installed", comp.Name())
+			continue
+		}
 		if err := comp.PreUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
-		err := comp.Upgrade(upgradeContext)
-		if err != nil {
+		if err := comp.Upgrade(upgradeContext); err != nil {
 			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
 				fmtGeneration(cr.Generation), err.Error())
@@ -78,7 +86,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	return ctrl.Result{}, nil
 }
 
-// Return true if verrazzano is installed
+// Return true if Verrazzano is installed
 func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
 	for _, cond := range st.Conditions {
 		if cond.Type == installv1alpha1.InstallComplete {
@@ -121,9 +129,5 @@ func fmtGeneration(gen int64) string {
 }
 
 func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
-	err := prometheus.FixupPrometheusDeployment(log, client)
-	if err != nil {
-		return err
-	}
 	return nil
 }

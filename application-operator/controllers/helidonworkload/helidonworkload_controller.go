@@ -10,6 +10,12 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+
+	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -139,6 +145,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// write out restart-version in helidon deployment
+	if err = r.restartHelidon(ctx, workload.Annotations[constants.RestartVersionAnnotation], &workload, log); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// Prepare the list of resources to reference in status.
 	statusResources := []vzapi.QualifiedResourceRelation{
 		{
@@ -157,11 +168,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		},
 	}
 
-	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) ||
-		workload.Status.CurrentUpgradeVersion != workload.Annotations[constants.AnnotationUpgradeVersion] {
-
+	if !vzapi.QualifiedResourceRelationSlicesEquivalent(statusResources, workload.Status.Resources) {
 		workload.Status.Resources = statusResources
-		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
 		if err := r.Status().Update(ctx, &workload); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -342,5 +350,26 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 	log.Info(fmt.Sprintf("Setting annotations on %s: %v", workload.Name, finalAnnotations))
 	helidon.Spec.Template.Annotations = finalAnnotations
 
+	return nil
+}
+
+func (r *Reconciler) restartHelidon(ctx context.Context, restartVersion string, workload *vzapi.VerrazzanoHelidonWorkload, log logr.Logger) error {
+	if len(restartVersion) > 0 {
+		var deploymentList appsv1.DeploymentList
+		componentNameReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{workload.ObjectMeta.Labels[oam.LabelAppComponent]})
+		appNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{workload.ObjectMeta.Labels[oam.LabelAppName]})
+		selector := labels.NewSelector()
+		selector = selector.Add(*componentNameReq, *appNameReq)
+		err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: workload.Namespace, LabelSelector: selector})
+		if err != nil {
+			return err
+		}
+		for index := range deploymentList.Items {
+			deployment := &deploymentList.Items[index]
+			if err := appconfig.DoRestartDeployment(ctx, r.Client, restartVersion, deployment, log); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }

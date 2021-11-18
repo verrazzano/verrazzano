@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
@@ -57,6 +58,7 @@ func getComponents() []spi.Component {
 		appoper.NewComponent(),
 		mysql.NewComponent(),
 		keycloak.NewComponent(),
+		kiali.NewComponent(),
 		istio.NewComponent(),
 	}
 }
@@ -79,10 +81,10 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 		return false
 	}
 	if len(trace) == 0 {
-		log.Infof("No dependencies declared for %s", c.Name())
+		log.Debugf("No dependencies declared for %s", c.Name())
 		return true
 	}
-	log.Infof("Trace results for %s: %v", c.Name(), trace)
+	log.Debugf("Trace results for %s: %v", c.Name(), trace)
 	for _, value := range trace {
 		if !value {
 			return false

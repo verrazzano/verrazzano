@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -20,7 +21,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -39,13 +39,17 @@ import (
 )
 
 const (
-	specField                       = "spec"
-	destinationRuleAPIVersion       = "networking.istio.io/v1alpha3"
-	destinationRuleKind             = "DestinationRule"
-	loggingNamePart                 = "logging-stdout"
-	loggingMountPath                = "/fluentd/etc/custom.conf"
-	loggingKey                      = "custom.conf"
-	defaultMode               int32 = 400
+	metadataField                         = "metadata"
+	specField                             = "spec"
+	destinationRuleAPIVersion             = "networking.istio.io/v1alpha3"
+	destinationRuleKind                   = "DestinationRule"
+	loggingNamePart                       = "logging-stdout"
+	loggingMountPath                      = "/fluentd/etc/custom.conf"
+	loggingKey                            = "custom.conf"
+	defaultMode                     int32 = 400
+	lastServerStartPolicyAnnotation       = "verrazzano-io/last-server-start-policy"
+	Never                                 = "NEVER"
+	IfNeeded                              = "IF_NEEDED"
 )
 
 const defaultMonitoringExporterData = `
@@ -161,6 +165,7 @@ const defaultMonitoringExporterData = `
   }
 `
 
+var metaAnnotationFields = []string{metadataField, "annotations"}
 var specServerPodFields = []string{specField, "serverPod"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
@@ -169,6 +174,8 @@ var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts"
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
 var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
+var specRestartVersionFields = []string{specField, "restartVersion"}
+var specServerStartPolicyFields = []string{specField, "serverStartPolicy"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec
 // so we can interface with the FLUENTD code
@@ -200,12 +207,18 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanoweblogicworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano weblogic workload")
+	log.Info("Reconciling Verrazzano WebLogic workload")
 
 	// fetch the workload and unwrap the WebLogic resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
 	if err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// Make sure the last generation exists in the status
+	result, err := r.ensureLastGeneration(workload)
+	if err != nil || result.Requeue {
+		return result, err
 	}
 
 	u, err := vznav.ConvertRawExtensionToUnstructured(&workload.Spec.Template)
@@ -236,21 +249,34 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Attempt to get the existing Domain. This is used in the case where we don't want to update the Fluentd image.
 	// In this case we obtain the previous Fluentd image and set that on the new Domain.
 	var existingDomain wls.Domain
+	domainExists := true
 	domainKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
 	if err := r.Get(ctx, domainKey, &existingDomain); err != nil {
 		if k8serrors.IsNotFound(err) {
 			log.Info("No existing domain found")
+			domainExists = false
 		} else {
 			log.Error(err, "An error occurred trying to obtain an existing domain")
 			return reconcile.Result{}, err
 		}
 	}
-	// upgradeApp indicates whether the user has indicated that it is ok to update the application to use the latest
-	// resource values from Verrazzano. An example of this is the Fluentd image used by logging.
-	upgradeApp := controllers.IsWorkloadMarkedForUpgrade(workload.Annotations, workload.Status.CurrentUpgradeVersion)
 
-	// Add the Fluentd sidecar container required for logging to the Domain
-	if err = r.addLogging(ctx, log, workload, upgradeApp, u, &existingDomain); err != nil {
+	// If the domain already exists, make sure that the domain can be restarted.
+	// If the domain cannot be restarted, don't make any domain changes.
+	if domainExists && !r.isOkToRestartWebLogic(workload) {
+		log.Info("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
+		return ctrl.Result{}, nil
+	}
+
+	// If the domain already exists, make sure that the domain can be restarted.
+	// If the domain cannot be restarted, don't make any domain changes.
+	if domainExists && !r.isOkToRestartWebLogic(workload) {
+		log.Info("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
+		return ctrl.Result{}, nil
+	}
+
+	// Add the Fluentd sidecar container required for logging to the Domain.  If the image is old, update it
+	if err = r.addLogging(ctx, log, workload, u, &existingDomain); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -303,7 +329,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// write out the WebLogic resource
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
-		return unstructured.SetNestedField(u.Object, specCopy, specField)
+		// Set the new Domain spec fields from the copy first so we can overlay the lifecycle fields/annotations after,
+		// otherwise they will be lost
+		if err := unstructured.SetNestedField(u.Object, specCopy, specField); err != nil {
+			return err
+		}
+		// If the domain already exists set any fields related to restart
+		if domainExists {
+			setDomainLifecycleFields(log, workload, u)
+		}
+		return nil
 	})
 	if err != nil {
 		log.Error(err, "Error creating or updating WebLogic CR")
@@ -314,11 +349,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	if err = r.updateUpgradeVersionInStatus(ctx, workload); err != nil {
+	if err = r.updateStatusReconcileDone(ctx, workload); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Successfully created WebLogic domain")
+	log.Info("Successfully reconcile the WebLogic workload")
 	return reconcile.Result{}, nil
 }
 
@@ -335,6 +370,37 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	}
 
 	return &workload, nil
+}
+
+// Make sure that the last generation exists in the status
+func (r *Reconciler) ensureLastGeneration(wl *vzapi.VerrazzanoWebLogicWorkload) (ctrl.Result, error) {
+	if len(wl.Status.LastGeneration) > 0 {
+		return ctrl.Result{}, nil
+	}
+
+	// Update the status generation and always requeue
+	wl.Status.LastGeneration = strconv.Itoa(int(wl.Generation))
+	err := r.Status().Update(context.TODO(), wl)
+	return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+}
+
+// Make sure that it is OK to restart WebLogic
+func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload) bool {
+	// Check if user created or changed the restart of lifecycle annotation
+	if wl.Annotations != nil {
+		if wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
+			return true
+		}
+		if wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
+			return true
+		}
+	}
+	if wl.Status.LastGeneration != strconv.Itoa(int(wl.Generation)) {
+		// The spec has changed ok to restart
+		return true
+	}
+	// nothing in the spec or lifecyle annotations has changed
+	return false
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained WebLogic resource
@@ -366,19 +432,8 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, weblogic *uns
 }
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LogInfo
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, upgradeApp bool, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
-	// If the Domain already exists and we don't want to update the Fluentd image, obtain the Fluentd image from the
-	// current Domain
-	var existingFluentdImage string
-	if !upgradeApp {
-		for _, container := range existingDomain.Spec.ServerPod.Containers {
-			if container.Name == logging.FluentdStdoutSidecarName {
-				existingFluentdImage = container.Image
-				break
-			}
-		}
-	}
-
+// If the Fluentd image changed during an upgrade, then the new image will be used
+func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
@@ -417,7 +472,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err := fluentdManager.Apply(logging.NewLogInfo(existingFluentdImage), resource, fluentdPod); err != nil {
+	if _, err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -575,10 +630,25 @@ func (r *Reconciler) createDestinationRule(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *Reconciler) updateUpgradeVersionInStatus(ctx context.Context, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-	if workload.Annotations[constants.AnnotationUpgradeVersion] != workload.Status.CurrentUpgradeVersion {
-		workload.Status.CurrentUpgradeVersion = workload.Annotations[constants.AnnotationUpgradeVersion]
-		return r.Status().Update(ctx, workload)
+// Update the status field with life cyele information as needed
+func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload) error {
+	update := false
+	if wl.Status.LastGeneration != strconv.Itoa(int(wl.Generation)) {
+		wl.Status.LastGeneration = strconv.Itoa(int(wl.Generation))
+		update = true
+	}
+	if wl.Annotations != nil {
+		if wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
+			wl.Status.LastRestartVersion = wl.Annotations[constants.RestartVersionAnnotation]
+			update = true
+		}
+		if wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
+			wl.Status.LastLifecycleAction = wl.Annotations[constants.LifecycleActionAnnotation]
+			update = true
+		}
+	}
+	if update {
+		return r.Status().Update(ctx, wl)
 	}
 	return nil
 }
@@ -774,5 +844,90 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		return err
 	}
 
+	return nil
+}
+
+// If any domainlifecycle start, stop, or restart is requested, then set the appropriate field in the domain resource
+// Note that it is valid to a have new restartVersion value along with a lifecycle action change.  This
+// will not result in additional restarts.
+func setDomainLifecycleFields(log logr.Logger, wl *vzapi.VerrazzanoWebLogicWorkload, domain *unstructured.Unstructured) error {
+	if len(wl.Annotations[constants.LifecycleActionAnnotation]) > 0 && wl.Annotations[constants.LifecycleActionAnnotation] != wl.Status.LastLifecycleAction {
+		action := wl.Annotations[constants.LifecycleActionAnnotation]
+		if strings.EqualFold(action, constants.LifecycleActionStart) {
+			return startWebLogicDomain(log, domain)
+		}
+		if strings.EqualFold(action, constants.LifecycleActionStop) {
+			return stopWebLogicDomain(log, domain)
+		}
+	}
+	if wl.Annotations != nil && wl.Annotations[constants.RestartVersionAnnotation] != wl.Status.LastRestartVersion {
+		return restartWebLogic(log, domain, wl.Annotations[constants.RestartVersionAnnotation])
+	}
+	return nil
+}
+
+// Set domain restart version.  If it is changed from the previous value, then the WebLogic Operator will restart the domain
+func restartWebLogic(log logr.Logger, domain *unstructured.Unstructured, version string) error {
+	err := unstructured.SetNestedField(domain.Object, version, specRestartVersionFields...)
+	if err != nil {
+		log.Error(err, "Error setting restartVersion in domain")
+		return err
+	}
+	return nil
+}
+
+// Set the serverStartPolicy to stop WebLogic domain, return the current serverStartPolicy
+func stopWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
+	// Return if serverStartPolicy is already never
+	currentServerStartPolicy, _, _ := unstructured.NestedString(domain.Object, specServerStartPolicyFields...)
+	if currentServerStartPolicy == Never {
+		return nil
+	}
+
+	// Save the last policy so that it can be used when starting the domain
+	if len(currentServerStartPolicy) == 0 {
+		currentServerStartPolicy = IfNeeded
+	}
+	annos, found, err := unstructured.NestedStringMap(domain.Object, metaAnnotationFields...)
+	if err != nil {
+		log.Error(err, "Error getting domain annotations")
+		return err
+	}
+	if !found {
+		annos = map[string]string{}
+	}
+	annos[lastServerStartPolicyAnnotation] = currentServerStartPolicy
+	err = unstructured.SetNestedStringMap(domain.Object, annos, metaAnnotationFields...)
+	if err != nil {
+		log.Error(err, "Unable to set annotations in domain")
+		return err
+	}
+
+	// set serverStartPolicy to "NEVER" to shutdown the domain
+	err = unstructured.SetNestedField(domain.Object, Never, specServerStartPolicyFields...)
+	if err != nil {
+		log.Error(err, "Unable to set serverStartPolicy in domain")
+		return err
+	}
+	return nil
+}
+
+// Set the serverStartPolicy to start the WebLogic domain
+func startWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) error {
+	var startPolicy = IfNeeded
+
+	// Get the last serverStartPolicy if it exists
+	annos, found, err := unstructured.NestedStringMap(domain.Object, metaAnnotationFields...)
+	if err != nil {
+		log.Error(err, "Error getting domain annotations")
+		return err
+	}
+	if found {
+		oldPolicy := annos[lastServerStartPolicyAnnotation]
+		if len(oldPolicy) > 0 {
+			startPolicy = oldPolicy
+		}
+	}
+	unstructured.SetNestedField(domain.Object, startPolicy, specServerStartPolicyFields...)
 	return nil
 }

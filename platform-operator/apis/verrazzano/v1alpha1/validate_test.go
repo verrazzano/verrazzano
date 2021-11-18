@@ -5,12 +5,13 @@ package v1alpha1
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +22,7 @@ import (
 )
 
 // For unit testing
+const actualBomFilePath = "../../../verrazzano-bom.json"
 const testBomFilePath = "../../../controllers//verrazzano/testdata/test_bom.json"
 const invalidTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom.json"
 const invalidPathTestBomFilePath = "../../../controllers//verrazzano/testdata/invalid_test_bom_path.json"
@@ -38,7 +40,7 @@ func TestValidUpgradeRequestNoCurrentVersion(t *testing.T) {
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
+		Version: "v1.1.0",
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -58,7 +60,7 @@ func TestValidUpgradeRequestCurrentVersionExists(t *testing.T) {
 		Profile: "dev",
 	}
 	newSpec := &VerrazzanoSpec{
-		Version: "v0.17.0",
+		Version: "v1.1.0",
 		Profile: "dev",
 	}
 	assert.NoError(t, ValidateUpgradeRequest(currentSpec, newSpec))
@@ -397,12 +399,26 @@ func TestGetCurrentBomVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
-	expectedVersion, err := semver.NewSemVersion("v0.17.0")
+	expectedVersion, err := semver.NewSemVersion("v1.1.0")
 	assert.NoError(t, err)
 
 	version, err := GetCurrentBomVersion()
 	assert.NoError(t, err)
 	assert.Equal(t, expectedVersion, version)
+}
+
+// TestActualBomFile Tests GetCurrentBomVersion with the actual verrazzano-bom.json that is in this
+// code repo to ensure the file can at least be parsed
+func TestActualBomFile(t *testing.T) {
+	// repeat the test with the _actual_ bom file in the code repository
+	// to make sure it can at least be parsed without an error
+	config.SetDefaultBomFilePath(actualBomFilePath)
+	_, err := GetCurrentBomVersion()
+	absPath, err2 := filepath.Abs(actualBomFilePath)
+	if err2 != nil {
+		absPath = actualBomFilePath
+	}
+	assert.NoError(t, err, "Could not get BOM version from file %s", absPath)
 }
 
 // TestGetCurrentBomVersionFileReadError Tests  getBomVersion() when there is an error reading the BOM file
@@ -591,7 +607,7 @@ func TestValidateEnable(t *testing.T) {
 	}
 }
 
-// TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the verrazzano CR does not exist
+// TestValidateOciDnsSecretBadSecret tests that validate fails if a secret in the Verrazzano CR does not exist
 // GIVEN a Verrazzano spec containing a secret that does not exist
 // WHEN ValidateOciDNSSecret is called
 // THEN an error is returned from ValidateOciDNSSecret
@@ -620,7 +636,7 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	assert.Equal(t, "The secret \"oci-bad-secret\" must be created in the verrazzano-install namespace before installing Verrrazzano for OCI DNS", err.Error())
 }
 
-// TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the verrazzano CR exists
+// TestValidateOciDnsSecretGoodSecret tests that validate succeeds if a secret in the Verrazzano CR exists
 // GIVEN a Verrazzano spec containing a secret that exists
 // WHEN ValidateOciDNSSecret is called
 // THEN success is returned from ValidateOciDNSSecret

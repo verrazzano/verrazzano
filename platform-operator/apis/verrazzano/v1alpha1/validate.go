@@ -12,8 +12,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/semver"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -123,7 +123,7 @@ func ValidateActiveInstall(client client.Client) error {
 
 // ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
 func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
-	if old.Status.State == "" || old.Status.State == Ready {
+	if old.Status.State == "" || old.Status.State == Ready || old.Status.State == Failed {
 		return nil
 	}
 	// Allow enable component during install

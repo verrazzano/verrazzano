@@ -61,7 +61,7 @@ func TestDeleteOnePolicyOneNamespace(t *testing.T) {
 		},
 	}
 	err = ap.Client.Create(context.TODO(), project)
-	assert.NoError(t, err, "Unexpected error creating verrazzano project")
+	assert.NoError(t, err, "Unexpected error creating Verrazzano project")
 
 	// Create a Istio authorization policy in the projects namespace
 	authzPolicy := &clisecurity.AuthorizationPolicy{
@@ -135,7 +135,7 @@ func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 		},
 	}
 	err = ap.Client.Create(context.TODO(), project)
-	assert.NoError(t, err, "Unexpected error creating verrazzano project")
+	assert.NoError(t, err, "Unexpected error creating Verrazzano project")
 
 	// Create a pod for appconfig-name1 in the projects namespace
 	pod := &corev1.Pod{
@@ -324,7 +324,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 		},
 	}
 	err = ap.Client.Create(context.TODO(), project)
-	assert.NoError(t, err, "Unexpected error creating verrazzano project")
+	assert.NoError(t, err, "Unexpected error creating Verrazzano project")
 
 	// Create a pod for appconfig-name1 in the project namespace appconfig-namespace1
 	pod := &corev1.Pod{

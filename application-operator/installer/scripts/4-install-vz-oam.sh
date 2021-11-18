@@ -32,6 +32,11 @@ function install {
     error "Failed to install Verrazzano CRD extensions"
     return 1
   fi
+  kubectl apply -f ${PROJ_DIR}/../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/clusters.verrazzano.io_verrazzanomanagedclusters.yaml
+  if [ $? -ne 0 ]; then
+    error "Failed to install Verrazzano platform operator cluster CRD extensions"
+    return 1
+  fi
 
   log "Installing Verrazzano OAM extensions"
   kubectl apply -f ${PROJ_DIR}/deploy
