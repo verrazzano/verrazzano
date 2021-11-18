@@ -111,7 +111,7 @@ func TestExternalDNSPreInstall(t *testing.T) {
 		&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "oci", Namespace: constants.VerrazzanoInstallNamespace}})
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
-	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz , false))
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
 	assert.NoError(t, err)
 }
 

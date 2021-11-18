@@ -20,10 +20,10 @@ import (
 
 // ComponentName is the name of the component
 const (
-	ComponentName = "external-dns"
-	externalDNSNamespace = "cert-manager"
+	ComponentName             = "external-dns"
+	externalDNSNamespace      = "cert-manager"
 	externalDNSDeploymentName = "external-dns"
-	ociSecretFileName = "oci.yaml"
+	ociSecretFileName         = "oci.yaml"
 )
 
 func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error {
