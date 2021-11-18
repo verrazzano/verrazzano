@@ -188,9 +188,10 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
 	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
-
+	context.Log().Info("Resolved Namespace")
 	failed, err := helm.IsReleaseFailed(h.ReleaseName, resolvedNamespace)
 	if err != nil {
+		context.Log().Errorf("Is Release Failed:, %v", err)
 		return err
 	}
 	if failed {
@@ -205,6 +206,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	// check for global image pull secret
 	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
+		context.Log().Errorf("GlobalImagePullSecret:, %v", err)
 		return err
 	}
 
