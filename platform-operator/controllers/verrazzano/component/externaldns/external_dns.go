@@ -43,11 +43,12 @@ func preInstall(compContext spi.ComponentContext) error {
 
 	// Attach compartment field to secret and apply it in the external DNS namespace
 	externalDNSSecret := v1.Secret{}
-	externalDNSSecret.Data = make(map[string][]byte)
 	compContext.Log().Debug("Creating the external DNS secret")
 	externalDNSSecret.Namespace = externalDNSNamespace
 	externalDNSSecret.Name = dnsSecret.Name
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &externalDNSSecret, func() error {
+		externalDNSSecret.Data = make(map[string][]byte)
+
 		// Verify that the oci secret has one value
 		if len(dnsSecret.Data) != 1 {
 			return fmt.Errorf("OCI secret for OCI DNS should be created from one file")
