@@ -23,8 +23,6 @@ const (
 	adminSecretName        = "rancher-admin-secret"
 	rancherTLSSecretName   = "tls-ca"
 	defaultVerrazzanoName  = "verrazzano-ca-certificate-secret"
-	clusterAgentDeployName = "cattle-cluster-agent"
-	nodeAgentDaemonsetName = "cattle-node-agent"
 )
 
 // Helm Chart setter keys
