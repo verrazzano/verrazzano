@@ -314,6 +314,8 @@ func FindAnyLog(index string, match []Match, mustNot []Match) bool {
 	return found
 }
 
+const numberOfErrorsToLog = 5
+
 // NoLog returns true if no matched log record can be found in the index.
 func NoLog(index string, match []Match, mustNot []Match) bool {
 	query := ElasticQuery{
@@ -330,8 +332,10 @@ func NoLog(index string, match []Match, mustNot []Match) bool {
 	}
 	Log(Error, fmt.Sprintf("Found unexpected %d records", len(hits.([]interface{}))))
 	for i, hit := range hits.([]interface{}) {
-		if i < 10 {
+		if i < numberOfErrorsToLog {
 			Log(Error, fmt.Sprintf("Found unexpected log record: %v", hit))
+		} else {
+			break
 		}
 	}
 	return false
