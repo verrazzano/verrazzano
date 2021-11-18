@@ -10,12 +10,12 @@ import (
 )
 
 func TestNewPrometheusMetricsReceiver(t *testing.T) {
-	cfg := PrometheusMetricsReceiverConfig{PushGatewayUrl: "http://somegateway"}
+	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway"}
 	rcvr, err := NewPrometheusMetricsReceiver(cfg)
 	assert.NoError(t, err)
 	assert.NotNil(t, rcvr)
 
-	cfgWithCreds := PrometheusMetricsReceiverConfig{PushGatewayUrl: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
+	cfgWithCreds := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
 	rcvr, err = NewPrometheusMetricsReceiver(cfgWithCreds)
 	assert.NoError(t, err)
 	assert.NotNil(t, rcvr)
@@ -25,7 +25,7 @@ func TestNewPrometheusMetricsReceiver(t *testing.T) {
 }
 
 func TestPrometheusMetricsReceiver_SetGauge(t *testing.T) {
-	cfg := PrometheusMetricsReceiverConfig{PushGatewayUrl: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
+	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
 	receiver, err := NewPrometheusMetricsReceiver(cfg)
 	assert.NoError(t, err)
 	err = receiver.SetGauge("MyGauge1", 10.5)
@@ -37,7 +37,7 @@ func TestPrometheusMetricsReceiver_SetGauge(t *testing.T) {
 }
 
 func TestPrometheusMetricsReceiver_IncrementCounter(t *testing.T) {
-	cfg := PrometheusMetricsReceiverConfig{PushGatewayUrl: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
+	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
 	receiver, err := NewPrometheusMetricsReceiver(cfg)
 	assert.NoError(t, err)
 	err = receiver.IncrementCounter("MyCounter1")

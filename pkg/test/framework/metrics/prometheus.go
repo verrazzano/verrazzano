@@ -11,7 +11,7 @@ import (
 )
 
 type PrometheusMetricsReceiverConfig struct {
-	PushGatewayUrl      string
+	PushGatewayURL      string
 	PushGatewayUser     string
 	PushGatewayPassword string
 	PushInterval        time.Duration
@@ -58,7 +58,7 @@ func (rcvr *PrometheusMetricsReceiver) IncrementCounter(name string) error {
 
 func NewPrometheusMetricsReceiver(cfg PrometheusMetricsReceiverConfig) (*PrometheusMetricsReceiver, error) {
 	receiver := PrometheusMetricsReceiver{}
-	pusher := push.New(cfg.PushGatewayUrl, cfg.Name)
+	pusher := push.New(cfg.PushGatewayURL, cfg.Name)
 	if cfg.PushGatewayUser != "" && cfg.PushGatewayPassword != "" {
 		pusher = pusher.BasicAuth(cfg.PushGatewayUser, cfg.PushGatewayPassword)
 	}
