@@ -110,7 +110,7 @@ func TestExternalDNSPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "oci",
+				Name:      "oci",
 				Namespace: constants.VerrazzanoInstallNamespace,
 			},
 			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
