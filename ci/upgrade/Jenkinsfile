@@ -564,12 +564,12 @@ pipeline {
                 }
                 stage('examples todo') {
                     steps {
-                        runGinkgo('examples/todo', "true", "false")
+                        runGinkgo('examples/todo', "true", "true")
                     }
                 }
                 stage('examples bobs-books') {
                     steps {
-                        runGinkgo('examples/bobsbooks', "true", "false")
+                        runGinkgo('examples/bobsbooks', "true", "true")
                     }
                 }
             }
@@ -581,14 +581,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-failure-cluster-dump')
+                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-success-cluster-dump')
+                            dumpK8sCluster('post-upgrade-success-cluster-dump')
                         }
                     }
                 }
