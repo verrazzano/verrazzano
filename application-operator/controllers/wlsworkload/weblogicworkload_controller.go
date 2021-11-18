@@ -319,11 +319,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// If the domain already exists set any fields related to restart
-	if domainExists {
-		setDomainLifecycleFields(log, workload, u)
-	}
-
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
 	// if the WebLogic CR exists
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
@@ -334,7 +329,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// write out the WebLogic resource
 	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, u, func() error {
-		return unstructured.SetNestedField(u.Object, specCopy, specField)
+		// Set the new Domain spec fields from the copy first so we can overlay the lifecycle fields/annotations after,
+		// otherwise they will be lost
+		if err := unstructured.SetNestedField(u.Object, specCopy, specField); err != nil {
+			return err
+		}
+		// If the domain already exists set any fields related to restart
+		if domainExists {
+			setDomainLifecycleFields(log, workload, u)
+		}
+		return nil
 	})
 	if err != nil {
 		log.Error(err, "Error creating or updating WebLogic CR")
