@@ -9,13 +9,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"io"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -24,13 +32,26 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 const (
-	dnsTarget = "dnsTarget"
-	rulesHost = "rulesHost"
-	tlsHosts  = "tlsHosts"
-	tlsSecret = "tlsSecret"
+	dnsTarget          = "dnsTarget"
+	rulesHost          = "rulesHost"
+	tlsHosts           = "tlsHosts"
+	tlsSecret          = "tlsSecret"
+	vzSysRealm         = "verrazzano-system"
+	vzUsersGroup       = "verrazzano-users"
+	vzAdminGroup       = "verrazzano-admins"
+	vzMonitorGroup     = "verrazzano-project-monitors"
+	vzSystemGroup      = "verrazzano-system-users"
+	vzAPIAccessRole    = "vz_api_access"
+	vzConsoleUsersRole = "console_users"
+	vzAdminRole        = "Admin"
+	vzViewerRole       = "Viewer"
+	vzUserName         = "verrazzano"
+	vzInternalPromUser = "verrazzano-prom-internal"
+	vzInternalEsUser   = "verrazzano-es-internal"
 )
 
 // Define the keycloak Key:Value pair for init container.
@@ -152,7 +173,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	return kvs, nil
 }
 
-// // getEnvironmentName returns the name of the Verrazzano install environment
+// getEnvironmentName returns the name of the Verrazzano install environment
 func getEnvironmentName(envName string) string {
 	if envName == "" {
 		return constants.DefaultEnvironmentName
@@ -164,36 +185,14 @@ func getEnvironmentName(envName string) string {
 func updateKeycloakUris(ctx spi.ComponentContext) error {
 	var keycloakClients KeycloakClients
 
-	if ctx.EffectiveCR().Spec.Profile != vzapi.ManagedCluster {
-		// Get the Keycloak admin password
-		secret := &corev1.Secret{}
-		err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-			Namespace: "keycloak",
-			Name:      "keycloak-http",
-		}, secret)
+	if isKeycloakEnabled(ctx) {
+		err := loginKeycloak(ctx)
 		if err != nil {
-			ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving Keycloak password: %s", err)
 			return err
 		}
-		pw := secret.Data["password"]
-		keycloakpw := string(pw)
-		if keycloakpw == "" {
-			return errors.New("Keycloak Post Upgrade: Error retrieving Keycloak password")
-		}
-		ctx.Log().Info("Keycloak Post Upgrade: Successfully retrieved Keycloak password")
-
-		// Login to Keycloak
-		cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
-			"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
-		_, err = cmd.Output()
-		if err != nil {
-			ctx.Log().Errorf("Keycloak Post Upgrade: Error logging into Keycloak: %s", err)
-			return err
-		}
-		ctx.Log().Info("Keycloak Post Upgrade: Successfully logged into Keycloak")
 
 		// Get the Client ID JSON array
-		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+		cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 		out, err := cmd.Output()
 		if err != nil {
 			ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving ID for client ID, zero length: %s", err)
@@ -233,5 +232,567 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 		}
 	}
 	ctx.Log().Info("Keycloak Post Upgrade: Successfully Updated Keycloak URIs")
+	return nil
+}
+
+func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw string) error {
+
+	if isKeycloakEnabled(ctx) {
+		// Login to Keycloak
+		err := loginKeycloak(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Create VerrazzanoSystem Realm
+		realm := "realm=" + vzSysRealm
+		cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "realms", "-s", realm, "-s", "enabled=false")
+		out, err := cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano System Realm: command output = %s", out)
+			return err
+		}
+
+		// Create Verrazzano Users Group
+		userGroup := "name=" + vzUsersGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Users Group: command output = %s", out)
+			return err
+		}
+		if len(string(out)) == 0 {
+			return errors.New("configureKeycloakRealm: Error retrieving User Group ID from Keycloak, zero length")
+		}
+		arr := strings.Split(string(out), "'")
+		userGroupID := arr[1]
+		ctx.Log().Infof("configureKeycloakRealm: User Group ID = %s", userGroupID)
+
+		// Create Verrazzano Admin Group
+		adminGroup := "name=" + vzAdminGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", adminGroup)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Group: command output = %s", out)
+			return err
+		}
+		if len(string(out)) == 0 {
+			return errors.New("configureKeycloakRealm: Error retrieving Admin Group ID from Keycloak, zero length")
+		}
+		arr = strings.Split(string(out), "'")
+		adminGroupID := arr[1]
+		ctx.Log().Infof("configureKeycloakRealm: Admin Group ID = %s", adminGroupID)
+
+		// Create Verrazzano Project Monitors Group
+		monitorGroup := "name=" + vzMonitorGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", monitorGroup)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitor Group: command output = %s", out)
+			return err
+		}
+		if len(string(out)) == 0 {
+			return errors.New("configureKeycloakRealm: Error retrieving Monitor Group ID from Keycloak, zero length")
+		}
+		arr = strings.Split(string(out), "'")
+		monitorGroupID := arr[1]
+		ctx.Log().Infof("configureKeycloakRealm: Monitro Group ID = %s", monitorGroupID)
+
+		// Create Verrazzano System Group
+		systemGroup := "name=" + vzSystemGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", systemGroup)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano System Group: command output = %s", out)
+			return err
+		}
+
+		// Create Verrazzano API Access Role
+		apiAccessRole := "name=" + vzAPIAccessRole
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "roles", "-r", vzSysRealm, "-s", apiAccessRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano API Access Role: command output = %s", out)
+			return err
+		}
+
+		// Create Verrazzano Console Users Role
+		consoleUserRole := "name=" + vzConsoleUsersRole
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "roles", "-r", vzSysRealm, "-s", consoleUserRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Console Users Role: command output = %s", out)
+			return err
+		}
+
+		// Create Verrazzano Admin Role
+		adminRole := "name=" + vzAdminRole
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "roles", "-r", vzSysRealm, "-s", adminRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Role: command output = %s", out)
+			return err
+		}
+
+		// Create Verrazzano Viewer Role
+		viewerRole := "name=" + vzViewerRole
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "roles", "-r", vzSysRealm, "-s", viewerRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Viewer Role: command output = %s", out)
+			return err
+		}
+
+		// Granting vz_api_access role to verrazzano users group
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "add-roles", "-r", vzSysRealm, "--gid", userGroupID, "--rolename", vzAPIAccessRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error granting api access role to Verrazzano users group: command output = %s", out)
+			return err
+		}
+
+		// Granting console_users role to verrazzano users group
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "add-roles", "-r", vzSysRealm, "--gid", userGroupID, "--rolename", vzConsoleUsersRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error granting console users role to Verrazzano users group: command output = %s", out)
+			return err
+		}
+
+		// Granting admin role to verrazzano admin group
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "add-roles", "-r", vzSysRealm, "--gid", adminGroupID, "--rolename", vzAdminRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error granting admin role to Verrazzano admin group: command output = %s", out)
+			return err
+		}
+
+		// Granting viewer role to verrazzano monitor group
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "add-roles", "-r", vzSysRealm, "--gid", monitorGroupID, "--rolename", vzViewerRole)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error granting viewer role to Verrazzano monitoring group: command output = %s", out)
+			return err
+		}
+
+		// Creating Verrazzano User
+		vzUser := "username=" + vzUserName
+		vzUserGroups := "groups[0]=/" + vzUsersGroup + "/" + vzAdminGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzUser, "-s", vzUserGroups, "-s", "enabled=true")
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano user: command output = %s", out)
+			return err
+		}
+
+		// Grant realm admin role to Verrazzano user
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "add-roles", "-r", vzSysRealm, "--uusername", vzUserName, "--cclientid", "realm-management", "--rolename", "realm-admin")
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error granting realm admin role to Verrazzano user: command output = %s", out)
+			return err
+		}
+
+		// Set verrazzano user password
+		secret := &corev1.Secret{}
+		err = ctx.Client().Get(context.TODO(), client.ObjectKey{
+			Namespace: "keycloak",
+			Name:      "keycloak-http",
+		}, secret)
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error retrieving Verrazzano password: %s", err)
+			return err
+		}
+		pw := secret.Data["password"]
+		vzpw := string(pw)
+		if vzpw == "" {
+			return errors.New("configureKeycloakRealm: Error retrieving verrazzano password")
+		}
+
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "set-password", "-r", vzSysRealm, "--username", vzUserName, "--new-password", vzpw)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano user password: command output = %s", out)
+			return err
+		}
+
+		// Creating Verrazzano Internal Prometheus User
+		vzPromUser := "username=" + vzInternalPromUser
+		vzPromUserGroups := "groups[0]=/" + vzUsersGroup + "/" + vzSystemGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzPromUser, "-s", vzPromUserGroups, "-s", "enabled=true")
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano internal Prometheus user: command output = %s", out)
+			return err
+		}
+
+		// Set verrazzano internal prom user password
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "set-password", "-r", vzSysRealm, "--username", vzInternalPromUser, "--new-password", prompw)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Prometheus user password: command output = %s", out)
+			return err
+		}
+
+		// Creating Verrazzano Internal ES User
+		vzEsUser := "username=" + vzInternalEsUser
+		vzEsUserGroups := "groups[0]=/" + vzUsersGroup + "/" + vzSystemGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzEsUser, "-s", vzEsUserGroups, "-s", "enabled=true")
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano internal Elasticsearch user: command output = %s", out)
+			return err
+		}
+
+		// Set verrazzano internal ES user password
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "set-password", "-r", vzSysRealm, "--username", vzInternalEsUser, "--new-password", espw)
+		out, err = cmd.Output()
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Elasticsearch user password: command output = %s", out)
+			return err
+		}
+
+		// Get DNS Domain Configuration
+		dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealms: Error retrieving DNS sub domain: %s", err)
+			return err
+		}
+		ctx.Log().Infof("configureKeycloakRealms: DNSDomain returned %s", dnsSubDomain)
+
+		// Create verrazzano-pkce client
+		vzPkceCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r $_VZ_REALM -f - <<\\END\n" +
+			"{\n      " +
+			"\"clientId\" : \"verrazzano-pkce\",\n     " +
+			"\"enabled\": true,\n      \"surrogateAuthRequired\": false,\n      " +
+			"\"alwaysDisplayInConsole\": false,\n      " +
+			"\"clientAuthenticatorType\": \"client-secret\",\n" +
+			"      \"redirectUris\": [\n" +
+			"        \"https://verrazzano." + dnsSubDomain + "/*\",\n" +
+			"        \"https://verrazzano." + dnsSubDomain + "/verrazzano/authcallback\",\n" +
+			"        \"https://elasticsearch.vmi.system." + dnsSubDomain + "/*\",\n" +
+			"        \"https://elasticsearch.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
+			"        \"https://prometheus.vmi.system." + dnsSubDomain + "/*\",\n" +
+			"        \"https://prometheus.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
+			"        \"https://grafana.vmi.system." + dnsSubDomain + "/*\",\n" +
+			"        \"https://grafana.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
+			"        \"https://kibana.vmi.system." + dnsSubDomain + "/*\",\n" +
+			"        \"https://kibana.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
+			"        \"https://kiali.vmi.system." + dnsSubDomain + "/*\",\n" +
+			"        \"https://kiali.vmi.system." + dnsSubDomain + "/_authentication_callback\"\n" +
+			"      ],\n" +
+			"      \"webOrigins\": [\n" +
+			"        \"https://verrazzano." + dnsSubDomain + "\",\n" +
+			"        \"https://elasticsearch.vmi.system." + dnsSubDomain + "\",\n" +
+			"        \"https://prometheus.vmi.system." + dnsSubDomain + "\",\n" +
+			"        \"https://grafana.vmi.system." + dnsSubDomain + "\",\n" +
+			"        \"https://kibana.vmi.system." + dnsSubDomain + "\",\n" +
+			"        \"https://kiali.vmi.system." + dnsSubDomain + "\"\n" +
+			"      ],\n" +
+			"      \"notBefore\": 0,\n" +
+			"      \"bearerOnly\": false,\n" +
+			"      \"consentRequired\": false,\n" +
+			"      \"standardFlowEnabled\": true,\n" +
+			"      \"implicitFlowEnabled\": false,\n" +
+			"      \"directAccessGrantsEnabled\": false,\n" +
+			"      \"serviceAccountsEnabled\": false,\n" +
+			"      \"publicClient\": true,\n" +
+			"      \"frontchannelLogout\": false,\n" +
+			"      \"protocol\": \"openid-connect\",\n" +
+			"      \"attributes\": {\n" +
+			"        \"saml.assertion.signature\": \"false\",\n" +
+			"        \"saml.multivalued.roles\": \"false\",\n" +
+			"        \"saml.force.post.binding\": \"false\",\n" +
+			"        \"saml.encrypt\": \"false\",\n" +
+			"        \"saml.server.signature\": \"false\",\n" +
+			"        \"saml.server.signature.keyinfo.ext\": \"false\",\n" +
+			"        \"exclude.session.state.from.auth.response\": \"false\",\n" +
+			"        \"saml_force_name_id_format\": \"false\",\n" +
+			"        \"saml.client.signature\": \"false\",\n" +
+			"        \"tls.client.certificate.bound.access.tokens\": \"false\",\n" +
+			"        \"saml.authnstatement\": \"false\",\n" +
+			"        \"display.on.consent.screen\": \"false\",\n" +
+			"        \"pkce.code.challenge.method\": \"S256\",\n" +
+			"        \"saml.onetimeuse.condition\": \"false\"\n" +
+			"      },\n" +
+			"      \"authenticationFlowBindingOverrides\": {},\n" +
+			"      \"fullScopeAllowed\": true,\n" +
+			"      \"nodeReRegistrationTimeout\": -1,\n" +
+			"      \"protocolMappers\": [\n" +
+			"          {\n" +
+			"            \"name\": \"groupmember\",\n" +
+			"            \"protocol\": \"openid-connect\",\n" +
+			"            \"protocolMapper\": \"oidc-group-membership-mapper\",\n" +
+			"            \"consentRequired\": false,\n" +
+			"            \"config\": {\n" +
+			"              \"full.path\": \"false\",\n" +
+			"              \"id.token.claim\": \"true\",\n" +
+			"              \"access.token.claim\": \"true\",\n" +
+			"              \"claim.name\": \"groups\",\n" +
+			"              \"userinfo.token.claim\": \"true\"\n" +
+			"            }\n" +
+			"          },\n" +
+			"          {\n" +
+			"            \"name\": \"realm roles\",\n" +
+			"            \"protocol\": \"openid-connect\",\n" +
+			"            \"protocolMapper\": \"oidc-usermodel-realm-role-mapper\",\n" +
+			"            \"consentRequired\": false,\n" +
+			"            \"config\": {\n" +
+			"              \"multivalued\": \"true\",\n" +
+			"              \"user.attribute\": \"foo\",\n" +
+			"              \"id.token.claim\": \"true\",\n" +
+			"              \"access.token.claim\": \"true\",\n" +
+			"              \"claim.name\": \"realm_access.roles\",\n" +
+			"              \"jsonType.label\": \"String\"\n" +
+			"            }\n" +
+			"          }\n" +
+			"        ],\n" +
+			"      \"defaultClientScopes\": [\n" +
+			"        \"web-origins\",\n" +
+			"        \"role_list\",\n" +
+			"        \"roles\",\n" +
+			"        \"profile\",\n" +
+			"        \"email\"\n" +
+			"      ],\n" +
+			"      \"optionalClientScopes\": [\n" +
+			"        \"address\",\n" +
+			"        \"phone\",\n" +
+			"        \"offline_access\",\n" +
+			"        \"microprofile-jwt\"\n" +
+			"      ]\n" +
+			"}\n" +
+			"END"
+
+		config, err := k8sutil.GetKubeConfig()
+		if err != nil {
+			return err
+		}
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			return err
+		}
+		err = ExecCmd(clientset, config, "keycloak-0", vzPkceCreateCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+
+		// Creating verrazzano-pg client
+		vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r $_VZ_REALM -f - <<\\END\n" +
+			"{\n" +
+			"      \"clientId\" : \"verrazzano-pg\",\n" +
+			"      \"enabled\" : true,\n" +
+			"      \"rootUrl\" : \"\",\n" +
+			"      \"adminUrl\" : \"\",\n" +
+			"      \"surrogateAuthRequired\" : false,\n" +
+			"      \"directAccessGrantsEnabled\" : \"true\",\n" +
+			"      \"clientAuthenticatorType\" : \"client-secret\",\n" +
+			"      \"secret\" : \"de05ccdc-67df-47f3-81f6-37e61d195aba\",\n" +
+			"      \"redirectUris\" : [ ],\n" +
+			"      \"webOrigins\" : [ \"+\" ],\n" +
+			"      \"notBefore\" : 0,\n" +
+			"      \"bearerOnly\" : false,\n" +
+			"      \"consentRequired\" : false,\n" +
+			"      \"standardFlowEnabled\" : false,\n" +
+			"      \"implicitFlowEnabled\" : false,\n" +
+			"      \"directAccessGrantsEnabled\" : true,\n" +
+			"      \"serviceAccountsEnabled\" : false,\n" +
+			"      \"publicClient\" : true,\n" +
+			"      \"frontchannelLogout\" : false,\n" +
+			"      \"protocol\" : \"openid-connect\",\n" +
+			"      \"attributes\" : { },\n" +
+			"      \"authenticationFlowBindingOverrides\" : { },\n" +
+			"      \"fullScopeAllowed\" : true,\n" +
+			"      \"nodeReRegistrationTimeout\" : -1,\n" +
+			"      \"protocolMappers\" : [ {\n" +
+			"        \"name\" : \"groups\",\n" +
+			"        \"protocol\" : \"openid-connect\",\n" +
+			"        \"protocolMapper\" : \"oidc-group-membership-mapper\",\n" +
+			"        \"consentRequired\" : false,\n" +
+			"        \"config\" : {\n" +
+			"          \"multivalued\" : \"true\",\n" +
+			"          \"userinfo.token.claim\" : \"false\",\n" +
+			"          \"id.token.claim\" : \"true\",\n" +
+			"          \"access.token.claim\" : \"true\",\n" +
+			"          \"claim.name\" : \"groups\",\n" +
+			"          \"jsonType.label\" : \"String\"\n" +
+			"        }\n" +
+			"      }, {\n" +
+			"        \"name\": \"realm roles\",\n" +
+			"        \"protocol\": \"openid-connect\",\n" +
+			"        \"protocolMapper\": \"oidc-usermodel-realm-role-mapper\",\n" +
+			"        \"consentRequired\": false,\n" +
+			"        \"config\": {\n" +
+			"          \"multivalued\": \"true\",\n" +
+			"          \"user.attribute\": \"foo\",\n" +
+			"          \"id.token.claim\": \"true\",\n" +
+			"          \"access.token.claim\": \"true\",\n" +
+			"          \"claim.name\": \"realm_access.roles\",\n" +
+			"          \"jsonType.label\": \"String\"\n" +
+			"        }\n" +
+			"      }, {\n" +
+			"        \"name\" : \"Client ID\",\n" +
+			"        \"protocol\" : \"openid-connect\",\n" +
+			"        \"protocolMapper\" : \"oidc-usersessionmodel-note-mapper\",\n" +
+			"        \"consentRequired\" : false,\n" +
+			"        \"config\" : {\n" +
+			"          \"user.session.note\" : \"clientId\",\n" +
+			"          \"userinfo.token.claim\" : \"true\",\n" +
+			"          \"id.token.claim\" : \"true\",\n" +
+			"          \"access.token.claim\" : \"true\",\n" +
+			"          \"claim.name\" : \"clientId\",\n" +
+			"          \"jsonType.label\" : \"String\"\n" +
+			"        }\n" +
+			"      }, {\n" +
+			"        \"name\" : \"Client IP Address\",\n" +
+			"        \"protocol\" : \"openid-connect\",\n" +
+			"        \"protocolMapper\" : \"oidc-usersessionmodel-note-mapper\",\n" +
+			"        \"consentRequired\" : false,\n" +
+			"        \"config\" : {\n" +
+			"          \"user.session.note\" : \"clientAddress\",\n" +
+			"          \"userinfo.token.claim\" : \"true\",\n" +
+			"          \"id.token.claim\" : \"true\",\n" +
+			"          \"access.token.claim\" : \"true\",\n" +
+			"          \"claim.name\" : \"clientAddress\",\n" +
+			"          \"jsonType.label\" : \"String\"\n" +
+			"        }\n" +
+			"      }, {\n" +
+			"        \"name\" : \"Client Host\",\n" +
+			"        \"protocol\" : \"openid-connect\",\n" +
+			"        \"protocolMapper\" : \"oidc-usersessionmodel-note-mapper\",\n" +
+			"        \"consentRequired\" : false,\n" +
+			"        \"config\" : {\n" +
+			"          \"user.session.note\" : \"clientHost\",\n" +
+			"          \"userinfo.token.claim\" : \"true\",\n" +
+			"          \"id.token.claim\" : \"true\",\n" +
+			"          \"access.token.claim\" : \"true\",\n" +
+			"          \"claim.name\" : \"clientHost\",\n" +
+			"          \"jsonType.label\" : \"String\"\n" +
+			"        }\n" +
+			"      } ],\n" +
+			"      \"defaultClientScopes\" : [ \"web-origins\", \"role_list\", \"roles\", \"profile\", \"email\" ],\n" +
+			"      \"optionalClientScopes\" : [ \"address\", \"phone\", \"offline_access\", \"microprofile-jwt\" ]\n" +
+			"}\n" +
+			"END"
+
+		err = ExecCmd(clientset, config, "keycloak-0", vzPgCreateCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+
+		// Setting password policy for master
+		setPolicyCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s passwordPolicy=length(8) and notUsername"
+		err = ExecCmd(clientset, config, "keycloak-0", setPolicyCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+
+		// Setting password policy for $_VZ_REALM
+		setPolicyOnVzRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + vzSysRealm + " -s passwordPolicy=length(8) and notUsername"
+		err = ExecCmd(clientset, config, "keycloak-0", setPolicyOnVzRealmCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+
+		// Configuring login theme for master
+		setMasterLoginThemeCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle"
+		err = ExecCmd(clientset, config, "keycloak-0", setMasterLoginThemeCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+
+		// Configuring login theme for vzSysRealm
+		setVzRealmLoginThemeCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + vzSysRealm + " -s loginTheme=oracle"
+		err = ExecCmd(clientset, config, "keycloak-0", setVzRealmLoginThemeCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+
+		// Enabling vzSysRealm realm
+		setVzEnableRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + vzSysRealm + " -s enabled=true"
+		err = ExecCmd(clientset, config, "keycloak-0", setVzEnableRealmCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+
+		// Removing login config file
+		removeLoginConfigFileCmd := "rm \\$HOME/.keycloak/kcadm.config"
+		err = ExecCmd(clientset, config, "keycloak-0", removeLoginConfigFileCmd, os.Stdin, os.Stdout, os.Stderr)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func loginKeycloak(ctx spi.ComponentContext) error {
+	// Get the Keycloak admin password
+	secret := &corev1.Secret{}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: "keycloak",
+		Name:      "keycloak-http",
+	}, secret)
+	if err != nil {
+		ctx.Log().Errorf("loginKeycloak: Error retrieving Keycloak password: %s", err)
+		return err
+	}
+	pw := secret.Data["password"]
+	keycloakpw := string(pw)
+	if keycloakpw == "" {
+		return errors.New("loginKeycloak: Error retrieving Keycloak password")
+	}
+	ctx.Log().Info("loginKeycloak: Successfully retrieved Keycloak password")
+
+	// Login to Keycloak
+	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
+		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
+	_, err = cmd.Output()
+	if err != nil {
+		ctx.Log().Errorf("loginKeycloak: Error logging into Keycloak: %s", err)
+		return err
+	}
+	ctx.Log().Info("loginKeycloak: Successfully logged into Keycloak")
+
+	return nil
+}
+
+// ExecCmd exec command on specific pod and wait the command's output.
+func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName string,
+	command string, stdin io.Reader, stdout io.Writer, stderr io.Writer) error {
+	cmd := []string{
+		"bash",
+		"-c",
+		command,
+	}
+	req := client.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
+		Namespace("keycloak").SubResource("exec")
+	option := &v1.PodExecOptions{
+		Command:   cmd,
+		Container: "keycloak",
+		Stdin:     true,
+		Stdout:    true,
+		Stderr:    true,
+		TTY:       true,
+	}
+	if stdin == nil {
+		option.Stdin = false
+	}
+	req.VersionedParams(
+		option,
+		scheme.ParameterCodec,
+	)
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		return err
+	}
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdin:  stdin,
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
