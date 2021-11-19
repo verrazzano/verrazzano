@@ -121,7 +121,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanocoherenceworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano coherence workload")
+	log.Info("Reconciling Verrazzano Coherence workload")
 
 	// fetch the workload and unwrap the Coherence resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)

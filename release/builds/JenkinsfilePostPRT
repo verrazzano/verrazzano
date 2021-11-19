@@ -125,13 +125,14 @@ pipeline {
                 SCANNER_ARCHIVE_FILE = credentials('scanner-archive-file')
 
                 // The token should have required scope - read:org
-                GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-assets')
+                GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-process')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
             }
             steps {
                 script {
                   sh """
-                    export GITHUB_TOKEN=
+                    echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
+
                     cd ${WORKSPACE}/release/scripts
                     ./create_github_release.sh ${params.RELEASE_VERSION} ${params.RELEASE_COMMIT} ${RELEASE_BINARIES_DIR} ${TEST_RUN}
                   """

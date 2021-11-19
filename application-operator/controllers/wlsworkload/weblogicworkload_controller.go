@@ -194,7 +194,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("verrazzanoweblogicworkload", req.NamespacedName)
-	log.Info("Reconciling verrazzano weblogic workload")
+	log.Info("Reconciling Verrazzano WebLogic workload")
 
 	// fetch the workload and unwrap the WebLogic resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
