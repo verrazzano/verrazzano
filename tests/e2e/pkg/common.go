@@ -297,7 +297,7 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 		return false
 	}
 	if len(pods.Items) == 0 {
-		Log(Info, fmt.Sprintf("No pods in namespace: %s", namespace))
+		Log(Info, fmt.Sprintf("No pods in namespace: %s, error: %v", namespace, err))
 		return false
 	}
 	// Every pod with istio enabled must containe the Envoy sidecar
@@ -308,21 +308,19 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 			continue
 		}
 		_, ok = pod.Labels["istio.io/rev"]
-		if !ok {
-			Log(Error, fmt.Sprintf("Pod %s is missing label istio.io/rev %s", pod.Name))
-			return false
-		}
-		containers := pod.Spec.Containers
-		found := false
-		for _, container := range containers {
-			if strings.Contains(container.Image, "proxyv2:1.10") {
-				found = true
-				break
+		if ok {
+			containers := pod.Spec.Containers
+			found := false
+			for _, container := range containers {
+				if strings.Contains(container.Image, "proxyv2:1.10") {
+					found = true
+					break
+				}
 			}
-		}
-		if !found {
-			Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
-			return false
+			if !found {
+				Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
+				return false
+			}
 		}
 	}
 	return true
