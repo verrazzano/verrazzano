@@ -223,7 +223,7 @@
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20211005162936-eced4f4",
+              "tag": "0.3-20211118044727-d210cf4",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
@@ -233,12 +233,12 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210930152433-f345ec2",
+              "tag": "v1.12.3-20211115100138-f345ec2",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "1.1.0-20211115143418-38006bd",
+              "tag": "1.1.0-20211118044322-1f6304c",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211108162355-fe28841361",
+              "tag": "15.0.2-20211118164626-b49fff2457",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -405,7 +405,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.1.0-20210721203500-bc96afd"
+              "tag": "1.1.0-20211118044336-04e2a98"
             }
           ]
         }
