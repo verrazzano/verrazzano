@@ -172,7 +172,7 @@ var _ = Describe("Kubernetes Cluster",
 		)
 
 		// Test components that may not exist for older versions
-		ginkgoExt.DescribeTable("deployed VMI components that are don't exist in older versions",
+		DescribeTable("deployed VMI components that are don't exist in older versions",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
@@ -184,7 +184,7 @@ var _ = Describe("Kubernetes Cluster",
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			ginkgoExt.Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
+			Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
 		It("Expected pods are running", func() {
