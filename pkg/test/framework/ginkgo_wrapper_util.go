@@ -19,8 +19,8 @@ const (
 
 	// Prometheus related env vars and constants
 	promPushURLEnvVarName      = "PROMETHEUS_GW_URL"
-	promPushUserEnvVarName     = "SRN_CREDENTIALS_USR"
-	promPushPasswordEnvVarName = "SRN_CREDENTIALS_PSW"
+	promPushUserEnvVarName     = "PROMETHEUS_CREDENTIALS_USR"
+	promPushPasswordEnvVarName = "PROMETHEUS_CREDENTIALS_PSW"
 	defaultPushInterval        = time.Minute
 )
 
