@@ -65,7 +65,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
-		// and the verrazzano resource has been deleted, so there is nothing left to do.
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
@@ -85,7 +85,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if err := r.deleteRoleBindings(ctx, &vp, logger); err != nil {
 				return reconcile.Result{}, err
 			}
-			// Remove the finalizer and update the verrazzano resource if the deletion has finished.
+			// Remove the finalizer and update the Verrazzano resource if the deletion has finished.
 			vp.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vp.ObjectMeta.Finalizers, finalizerName)
 			err := r.Update(ctx, &vp)
 			if err != nil {
@@ -180,7 +180,7 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 	namespace.Annotations = nsTemplate.Metadata.Annotations
 	namespace.Spec = nsTemplate.Spec
 
-	// Add verrazzano generated labels if not already present
+	// Add Verrazzano generated labels if not already present
 	if namespace.Labels == nil {
 		namespace.Labels = map[string]string{}
 	}

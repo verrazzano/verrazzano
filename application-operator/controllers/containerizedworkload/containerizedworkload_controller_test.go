@@ -5,7 +5,7 @@ package containerizedworkload
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -71,7 +71,7 @@ func TestReconcileRestart(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	annotations := map[string]string{constants.RestartVersionAnnotation: testRestartVersion}
+	annotations := map[string]string{vzconst.RestartVersionAnnotation: testRestartVersion}
 
 	// expect a call to fetch the ContainerizedWorkload
 	params := map[string]string{
@@ -113,7 +113,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation])
+			assert.Equal(testRestartVersion, deploy.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			return nil
 		})
 
@@ -195,5 +195,5 @@ func getTestDeployment(restartVersion string) *appsv1.Deployment {
 
 func annotateRestartVersion(deployment *appsv1.Deployment, restartVersion string) {
 	deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-	deployment.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 }

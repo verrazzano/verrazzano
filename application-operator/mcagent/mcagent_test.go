@@ -324,7 +324,7 @@ func TestSyncer_updateDeployment(t *testing.T) {
 					return nil
 				})
 
-			// Managed Cluster - expect call to get the verrazzano monitoring operator deployment.
+			// Managed Cluster - expect call to get the Verrazzano monitoring operator deployment.
 			mcMock.EXPECT().
 				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: deploymentName}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {
@@ -336,7 +336,7 @@ func TestSyncer_updateDeployment(t *testing.T) {
 
 			// update only when registration is updated
 			if oldVersion != newVersion {
-				// Managed Cluster - expect another call to get the verrazzano operator deployment prior to updating it
+				// Managed Cluster - expect another call to get the Verrazzano operator deployment prior to updating it
 				mcMock.EXPECT().
 					Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: deploymentName}, gomock.Not(gomock.Nil())).
 					DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *appsv1.Deployment) error {

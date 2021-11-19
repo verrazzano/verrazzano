@@ -1,0 +1,54 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+metadata:
+  name: "default-mgd"
+spec:
+  profile: "managed-cluster"
+  environmentName: default
+  defaultVolumeSource:
+    persistentVolumeClaim:
+      claimName: default-storage
+  volumeClaimSpecTemplates:
+    - metadata:
+        name: default-storage
+      spec:
+        resources:
+          requests:
+            storage: 50Gi
+  components:
+    certManager:
+      certificate:
+        ca:
+          secretName: "verrazzano-ca-certificate-secret"
+          clusterResourceNamespace: "cert-manager"
+    coherenceOperator:
+      enabled: true
+    console:
+      enabled: false
+    dns:
+      wildcard:
+        domain: "nip.io"
+    elasticsearch:
+      enabled: false
+    fluentd:
+      enabled: true
+    grafana:
+      enabled: false
+    ingress:
+      type: LoadBalancer
+    kiali:
+      enabled: false
+    keycloak:
+      enabled: false
+      mysql:
+        volumeSource:
+          persistentVolumeClaim:
+            claimName: default-storage
+    kibana:
+      enabled: false
+    prometheus:
+      enabled: true
+    rancher:
+      enabled: false
+    weblogicOperator:
+      enabled: true

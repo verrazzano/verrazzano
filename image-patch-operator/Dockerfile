@@ -14,7 +14,8 @@ RUN chmod 500 /usr/local/bin/verrazzano-image-patch-operator
 # Create the verrazzano-image-patch-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
-RUN yum update -y \
+RUN yum update -y && yum-config-manager --enable ol7_u8_security_validation \
+    && yum install -y openssl \
     && yum clean all \
     && rm -rf /var/cache/yum
 

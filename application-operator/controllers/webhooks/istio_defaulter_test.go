@@ -647,7 +647,7 @@ func TestHandleProject1(t *testing.T) {
 		},
 	}
 	err = client.Create(context.TODO(), project)
-	assert.NoError(t, err, "Unexpected error creating verrazzano project")
+	assert.NoError(t, err, "Unexpected error creating Verrazzano project")
 
 	// Create an applicationConfiguration resource
 	u := newUnstructured("core.oam.dev/v1alpha2", "ApplicationConfiguration", "test-appconfig")
@@ -747,7 +747,7 @@ func TestHandleProject2(t *testing.T) {
 		},
 	}
 	err = client.Create(context.TODO(), project)
-	assert.NoError(t, err, "Unexpected error creating verrazzano project")
+	assert.NoError(t, err, "Unexpected error creating Verrazzano project")
 
 	// Create an applicationConfiguration resource
 	u := newUnstructured("core.oam.dev/v1alpha2", "ApplicationConfiguration", "test-appconfig")
@@ -904,7 +904,7 @@ func TestHandleProject3(t *testing.T) {
 		},
 	}
 	err = client.Create(context.TODO(), project)
-	assert.NoError(t, err, "Unexpected error creating verrazzano project")
+	assert.NoError(t, err, "Unexpected error creating Verrazzano project")
 
 	// Create an applicationConfiguration resource
 	u := newUnstructured("core.oam.dev/v1alpha2", "ApplicationConfiguration", "test-appconfig")

@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -17,6 +16,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	certManagerDeploymentName = "cert-manager"
+	cainjectorDeploymentName  = "cert-manager-cainjector"
+	webhookDeploymentName     = "cert-manager-webhook"
+	certManagerNamespace      = "cert-manager"
 )
 
 // TestGetComponents tests getting the components
@@ -82,7 +88,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, false))
 	assert.True(t, ready)
 }
 
@@ -114,7 +120,7 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -135,7 +141,7 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		return helm.ChartStatusPendingInstall, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -167,7 +173,7 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -183,23 +189,15 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		ReadyStatusFunc: nil,
 		Dependencies:    []string{istio.ComponentName, "cert-manager"},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "istio-system",
-			Name:      "istiod",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, newReadyDeployment("istiod", "istio-system"),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace))
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.True(t, ready)
 }
 
@@ -215,23 +213,16 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		ReadyStatusFunc: nil,
 		Dependencies:    []string{"istiod", "cert-manager", "istiod"},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "istio-system",
-			Name:      "istiod",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		newReadyDeployment("istiod", "istio-system"),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace))
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.False(t, ready)
 }
 
@@ -246,6 +237,22 @@ func TestNoComponentDependencies(t *testing.T) {
 		ChartNamespace: "bar",
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	ready := ComponentDependenciesMet(comp, spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.True(t, ready)
+}
+
+// Create a new deployment object for testing
+func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Status: appsv1.DeploymentStatus{
+			Replicas:            1,
+			ReadyReplicas:       1,
+			AvailableReplicas:   1,
+			UnavailableReplicas: 0,
+		},
+	}
 }

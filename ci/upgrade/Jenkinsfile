@@ -98,6 +98,7 @@ pipeline {
 
         OLD_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-old-vpo-app-pods.out"
         NEW_PODS_FILE="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods.out"
+        NEW_PODS_FILE2="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-new-vpo-app-pods-2.out"
         APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
 
         // used to emit metrics
@@ -278,6 +279,11 @@ pipeline {
                         runGinkgo('examples/bobsbooks', "false", "true")
                     }
                 }
+                stage('examples todo') {
+                    steps {
+                        runGinkgo('examples/todo', "false", "true")
+                    }
+                }
                 stage('examples socks') {
                     steps {
                         runGinkgo('examples/socks', "false", "true")
@@ -348,7 +354,7 @@ pipeline {
                 }
                 sh """
                     echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                    # Modify the version field in the verrazzano CR file to be this new verrazzano version
+                    # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
                     cd ${GO_REPO_PATH}/verrazzano
                     cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
@@ -390,18 +396,13 @@ pipeline {
             }
         }
 
-        stage("Restart Apps") {
+        stage("Validate Apps Restarted") {
             steps {
                 sh """
                     echo "Application pods after upgrade:"
                     ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
                     cat ${NEW_PODS_FILE}
-                    echo "Ensuring that the application pods did not restart after upgrade"
-                    cmp -s ${OLD_PODS_FILE} ${NEW_PODS_FILE}
-
-                    echo "Restarting apps"
                 """
-                restartExampleApps()
             }
             post {
                 failure {
@@ -490,6 +491,32 @@ pipeline {
             }
         }
 
+        stage("Validate Apps Restarted2") {
+            steps {
+                sh """
+                    echo "Application pods after post-upgrade verify:"
+                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE2}
+                    cat ${NEW_PODS_FILE2}
+                """
+            }
+            post {
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-failure-cluster-dump2')
+                        }
+                    }
+                }
+                success {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('restart-apps-success-cluster-dump2')
+                        }
+                    }
+                }
+            }
+        }
+
         stage('Post-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
@@ -537,7 +564,12 @@ pipeline {
                 }
                 stage('examples todo') {
                     steps {
-                        runGinkgo('examples/todo', "false", "false")
+                        runGinkgo('examples/todo', "true", "true")
+                    }
+                }
+                stage('examples bobs-books') {
+                    steps {
+                        runGinkgo('examples/bobsbooks', "true", "true")
                     }
                 }
             }
@@ -549,14 +581,14 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-failure-cluster-dump')
+                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
                         if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('upgrade-success-cluster-dump')
+                            dumpK8sCluster('post-upgrade-success-cluster-dump')
                         }
                     }
                 }

@@ -29,11 +29,11 @@ func TestVzResolveNamespace(t *testing.T) {
 	const defNs = constants.VerrazzanoSystemNamespace
 	assert := assert.New(t)
 	ns := ResolveVerrazzanoNamespace("")
-	assert.Equal(defNs, ns, "Wrong namespace resolved for verrazzano when using empty namespace")
+	assert.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using empty namespace")
 	ns = ResolveVerrazzanoNamespace("default")
-	assert.Equal(defNs, ns, "Wrong namespace resolved for verrazzano when using default namespace")
+	assert.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using default namespace")
 	ns = ResolveVerrazzanoNamespace("custom")
-	assert.Equal("custom", ns, "Wrong namespace resolved for verrazzano when using custom namesapce")
+	assert.Equal("custom", ns, "Wrong namespace resolved for Verrazzano when using custom namesapce")
 }
 
 // TestFixupFluentdDaemonset tests calls to fixupFluentdDaemonset
@@ -166,7 +166,7 @@ func Test_appendOverrides(t *testing.T) {
 	assert := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, nil, false), "", "", "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, nil, false), "", "", "", []bom.KeyValue{})
 
 	assert.NoError(err)
 	assert.Len(kvs, 2)

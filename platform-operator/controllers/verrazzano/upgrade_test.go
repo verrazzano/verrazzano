@@ -103,6 +103,10 @@ func TestUpgradeNoVersion(t *testing.T) {
 	defer func() {
 		config.SetDefaultBomFilePath("")
 	}()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Stubout the call to check the chart status
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -193,6 +197,9 @@ func TestUpgradeSameVersion(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -224,6 +231,9 @@ func TestUpgradeInitComponents(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -722,6 +732,9 @@ func TestUpgradeCompleted(t *testing.T) {
 	})
 	defer istiocomp.SetDefaultRestartComponentsFunction()
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -770,6 +783,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 		return nil
 	})
 	defer istiocomp.SetDefaultRestartComponentsFunction()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -847,6 +863,9 @@ func TestUpgradeHelmError(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
@@ -1049,11 +1068,15 @@ func TestUpgradeComponent(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Set mock component expectations
 	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().Name().Return("testcomp").Times(1)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -1128,6 +1151,9 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 		}
 	})
 	defer registry.ResetGetComponentsFn()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Set enabled mock component expectations
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()

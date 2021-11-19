@@ -112,7 +112,7 @@ data:
         -- check if caller has an existing session with a valid token.
         token = auth.getTokenFromSession()
 
-        -- still no token? redirect to OP to authenticate user (if request is not a verrazzano API call)
+        -- still no token? redirect to OP to authenticate user (if request is not a Verrazzano API call)
         if not token and can_redirect == true then
             auth.oidcAuthenticate()
         end
@@ -1166,7 +1166,7 @@ data:
 
         proxy_http_version 1.1;
 
-        # verrazzano api and console
+        # Verrazzano api and console
         server {
             listen       8775;
             server_name  verrazzano-proxy;
