@@ -19,10 +19,10 @@ FROM ghcr.io/oracle/oraclelinux:7-slim
 # Install specific versions of device-mapper, device-mapper-libs and dracut as a temporary workaround
 # by default yum tries to install a version that is non-existent on the OEL 7 yum mirrors
 # Use olcne13, which is required for kubectl 1.20.6-2
-RUN yum update -y \
+RUN yum update -y && yum-config-manager --enable ol7_u8_security_validation \
     && yum install -y openssl jq patch \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
-    && yum install -y kubectl-1.20.6-2.el7 \
+    && yum install -y kubectl-1.20.11-4.el7 \
     && yum install -y helm-3.5.4-1.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum

@@ -284,7 +284,8 @@ func PodsHaveAnnotation(namespace string, annotation string) bool {
 	return true
 }
 
-func CheckPodsForIstioImage(namespace string) bool {
+// CheckPodsForEnvoySidecar checks if a pods which have Envoy sidecars, have the specified image
+func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
@@ -295,7 +296,17 @@ func CheckPodsForIstioImage(namespace string) bool {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
+	if len(pods.Items) == 0 {
+		Log(Info, fmt.Sprintf("No pods in namespace: %s, error: %v", namespace, err))
+		return false
+	}
+	// Every pod with istio enabled must containe the Envoy sidecar
 	for _, pod := range pods.Items {
+		// skip if istio sidecar disabled
+		v := pod.Labels["sidecar.istio.io/inject"]
+		if v == "false" {
+			continue
+		}
 		_, ok := pod.Labels["istio.io/rev"]
 		if ok {
 			containers := pod.Spec.Containers
@@ -305,14 +316,12 @@ func CheckPodsForIstioImage(namespace string) bool {
 					found = true
 					break
 				}
-
 			}
 			if !found {
 				Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
 				return false
 			}
 		}
-
 	}
 	return true
 }

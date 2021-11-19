@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"strconv"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
@@ -231,7 +231,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if err = r.addRestartVersionAnnotation(u, workload.Annotations[constants.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
+	if err = r.addRestartVersionAnnotation(u, workload.Annotations[vzconst.RestartVersionAnnotation], cohName, workload.Namespace, log); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -725,7 +725,7 @@ func (r *Reconciler) addRestartVersionAnnotation(coherence *unstructured.Unstruc
 		if annotations == nil {
 			annotations = make(map[string]string)
 		}
-		annotations[constants.RestartVersionAnnotation] = restartVersion
+		annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		return unstructured.SetNestedStringMap(coherence.Object, annotations, specAnnotationsFields...)
 	}
 	return nil
@@ -746,7 +746,7 @@ func (r *Reconciler) ensureLastGeneration(wl *vzapi.VerrazzanoCoherenceWorkload)
 // Make sure that it is OK to restart Coherence
 func (r *Reconciler) isOkToRestartCoherence(coh *vzapi.VerrazzanoCoherenceWorkload) bool {
 	// Check if user created or changed the restart annotation
-	if coh.Annotations != nil && coh.Annotations[constants.RestartVersionAnnotation] != coh.Status.LastRestartVersion {
+	if coh.Annotations != nil && coh.Annotations[vzconst.RestartVersionAnnotation] != coh.Status.LastRestartVersion {
 		return true
 	}
 	if coh.Status.LastGeneration == strconv.Itoa(int(coh.Generation)) {

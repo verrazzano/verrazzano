@@ -5,7 +5,8 @@ package main
 
 import (
 	"flag"
-
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -40,6 +41,10 @@ func init() {
 
 	_ = istioclinet.AddToScheme(scheme)
 	_ = istioclisec.AddToScheme(scheme)
+
+	_ = oam.AddToScheme(scheme)
+
+	_ = vzapp.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
