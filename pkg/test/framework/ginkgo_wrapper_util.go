@@ -18,9 +18,9 @@ const (
 	promReceiverType              = "Prometheus"
 
 	// Prometheus related env vars and constants
-	promPushURLEnvVarName      = "PROMETHEUS_PUSH_GATEWAY_URL"
-	promPushUserEnvVarName     = "PROMETHEUS_PUSH_GATEWAY_USER"
-	promPushPasswordEnvVarName = "PROMETHEUS_PUSH_GATEWAY_PASS"
+	promPushURLEnvVarName      = "PROMETHEUS_GW_URL"
+	promPushUserEnvVarName     = "SAURON_CREDENTIALS_USR"
+	promPushPasswordEnvVarName = "SAURON_CREDENTIALS_PSW"
 	defaultPushInterval        = time.Minute
 )
 
