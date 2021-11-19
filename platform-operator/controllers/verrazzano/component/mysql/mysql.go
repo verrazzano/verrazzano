@@ -39,25 +39,25 @@ func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 // AppendMySQLOverrides appends the the password for database user and root user.
 func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
-	/*secret := &v1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: vzconst.KeycloakNamespace,
-		Name:      secretName}
-
-	err := compContext.Client().Get(context.TODO(), nsName, secret)
-	if err != nil {
-		return []bom.KeyValue{}, err
-	}
-
-	// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
-	kvs = append(kvs, bom.KeyValue{
-		Key:   helmPwd,
-		Value: string(secret.Data[mysqlKey]),
-	})
-	kvs = append(kvs, bom.KeyValue{
-		Key:   helmRootPwd,
-		Value: string(secret.Data[mysqlRootKey]),
-	})*/
+	//secret := &v1.Secret{}
+	//nsName := types.NamespacedName{
+	//	Namespace: vzconst.KeycloakNamespace,
+	//	Name:      secretName}
+	//
+	//err := compContext.Client().Get(context.TODO(), nsName, secret)
+	//if err != nil {
+	//	return []bom.KeyValue{}, err
+	//}
+	//
+	//// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
+	//kvs = append(kvs, bom.KeyValue{
+	//	Key:   helmPwd,
+	//	Value: string(secret.Data[mysqlKey]),
+	//})
+	//kvs = append(kvs, bom.KeyValue{
+	//	Key:   helmRootPwd,
+	//	Value: string(secret.Data[mysqlRootKey]),
+	//})
 	kvs = append(kvs, bom.KeyValue{Key: "mysqlUser", Value: mysqlUsername})
 	err := createDBFile(compContext)
 	if err != nil {
