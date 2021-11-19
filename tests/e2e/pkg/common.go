@@ -296,22 +296,29 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
+	// Every pod with istio enabled must containe the Envoy sidecar
 	for _, pod := range pods.Items {
-		_, ok := pod.Labels["istio.io/rev"]
-		if ok {
-			containers := pod.Spec.Containers
-			found := false
-			for _, container := range containers {
-				if strings.Contains(container.Image, "proxyv2:1.10") {
-					found = true
-					break
-				}
-
+		// skip if istio sidecar disabled
+		v, ok := pod.Labels["sidecar.istio.io/inject"]
+		if v == "false" {
+			continue
+		}
+		_, ok = pod.Labels["istio.io/rev"]
+		if !ok {
+			Log(Error, fmt.Sprintf("Pod %s is missing label istio.io/rev %s", pod.Name))
+			return false
+		}
+		containers := pod.Spec.Containers
+		found := false
+		for _, container := range containers {
+			if strings.Contains(container.Image, "proxyv2:1.10") {
+				found = true
+				break
 			}
-			if !found {
-				Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
-				return false
-			}
+		}
+		if !found {
+			Log(Error, fmt.Sprintf("No istio proxy image found in pod %s", pod.Name))
+			return false
 		}
 	}
 	return true
