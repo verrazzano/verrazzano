@@ -133,10 +133,8 @@ func TestIsReady(t *testing.T) {
 			Name:      ComponentName,
 		},
 	}
-	rancherIngress := createRancherIngress()
-	readyClient := fake.NewFakeClientWithScheme(getScheme(), &deploy, &rancherIngress)
-	unreadyDeployClient := fake.NewFakeClientWithScheme(getScheme(), &unreadyDeploy, &rancherIngress)
-	unreadyIngressClient := fake.NewFakeClientWithScheme(getScheme(), &deploy)
+	readyClient := fake.NewFakeClientWithScheme(getScheme(), &deploy)
+	unreadyDeployClient := fake.NewFakeClientWithScheme(getScheme(), &unreadyDeploy)
 
 	var tests = []struct {
 		testName string
@@ -151,11 +149,6 @@ func TestIsReady(t *testing.T) {
 		{
 			"should not be ready due to deployment",
 			spi.NewFakeContext(unreadyDeployClient, &vzDefaultCA, true),
-			false,
-		},
-		{
-			"should not be ready due to ingress",
-			spi.NewFakeContext(unreadyIngressClient, &vzDefaultCA, true),
 			false,
 		},
 	}
@@ -174,8 +167,7 @@ func TestPostInstall(t *testing.T) {
 	caSecret := createCASecret()
 	adminSecret := createAdminSecret()
 	rancherPodList := createRancherPodList()
-	rancherIngress := createRancherIngress()
-	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &adminSecret, &rancherPodList, &rancherIngress)
+	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &adminSecret, &rancherPodList)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 	assert.Nil(t, NewComponent().PostInstall(ctx))
 }

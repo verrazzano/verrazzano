@@ -123,7 +123,7 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 }
 
 // IsEnabled Rancher is always enabled on admin clusters,
-// and never enabled on managed clusters
+// and is not enabled by default on managed clusters
 func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Rancher
 	if comp != nil && comp.Enabled != nil {
@@ -134,9 +134,9 @@ func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 
 // PreInstall
 /* Sets up the environment for Rancher
-1. Create the Rancher namespaces if they are not present
-2. Copy TLS certificates for Rancher if using the default Verrazzano CA
-3. Create additional LetsEncrypt TLS certificates for Rancher if using LE
+- Create the Rancher namespaces if they are not present (cattle-namespace, rancher-operator-namespace)
+- Copy TLS certificates for Rancher if using the default Verrazzano CA
+- Create additional LetsEncrypt TLS certificates for Rancher if using LE
 */
 func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
@@ -159,9 +159,9 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 
 //Install
 /* Installs the Helm chart, and patches the resulting objects
-1. ensure Helm chart is installed
-2. Patch Rancher deployment with MKNOD capability
-3. Patch Rancher ingress with NGINX/TLS annotations
+- ensure Helm chart is installed
+- Patch Rancher deployment with MKNOD capability
+- Patch Rancher ingress with NGINX/TLS annotations
 */
 func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.Install(ctx); err != nil {
@@ -187,8 +187,7 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 //IsReady
 /* Checks that the Rancher component is in a 'Ready' state, as defined
 in the body of this function
-1. Wait for at least one Rancher pod to be Ready in Kubernetes
-2. Ensure that the Rancher ingress has an IP address
+- Wait for at least one Rancher pod to be Ready in Kubernetes
 */
 func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
@@ -200,16 +199,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 				Namespace: ComponentNamespace,
 			},
 		}
-		if ready := status.DeploymentsReady(log, c, rancherDeploy, 1); !ready {
-			return false
-		}
-		// Try to retrieve the Rancher ingress IP
-		_, err := getRancherIngressIP(log, c)
-		if err != nil {
-			log.Errorf("Rancher IsReady: Failed to get Ingress IP: %s", err)
-			return false
-		}
-		return true
+		return status.DeploymentsReady(log, c, rancherDeploy, 1)
 	}
 
 	return false
@@ -217,12 +207,10 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PostInstall
 /* Additional setup for Rancher after the component is installed
-1. Create the Rancher admin secret if it does not already exist
-2. Retrieve the Rancher ingress IP address
-3. Retrieve the Rancher admin password
-4. Retrieve the Rancher hostname
-5. Set the Rancher server URL using the admin password and the hostname
-6. Patch any existing Rancher agents to use the hostname and IP as a host alias
+- Create the Rancher admin secret if it does not already exist
+- Retrieve the Rancher admin password
+- Retrieve the Rancher hostname
+- Set the Rancher server URL using the admin password and the hostname
 */
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()

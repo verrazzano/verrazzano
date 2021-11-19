@@ -35,14 +35,14 @@ func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error 
 	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ComponentNamespace,
-			Labels: map[string]string{
-				namespaceLabelKey: ComponentNamespace,
-			},
 		},
 	}
 	log.Debugf("Creating %s namespace", ComponentNamespace)
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
-		log.Debugf("Cattle namespace already exists, ensuring %s label is present", namespaceLabelKey)
+		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, ComponentNamespace)
+		if namespace.Labels == nil {
+			namespace.Labels = map[string]string{}
+		}
 		namespace.Labels[namespaceLabelKey] = ComponentName
 		return nil
 	}); err != nil {
@@ -62,19 +62,17 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 		if err := c.Get(context.TODO(), namespacedName, defaultSecret); err != nil {
 			return err
 		}
-		secretData := map[string][]byte{
-			"cacerts.pem": defaultSecret.Data["ca.cert"],
-		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      rancherTLSSecretName,
 			},
-			Data: secretData,
 		}
 		log.Infof("Copying default Verrazzano secret to Rancher namespace")
 		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, rancherCaSecret, func() error {
-			rancherCaSecret.Data = secretData
+			rancherCaSecret.Data = map[string][]byte{
+				"cacerts.pem": defaultSecret.Data["ca.cert"],
+			}
 			return nil
 		}); err != nil {
 			return err

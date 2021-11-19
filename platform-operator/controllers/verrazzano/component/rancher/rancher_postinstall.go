@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
-	networking "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -82,6 +81,9 @@ func resetAdminPassword(c client.Client) (string, error) {
 	}
 	// Shell output may have a trailing newline
 	password := strings.TrimSuffix(stdout, "\n")
+	if password == "" {
+		return "", errors.New("failed to generate Rancher admin password, password is empty")
+	}
 	return password, nil
 }
 
@@ -97,23 +99,6 @@ func newAdminSecret(c client.Client, password string) error {
 		},
 	}
 	return c.Create(context.TODO(), adminSecret)
-}
-
-func getRancherIngressIP(log *zap.SugaredLogger, c client.Client) (string, error) {
-	namespacedName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      ComponentName,
-	}
-	log.Debugf("Getting %s ingress", ComponentName)
-	ingress := &networking.Ingress{}
-	if err := c.Get(context.TODO(), namespacedName, ingress); err != nil {
-		return "", err
-	}
-	lbIngresses := ingress.Status.LoadBalancer.Ingress
-	if len(lbIngresses) > 0 {
-		return lbIngresses[0].IP, nil
-	}
-	return "", errors.New("load balancer IP not found")
 }
 
 func setServerURL(log *zap.SugaredLogger, password, hostname string) error {

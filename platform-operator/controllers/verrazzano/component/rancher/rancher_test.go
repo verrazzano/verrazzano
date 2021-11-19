@@ -78,24 +78,6 @@ func createCASecret() v1.Secret {
 	}
 }
 
-func createRancherIngress() networking.Ingress {
-	ingresses := []v1.LoadBalancerIngress{
-		{IP: "IP", Hostname: "hostname"},
-	}
-	objectMeta := metav1.ObjectMeta{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
-	}
-	return networking.Ingress{
-		ObjectMeta: objectMeta,
-		Status: networking.IngressStatus{
-			LoadBalancer: v1.LoadBalancerStatus{
-				Ingress: ingresses,
-			},
-		},
-	}
-}
-
 func createRancherPodList() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
