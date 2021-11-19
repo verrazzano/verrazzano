@@ -296,6 +296,10 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false
 	}
+	if len(pods.Items) == 0 {
+		Log(Info, fmt.Sprintf("No pods in namespace: %s", namespace))
+		return false
+	}
 	// Every pod with istio enabled must containe the Envoy sidecar
 	for _, pod := range pods.Items {
 		// skip if istio sidecar disabled
