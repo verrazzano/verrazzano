@@ -303,11 +303,11 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 	// Every pod with istio enabled must containe the Envoy sidecar
 	for _, pod := range pods.Items {
 		// skip if istio sidecar disabled
-		v, ok := pod.Labels["sidecar.istio.io/inject"]
+		v := pod.Labels["sidecar.istio.io/inject"]
 		if v == "false" {
 			continue
 		}
-		_, ok = pod.Labels["istio.io/rev"]
+		_, ok := pod.Labels["istio.io/rev"]
 		if ok {
 			containers := pod.Spec.Containers
 			found := false
