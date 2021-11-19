@@ -25,6 +25,16 @@ function wait_for_rancher() {
   return $?
 }
 
+function create_cattle_system_namespace()
+{
+    if ! kubectl get namespace cattle-system > /dev/null 2>&1; then
+        kubectl create namespace cattle-system
+    fi
+
+    log "Adding label needed by Rancher network policies to cattle-system namespace"
+    kubectl label namespace cattle-system "verrazzano.io/namespace=cattle-system" --overwrite
+}
+
 function install_nginx_ingress_controller()
 {
     local ingress_nginx_ns=ingress-nginx
@@ -168,6 +178,9 @@ set -eu
 INGRESS_IP=$(get_verrazzano_ingress_ip)
 
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
+
+# Always create the cattle-system namespace so we can create network policies
+action "Creating cattle-system namespace" create_cattle_system_namespace || exit 1
 
 platform_operator_install_message "Installing cert-manager"
 if [ "$DNS_TYPE" == "oci" ]; then

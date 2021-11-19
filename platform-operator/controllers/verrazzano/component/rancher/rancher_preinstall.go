@@ -31,6 +31,7 @@ func createRancherOperatorNamespace(log *zap.SugaredLogger, c client.Client) err
 	return nil
 }
 
+// createCattleSystemNamespace creates the cattle-system namespace if it does not exist
 func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error {
 	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
