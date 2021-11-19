@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -40,7 +39,7 @@ func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 // AppendMySQLOverrides appends the the password for database user and root user.
 func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
-	secret := &v1.Secret{}
+	/*secret := &v1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: vzconst.KeycloakNamespace,
 		Name:      secretName}
@@ -58,9 +57,9 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	kvs = append(kvs, bom.KeyValue{
 		Key:   helmRootPwd,
 		Value: string(secret.Data[mysqlRootKey]),
-	})
+	})*/
 	kvs = append(kvs, bom.KeyValue{Key: "mysqlUser", Value: mysqlUsername})
-	err = createDBFile(compContext)
+	err := createDBFile(compContext)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}

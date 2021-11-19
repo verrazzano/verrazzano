@@ -209,7 +209,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	}
 
 	// vz-specific chart overrides file
-	overridesString, stringOverrides, fileOverrides, err := h.buildOverridesString(context, resolvedNamespace, kvs...)
+	overridesString, stringOverrides, fileOverrides, err := h.BuildOverridesString(context, resolvedNamespace, kvs...)
 	if err != nil {
 		return err
 	}
@@ -270,7 +270,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		}
 	}
 
-	overridesString, stringOverrides, fileOverrides, err := h.buildOverridesString(context, namespace)
+	overridesString, stringOverrides, fileOverrides, err := h.BuildOverridesString(context, namespace)
 	if err != nil {
 		return err
 	}
@@ -313,9 +313,9 @@ func (h HelmComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-// buildOverridesString Builds the  helm overrides for a release, including image overrides
+// BuildOverridesString Builds the  helm overrides for a release, including image overrides
 // - returns a comma-separated list of --set overrides, a comma-separated list of --set-string overrides, and any error
-func (h HelmComponent) buildOverridesString(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) (setOverrides string, setStringOverrides string, setFileOverrides string, err error) {
+func (h HelmComponent) BuildOverridesString(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) (setOverrides string, setStringOverrides string, setFileOverrides string, err error) {
 	// Optionally create a second override file.  This will contain both image setOverrides and any additional
 	// setOverrides required by a component.
 	// Get image setOverrides unless opt out

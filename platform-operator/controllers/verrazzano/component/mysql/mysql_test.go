@@ -5,9 +5,9 @@ package mysql
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"go.uber.org/zap"
 	"os"
 	"testing"
 )
@@ -15,6 +15,17 @@ import (
 func TestCreateDBFile(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	fmt.Println(os.TempDir() + "/" + mysqlDBFile)
-	err := createDBFile(spi.NewContext(zap.S(), nil, vz, false))
+	err := createDBFile(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"))
 	assert.Nil(t, err, "error creating db file")
+}
+
+func TestAppendOverrides(t *testing.T) {
+	vz := &vzapi.Verrazzano{}
+	var devProfile vzapi.ProfileType = "dev"
+	vz.Spec.Profile = devProfile
+	ctx := spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles")
+	var kvs []bom.KeyValue
+	kvs, err := AppendMySQLOverrides(ctx, "", "", "", kvs)
+	fmt.Println(kvs)
+	assert.Nil(t, err, "Should be nil", err.Error())
 }
