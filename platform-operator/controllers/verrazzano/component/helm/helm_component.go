@@ -152,7 +152,7 @@ func (h HelmComponent) GetMinVerrazzanoVersion() string {
 // IsInstalled Indicates whether or not the component is installed
 func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	if context.IsDryRun() {
-		context.Log().Infof("IsInstalled() dry run for %s", h.ReleaseName)
+		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
 		return true, nil
 	}
 	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace))
@@ -162,7 +162,7 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 // IsReady Indicates whether or not a component is available and ready
 func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if context.IsDryRun() {
-		context.Log().Infof("IsReady() dry run for %s", h.ReleaseName)
+		context.Log().Debugf("IsReady() dry run for %s", h.ReleaseName)
 		return true
 	}
 	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
@@ -299,8 +299,6 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		context.Log().Errorf("Failed to close temporary file: %v", err)
 		return err
 	}
-
-	context.Log().Infof("Created values file: %s", tmpFile.Name())
 
 	// Perform a helm upgrade --install
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overridesString, stringOverrides, h.ValuesFile, tmpFile.Name())
