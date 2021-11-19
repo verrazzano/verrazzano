@@ -181,7 +181,7 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION}"
 
@@ -682,9 +682,9 @@ pipeline {
 
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -1422,8 +1422,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -1451,8 +1451,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

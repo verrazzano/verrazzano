@@ -104,7 +104,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
 
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
@@ -878,8 +878,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -907,8 +907,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
