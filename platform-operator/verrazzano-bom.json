@@ -238,7 +238,7 @@
             },
             {
               "image": "console",
-              "tag": "1.1.0-20211118044322-1f6304c",
+              "tag": "1.1.0-20211120024412-cd5bb71",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -282,7 +282,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20211005155141-4b3e513",
+              "tag": "v0.3.0-20211119174723-4ddf04c",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211118164626-b49fff2457",
+              "tag": "15.0.2-20211119185411-17195106eb",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
