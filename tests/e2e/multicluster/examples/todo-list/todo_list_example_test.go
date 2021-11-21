@@ -37,7 +37,7 @@ var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 var failed = false
 
 var _ = AfterEach(func() {
-	failed = failed || CurrentGinkgoTestDescription().Failed
+	failed = failed || CurrentSpecReport().Failed
 })
 
 var _ = BeforeSuite(func() {
