@@ -3,7 +3,14 @@
 
 package framework
 
-import "testing"
+import (
+	"os"
+	"reflect"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	testmetrics "github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+)
 
 // TestIsBodyFunc - test function for introspecting an interface value
 func TestIsBodyFunc(t *testing.T) {
@@ -32,5 +39,47 @@ func TestIsBodyFunc(t *testing.T) {
 				t.Errorf("isBodyFunc() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func Test_createMetricsConfigFromEnv(t *testing.T) {
+	_, err := createMetricsConfigFromEnv("testname")
+	assert.Error(t, err)
+
+	defer func() {
+		getenvFunc = os.Getenv
+	}()
+
+	testURL := "https://some.pushgateway.url"
+	testUser := "myuser"
+	getenvFunc = promGetEnvTestFunc(testURL, testUser, "")
+	_, err = createMetricsConfigFromEnv("testname")
+
+	assert.Error(t, err, "expected error creating config when Prometheus push gateway password is not set")
+
+	testPass := "somepass"
+	getenvFunc = promGetEnvTestFunc(testURL, testUser, testPass)
+	cfg, err := createMetricsConfigFromEnv("testname")
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "*testmetrics.PrometheusMetricsReceiverConfig", reflect.TypeOf(cfg).String())
+	promCfg := cfg.(*testmetrics.PrometheusMetricsReceiverConfig)
+	assert.Equal(t, testURL, promCfg.PushGatewayURL)
+	assert.Equal(t, testUser, promCfg.PushGatewayUser)
+	assert.Equal(t, testPass, promCfg.PushGatewayPassword)
+}
+
+func promGetEnvTestFunc(testURL string, testUser string, testPass string) func(key string) string {
+	return func(key string) string {
+		switch key {
+		case promPushURLEnvVarName:
+			return testURL
+		case promPushUserEnvVarName:
+			return testUser
+		case promPushPasswordEnvVarName:
+			return testPass
+		default:
+			return ""
+		}
 	}
 }
