@@ -56,9 +56,10 @@ function get_scan_summaries() {
 # $4 Issue count
 # $5 Scan result OCID
 # $6 Result file basename (path and file prefix to use)
-# $7 tine finished
+# $7 time finished
+# $8 Overall Summary Report File
 function generate_detail_text_report() {
-  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] && { echo "ERROR: generate_detail_text_report invalid args: $1 $2 $3 $4 $5 $6 $7"; return; }
+  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] & [ ! -f "$8" ]& { echo "ERROR: generate_detail_text_report invalid args: $1 $2 $3 $4 $5 $6 $7 $8"; return; }
   RESULT_SEVERITY=$1
   RESULT_REPOSITORY_IMAGE=$2
   RESULT_IMAGE_TAG=$3
@@ -66,6 +67,7 @@ function generate_detail_text_report() {
   SCAN_RESULT_OCID=$5
   RESULT_FILE_BASE=$6
   TIME_FINISHED=$7
+  OVERALL_SUMMARY=$8
   # REVIEW: Rudimentary for now, can work on the format later, etc...
   echo "OCIR Result Scan ID:  $SCAN_RESULT_OCID" > $RESULT_FILE_BASE-report.out
   echo "Scan Finished:        $TIME_FINISHED" >> $RESULT_FILE_BASE-report.out
@@ -74,6 +76,12 @@ function generate_detail_text_report() {
   echo "Highest Severity:     $RESULT_SEVERITY" >> $RESULT_FILE_BASE-report.out
   echo "Issues:" >> $RESULT_FILE_BASE-report.out
   cat $RESULT_FILE_BASE-details.csv >> $RESULT_FILE_BASE-report.out
+
+  # Contribute a subset of details to the overall summary report. This includes only CRITICAL and HIGH CVE's
+  echo "+++++"
+  echo "Image:                $RESULT_REPOSITORY_IMAGE:$RESULT_IMAGE_TAG" >> $OVERALL_SUMMARY
+  cat $RESULT_FILE_BASE-details.csv | grep -e 'CRITICAL' -e 'HIGH' >> $OVERALL_SUMMARY
+  echo "-----"
 }
 
 # This will get the detailed scan results in JSON, form a CSV report, and also form a more human readable report
@@ -84,8 +92,9 @@ function generate_detail_text_report() {
 # $4 Issue count
 # $5 Scan result OCID
 # $6 Result file basename (path and file prefix to use)
+# $7 Overall Summary Report File
 function get_scan_details() {
-  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] && { echo "ERROR: get_scan_details invalid args: $1 $2 $3 $4 $5 $6"; return; }
+  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] && { echo "ERROR: get_scan_details invalid args: $1 $2 $3 $4 $5 $6 $7"; return; }
   RESULT_SEVERITY=$1
   RESULT_REPOSITORY_IMAGE=$2
   RESULT_IMAGE_TAG=$3
@@ -95,7 +104,7 @@ function get_scan_details() {
   oci vulnerability-scanning container scan result get --container-scan-result-id $5 --region $OCI_REGION > $RESULT_FILE_BASE-details.json
   cat $RESULT_FILE_BASE-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_BASE-details.csv
   TIME_FINISHED=$(cat $RESULT_FILE_BASE-details.json | jq -r '.data."time-finished"')
-  generate_detail_text_report $1 $2 $3 $4 $5 $6 $TIME_FINISHED
+  generate_detail_text_report $1 $2 $3 $4 $5 $6 $TIME_FINISHED $7
 }
 
 # This will get the scan summaries and details for all of the repositories
@@ -107,6 +116,7 @@ function get_all_scan_details() {
   [ ! -f "$1" ] && { echo "ERROR: get_all_scan_details invalid args: $1"; return; }
 
   local bomimages=$(mktemp temp-bom-images-XXXXXX.out)
+  local overallsummary=$SCAN_RESULTS_DIR/overall-scan-report.out
   sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -m $bomimages -t $OCIR_SCAN_REGISTRY -r $OCIR_REPOSITORY_BASE -b $1
 
   # trim off the registry and base info so the images we have can be used for lookups in the CSV data
@@ -140,7 +150,7 @@ function get_all_scan_details() {
 
       # We only are reporting the last scan for the specific tagged image, so we should be OK using the image name/tag here for the filename)
       RESULT_FILE_PREFIX=$(echo "$SCAN_RESULTS_DIR/${RESULT_REPOSITORY_IMAGE}_${RESULT_IMAGE_TAG}")
-      get_scan_details $RESULT_SEVERITY $RESULT_REPOSITORY_IMAGE $RESULT_IMAGE_TAG $RESULT_COUNT $SCAN_RESULT_OCID $RESULT_FILE_PREFIX
+      get_scan_details $RESULT_SEVERITY $RESULT_REPOSITORY_IMAGE $RESULT_IMAGE_TAG $RESULT_COUNT $SCAN_RESULT_OCID $RESULT_FILE_PREFIX $overallsummary
     fi
     rm $imagecsv
   done <$bomimages
