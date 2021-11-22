@@ -44,11 +44,8 @@ func (rcvr *PrometheusMetricsReceiver) SetGauge(name string, value float64) erro
 	gauge.Set(value)
 	pkg.Log(pkg.Info, fmt.Sprintf("Emitting gauge %s with value %f", metricName, value))
 
-	// push the gauge to the gateway
-	if err := rcvr.promPusher.Collector(gauge).Add(); err != nil {
-		return fmt.Errorf("could not push metric %s to push gateway: %s", metricName, err.Error())
-	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Successfully emitted guage %s with value %f", metricName, value))
+	// Asynchronously push the gauge to the Prometheus push gateway
+	rcvr.asyncPush(gauge, metricName)
 	return nil
 }
 
@@ -65,12 +62,19 @@ func (rcvr *PrometheusMetricsReceiver) IncrementCounter(name string) error {
 	ctr.Inc()
 	pkg.Log(pkg.Info, fmt.Sprintf("Incrementing counter %s", metricName))
 
-	// push the counter to the gateway
-	if err := rcvr.promPusher.Collector(ctr).Add(); err != nil {
-		return fmt.Errorf("could not push metric %s to push gateway: %s", metricName, err.Error())
-	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Successfully incremented counter %s", metricName))
+	rcvr.asyncPush(ctr, metricName)
 	return nil
+}
+
+// Use a goroutine to asynchronously kick off a push to the Prometheus gateway represented by rcvr.promPusher
+func (rcvr *PrometheusMetricsReceiver) asyncPush(ctr prometheus.Collector, metricName string) {
+	go func() {
+		// push the counter to the gateway
+		if err := rcvr.promPusher.Collector(ctr).Add(); err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("could not push metric %s to push gateway: %s", metricName, err.Error()))
+		}
+		pkg.Log(pkg.Info, fmt.Sprintf("Successfully emitted metric %s", metricName))
+	}()
 }
 
 // Create a new PrometheusMetricsReceiver based on the configuration options provided
