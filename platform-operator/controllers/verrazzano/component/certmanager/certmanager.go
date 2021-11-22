@@ -220,7 +220,7 @@ func isCA(compContext spi.ComponentContext) (bool, error) {
 	} else if acmeNotEmpty {
 		return false, nil
 	} else {
-		return false, errors.New("Both Acme and CA fields are empty")
+		return false, errors.New("Either Acme or CA certificate authorities must be configured")
 	}
 }
 

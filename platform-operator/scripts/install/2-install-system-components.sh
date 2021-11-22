@@ -92,51 +92,6 @@ function install_nginx_ingress_controller()
     kubectl wait --for=condition=ready pods --all -n ${ingress_nginx_ns} --timeout=10m
 }
 
-function install_external_dns()
-{
-  local EXTERNAL_DNS_CHART_DIR=${CHARTS_DIR}/external-dns
-  local chartName=external-dns
-  local externalDNSNamespace=cert-manager
-
-  if ! kubectl get secret $OCI_DNS_CONFIG_SECRET -n ${externalDNSNamespace} ; then
-    # secret does not exist, so copy the configured oci config secret from verrazzano-install namespace.
-    # Operator has already checked for existence of secret in verrazzano-install namespace
-    # The DNS zone compartment will get appended to secret generated for cert external dns
-    local dns_compartment=$(get_config_value ".dns.oci.dnsZoneCompartmentOcid")
-    kubectl get secret ${OCI_DNS_CONFIG_SECRET} -n ${VERRAZZANO_INSTALL_NS} -o go-template='{{range $k,$v := .data}}{{if not $v}}{{$v}}{{else}}{{$v | base64decode}}{{end}}{{"\n"}}{{end}}' \
-        | sed '/^$/d' > $TMP_DIR/oci.yaml
-    echo "compartment: $dns_compartment" >> $TMP_DIR/oci.yaml
-    kubectl create secret generic $OCI_DNS_CONFIG_SECRET --from-file=$TMP_DIR/oci.yaml -n ${externalDNSNamespace}
-  fi
-
-  if ! is_chart_deployed ${chartName} ${externalDNSNamespace} ${EXTERNAL_DNS_CHART_DIR} ; then
-    local extraExternalDNSArgs=""
-    if [ "${REGISTRY_SECRET_EXISTS}" == "TRUE" ]; then
-      if ! kubectl get secret ${GLOBAL_IMAGE_PULL_SECRET} -n ${externalDNSNamespace} > /dev/null 2>&1 ; then
-          action "Copying ${GLOBAL_IMAGE_PULL_SECRET} secret to ${externalDNSNamespace} namespace" \
-            copy_registry_secret ${externalDNSNamespace}
-      fi
-      extraExternalDNSArgs="${extraExternalDNSArgs} --set global.imagePullSecrets[0]=${GLOBAL_IMAGE_PULL_SECRET}"
-    fi
-
-    build_image_overrides external-dns ${chartName}
-
-    helm_install_retry ${chartName} ${EXTERNAL_DNS_CHART_DIR} ${externalDNSNamespace} \
-        -f $VZ_OVERRIDES_DIR/external-dns-values.yaml \
-        ${HELM_IMAGE_ARGS} \
-        --set domainFilters[0]=${DNS_SUFFIX} \
-        --set zoneIdFilters[0]=$(get_config_value ".dns.oci.dnsZoneOcid") \
-        --set txtOwnerId=v8o-local-${NAME}-${TIMESTAMP} \
-        --set txtPrefix=_v8o-local-${NAME}-${TIMESTAMP}_ \
-        --set extraVolumes[0].name=config \
-        --set extraVolumes[0].secret.secretName=$OCI_DNS_CONFIG_SECRET \
-        --set extraVolumeMounts[0].name=config \
-        --set extraVolumeMounts[0].mountPath=/etc/kubernetes/ \
-        ${extraExternalDNSArgs} \
-        || return $?
-    fi
-}
-
 function kubectl_apply_with_retry() {
   local count=0
   local ret=0
@@ -184,7 +139,7 @@ action "Creating cattle-system namespace" create_cattle_system_namespace || exit
 
 platform_operator_install_message "Installing cert-manager"
 if [ "$DNS_TYPE" == "oci" ]; then
-  action "Installing external DNS" install_external_dns || exit 1
+  platform_operator_install_message "External DNS"
 fi
 
 if [ $(is_rancher_enabled) == "true" ]; then
