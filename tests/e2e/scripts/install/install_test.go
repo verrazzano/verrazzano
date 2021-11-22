@@ -4,28 +4,17 @@
 package installscript_test
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-)
-
-const (
-	verrazzanoSystemNamespace = "verrazzano-system"
-	rancherNamespace          = "cattle-system"
-	keycloakNamespace         = "keycloak"
-	grafanaIngress            = "vmi-system-grafana"
-	prometheusIngress         = "vmi-system-prometheus"
-	elasticsearchIngress      = "vmi-system-es-ingest"
-	kibanaIngress             = "vmi-system-kibana"
-	kialiIngress              = "vms-system-kiali"
-	verrazzanoIngress         = "verrazzano-ingress"
-	keycloakIngress           = "keycloak"
-	rancherIngress            = "rancher"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -36,9 +25,7 @@ const (
 var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
 var totalClusters, present = os.LookupEnv("CLUSTER_COUNT")
 
-// This test checks that the console output at the end of an install does not show a
-// user URL's that do not exist for that installation platform.  For example, a managed
-// cluster install would not have console URLs.
+// This test checks that the verrazzano install resource has the expected console URLs.
 var _ = Describe("Verify Verrazzano install scripts", func() {
 
 	Context("Verify Console URLs in the installed verrazzano resource", func() {
@@ -52,11 +39,9 @@ var _ = Describe("Verify Verrazzano install scripts", func() {
 
 				// Validation for managed clusters
 				for i := 2; i <= clusterCount; i++ {
-					consoleUrls, err := getConsoleURLsFromResource(kubeConfigFromEnv)
-					Expect(err).ShouldNot(HaveOccurred(), "There is an error getting console URLs from the installed verrazzano resource")
-
-					// By default, install logs of the managed clusters do not contain the console URLs
-					Expect(consoleUrls).To(BeEmpty())
+					Eventually(func() bool {
+						return validateConsoleUrlsCluster(strings.Replace(kubeConfigFromEnv, "1", strconv.Itoa(i), 1))
+					}, waitTimeout, pollingInterval).Should(BeTrue())
 				}
 			})
 		} else {
@@ -78,7 +63,7 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 	}
 	expectedConsoleUrls, err := getExpectedConsoleURLs(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the API server - %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from ingress resources - %v", err))
 		return false
 	}
 
@@ -121,64 +106,21 @@ func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	return consoleUrls, nil
 }
 
-// Get the expected console URLs for the given cluster
+// Get the expected console URLs for the given cluster from the ingress resources
 func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
-	api, err := pkg.GetAPIEndpoint(kubeConfig)
-	if api == nil {
-		return nil, err
-	}
-	ingress, err := api.GetIngress(keycloakNamespace, keycloakIngress)
+	var expectedUrls []string
+	clientset, err := pkg.GetKubernetesClientsetForCluster(kubeConfig)
 	if err != nil {
-		return nil, err
+		return expectedUrls, err
 	}
-	keycloakURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	ingress, err = api.GetIngress(rancherNamespace, rancherIngress)
+	ingresses, err := clientset.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		return nil, err
-	}
-	rancherURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	grafanaURL, err := getComponentURL(api, grafanaIngress)
-	if err != nil {
-		return nil, err
-	}
-	prometheusURL, err := getComponentURL(api, prometheusIngress)
-	if err != nil {
-		return nil, err
-	}
-	kibanaURL, err := getComponentURL(api, kibanaIngress)
-	if err != nil {
-		return nil, err
-	}
-	elasticsearchURL, err := getComponentURL(api, elasticsearchIngress)
-	if err != nil {
-		return nil, err
-	}
-	consoleURL, err := getComponentURL(api, verrazzanoIngress)
-	if err != nil {
-		return nil, err
-	}
-	kialiURL, err := getComponentURL(api, kialiIngress)
-	if err != nil {
-		return nil, err
+		return expectedUrls, err
 	}
 
-	var expectedUrls = []string{
-		grafanaURL,
-		prometheusURL,
-		kibanaURL,
-		elasticsearchURL,
-		consoleURL,
-		rancherURL,
-		keycloakURL,
-		kialiURL}
+	for _, ingress := range ingresses.Items {
+		expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host))
+	}
+
 	return expectedUrls, nil
-}
-
-func getComponentURL(api *pkg.APIEndpoint, ingressName string) (string, error) {
-	ingress, err := api.GetIngress(verrazzanoSystemNamespace, ingressName)
-	if err != nil {
-		return "", err
-	}
-	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-	return vmiComponentURL, nil
 }
