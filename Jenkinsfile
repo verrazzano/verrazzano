@@ -562,6 +562,15 @@ pipeline {
     }
 }
 
+def isPagerDutyEnabled() {
+    // this controls whether PD alerts are enabled
+    if (NOTIFY_PAGERDUTY_MAINJOB_FAILURES.equals("true")) {
+        echo "Pager-Duty notifications enabled via global override setting"
+        return true
+    }
+    return false
+}
+
 // Called in Stage Clean workspace and checkout steps
 def moveContentToGoRepoPath() {
     sh """
