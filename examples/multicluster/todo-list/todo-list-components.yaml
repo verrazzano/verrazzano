@@ -175,14 +175,17 @@ spec:
               image: ghcr.io/verrazzano/mysql:8.0.26
               imagePullPolicy: IfNotPresent
               name: mysql
-              protocol: TCP
-          volumeMounts:
-            - mountPath: /docker-entrypoint-initdb.d
+              ports:
+                - containerPort: 3306
+                  name: mysql
+                  protocol: TCP
+              volumeMounts:
+                - mountPath: /docker-entrypoint-initdb.d
+                  name: mysql-initdb
+          imagePullSecrets:
+            - name: ocr
+          volumes:
+            - configMap:
+                defaultMode: 420
+                name: mysql-initdb-config
               name: mysql-initdb
-      imagePullSecrets:
-        - name: ocr
-      volumes:
-        - configMap:
-            defaultMode: 420
-            name: mysql-initdb-config
-          name: mysql-initdb

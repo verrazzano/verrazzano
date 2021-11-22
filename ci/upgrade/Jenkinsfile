@@ -544,7 +544,7 @@ pipeline {
                 }
                 stage('verify-upgrade post-upgrade') {
                     steps {
-                        runGinkgoRandomize('verify-upgrade/postupgrade')
+                        runGinkgoRandomize('upgrade/post-upgrade/verify')
                     }
                 }
                 stage('examples socks') {
