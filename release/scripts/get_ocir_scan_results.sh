@@ -59,7 +59,7 @@ function get_scan_summaries() {
 # $7 time finished
 # $8 Overall Summary Report File
 function generate_detail_text_report() {
-  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] || [ -z "$8" ]& { echo "ERROR: generate_detail_text_report invalid args: $1 $2 $3 $4 $5 $6 $7 $8"; return; }
+  [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] || [ -z "$8" ] && { echo "ERROR: generate_detail_text_report invalid args: $1 $2 $3 $4 $5 $6 $7 $8"; return; }
   RESULT_SEVERITY=$1
   RESULT_REPOSITORY_IMAGE=$2
   RESULT_IMAGE_TAG=$3
