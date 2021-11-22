@@ -6,6 +6,7 @@ package framework
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -69,8 +70,13 @@ func VzAfterEach(body interface{}, timeout ...float64) bool {
 
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
+	startTime := time.Now()
 	pkg.Log(pkg.Debug, "VzDescribe wrapper")
 	ginkgo.Describe(text, body)
+	endTime := time.Now()
+	durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
+	EmitGauge(text, "duration", durationMillis)
+	IncrementCounter(text, "number_of_runs")
 	return true
 }
 
