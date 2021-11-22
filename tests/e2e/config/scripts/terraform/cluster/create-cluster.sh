@@ -9,6 +9,8 @@
 $SCRIPT_DIR/terraform init -no-color -reconfigure
 $SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -no-color
 
+set -o pipefail
+
 # retry 3 times, 30 seconds apart
 tries=0
 MAX_TRIES=3

@@ -380,20 +380,6 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 			},
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
-			// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-			func() {
-				It("Verify recent 'pattern not matched' log records do not exist", func() {
-					Eventually(func() bool {
-						return pkg.FindLog(bobsIndexName,
-							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-								{Key: "message", Value: "pattern not matched"}},
-							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected to find No pattern not matched log records")
-				})
-			},
-			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
 			func() {
 				It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
@@ -446,6 +432,16 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				})
 			},
 		)
+		// GIVEN a WebLogic application with logging enabled
+		// WHEN the log records are retrieved from the Elasticsearch index
+		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
+		It("Verify recent 'pattern not matched' log records do not exist", func() {
+			Expect(pkg.NoLog(bobsIndexName,
+				[]pkg.Match{
+					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+					{Key: "message", Value: "pattern not matched"}},
+				[]pkg.Match{})).To(BeTrue())
+		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index

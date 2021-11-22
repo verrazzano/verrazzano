@@ -87,7 +87,7 @@ if [ -n "${CLUSTER_DUMP_DIR}" ]; then
   ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
 fi
 
-# Configure the custom resource to install verrazzano on Kind
+# Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 
 echo "Wait for Operator to be ready"

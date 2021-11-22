@@ -6,6 +6,7 @@ package cohworkload
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"strings"
 	"testing"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
@@ -1422,7 +1422,7 @@ func TestReconcileRestart(t *testing.T) {
 	componentName := "unit-test-component"
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName}
-	annotations := map[string]string{constants.RestartVersionAnnotation: testRestartVersion}
+	annotations := map[string]string{vzconst.RestartVersionAnnotation: testRestartVersion}
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -1503,7 +1503,7 @@ func TestReconcileRestart(t *testing.T) {
 
 			// make sure sidecar.istio.io/inject annotation was added
 			annotations, _, _ := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
-			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false", constants.RestartVersionAnnotation: testRestartVersion})
+			assert.Equal(annotations, map[string]string{"sidecar.istio.io/inject": "false", vzconst.RestartVersionAnnotation: testRestartVersion})
 			return nil
 		})
 	// expect a call to get the application configuration for the workload

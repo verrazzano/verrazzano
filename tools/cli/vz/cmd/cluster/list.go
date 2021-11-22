@@ -62,7 +62,7 @@ func (o *ClusterListOptions) listClusters(kubernetesInterface helpers.Kubernetes
 		return err
 	}
 
-	// Get the verrazzanoClientSet to get info on the verrazzano resource
+	// Get the verrazzanoClientSet to get info on the Verrazzano resource
 	// for the admin cluster
 	vClientSet, err := kubernetesInterface.NewVerrazzanoClientSet()
 	if err != nil {
