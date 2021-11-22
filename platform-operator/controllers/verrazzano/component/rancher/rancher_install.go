@@ -19,14 +19,14 @@ import (
 //patchRancherDeployment CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
 func patchRancherDeployment(c client.Client) error {
 	deployment := appsv1.Deployment{}
-	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+	namespacedName := types.NamespacedName{Name: Name, Namespace: CattleSystem}
 	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
 		return err
 	}
 	deploymentMerge := client.MergeFrom(deployment.DeepCopy())
 	ok := false
 	for i, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name == ComponentName {
+		if container.Name == Name {
 			container.SecurityContext = &v1.SecurityContext{
 				Capabilities: &v1.Capabilities{
 					Add: []v1.Capability{"MKNOD"},
@@ -54,8 +54,8 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 		return err
 	}
 	namespacedName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      ComponentName,
+		Namespace: CattleSystem,
+		Name:      Name,
 	}
 	ingress := &networking.Ingress{}
 	if err := c.Get(context.TODO(), namespacedName, ingress); err != nil {

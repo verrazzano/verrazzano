@@ -8,19 +8,24 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Constants for Kubernetes resource names
 const (
-	// ComponentName is the name of the component
-	ComponentName = "rancher"
-	// ComponentNamespace is the namespace of the component
-	ComponentNamespace     = "cattle-system"
+	// Name is the name of the component
+	Name = "rancher"
+	// CattleSystem is the namespace of the component
+	CattleSystem           = "cattle-system"
+	IngressCASecret        = "tls-rancher-ingress"
+	AdminSecret            = "rancher-admin-secret"
+	CACert                 = "ca.crt"
 	OperatorNamespace      = "rancher-operator-system"
 	defaultSecretNamespace = "cert-manager"
 	namespaceLabelKey      = "verrazzano.io/namespace"
-	adminSecretName        = "rancher-admin-secret"
 	rancherTLSSecretName   = "tls-ca"
 	defaultVerrazzanoName  = "verrazzano-ca-certificate-secret"
 )
@@ -48,12 +53,62 @@ const (
 	useBundledSystemChartValue = "true"
 )
 
-type bashFuncSig func(inArgs ...string) (string, string, error)
+// Rancher HTTPS Configuration
+const (
+	contentTypeHeader   = "Content-Type"
+	authorizationHeader = "Authorization"
+	applicationJSON     = "application/json"
+	loginActionPath     = "/v3-public/localProviders/local?action=login"
+	loginActionTmpl     = `
+{
+  "Username": "admin",
+  "Password": "%s"
+}
+`
+	tokenPath = "/v3/token"
+	tokenBody = `
+{
+  "type": "token",
+  "description": "automation"
+}`
+	serverUrlPath = "/v3/settings/server-url"
+	serverUrlTmpl = `
+{
+  "name": "server-url",
+  "value": "https://%s"
+}`
+)
+
+type (
+	clientConfigSig func() (*rest.Config, rest.Interface, error)
+	bashFuncSig     func(inArgs ...string) (string, string, error)
+
+	TokenResponse struct {
+		Token string `json:"token"`
+	}
+)
 
 var bashFunc bashFuncSig = vzos.RunBash
 
+var restClientConfig clientConfigSig = func() (*rest.Config, rest.Interface, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	client, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cfg, client.CoreV1().RESTClient(), nil
+}
+
 func setBashFunc(f bashFuncSig) {
 	bashFunc = f
+}
+
+// For unit testing
+func setRestClientConfig(f clientConfigSig) {
+	restClientConfig = f
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -65,6 +120,6 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", ComponentName, vz.Spec.EnvironmentName, dnsSuffix)
+	rancherHostname := fmt.Sprintf("%s.%s.%s", Name, vz.Spec.EnvironmentName, dnsSuffix)
 	return rancherHostname, nil
 }

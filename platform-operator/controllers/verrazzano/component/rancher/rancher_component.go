@@ -30,8 +30,8 @@ func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
 			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
-			ReleaseName:             ComponentName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ReleaseName:             Name,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), Name),
 			ChartNamespace:          "cattle-system",
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -92,7 +92,7 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
-				Value: ComponentName,
+				Value: Name,
 			}, bom.KeyValue{
 				Key:   letsEncryptEmailKey,
 				Value: cm.Certificate.Acme.EmailAddress,
@@ -195,8 +195,8 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 		c := ctx.Client()
 		rancherDeploy := []types.NamespacedName{
 			{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
+				Name:      Name,
+				Namespace: CattleSystem,
 			},
 		}
 		return status.DeploymentsReady(log, c, rancherDeploy, 1)
@@ -220,7 +220,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return err
 	}
-	password, err := getAdminPassword(c)
+	password, err := GetAdminSecret(c)
 	if err != nil {
 		return err
 	}
@@ -229,8 +229,13 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := setServerURL(log, password, rancherHostName); err != nil {
+	rest, err := NewClient(c, rancherHostName, password)
+	if err != nil {
 		return err
 	}
-	return nil
+	if err := rest.SetAccessToken(); err != nil {
+		return err
+	}
+
+	return rest.PutServerURL()
 }

@@ -33,7 +33,7 @@ var (
 					},
 				},
 				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{Suffix: ComponentName},
+					External: &vzapi.External{Suffix: Name},
 				},
 			},
 		},
@@ -47,7 +47,7 @@ var (
 					ClusterResourceNamespace: defaultSecretNamespace,
 				}}},
 				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{Suffix: ComponentName},
+					External: &vzapi.External{Suffix: Name},
 				},
 			},
 		},
@@ -64,6 +64,18 @@ func getScheme() *runtime.Scheme {
 
 func getTestLogger(t *testing.T) *zap.SugaredLogger {
 	return zaptest.NewLogger(t).Sugar()
+}
+
+func createRootCASecret() v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: CattleSystem,
+			Name:      IngressCASecret,
+		},
+		Data: map[string][]byte{
+			CACert: []byte("blahblah"),
+		},
+	}
 }
 
 func createCASecret() v1.Secret {
@@ -84,9 +96,9 @@ func createRancherPodList() v1.PodList {
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rancherpod",
-					Namespace: ComponentNamespace,
+					Namespace: CattleSystem,
 					Labels: map[string]string{
-						"app": ComponentName,
+						"app": Name,
 					},
 				},
 			},
@@ -97,8 +109,8 @@ func createRancherPodList() v1.PodList {
 func createAdminSecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      adminSecretName,
+			Namespace: CattleSystem,
+			Name:      AdminSecret,
 		},
 		Data: map[string][]byte{
 			"password": []byte("foobar"),
@@ -123,7 +135,7 @@ func TestUseAdditionalCAs(t *testing.T) {
 }
 
 func TestGetRancherHostname(t *testing.T) {
-	expected := fmt.Sprintf("%s.%s.rancher", ComponentName, vzAcmeDev.Spec.EnvironmentName)
+	expected := fmt.Sprintf("%s.%s.rancher", Name, vzAcmeDev.Spec.EnvironmentName)
 	actual, _ := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev)
 	assert.Equal(t, expected, actual)
 }

@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -22,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -92,7 +92,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	rc.host = hostname
 
 	log.Debug("Getting Rancher TLS root CA")
-	caCert, err := getRancherTLSRootCA(rdr)
+	caCert, err := rancher.GetRootCA(rdr)
 	if err != nil {
 		log.Errorf("Unable to get rancher TLS root CA: %v", err)
 		return "", err
@@ -276,22 +276,9 @@ func getRegistrationYAMLFromRancher(rc *rancherConfig, clusterName string, ranch
 	return manifestContent, nil
 }
 
-// getAdminSecret fetches the Rancher admin secret
-func getAdminSecret(rdr client.Reader, rc *rancherConfig) (string, error) {
-	secret := &corev1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: rancherNamespace,
-		Name:      rancherAdminSecret}
-
-	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
-		return "", err
-	}
-	return string(secret.Data["password"]), nil
-}
-
 // getAdminTokenFromRancher does a login with Rancher and returns the token from the response
 func getAdminTokenFromRancher(rdr client.Reader, rc *rancherConfig, log *zap.SugaredLogger) (string, error) {
-	secret, err := getAdminSecret(rdr, rc)
+	secret, err := rancher.GetAdminSecret(rdr)
 	if err != nil {
 		return "", err
 	}
@@ -330,20 +317,6 @@ func getRancherIngressHostname(rdr client.Reader) (string, error) {
 	}
 
 	return "", errors.New("unable to get rancher ingress host name")
-}
-
-// getRancherTLSRootCA gets the root CA certificate from the Rancher TLS secret. If the secret does not exist, we
-// return a nil slice.
-func getRancherTLSRootCA(rdr client.Reader) ([]byte, error) {
-	secret := &corev1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: rancherNamespace,
-		Name:      rancherTLSSecret}
-
-	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
-		return nil, client.IgnoreNotFound(err)
-	}
-	return secret.Data["ca.crt"], nil
 }
 
 // sendRequest builds an HTTP request, sends it, and returns the response

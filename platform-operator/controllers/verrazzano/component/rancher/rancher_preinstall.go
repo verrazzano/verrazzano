@@ -35,16 +35,16 @@ func createRancherOperatorNamespace(log *zap.SugaredLogger, c client.Client) err
 func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error {
 	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: ComponentNamespace,
+			Name: CattleSystem,
 		},
 	}
-	log.Debugf("Creating %s namespace", ComponentNamespace)
+	log.Debugf("Creating %s namespace", CattleSystem)
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
-		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, ComponentNamespace)
+		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, CattleSystem)
 		if namespace.Labels == nil {
 			namespace.Labels = map[string]string{}
 		}
-		namespace.Labels[namespaceLabelKey] = ComponentName
+		namespace.Labels[namespaceLabelKey] = Name
 		return nil
 	}); err != nil {
 		return err
@@ -65,7 +65,7 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: CattleSystem,
 				Name:      rancherTLSSecretName,
 			},
 		}

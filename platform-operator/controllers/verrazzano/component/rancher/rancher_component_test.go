@@ -9,9 +9,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	testclient "k8s.io/client-go/rest/fake"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
@@ -120,8 +123,8 @@ func TestPreInstall(t *testing.T) {
 func TestIsReady(t *testing.T) {
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
+			Namespace: CattleSystem,
+			Name:      Name,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -129,8 +132,8 @@ func TestIsReady(t *testing.T) {
 	}
 	unreadyDeploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
+			Namespace: CattleSystem,
+			Name:      Name,
 		},
 	}
 	readyClient := fake.NewFakeClientWithScheme(getScheme(), &deploy)
@@ -169,5 +172,12 @@ func TestPostInstall(t *testing.T) {
 	rancherPodList := createRancherPodList()
 	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &adminSecret, &rancherPodList)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
+	common.NewSPDYExecutor = common.FakeNewSPDYExecutor
+	common.FakeStdOut = "password"
+	setRestClientConfig(func() (*rest.Config, rest.Interface, error) {
+		cfg, _ := rest.InClusterConfig()
+
+		return cfg, &testclient.RESTClient{}, nil
+	})
 	assert.Nil(t, NewComponent().PostInstall(ctx))
 }

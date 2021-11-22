@@ -65,8 +65,8 @@ func TestAddCAIngressAnnotations(t *testing.T) {
 func TestPatchRancherIngress(t *testing.T) {
 	ingress := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   ComponentNamespace,
-			Name:        ComponentName,
+			Namespace:   CattleSystem,
+			Name:        Name,
 			Annotations: map[string]string{"test": "data"},
 		},
 	}
@@ -110,15 +110,15 @@ func TestPatchRancherDeployment(t *testing.T) {
 			"rancherContainer",
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: ComponentNamespace,
-					Name:      ComponentName,
+					Namespace: CattleSystem,
+					Name:      Name,
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: v1.PodTemplateSpec{
 						Spec: v1.PodSpec{
 							Containers: []v1.Container{
 								{Name: "foobar"},
-								{Name: ComponentName},
+								{Name: Name},
 							},
 						},
 					},
@@ -130,8 +130,8 @@ func TestPatchRancherDeployment(t *testing.T) {
 			"noRancher",
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: ComponentNamespace,
-					Name:      ComponentName,
+					Namespace: CattleSystem,
+					Name:      Name,
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: v1.PodTemplateSpec{

@@ -56,7 +56,7 @@ func TestCreateCattleNamespace(t *testing.T) {
 			"should edit the cattle namespace if already exists",
 			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: ComponentNamespace,
+					Name: CattleSystem,
 				},
 			}),
 		},
