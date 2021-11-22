@@ -73,13 +73,8 @@ func VzAfterEach(body interface{}, timeout ...float64) bool {
 
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
-	startTime := time.Now()
 	pkg.Log(pkg.Debug, "VzDescribe wrapper")
 	ginkgo.Describe(text, body)
-	endTime := time.Now()
-	durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
-	emitGauge(text, "duration", durationMillis)
-	incrementCounter("", "number_of_tests")
 	return true
 }
 
