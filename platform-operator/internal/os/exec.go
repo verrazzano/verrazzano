@@ -21,7 +21,7 @@ type DefaultRunner struct {
 // Verify that Verrazzano implements Component
 var _ CmdRunner = DefaultRunner{}
 
-// neecmdRunFunc is needed ded for unit test
+// neecmdRunFunc is needed for unit test
 var cmdRunFunc func(cmd *exec.Cmd) error
 
 // Run runs an external command.  The caller is expected to initialize the

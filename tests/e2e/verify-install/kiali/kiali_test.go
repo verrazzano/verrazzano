@@ -26,33 +26,34 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var _ = Describe("Kiali", func() {
-	var (
-		client     *kubernetes.Clientset
-		httpClient *retryablehttp.Client
-		kialiErr   error
-	)
+var (
+	client     *kubernetes.Clientset
+	httpClient *retryablehttp.Client
+	kialiErr   error
+)
 
-	BeforeSuite(func() {
-		client, kialiErr = k8sutil.GetKubernetesClientset()
-		Expect(kialiErr).ToNot(HaveOccurred())
-		httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
-		Expect(kialiErr).ToNot(HaveOccurred())
-	})
+var _ = BeforeSuite(func() {
+	client, kialiErr = k8sutil.GetKubernetesClientset()
+	Expect(kialiErr).ToNot(HaveOccurred())
+	httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
+	Expect(kialiErr).ToNot(HaveOccurred())
+})
 
-	// It Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
-	WhenKialiInstalledIt := func(description string, f interface{}) {
-		supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
-		if err != nil {
-			Fail(err.Error())
-		}
-		// Kiali only installed when VZ > 1.1.0 and not a managed cluster
-		if supported && !pkg.IsManagedClusterProfile() {
-			It(description, f)
-		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
-		}
+// 'It' Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
+func WhenKialiInstalledIt(description string, f interface{}) {
+	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		Fail(err.Error())
 	}
+	// Kiali only installed when VZ > 1.1.0 and not a managed cluster
+	if supported && !pkg.IsManagedClusterProfile() {
+		It(description, f)
+	} else {
+		pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
+	}
+}
+
+var _ = Describe("Kiali", func() {
 
 	Context("Successful Install", func() {
 		WhenKialiInstalledIt("should have a monitoring crd", func() {
