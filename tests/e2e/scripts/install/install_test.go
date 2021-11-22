@@ -25,13 +25,13 @@ const (
 var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
 var totalClusters, present = os.LookupEnv("CLUSTER_COUNT")
 
-// This test checks that the verrazzano install resource has the expected console URLs.
+// This test checks that the Verrazzano install resource has the expected console URLs.
 var _ = Describe("Verify Verrazzano install scripts", func() {
 
-	Context("Verify Console URLs in the installed verrazzano resource", func() {
+	Context("Verify Console URLs in the installed Verrazzano resource", func() {
 		clusterCount, _ := strconv.Atoi(totalClusters)
 		if present && clusterCount > 0 {
-			It("Verify the expected console URLs are there in the installed verrazzano resource for the managed cluster(s)", func() {
+			It("Verify the expected console URLs are there in the installed Verrazzano resource for the managed cluster(s)", func() {
 				// Validation for admin cluster
 				Eventually(func() bool {
 					return validateConsoleUrlsCluster(kubeConfigFromEnv)
@@ -45,7 +45,7 @@ var _ = Describe("Verify Verrazzano install scripts", func() {
 				}
 			})
 		} else {
-			It("Verify the expected console URLs are there in the installed verrazzano resource", func() {
+			It("Verify the expected console URLs are there in the installed Verrazzano resource", func() {
 				Eventually(func() bool {
 					return validateConsoleUrlsCluster(kubeConfigFromEnv)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -58,7 +58,7 @@ var _ = Describe("Verify Verrazzano install scripts", func() {
 func validateConsoleUrlsCluster(kubeconfig string) bool {
 	consoleUrls, err := getConsoleURLsFromResource(kubeconfig)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the installed verrazzano resource - %v", err))
+		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from the installed Verrazzano resource - %v", err))
 		return false
 	}
 	expectedConsoleUrls, err := getExpectedConsoleURLs(kubeconfig)
@@ -70,7 +70,7 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }
 
-// Get the list of console URLs from the status block of the installed verrazzano resource
+// Get the list of console URLs from the status block of the installed Verrazzano resource
 func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	var consoleUrls []string
 	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
