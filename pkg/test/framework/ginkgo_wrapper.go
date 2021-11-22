@@ -5,15 +5,11 @@ package framework
 
 import (
 	"fmt"
-	"os"
 	"reflect"
-	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
-
-var getenvFunc = os.Getenv
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
 func VzBeforeSuite(body interface{}, timeout ...float64) bool {
