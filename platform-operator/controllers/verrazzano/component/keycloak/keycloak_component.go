@@ -3,13 +3,16 @@
 package keycloak
 
 import (
+	"context"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	corev1 "k8s.io/api/core/v1"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ComponentName is the name of the component
@@ -32,35 +35,51 @@ func NewComponent() spi.Component {
 			ChartNamespace:          ComponentName,
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Pull Key
-			ValuesFile:          filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:        []string{istio.ComponentName},
-			AppendOverridesFunc: AppendKeycloakOverrides,
+			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+			Dependencies:            []string{istio.ComponentName},
+			SupportsOperatorInstall: true,
+			AppendOverridesFunc:     AppendKeycloakOverrides,
 		},
 	}
 }
 
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret. return error which will cause reque
-	_, err := pkg.GetSecret("verrazzano-system", "verrazzano")
+	ctx.Log().Info("CDD Keycloak PreInstall Check Verrazzano Secret")
+	secret := &corev1.Secret{}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: "verrazzano-system",
+		Name:      "verrazzano",
+	}, secret)
 	if err != nil {
+		ctx.Log().Errorf("loginKeycloak: Error retrieving Verrazzano password: %s", err)
 		return err
 	}
+	ctx.Log().Info("CDD Keycloak PreInstall Verrazzano Secret Found")
+	ctx.Log().Info("CDD Keycloak PreInstall Check MySQL Secret")
 	// Check MySQL Secret. return error which will cause reque
-	_, err = pkg.GetSecret("keycloak", "mysql")
+	secret = &corev1.Secret{}
+	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: "keycloak",
+		Name:      "mysql",
+	}, secret)
 	if err != nil {
+		ctx.Log().Errorf("loginKeycloak: Error retrieving MySQL password: %s", err)
 		return err
 	}
+	ctx.Log().Info("CDD Keycloak PreInstall MySQL Secret Found")
 
 	// Create secret for the keycloakadmin user
+	ctx.Log().Info("CDD Keycloak PreInstall Create Keycloak Secret")
 	pw, err := vzpassword.GeneratePassword(15)
 	if err != nil {
 		return err
 	}
-	pkg.CreatePasswordSecret("keycloak", "keycloak-http", pw, nil)
+	err = createOrUpdateAuthSecret(ctx, "keycloak", "keycloak-http", "keycloakadmin", pw)
 	if err != nil {
 		return err
 	}
-
+	ctx.Log().Info("CDD Keycloak PreInstall Keycloak Secret Successfully Created")
 	return nil
 }
 

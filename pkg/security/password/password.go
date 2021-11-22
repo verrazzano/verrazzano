@@ -5,6 +5,7 @@ import (
 	b64 "encoding/base64"
 )
 
+// GeneratePassword will generate a password of length
 func GeneratePassword(length int) (string, error) {
 	b := make([]byte, length)
 	_, err := rand.Read(b)
