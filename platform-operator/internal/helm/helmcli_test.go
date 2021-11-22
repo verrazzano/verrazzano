@@ -76,7 +76,7 @@ func TestUpgrade(t *testing.T) {
 	SetCmdRunner(upgradeRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, "", overrideYaml)
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, "", "", overrideYaml)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -91,7 +91,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, "", "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, "", "", "")
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")

@@ -20,13 +20,13 @@ import (
 
 // ComponentName is the name of the component
 const (
-	secretName    = "mysql"
+	//secretName    = "mysql"
 	mysqlUsername = "keycloak"
-	helmPwd       = "mysqlPassword"
-	helmRootPwd   = "mysqlRootPassword"
-	mysqlKey      = "mysql-password"
-	mysqlRootKey  = "mysql-root-password"
-	mysqlDBFile   = "create-mysql-db.sql"
+	//helmPwd       = "mysqlPassword"
+	//helmRootPwd   = "mysqlRootPassword"
+	//mysqlKey      = "mysql-password"
+	//mysqlRootKey  = "mysql-root-password"
+	mysqlDBFile = "create-mysql-db.sql"
 )
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {

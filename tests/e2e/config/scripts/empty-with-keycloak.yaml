@@ -4,7 +4,7 @@
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano
 metadata:
-  name: paul
+  name: ben
 spec:
   profile: dev
   components:
