@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	helmutil "github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,13 +22,13 @@ import (
 
 // ComponentName is the name of the component
 const (
-	//secretName    = "mysql"
+	secretName    = "mysql"
 	mysqlUsername = "keycloak"
-	//helmPwd       = "mysqlPassword"
-	//helmRootPwd   = "mysqlRootPassword"
-	//mysqlKey      = "mysql-password"
-	//mysqlRootKey  = "mysql-root-password"
-	mysqlDBFile = "create-mysql-db.sql"
+	helmPwd       = "mysqlPassword"
+	helmRootPwd   = "mysqlRootPassword"
+	mysqlKey      = "mysql-password"
+	mysqlRootKey  = "mysql-root-password"
+	mysqlDBFile   = "create-mysql-db.sql"
 )
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
@@ -39,27 +41,34 @@ func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 // AppendMySQLOverrides appends the the password for database user and root user.
 func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
-	//secret := &v1.Secret{}
-	//nsName := types.NamespacedName{
-	//	Namespace: vzconst.KeycloakNamespace,
-	//	Name:      secretName}
-	//
-	//err := compContext.Client().Get(context.TODO(), nsName, secret)
-	//if err != nil {
-	//	return []bom.KeyValue{}, err
-	//}
-	//
-	//// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
-	//kvs = append(kvs, bom.KeyValue{
-	//	Key:   helmPwd,
-	//	Value: string(secret.Data[mysqlKey]),
-	//})
-	//kvs = append(kvs, bom.KeyValue{
-	//	Key:   helmRootPwd,
-	//	Value: string(secret.Data[mysqlRootKey]),
-	//})
+	deployed, err := helmutil.IsReleaseDeployed(ComponentName, vzconst.KeycloakNamespace)
+	if err != nil {
+		//	TODO: change to retryable error
+		return []bom.KeyValue{}, err
+	}
+	if deployed {
+		secret := &v1.Secret{}
+		nsName := types.NamespacedName{
+			Namespace: vzconst.KeycloakNamespace,
+			Name:      secretName}
+
+		err = compContext.Client().Get(context.TODO(), nsName, secret)
+		if err != nil {
+			return []bom.KeyValue{}, err
+		}
+
+		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
+		kvs = append(kvs, bom.KeyValue{
+			Key:   helmPwd,
+			Value: string(secret.Data[mysqlKey]),
+		})
+		kvs = append(kvs, bom.KeyValue{
+			Key:   helmRootPwd,
+			Value: string(secret.Data[mysqlRootKey]),
+		})
+	}
 	kvs = append(kvs, bom.KeyValue{Key: "mysqlUser", Value: mysqlUsername})
-	err := createDBFile(compContext)
+	err = createDBFile(compContext)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
