@@ -70,7 +70,7 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }
 
-// Get the list of console URLs from the status block of the installed verrrazzano resource
+// Get the list of console URLs from the status block of the installed verrazzano resource
 func getConsoleURLsFromResource(kubeconfig string) ([]string, error) {
 	var consoleUrls []string
 	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfig)
