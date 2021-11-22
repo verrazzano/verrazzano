@@ -10,6 +10,7 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
 . $SCRIPT_DIR/config.sh
 
+TMP_DIR=$(mktemp -d)
 log "Using ACME staging, create staging certs secret for Rancher"
 acme_staging_certs=${TMP_DIR}/ca-additional.pem
 echo -n "" > ${acme_staging_certs}
