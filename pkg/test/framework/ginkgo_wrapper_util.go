@@ -75,7 +75,7 @@ func getMetricsReceiverType() string {
 	return metricsReceiverType
 }
 
-func emitGauge(testName string, metricName string, value float64) error {
+func EmitGauge(testName string, metricName string, value float64) error {
 	metricsReceiver, err := createTestMetricsReceiver(testName)
 	if err != nil {
 		return err
@@ -83,7 +83,7 @@ func emitGauge(testName string, metricName string, value float64) error {
 	return metricsReceiver.SetGauge(metricName, value)
 }
 
-func incrementCounter(testName string, metricName string) error {
+func IncrementCounter(testName string, metricName string) error {
 	metricsReceiver, err := createTestMetricsReceiver(testName)
 	if err != nil {
 		return err
