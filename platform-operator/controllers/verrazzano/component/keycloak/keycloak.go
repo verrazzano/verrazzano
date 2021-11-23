@@ -132,19 +132,6 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: b.String(),
 	})
 
-	// Additional overrides for Keycloak 15.0.2 charts.
-	//	var keycloakIngress = &networkingv1.Ingress{}
-	//	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: constants.KeycloakIngress, Namespace: constants.KeycloakNamespace}, keycloakIngress)
-	//	if err != nil {
-	//		return nil, fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.KeycloakIngress, constants.KeycloakNamespace, err)
-	//	}
-	//
-	//	if len(keycloakIngress.Spec.TLS) == 0 || len(keycloakIngress.Spec.TLS[0].Hosts) == 0 {
-	//		return nil, fmt.Errorf("no ingress hosts found for %s/%s, %v", constants.KeycloakIngress, constants.KeycloakNamespace, err)
-	//	}
-
-	//	host := keycloakIngress.Spec.TLS[0].Hosts[0]
-
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := nginx.BuildDNSDomain(compContext.Client(), compContext.EffectiveCR())
 	if err != nil {
