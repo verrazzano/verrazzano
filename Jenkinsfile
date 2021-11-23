@@ -358,7 +358,7 @@ pipeline {
                     """
                     archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                    cobertura(coberturaReportFile: 'coverage.xml',
+/*                    cobertura(coberturaReportFile: 'coverage.xml',
                       enableNewApi: true,
                       autoUpdateHealth: false,
                       autoUpdateStability: false,
@@ -369,7 +369,7 @@ pipeline {
                       fileCoverageTargets: '100, 0, 0',
                       lineCoverageTargets: '75, 75, 75',
                       packageCoverageTargets: '100, 0, 0',
-                    )
+                    ) */
                 }
             }
         }
