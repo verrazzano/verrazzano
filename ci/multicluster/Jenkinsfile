@@ -420,7 +420,7 @@ pipeline {
                         }
                         stage('verify-scripts') {
                             steps {
-                                runGinkgo('scripts', "${ADMIN_KUBECONFIG}", "${params.TOTAL_CLUSTERS}")
+                                runGinkgoRandomize('scripts')
                             }
                         }
                         stage('verify-infra restapi') {

@@ -282,7 +282,7 @@ pipeline {
                     parallel {
                         stage('verify-scripts') {
                             steps {
-                                runGinkgo('scripts')
+                                runGinkgo('scripts', "${KUBECONFIG}")
                             }
                         }
                         stage('verify-infra restapi') {
