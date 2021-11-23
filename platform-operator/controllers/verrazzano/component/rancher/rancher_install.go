@@ -75,9 +75,10 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 func addAcmeIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingress) {
 	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s auth", dnsSuffix)
 	ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = fmt.Sprintf("verrazzano-ingress.%s.%s", name, dnsSuffix)
-	ingress.Annotations["cert-manager.io/issuer"] = "null"
-	ingress.Annotations["cert-manager.io/issuer-kind"] = "null"
 	ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
+	// Remove any existing cert manage annotations
+	delete(ingress.Annotations, "cert-manager.io/issuer")
+	delete(ingress.Annotations, "cert-manager.io/issuer")
 }
 
 //addCAIngressAnnotations annotate ingress with custom CA specific values
