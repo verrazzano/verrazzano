@@ -6,7 +6,6 @@ package verify
 import (
 	"fmt"
 	. "github.com/onsi/ginkgo"
-	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -100,7 +99,7 @@ var _ = Describe("verify application pods post-upgrade", func() {
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	ginkgoExt.DescribeTable("Pods should contain Envoy sidecar 1.10.4",
+	DescribeTable("Pods should contain Envoy sidecar 1.10.4",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -114,9 +113,9 @@ var _ = Describe("verify application pods post-upgrade", func() {
 				pkg.Log(pkg.Info, fmt.Sprintf("Skipping test since namespace %s doesn't exist", namespace))
 			}
 		},
-		ginkgoExt.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", helloHelidonNamespace), helloHelidonNamespace, twoMinutes),
-		ginkgoExt.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", springbootNamespace), springbootNamespace, twoMinutes),
-		ginkgoExt.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, fiveMinutes),
-		ginkgoExt.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, fiveMinutes),
+		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", helloHelidonNamespace), helloHelidonNamespace, twoMinutes),
+		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", springbootNamespace), springbootNamespace, twoMinutes),
+		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, fiveMinutes),
+		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, fiveMinutes),
 	)
 })

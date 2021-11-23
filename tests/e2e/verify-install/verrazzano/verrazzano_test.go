@@ -7,7 +7,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -76,36 +75,36 @@ var _ = Describe("Verrazzano", func() {
 		Resources: []string{"*", "*/status"},
 	}
 
-	ginkgoExt.DescribeTable("CRD for",
+	DescribeTable("CRD for",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesCRDExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		ginkgoExt.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
-		ginkgoExt.Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
+		Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
+		Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
 	)
 
-	ginkgoExt.DescribeTable("ClusterRole",
+	DescribeTable("ClusterRole",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesClusterRoleExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
-		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
-		ginkgoExt.Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
-		ginkgoExt.Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
+		Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+		Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
+		Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
 	)
 
-	ginkgoExt.DescribeTable("ClusterRoleBinding",
+	DescribeTable("ClusterRoleBinding",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesClusterRoleBindingExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		ginkgoExt.Entry("verrazzano-admin should exist", "verrazzano-admin"),
-		ginkgoExt.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+		Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
 	)
 
 	Describe("ClusterRole verrazzano-admin", func() {
@@ -127,21 +126,21 @@ var _ = Describe("Verrazzano", func() {
 				"there should be eleven rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		DescribeTable("PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			ginkgoExt.Entry("vzInstallReadRule should exist", vzInstallReadRule),
-			ginkgoExt.Entry("vzInstallWriteRule should exist", vzInstallWriteRule),
-			ginkgoExt.Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			ginkgoExt.Entry("vzSystemWriteRule should exist", vzSystemWriteRule),
-			ginkgoExt.Entry("vzAppReadRule should exist", vzAppReadRule),
-			ginkgoExt.Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			ginkgoExt.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			ginkgoExt.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			ginkgoExt.Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			Entry("vzInstallReadRule should exist", vzInstallReadRule),
+			Entry("vzInstallWriteRule should exist", vzInstallWriteRule),
+			Entry("vzSystemReadRule should exist", vzSystemReadRule),
+			Entry("vzSystemWriteRule should exist", vzSystemWriteRule),
+			Entry("vzAppReadRule should exist", vzAppReadRule),
+			Entry("vzAppWriteRule should exist", vzAppWriteRule),
+			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
+			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			Entry("vzIstioReadRule should exist", vzIstioReadRule),
 		)
 	})
 
@@ -164,15 +163,15 @@ var _ = Describe("Verrazzano", func() {
 				"there should be five rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		DescribeTable("PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			ginkgoExt.Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			ginkgoExt.Entry("vzAppReadRule should exist", vzAppReadRule),
-			ginkgoExt.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			ginkgoExt.Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			Entry("vzSystemReadRule should exist", vzSystemReadRule),
+			Entry("vzAppReadRule should exist", vzAppReadRule),
+			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			Entry("vzIstioReadRule should exist", vzIstioReadRule),
 		)
 	})
 
@@ -195,16 +194,16 @@ var _ = Describe("Verrazzano", func() {
 				"there should be six rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		DescribeTable("PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			ginkgoExt.Entry("vzAppReadRule should exist", vzAppReadRule),
-			ginkgoExt.Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			ginkgoExt.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			ginkgoExt.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			ginkgoExt.Entry("vzCoherenceWriteRule should exist", vzCoherenceWriteRule),
+			Entry("vzAppReadRule should exist", vzAppReadRule),
+			Entry("vzAppWriteRule should exist", vzAppWriteRule),
+			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
+			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			Entry("vzCoherenceWriteRule should exist", vzCoherenceWriteRule),
 		)
 	})
 
@@ -227,13 +226,13 @@ var _ = Describe("Verrazzano", func() {
 				"there should be three rules")
 		})
 
-		ginkgoExt.DescribeTable("PolicyRule",
+		DescribeTable("PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			ginkgoExt.Entry("vzAppReadRule should exist", vzAppReadRule),
-			ginkgoExt.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			ginkgoExt.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			Entry("vzAppReadRule should exist", vzAppReadRule),
+			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
 		)
 	})
 

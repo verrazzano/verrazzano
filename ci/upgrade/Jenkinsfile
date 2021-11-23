@@ -102,7 +102,7 @@ pipeline {
         APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
 
         // used to emit metrics
-         PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }
@@ -669,9 +669,9 @@ pipeline {
 
             script {
                 if (params.EMIT_METRICS) {
-                    withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
+                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
                         sh """
-                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${SAURON_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
+                            ${GO_REPO_PATH}/verrazzano/ci/scripts/dashboard/emit_metrics.sh "${GO_REPO_PATH}/verrazzano/tests/e2e" "${PROMETHEUS_CREDENTIALS}" || echo "Emit metrics failed, continuing with other post actions"
                         """
                     }
                 }
@@ -714,7 +714,7 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -723,7 +723,7 @@ def runGinkgo(testSuitePath, skipDeploy, skipUndeploy) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy}
+            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy}
         """
     }
 }
@@ -843,8 +843,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -872,8 +872,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels = getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

@@ -5,12 +5,9 @@ package todo
 
 import (
 	"flag"
-	"fmt"
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
@@ -25,6 +22,5 @@ func init() {
 // TestToDoListExample tests the ToDoList example
 func TestToDoListExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("todo-list-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "ToDo List Example Test Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "ToDo List Example Test Suite")
 }
