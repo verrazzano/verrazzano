@@ -5,16 +5,6 @@ metadata:
 spec:
   profile: "prod"
   environmentName: prodenv
-  defaultVolumeSource:
-    persistentVolumeClaim:
-      claimName: default-storage
-  volumeClaimSpecTemplates:
-    - metadata:
-        name: default-storage
-      spec:
-        resources:
-          requests:
-            storage: 50Gi
   components:
     certManager:
       certificate:
@@ -72,10 +62,6 @@ spec:
       enabled: true
     keycloak:
       enabled: true
-      mysql:
-        volumeSource:
-          persistentVolumeClaim:
-            claimName: default-storage
     kibana:
       enabled: true
     prometheus:
