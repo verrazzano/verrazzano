@@ -249,21 +249,3 @@ func TestSQLFileCreatedAndDeleted(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoFileExists(t, os.TempDir()+"/"+mysqlDBFile)
 }
-
-/*func TestCreateDBFile(t *testing.T) {
-	vz := &vzapi.Verrazzano{}
-	fmt.Println(os.TempDir() + "/" + mysqlDBFile)
-	err := createDBFile(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"))
-	assert.Nil(t, err, "error creating db file")
-}
-
-func TestAppendOverrides(t *testing.T) {
-	vz := &vzapi.Verrazzano{}
-	var devProfile vzapi.ProfileType = "dev"
-	vz.Spec.Profile = devProfile
-	ctx := spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles")
-	var kvs []bom.KeyValue
-	kvs, err := AppendMySQLOverrides(ctx, "", "", "", kvs)
-	fmt.Println(kvs)
-	assert.Nil(t, err, "Should be nil", err.Error())
-}*/
