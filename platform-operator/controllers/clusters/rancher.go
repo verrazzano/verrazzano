@@ -101,16 +101,13 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	}
 	rc.certificateAuthorityData = caCert
 
-	log.Infof("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
+	log.Debugf("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
 	additionalCA, err := getAdditionalCA(rdr)
 	if err != nil {
 		log.Errorf("Unable to check Rancher for additional CA: %v", err)
 		return "", err
 	}
 	rc.additionalCA = additionalCA
-	if len(additionalCA) > 0 {
-		log.Infof("Additional CA content found - %s", string(additionalCA))
-	}
 
 	log.Debug("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
@@ -302,7 +299,7 @@ func getAdminSecret(rdr client.Reader) (string, error) {
 	return string(secret.Data["password"]), nil
 }
 
-// getAdditionalCA fetches the Rancher admin secret
+// getAdditionalCA fetches the Rancher additional CA secret
 func getAdditionalCA(rdr client.Reader) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
