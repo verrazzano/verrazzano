@@ -49,8 +49,8 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
-	assert.Equal(t, bom.FindKV(kvs, mysqlUsernameKey), mysqlUsername)
-	assert.Empty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.Equal(t, mysqlUsername, bom.FindKV(kvs, mysqlUsernameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 }
 
 func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
@@ -72,7 +72,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
-	assert.Equal(t, bom.FindKV(kvs, "key"), "value")
+	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
 }
 
 func TestAppendMySQLOverridesDev(t *testing.T) {
@@ -86,10 +86,10 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
-	assert.Equal(t, bom.FindKV(kvs, "persistence.enabled"), "false")
+	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
 }
 
 func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
@@ -119,11 +119,11 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
-	assert.Equal(t, bom.FindKV(kvs, "persistence.enabled"), "true")
-	assert.Equal(t, bom.FindKV(kvs, "persistence.size"), "100Gi")
+	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
+	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
 }
 
 func TestAppendMySQLOverridesProd(t *testing.T) {
@@ -134,11 +134,11 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3)
-	assert.Equal(t, bom.FindKV(kvs, "persistence.enabled"), "true")
-	assert.Equal(t, bom.FindKV(kvs, "persistence.size"), "500Gi")
+	assert.Len(t, kvs, 4)
+	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
+	assert.Equal(t, "50Gi", bom.FindKV(kvs, "persistence.size"))
 }
 
 // TestIsMySQLReady tests the IsReady function
