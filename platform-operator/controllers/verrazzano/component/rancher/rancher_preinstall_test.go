@@ -4,15 +4,23 @@
 package rancher
 
 import (
+	"errors"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"io"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
 	"testing"
 )
 
+// TestCreateOperatorNamespace verifies creation of the Rancher operator namespace
+// GIVEN a CertManager component
+//  WHEN createRancherOperatorNamespace is called
+//  THEN createRancherOperatorNamespace the Rancher operator namespace should be created
 func TestCreateOperatorNamespace(t *testing.T) {
 	log := getTestLogger(t)
 
@@ -21,11 +29,11 @@ func TestCreateOperatorNamespace(t *testing.T) {
 		c        client.Client
 	}{
 		{
-			"should create the rancher operator namespace",
+			"should create the Rancher operator namespace",
 			fake.NewFakeClientWithScheme(getScheme()),
 		},
 		{
-			"should not fail if the rancher operator namespace already exists",
+			"should not fail if the Rancher operator namespace already exists",
 			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: OperatorNamespace,
@@ -41,6 +49,10 @@ func TestCreateOperatorNamespace(t *testing.T) {
 	}
 }
 
+// TestCreateCattleNamespace verifies creation of the cattle-system namespace
+// GIVEN a CertManager component
+//  WHEN createCattleSystemNamespace is called
+//  THEN createCattleSystemNamespace the cattle-system namespace should be created
 func TestCreateCattleNamespace(t *testing.T) {
 	log := getTestLogger(t)
 
@@ -69,6 +81,10 @@ func TestCreateCattleNamespace(t *testing.T) {
 	}
 }
 
+// TestIsUsingDefaultCACertificate verifies whether the CerManager component specifies to use the default CA certificate or not
+// GIVEN a CertManager component
+//  WHEN isUsingDefaultCACertificate is called
+//  THEN isUsingDefaultCACertificate should return true or false if the default CA certificate is required
 func TestCopyDefaultCACertificate(t *testing.T) {
 	log := getTestLogger(t)
 	secret := createCASecret()
@@ -110,6 +126,10 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 	}
 }
 
+// TestIsUsingDefaultCACertificate verifies whether the CerManager component specifies to use the default CA certificate or not
+// GIVEN a CertManager component
+//  WHEN isUsingDefaultCACertificate is called
+//  THEN isUsingDefaultCACertificate should return true or false if the default CA certificate is required
 func TestIsUsingDefaultCACertificate(t *testing.T) {
 	var tests = []struct {
 		testName string
@@ -136,6 +156,61 @@ func TestIsUsingDefaultCACertificate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			assert.Equal(t, tt.out, isUsingDefaultCACertificate(tt.CertManagerComponent))
+		})
+	}
+}
+
+// TestCreateAdditionalCertificates verifies creation of additional certificates when they are necessary
+// GIVEN a Verrazzano CR
+//  WHEN createAdditionalCertificates is called
+//  THEN createAdditionalCertificates should create additional certificates as necessary from the Verrazzano CR information
+func TestCreateAdditionalCertificates(t *testing.T) {
+	log := getTestLogger(t)
+	c := fake.NewFakeClientWithScheme(getScheme())
+	doOK := func(hc *http.Client, req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			Body:       io.NopCloser(strings.NewReader("cert")),
+			StatusCode: http.StatusOK,
+		}, nil
+	}
+	doFail := func(hc *http.Client, req *http.Request) (*http.Response, error) {
+		return nil, errors.New("boom")
+	}
+	var tests = []struct {
+		testName string
+		httpDo   httpDoSig
+		vz       *vzapi.Verrazzano
+		isErr    bool
+	}{
+		{
+			"should create additional CA Certificates when using Acme Dev",
+			doOK,
+			&vzAcmeDev,
+			false,
+		},
+		{
+			"should fail to download additional CA Certificates",
+			doFail,
+			&vzAcmeDev,
+			true,
+		},
+		{
+			"should not download additional CA Certificates when using a private CA",
+			doOK,
+			&vzDefaultCA,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			httpDo = tt.httpDo
+			err := createAdditionalCertificates(log, c, tt.vz)
+			if tt.isErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
 		})
 	}
 }

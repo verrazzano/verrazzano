@@ -32,6 +32,10 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 	return "", false
 }
 
+// TestAppendRegistryOverrides verifies that registry overrides are added as appropriate
+// GIVEN a Verrzzano CR
+//  WHEN AppendOverrides is called
+//  THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev, false)
 	registry := "foobar"
@@ -53,6 +57,10 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
 }
 
+// TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
+// GIVEN a Verrzzano CR
+//  WHEN AppendOverrides is called
+//  THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(getScheme()), &vzDefaultCA, false)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -65,6 +73,10 @@ func TestAppendCAOverrides(t *testing.T) {
 	assert.Equal(t, privateCAValue, v)
 }
 
+// TestIsReady verifies Rancher is enabled or disabled as expected
+// GIVEN a Verrzzano CR
+//  WHEN IsEnabled is called
+//  THEN IsEnabled should return true/false depending on the enabled state of the CR
 func TestIsEnabled(t *testing.T) {
 	enabled := true
 	disabled := false
@@ -119,6 +131,10 @@ func TestPreInstall(t *testing.T) {
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }
 
+// TestIsReady verifies that a ready-state Rancher shows as ready
+// GIVEN a ready Rancher install
+//  WHEN IsReady is called
+//  THEN IsReady should return true
 func TestIsReady(t *testing.T) {
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -163,7 +179,7 @@ func TestIsReady(t *testing.T) {
 }
 
 // TestPostInstall tests a happy path post install run
-// GIVEN a rancher install state where all components are ready
+// GIVEN a Rancher install state where all components are ready
 //  WHEN PostInstall is called
 //  THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
@@ -175,7 +191,7 @@ func TestPostInstall(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 
-	// mock the pod executor when resetting the rancher admin password
+	// mock the pod executor when resetting the Rancher admin password
 	common.NewSPDYExecutor = common.FakeNewSPDYExecutor
 	common.FakeStdOut = "password"
 	setRestClientConfig(func() (*rest.Config, rest.Interface, error) {
@@ -187,17 +203,16 @@ func TestPostInstall(t *testing.T) {
 	// mock the HTTP responses for the Rancher API
 	httpDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		url := req.URL.String()
-		if strings.Contains(url, serverUrlPath) {
+		if strings.Contains(url, serverURLPath) {
 			return &http.Response{
 				StatusCode: 200,
 				Body:       io.NopCloser(strings.NewReader("blahblah")),
 			}, nil
-		} else {
-			return &http.Response{
-				StatusCode: 200,
-				Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
-			}, nil
 		}
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
+		}, nil
 	}
 
 	assert.Nil(t, NewComponent().PostInstall(ctx))

@@ -37,7 +37,7 @@ func patchRancherDeployment(c client.Client) error {
 		}
 	}
 	if !ok {
-		return errors.New("rancher container was not found")
+		return errors.New("container 'rancher' was not found")
 	}
 
 	return c.Patch(context.TODO(), &deployment, deploymentMerge)

@@ -21,6 +21,10 @@ const (
 	name      = "NAME"
 )
 
+// TestAddAcmeIngressAnnotations verifies if ACME Annotations are added to the Ingress
+// GIVEN a Rancher Ingress
+//  WHEN addAcmeIngressAnnotations is called
+//  THEN addAcmeIngressAnnotations should annotate the ingress
 func TestAddAcmeIngressAnnotations(t *testing.T) {
 	in := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -43,6 +47,10 @@ func TestAddAcmeIngressAnnotations(t *testing.T) {
 	assert.Equal(t, out, in)
 }
 
+// TestAddCAIngressAnnotations verifies if CA Annotations are added to the Ingress
+// GIVEN a Rancher Ingress
+//  WHEN addCAIngressAnnotations is called
+//  THEN addCAIngressAnnotations should annotate the ingress
 func TestAddCAIngressAnnotations(t *testing.T) {
 	in := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -62,6 +70,10 @@ func TestAddCAIngressAnnotations(t *testing.T) {
 	assert.Equal(t, out, in)
 }
 
+// TestPatchRancherIngress should annotate the Rancher ingress with Acme/Private CA values
+// GIVEN a Rancher Ingress and a Verrazzano CR
+//  WHEN patchRancherIngress is called
+//  THEN patchRancherIngress should annotate the ingress according to the Verrazzano CR
 func TestPatchRancherIngress(t *testing.T) {
 	ingress := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -86,6 +98,10 @@ func TestPatchRancherIngress(t *testing.T) {
 	}
 }
 
+// TestPatchRancherIngressNotFound should fail to find the ingress
+// GIVEN no Rancher Ingress and a Verrazzano CR
+//  WHEN patchRancherIngress is called
+//  THEN patchRancherIngress should fail to annotate the Ingress
 func TestPatchRancherIngressNotFound(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(getScheme())
 	err := patchRancherIngress(c, &vzAcmeDev)
@@ -93,6 +109,10 @@ func TestPatchRancherIngressNotFound(t *testing.T) {
 	assert.True(t, apierrors.IsNotFound(err))
 }
 
+// TestPatchRancherDeploymentNotFound should fail to find the deployment
+// GIVEN no Rancher Deployment
+//  WHEN patchRancherDeployment is called
+//  THEN patchRancherDeployment should fail to patch the deployment
 func TestPatchRancherDeploymentNotFound(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(getScheme())
 	err := patchRancherDeployment(c)
@@ -100,6 +120,10 @@ func TestPatchRancherDeploymentNotFound(t *testing.T) {
 	assert.True(t, apierrors.IsNotFound(err))
 }
 
+// TestPatchRancherDeploymentNotFound verified patching deployment capabilities
+// GIVEN a Rancher Deployment with a Rancher container
+//  WHEN patchRancherDeployment is called
+//  THEN patchRancherDeployment should add the MKNOD capability to the deployment
 func TestPatchRancherDeployment(t *testing.T) {
 	var tests = []struct {
 		testName   string

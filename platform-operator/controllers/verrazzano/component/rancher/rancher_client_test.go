@@ -5,7 +5,6 @@ package rancher
 
 import (
 	"errors"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
@@ -22,14 +21,14 @@ const (
 func tokenResponse(h *http.Client, request *http.Request) (*http.Response, error) {
 	return &http.Response{
 		StatusCode: 201,
-		Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"token":"token"}`))),
+		Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
 	}, nil
 }
 
 func unauthorizedResponse(h *http.Client, request *http.Request) (*http.Response, error) {
 	return &http.Response{
 		StatusCode: 401,
-		Body:       io.NopCloser(strings.NewReader(fmt.Sprintf(`{"error":"unauthorized"}`))),
+		Body:       io.NopCloser(strings.NewReader(`{"error":"unauthorized"}`)),
 	}, nil
 }
 
@@ -40,7 +39,7 @@ func errorResponse(h *http.Client, request *http.Request) (*http.Response, error
 func okResponse(h *http.Client, request *http.Request) (*http.Response, error) {
 	return &http.Response{
 		StatusCode: 200,
-		Body:       io.NopCloser(strings.NewReader(fmt.Sprintf("blahblah"))),
+		Body:       io.NopCloser(strings.NewReader("blahblah")),
 	}, nil
 }
 
@@ -53,6 +52,10 @@ func testClient(doer func(*http.Client, *http.Request) (*http.Response, error)) 
 	}
 }
 
+// TestNewClient tests creating a new Rancher REST client
+// GIVEN the root CA secret exists on the cluster
+//  WHEN NewClient is called
+//  THEN NewClient should return a new client
 func TestNewClient(t *testing.T) {
 	s := createRootCASecret()
 	c := fake.NewFakeClientWithScheme(getScheme(), &s)
@@ -64,7 +67,7 @@ func TestNewClient(t *testing.T) {
 // TestGetAdminSecret tests retrieving the Rancher admin secret value
 // GIVEN a client
 //  WHEN GetAdminSecret is called with a client that has an admin secret in cluster
-//  THEN GetAdminSecret should return the value of the rancher admin secret
+//  THEN GetAdminSecret should return the value of the Rancher admin secret
 func TestGetAdminSecret(t *testing.T) {
 	secret := createAdminSecret()
 	var tests = []struct {
@@ -99,7 +102,7 @@ func TestGetAdminSecret(t *testing.T) {
 // TestGetRancherTLSRootCA tests retrieving the Rancher CA certificate
 // GIVEN a client
 //  WHEN GetRootCA is called with a client that has an CA secret in cluster
-//  THEN GetRootCA should return the value of the rancher CA secret
+//  THEN GetRootCA should return the value of the Rancher CA secret
 func TestGetRancherTLSRootCA(t *testing.T) {
 	secret := createRootCASecret()
 	var tests = []struct {
@@ -154,7 +157,7 @@ func TestHttpClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			hc, err := HttpClient(tt.c)
+			hc, err := HTTPClient(tt.c)
 			if tt.isErr {
 				assert.NotNil(t, err)
 				assert.Nil(t, hc)
@@ -166,6 +169,7 @@ func TestHttpClient(t *testing.T) {
 	}
 }
 
+// TestSetLoginToken tests setting the Rancher client login token
 func TestSetLoginToken(t *testing.T) {
 	var tests = []struct {
 		testName string
@@ -173,16 +177,25 @@ func TestSetLoginToken(t *testing.T) {
 		isError  bool
 	}{
 		{
+			// GIVEN Rancher is up and running and credentials are correct
+			//  WHEN SetLoginToken is called
+			//  THEN SetLoginToken should set the login token in the Rancher client
 			"should be able to set the login token",
 			testClient(tokenResponse),
 			false,
 		},
 		{
+			// GIVEN Rancher credentials are incorrect
+			//  WHEN SetLoginToken is called
+			//  THEN SetLoginToken should fail with an error
 			"should fail to set the login token when not present in the response",
 			testClient(unauthorizedResponse),
 			true,
 		},
 		{
+			// GIVEN Rancher is not ready
+			//  WHEN SetLoginToken is called
+			//  THEN SetLoginToken should return an error
 			"should fail to set the login token when the request fails",
 			testClient(errorResponse),
 			true,
@@ -204,6 +217,7 @@ func TestSetLoginToken(t *testing.T) {
 	}
 }
 
+// TestSetAccessToken tests setting the Rancher client access token
 func TestSetAccessToken(t *testing.T) {
 	var tests = []struct {
 		testName   string
@@ -212,24 +226,36 @@ func TestSetAccessToken(t *testing.T) {
 		isError    bool
 	}{
 		{
+			// GIVEN Rancher is running and the credentials are correct
+			//  WHEN SetAccessToken is called
+			//  THEN SetAccessToken should set the Rancher client access token
 			"should be able to set the access token",
 			dummyToken,
 			testClient(tokenResponse),
 			false,
 		},
 		{
+			// GIVEN Rancher is running and the credentials are correct, and hte login token is not present
+			//  WHEN SetAccessToken is called
+			//  THEN SetAccessToken should set both the Rancher client access token and login token
 			"should be able to set the access token when no login token is present",
 			"",
 			testClient(tokenResponse),
 			false,
 		},
 		{
+			// GIVEN Rancher is running and the credentials are invalid
+			//  WHEN SetAccessToken is called
+			//  THEN SetAccessToken should fail to set the access token
 			"should fail to set the access token when not present in the response",
 			dummyToken,
 			testClient(unauthorizedResponse),
 			true,
 		},
 		{
+			// GIVEN Rancher is not running
+			//  WHEN SetAccessToken is called
+			//  THEN SetAccessToken should fail to set the access token
 			"should fail to set the access token when the request fails",
 			dummyToken,
 			testClient(errorResponse),
@@ -252,6 +278,7 @@ func TestSetAccessToken(t *testing.T) {
 	}
 }
 
+// TestPutServerURL verifies how the Rancher client updates the server URL
 func TestPutServerURL(t *testing.T) {
 	var tests = []struct {
 		testName string
@@ -259,16 +286,25 @@ func TestPutServerURL(t *testing.T) {
 		isErr    bool
 	}{
 		{
+			// GIVEN Rancher is running
+			//  WHEN PutServerURL is called
+			//  THEN PutServerURL should set the Rancher server URL
 			"should be able to put the server url",
 			testClient(okResponse),
 			false,
 		},
 		{
+			// GIVEN Rancher is not running
+			//  WHEN PutServerURL is called
+			//  THEN PutServerURL should fail to set the Rancher server URL
 			"should fail to put the server url if the request fails",
 			testClient(errorResponse),
 			true,
 		},
 		{
+			// GIVEN The access token is invalid
+			//  WHEN PutServerURL is called
+			//  THEN PutServerURL should fail to set the Rancher server URL
 			"should fail to put the server URL if the status is not expected",
 			testClient(unauthorizedResponse),
 			true,

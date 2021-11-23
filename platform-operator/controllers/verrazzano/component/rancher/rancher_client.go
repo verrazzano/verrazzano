@@ -29,7 +29,7 @@ type (
 )
 
 func NewClient(c client.Reader, hostname, password string) (*RESTClient, error) {
-	hc, err := HttpClient(c)
+	hc, err := HTTPClient(c)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func GetRootCA(c client.Reader) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: CattleSystem,
-		Name:      IngressCASecret}
+		Name:      IngressCAName}
 
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
 		return nil, client.IgnoreNotFound(err)
@@ -69,13 +69,13 @@ func GetRootCA(c client.Reader) ([]byte, error) {
 	return secret.Data[CACert], nil
 }
 
-func HttpClient(c client.Reader) (*http.Client, error) {
+func HTTPClient(c client.Reader) (*http.Client, error) {
 	rootCA, err := GetRootCA(c)
 	if err != nil {
 		return nil, err
 	}
 	if rootCA == nil {
-		return nil, fmt.Errorf("root CA for rancher not found")
+		return nil, fmt.Errorf("root CA for Rancher not found")
 	}
 	certPool := x509.NewCertPool()
 	certPool.AppendCertsFromPEM(rootCA)
@@ -83,16 +83,17 @@ func HttpClient(c client.Reader) (*http.Client, error) {
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
+				MinVersion: tls.VersionTLS12,
+				RootCAs:    certPool,
 			},
 		},
 	}, nil
 }
 
 func (r *RESTClient) SetLoginToken() error {
-	loginTokenUrl := fmt.Sprintf("https://%s%s", r.hostname, loginActionPath)
+	loginTokenURL := fmt.Sprintf("https://%s%s", r.hostname, loginActionPath)
 	loginTokenBody := strings.NewReader(fmt.Sprintf(loginActionTmpl, r.password))
-	req, err := http.NewRequest("POST", loginTokenUrl, loginTokenBody)
+	req, err := http.NewRequest("POST", loginTokenURL, loginTokenBody)
 	if err != nil {
 		return err
 	}
@@ -116,8 +117,8 @@ func (r *RESTClient) SetAccessToken() error {
 		}
 	}
 
-	accessTokenUrl := fmt.Sprintf("https://%s%s", r.hostname, tokenPath)
-	req, err := http.NewRequest("POST", accessTokenUrl, strings.NewReader(tokenBody))
+	accessTokenURL := fmt.Sprintf("https://%s%s", r.hostname, tokPath)
+	req, err := http.NewRequest("POST", accessTokenURL, strings.NewReader(tokPostBody))
 	if err != nil {
 		return err
 	}
@@ -144,8 +145,8 @@ func (r *RESTClient) GetAccessToken() string {
 }
 
 func (r *RESTClient) PutServerURL() error {
-	url := fmt.Sprintf("https://%s%s", r.hostname, serverUrlPath)
-	serverURLBody := strings.NewReader(fmt.Sprintf(serverUrlTmpl, r.hostname))
+	url := fmt.Sprintf("https://%s%s", r.hostname, serverURLPath)
+	serverURLBody := strings.NewReader(fmt.Sprintf(serverURLTmpl, r.hostname))
 	req, err := http.NewRequest("PUT", url, serverURLBody)
 	if err != nil {
 		return err

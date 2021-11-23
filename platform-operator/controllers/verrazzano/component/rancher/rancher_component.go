@@ -58,7 +58,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 //appendRegistryOverrides appends overrides if a custom registry is being used
 func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
-	// If using external registry, add registry overrides to rancher
+	// If using external registry, add registry overrides to Rancher
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry != "" {
 		imageRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)

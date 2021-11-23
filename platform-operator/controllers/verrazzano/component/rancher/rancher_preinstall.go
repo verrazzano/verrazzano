@@ -96,7 +96,7 @@ func createAdditionalCertificates(log *zap.SugaredLogger, c client.Client, vz *v
 		secret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: CattleSystem,
-				Name:      IngressCASecret,
+				Name:      IngressCAName,
 			},
 		}
 

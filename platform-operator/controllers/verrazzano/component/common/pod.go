@@ -5,7 +5,6 @@ package common
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -44,7 +43,7 @@ func (f *fakeExecutor) Stream(options remotecommand.StreamOptions) error {
 }
 
 //ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
-func ExecPod(cfg *rest.Config, restClient rest.Interface, pod *v1.Pod, command []string) (string, string, error) {
+func ExecPod(cfg *rest.Config, restClient rest.Interface, pod *v1.Pod, container string, command []string) (string, string, error) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 	request := restClient.
@@ -54,11 +53,12 @@ func ExecPod(cfg *rest.Config, restClient rest.Interface, pod *v1.Pod, command [
 		Name(pod.Name).
 		SubResource("exec").
 		VersionedParams(&v1.PodExecOptions{
-			Command: command,
-			Stdin:   false,
-			Stdout:  true,
-			Stderr:  true,
-			TTY:     true,
+			Container: container,
+			Command:   command,
+			Stdin:     false,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       true,
 		}, scheme.ParameterCodec)
 	executor, err := NewSPDYExecutor(cfg, "POST", request.URL())
 	if err != nil {
@@ -69,7 +69,7 @@ func ExecPod(cfg *rest.Config, restClient rest.Interface, pod *v1.Pod, command [
 		Stderr: stderr,
 	})
 	if err != nil {
-		return "", "", errors.New(fmt.Sprintf("error running command %s on %v/%v: %v", command, pod.Namespace, pod.Name, err))
+		return "", "", fmt.Errorf("error running command %s on %v/%v: %v", command, pod.Namespace, pod.Name, err)
 	}
 
 	return stdout.String(), stderr.String(), nil

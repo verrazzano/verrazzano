@@ -41,7 +41,7 @@ func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error
 	return err
 }
 
-// retryResetPassword retries resetting the rancher admin password using the rancher shell
+// retryResetPassword retries resetting the Rancher admin password using the Rancher shell
 func resetAdminPassword(c client.Client) (string, error) {
 	cfg, restClient, err := restClientConfig()
 	if err != nil {
@@ -57,7 +57,7 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", errors.New("no Rancher pods found")
 	}
 	pod := podList.Items[0]
-	stdout, stderr, err := common.ExecPod(cfg, restClient, &pod, []string{resetPasswordCommand})
+	stdout, stderr, err := common.ExecPod(cfg, restClient, &pod, Name, []string{resetPasswordCommand})
 	if err != nil {
 		return "", err
 	}
@@ -88,7 +88,7 @@ func parsePasswordStdout(stdout string) string {
 	return strings.TrimSuffix(password, "\r")
 }
 
-// newAdminSecret generates the admin secret for rancher
+// newAdminSecret generates the admin secret for Rancher
 func newAdminSecret(c client.Client, password string) error {
 	adminSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

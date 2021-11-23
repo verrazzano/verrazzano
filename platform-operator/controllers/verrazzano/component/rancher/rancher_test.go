@@ -70,7 +70,7 @@ func createRootCASecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: CattleSystem,
-			Name:      IngressCASecret,
+			Name:      IngressCAName,
 		},
 		Data: map[string][]byte{
 			CACert: []byte("blahblah"),
@@ -118,6 +118,10 @@ func createAdminSecret() v1.Secret {
 	}
 }
 
+// TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
+// GIVEN a Verrazzano CR
+//  WHEN useAdditionalCAs is called
+//  THEN useAdditionalCAs return true or false if additional CAs are required
 func TestUseAdditionalCAs(t *testing.T) {
 	var tests = []struct {
 		in  vzapi.Acme
@@ -134,12 +138,20 @@ func TestUseAdditionalCAs(t *testing.T) {
 	}
 }
 
+// TestGetRancherHostname verifies the Rancher hostname can be generated
+// GIVEN a Verrazzano CR
+//  WHEN getRancherHostname is called
+//  THEN getRancherHostname should return the Rancher hostname
 func TestGetRancherHostname(t *testing.T) {
 	expected := fmt.Sprintf("%s.%s.rancher", Name, vzAcmeDev.Spec.EnvironmentName)
 	actual, _ := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev)
 	assert.Equal(t, expected, actual)
 }
 
+// TestGetRancherHostnameNotFound verifies the Rancher hostname can not be generated in the CR is invalid
+// GIVEN an invalid Verrazzano CR
+//  WHEN getRancherHostname is called
+//  THEN getRancherHostname should return an error
 func TestGetRancherHostnameNotFound(t *testing.T) {
 	_, err := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzapi.Verrazzano{})
 	assert.NotNil(t, err)

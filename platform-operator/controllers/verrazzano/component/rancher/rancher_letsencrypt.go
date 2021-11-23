@@ -38,9 +38,6 @@ func (c *certBuilder) appendCertWithHTTP(uri string) error {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	c.cert = append(c.cert, bytes...)
 	return nil
 }

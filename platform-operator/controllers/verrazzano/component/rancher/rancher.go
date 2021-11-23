@@ -20,7 +20,7 @@ const (
 	Name = "rancher"
 	// CattleSystem is the namespace of the component
 	CattleSystem           = "cattle-system"
-	IngressCASecret        = "tls-rancher-ingress"
+	IngressCAName          = "tls-rancher-ingress"
 	AdminSecret            = "rancher-admin-secret"
 	CACert                 = "ca.crt"
 	OperatorNamespace      = "rancher-operator-system"
@@ -69,17 +69,17 @@ const (
 }
 `
 	// Path to get an access token
-	tokenPath = "/v3/token"
+	tokPath = "/v3/token"
 	// Body to POST for an access token (login token should be Bearer token)
-	tokenBody = `
+	tokPostBody = `
 {
   "type": "token",
   "description": "automation"
 }`
 	// Path to update server URL, as in PUT during PostInstall
-	serverUrlPath = "/v3/settings/server-url"
+	serverURLPath = "/v3/settings/server-url"
 	// Template body to PUT a new server url
-	serverUrlTmpl = `
+	serverURLTmpl = `
 {
   "name": "server-url",
   "value": "https://%s"
@@ -92,7 +92,7 @@ type (
 	restClientConfigSig func() (*rest.Config, rest.Interface, error)
 	// httpDoSig provides a HTTP Client wrapper function for unit testing
 	httpDoSig func(hc *http.Client, req *http.Request) (*http.Response, error)
-	// TokenResponse is the response format rancher uses when sending tokens in HTTP responses
+	// TokenResponse is the response format Rancher uses when sending tokens in HTTP responses
 	TokenResponse struct {
 		Token string `json:"token"`
 	}
