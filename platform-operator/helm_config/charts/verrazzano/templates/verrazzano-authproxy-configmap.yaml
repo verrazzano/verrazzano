@@ -79,7 +79,7 @@ data:
     end
 
     auth.info("Processing request for backend '"..ingressHost.."'")
-    if backend == 'console' or backend == 'verrazzano' and not auth.isBodyValidJson() then
+    if (backend == 'console' or backend == 'verrazzano') and (not auth.isBodyValidJson()) then
         auth.bad_request("Invalid request")
     end
     
