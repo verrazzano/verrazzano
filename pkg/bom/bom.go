@@ -298,3 +298,13 @@ func (b *Bom) ResolveRepo(sc *BomSubComponent) string {
 	}
 	return repo
 }
+
+// FindKV searches an array of KeyValue structs for a Key and returns the Value if found, or returns an empty string
+func FindKV(kvs []KeyValue, key string) string {
+	for _, kv := range kvs {
+		if kv.Key == key {
+			return kv.Value
+		}
+	}
+	return ""
+}

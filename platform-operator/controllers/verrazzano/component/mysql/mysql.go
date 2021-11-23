@@ -14,6 +14,7 @@ import (
 	helmutil "github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
@@ -22,14 +23,17 @@ import (
 
 // ComponentName is the name of the component
 const (
-	secretName    = "mysql"
-	mysqlUsername = "keycloak"
-	helmPwd       = "mysqlPassword"
-	helmRootPwd   = "mysqlRootPassword"
-	mysqlKey      = "mysql-password"
-	mysqlRootKey  = "mysql-root-password"
-	mysqlDBFile   = "create-mysql-db.sql"
+	secretName       = "mysql"
+	mysqlUsernameKey = "mysqlUser"
+	mysqlUsername    = "keycloak"
+	helmPwd          = "mysqlPassword"
+	helmRootPwd      = "mysqlRootPassword"
+	mysqlKey         = "mysql-password"
+	mysqlRootKey     = "mysql-root-password"
+	mysqlDBFile      = "create-mysql-db.sql"
 )
+
+var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
@@ -67,12 +71,14 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			Value: string(secret.Data[mysqlRootKey]),
 		})
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "mysqlUser", Value: mysqlUsername})
-	err = createDBFile(compContext)
-	if err != nil {
-		return []bom.KeyValue{}, err
+	kvs = append(kvs, bom.KeyValue{Key: mysqlUsernameKey, Value: mysqlUsername})
+	if !deployed {
+		err = createDBFile(compContext)
+		if err != nil {
+			return []bom.KeyValue{}, err
+		}
+		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + "/" + mysqlDBFile, SetFile: true})
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + "/" + mysqlDBFile, SetFile: true})
 	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
 	if err != nil {
 		return []bom.KeyValue{}, err
