@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"os"
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -232,6 +233,21 @@ func TestIsMySQLNotReady(t *testing.T) {
 		},
 	})
 	assert.False(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), "", vzconst.KeycloakNamespace))
+}
+
+func TestSQLFileCreatedAndDeleted(t *testing.T) {
+	vz := &vzapi.Verrazzano{}
+	helm.SetCmdRunner(notDeployedRunner)
+	defer helm.SetDefaultRunner()
+	fakeContext := spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles")
+	_, err := AppendMySQLOverrides(fakeContext, "", "", "", []bom.KeyValue{})
+	assert.NoError(t, err)
+	sqlFileContents, err := os.ReadFile(os.TempDir() + "/" + mysqlDBFile)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, sqlFileContents)
+	err = PostInstall(fakeContext, "", "")
+	assert.NoError(t, err)
+	assert.NoFileExists(t, os.TempDir()+"/"+mysqlDBFile)
 }
 
 /*func TestCreateDBFile(t *testing.T) {
