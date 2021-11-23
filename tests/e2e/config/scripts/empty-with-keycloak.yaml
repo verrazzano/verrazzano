@@ -24,3 +24,5 @@ spec:
       enabled: true
     rancher:
       enabled: false
+    kiali:
+      enabled: true
