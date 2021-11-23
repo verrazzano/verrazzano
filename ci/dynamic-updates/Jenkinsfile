@@ -467,7 +467,7 @@ pipeline {
 def generateVerifyInfraStages(dumpRoot) {
     return [
         "verify-scripts": {
-            runGinkgo('scripts', '', ${KUBECONFIG}")
+            runGinkgo('scripts', '', "${KUBECONFIG}")
         },
         "verify-infra restapi": {
             runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
