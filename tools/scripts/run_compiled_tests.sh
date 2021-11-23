@@ -143,16 +143,16 @@ ginkgo -v -keepGoing --reportFile="/tmp/${TEST_LOG_ARCHIVE}/test.report" -output
 
 if [ ! -z "${TEST_LOG_BUCKET}" ]; then
   tar -czvf /tmp/${TEST_LOG_ARCHIVE}.tgz /tmp/${TEST_LOG_ARCHIVE}/*
-  # When this script is run in a k8s job, it expects the OCI creds to be present in /etc/ocisecret/oci.yaml. 
-  if file_exists "/etc/ocisecret/oci.yaml"
+  # When this script is run in a k8s job, it expects the OCI creds to be present in /var/run/secrets/ocisecret/oci.yaml. 
+  if file_exists "/var/run/secrets/ocisecret/oci.yaml"
   then
     export OCI_CLI_PROFILE="DEFAULT"
-    export OCI_CLI_USER=`yq e .auth.user /etc/ocisecret/oci.yaml`
-    export OCI_CLI_FINGERPRINT=`yq e .auth.fingerprint /etc/ocisecret/oci.yaml`
-    yq e .auth.key /etc/ocisecret/oci.yaml > /tmp/ocikey.pem
+    export OCI_CLI_USER=`yq e .auth.user /var/run/secrets/ocisecret/oci.yaml`
+    export OCI_CLI_FINGERPRINT=`yq e .auth.fingerprint /var/run/secrets/ocisecret/oci.yaml`
+    yq e .auth.key /var/run/secrets/ocisecret/oci.yaml > /tmp/ocikey.pem
     export OCI_CLI_KEY_FILE=/tmp/ocikey.pem
-    export OCI_CLI_TENANCY=`yq e .auth.tenancy /etc/ocisecret/oci.yaml`
-    export OCI_CLI_REGION=`yq e .auth.region /etc/ocisecret/oci.yaml`
+    export OCI_CLI_TENANCY=`yq e .auth.tenancy /var/run/secrets/ocisecret/oci.yaml`
+    export OCI_CLI_REGION=`yq e .auth.region /var/run/secrets/ocisecret/oci.yaml`
     export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING="True"
   fi
   oci os object put --bucket-name "${TEST_LOG_BUCKET}" --file /tmp/${TEST_LOG_ARCHIVE}.tgz

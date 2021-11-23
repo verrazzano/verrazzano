@@ -42,5 +42,6 @@ fi
 ginkgo build ${COMPILE_ARGS} ${TEST_PACKAGE_PATH}/... \
     | grep "compiled *" | cut -d' ' -f6 \
         | xargs -L 1 find ${TEST_PACKAGE_PATH} -name \
-            | xargs -t -I {} -L 1 sh -c "echo echo Compiled tests at {} && [ ! -z ${TEST_BINARY_OS_BUCKET} ] && echo 'oci os object put --bucket-name ${TEST_BINARY_OS_BUCKET} --file {}'" \
-                | xargs -I {} -L 1 sh -c "[ ! -z ${TEST_BINARY_OS_BUCKET} ] && echo {} && {}"
+            | xargs -t -I {} echo {} \
+                | xargs -t -I {} -L 1 sh -c "echo [ ! -z ${TEST_BINARY_OS_BUCKET} ] && echo 'oci os object put --bucket-name ${TEST_BINARY_OS_BUCKET} --file {}'" \
+                    | xargs -I {} -L 1 sh -c "[ ! -z ${TEST_BINARY_OS_BUCKET} ] && {}"

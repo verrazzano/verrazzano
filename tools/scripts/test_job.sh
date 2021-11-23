@@ -125,7 +125,7 @@ spec:
             - name: test-config
               mountPath: /test-config
             - name: ocisecret
-              mountPath: /etc/ocisecret
+              mountPath: /var/run/secrets/ocisecret
           command: [ "sh", "-c", "${CMDLINE}" ]
       restartPolicy: Never
       volumes:
