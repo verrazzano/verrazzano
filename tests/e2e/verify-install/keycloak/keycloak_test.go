@@ -130,7 +130,7 @@ var _ = Describe("Verify Keycloak configuration", func() {
 var _ = Describe("Verify MySQL Persistent Volumes based on install profile", func() {
 	var _ = Context("Verify Persistent volumes allocated per install profile", func() {
 
-		size := "50Gi" // based on values set in platform-operator/thirdparty/charts/mysql
+		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 		override, _ := pkg.GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath)
 		if override != nil {
