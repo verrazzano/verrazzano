@@ -4,6 +4,7 @@
 package certmanager
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -29,7 +30,11 @@ func NewComponent() spi.Component {
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
 			ChartNamespace:          ComponentName,
 			IgnoreNamespaceOverride: true,
+			SupportsOperatorInstall: true,
+			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
+			AppendOverridesFunc:     AppendOverrides,
+			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
 		},
 	}
 }

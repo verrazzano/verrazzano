@@ -51,7 +51,7 @@ func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte,
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
-//  THEN the correct verrazzano name is returned
+//  THEN the correct Verrazzano name is returned
 func TestGetName(t *testing.T) {
 	comp := HelmComponent{
 		ReleaseName: "release1",
@@ -89,7 +89,7 @@ func TestUpgrade(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -114,7 +114,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	})
 	defer helm.SetDefaultRunner()
 
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.Error(err)
 }
 
@@ -135,7 +135,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
 
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.NoError(err)
 }
 
@@ -174,7 +174,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
-	err := comp.Upgrade(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Upgrade(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -212,9 +212,57 @@ func TestInstall(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{}, false)
-	err := comp.Install(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.NoError(err, "Upgrade returned an error")
+}
+
+// TestInstallWithFileOverride tests the component install
+// GIVEN a component
+//  WHEN I call Install and the chart is not installed and has a custom file override
+//  THEN the install runs and returns no error
+func TestInstallWithFileOverride(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := HelmComponent{
+		ReleaseName:             "rancher",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
+		PreUpgradeFunc:          fakePreUpgrade,
+		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+			kvs = append(kvs, bom.KeyValue{Key: "", Value: "my-overrides.yaml", IsFile: true, SetString: false})
+			return kvs, nil
+		},
+	}
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+		assert.Contains(overrideFiles, "my-overrides.yaml", "Overrides file not found")
+		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides, stringOverrides, overrideFiles...)
+	})
+	defer setDefaultUpgradeFunc()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
+
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.NoError(err, "Install returned an error")
 }
 
 // TestInstallPreviousFailure tests the component install
@@ -251,7 +299,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 		return helm.ChartStatusFailed, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -313,7 +361,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		return helm.ChartNotFound, nil
 	})
 	defer helm.SetDefaultChartStateFunction()
-	err := comp.Install(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.NoError(err, "Upgrade returned an error")
 }
 
@@ -364,13 +412,13 @@ func TestIsInstalled(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
-	assert.True(comp.IsInstalled(spi.NewContext(zap.S(), nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
+	assert.True(comp.IsInstalled(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
 	helm.SetCmdRunner(genericHelmTestRunner{
 		stdOut: []byte(""),
 		stdErr: []byte(""),
 		err:    fmt.Errorf("Not installed"),
 	})
-	assert.False(comp.IsInstalled(spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
+	assert.False(comp.IsInstalled(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)))
 }
 
 // TestReady tests IsReady
@@ -387,7 +435,7 @@ func TestReady(t *testing.T) {
 	})
 	comp := HelmComponent{}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	compContext := spi.NewContext(zap.S(), client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
+	compContext := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
 	//compContext := spi.ComponentContext{Log: zap.S(), Client: client, EffectiveCR: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}}
 
 	assert.True(comp.IsReady(compContext))
@@ -439,11 +487,18 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	if namespace != "chartNS" {
 		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
+
+	foundChartOverridesFile := false
 	for _, file := range overridesFiles {
-		if file != "ValuesFile" && file == "" {
-			return []byte("error"), []byte(""), errors.New("Invalid values file")
+		if file == "ValuesFile" {
+			foundChartOverridesFile = true
+			break
 		}
 	}
+	if !foundChartOverridesFile {
+		return []byte("error"), []byte(""), errors.New("Invalid values file")
+	}
+
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
 	if overrides != fakeOverrides {
 		return []byte("error"), []byte(""), errors.New("Invalid overrides")

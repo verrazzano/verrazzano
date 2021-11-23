@@ -22,6 +22,8 @@ const missingRelease = "no_release"
 // upgradeRunner is used to test Helm upgrade without actually running an OS exec command
 type upgradeRunner struct {
 	t *testing.T
+
+	expectedArgs []string
 }
 
 // getValuesRunner is used to test Helm get values without actually running an OS exec command
@@ -73,10 +75,47 @@ func TestUpgrade(t *testing.T) {
 	overrideYaml := "my-override.yaml"
 
 	assert := assert.New(t)
-	SetCmdRunner(upgradeRunner{t: t})
+	SetCmdRunner(upgradeRunner{
+		t: t,
+		expectedArgs: []string{
+			"--namespace",
+			"my_namespace",
+			"--install",
+			"-f",
+			"my-override.yaml",
+		},
+	})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, "", overrideYaml)
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, "", "", overrideYaml)
+	assert.NoError(err, "Upgrade returned an error")
+	assert.Len(stderr, 0, "Upgrade stderr should be empty")
+	assert.NotZero(stdout, "Upgrade stdout should not be empty")
+}
+
+// TestUpgradeCustomFileOverrides tests the Helm upgrade command
+// GIVEN a set of upgrade parameters with additional file overrides
+//  WHEN I call Upgrade
+//  THEN the Helm upgrade returns success and the cmd object has correct values
+func TestUpgradeCustomFileOverrides(t *testing.T) {
+	overrideYamls := []string{"my-override.yaml", "custom-override.yaml"}
+
+	assert := assert.New(t)
+	SetCmdRunner(upgradeRunner{
+		t: t,
+		expectedArgs: []string{
+			"--namespace",
+			"my_namespace",
+			"--install",
+			"-f",
+			"my-override.yaml",
+			"-f",
+			"custom-override.yaml",
+		},
+	})
+	defer SetDefaultRunner()
+
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, "", "", overrideYamls...)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -556,12 +595,21 @@ func Test_maskSensitiveData(t *testing.T) {
 // Run should assert the command parameters are correct then return a success with stdout contents
 func (r upgradeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	assert := assert.New(r.t)
+	argIndex := 0
 	assert.Contains(cmd.Path, "helm", "command should contain helm")
-	assert.Contains(cmd.Args[0], "helm", "args should contain helm")
-	assert.Contains(cmd.Args[1], "upgrade", "args should contain upgrade")
-	assert.Contains(cmd.Args[2], release, "args should contain release name")
-	assert.Contains(cmd.Args[3], chartdir, "args should contain chart dir ")
+	assert.Contains(cmd.Args[argIndex], "helm", "args should contain helm")
+	argIndex++
+	assert.Contains(cmd.Args[argIndex], "upgrade", "args should contain upgrade")
+	argIndex++
+	assert.Contains(cmd.Args[argIndex], release, "args should contain release name")
+	argIndex++
+	assert.Contains(cmd.Args[argIndex], chartdir, "args should contain chart dir ")
+	argIndex++
 
+	for _, arg := range r.expectedArgs {
+		assert.Contains(cmd.Args[argIndex], arg)
+		argIndex++
+	}
 	return []byte("success"), []byte(""), nil
 }
 

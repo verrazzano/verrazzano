@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -32,7 +31,7 @@ func TestAppendOverrides(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), fakeClient, vz, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
+	kvs, err := AppendOverrides(spi.NewFakeContext(fakeClient, vz, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
 	assert.Nil(t, err)
 	assert.Len(t, kvs, 2)
 	assert.Equal(t, bom.KeyValue{Key: "key1", Value: "value1"}, kvs[0])

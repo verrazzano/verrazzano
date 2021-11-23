@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -26,7 +25,7 @@ import (
 //  THEN the values created properly
 func TestAppendNGINXOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
@@ -49,7 +48,7 @@ func TestAppendNGINXOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 }
@@ -78,7 +77,7 @@ func TestAppendNGINXOverridesWithExternalDNS(t *testing.T) {
 			},
 		},
 	}
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 6)
 }
@@ -96,7 +95,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 	kvs := []bom.KeyValue{
 		{Key: "Key", Value: "Value"},
 	}
-	kvs, err := AppendOverrides(spi.NewContext(zap.S(), nil, vz, false), ComponentName, ComponentNamespace, "", kvs)
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, false), ComponentName, ComponentNamespace, "", kvs)
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 }
@@ -107,7 +106,7 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 //  THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := PreInstall(spi.NewContext(zap.S(), client, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace, "")
+	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace, "")
 	assert.NoError(t, err)
 }
 
@@ -116,7 +115,6 @@ func TestNGINXPreInstall(t *testing.T) {
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsNGINXReady(t *testing.T) {
-
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
@@ -142,7 +140,7 @@ func TestIsNGINXReady(t *testing.T) {
 			},
 		},
 	)
-	assert.True(t, IsReady(spi.NewContext(zap.S(), fakeClient, nil, false), ComponentName, ComponentNamespace))
+	assert.True(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), ComponentName, ComponentNamespace))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
@@ -150,7 +148,6 @@ func TestIsNGINXReady(t *testing.T) {
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsNGINXNotReady(t *testing.T) {
-
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
@@ -176,7 +173,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 			},
 		},
 	)
-	assert.False(t, IsReady(spi.NewContext(zap.S(), fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 // TestPostInstallWithPorts tests the PostInstall function
@@ -231,7 +228,7 @@ func TestPostInstallWithPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
-	err := PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false), ComponentName, ComponentNamespace)
+	err := PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
 }
 
@@ -251,8 +248,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := PostInstall(spi.NewContext(zap.S(), fakeClient, vz, false), ComponentName, ComponentNamespace)
-	assert.NoError(t, err)
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, vz, false), ComponentName, ComponentNamespace))
 }
 
 // TestPostInstallDryRun tests the PostInstall function
@@ -261,8 +257,7 @@ func TestPostInstallNoPorts(t *testing.T) {
 //  THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := PostInstall(spi.NewContext(zap.S(), fakeClient, nil, true), ComponentName, ComponentNamespace)
-	assert.NoError(t, err)
+	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), ComponentName, ComponentNamespace))
 }
 
 // Test_getServiceTypeLoadBalancer tests the GetServiceType function
@@ -443,7 +438,6 @@ func TestGetIngressLoadBalancerNoAddressFound(t *testing.T) {
 			},
 		},
 	}
-	const expectedIP = "11.22.33.44"
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,

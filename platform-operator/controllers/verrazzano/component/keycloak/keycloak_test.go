@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -131,7 +130,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 	}{
 		{
 			name: "testUpdateKeycloakURIs",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -162,7 +161,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		},
 		{
 			name: "testFailForNoKeycloakSecret",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme,
 					&v1.Service{
 						TypeMeta: metav1.TypeMeta{},
@@ -186,7 +185,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		},
 		{
 			name: "testFailForKeycloakSecretPasswordEmpty",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -217,7 +216,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		},
 		{
 			name: "testFailForAuthenticationToKeycloak",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -248,7 +247,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		},
 		{
 			name: "testFailForNoKeycloakClientsReturned",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -279,7 +278,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		},
 		{
 			name: "testFailForKeycloakUserNotFound",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -310,7 +309,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		},
 		{
 			name: "testFailForNoIngress",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -325,7 +324,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		},
 		{
 			name: "testScriptFailure",
-			args: spi.NewContext(zap.S(),
+			args: spi.NewFakeContext(
 				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -398,7 +397,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	assert.NoError(err, "Error creating test ingress resources")
 
 	config.SetDefaultBomFilePath(testBomFilePath)
-	kvs, err := AppendKeycloakOverrides(spi.NewContext(zap.S(), client, vz, false), "", "", "", nil)
+	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
 
 	assert.NoError(err, "AppendKeycloakOverrides returned an error")
 	assert.Len(kvs, 5, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
@@ -460,7 +459,7 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 	err := createIngresses(client)
 	assert.NoError(err, "Error creating test ingress resources")
 	config.SetDefaultBomFilePath(testBomFilePath)
-	kvs, err := AppendKeycloakOverrides(spi.NewContext(zap.S(), client, vz, false), "", "", "", nil)
+	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
 
 	assert.NoError(err, "AppendKeycloakOverrides returned an error")
 

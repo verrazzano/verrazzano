@@ -119,7 +119,7 @@ func Delete(url string, hostHeader string) (*HTTPResponse, error) {
 	return doReq(url, "DELETE", "", hostHeader, "", "", nil, client)
 }
 
-// GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the verrazzano CA cert
+// GetVerrazzanoNoRetryHTTPClient returns an Http client configured with the Verrazzano CA cert
 func GetVerrazzanoNoRetryHTTPClient(kubeconfigPath string) (*http.Client, error) {
 	caCert, err := getVerrazzanoCACert(kubeconfigPath)
 	if err != nil {
@@ -132,7 +132,7 @@ func GetVerrazzanoNoRetryHTTPClient(kubeconfigPath string) (*http.Client, error)
 	return client, nil
 }
 
-// GetVerrazzanoHTTPClient returns a retryable Http client configured with the verrazzano CA cert
+// GetVerrazzanoHTTPClient returns a retryable Http client configured with the Verrazzano CA cert
 func GetVerrazzanoHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	client, err := GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
 	if err != nil {
@@ -198,6 +198,17 @@ func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
 		return nil, err
 	}
 	return newRetryableHTTPClient(vmiRawClient), nil
+}
+
+func GetEnvName(kubeconfigPath string) (string, error) {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	if len(vz.Spec.EnvironmentName) == 0 {
+		return defaultEnvName, nil
+	}
+	return vz.Spec.EnvironmentName, nil
 }
 
 func AssertOauthURLAccessibleAndUnauthorized(httpClient *retryablehttp.Client, url string) bool {
@@ -317,20 +328,9 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 	return &http.Client{Transport: tr}, nil
 }
 
-func getEnvName(kubeconfigPath string) (string, error) {
-	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-	if err != nil {
-		return "", err
-	}
-	if len(vz.Spec.EnvironmentName) == 0 {
-		return defaultEnvName, nil
-	}
-	return vz.Spec.EnvironmentName, nil
-}
-
-// getVerrazzanoCACert returns the verrazzano CA cert in the specified cluster
+// getVerrazzanoCACert returns the Verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := getEnvName(kubeconfigPath)
+	envName, err := GetEnvName(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +344,7 @@ func getRancherCACert(kubeconfigPath string) ([]byte, error) {
 
 // getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := getEnvName(kubeconfigPath)
+	envName, err := GetEnvName(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

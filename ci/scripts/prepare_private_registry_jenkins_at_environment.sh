@@ -68,7 +68,7 @@ helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
 # Create docker secret for platform operator image
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
 
-# Configure the custom resource to install verrazzano on Kind
+# Configure the custom resource to install Verrazzano on Kind
 ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 
 echo "Wait for Operator to be ready"

@@ -1,5 +1,6 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package kiali
 
 import (
@@ -32,7 +33,6 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
 			Dependencies:            []string{nginx.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
-			IsEnabledFunc:           isKialiEnabled,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
 		},
 	}
@@ -62,6 +62,15 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 		return isKialiReady(context, c.ReleaseName, c.ChartNamespace)
 	}
 	return false
+}
+
+// IsEnabled Kiali-specific enabled check for installation
+func (c kialiComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.Kiali
+	if comp != nil && comp.Enabled != nil {
+		return *comp.Enabled
+	}
+	return c.HelmComponent.IsEnabledFunc(ctx)
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources

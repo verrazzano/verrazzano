@@ -23,7 +23,7 @@ function delete_verrazzano() {
   helm ls -n verrazzano-system \
     | awk '/verrazzano/ {print $1}' \
     | xargsr helm uninstall -n verrazzano-system \
-    || err_return $? "Could not delete verrazzano from helm" || return $? # return on pipefail
+    || err_return $? "Could not delete Verrazzano from helm" || return $? # return on pipefail
 
   # delete verrazzano-managed-cluster-local secret
   log "Deleting Verrazzano secrets"
