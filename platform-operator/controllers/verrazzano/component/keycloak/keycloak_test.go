@@ -4,7 +4,6 @@
 package keycloak
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
@@ -13,22 +12,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const (
 	testBomFilePath         = "../../testdata/test_bom.json"
-	testKeycloakIngressHost = "keycloak-ingress-host"
+	testKeycloakIngressHost = "keycloak.test-env.192.132.111.122.nip.io"
 )
 
 var keycloakClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
@@ -392,9 +388,22 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := createIngresses(client)
-	assert.NoError(err, "Error creating test ingress resources")
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Service{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ingress-controller-ingress-nginx-controller",
+			Namespace: "ingress-nginx",
+		},
+		Spec: v1.ServiceSpec{},
+		Status: v1.ServiceStatus{
+			LoadBalancer: v1.LoadBalancerStatus{
+				Ingress: []v1.LoadBalancerIngress{
+					{IP: "192.132.111.122",
+						Hostname: ""},
+				},
+			},
+		},
+	})
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
@@ -421,26 +430,6 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	})
 }
 
-// createIngresses creates the k8s ingress resources that AppendKeycloakOverrides will fetch
-func createIngresses(cli client.Client) error {
-	ingress := &networkingv1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.KeycloakNamespace,
-			Name:      constants.KeycloakIngress,
-		},
-		Spec: networkingv1.IngressSpec{
-			TLS: []networkingv1.IngressTLS{
-				{
-					Hosts: []string{
-						testKeycloakIngressHost,
-					},
-				},
-			},
-		},
-	}
-	return cli.Create(context.TODO(), ingress)
-}
-
 // TestAppendKeycloakOverridesNoEnvironmentName tests that the Keycloak override for tlsSecret is generated as correctly,
 // when the environment name is not defined in the custom resource.
 // GIVEN a Verrazzano BOM
@@ -455,9 +444,22 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	err := createIngresses(client)
-	assert.NoError(err, "Error creating test ingress resources")
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Service{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ingress-controller-ingress-nginx-controller",
+			Namespace: "ingress-nginx",
+		},
+		Spec: v1.ServiceSpec{},
+		Status: v1.ServiceStatus{
+			LoadBalancer: v1.LoadBalancerStatus{
+				Ingress: []v1.LoadBalancerIngress{
+					{IP: "192.132.111.122",
+						Hostname: ""},
+				},
+			},
+		},
+	})
 	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
 
