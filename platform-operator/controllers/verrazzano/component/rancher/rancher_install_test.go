@@ -36,8 +36,6 @@ func TestAddAcmeIngressAnnotations(t *testing.T) {
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/auth-realm":  fmt.Sprintf("%s auth", dnsSuffix),
 				"external-dns.alpha.kubernetes.io/target": fmt.Sprintf("verrazzano-ingress.%s.%s", name, dnsSuffix),
-				"cert-manager.io/issuer":                  "null",
-				"cert-manager.io/issuer-kind":             "null",
 				"external-dns.alpha.kubernetes.io/ttl":    "60",
 			},
 		},
