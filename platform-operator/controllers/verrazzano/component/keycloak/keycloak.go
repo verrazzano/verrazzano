@@ -272,8 +272,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		ctx.Log().Info("CDD Successfully Created Verrazzano User Group")
 
 		// Create Verrazzano Admin Group
-		adminGroup := "name=" + vzAdminGroup
-		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", adminGroup)
+		adminGroup := "groups/" + userGroupID + "/children"
+		adminGroupName := "name=" + vzAdminGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
 		ctx.Log().Infof("CDD Create Verrazzano Admin Group Cmd = %s", cmd.String())
 		out, err = cmd.CombinedOutput()
 		if err != nil {
@@ -290,8 +291,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		ctx.Log().Info("CDD Successfully Created Verrazzano Admin Group")
 
 		// Create Verrazzano Project Monitors Group
-		monitorGroup := "name=" + vzMonitorGroup
-		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", monitorGroup)
+		monitorGroup := "groups/" + userGroupID + "/children"
+		monitorGroupName := "name=" + vzMonitorGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
 		ctx.Log().Infof("CDD Create Verrazzano Monitors Group Cmd = %s", cmd.String())
 		out, err = cmd.CombinedOutput()
 		if err != nil {
@@ -304,12 +306,13 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		}
 		arr = strings.Split(string(out), "'")
 		monitorGroupID := arr[1]
-		ctx.Log().Infof("configureKeycloakRealm: Monitro Group ID = %s", monitorGroupID)
+		ctx.Log().Infof("configureKeycloakRealm: Monitor Group ID = %s", monitorGroupID)
 		ctx.Log().Info("CDD Successfully Created Verrazzano Monitors Group")
 
 		// Create Verrazzano System Group
-		systemGroup := "name=" + vzSystemGroup
-		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", systemGroup)
+		systemGroup := "groups/" + userGroupID + "/children"
+		systemGroupName := "name=" + vzSystemGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", systemGroup, "-r", vzSysRealm, "-s", systemGroupName)
 		ctx.Log().Infof("CDD Create Verrazzano System Group Cmd = %s", cmd.String())
 		out, err = cmd.Output()
 		if err != nil {
@@ -404,9 +407,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 
 		// Creating Verrazzano User
 		vzUser := "username=" + vzUserName
-		vzUserGroup := "groups[0]=" + vzUsersGroup
-		vzAdminGroup := "groups[1]=" + vzAdminGroup
-		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzUser, "-s", vzUserGroup, "-s", vzAdminGroup, "-s", "enabled=true")
+		vzUserGroup := "groups[0]=/" + vzUsersGroup + "/" + vzAdminGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzUser, "-s", vzUserGroup, "-s", "enabled=true")
 		ctx.Log().Infof("CDD Create VZ User Cmd = %s", cmd.String())
 		out, err = cmd.Output()
 		if err != nil {
@@ -452,9 +454,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 
 		// Creating Verrazzano Internal Prometheus User
 		vzPromUser := "username=" + vzInternalPromUser
-		vzPromUserGroup := "groups[0]=" + vzUsersGroup
-		vzPromSystemGroup := "groups[1]=" + vzSystemGroup
-		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzPromUser, "-s", vzPromUserGroup, "-s", vzPromSystemGroup, "-s", "enabled=true")
+		vzPromUserGroup := "groups[0]=/" + vzUsersGroup + "/" + vzSystemGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzPromUser, "-s", vzPromUserGroup, "-s", "enabled=true")
 		ctx.Log().Infof("CDD Create Prom User Cmd = %s", cmd.String())
 		out, err = cmd.Output()
 		if err != nil {
@@ -475,9 +476,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 
 		// Creating Verrazzano Internal ES User
 		vzEsUser := "username=" + vzInternalEsUser
-		vzEsUserGroup := "groups[0]=/" + vzUsersGroup
-		vzEsSystemGroup := "groups[1]=" + vzSystemGroup
-		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzEsUser, "-s", vzEsUserGroup, "-s", vzEsSystemGroup, "-s", "enabled=true")
+		vzEsUserGroup := "groups[0]=/" + vzUsersGroup + "/" + vzSystemGroup
+		cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "users", "-r", vzSysRealm, "-s", vzEsUser, "-s", vzEsUserGroup, "-s", "enabled=true")
 		ctx.Log().Infof("CDD Create ES User Cmd = %s", cmd.String())
 		out, err = cmd.Output()
 		if err != nil {
