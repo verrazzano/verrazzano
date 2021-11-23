@@ -3,16 +3,12 @@
 package permissions_test
 
 import (
-	"fmt"
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	"testing"
 )
 
 func TestVerifyPermissions(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("permissions-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Verify kubeconfig permissions multi-cluster Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Verify kubeconfig permissions multi-cluster Suite")
 }
