@@ -55,7 +55,7 @@ data:
         --      null in allowed origins.
 
         if h ~= null then
-            if h == ingressUri or auth.isOriginAllowed(h) then
+            if h == ingressUri or auth.isOriginAllowed(h, backend) then
                 ngx.header["Access-Control-Allow-Origin"] = h
                 ngx.header["Access-Control-Allow-Credentials"] = "true"
                 ngx.header["Vary"] = "Origin"
@@ -1110,8 +1110,24 @@ data:
         return serverUrl
     end
 
-    function me.isOriginAllowed(origin)
-        local allowedOrigins = os.getenv("VZ_API_ALLOWED_ORIGINS")
+    function me.isOriginAllowed(origin, backend)
+        local allowedOrigins = nil
+        if backend == 'verrazzano' then
+            allowedOrigins = os.getenv("VZ_API_ALLOWED_ORIGINS")
+        elseif backend == 'console' then
+            allowedOrigins = os.getenv("VZ_CONSOLE_ALLOWED_ORIGINS")
+        elseif backend == 'grafana' then
+            allowedOrigins = os.getenv("VZ_GRAFANA_ALLOWED_ORIGINS")
+        elseif backend == 'prometheus' then
+            allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
+        elseif backend == 'kibana' then
+            allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
+        elseif backend == 'elasticsearch' then
+            allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
+        elseif backend == 'kiali' then
+            allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
+        end
+        
         if not allowedOrigins or allowedOrigins == "" then
             return false
         end
