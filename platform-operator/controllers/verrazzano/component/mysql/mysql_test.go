@@ -245,7 +245,7 @@ func TestSQLFileCreatedAndDeleted(t *testing.T) {
 	sqlFileContents, err := os.ReadFile(os.TempDir() + "/" + mysqlDBFile)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, sqlFileContents)
-	err = PostInstall(fakeContext, "", "")
+	err = PostInstall(fakeContext)
 	assert.NoError(t, err)
 	assert.NoFileExists(t, os.TempDir()+"/"+mysqlDBFile)
 }
