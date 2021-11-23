@@ -42,6 +42,14 @@ func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
+func IsEnabled(context spi.ComponentContext) bool {
+	keycloak := context.EffectiveCR().Spec.Components.Keycloak
+	if keycloak != nil && keycloak.Enabled != nil {
+		return *keycloak.Enabled
+	}
+	return false
+}
+
 // AppendMySQLOverrides appends the the password for database user and root user.
 func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
@@ -89,8 +97,8 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	return kvs, nil
 }
 
-// PreInstall Create and label the NGINX namespace, and create any override helm args needed
-func PreInstall(compContext spi.ComponentContext, name string, namespace string, dir string) error {
+// PreInstall Create and label the MySQL namespace, and create any override helm args needed
+func PreInstall(compContext spi.ComponentContext, namespace string) error {
 	if compContext.IsDryRun() {
 		compContext.Log().Infof("MySQL PostInstall dry run")
 		return nil
@@ -111,7 +119,7 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 }
 
 // PostInstall Patch the controller service ports based on any user-supplied overrides
-func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
+func PostInstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
 		ctx.Log().Infof("MySQL PostInstall dry run")
 		return nil
