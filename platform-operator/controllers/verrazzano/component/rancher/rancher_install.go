@@ -78,7 +78,7 @@ func addAcmeIngressAnnotations(name, dnsSuffix string, ingress *networking.Ingre
 	ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
 	// Remove any existing cert manage annotations
 	delete(ingress.Annotations, "cert-manager.io/issuer")
-	delete(ingress.Annotations, "cert-manager.io/issuer")
+	delete(ingress.Annotations, "cert-manager.io/issuer-kind")
 }
 
 //addCAIngressAnnotations annotate ingress with custom CA specific values
