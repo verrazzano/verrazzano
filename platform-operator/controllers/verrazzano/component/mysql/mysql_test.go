@@ -3,16 +3,20 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -33,15 +37,22 @@ var notDeployedRunner = genericHelmTestRunner{
 	err:    fmt.Errorf("Release was not found in output"),
 }
 
+// deployedRunner returns the expected helm status output when mysql is deployed
+var deployedRunner = genericHelmTestRunner{
+	stdOut: []byte("{\"info\":{\"status\":\"deployed\"}}"),
+	stdErr: []byte{},
+	err:    nil,
+}
+
 // Run genericHelmTestRunner executor
 func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return r.stdOut, r.stdErr, r.err
 }
 
-// TestAppendMySQLOverrides tests the AppendOverrides fn
-// GIVEN a call to AppendOverrides
-//  WHEN I pass a VZ spec with defaults
-//  THEN the values created properly
+// TestAppendMySQLOverrides tests the AppendMySQLOverrides function
+// GIVEN a call to AppendMySQLOverrides
+// WHEN I pass in an empty VZ CR
+// THEN the correct overrides are returned
 func TestAppendMySQLOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	helm.SetCmdRunner(notDeployedRunner)
@@ -53,6 +64,10 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 }
 
+// TestAppendMySQLOverridesWithInstallArgs tests the AppendMySQLOverrides function
+// GIVEN a call to AppendMySQLOverrides
+// WHEN I pass in an empty VZ CR with MySQL install args
+// THEN the override key value pairs contain the install args
 func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -75,6 +90,10 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
 }
 
+// TestAppendMySQLOverridesDev tests the AppendMySQLOverrides function
+// GIVEN a call to AppendMySQLOverrides
+// WHEN I pass in an VZ CR with the dev profile
+// THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDev(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -92,6 +111,10 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
 }
 
+// TestAppendMySQLOverridesDevWithPersistence tests the AppendMySQLOverrides function
+// GIVEN a call to AppendMySQLOverrides
+// WHEN I pass in an VZ CR with the dev profile
+// THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -126,6 +149,10 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
 }
 
+// TestAppendMySQLOverridesProd tests the AppendMySQLOverrides function
+// GIVEN a call to AppendMySQLOverrides
+// WHEN I pass in an VZ CR with the dev profile
+// THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesProd(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -139,6 +166,32 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	assert.Len(t, kvs, 4)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "50Gi", bom.FindKV(kvs, "persistence.size"))
+}
+
+// TestAppendMySQLOverridesUpgrade tests the AppendMySQLOverrides function
+// GIVEN a call to AppendMySQLOverrides during upgrade
+// WHEN I pass in an empty VZ CR
+// THEN the correct overrides are returned
+func TestAppendMySQLOverridesUpgrade(t *testing.T) {
+	vz := &vzapi.Verrazzano{}
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = secretName
+			secret.Data = map[string][]byte{}
+			secret.Data[mysqlRootKey] = []byte("test-root-key")
+			secret.Data[mysqlKey] = []byte("test-key")
+			return nil
+		})
+	helm.SetCmdRunner(deployedRunner)
+	defer helm.SetDefaultRunner()
+	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(mock, vz, false), "", "", "", []bom.KeyValue{})
+	assert.NoError(t, err)
+	assert.Len(t, kvs, 3)
+	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
+	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 }
 
 // TestIsMySQLReady tests the IsReady function

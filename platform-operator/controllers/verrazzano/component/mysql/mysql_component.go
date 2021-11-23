@@ -39,7 +39,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendMySQLOverrides,
 			PostInstallFunc:         PostInstall,
 			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc: IsReady,
+			ReadyStatusFunc:         IsReady,
 		},
 	}
 }

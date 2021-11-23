@@ -63,12 +63,12 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 
 		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
 		kvs = append(kvs, bom.KeyValue{
-			Key:   helmPwd,
-			Value: string(secret.Data[mysqlKey]),
-		})
-		kvs = append(kvs, bom.KeyValue{
 			Key:   helmRootPwd,
 			Value: string(secret.Data[mysqlRootKey]),
+		})
+		kvs = append(kvs, bom.KeyValue{
+			Key:   helmPwd,
+			Value: string(secret.Data[mysqlKey]),
 		})
 	}
 	kvs = append(kvs, bom.KeyValue{Key: mysqlUsernameKey, Value: mysqlUsername})
