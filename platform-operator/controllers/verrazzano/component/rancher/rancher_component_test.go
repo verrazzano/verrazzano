@@ -11,10 +11,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	testclient "k8s.io/client-go/rest/fake"
+	"net/http"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
@@ -111,9 +113,6 @@ func TestIsEnabled(t *testing.T) {
 }
 
 func TestPreInstall(t *testing.T) {
-	setBashFunc(func(inArgs ...string) (string, string, error) {
-		return "", "", nil
-	})
 	caSecret := createCASecret()
 	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
@@ -163,15 +162,20 @@ func TestIsReady(t *testing.T) {
 	}
 }
 
+// TestPostInstall tests a happy path post install run
+// GIVEN a rancher install state where all components are ready
+//  WHEN PostInstall is called
+//  THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
-	setBashFunc(func(inArgs ...string) (string, string, error) {
-		return "", "", nil
-	})
+	// mock the k8s resources used in post install
 	caSecret := createCASecret()
+	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
 	rancherPodList := createRancherPodList()
-	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &adminSecret, &rancherPodList)
+	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
+
+	// mock the pod executor when resetting the rancher admin password
 	common.NewSPDYExecutor = common.FakeNewSPDYExecutor
 	common.FakeStdOut = "password"
 	setRestClientConfig(func() (*rest.Config, rest.Interface, error) {
@@ -179,5 +183,22 @@ func TestPostInstall(t *testing.T) {
 
 		return cfg, &testclient.RESTClient{}, nil
 	})
+
+	// mock the HTTP responses for the Rancher API
+	httpDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
+		url := req.URL.String()
+		if strings.Contains(url, serverUrlPath) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader("blahblah")),
+			}, nil
+		} else {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
+			}, nil
+		}
+	}
+
 	assert.Nil(t, NewComponent().PostInstall(ctx))
 }

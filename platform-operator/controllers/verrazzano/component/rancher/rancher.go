@@ -7,9 +7,9 @@ import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"net/http"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -49,6 +49,7 @@ const (
 const (
 	letsEncryptTLSSource       = "letsEncrypt"
 	caTLSSource                = "secret"
+	caAdditionalPem            = "ca-additional.pem"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
@@ -58,20 +59,26 @@ const (
 	contentTypeHeader   = "Content-Type"
 	authorizationHeader = "Authorization"
 	applicationJSON     = "application/json"
-	loginActionPath     = "/v3-public/localProviders/local?action=login"
-	loginActionTmpl     = `
+	// Path to get a login token
+	loginActionPath = "/v3-public/localProviders/local?action=login"
+	// Template body to POST for a login token
+	loginActionTmpl = `
 {
   "Username": "admin",
   "Password": "%s"
 }
 `
+	// Path to get an access token
 	tokenPath = "/v3/token"
+	// Body to POST for an access token (login token should be Bearer token)
 	tokenBody = `
 {
   "type": "token",
   "description": "automation"
 }`
+	// Path to update server URL, as in PUT during PostInstall
 	serverUrlPath = "/v3/settings/server-url"
+	// Template body to PUT a new server url
 	serverUrlTmpl = `
 {
   "name": "server-url",
@@ -80,17 +87,23 @@ const (
 )
 
 type (
-	clientConfigSig func() (*rest.Config, rest.Interface, error)
-	bashFuncSig     func(inArgs ...string) (string, string, error)
-
+	// restClientConfigSig is a provider for a k8s rest client implementation
+	// override for unit testing
+	restClientConfigSig func() (*rest.Config, rest.Interface, error)
+	// httpDoSig provides a HTTP Client wrapper function for unit testing
+	httpDoSig func(hc *http.Client, req *http.Request) (*http.Response, error)
+	// TokenResponse is the response format rancher uses when sending tokens in HTTP responses
 	TokenResponse struct {
 		Token string `json:"token"`
 	}
 )
 
-var bashFunc bashFuncSig = vzos.RunBash
+// httpDo is the default HTTP Client wrapper implementation
+var httpDo httpDoSig = func(hc *http.Client, req *http.Request) (*http.Response, error) {
+	return hc.Do(req)
+}
 
-var restClientConfig clientConfigSig = func() (*rest.Config, rest.Interface, error) {
+var restClientConfig restClientConfigSig = func() (*rest.Config, rest.Interface, error) {
 	cfg, err := controllerruntime.GetConfig()
 	if err != nil {
 		return nil, nil, err
@@ -102,12 +115,8 @@ var restClientConfig clientConfigSig = func() (*rest.Config, rest.Interface, err
 	return cfg, client.CoreV1().RESTClient(), nil
 }
 
-func setBashFunc(f bashFuncSig) {
-	bashFunc = f
-}
-
 // For unit testing
-func setRestClientConfig(f clientConfigSig) {
+func setRestClientConfig(f restClientConfigSig) {
 	restClientConfig = f
 }
 

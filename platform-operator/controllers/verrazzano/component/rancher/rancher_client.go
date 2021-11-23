@@ -1,3 +1,6 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package rancher
 
 import (
@@ -32,10 +35,8 @@ func NewClient(c client.Reader, hostname, password string) (*RESTClient, error) 
 	}
 
 	return &RESTClient{
-		client: hc,
-		do: func(hc *http.Client, req *http.Request) (*http.Response, error) {
-			return hc.Do(req)
-		},
+		client:   hc,
+		do:       httpDo,
 		hostname: hostname,
 		password: password,
 	}, nil
