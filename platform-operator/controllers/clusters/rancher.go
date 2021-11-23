@@ -101,13 +101,16 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	}
 	rc.certificateAuthorityData = caCert
 
-	log.Debugf("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
+	log.Infof("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
 	additionalCA, err := getAdditionalCA(rdr)
 	if err != nil {
 		log.Errorf("Unable to check Rancher for additional CA: %v", err)
 		return "", err
 	}
 	rc.additionalCA = additionalCA
+	if len(additionalCA) > 0 {
+		log.Infof("Additional CA content found - %s", string(additionalCA))
+	}
 
 	log.Debug("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
@@ -392,19 +395,20 @@ func sendRequest(action string, reqURL string, headers map[string]string, payloa
 
 // newCertPool creates a CertPool given certificate bytes
 func newCertPool(certData []byte, additionalCertData []byte) *x509.CertPool {
-	if len(certData) == 0 {
+	if len(certData) == 0 && len(additionalCertData) == 0 {
 		return nil
 	}
 
 	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(certData)
+	if len(certData) > 0 {
+		certPool.AppendCertsFromPEM(certData)
+	}
 
 	// Optional additional cert data
 	if len(additionalCertData) > 0 {
 		certPool.AppendCertsFromPEM(additionalCertData)
 	}
 
-	//
 	return certPool
 }
 
