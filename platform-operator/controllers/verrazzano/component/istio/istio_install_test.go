@@ -351,20 +351,20 @@ func TestUpdatePortSpec(t *testing.T) {
 			Protocol:    "http",
 			AppProtocol: nil,
 			Port:        80,
-			TargetPort:  intstr.IntOrString{
+			TargetPort: intstr.IntOrString{
 				IntVal: 80,
 			},
-			NodePort:    80,
+			NodePort: 80,
 		},
 		{
 			Name:        "port2",
 			Protocol:    "https",
 			AppProtocol: nil,
 			Port:        8000,
-			TargetPort:  intstr.IntOrString{
+			TargetPort: intstr.IntOrString{
 				IntVal: 8000,
 			},
-			NodePort:    8000,
+			NodePort: 8000,
 		},
 	}
 
@@ -376,7 +376,7 @@ func TestUpdatePortSpec(t *testing.T) {
 	mock.EXPECT().Patch(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		Do(func(ctx context.Context, service *corev1.Service, opts ...client.Patch) {
 			service.Spec.Ports = servicePorts
-	})
+		})
 
 	err := updatePortSpec(spi.NewFakeContext(mock, installCRCopy, false))
 	assert.NoError(t, err, "Port spec could not be updated")
