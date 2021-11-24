@@ -15,8 +15,6 @@ RUN chmod 500 /usr/local/bin/verrazzano-application-operator
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
 RUN yum update -y \
-    && yum-config-manager --enable ol7_u8_security_validation \
-    && yum install -y openssl \
     && yum clean all \
     && rm -rf /var/cache/yum
 
