@@ -194,7 +194,7 @@ func TestHttpClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			hc, err := HTTPClient(tt.c)
+			hc, err := HTTPClient(tt.c, "foobar.com")
 			if tt.isErr {
 				assert.NotNil(t, err)
 				assert.Nil(t, hc)

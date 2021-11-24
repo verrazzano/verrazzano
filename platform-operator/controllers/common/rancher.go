@@ -22,13 +22,15 @@ const (
 	// RancherName is the name of the component
 	RancherName = "rancher"
 	// CattleSystem is the namespace of the component
-	CattleSystem         = "cattle-system"
-	RancherIngressCAName = "tls-rancher-ingress"
-	RancherAdminSecret   = "rancher-admin-secret"
-	RancherCACert        = "ca.crt"
-	contentTypeHeader    = "Content-Type"
-	authorizationHeader  = "Authorization"
-	applicationJSON      = "application/json"
+	CattleSystem                   = "cattle-system"
+	RancherIngressCAName           = "tls-rancher-ingress"
+	RancherAdditionalIngressCAName = "tls-ca-additional"
+	RancherAdminSecret             = "rancher-admin-secret"
+	RancherCACert                  = "ca.crt"
+	RancherCAAdditionalPem         = "ca-additional.pem"
+	contentTypeHeader              = "Content-Type"
+	authorizationHeader            = "Authorization"
+	applicationJSON                = "application/json"
 	// Path to get a login token
 	loginActionPath = "/v3-public/localProviders/local?action=login"
 	// Template body to POST for a login token
@@ -72,7 +74,7 @@ type (
 )
 
 func NewClient(c client.Reader, hostname, password string) (*RESTClient, error) {
-	hc, err := HTTPClient(c)
+	hc, err := HTTPClient(c, hostname)
 	if err != nil {
 		return nil, err
 	}
@@ -112,22 +114,49 @@ func GetRootCA(c client.Reader) ([]byte, error) {
 	return secret.Data[RancherCACert], nil
 }
 
-func HTTPClient(c client.Reader) (*http.Client, error) {
+// GetAdditionalCA fetches the Rancher additional CA secret
+func GetAdditionalCA(c client.Reader) ([]byte, error) {
+	secret := &corev1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: CattleSystem,
+		Name:      RancherAdditionalIngressCAName}
+
+	if err := c.Get(context.TODO(), nsName, secret); err != nil {
+		return nil, client.IgnoreNotFound(err)
+	}
+
+	return secret.Data[RancherCAAdditionalPem], nil
+}
+
+func CertPool(certs ...[]byte) *x509.CertPool {
+	certPool := x509.NewCertPool()
+	for _, cert := range certs {
+		if len(cert) > 0 {
+			certPool.AppendCertsFromPEM(cert)
+		}
+	}
+	return certPool
+}
+
+func HTTPClient(c client.Reader, hostname string) (*http.Client, error) {
 	rootCA, err := GetRootCA(c)
 	if err != nil {
 		return nil, err
 	}
-	if rootCA == nil {
-		return nil, fmt.Errorf("root CA for Rancher not found")
+	additionalCA, err := GetAdditionalCA(c)
+	if err != nil {
+		return nil, err
 	}
-	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(rootCA)
+	if len(rootCA) < 1 && len(additionalCA) < 1 {
+		return nil, errors.New("neither root nor additional CA Secrets were found for Rancher")
+	}
 
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				MinVersion: tls.VersionTLS12,
-				RootCAs:    certPool,
+				ServerName: hostname,
+				RootCAs:    CertPool(rootCA, additionalCA),
 			},
 		},
 	}, nil

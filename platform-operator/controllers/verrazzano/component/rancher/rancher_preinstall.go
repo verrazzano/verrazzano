@@ -97,7 +97,7 @@ func createAdditionalCertificates(log *zap.SugaredLogger, c client.Client, vz *v
 		secret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: common.CattleSystem,
-				Name:      common.RancherIngressCAName,
+				Name:      common.RancherAdditionalIngressCAName,
 			},
 		}
 
@@ -109,7 +109,7 @@ func createAdditionalCertificates(log *zap.SugaredLogger, c client.Client, vz *v
 				return err
 			}
 			secret.Data = map[string][]byte{
-				caAdditionalPem: builder.cert,
+				common.RancherCAAdditionalPem: builder.cert,
 			}
 			return nil
 		}); err != nil {

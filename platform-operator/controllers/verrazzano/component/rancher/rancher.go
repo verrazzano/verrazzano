@@ -42,7 +42,6 @@ const (
 const (
 	letsEncryptTLSSource       = "letsEncrypt"
 	caTLSSource                = "secret"
-	caAdditionalPem            = "ca-additional.pem"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
