@@ -26,11 +26,12 @@ const ChartStatusFailed = "failed"
 // Package-level var and functions to allow overriding GetChartStatus for unit test purposes
 type ChartStatusFnType func(releaseName string, namespace string) (string, error)
 
+// HelmOverrides contains all of the overrides that gets passed to the helm cli runner
 type HelmOverrides struct {
-	SetOverrides       string
-	SetStringOverrides string
-	SetFileOverrides   string
-	FileOverrides      []string
+	SetOverrides       string   // for --set
+	SetStringOverrides string   // for --set-string
+	SetFileOverrides   string   // for --set-file
+	FileOverrides      []string // for -f
 }
 
 var chartStatusFn ChartStatusFnType = getChartStatus
