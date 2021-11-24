@@ -144,6 +144,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // ReadyState processes the CR while in the ready state
 func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter ReadyState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
@@ -220,6 +221,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 
 // InstallingState processes the CR while in the installing state
 func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter InstallingState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
@@ -242,6 +244,7 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 
 // UninstallingState processes the CR while in the uninstalling state
 func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter UninstallingState")
 	ctx := context.TODO()
 
 	// Update uninstall status
@@ -254,6 +257,8 @@ func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.
 
 // UpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter UpgradingState")
+
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
@@ -266,6 +271,7 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 
 // FailedState only allows uninstall
 func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter FailedState")
 	ctx := context.TODO()
 
 	// Determine if the user specified to retry upgrade
@@ -810,6 +816,8 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	if cr.Status.Components != nil {
 		return ctrl.Result{}, nil
 	}
+
+	log.Debugf("initializeComponentStatus for all components")
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
@@ -822,6 +830,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
+					log.Errorf("IsInstalled error for component %s: %s", comp.Name(), err)
 					return newRequeueWithDelay(), err
 				}
 				if installed {

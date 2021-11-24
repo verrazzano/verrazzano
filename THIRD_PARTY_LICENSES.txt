@@ -2389,22 +2389,11 @@ github.com/mailru/easyjson
 Copyright (c) 2016 Mail.Ru Group
 
 -------- Dependency
-github.com/nxadm/tail
--------- Copyrights
-© Copyright 2015 Hewlett Packard Enterprise Development LP
-Copyright (c) 2014 ActiveState
-Copyright (c) 2019 FOSS contributors of https://github.com/nxadm/tail
-Copyright (c) 2015 HPE Software Inc. All rights reserved.
-Copyright (c) 2013 ActiveState Software Inc. All rights reserved.
-Copyright (C) 2013 99designs
-
--------- Dependency
 github.com/onsi/ginkgo
 -------- Copyrights
 Copyright (c) 2013-2014 Onsi Fakhouri
-Copyright 2013 The Go Authors. All rights reserved.
 Copyright (c) 2016 Yasuhiro Matsumoto
-Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
+Copyright 2013 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/onsi/gomega
@@ -2478,7 +2467,6 @@ github.com/emicklei/go-restful
 github.com/gertd/go-pluralize
 github.com/json-iterator/go
 github.com/mailru/easyjson
-github.com/nxadm/tail
 github.com/onsi/ginkgo
 github.com/onsi/gomega
 github.com/peterbourgon/diskv
@@ -2579,47 +2567,5 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
------------------------ Dependencies Grouped by License ------------
--------- Dependency
-gopkg.in/tomb.v1
--------- Copyrights
-Copyright (c) 2010-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
-Copyright (c) 2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
-
--------- Dependencies Summary
-gopkg.in/tomb.v1
-
--------- License used by Dependencies
-tomb - support for clean goroutine termination in Go.
-
-Copyright (c) 2010-2011 - Gustavo Niemeyer <gustavo@niemeyer.net>
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice,
-      this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright notice,
-      this list of conditions and the following disclaimer in the documentation
-      and/or other materials provided with the distribution.
-    * Neither the name of the copyright holder nor the names of its
-      contributors may be used to endorse or promote products derived from
-      this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: b5e1422f8dd3c3759d770ccba1f1f551
+License file based on go.mod with md5 sum: 87c5d7298b011c2756c52e4599e3896d

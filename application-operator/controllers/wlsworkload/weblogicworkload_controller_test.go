@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
@@ -1500,7 +1501,7 @@ func TestReconcileRestart(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{constants.RestartVersionAnnotation: restartVersion}
+	annotations := map[string]string{vzconst.RestartVersionAnnotation: restartVersion}
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	// set the Fluentd image which is obtained via env then reset at end of test
@@ -1634,7 +1635,7 @@ func TestReconcileStopDomain(t *testing.T) {
 
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{constants.LifecycleActionAnnotation: constants.LifecycleActionStop}
+	annotations := map[string]string{vzconst.LifecycleActionAnnotation: vzconst.LifecycleActionStop}
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	// expect call to fetch existing WebLogic Domain
@@ -1719,7 +1720,7 @@ func TestReconcileStopDomain(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(constants.LifecycleActionStop, wl.Status.LastLifecycleAction)
+			assert.Equal(vzconst.LifecycleActionStop, wl.Status.LastLifecycleAction)
 			return nil
 		})
 
@@ -1752,7 +1753,7 @@ func TestReconcileStartDomain(t *testing.T) {
 
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-	annotations := map[string]string{constants.LifecycleActionAnnotation: constants.LifecycleActionStart}
+	annotations := map[string]string{vzconst.LifecycleActionAnnotation: vzconst.LifecycleActionStart}
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	// expect call to fetch existing WebLogic Domain
@@ -1835,7 +1836,7 @@ func TestReconcileStartDomain(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, wl *vzapi.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
-			assert.Equal(constants.LifecycleActionStart, wl.Status.LastLifecycleAction)
+			assert.Equal(vzconst.LifecycleActionStart, wl.Status.LastLifecycleAction)
 			return nil
 		})
 
