@@ -18,7 +18,10 @@ spec:
         spec:
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
-          image: container-registry.oracle.com/verrazzano/example-todo:1.0.0-1-20210728181814-eb1e622
+          auxiliaryImageVolumes:
+            - name: auxiliaryImageVolume1
+              mountPath: /auxiliary
+          image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: tododomain-repo-credentials
           domainHomeSourceType: "FromModel"
@@ -31,7 +34,8 @@ spec:
             model:
               configMap: tododomain-jdbc-config
               domainType: WLS
-              modelHome: /u01/wdt/models
+              modelHome: /auxiliary/models
+              wdtInstallHome: /auxiliary/weblogic-deploy
               runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
             secrets:
               - tododomain-jdbc-tododb
@@ -39,6 +43,9 @@ spec:
             labels:
               app: todo-domain
               version: v1
+            auxiliaryImages:
+                - image: ghcr.io/verrazzano/example-todo-auxiliary:20211124150940-6681551
+                  volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
