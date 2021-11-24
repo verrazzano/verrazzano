@@ -142,7 +142,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.6"
+              "tag": "20211124191223-bce25fa"
             },
             {
               "image": "rancher-webhook",
@@ -158,15 +158,15 @@
             },
             {
               "image": "gitjob",
-              "tag": "v0.1.15"
+              "tag": "20211124191951-853d702"
             },
             {
               "image": "rancher-operator",
-              "tag": "v0.1.4"
+              "tag": "20211124192325-5067346"
             },
             {
               "image": "local-path-provisioner",
-              "tag": "v0.0.14"
+              "tag": "20211124203459-2d5fe68"
             }
           ]
         }
@@ -222,8 +222,8 @@
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
-              "image": "configmap-reload",
-              "tag": "0.3-20211118044727-d210cf4",
+              "image": "configmap-reload-jenkins",
+              "tag": "20211124184920-fed33bd",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
@@ -237,8 +237,8 @@
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
-              "image": "console",
-              "tag": "1.1.0-20211120024412-cd5bb71",
+              "image": "console-jenkins",
+              "tag": "1.1.0-20211124190318-478e752",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -282,7 +282,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20211119175631-4ddf04c",
+              "tag": "20211124185738-f924c32",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -392,8 +392,8 @@
           "name": "keycloak",
           "images": [
             {
-              "image": "keycloak",
-              "tag": "15.0.2-20211122133839-f7fc6e8a67",
+              "image": "keycloak-jenkins",
+              "tag": "15.0.2-20211124162218-f7fc6e8a67",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -404,8 +404,8 @@
           "name": "keycloak-oracle-theme",
           "images": [
             {
-              "image": "keycloak-oracle-theme",
-              "tag": "1.1.0-20211118044336-04e2a98"
+              "image": "keycloak-oracle-theme-jenkins",
+              "tag": "1.1.0-20211124185400-29909ec"
             }
           ]
         }
