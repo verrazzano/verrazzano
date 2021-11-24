@@ -206,11 +206,11 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 	ctx.Log().Info("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %v", string(output))
 	// If the data node count is seen as 1 then the node is considered as single node cluster
-	if strings.Contains(string(output), "\"number_of_data_nodes\":1,") {
+	if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
 		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
 		putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
-			fmt.Sprintf("curl -v -XPUT -d '{\"index\":{\"auto_expand_replicas\":\"0-1\"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings", httpPort, indexPattern))
-		_, err = putCmd.Output()
+			fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
+		output, err = putCmd.Output()
 		if err != nil {
 			ctx.Log().Errorf("Elasticsearch Post Upgrade: Error logging into Elasticsearch: %s", err)
 			return err
