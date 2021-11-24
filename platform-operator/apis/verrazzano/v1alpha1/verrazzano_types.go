@@ -396,6 +396,9 @@ type IstioComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	// Ports to be used for Istio ingress gateway
+	// +optional
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration

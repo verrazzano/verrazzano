@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -32,6 +33,9 @@ const IstioCertSecret = "cacerts"
 
 // IstioEnvoyFilter is the Envoy header filter name
 const IstioEnvoyFilter = "server-header-filter"
+
+// Service name for port patch
+const IstioIngressService = "istio-ingressgateway"
 
 // create func vars for unit tests
 type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
@@ -151,6 +155,9 @@ func (i IstioComponent) PostInstall(compContext spi.ComponentContext) error {
 	if err := createEnvoyFilter(compContext); err != nil {
 		return err
 	}
+	if err := updatePortSpec(compContext); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -228,6 +235,34 @@ func createEnvoyFilter(compContext spi.ComponentContext) error {
 			compContext.Log().Errorf("Failed creating Envoy filter %s: %s", err, stderr)
 			return err
 		}
+	}
+	return nil
+}
+
+// updatePortSpec updates the port spec for the Istio ingress gateway
+func updatePortSpec(compContext spi.ComponentContext) error {
+	istioConfig := compContext.EffectiveCR().Spec.Components.Istio
+
+	// If there are no port updates, then return
+	if istioConfig == nil {
+		return nil
+	}
+	if len(istioConfig.Ports) == 0 {
+		return nil
+	}
+
+	// Patch the service with the port updates if it exists
+	ingressService := v1.Service{}
+	if err := compContext.Client().Get(context.TODO(), types.NamespacedName{Name: IstioIngressService, Namespace: IstioNamespace}, &ingressService); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	mergeFromSvc := client.MergeFrom(ingressService.DeepCopy())
+	ingressService.Spec.Ports = istioConfig.Ports
+	if err := compContext.Client().Patch(context.TODO(), &ingressService, mergeFromSvc); err != nil {
+		return err
 	}
 	return nil
 }

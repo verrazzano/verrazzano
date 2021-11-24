@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
@@ -332,6 +333,53 @@ func TestCreateEnvoyFilter(t *testing.T) {
 	setBashFunc(fakeBash)
 	err := createEnvoyFilter(spi.NewFakeContext(createEnvoyFilterMock(t), installCR, false))
 	assert.NoError(err, "createEnvoyFilter returned an error")
+}
+
+// TestUpdatePortSpec tests creating the Envoy filter
+// GIVEN a component
+//  WHEN I call createEnvoyFilter
+//  THEN the bash function is called to create the filter
+func TestUpdatePortSpec(t *testing.T) {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Create service ports in the CR
+	installCRCopy := installCR.DeepCopy()
+	servicePorts := []corev1.ServicePort{
+		{
+			Name:        "port1",
+			Protocol:    "http",
+			AppProtocol: nil,
+			Port:        80,
+			TargetPort:  intstr.IntOrString{
+				IntVal: 80,
+			},
+			NodePort:    80,
+		},
+		{
+			Name:        "port2",
+			Protocol:    "https",
+			AppProtocol: nil,
+			Port:        8000,
+			TargetPort:  intstr.IntOrString{
+				IntVal: 8000,
+			},
+			NodePort:    8000,
+		},
+	}
+
+	installCRCopy.Spec.Components.Istio.Ports = servicePorts
+
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Name: IstioIngressService, Namespace: IstioNamespace}, gomock.Not(gomock.Nil())).
+		Return(nil)
+
+	mock.EXPECT().Patch(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		Do(func(ctx context.Context, service *corev1.Service, opts ...client.Patch) {
+			service.Spec.Ports = servicePorts
+	})
+
+	err := updatePortSpec(spi.NewFakeContext(mock, installCRCopy, false))
+	assert.NoError(t, err, "Port spec could not be updated")
 }
 
 func createEnvoyFilterMock(t *testing.T) *mocks.MockClient {
