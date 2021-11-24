@@ -210,7 +210,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
 		putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
 			fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
-		output, err = putCmd.Output()
+		_, err = putCmd.Output()
 		if err != nil {
 			ctx.Log().Errorf("Elasticsearch Post Upgrade: Error logging into Elasticsearch: %s", err)
 			return err

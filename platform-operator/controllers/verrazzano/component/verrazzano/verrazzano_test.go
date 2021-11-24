@@ -6,7 +6,7 @@ package verrazzano
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"github.com/stretchr/testify/assert"
@@ -203,8 +203,8 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	assert.NoError(err, "Failed to create fake component context.")
 	createElasticsearchPod(context.Client(), "http")
 	execCommand = fakeExecCommand
-	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"}
-	fakeExecScenarioIndex = 0
+	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} //nolint,ineffassign
+	fakeExecScenarioIndex = 0                                                                                    //nolint,ineffassign
 	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
 	assert.NoError(err, "Failed to fixup Elasticsearch index template")
 
@@ -212,8 +212,8 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN an error should be returned
 	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{}
-	fakeExecScenarioIndex = 0
+	fakeExecScenarioNames = []string{} //nolint,ineffassign
+	fakeExecScenarioIndex = 0          //nolint,ineffassign
 	context, err = createFakeComponentContext()
 	assert.NoError(err, "Failed to create fake component context.")
 	createElasticsearchPod(context.Client(), "tcp")
@@ -224,9 +224,10 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	//  WHEN fixupElasticSearchReplicaCount is called
 	//  THEN no error should be returned
 	//   AND no commands should be invoked
-	fakeExecScenarioNames = []string{}
-	fakeExecScenarioIndex = 0
+	fakeExecScenarioNames = []string{} //nolint,ineffassign
+	fakeExecScenarioIndex = 0          //nolint,ineffassign
 	context, err = createFakeComponentContext()
+	assert.NoError(err, "Unexpected error")
 	context.ActualCR().Status.Version = "1.1.0"
 	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
 	assert.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
@@ -239,6 +240,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	fakeExecScenarioIndex = 0
 	falseValue := false
 	context, err = createFakeComponentContext()
+	assert.NoError(err, "Unexpected error")
 	context.EffectiveCR().Spec.Components.Elasticsearch.Enabled = &falseValue
 	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
 	assert.NoError(err, "No error should be returned if the elasticsearch is not enabled")
@@ -301,12 +303,13 @@ status:
 	//  THEN expect the pod to be returned
 	//   AND expect no error
 	readyPodParams := map[string]string{
-		"test_pod_name" : "test_ready_pod_name",
-		"test_label_value": "test_ready_label_value",
+		"test_pod_name":        "test_ready_pod_name",
+		"test_label_value":     "test_ready_label_value",
 		"test_container_ready": "true",
 	}
 	assert.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, readyPodParams), "Failed to create test pod.")
 	pods, err := getPodsWithReadyContainer(ctx.Client(), "test_container_name", client.InNamespace("test_namespace_name"), client.MatchingLabels{"test_label_name": "test_ready_label_value"})
+	assert.NoError(err, "Unexpected error")
 	assert.Len(pods, 1, "Expected to find one pod with a ready container")
 
 	// GIVEN a pod with an unready container
@@ -314,8 +317,8 @@ status:
 	//  THEN expect not pods to be returned
 	//   AND expect no error
 	unreadyPodParams := map[string]string{
-		"test_pod_name" : "test_unready_pod_name",
-		"test_label_value": "test_unready_label_value",
+		"test_pod_name":        "test_unready_pod_name",
+		"test_label_value":     "test_unready_label_value",
 		"test_container_ready": "false",
 	}
 	assert.NoError(createResourceFromTemplate(ctx.Client(), &corev1.Pod{}, podTemplate, unreadyPodParams), "Failed to create test pod.")
@@ -518,7 +521,7 @@ func TestFakeExecHandler(t *testing.T) {
 // template - The template text
 // params - a vararg of param maps
 func populateTemplate(templateStr string, data interface{}) (string, error) {
-	hasher := md5.New()
+	hasher := sha256.New()
 	hasher.Write([]byte(templateStr))
 	name := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 	t, err := template.New(name).Option("missingkey=error").Parse(templateStr)
