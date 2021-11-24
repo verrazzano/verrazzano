@@ -6,23 +6,16 @@ package rancher
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"net/http"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Constants for Kubernetes resource names
 const (
-	// Name is the name of the component
-	Name = "rancher"
-	// CattleSystem is the namespace of the component
-	CattleSystem           = "cattle-system"
-	IngressCAName          = "tls-rancher-ingress"
-	AdminSecret            = "rancher-admin-secret"
-	CACert                 = "ca.crt"
 	OperatorNamespace      = "rancher-operator-system"
 	defaultSecretNamespace = "cert-manager"
 	namespaceLabelKey      = "verrazzano.io/namespace"
@@ -54,54 +47,11 @@ const (
 	useBundledSystemChartValue = "true"
 )
 
-// Rancher HTTPS Configuration
-const (
-	contentTypeHeader   = "Content-Type"
-	authorizationHeader = "Authorization"
-	applicationJSON     = "application/json"
-	// Path to get a login token
-	loginActionPath = "/v3-public/localProviders/local?action=login"
-	// Template body to POST for a login token
-	loginActionTmpl = `
-{
-  "Username": "admin",
-  "Password": "%s"
-}
-`
-	// Path to get an access token
-	tokPath = "/v3/token"
-	// Body to POST for an access token (login token should be Bearer token)
-	tokPostBody = `
-{
-  "type": "token",
-  "description": "automation"
-}`
-	// Path to update server URL, as in PUT during PostInstall
-	serverURLPath = "/v3/settings/server-url"
-	// Template body to PUT a new server url
-	serverURLTmpl = `
-{
-  "name": "server-url",
-  "value": "https://%s"
-}`
-)
-
 type (
 	// restClientConfigSig is a provider for a k8s rest client implementation
 	// override for unit testing
 	restClientConfigSig func() (*rest.Config, rest.Interface, error)
-	// httpDoSig provides a HTTP Client wrapper function for unit testing
-	httpDoSig func(hc *http.Client, req *http.Request) (*http.Response, error)
-	// TokenResponse is the response format Rancher uses when sending tokens in HTTP responses
-	TokenResponse struct {
-		Token string `json:"token"`
-	}
 )
-
-// httpDo is the default HTTP Client wrapper implementation
-var httpDo httpDoSig = func(hc *http.Client, req *http.Request) (*http.Response, error) {
-	return hc.Do(req)
-}
 
 var restClientConfig restClientConfigSig = func() (*rest.Config, rest.Interface, error) {
 	cfg, err := controllerruntime.GetConfig()
@@ -129,6 +79,6 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", Name, vz.Spec.EnvironmentName, dnsSuffix)
+	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
 	return rancherHostname, nil
 }

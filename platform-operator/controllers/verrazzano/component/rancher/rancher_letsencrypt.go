@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"io"
 	"net/http"
 )
@@ -26,7 +27,7 @@ func (c *certBuilder) appendCertWithHTTP(uri string) error {
 		return err
 	}
 
-	resp, err := httpDo(c.hc, req)
+	resp, err := common.HTTPDo(c.hc, req)
 	if err != nil {
 		return err
 	}
@@ -42,7 +43,11 @@ func (c *certBuilder) appendCertWithHTTP(uri string) error {
 	return nil
 }
 
-func (c *certBuilder) buildLetsEncryptChain() error {
+//buildLetsEncryptStagingChain builds the LetsEncrypt Staging certificate chain
+// LetsEncrypt staging provides a certificate chain for staging environments, mimicking production.
+// Verrazzano uses the LetsEncrypt staging certificate chain for Rancher ingress on ACME staging environments.
+// See https://letsencrypt.org/docs/staging-environment/ for more information.
+func (c *certBuilder) buildLetsEncryptStagingChain() error {
 	if err := c.appendCertWithHTTP(intR3PEM); err != nil {
 		return err
 	}

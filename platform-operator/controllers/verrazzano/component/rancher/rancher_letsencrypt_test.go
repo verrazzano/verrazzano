@@ -6,6 +6,7 @@ package rancher
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"io"
 	"net/http"
 	"strings"
@@ -54,7 +55,7 @@ func TestCertBuilder(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			c := certBuilder{hc: &http.Client{}}
-			httpDo = tt.httpDo
+			common.HTTPDo = tt.httpDo
 			err := c.appendCertWithHTTP(rootX1PEM)
 			if tt.isErr {
 				assert.NotNil(t, err)
@@ -67,17 +68,17 @@ func TestCertBuilder(t *testing.T) {
 
 // TestBuildLetsEncryptChain verifies building the LetsEncrypt staging certificate chain
 // GIVEN a certBuilder
-//  WHEN buildLetsEncryptChain is called
-//  THEN buildLetsEncryptChain should build the cert chain for LetsEncrypt
+//  WHEN buildLetsEncryptStagingChain is called
+//  THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
 func TestBuildLetsEncryptChain(t *testing.T) {
-	httpDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
+	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		return &http.Response{
 			Body:       io.NopCloser(strings.NewReader("cert")),
 			StatusCode: http.StatusOK,
 		}, nil
 	}
 	builder := &certBuilder{hc: &http.Client{}}
-	err := builder.buildLetsEncryptChain()
+	err := builder.buildLetsEncryptStagingChain()
 	assert.Nil(t, err)
 	assert.Equal(t, "certcertcert", string(builder.cert))
 }

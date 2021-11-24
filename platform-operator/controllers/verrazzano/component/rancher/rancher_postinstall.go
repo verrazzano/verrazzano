@@ -7,7 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -21,7 +22,7 @@ const (
 )
 
 func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
-	_, err := GetAdminSecret(c)
+	_, err := common.GetAdminSecret(c)
 	if err == nil {
 		log.Infof("Rancher Post Install: admin secret exists, skipping object creation")
 		return nil
@@ -48,8 +49,8 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", err
 	}
 	podList := &v1.PodList{}
-	labelMatcher := client.MatchingLabels{"app": Name}
-	namespaceMatcher := client.InNamespace(CattleSystem)
+	labelMatcher := client.MatchingLabels{"app": common.RancherName}
+	namespaceMatcher := client.InNamespace(common.CattleSystem)
 	if err := c.List(context.TODO(), podList, namespaceMatcher, labelMatcher); err != nil {
 		return "", err
 	}
@@ -57,7 +58,7 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", errors.New("no Rancher pods found")
 	}
 	pod := podList.Items[0]
-	stdout, stderr, err := common.ExecPod(cfg, restClient, &pod, Name, []string{resetPasswordCommand})
+	stdout, stderr, err := k8sutil.ExecPod(cfg, restClient, &pod, common.RancherName, []string{resetPasswordCommand})
 	if err != nil {
 		return "", err
 	}
@@ -71,6 +72,7 @@ func resetAdminPassword(c client.Client) (string, error) {
 
 // hack to parse the stdout of Rancher reset password
 // we need to remove carriage returns and newlines from the stdout, since it is coming over from the pod's shell
+// STDOUT is usually going to look something like this: "W1122 18:11:20.905585\nNew password for default admin user (user-p958n):\npassword\n"
 func parsePasswordStdout(stdout string) string {
 	partial := strings.Split(strings.TrimSuffix(stdout, "\n"), "\n")
 	var password string
@@ -82,9 +84,6 @@ func parsePasswordStdout(stdout string) string {
 	default: // if there are not 2 or 3 lines, we cannot guess the output
 		return ""
 	}
-	if len(partial) == 3 {
-		//
-	}
 	return strings.TrimSuffix(password, "\r")
 }
 
@@ -92,8 +91,8 @@ func parsePasswordStdout(stdout string) string {
 func newAdminSecret(c client.Client, password string) error {
 	adminSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: CattleSystem,
-			Name:      AdminSecret,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherAdminSecret,
 		},
 		Data: map[string][]byte{
 			"password": []byte(password),

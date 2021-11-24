@@ -1,12 +1,17 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package rancher
+package common
 
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"io"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	networking "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -17,6 +22,38 @@ import (
 const (
 	dummyToken = "token"
 )
+
+func getScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = networking.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = v1.AddToScheme(scheme)
+	return scheme
+}
+
+func createRootCASecret() v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: CattleSystem,
+			Name:      RancherIngressCAName,
+		},
+		Data: map[string][]byte{
+			RancherCACert: []byte("blahblah"),
+		},
+	}
+}
+
+func createAdminSecret() v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: CattleSystem,
+			Name:      RancherAdminSecret,
+		},
+		Data: map[string][]byte{
+			"password": []byte("foobar"),
+		},
+	}
+}
 
 func tokenResponse(h *http.Client, request *http.Request) (*http.Response, error) {
 	return &http.Response{

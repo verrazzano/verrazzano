@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
@@ -75,8 +76,8 @@ func TestAddCAIngressAnnotations(t *testing.T) {
 func TestPatchRancherIngress(t *testing.T) {
 	ingress := networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   CattleSystem,
-			Name:        Name,
+			Namespace:   common.CattleSystem,
+			Name:        common.RancherName,
 			Annotations: map[string]string{"test": "data"},
 		},
 	}
@@ -132,15 +133,14 @@ func TestPatchRancherDeployment(t *testing.T) {
 			"rancherContainer",
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: CattleSystem,
-					Name:      Name,
+					Namespace: common.CattleSystem,
+					Name:      common.RancherName,
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: v1.PodTemplateSpec{
 						Spec: v1.PodSpec{
 							Containers: []v1.Container{
-								{Name: "foobar"},
-								{Name: Name},
+								{Name: common.RancherName},
 							},
 						},
 					},
@@ -152,8 +152,8 @@ func TestPatchRancherDeployment(t *testing.T) {
 			"noRancher",
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: CattleSystem,
-					Name:      Name,
+					Namespace: common.CattleSystem,
+					Name:      common.RancherName,
 				},
 				Spec: appsv1.DeploymentSpec{
 					Template: v1.PodTemplateSpec{

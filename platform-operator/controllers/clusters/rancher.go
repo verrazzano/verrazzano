@@ -10,7 +10,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"net"
@@ -95,7 +95,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	rc.host = hostname
 
 	log.Debug("Getting Rancher TLS root CA")
-	caCert, err := rancher.GetRootCA(rdr)
+	caCert, err := common.GetRootCA(rdr)
 	if err != nil {
 		log.Errorf("Unable to get Rancher TLS root CA: %v", err)
 		return "", err

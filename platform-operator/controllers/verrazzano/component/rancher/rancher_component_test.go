@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
@@ -138,8 +139,8 @@ func TestPreInstall(t *testing.T) {
 func TestIsReady(t *testing.T) {
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: CattleSystem,
-			Name:      Name,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherName,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -147,8 +148,8 @@ func TestIsReady(t *testing.T) {
 	}
 	unreadyDeploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: CattleSystem,
-			Name:      Name,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherName,
 		},
 	}
 	readyClient := fake.NewFakeClientWithScheme(getScheme(), &deploy)
@@ -192,8 +193,8 @@ func TestPostInstall(t *testing.T) {
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 
 	// mock the pod executor when resetting the Rancher admin password
-	common.NewSPDYExecutor = common.FakeNewSPDYExecutor
-	common.FakeStdOut = "password"
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+	k8sutil.FakePodSTDOUT = "password"
 	setRestClientConfig(func() (*rest.Config, rest.Interface, error) {
 		cfg, _ := rest.InClusterConfig()
 
@@ -201,9 +202,9 @@ func TestPostInstall(t *testing.T) {
 	})
 
 	// mock the HTTP responses for the Rancher API
-	httpDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
+	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		url := req.URL.String()
-		if strings.Contains(url, serverURLPath) {
+		if strings.Contains(url, common.RancherServerURLPath) {
 			return &http.Response{
 				StatusCode: 200,
 				Body:       io.NopCloser(strings.NewReader("blahblah")),

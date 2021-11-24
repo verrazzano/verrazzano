@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"io"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +69,7 @@ func TestCreateCattleNamespace(t *testing.T) {
 			"should edit the cattle namespace if already exists",
 			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: CattleSystem,
+					Name: common.CattleSystem,
 				},
 			}),
 		},
@@ -178,7 +179,7 @@ func TestCreateAdditionalCertificates(t *testing.T) {
 	}
 	var tests = []struct {
 		testName string
-		httpDo   httpDoSig
+		httpDo   common.HttpDoSig
 		vz       *vzapi.Verrazzano
 		isErr    bool
 	}{
@@ -204,7 +205,7 @@ func TestCreateAdditionalCertificates(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			httpDo = tt.httpDo
+			common.HTTPDo = tt.httpDo
 			err := createAdditionalCertificates(log, c, tt.vz)
 			if tt.isErr {
 				assert.NotNil(t, err)

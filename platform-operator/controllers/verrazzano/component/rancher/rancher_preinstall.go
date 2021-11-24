@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,16 +35,16 @@ func createRancherOperatorNamespace(log *zap.SugaredLogger, c client.Client) err
 func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error {
 	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: CattleSystem,
+			Name: common.CattleSystem,
 		},
 	}
-	log.Debugf("Creating %s namespace", CattleSystem)
+	log.Debugf("Creating %s namespace", common.CattleSystem)
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
-		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, CattleSystem)
+		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, common.CattleSystem)
 		if namespace.Labels == nil {
 			namespace.Labels = map[string]string{}
 		}
-		namespace.Labels[namespaceLabelKey] = Name
+		namespace.Labels[namespaceLabelKey] = common.RancherName
 		return nil
 	}); err != nil {
 		return err
@@ -64,7 +65,7 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: CattleSystem,
+				Namespace: common.CattleSystem,
 				Name:      rancherTLSSecretName,
 			},
 		}
@@ -92,11 +93,11 @@ func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
 func createAdditionalCertificates(log *zap.SugaredLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if (cm != nil && cm.Certificate.Acme != vzapi.Acme{} && useAdditionalCAs(cm.Certificate.Acme)) {
-		log.Infof("Creating additional Rancher certificates for non-production environment")
+		log.Debugf("Creating additional Rancher certificates for non-production environment")
 		secret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: CattleSystem,
-				Name:      IngressCAName,
+				Namespace: common.CattleSystem,
+				Name:      common.RancherIngressCAName,
 			},
 		}
 
@@ -104,7 +105,7 @@ func createAdditionalCertificates(log *zap.SugaredLogger, c client.Client, vz *v
 			builder := &certBuilder{
 				hc: &http.Client{},
 			}
-			if err := builder.buildLetsEncryptChain(); err != nil {
+			if err := builder.buildLetsEncryptStagingChain(); err != nil {
 				return err
 			}
 			secret.Data = map[string][]byte{

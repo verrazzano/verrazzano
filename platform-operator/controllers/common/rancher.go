@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package rancher
+package common
 
 import (
 	"context"
@@ -17,6 +17,45 @@ import (
 	"strings"
 )
 
+// Rancher HTTPS Configuration
+const (
+	// RancherName is the name of the component
+	RancherName = "rancher"
+	// CattleSystem is the namespace of the component
+	CattleSystem         = "cattle-system"
+	RancherIngressCAName = "tls-rancher-ingress"
+	RancherAdminSecret   = "rancher-admin-secret"
+	RancherCACert        = "ca.crt"
+	contentTypeHeader    = "Content-Type"
+	authorizationHeader  = "Authorization"
+	applicationJSON      = "application/json"
+	// Path to get a login token
+	loginActionPath = "/v3-public/localProviders/local?action=login"
+	// Template body to POST for a login token
+	loginActionTmpl = `
+{
+  "Username": "admin",
+  "Password": "%s"
+}
+`
+	// Path to get an access token
+	tokPath = "/v3/token"
+	// Body to POST for an access token (login token should be Bearer token)
+	tokPostBody = `
+{
+  "type": "token",
+  "description": "automation"
+}`
+	// RancherServerURLPath Path to update server URL, as in PUT during PostInstall
+	RancherServerURLPath = "/v3/settings/server-url"
+	// Template body to PUT a new server url
+	serverURLTmpl = `
+{
+  "name": "server-url",
+  "value": "https://%s"
+}`
+)
+
 type (
 	RESTClient struct {
 		client      *http.Client
@@ -25,6 +64,10 @@ type (
 		password    string
 		loginToken  string
 		accessToken string
+	}
+	// TokenResponse is the response format Rancher uses when sending tokens in HTTP responses
+	TokenResponse struct {
+		Token string `json:"token"`
 	}
 )
 
@@ -36,7 +79,7 @@ func NewClient(c client.Reader, hostname, password string) (*RESTClient, error) 
 
 	return &RESTClient{
 		client:   hc,
-		do:       httpDo,
+		do:       HTTPDo,
 		hostname: hostname,
 		password: password,
 	}, nil
@@ -47,7 +90,7 @@ func GetAdminSecret(c client.Reader) (string, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: CattleSystem,
-		Name:      AdminSecret}
+		Name:      RancherAdminSecret}
 
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
 		return "", err
@@ -61,12 +104,12 @@ func GetRootCA(c client.Reader) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: CattleSystem,
-		Name:      IngressCAName}
+		Name:      RancherIngressCAName}
 
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
 		return nil, client.IgnoreNotFound(err)
 	}
-	return secret.Data[CACert], nil
+	return secret.Data[RancherCACert], nil
 }
 
 func HTTPClient(c client.Reader) (*http.Client, error) {
@@ -145,7 +188,7 @@ func (r *RESTClient) GetAccessToken() string {
 }
 
 func (r *RESTClient) PutServerURL() error {
-	url := fmt.Sprintf("https://%s%s", r.hostname, serverURLPath)
+	url := fmt.Sprintf("https://%s%s", r.hostname, RancherServerURLPath)
 	serverURLBody := strings.NewReader(fmt.Sprintf(serverURLTmpl, r.hostname))
 	req, err := http.NewRequest("PUT", url, serverURLBody)
 	if err != nil {

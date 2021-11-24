@@ -4,6 +4,10 @@ package k8sutil_test
 
 import (
 	"fmt"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	testclient "k8s.io/client-go/rest/fake"
 	"os"
 	"testing"
 
@@ -281,4 +285,24 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 	// Reset env variables
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
+}
+
+// TestExecPod tests running a command on a remote pod
+// GIVEN a pod in a cluster and a command to run on that pod
+//  WHEN ExecPod is called
+//  THEN ExecPod return the stdout, stderr, and a nil error
+func TestExecPod(t *testing.T) {
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+	k8sutil.FakePodSTDOUT = "foobar"
+	cfg, _ := rest.InClusterConfig()
+	client := &testclient.RESTClient{}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPod(cfg, client, pod, "container", []string{"run", "some", "command"})
+	assert.Nil(t, err)
+	assert.Equal(t, k8sutil.FakePodSTDOUT, stdout)
 }

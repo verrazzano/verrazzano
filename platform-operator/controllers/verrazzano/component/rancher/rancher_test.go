@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,7 +34,7 @@ var (
 					},
 				},
 				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{Suffix: Name},
+					External: &vzapi.External{Suffix: common.RancherName},
 				},
 			},
 		},
@@ -47,7 +48,7 @@ var (
 					ClusterResourceNamespace: defaultSecretNamespace,
 				}}},
 				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{Suffix: Name},
+					External: &vzapi.External{Suffix: common.RancherName},
 				},
 			},
 		},
@@ -69,11 +70,11 @@ func getTestLogger(t *testing.T) *zap.SugaredLogger {
 func createRootCASecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: CattleSystem,
-			Name:      IngressCAName,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherIngressCAName,
 		},
 		Data: map[string][]byte{
-			CACert: []byte("blahblah"),
+			common.RancherCACert: []byte("blahblah"),
 		},
 	}
 }
@@ -96,9 +97,9 @@ func createRancherPodList() v1.PodList {
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rancherpod",
-					Namespace: CattleSystem,
+					Namespace: common.CattleSystem,
 					Labels: map[string]string{
-						"app": Name,
+						"app": common.RancherName,
 					},
 				},
 			},
@@ -109,8 +110,8 @@ func createRancherPodList() v1.PodList {
 func createAdminSecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: CattleSystem,
-			Name:      AdminSecret,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherAdminSecret,
 		},
 		Data: map[string][]byte{
 			"password": []byte("foobar"),
@@ -143,7 +144,7 @@ func TestUseAdditionalCAs(t *testing.T) {
 //  WHEN getRancherHostname is called
 //  THEN getRancherHostname should return the Rancher hostname
 func TestGetRancherHostname(t *testing.T) {
-	expected := fmt.Sprintf("%s.%s.rancher", Name, vzAcmeDev.Spec.EnvironmentName)
+	expected := fmt.Sprintf("%s.%s.rancher", common.RancherName, vzAcmeDev.Spec.EnvironmentName)
 	actual, _ := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev)
 	assert.Equal(t, expected, actual)
 }

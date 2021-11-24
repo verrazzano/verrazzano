@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -30,8 +31,8 @@ func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
 			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
-			ReleaseName:             Name,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), Name),
+			ReleaseName:             common.RancherName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
 			ChartNamespace:          "cattle-system",
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -92,7 +93,7 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
-				Value: Name,
+				Value: common.RancherName,
 			}, bom.KeyValue{
 				Key:   letsEncryptEmailKey,
 				Value: cm.Certificate.Acme.EmailAddress,
@@ -195,8 +196,8 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 		c := ctx.Client()
 		rancherDeploy := []types.NamespacedName{
 			{
-				Name:      Name,
-				Namespace: CattleSystem,
+				Name:      common.RancherName,
+				Namespace: common.CattleSystem,
 			},
 		}
 		return status.DeploymentsReady(log, c, rancherDeploy, 1)
@@ -220,7 +221,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return err
 	}
-	password, err := GetAdminSecret(c)
+	password, err := common.GetAdminSecret(c)
 	if err != nil {
 		return err
 	}
@@ -229,7 +230,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	rest, err := NewClient(c, rancherHostName, password)
+	rest, err := common.NewClient(c, rancherHostName, password)
 	if err != nil {
 		return err
 	}
