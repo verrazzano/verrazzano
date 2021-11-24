@@ -5,8 +5,6 @@ package verrazzano
 
 import (
 	"context"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -19,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 // TestVzResolveNamespace tests the Verrazzano component name
@@ -40,9 +39,7 @@ func TestVzResolveNamespace(t *testing.T) {
 func TestFixupFluentdDaemonset(t *testing.T) {
 	const defNs = constants.VerrazzanoSystemNamespace
 	assert := assert.New(t)
-	scheme := runtime.NewScheme()
-	appsv1.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
+	scheme := newFakeRuntimeScheme()
 	client := fake.NewFakeClientWithScheme(scheme)
 	logger, _ := zap.NewProduction()
 	log := logger.Sugar()
@@ -179,3 +176,69 @@ func Test_appendOverrides(t *testing.T) {
 		Value: "ghcr.io/oracle/oraclelinux:7.8",
 	})
 }
+
+// Test_fixupElasticSearchReplicaCount tests the fixupElasticSearchReplicaCount function.
+// GIVEN
+// WHEN
+// THEN
+//func Test_fixupElasticSearchReplicaCount(t *testing.T) {
+//	assert := assert.New(t)
+//	context, err := createFakeComponentContext()
+//	assert.NoError(err, "Failed to create fake component context.")
+//	err = fixupElasticSearchReplicaCount(context, "test-namespace-name")
+//	assert.NoError(err, "Failed to fixup Elasticsearch index template")
+//}
+
+// Test_getNamedContainerPortOfContainer tests the getNamedContainerPortOfContainer function.
+// GIVEN
+// WHEN
+// THEN
+//func Test_getNamedContainerPortOfContainer(t *testing.T) {
+//	assert := assert.New(t)
+//	pod := corev1.Pod{}
+//	port, err := getNamedContainerPortOfContainer(pod, "test-container-name", "test-port-name")
+//	assert.NoError(err, "Failed to find fake container port")
+//	assert.Equal(42, port, "Expected to find valid named container port")
+//}
+
+// Test_getPodsWithReadyContainer tests the getPodsWithReadyContainer function.
+// GIVEN
+// WHEN
+// THEN
+//func Test_getPodsWithReadyContainer(t *testing.T) {
+//	assert := assert.New(t)
+//	context, err := createFakeComponentContext()
+//	assert.NoError(err, "Failed to create fake component context.")
+//	pods, err := getPodsWithReadyContainer(context.Client(), "test-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+//	assert.NoError(err, "Failed to find fake pod with ready container")
+//	assert.Len(pods, 1, "Expected to find one pod with a ready container")
+//}
+
+// Test_waitForPodsWithReadyContainer tests the waitForPodsWithReadyContainer function.
+// GIVEN
+// WHEN
+// THEN
+//func Test_waitForPodsWithReadyContainer(t *testing.T) {
+//	assert := assert.New(t)
+//	context, err := createFakeComponentContext()
+//	assert.NoError(err, "Failed to create fake component context.")
+//	pods, err := waitForPodsWithReadyContainer(context.Client(), 1*time.Second, 5*time.Second, "test-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+//	assert.NoError(err, "Failed to find fake pod with ready container")
+//	assert.Len(pods, 1, "Expected to find one pod with a ready container")
+//}
+
+// newFakeRuntimeScheme creates a new fake scheme
+func newFakeRuntimeScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	appsv1.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
+	return scheme
+}
+
+// createFakeComponentContext creates a fake component context
+//func createFakeComponentContext() (spi.ComponentContext, error) {
+//	client := fake.NewFakeClientWithScheme(newFakeRuntimeScheme())
+//	logger, _ := zap.NewProduction()
+//	return spi.NewContext(logger.Sugar(), client, nil, false)
+//}
+
