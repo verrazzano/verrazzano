@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
 	"testing"
 
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -219,9 +220,9 @@ func TestInstall(t *testing.T) {
 
 // TestInstallWithFileOverride tests the component install
 // GIVEN a component
-//  WHEN I call Install and the chart is not installed and has a custom file override
-//  THEN the install runs and returns no error
-func TestInstallWithFileOverride(t *testing.T) {
+//  WHEN I call Install and the chart is not installed and has a custom overrides
+//  THEN the overrides struct is populated correctly and there are no errors
+func TestInstallWithAllOverride(t *testing.T) {
 	assert := assert.New(t)
 
 	comp := HelmComponent{
@@ -232,7 +233,10 @@ func TestInstallWithFileOverride(t *testing.T) {
 		ValuesFile:              "ValuesFile",
 		PreUpgradeFunc:          fakePreUpgrade,
 		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-			kvs = append(kvs, bom.KeyValue{Key: "", Value: "my-overrides.yaml", IsFile: true, SetString: false})
+			kvs = append(kvs, bom.KeyValue{Key: "", Value: "my-overrides.yaml", IsFile: true})
+			kvs = append(kvs, bom.KeyValue{Key: "setKey", Value: "setValue"})
+			kvs = append(kvs, bom.KeyValue{Key: "setStringKey", Value: "setStringValue", SetString: true})
+			kvs = append(kvs, bom.KeyValue{Key: "setFileKey", Value: "setFileValue", SetFile: true})
 			return kvs, nil
 		},
 	}
@@ -248,6 +252,9 @@ func TestInstallWithFileOverride(t *testing.T) {
 
 	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		assert.Contains(overrides.FileOverrides, "my-overrides.yaml", "Overrides file not found")
+		assert.Contains(overrides.SetOverrides, "setKey=setValue", "Incorrect --set overrides")
+		assert.Contains(overrides.SetStringOverrides, "setStringKey=setStringValue", "Incorrect --set overrides")
+		assert.Contains(overrides.SetFileOverrides, "setFileKey=setFileValue", "Incorrect --set overrides")
 		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides)
 	})
 	defer setDefaultUpgradeFunc()
@@ -501,7 +508,7 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	}
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	if overrides.SetOverrides != fakeOverrides {
+	if !strings.Contains(overrides.SetOverrides, fakeOverrides) {
 		return []byte("error"), []byte(""), errors.New("Invalid overrides")
 	}
 	return []byte("success"), []byte(""), nil

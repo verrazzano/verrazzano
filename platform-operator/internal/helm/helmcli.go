@@ -84,7 +84,7 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 	return stdout, nil
 }
 
-// Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
+// Upgrade will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
 func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing

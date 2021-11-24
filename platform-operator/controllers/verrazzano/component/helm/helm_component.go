@@ -317,8 +317,8 @@ func (h HelmComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-// buildCustomHelmOverrides Builds the helm overrides for a release, including image and file overrides
-// - returns a comma-separated list of --set overrides, a comma-separated list of --set-string overrides, an array of file overrides,  and any error
+// buildCustomHelmOverrides Builds the helm overrides for a release, including image and file, and custom overrides
+// - returns an error and a HelmOverride struct with the field populated
 func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) (helm.HelmOverrides, error) {
 	// Optionally create a second override file.  This will contain both image setOverrides and any additional
 	// setOverrides required by a component.
@@ -347,14 +347,14 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 		kvs = append(kvs, additionalValues...)
 	}
 
-	// Create comma separated strings for any --set or --set-string overrides, and an array of any file overrides
+	// Add the values file ot the file overrides
 	fileOverrides := []string{}
 	if len(h.ValuesFile) > 0 {
 		fileOverrides = []string{h.ValuesFile}
 	}
 	if len(kvs) > 0 {
-		// Build 2 comma-separated strings, one set of --set overrides and a set of --set-string overrides,
-		// depending on what's declared
+		// Build comma-separated strings for the --set, --set-string, and --set-file overrides if they are passed in
+		// Add to files overrides if anything is passed in
 		setOverridesBldr := strings.Builder{}
 		setStringOverridesBldr := strings.Builder{}
 		setFileOverridesBldr := strings.Builder{}
