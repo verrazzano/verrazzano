@@ -16,6 +16,7 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"os/exec"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
@@ -102,7 +103,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	defer setDefaultUpgradeFunc()
@@ -127,7 +128,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -245,9 +246,9 @@ func TestInstallWithFileOverride(t *testing.T) {
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
-		assert.Contains(overrideFiles, "my-overrides.yaml", "Overrides file not found")
-		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides, stringOverrides, overrideFiles...)
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		assert.Contains(overrides.FileOverrides, "my-overrides.yaml", "Overrides file not found")
+		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides)
 	})
 	defer setDefaultUpgradeFunc()
 
@@ -346,8 +347,8 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
-		if overrides != expectedOverridesString {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		if overrides.SetOverrides != expectedOverridesString {
 			return nil, nil, fmt.Errorf("Unexpected overrides string %s, expected %s", overrides, expectedOverridesString)
 		}
 		return []byte{}, []byte{}, nil
@@ -477,7 +478,7 @@ func TestReady(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "rancher" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -489,7 +490,7 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	}
 
 	foundChartOverridesFile := false
-	for _, file := range overridesFiles {
+	for _, file := range overrides.FileOverrides {
 		if file == "ValuesFile" {
 			foundChartOverridesFile = true
 			break
@@ -500,7 +501,7 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	}
 
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	if overrides != fakeOverrides {
+	if overrides.SetOverrides != fakeOverrides {
 		return []byte("error"), []byte(""), errors.New("Invalid overrides")
 	}
 	return []byte("success"), []byte(""), nil
@@ -523,4 +524,1080 @@ func fakePreUpgrade(log *zap.SugaredLogger, client clipkg.Client, release string
 	}
 
 	return nil
+}
+
+func TestGetInstallArgs(t *testing.T) {
+	type args struct {
+		args []v1alpha1.InstallArgs
+	}
+	tests := []struct {
+		name string
+		args args
+		want []bom.KeyValue
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetInstallArgs(tt.args.args); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetInstallArgs() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_GetDependencies(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.GetDependencies(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetDependencies() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_GetMinVerrazzanoVersion(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.GetMinVerrazzanoVersion(); got != tt.want {
+				t.Errorf("GetMinVerrazzanoVersion() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_GetSkipUpgrade(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.GetSkipUpgrade(); got != tt.want {
+				t.Errorf("GetSkipUpgrade() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_Install(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if err := h.Install(tt.args.context); (err != nil) != tt.wantErr {
+				t.Errorf("Install() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_IsEnabled(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.IsEnabled(tt.args.context); got != tt.want {
+				t.Errorf("IsEnabled() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_IsInstalled(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			got, err := h.IsInstalled(tt.args.context)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("IsInstalled() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("IsInstalled() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_IsOperatorInstallSupported(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.IsOperatorInstallSupported(); got != tt.want {
+				t.Errorf("IsOperatorInstallSupported() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_IsReady(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.IsReady(tt.args.context); got != tt.want {
+				t.Errorf("IsReady() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_Name(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.Name(); got != tt.want {
+				t.Errorf("Name() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_PostInstall(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if err := h.PostInstall(tt.args.context); (err != nil) != tt.wantErr {
+				t.Errorf("PostInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_PostUpgrade(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if err := h.PostUpgrade(tt.args.context); (err != nil) != tt.wantErr {
+				t.Errorf("PostUpgrade() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_PreInstall(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if err := h.PreInstall(tt.args.context); (err != nil) != tt.wantErr {
+				t.Errorf("PreInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_PreUpgrade(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if err := h.PreUpgrade(tt.args.context); (err != nil) != tt.wantErr {
+				t.Errorf("PreUpgrade() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_Upgrade(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if err := h.Upgrade(tt.args.context); (err != nil) != tt.wantErr {
+				t.Errorf("Upgrade() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_buildCustomHelmOverrides(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		context          spi.ComponentContext
+		namespace        string
+		additionalValues []bom.KeyValue
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    helm.HelmOverrides
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			got, err := h.buildCustomHelmOverrides(tt.args.context, tt.args.namespace, tt.args.additionalValues...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("buildCustomHelmOverrides() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("buildCustomHelmOverrides() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHelmComponent_resolveNamespace(t *testing.T) {
+	type fields struct {
+		ReleaseName             string
+		ChartDir                string
+		ChartNamespace          string
+		IgnoreNamespaceOverride bool
+		IgnoreImageOverrides    bool
+		ValuesFile              string
+		PreInstallFunc          preInstallFuncSig
+		PostInstallFunc         postInstallFuncSig
+		PreUpgradeFunc          preUpgradeFuncSig
+		AppendOverridesFunc     appendOverridesSig
+		ReadyStatusFunc         readyStatusFuncSig
+		ResolveNamespaceFunc    resolveNamespaceSig
+		IsEnabledFunc           isEnabledFuncSig
+		SupportsOperatorInstall bool
+		WaitForInstall          bool
+		ImagePullSecretKeyname  string
+		Dependencies            []string
+		SkipUpgrade             bool
+		MinVerrazzanoVersion    string
+	}
+	type args struct {
+		ns string
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := HelmComponent{
+				ReleaseName:             tt.fields.ReleaseName,
+				ChartDir:                tt.fields.ChartDir,
+				ChartNamespace:          tt.fields.ChartNamespace,
+				IgnoreNamespaceOverride: tt.fields.IgnoreNamespaceOverride,
+				IgnoreImageOverrides:    tt.fields.IgnoreImageOverrides,
+				ValuesFile:              tt.fields.ValuesFile,
+				PreInstallFunc:          tt.fields.PreInstallFunc,
+				PostInstallFunc:         tt.fields.PostInstallFunc,
+				PreUpgradeFunc:          tt.fields.PreUpgradeFunc,
+				AppendOverridesFunc:     tt.fields.AppendOverridesFunc,
+				ReadyStatusFunc:         tt.fields.ReadyStatusFunc,
+				ResolveNamespaceFunc:    tt.fields.ResolveNamespaceFunc,
+				IsEnabledFunc:           tt.fields.IsEnabledFunc,
+				SupportsOperatorInstall: tt.fields.SupportsOperatorInstall,
+				WaitForInstall:          tt.fields.WaitForInstall,
+				ImagePullSecretKeyname:  tt.fields.ImagePullSecretKeyname,
+				Dependencies:            tt.fields.Dependencies,
+				SkipUpgrade:             tt.fields.SkipUpgrade,
+				MinVerrazzanoVersion:    tt.fields.MinVerrazzanoVersion,
+			}
+			if got := h.resolveNamespace(tt.args.ns); got != tt.want {
+				t.Errorf("resolveNamespace() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getImageOverrides(t *testing.T) {
+	type args struct {
+		subcomponentName string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []bom.KeyValue
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getImageOverrides(tt.args.subcomponentName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getImageOverrides() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("getImageOverrides() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_setDefaultUpgradeFunc(t *testing.T) {
+	tests := []struct {
+		name string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+		})
+	}
+}
+
+func Test_setUpgradeFunc(t *testing.T) {
+	type args struct {
+		f upgradeFuncSig
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+		})
+	}
 }

@@ -110,6 +110,7 @@ type KeyValue struct {
 	Key       string
 	Value     string
 	SetString bool
+	SetFile   bool
 	IsFile    bool
 }
 
