@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"io/ioutil"
+	corev1 "k8s.io/api/core/v1"
 	"net"
 	"net/http"
 	"net/url"
@@ -30,10 +31,11 @@ import (
 )
 
 const (
-	rancherNamespace   = "cattle-system"
-	rancherIngressName = "rancher"
-	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
-	rancherTLSSecret   = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
+	rancherNamespace     = "cattle-system"
+	rancherIngressName   = "rancher"
+	rancherAdminSecret   = "rancher-admin-secret" //nolint:gosec //#gosec G101
+	rancherTLSSecret     = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
+	rancherTLSAdditional = "tls-ca-additional"
 
 	clusterPath         = "/v3/cluster"
 	clustersByNamePath  = "/v3/clusters?name="
@@ -50,6 +52,7 @@ type rancherConfig struct {
 	baseURL                  string
 	apiAccessToken           string
 	certificateAuthorityData []byte
+	additionalCA             []byte
 }
 
 var defaultRetry = wait.Backoff{
@@ -67,7 +70,7 @@ type requestSender interface {
 // httpRequestSender is an implementation of requestSender that uses http.Client to send requests
 type httpRequestSender struct{}
 
-// do is a function that simply delegates sending the request to the http.Client
+// Do is a function that simply delegates sending the request to the http.Client
 func (*httpRequestSender) Do(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 	return httpClient.Do(req)
 }
@@ -94,10 +97,18 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	log.Debug("Getting Rancher TLS root CA")
 	caCert, err := rancher.GetRootCA(rdr)
 	if err != nil {
-		log.Errorf("Unable to get rancher TLS root CA: %v", err)
+		log.Errorf("Unable to get Rancher TLS root CA: %v", err)
 		return "", err
 	}
 	rc.certificateAuthorityData = caCert
+
+	log.Debugf("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
+	additionalCA, err := getAdditionalCA(rdr)
+	if err != nil {
+		log.Errorf("Unable to check Rancher for additional CA: %v", err)
+		return "", err
+	}
+	rc.additionalCA = additionalCA
 
 	log.Debug("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
@@ -115,7 +126,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	}
 
 	log.Debug("Getting registration YAML from Rancher")
-	regYAML, err := getRegistrationYAMLFromRancher(rc, clusterName, clusterID, log)
+	regYAML, err := getRegistrationYAMLFromRancher(rc, clusterID, log)
 	if err != nil {
 		log.Errorf("Unable to get registration YAML from Rancher: %v", err)
 		return "", err
@@ -234,7 +245,7 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log *zap.Sug
 
 // getRegistrationYAMLFromRancher creates a registration token in Rancher for the managed cluster and uses the
 // returned token to fetch the registration (manifest) YAML.
-func getRegistrationYAMLFromRancher(rc *rancherConfig, clusterName string, rancherClusterID string, log *zap.SugaredLogger) (string, error) {
+func getRegistrationYAMLFromRancher(rc *rancherConfig, rancherClusterID string, log *zap.SugaredLogger) (string, error) {
 	action := http.MethodPost
 	payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
 	reqURL := rc.baseURL + clusterRegTokenPath
@@ -276,9 +287,36 @@ func getRegistrationYAMLFromRancher(rc *rancherConfig, clusterName string, ranch
 	return manifestContent, nil
 }
 
+// getAdminSecret fetches the Rancher admin secret
+func getAdminSecret(rdr client.Reader) (string, error) {
+	secret := &corev1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: rancherNamespace,
+		Name:      rancherAdminSecret}
+
+	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
+		return "", err
+	}
+	return string(secret.Data["password"]), nil
+}
+
+// getAdditionalCA fetches the Rancher additional CA secret
+func getAdditionalCA(rdr client.Reader) ([]byte, error) {
+	secret := &corev1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: rancherNamespace,
+		Name:      rancherTLSAdditional}
+
+	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
+		return nil, client.IgnoreNotFound(err)
+	}
+
+	return secret.Data["ca-additional.pem"], nil
+}
+
 // getAdminTokenFromRancher does a login with Rancher and returns the token from the response
 func getAdminTokenFromRancher(rdr client.Reader, rc *rancherConfig, log *zap.SugaredLogger) (string, error) {
-	secret, err := rancher.GetAdminSecret(rdr)
+	secret, err := getAdminSecret(rdr)
 	if err != nil {
 		return "", err
 	}
@@ -340,13 +378,21 @@ func sendRequest(action string, reqURL string, headers map[string]string, payloa
 }
 
 // newCertPool creates a CertPool given certificate bytes
-func newCertPool(certData []byte) *x509.CertPool {
-	if len(certData) == 0 {
+func newCertPool(certData []byte, additionalCertData []byte) *x509.CertPool {
+	if len(certData) == 0 && len(additionalCertData) == 0 {
 		return nil
 	}
 
 	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(certData)
+	if len(certData) > 0 {
+		certPool.AppendCertsFromPEM(certData)
+	}
+
+	// Optional additional cert data
+	if len(additionalCertData) > 0 {
+		certPool.AppendCertsFromPEM(additionalCertData)
+	}
+
 	return certPool
 }
 
@@ -357,7 +403,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 	proxyURL := getProxyURL()
 
 	tlsConfig := &tls.Config{
-		RootCAs:    newCertPool(rc.certificateAuthorityData),
+		RootCAs:    newCertPool(rc.certificateAuthorityData, rc.additionalCA),
 		ServerName: rc.host,
 		MinVersion: tls.VersionTLS12,
 	}
