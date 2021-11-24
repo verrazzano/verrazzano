@@ -4,12 +4,15 @@
 package certmanager
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/template"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -44,6 +47,9 @@ const (
 	caCertificateName      = "verrazzano-ca-certificate"
 	caCertCommonName       = "verrazzano-root-ca"
 	caClusterIssuerName    = "verrazzano-cluster-issuer"
+
+	crdInputFile  = "/cert-manager/cert-manager.crds.yaml"
+	crdOutputFile = "/cert-manager-ocidns.crds.yaml"
 )
 
 // Template for ClusterIssuer for Acme certificates
@@ -66,6 +72,37 @@ spec:
               name: {{.SecretName}}
               key: "oci.yaml"
             ocizonename: {{.OCIZoneName}}`
+
+const snippetSubstring = "rfc2136:"
+const ociDNSSnippet = `                      ocidns:
+                        description:
+                          ACMEIssuerDNS01ProviderOCIDNS is a structure containing
+                          the DNS configuration for OCIDNS DNS—Zone Record
+                          Management API
+                        properties:
+                          compartmentid:
+                            type: string
+                          ocizonename:
+                            type: string
+                          serviceAccountSecretRef:
+                            properties:
+                              key:
+                                description:
+                                  The key of the secret to select from. Must be a
+                                  valid secret key.
+                                type: string
+                              name:
+                                description: Name of the referent.
+                                type: string
+                            required:
+                              - name
+                            type: object
+                          useInstancePrincipals:
+                            type: boolean
+                        required:
+                          - ocizonename
+                        type: object
+`
 
 // Template data for ClusterIssuer
 type templateData struct {
@@ -116,7 +153,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %s", err)
 		return ctrlerrrors.RetryableError{
 			Source: c.Name(),
-			Cause:  fmt.Errorf("Failed to apply the cert-manager manifest: %s", err),
+			Cause:  fmt.Errorf("failed to apply the cert-manager manifest: %s", err),
 		}
 	}
 	return nil
@@ -161,28 +198,22 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 
 // applyManifest uses the patch file to patch the cert manager manifest and apply it to the cluster
 func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) error {
-	// find the script location
-	script := filepath.Join(config.GetInstallDir(), "apply-cert-manager-manifest.sh")
+	crdManifestFile := filepath.Join(config.GetManifestsDir(), crdInputFile)
 
 	// set DNS type to OCI if specified in the effective CR
 	if compContext.EffectiveCR().Spec.Components.DNS != nil && compContext.EffectiveCR().Spec.Components.DNS.OCI != nil {
 		compContext.Log().Info("Patch cert-manager crds to use OCI DNS")
-		err := os.Setenv("DNS_TYPE", "oci")
-		if err != nil {
+		outputFile := filepath.Join(config.GetManifestsDir(), crdOutputFile)
+		crdManifestFile = outputFile
+		// Patch the CRD Manifest file with OCI DNS
+		if err := writeOCICRD(crdManifestFile, outputFile); err != nil {
 			return ctrlerrrors.RetryableError{
 				Source: c.Name(),
-				Cause:  fmt.Errorf("Could not set DNS_TYPE environment variable: %s", err),
+				Cause:  err,
 			}
 		}
 	}
 
-	// Call and execute script for the given DNS type
-	if _, stderr, err := bashFunc(script); err != nil {
-		return ctrlerrrors.RetryableError{
-			Source: c.Name(),
-			Cause:  fmt.Errorf("Failed to apply the cert-manager manifest %s: %s", err, stderr),
-		}
-	}
 	return nil
 }
 
@@ -217,6 +248,38 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 		{Name: webhookDeploymentName, Namespace: namespace},
 	}
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+}
+
+func writeOCICRD(inFilePath, outFilePath string) error {
+	infile, err := os.Open(inFilePath)
+	if err != nil {
+		return err
+	}
+	defer infile.Close()
+	outfile, err := os.Create(outFilePath)
+	if err != nil {
+		return err
+	}
+	defer outfile.Close()
+	reader := bufio.NewReader(infile)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return err
+		}
+		if strings.Contains(string(line), snippetSubstring) {
+			if _, err := outfile.Write([]byte(ociDNSSnippet)); err != nil {
+				return err
+			}
+		}
+		if _, err := outfile.Write(line); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Check if cert-type is CA, if not it is assumed to be Acme
@@ -372,4 +435,13 @@ func createCAResources(compContext spi.ComponentContext) error {
 		return fmt.Errorf("Failed to create or update the ClusterIssuer: %s", err)
 	}
 	return nil
+}
+
+func createOCIDNSUnstructuredObject() *unstructured.Unstructured {
+	return &unstructured.Unstructured{Object: map[string]interface{}{
+		"ocidns": map[string]interface{}{
+			"description": "ACMEIssuerDNS01ProviderOCIDNS is a structure containing\n+                          the DNS configuration for OCIDNS DNS—Zone Record\n+                          Management API",
+			"properties":  map[string]interface{}{},
+		},
+	}}
 }

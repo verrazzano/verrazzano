@@ -4,17 +4,21 @@
 package certmanager
 
 import (
+	"bufio"
 	"context"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
 	"testing"
 )
 
@@ -58,6 +62,37 @@ func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
 	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
+}
+
+// TestWriteOCICRD tests writing out the OCI DNS metadata to CertManager CRDs
+// GIVEN a call to writeOCICRD
+// WHEN the input file exists
+// THEN the outfile should have ocidns added. There should be 12 instances of the ocidns snippet in the output file
+func TestWriteOCICRD(t *testing.T) {
+	inputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
+	outputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager-ocidns.crds.yaml"
+	err := writeOCICRD(inputFile, outputFile)
+	assert.Nil(t, err)
+
+	snippetCount := 12
+	snippetsFound := 0
+	in, err := os.Open(outputFile)
+	assert.Nil(t, err)
+	defer in.Close()
+	reader := bufio.NewReader(in)
+	for {
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			assert.Fail(t, err.Error())
+		}
+		if strings.Contains(string(line), "ocidns:") {
+			snippetsFound++
+		}
+	}
+	assert.Equal(t, snippetCount, snippetsFound)
 }
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
