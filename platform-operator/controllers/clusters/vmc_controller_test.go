@@ -142,7 +142,7 @@ func TestCreateVMC(t *testing.T) {
 
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
-// WHEN a VerrazzanoManagedCluster resource has been applied on a verrazzano install configured with external ES
+// WHEN a VerrazzanoManagedCluster resource has been applied on a Verrazzano install configured with external ES
 // THEN ensure all the objects are created
 func TestCreateVMCWithExternalES(t *testing.T) {
 	namespace := constants.VerrazzanoMultiClusterNamespace
@@ -1502,7 +1502,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetManifestSecretName(name)}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetManifestSecretName(name)))
 
-	// Expect all of the calls needed to register the cluster with Rancher
+	// Expect all the calls needed to register the cluster with Rancher
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered)
 
 	mock.EXPECT().Status().Return(mockStatus)
@@ -1658,6 +1658,11 @@ func expectRegisterClusterWithRancherK8sCalls(t *testing.T, k8sMock *mocks.MockC
 			}
 			return nil
 		})
+
+	// Expect a call to get the Rancher additional CA secret
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSAdditional}), gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, rancherTLSAdditional))
 }
 
 // expectRegisterClusterWithRancherHTTPCalls asserts all of the expected calls on the HTTP client mock

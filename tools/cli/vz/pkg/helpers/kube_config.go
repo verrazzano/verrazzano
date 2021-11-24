@@ -318,7 +318,7 @@ func GetCAData(name string) ([]byte, error) {
 	return caData, nil
 }
 
-// Returns the verrazzano api server url
+// Returns the Verrazzano api server url
 func GetVerrazzanoAPIURL(name string) (string, error) {
 	var verrazzanoAPIURL string
 	kubeConfig, err := ReadKubeConfig()

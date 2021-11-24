@@ -25,7 +25,7 @@ const ComponentName = "verrazzano"
 
 const vzDefaultNamespace = constants.VerrazzanoSystemNamespace
 
-// ResolveVerrazzanoNamespace will return the default verrazzano system namespace unless the namespace
+// ResolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace
 // is specified
 func ResolveVerrazzanoNamespace(ns string) string {
 	if len(ns) > 0 && ns != "default" {
@@ -34,12 +34,12 @@ func ResolveVerrazzanoNamespace(ns string) string {
 	return vzDefaultNamespace
 }
 
-// VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the verrazzano helm chart
+// VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
 func VerrazzanoPreUpgrade(log *zap.SugaredLogger, client client.Client, _ string, namespace string, _ string) error {
 	return fixupFluentdDaemonset(log, client, namespace)
 }
 
-// This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of verrazzano does
+// This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
 // ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
 // template for the fluentd daemonset expects a Value.

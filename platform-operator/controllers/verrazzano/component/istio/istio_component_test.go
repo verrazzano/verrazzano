@@ -6,6 +6,8 @@ package istio
 import (
 	"context"
 	"fmt"
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	v1 "k8s.io/api/core/v1"
 	"os"
 	"os/exec"
@@ -19,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	"go.uber.org/zap"
@@ -36,6 +37,7 @@ type fakeRunner struct {
 
 var crInstall = &installv1alpha1.Verrazzano{
 	Spec: installv1alpha1.VerrazzanoSpec{
+		Version: "1.0",
 		Components: installv1alpha1.ComponentSpec{
 			Istio: &installv1alpha1.IstioComponent{
 				IstioInstallArgs: []installv1alpha1.InstallArgs{{
@@ -54,7 +56,7 @@ const testBomFilePath = "../../testdata/test_bom.json"
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
 //  WHEN I call Name
-//  THEN the correct verrazzano name is returned
+//  THEN the correct Verrazzano name is returned
 func TestGetName(t *testing.T) {
 	assert := assert.New(t)
 	assert.Equal("istio", comp.Name(), "Wrong component name")
@@ -187,6 +189,13 @@ func getMock(t *testing.T) *mocks.MockClient {
 		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
 			return nil
 		}).Times(2)
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *oam.ApplicationConfigurationList, opts ...client.ListOption) error {
+			return nil
+		}).Times(2)
+
 	return mock
 }
 

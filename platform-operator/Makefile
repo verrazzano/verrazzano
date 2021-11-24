@@ -65,7 +65,6 @@ CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
 CLUSTER_DUMP_LOCATION ?= platform-operator-integ-cluster-dump
 
-
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
@@ -158,10 +157,10 @@ KIND_CONFIG ?= kind-config.yaml
 integ-test: create-cluster generate-operator-yaml
 	echo 'Load docker image for the verrazzano-platform-operator...'
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
-	echo 'Deploy verrazzano platform operator ...'
+	echo 'Deploy Verrazzano platform operator ...'
 	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 	echo 'Run tests...'
-	ginkgo -v --keepGoing -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
+	ginkgo -v --keep-going -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_DUMP_LOCATION} -r ${CLUSTER_DUMP_LOCATION}/analysis.report; exit 1)
 
 .PHONY: generate-operator-yaml
 generate-operator-yaml:

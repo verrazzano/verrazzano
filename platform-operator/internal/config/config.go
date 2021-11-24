@@ -58,7 +58,7 @@ type OperatorConfig struct {
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
-	// VerrazzanoRootDir is the root verrazzano directory in the image
+	// VerrazzanoRootDir is the root Verrazzano directory in the image
 	VerrazzanoRootDir string
 
 	// DryRun Run installs in a dry-run mode

@@ -16,7 +16,7 @@ fi
 
 source ${WORKSPACE}/platform-operator/scripts/install/common.sh
 # get image list from cluster and persist to output file
-echo "Inspecting cluster pods for verrazzano release images"
+echo "Inspecting cluster pods for Verrazzano release images"
 kubectl get pods --all-namespaces -o jsonpath="{..image}" |\tr -s '[[:space:]]' '\n' |\sort |\uniq | grep verrazzano | grep / | cut -d/ -f2- >> ${IMG_LIST_FILE} || exit 1
 
 # add the acme solver (short lived container image)

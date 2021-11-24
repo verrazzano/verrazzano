@@ -340,6 +340,8 @@ type CertManagerComponent struct {
 	// +optional
 	// +patchStrategy=replace
 	Certificate Certificate `json:"certificate,omitempty" patchStrategy:"replace"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // CoherenceOperatorComponent specifies the Coherence Operator configuration
