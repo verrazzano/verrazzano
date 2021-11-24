@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io"
 	"os"
 	"path/filepath"
@@ -48,8 +49,9 @@ const (
 	caCertCommonName       = "verrazzano-root-ca"
 	caClusterIssuerName    = "verrazzano-cluster-issuer"
 
-	crdInputFile  = "/cert-manager/cert-manager.crds.yaml"
-	crdOutputFile = "/cert-manager-ocidns.crds.yaml"
+	crdDirectory  = "/cert-manager/"
+	crdInputFile  = "cert-manager.crds.yaml"
+	crdOutputFile = "cert-manager-ocidns.crds.yaml"
 )
 
 // Template for ClusterIssuer for Acme certificates
@@ -198,23 +200,26 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 
 // applyManifest uses the patch file to patch the cert manager manifest and apply it to the cluster
 func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) error {
-	crdManifestFile := filepath.Join(config.GetManifestsDir(), crdInputFile)
+	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), crdDirectory)
+	var excludedFiles = []string{crdOutputFile}
 
 	// set DNS type to OCI if specified in the effective CR
 	if compContext.EffectiveCR().Spec.Components.DNS != nil && compContext.EffectiveCR().Spec.Components.DNS.OCI != nil {
 		compContext.Log().Info("Patch cert-manager crds to use OCI DNS")
-		outputFile := filepath.Join(config.GetManifestsDir(), crdOutputFile)
-		crdManifestFile = outputFile
+		inputFile := filepath.Join(crdManifestDir, crdInputFile)
+		outputFile := filepath.Join(crdManifestDir, crdOutputFile)
 		// Patch the CRD Manifest file with OCI DNS
-		if err := writeOCICRD(crdManifestFile, outputFile); err != nil {
-			return ctrlerrrors.RetryableError{
-				Source: c.Name(),
-				Cause:  err,
-			}
+		if err := writeOCICRD(inputFile, outputFile); err != nil {
+			return err
 		}
+		// exclude the input file, since we output a new, modified file with OCI DNS edits
+		excludedFiles = []string{crdInputFile}
 	}
 
-	return nil
+	// Apply the CRD Manifest for CertManager
+	filesApplied, err := k8sutil.ApplyCRDYaml(compContext.Log(), compContext.Client(), crdManifestDir, excludedFiles)
+	compContext.Log().Debugf("applied CRD files for cert-manager: %v", filesApplied)
+	return err
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
@@ -250,6 +255,8 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
+//writeOCICRD writes out a CertManager CRD manifest file with OCI DNS specifications added
+// read the input file line by line, and insert the OCI DNS snippet where specified
 func writeOCICRD(inFilePath, outFilePath string) error {
 	infile, err := os.Open(inFilePath)
 	if err != nil {
@@ -270,6 +277,7 @@ func writeOCICRD(inFilePath, outFilePath string) error {
 			}
 			return err
 		}
+		// the OCI DNS snippet should be added before this line each time it occurs
 		if strings.Contains(string(line), snippetSubstring) {
 			if _, err := outfile.Write([]byte(ociDNSSnippet)); err != nil {
 				return err
@@ -435,13 +443,4 @@ func createCAResources(compContext spi.ComponentContext) error {
 		return fmt.Errorf("Failed to create or update the ClusterIssuer: %s", err)
 	}
 	return nil
-}
-
-func createOCIDNSUnstructuredObject() *unstructured.Unstructured {
-	return &unstructured.Unstructured{Object: map[string]interface{}{
-		"ocidns": map[string]interface{}{
-			"description": "ACMEIssuerDNS01ProviderOCIDNS is a structure containing\n+                          the DNS configuration for OCIDNS DNS—Zone Record\n+                          Management API",
-			"properties":  map[string]interface{}{},
-		},
-	}}
 }

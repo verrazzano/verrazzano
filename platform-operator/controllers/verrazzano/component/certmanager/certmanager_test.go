@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -142,6 +143,9 @@ func TestCertManagerPreInstallDryRun(t *testing.T) {
 // WHEN I call PreInstall
 // THEN no errors are returned
 func TestCertManagerPreInstall(t *testing.T) {
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
+	})
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	setBashFunc(fakeBash)
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))

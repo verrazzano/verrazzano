@@ -7,8 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
@@ -151,4 +156,58 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 	// keep retrying and eventually we should get a gateway with a host
 	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
 	return "", nil
+}
+
+//ApplyCRDYaml persists the CRD YAML files in a given directory to Kubernetes
+func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, path string, excludedFileNames []string) ([]string, error) {
+	var err error
+
+	isExcludedFile := func(name string) bool {
+		for _, fileName := range excludedFileNames {
+			if name == fileName {
+				return true
+			}
+		}
+		return false
+	}
+
+	filesApplied := []string{}
+	files, err := os.ReadDir(path)
+	if err != nil {
+		log.Error(err, "Unable to list files in directory")
+		return filesApplied, err
+	}
+	for _, file := range files {
+		if isExcludedFile(file.Name()) {
+			continue
+		}
+		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		yamlBytes, err := os.ReadFile(path + "/" + file.Name())
+		if err != nil {
+			log.Error(err, "Unable to read file")
+			return filesApplied, err
+		}
+		err = yaml.Unmarshal(yamlBytes, u)
+		if err != nil {
+			log.Error(err, "Unable to unmarshal yaml")
+			return filesApplied, err
+		}
+		if u.GetKind() == "CustomResourceDefinition" {
+			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
+			if err != nil {
+				log.Error(err, "Unable to make a copy of the spec")
+				return filesApplied, err
+			}
+
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), c, u, func() error {
+				return unstructured.SetNestedField(u.Object, specCopy, "spec")
+			})
+			if err != nil {
+				log.Error(err, "Unable persist object to kubernetes")
+				return filesApplied, err
+			}
+			filesApplied = append(filesApplied, file.Name())
+		}
+	}
+	return filesApplied, nil
 }
