@@ -236,7 +236,7 @@ spec:
               app: bobbys-front-end
               version: v1
             auxiliaryImages:
-                - image: ghcr.io/verrazzano/example-bobbys-front-end-auxiliary:20211124150940-6681551
+                - image: ghcr.io/verrazzano/example-bobbys-front-end:20211124205249-4d3415d
                   volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
@@ -497,7 +497,7 @@ spec:
               app: bobs-orders-wls
               version: v1
             auxiliaryImages:
-                - image: ghcr.io/verrazzano/example-bobs-bookstore-order-manager-auxiliary:20211124150940-6681551
+                - image: ghcr.io/verrazzano/example-bobs-bookstore-order-manager:20211124205249-4d3415d
                   volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS

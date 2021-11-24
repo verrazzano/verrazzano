@@ -44,7 +44,7 @@ spec:
               app: todo-domain
               version: v1
             auxiliaryImages:
-                - image: ghcr.io/verrazzano/example-todo-auxiliary:20211124150940-6681551
+                - image: ghcr.io/verrazzano/example-todo:20211124205249-4d3415d
                   volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
