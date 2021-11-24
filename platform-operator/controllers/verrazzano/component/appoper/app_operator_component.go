@@ -75,3 +75,12 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 	return nil
 
 }
+
+// IsEnabled applicationOperator-specific enabled check for installation
+func (c applicationOperatorComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.ApplicationOperator
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
+}
