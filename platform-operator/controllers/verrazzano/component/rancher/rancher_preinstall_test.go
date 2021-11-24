@@ -179,7 +179,7 @@ func TestCreateAdditionalCertificates(t *testing.T) {
 	}
 	var tests = []struct {
 		testName string
-		httpDo   common.HttpDoSig
+		httpDo   common.HTTPDoSig
 		vz       *vzapi.Verrazzano
 		isErr    bool
 	}{

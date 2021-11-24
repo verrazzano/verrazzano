@@ -20,7 +20,7 @@ import (
 func TestCertBuilder(t *testing.T) {
 	var tests = []struct {
 		testName string
-		httpDo   func(hc *http.Client, req *http.Request) (*http.Response, error)
+		httpDo   common.HTTPDoSig
 		isErr    bool
 	}{
 		{
