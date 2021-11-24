@@ -32,7 +32,6 @@ const containerName = "es-master"
 const portName = "http"
 const indexPattern = "verrazzano-*"
 
-
 var execCommand = exec.Command
 
 // ResolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace
@@ -150,7 +149,7 @@ func AppendOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs [
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
 func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
 	// Only apply this fix to clusters with Elasticsearch enabled.
-	if *ctx.EffectiveCR().Spec.Components.Elasticsearch.Enabled {
+	if !*ctx.EffectiveCR().Spec.Components.Elasticsearch.Enabled {
 		ctx.Log().Info("Elasticsearch Post Upgrade: Replica count update unnecessary on managed cluster.")
 		return nil
 	}
@@ -176,7 +175,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch pods: %s", err)
 		return err
 	}
-	if len(pods)==0 {
+	if len(pods) == 0 {
 		err := fmt.Errorf("no pods found")
 		ctx.Log().Errorf("Elasticsearch Post Upgrade: Failed to find Elasticsearch pods: %s", err)
 		return err
@@ -235,7 +234,7 @@ func getNamedContainerPortOfContainer(pod corev1.Pod, containerName string, port
 	return -1, fmt.Errorf("no port named %s found in container %s of pod %s", portName, containerName, pod.Name)
 }
 
-func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSelectors... clipkg.ListOption) ([]corev1.Pod, error) {
+func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
 	pods := []corev1.Pod{}
 	list := &corev1.PodList{}
 	err := client.List(context.TODO(), list, podSelectors...)
@@ -252,11 +251,11 @@ func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSe
 	return pods, err
 }
 
-func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duration, timeout time.Duration, containerName string, podSelectors... clipkg.ListOption) ([]corev1.Pod, error) {
+func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duration, timeout time.Duration, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
 	start := time.Now()
 	for {
 		pods, err := getPodsWithReadyContainer(client, containerName, podSelectors...)
-		if err == nil && len(pods)>0 {
+		if err == nil && len(pods) > 0 {
 			return pods, err
 		}
 		if time.Since(start) >= timeout {

@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -181,51 +182,78 @@ func Test_appendOverrides(t *testing.T) {
 // GIVEN
 // WHEN
 // THEN
-//func Test_fixupElasticSearchReplicaCount(t *testing.T) {
-//	assert := assert.New(t)
-//	context, err := createFakeComponentContext()
-//	assert.NoError(err, "Failed to create fake component context.")
-//	err = fixupElasticSearchReplicaCount(context, "test-namespace-name")
-//	assert.NoError(err, "Failed to fixup Elasticsearch index template")
-//}
+func Test_fixupElasticSearchReplicaCount(t *testing.T) {
+	assert := assert.New(t)
+	//context, err := createFakeComponentContext(true)
+	_, err := createFakeComponentContext(true)
+	assert.NoError(err, "Failed to create fake component context.")
+	//	err = fixupElasticSearchReplicaCount(context, "test-namespace-name")
+	//	assert.Error(err, "Failed to fixup Elasticsearch index template")
+	//assert.NoError(err, "Failed to fixup Elasticsearch index template")
+}
 
 // Test_getNamedContainerPortOfContainer tests the getNamedContainerPortOfContainer function.
 // GIVEN
 // WHEN
 // THEN
-//func Test_getNamedContainerPortOfContainer(t *testing.T) {
-//	assert := assert.New(t)
-//	pod := corev1.Pod{}
-//	port, err := getNamedContainerPortOfContainer(pod, "test-container-name", "test-port-name")
-//	assert.NoError(err, "Failed to find fake container port")
-//	assert.Equal(42, port, "Expected to find valid named container port")
-//}
+func Test_getNamedContainerPortOfContainer(t *testing.T) {
+	assert := assert.New(t)
+	// Create a simple pod
+	pod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "simple-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name: "test-container-name",
+					Ports: []corev1.ContainerPort{
+						{
+							ContainerPort: 42,
+							Name:          "test-port-name",
+						},
+					},
+				},
+			},
+		},
+	}
+	port, err := getNamedContainerPortOfContainer(pod, "test-container-name", "test-port-name")
+	assert.NoError(err, "Failed to find fake container port")
+	assert.Equal(int32(42), port, "Expected to find valid named container port")
+	_, err = getNamedContainerPortOfContainer(pod, "wrong-container-name", "test-port-name")
+	assert.Error(err)
+	_, err = getNamedContainerPortOfContainer(pod, "test-container-name", "wrong-port-name")
+	assert.Error(err)
+}
 
 // Test_getPodsWithReadyContainer tests the getPodsWithReadyContainer function.
 // GIVEN
 // WHEN
 // THEN
-//func Test_getPodsWithReadyContainer(t *testing.T) {
-//	assert := assert.New(t)
-//	context, err := createFakeComponentContext()
-//	assert.NoError(err, "Failed to create fake component context.")
-//	pods, err := getPodsWithReadyContainer(context.Client(), "test-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
-//	assert.NoError(err, "Failed to find fake pod with ready container")
-//	assert.Len(pods, 1, "Expected to find one pod with a ready container")
-//}
+func Test_getPodsWithReadyContainer(t *testing.T) {
+	assert := assert.New(t)
+	// context, err := createFakeComponentContext(true)
+	_, err := createFakeComponentContext(true)
+	assert.NoError(err, "Failed to create fake component context.")
+	//	pods, err := getPodsWithReadyContainer(context.Client(), "test-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	//	assert.NoError(err, "Failed to find fake pod with ready container")
+	//	assert.Len(pods, 1, "Expected to find one pod with a ready container")
+}
 
 // Test_waitForPodsWithReadyContainer tests the waitForPodsWithReadyContainer function.
 // GIVEN
 // WHEN
 // THEN
-//func Test_waitForPodsWithReadyContainer(t *testing.T) {
-//	assert := assert.New(t)
-//	context, err := createFakeComponentContext()
-//	assert.NoError(err, "Failed to create fake component context.")
-//	pods, err := waitForPodsWithReadyContainer(context.Client(), 1*time.Second, 5*time.Second, "test-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
-//	assert.NoError(err, "Failed to find fake pod with ready container")
-//	assert.Len(pods, 1, "Expected to find one pod with a ready container")
-//}
+func Test_waitForPodsWithReadyContainer(t *testing.T) {
+	assert := assert.New(t)
+	//	context, err := createFakeComponentContext(true)
+	_, err := createFakeComponentContext(true)
+	assert.NoError(err, "Failed to create fake component context.")
+	//	pods, err := waitForPodsWithReadyContainer(context.Client(), 1*time.Second, 5*time.Second, "test-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	//	assert.NoError(err, "Failed to find fake pod with ready container")
+	//	assert.Len(pods, 1, "Expected to find one pod with a ready container")
+}
 
 // newFakeRuntimeScheme creates a new fake scheme
 func newFakeRuntimeScheme() *runtime.Scheme {
@@ -236,9 +264,21 @@ func newFakeRuntimeScheme() *runtime.Scheme {
 }
 
 // createFakeComponentContext creates a fake component context
-//func createFakeComponentContext() (spi.ComponentContext, error) {
-//	client := fake.NewFakeClientWithScheme(newFakeRuntimeScheme())
-//	logger, _ := zap.NewProduction()
-//	return spi.NewContext(logger.Sugar(), client, nil, false)
-//}
-
+func createFakeComponentContext(isElasticsearchEnabled bool) (spi.ComponentContext, error) {
+	client2 := fake.NewFakeClientWithScheme(newFakeRuntimeScheme())
+	//logger, _ := zap.NewProduction()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.1.0",
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					MonitoringComponent: vzapi.MonitoringComponent{Enabled: &isElasticsearchEnabled},
+				},
+			},
+		},
+		Status: vzapi.VerrazzanoStatus{
+			Version: "1.0.0",
+		},
+	}
+	return spi.NewFakeContext(client2, vz, false), nil
+}
