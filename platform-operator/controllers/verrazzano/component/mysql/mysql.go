@@ -174,6 +174,11 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 	// Use a volume source specified in the Keycloak config, otherwise use the default spec
 	mysqlVolumeSource := effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
 	if mysqlVolumeSource == nil {
+		mysqlVolumeSource = defaultVolumeSpec
+	}
+
+	// No volumes to process, return what we have
+	if mysqlVolumeSource == nil {
 		return kvs, nil
 	}
 
