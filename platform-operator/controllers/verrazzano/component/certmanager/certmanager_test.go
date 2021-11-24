@@ -4,7 +4,6 @@
 package certmanager
 
 import (
-	"bufio"
 	"context"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
@@ -12,14 +11,12 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
 	"testing"
 )
 
@@ -68,32 +65,18 @@ func TestIsCertManagerEnabled(t *testing.T) {
 // TestWriteOCICRD tests writing out the OCI DNS metadata to CertManager CRDs
 // GIVEN a call to writeOCICRD
 // WHEN the input file exists
-// THEN the outfile should have ocidns added. There should be 12 instances of the ocidns snippet in the output file
+// THEN the outfile should have ocidns added. there should be 7 CRDs in the manifest directory,
+// 6 generated files plus the 1 existing file
 func TestWriteOCICRD(t *testing.T) {
 	inputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
 	outputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager-ocidns.crds.yaml"
 	err := writeOCICRD(inputFile, outputFile)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
-	snippetCount := 12
-	snippetsFound := 0
-	in, err := os.Open(outputFile)
-	assert.Nil(t, err)
-	defer in.Close()
-	reader := bufio.NewReader(in)
-	for {
-		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			assert.Fail(t, err.Error())
-		}
-		if strings.HasSuffix(string(line), "ocidns:\n") {
-			snippetsFound++
-		}
-	}
-	assert.Equal(t, snippetCount, snippetsFound)
+	files := 7
+	dir, err := os.ReadDir("../../../../thirdparty/manifests/cert-manager/")
+	assert.NoError(t, err)
+	assert.Equal(t, files, len(dir))
 }
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn

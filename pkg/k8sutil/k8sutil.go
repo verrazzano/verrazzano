@@ -187,6 +187,9 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, path string, excluded
 			log.Error(err, "Unable to read file")
 			return filesApplied, err
 		}
+		// Note that we can only unmarshal one document at a time, any remaining bytes are lost after the '---'.
+		// If you have multiple documents in a file, you must separate that file into multiple files,
+		// one for each document.
 		err = yaml.Unmarshal(yamlBytes, u)
 		if err != nil {
 			log.Error(err, "Unable to unmarshal yaml")

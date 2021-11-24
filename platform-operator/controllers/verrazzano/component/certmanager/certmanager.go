@@ -76,35 +76,35 @@ spec:
             ocizonename: {{.OCIZoneName}}`
 
 const snippetSubstring = "rfc2136:\n"
-const ociDNSSnippet = `                      ocidns:
-                        description:
-                          ACMEIssuerDNS01ProviderOCIDNS is a structure containing
-                          the DNS configuration for OCIDNS DNS—Zone Record
-                          Management API
-                        properties:
-                          compartmentid:
-                            type: string
-                          ocizonename:
-                            type: string
-                          serviceAccountSecretRef:
-                            properties:
-                              key:
-                                description:
-                                  The key of the secret to select from. Must be a
-                                  valid secret key.
-                                type: string
-                              name:
-                                description: Name of the referent.
-                                type: string
-                            required:
-                              - name
-                            type: object
-                          useInstancePrincipals:
-                            type: boolean
-                        required:
-                          - ocizonename
-                        type: object
-`
+
+var ociDNSSnippet = strings.Split(`ocidns:
+  description:
+    ACMEIssuerDNS01ProviderOCIDNS is a structure containing
+    the DNS configuration for OCIDNS DNS—Zone Record
+    Management API
+  properties:
+    compartmentid:
+      type: string
+    ocizonename:
+      type: string
+    serviceAccountSecretRef:
+      properties:
+        key:
+          description:
+            The key of the secret to select from. Must be a
+            valid secret key.
+          type: string
+        name:
+          description: Name of the referent.
+          type: string
+      required:
+        - name
+      type: object
+    useInstancePrincipals:
+      type: boolean
+  required:
+    - ocizonename
+  type: object`, "\n")
 
 // Template data for ClusterIssuer
 type templateData struct {
@@ -263,31 +263,69 @@ func writeOCICRD(inFilePath, outFilePath string) error {
 		return err
 	}
 	defer infile.Close()
-	outfile, err := os.Create(outFilePath)
-	if err != nil {
-		return err
-	}
-	defer outfile.Close()
+	buffer := bytes.Buffer{}
+	fileNumber := 1
 	reader := bufio.NewReader(infile)
+
+	flushBuffer := func() error {
+		if buffer.Len() < 1 {
+			return nil
+		}
+		outfile, err := os.Create(fmt.Sprintf("%s.%d", outFilePath, fileNumber))
+		if err != nil {
+			return err
+		}
+		if _, err := outfile.Write(buffer.Bytes()); err != nil {
+			return err
+		}
+		if err := outfile.Close(); err != nil {
+			return err
+		}
+		fileNumber++
+		buffer.Reset()
+		return nil
+	}
+
 	for {
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
 			if err == io.EOF {
-				break
+				return flushBuffer() // the final file should still exist in the buffer
 			}
 			return err
 		}
-		// the OCI DNS snippet should be added before this line each time it occurs
-		if strings.HasSuffix(string(line), snippetSubstring) {
-			if _, err := outfile.Write([]byte(ociDNSSnippet)); err != nil {
+		lineStr := string(line)
+		// flush the buffer to the filesystem if we are at a document delimiter
+		if lineStr == "---\n" {
+			if err := flushBuffer(); err != nil {
+				return err
+			}
+		} else {
+			// the OCI DNS snippet should be added before this line each time it occurs
+			if strings.HasSuffix(lineStr, snippetSubstring) {
+				padding := strings.Repeat(" ", len(strings.TrimSuffix(lineStr, snippetSubstring)))
+				snippet := createSnippetWithPadding(padding)
+				if _, err := buffer.Write(snippet); err != nil {
+					return err
+				}
+			}
+			if _, err := buffer.Write(line); err != nil {
 				return err
 			}
 		}
-		if _, err := outfile.Write(line); err != nil {
-			return err
-		}
 	}
-	return nil
+}
+
+//createSnippetWithPadding left pad ocidns snippet so it fits in an existing YAML document
+func createSnippetWithPadding(padding string) []byte {
+	builder := strings.Builder{}
+	for _, line := range ociDNSSnippet {
+		builder.WriteString(padding)
+		builder.WriteString(line)
+		builder.WriteString("\n")
+	}
+
+	return []byte(builder.String())
 }
 
 // Check if cert-type is CA, if not it is assumed to be Acme
