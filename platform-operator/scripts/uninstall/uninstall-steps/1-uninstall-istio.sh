@@ -97,7 +97,7 @@ function finalize() {
   # Grab all leftover Helm repos and delete resources
   log "Deleting Helm repos"
   local helm_ls
-  helm_ls=$(helm repo ls)
+  helm_ls=$(helm repo ls >/dev/null 2>&1)
   if [ $? -eq 0 ]; then
     echo "$helm_ls" \
       | awk '/istio.io|stable|jetstack|rancher-stable|codecentric/ {print $1}' \
