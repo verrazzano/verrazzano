@@ -75,7 +75,7 @@ spec:
               key: "oci.yaml"
             ocizonename: {{.OCIZoneName}}`
 
-const snippetSubstring = "rfc2136:"
+const snippetSubstring = "rfc2136:\n"
 const ociDNSSnippet = `                      ocidns:
                         description:
                           ACMEIssuerDNS01ProviderOCIDNS is a structure containing
@@ -278,7 +278,7 @@ func writeOCICRD(inFilePath, outFilePath string) error {
 			return err
 		}
 		// the OCI DNS snippet should be added before this line each time it occurs
-		if strings.Contains(string(line), snippetSubstring) {
+		if strings.HasSuffix(string(line), snippetSubstring) {
 			if _, err := outfile.Write([]byte(ociDNSSnippet)); err != nil {
 				return err
 			}

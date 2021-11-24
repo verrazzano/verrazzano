@@ -89,7 +89,7 @@ func TestWriteOCICRD(t *testing.T) {
 			}
 			assert.Fail(t, err.Error())
 		}
-		if strings.Contains(string(line), "ocidns:") {
+		if strings.HasSuffix(string(line), "ocidns:\n") {
 			snippetsFound++
 		}
 	}
