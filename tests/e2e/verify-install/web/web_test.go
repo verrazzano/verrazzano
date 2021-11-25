@@ -31,6 +31,7 @@ const (
 
 var serverURL string
 var isManagedClusterProfile bool
+var isTestSupported bool
 var _ = BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
@@ -53,6 +54,11 @@ var _ = BeforeSuite(func() {
 	Expect(len(ingress.Spec.Rules)).To(Equal(1))
 	ingressRules := ingress.Spec.Rules
 	serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
+	var err error
+	isTestSupported, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = Describe("Verrazzano Web UI", func() {
@@ -179,7 +185,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("should not allow malformed requests", func() {
-			if !isManagedClusterProfile {
+			if !isManagedClusterProfile && isTestSupported {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
 				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
@@ -202,7 +208,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("should not allow state changing requests without valid origin header", func() {
-			if !isManagedClusterProfile {
+			if !isManagedClusterProfile && isTestSupported {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
 				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
@@ -219,7 +225,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("should allow non state changing requests without valid origin header but not populate Access-Control-Allow-Origin header", func() {
-			if !isManagedClusterProfile {
+			if !isManagedClusterProfile && isTestSupported {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
 				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
