@@ -49,9 +49,6 @@ spec:
       enabled: true
     keycloak:
       enabled: true
-      mysql:
-        volumeSource:
-          emptyDir: {}
     kibana:
       enabled: true
     prometheus:

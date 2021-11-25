@@ -282,7 +282,7 @@ pipeline {
                     parallel {
                         stage('verify-scripts') {
                             steps {
-                                runGinkgo('scripts')
+                                runGinkgoRandomize('scripts', "${KUBECONFIG}")
                             }
                         }
                         stage('verify-infra restapi') {
@@ -554,9 +554,12 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
+            if [ ! -z "${kubeConfig}" ]; then
+                export KUBECONFIG="${kubeConfig}"
+            fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """

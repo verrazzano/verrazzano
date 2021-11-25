@@ -177,16 +177,39 @@ var _ = Describe("Verrazzano Web UI", func() {
 				}
 			}
 		})
+    
+    It("should not allow malformed requests", func() {
+      if !isManagedClusterProfile {
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).ShouldNot(HaveOccurred())
+				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+				Expect(err).ShouldNot(HaveOccurred())
+        body := []byte(`
+				0
 
+				POST /mal formed ZZZZ/9.7
+				Q: W`)
+				req, err := retryablehttp.NewRequest("POST", serverURL, body)
+        Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Add("Content-Length", "36")
+				req.Header.Add("Transfer-Encoding", "chunked")
+        resp, err := httpClient.Do(req)
+				Expect(err).ShouldNot(HaveOccurred())
+				ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+				Expect(resp.StatusCode).To(Equal(400))
+      }
+    })
+    
 		It("should not allow state changing requests without valid origin header", func() {
-			if !isManagedClusterProfile {
+      if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
 				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 				Expect(err).ShouldNot(HaveOccurred())
 				req, err := retryablehttp.NewRequest("POST", serverURL, nil)
-				req.Header.Add("Origin", "https://invalid-origin")
-				Expect(err).ShouldNot(HaveOccurred())
+        Expect(err).ShouldNot(HaveOccurred())
+        req.Header.Add("Origin", "https://invalid-origin")
 				resp, err := httpClient.Do(req)
 				Expect(err).ShouldNot(HaveOccurred())
 				ioutil.ReadAll(resp.Body)
@@ -202,8 +225,8 @@ var _ = Describe("Verrazzano Web UI", func() {
 				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 				Expect(err).ShouldNot(HaveOccurred())
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+        Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Origin", "https://invalid-origin")
-				Expect(err).ShouldNot(HaveOccurred())
 				resp, err := httpClient.Do(req)
 				Expect(err).ShouldNot(HaveOccurred())
 				ioutil.ReadAll(resp.Body)
@@ -215,5 +238,6 @@ var _ = Describe("Verrazzano Web UI", func() {
 				}
 			}
 		})
+    
 	})
 })

@@ -109,8 +109,9 @@ type BomImage struct {
 type KeyValue struct {
 	Key       string
 	Value     string
-	SetString bool
-	IsFile    bool
+	SetString bool // for --set-string
+	SetFile   bool // for --set-file
+	IsFile    bool // for -f
 }
 
 // Create a new bom from a JSON file
