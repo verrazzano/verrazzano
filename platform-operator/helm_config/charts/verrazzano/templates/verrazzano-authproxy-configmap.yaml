@@ -68,18 +68,8 @@ data:
         end
 
         if ngx.req.get_method() == "OPTIONS" then
-            -- From https://fetch.spec.whatwg.org/#http-requests, we should allow headers and methods set in 
-            -- request Access-Control-Request-Method and Access-Control-Request-Headers headers.
-            local allowedMethods, _ = ngx.req.get_headers()["access-aontrol-request-method"]
-            local allowedHeaders, _ = ngx.req.get_headers()["access-control-request-headers"]
-            if allowedHeaders ~= nil and allowedHeaders ~= "" then
-                ngx.header["Access-Control-Allow-Headers"] = allowedHeaders
-            end
-
-            if allowedMethods ~= nil and allowedMethods ~= "" then
-                ngx.header["Access-Control-Allow-Methods"] = allowedMethods
-            end
-            
+            ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
+            ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
             ngx.header["Content-Length"] = 0
             ngx.status = 200
             ngx.exit(ngx.HTTP_OK)
@@ -1174,6 +1164,12 @@ data:
     env VZ_API_HOST;
     env VZ_API_VERSION;
     env VZ_API_ALLOWED_ORIGINS;
+    env VZ_CONSOLE_ALLOWED_ORIGINS;
+    env VZ_GRAFANA_ALLOWED_ORIGINS;
+    env VZ_PROMETHEUS_ALLOWED_ORIGINS;
+    env VZ_KIBANA_ALLOWED_ORIGINS;
+    env VZ_ES_ALLOWED_ORIGINS;
+    env VZ_KIALI_ALLOWED_ORIGINS;
 
     events {
         worker_connections  1024;
