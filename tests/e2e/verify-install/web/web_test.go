@@ -177,28 +177,5 @@ var _ = Describe("Verrazzano Web UI", func() {
 				}
 			}
 		})
-
-		It("should not allow malformed requests", func() {
-			if !isManagedClusterProfile {
-				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-				Expect(err).ShouldNot(HaveOccurred())
-				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
-				Expect(err).ShouldNot(HaveOccurred())
-				body := []byte(`
-				0
-
-				POST /mal formed ZZZZ/9.7
-				Q: W`)
-				req, err := retryablehttp.NewRequest("POST", serverURL, body)
-				req.Header.Add("Content-Length", "36")
-				req.Header.Add("Transfer-Encoding", "chunked")
-				Expect(err).ShouldNot(HaveOccurred())
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-				Expect(resp.StatusCode).To(Equal(400))
-			}
-		})
 	})
 })

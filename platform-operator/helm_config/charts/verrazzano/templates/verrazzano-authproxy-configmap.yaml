@@ -79,10 +79,6 @@ data:
     end
 
     auth.info("Processing request for backend '"..ingressHost.."'")
-    if (backend == 'console' or backend == 'verrazzano') and (not auth.isBodyValidJson()) then
-        auth.bad_request("Invalid request")
-    end
-    
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
@@ -1110,20 +1106,6 @@ data:
         ngx.req.set_header("Authorization", "Bearer "..token)
 
         return serverUrl
-    end
-
-    function me.isBodyValidJson()
-        ngx.req.read_body()
-        local data = ngx.req.get_body_data()
-        if data ~= nil then
-            local decoder = require("cjson.safe").decode
-            local decoded_data, err = decoder(data)
-            if err then
-                me.logJson(ngx.ERR, "Invalid request payload:" .. data)
-                return false
-            end
-        end
-        return true
     end
 
     return me
