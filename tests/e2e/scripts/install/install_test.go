@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -23,34 +21,17 @@ const (
 )
 
 var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
-var totalClusters, present = os.LookupEnv("CLUSTER_COUNT")
 
 // This test checks that the Verrazzano install resource has the expected console URLs.
 var _ = Describe("Verify Verrazzano install scripts", func() {
 
 	Context("Verify Console URLs in the installed Verrazzano resource", func() {
-		clusterCount, _ := strconv.Atoi(totalClusters)
-		if present && clusterCount > 0 {
-			It("Verify the expected console URLs are there in the installed Verrazzano resource for the managed cluster(s)", func() {
-				// Validation for admin cluster
-				Eventually(func() bool {
-					return validateConsoleUrlsCluster(kubeConfigFromEnv)
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-
-				// Validation for managed clusters
-				for i := 2; i <= clusterCount; i++ {
-					Eventually(func() bool {
-						return validateConsoleUrlsCluster(strings.Replace(kubeConfigFromEnv, "1", strconv.Itoa(i), 1))
-					}, waitTimeout, pollingInterval).Should(BeTrue())
-				}
-			})
-		} else {
-			It("Verify the expected console URLs are there in the installed Verrazzano resource", func() {
-				Eventually(func() bool {
-					return validateConsoleUrlsCluster(kubeConfigFromEnv)
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			})
-		}
+		It("Verify the expected console URLs are there in the installed Verrazzano resource", func() {
+			// Validation for passed in cluster
+			Eventually(func() bool {
+				return validateConsoleUrlsCluster(kubeConfigFromEnv)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 	})
 })
 

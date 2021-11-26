@@ -467,7 +467,7 @@ pipeline {
 def generateVerifyInfraStages(dumpRoot) {
     return [
         "verify-scripts": {
-            runGinkgo('scripts')
+            runGinkgo('scripts', '', "${KUBECONFIG}")
         },
         "verify-infra restapi": {
             runGinkgoRandomize('verify-infra/restapi', "${dumpRoot}/verify-infra-restapi")
@@ -559,19 +559,22 @@ def runGinkgoRandomize(testSuitePath, dumpDir = '') {
                 export DUMP_DIRECTORY=${dumpDir}
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
 
-def runGinkgo(testSuitePath, dumpDir = '') {
+def runGinkgo(testSuitePath, dumpDir = '', kubeConfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             if [ ! -z "${dumpDir}" ]; then
                 export DUMP_DIRECTORY=${dumpDir}
             fi
+            if [ ! -z "${kubeConfig}" ]; then
+                export KUBECONFIG="${kubeConfig}"
+            fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor -tags="${params.TAGGED_TESTS}" --focus="${params.INCLUDED_TESTS}" --skip="${params.EXCLUDED_TESTS}" --regexScansFilePath=true ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }

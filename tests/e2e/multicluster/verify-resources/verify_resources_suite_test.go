@@ -4,17 +4,13 @@
 package resources_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 )
 
 func TestVerifyResources(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("register-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Register multi-cluster resource verification suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Register multi-cluster resource verification Suite")
 }
