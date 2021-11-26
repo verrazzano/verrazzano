@@ -143,7 +143,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				ioutil.ReadAll(resp.Body)
 				resp.Body.Close()
-				// HTTP Access-Control-Allow-Origin header should never be returned.\
+				// HTTP Access-Control-Allow-Origin header should never be returned.
 				for headerName, headerValues := range resp.Header {
 					Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
 				}
