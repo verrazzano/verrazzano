@@ -25,6 +25,7 @@ function usage {
     echo "  -u, --sauron-cred             (Optional) Sauron credentials in the format: <username>:<password>"
     echo "  -r, --regex-filter            (Optional) The regex filter for tests used by Ginkgo."
     echo "  -l, --test-log-archive        (Optional) The name of test log archive file."
+    echo "  -d, --sleep-duration          (Optional). Time to sleep after every iteration, default is 1 minute."
     echo "  -v, --verbose                 (Optional) Turn on verbose output."
     echo "  -h, --help                    Print usage information."
     echo
@@ -44,6 +45,7 @@ SAURON_CRED=""
 OCI_BUCKET=""
 TEST_REGEX=""
 TEST_LOG_ARCHIVE=""
+SLEEP_DURATION=""
 VERBOSE=""
 TS=`date "+%Y%m%d-%H%M%S%s"`
 JOB_NAME_DEFAULT="testjob-${TS}"
@@ -66,6 +68,7 @@ do
         -u|--sauron-cred)              SAURON_CRED="$2"; shift; shift;;
         -r|--regex-filter)             TEST_REGEX="$2"; shift; shift;;
         -l|--test-log-archive)         TEST_LOG_ARCHIVE="$2"; shift; shift;;
+        -d|--sleep-duration)           SLEEP_DURATION="$2"; shift; shift;;
         -v|--verbose)                  VERBOSE=true; shift;;
         -h|--help)                     usage;;
         *)                             usage;;
@@ -137,6 +140,10 @@ fi
 if [ ! -z "${TEST_LOG_ARCHIVE}" ]
 then
     CMDLINE="${CMDLINE} --test-log-archive ${TEST_LOG_ARCHIVE}"
+fi
+if [ ! -z "${SLEEP_DURATION}" ]
+then
+    CMDLINE="${CMDLINE} --sleep-duration ${SLEEP_DURATION}"
 fi
 if [ ! -z "${VERBOSE}" ]
 then

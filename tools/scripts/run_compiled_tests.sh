@@ -23,6 +23,7 @@ function usage {
     echo "  -c, --kubeconfig-location     (Optional) The url or path to the kubeconfig file."
     echo "  -r, --regex-filter            (Optional) The regex filter for tests used by Ginkgo."
     echo "  -l, --test-log-archive        (Optional) The name of test log archive file."
+    echo "  -d, --sleep-duration          (Optional) Time to sleep after every iteration, default is 1 minute."
     echo "  -v, --verbose                 (Optional) Turn on verbose output."
     echo "  -h, --help                    Print usage information."
     echo
@@ -123,7 +124,8 @@ TEST_LOG_ARCHIVE=""
 TS=`date "+%Y%m%d-%H%M%S%ss"`
 TEST_LOG_ARCHIVE_DEFAULT="lre-tests-logs-${TS}"
 VERBOSE=""
-SLEEP_DURATION="1m"
+SLEEP_DURATION=""
+SLEEP_DURATION_DEFAULT="1m"
 
 # Parse the command line arguments
 while [ $# -gt 0 ]
@@ -140,6 +142,7 @@ do
         -c|--kubeconfig-location)      KUBECONFIG_LOCATION="$2"; shift; shift;;
         -r|--regex-filter)             TEST_REGEX="$2"; shift; shift;;
         -l|--test-log-archive)         TEST_LOG_ARCHIVE="$2"; shift; shift;;
+        -d|--sleep-duration)           SLEEP_DURATION="$2"; shift; shift;;
         -v|--verbose)                  VERBOSE=true; shift;;
         -h|--help)                     usage;;
         *)                             usage;;
@@ -177,9 +180,16 @@ then
     fi
 fi
 
-if [ -z "${TEST_REGEX}" ]; then
+if [ -z "${TEST_REGEX}" ]
+then
     TEST_REGEX="${TEST_REGEX_DEFAULT}"
 fi
+
+if [ -z "${SLEEP_DURATION}" ]
+then
+    SLEEP_DURATION="${SLEEP_DURATION_DEFAULT}"
+fi
+
 
 # Fetch kubeconfig from the given URL
 if is_url "${KUBECONFIG_LOCATION}"
