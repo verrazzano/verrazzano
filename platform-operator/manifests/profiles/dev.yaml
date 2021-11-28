@@ -14,8 +14,3 @@ spec:
           value: "0"
         - name: nodes.data.replicas
           value: "0"
-    keycloak:
-      mysql:
-        volumeSource:
-          emptyDir: {}
-  volumeClaimSpecTemplates: []
