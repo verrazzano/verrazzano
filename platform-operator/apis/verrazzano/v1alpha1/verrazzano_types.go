@@ -445,6 +445,10 @@ type FluentdComponent struct {
 	ElasticsearchURL string `json:"elasticsearchURL,omitempty"`
 	// +optional
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+
+	// Configuration for integration with OCI (Oracle Cloud Infrastructure) Logging Service
+	// +optional
+	OciLogging OciLoggingConfiguration `json:"oci,omitempty"`
 }
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
@@ -552,4 +556,11 @@ type IngressType string
 
 func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
+}
+
+// OCI Logging configuration for Fluentd DaemonSet
+type OciLoggingConfiguration struct {
+	DefaultAppLogID string `json:"defaultAppLogId"`
+	SystemLogID     string `json:"systemLogId"`
+	APISecret       string `json:"apiSecret"`
 }
