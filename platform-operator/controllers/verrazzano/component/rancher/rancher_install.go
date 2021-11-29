@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -19,14 +20,14 @@ import (
 //patchRancherDeployment CRI-O does not deliver MKNOD by default, until https://github.com/rancher/rancher/pull/27582 is merged we must add the capability
 func patchRancherDeployment(c client.Client) error {
 	deployment := appsv1.Deployment{}
-	namespacedName := types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}
+	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
 	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
 		return err
 	}
 	deploymentMerge := client.MergeFrom(deployment.DeepCopy())
 	ok := false
 	for i, container := range deployment.Spec.Template.Spec.Containers {
-		if container.Name == ComponentName {
+		if container.Name == common.RancherName {
 			container.SecurityContext = &v1.SecurityContext{
 				Capabilities: &v1.Capabilities{
 					Add: []v1.Capability{"MKNOD"},
@@ -37,7 +38,7 @@ func patchRancherDeployment(c client.Client) error {
 		}
 	}
 	if !ok {
-		return errors.New("rancher container was not found")
+		return errors.New("container 'rancher' was not found")
 	}
 
 	return c.Patch(context.TODO(), &deployment, deploymentMerge)
@@ -54,8 +55,8 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 		return err
 	}
 	namespacedName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      ComponentName,
+		Namespace: common.CattleSystem,
+		Name:      common.RancherName,
 	}
 	ingress := &networking.Ingress{}
 	if err := c.Get(context.TODO(), namespacedName, ingress); err != nil {
