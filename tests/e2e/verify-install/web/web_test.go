@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/hashicorp/go-retryablehttp"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -31,6 +31,7 @@ const (
 
 var serverURL string
 var isManagedClusterProfile bool
+var isTestSupported bool
 var _ = BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
@@ -53,6 +54,11 @@ var _ = BeforeSuite(func() {
 	Expect(len(ingress.Spec.Rules)).To(Equal(1))
 	ingressRules := ingress.Spec.Rules
 	serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
+	var err error
+	isTestSupported, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = Describe("Verrazzano Web UI", func() {
@@ -177,5 +183,28 @@ var _ = Describe("Verrazzano Web UI", func() {
 				}
 			}
 		})
+
+		It("should not allow malformed requests", func() {
+			if !isManagedClusterProfile && isTestSupported {
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).ShouldNot(HaveOccurred())
+				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+				Expect(err).ShouldNot(HaveOccurred())
+				body := []byte(`
+				0
+				POST /mal formed ZZZZ/9.7
+				Q: W`)
+				req, err := retryablehttp.NewRequest("POST", serverURL, body)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Add("Content-Length", "36")
+				req.Header.Add("Transfer-Encoding", "chunked")
+				resp, err := httpClient.Do(req)
+				Expect(err).ShouldNot(HaveOccurred())
+				ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+				Expect(resp.StatusCode).To(Equal(400))
+			}
+		})
+
 	})
 })

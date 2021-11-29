@@ -7,6 +7,10 @@ import (
 	"go.uber.org/zap/zaptest"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apimachinery/pkg/runtime"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	testclient "k8s.io/client-go/rest/fake"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -287,6 +291,7 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 	asserts.NoError(err)
 }
 
+<<<<<<< HEAD
 func TestApplyCRDYaml(t *testing.T) {
 	log := zaptest.NewLogger(t).Sugar()
 	scheme := runtime.NewScheme()
@@ -342,4 +347,24 @@ func TestApplyCRDYaml(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestExecPod tests running a command on a remote pod
+// GIVEN a pod in a cluster and a command to run on that pod
+//  WHEN ExecPod is called
+//  THEN ExecPod return the stdout, stderr, and a nil error
+func TestExecPod(t *testing.T) {
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+	k8sutil.FakePodSTDOUT = "foobar"
+	cfg, _ := rest.InClusterConfig()
+	client := &testclient.RESTClient{}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPod(cfg, client, pod, "container", []string{"run", "some", "command"})
+	assert.Nil(t, err)
+	assert.Equal(t, k8sutil.FakePodSTDOUT, stdout)
 }

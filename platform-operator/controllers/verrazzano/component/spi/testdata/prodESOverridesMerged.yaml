@@ -53,10 +53,6 @@ spec:
       enabled: true
     keycloak:
       enabled: true
-      mysql:
-        volumeSource:
-          persistentVolumeClaim:
-            claimName: default-storage
     kibana:
       enabled: true
     prometheus:

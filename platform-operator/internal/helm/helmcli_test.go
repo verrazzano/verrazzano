@@ -72,8 +72,8 @@ func TestGetValues(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns success and the cmd object has correct values
 func TestUpgrade(t *testing.T) {
-	overrideYaml := "my-override.yaml"
-
+	var overrides HelmOverrides
+	overrides.FileOverrides = []string{"my-override.yaml"}
 	assert := assert.New(t)
 	SetCmdRunner(upgradeRunner{
 		t: t,
@@ -87,7 +87,7 @@ func TestUpgrade(t *testing.T) {
 	})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, "", "", overrideYaml)
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, overrides)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -98,8 +98,8 @@ func TestUpgrade(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns success and the cmd object has correct values
 func TestUpgradeCustomFileOverrides(t *testing.T) {
-	overrideYamls := []string{"my-override.yaml", "custom-override.yaml"}
-
+	overrides := HelmOverrides{}
+	overrides.FileOverrides = []string{"my-override.yaml", "custom-override.yaml"}
 	assert := assert.New(t)
 	SetCmdRunner(upgradeRunner{
 		t: t,
@@ -115,7 +115,7 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 	})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, "", "", overrideYamls...)
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, overrides)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -126,11 +126,12 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 //  WHEN I call Upgrade
 //  THEN the Helm upgrade returns an error
 func TestUpgradeFail(t *testing.T) {
+	var overrides HelmOverrides
 	assert := assert.New(t)
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, "", "")
+	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, overrides)
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
