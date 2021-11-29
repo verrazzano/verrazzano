@@ -63,14 +63,14 @@ func TestIsCertManagerEnabled(t *testing.T) {
 }
 
 // TestWriteOCICRD tests writing out the OCI DNS metadata to CertManager CRDs
-// GIVEN a call to writeOCICRD
+// GIVEN a call to writeCRDWithOCIDNS
 // WHEN the input file exists
 // THEN the outfile should have ocidns added. there should be 7 CRDs in the manifest directory,
 // 6 generated files plus the 1 existing file
 func TestWriteOCICRD(t *testing.T) {
 	inputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
 	outputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager-ocidns.crds.yaml"
-	err := writeOCICRD(inputFile, outputFile)
+	err := writeCRDWithOCIDNS(inputFile, outputFile)
 	assert.NoError(t, err)
 
 	files := 7

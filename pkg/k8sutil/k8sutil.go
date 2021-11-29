@@ -9,8 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 	"net/url"
@@ -163,7 +163,7 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 	return "", nil
 }
 
-//ApplyCRDYaml persists the CRD YAML files in a given directory to Kubernetes
+//ApplyCRDYaml persists the CRD YAML files in a given directory
 func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, path string, excludedFileNames []string) ([]string, error) {
 	var err error
 

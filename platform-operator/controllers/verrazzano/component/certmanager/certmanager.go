@@ -209,7 +209,7 @@ func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) er
 		inputFile := filepath.Join(crdManifestDir, crdInputFile)
 		outputFile := filepath.Join(crdManifestDir, crdOutputFile)
 		// Patch the CRD Manifest file with OCI DNS
-		if err := writeOCICRD(inputFile, outputFile); err != nil {
+		if err := writeCRDWithOCIDNS(inputFile, outputFile); err != nil {
 			return err
 		}
 		// exclude the input file, since we output a new, modified file with OCI DNS edits
@@ -255,9 +255,9 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
-//writeOCICRD writes out a CertManager CRD manifest file with OCI DNS specifications added
-// read the input file line by line, and insert the OCI DNS snippet where specified
-func writeOCICRD(inFilePath, outFilePath string) error {
+//writeCRDWithOCIDNS writes out CertManager CRD manifests with OCI DNS specifications added
+// reads the input CRD file line by line, adding OCI DNS snippets
+func writeCRDWithOCIDNS(inFilePath, outFilePath string) error {
 	infile, err := os.Open(inFilePath)
 	if err != nil {
 		return err
@@ -267,6 +267,7 @@ func writeOCICRD(inFilePath, outFilePath string) error {
 	fileNumber := 1
 	reader := bufio.NewReader(infile)
 
+	// Flush the current buffer to the filesystem, creating a new manifest file
 	flushBuffer := func() error {
 		if buffer.Len() < 1 {
 			return nil
@@ -287,21 +288,23 @@ func writeOCICRD(inFilePath, outFilePath string) error {
 	}
 
 	for {
+		// Read the input file line by line
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
+			// If at the end of the file, flush any buffered data
 			if err == io.EOF {
 				return flushBuffer() // the final file should still exist in the buffer
 			}
 			return err
 		}
 		lineStr := string(line)
-		// flush the buffer to the filesystem if we are at a document delimiter
+		// If we are at a YAML document delimiter, flush the current data to the filesystem
 		if lineStr == "---\n" {
 			if err := flushBuffer(); err != nil {
 				return err
 			}
 		} else {
-			// the OCI DNS snippet should be added before this line each time it occurs
+			// If the line specifies that the OCI DNS snippet should be written, write it
 			if strings.HasSuffix(lineStr, snippetSubstring) {
 				padding := strings.Repeat(" ", len(strings.TrimSuffix(lineStr, snippetSubstring)))
 				snippet := createSnippetWithPadding(padding)
@@ -316,7 +319,7 @@ func writeOCICRD(inFilePath, outFilePath string) error {
 	}
 }
 
-//createSnippetWithPadding left pad ocidns snippet so it fits in an existing YAML document
+//createSnippetWithPadding left pads the OCI DNS snippet with a fixed amount of padding
 func createSnippetWithPadding(padding string) []byte {
 	builder := strings.Builder{}
 	for _, line := range ociDNSSnippet {

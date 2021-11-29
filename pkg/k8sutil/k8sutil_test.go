@@ -5,10 +5,10 @@ package k8sutil_test
 import (
 	"fmt"
 	"go.uber.org/zap/zaptest"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	"k8s.io/apimachinery/pkg/runtime"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	testclient "k8s.io/client-go/rest/fake"
 	"os"
@@ -291,7 +291,6 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 	asserts.NoError(err)
 }
 
-<<<<<<< HEAD
 func TestApplyCRDYaml(t *testing.T) {
 	log := zaptest.NewLogger(t).Sugar()
 	scheme := runtime.NewScheme()
