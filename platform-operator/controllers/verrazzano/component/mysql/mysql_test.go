@@ -164,9 +164,7 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4)
-	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
-	assert.Equal(t, "50Gi", bom.FindKV(kvs, "persistence.size"))
+	assert.Len(t, kvs, 2)
 }
 
 // TestAppendMySQLOverridesUpgrade tests the AppendMySQLOverrides function
