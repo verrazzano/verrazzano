@@ -15,7 +15,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
@@ -62,21 +61,65 @@ func TestIsCertManagerEnabled(t *testing.T) {
 	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
 }
 
-// TestWriteOCICRD tests writing out the OCI DNS metadata to CertManager CRDs
-// GIVEN a call to writeCRDWithOCIDNS
+// TestIsOCIDNS tests whether the Effective CR is using OCI DNS
+// GIVEN a call to isOCIDNS
+// WHEN OCI DNS is specified in the Verrazzano Spec
+// THEN isOCIDNS should return true
+func TestIsOCIDNS(t *testing.T) {
+	var tests = []struct {
+		name   string
+		vz     *vzapi.Verrazzano
+		ocidns bool
+	}{
+		{
+			"shouldn't be enabled when nil",
+			&vzapi.Verrazzano{},
+			false,
+		},
+		{
+			"should be enabled when OCI DNS present",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							OCI: &vzapi.OCI{},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.ocidns, isOCIDNS(tt.vz))
+		})
+	}
+}
+
+// TestWriteCRD tests writing out the OCI DNS metadata to CertManager CRDs
+// GIVEN a call to writeCRD
 // WHEN the input file exists
-// THEN the outfile should have ocidns added. there should be 7 CRDs in the manifest directory,
-// 6 generated files plus the 1 existing file
-func TestWriteOCICRD(t *testing.T) {
+// THEN the output should have ocidns added.
+func TestWriteCRD(t *testing.T) {
 	inputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
-	outputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager-ocidns.crds.yaml"
-	err := writeCRDWithOCIDNS(inputFile, outputFile)
+	outputFile := "../../../../thirdparty/manifests/cert-manager/output.crd.yaml"
+	writtenFiles, err := writeCRD(inputFile, outputFile, true)
 	assert.NoError(t, err)
 
-	files := 7
-	dir, err := os.ReadDir("../../../../thirdparty/manifests/cert-manager/")
+	expectedFiles := 6 // there should be six CRDs in the Cert Manager file
 	assert.NoError(t, err)
-	assert.Equal(t, files, len(dir))
+	assert.Equal(t, expectedFiles, len(writtenFiles))
+	assert.NoError(t, cleanTempFiles(writtenFiles))
+}
+
+// TestCleanTempFiles tests cleaning up temp files
+// GIVEN a call to cleanTempFiles
+// WHEN a file is not found
+// THEN cleanTempFiles should return an error
+func TestCleanTempFiles(t *testing.T) {
+	assert.Error(t, cleanTempFiles([]string{"blahblah"}))
 }
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn

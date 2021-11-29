@@ -51,7 +51,7 @@ const (
 
 	crdDirectory  = "/cert-manager/"
 	crdInputFile  = "cert-manager.crds.yaml"
-	crdOutputFile = "cert-manager-ocidns.crds.yaml"
+	crdOutputFile = "output.crd.yaml"
 )
 
 // Template for ClusterIssuer for Acme certificates
@@ -201,25 +201,38 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 // applyManifest uses the patch file to patch the cert manager manifest and apply it to the cluster
 func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) error {
 	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), crdDirectory)
-	var excludedFiles = []string{crdOutputFile}
+	// Exclude the input file, since it will be parsed into individual documents
+	excludedFiles := []string{crdInputFile}
+	// Input file containing CertManager CRDs
+	inputFile := filepath.Join(crdManifestDir, crdInputFile)
+	// Output file format
+	outputFile := filepath.Join(crdManifestDir, crdOutputFile)
 
-	// set DNS type to OCI if specified in the effective CR
-	if compContext.EffectiveCR().Spec.Components.DNS != nil && compContext.EffectiveCR().Spec.Components.DNS.OCI != nil {
-		compContext.Log().Info("Patch cert-manager crds to use OCI DNS")
-		inputFile := filepath.Join(crdManifestDir, crdInputFile)
-		outputFile := filepath.Join(crdManifestDir, crdOutputFile)
-		// Patch the CRD Manifest file with OCI DNS
-		if err := writeCRDWithOCIDNS(inputFile, outputFile); err != nil {
-			return err
-		}
-		// exclude the input file, since we output a new, modified file with OCI DNS edits
-		excludedFiles = []string{crdInputFile}
+	// Write out CRD Manifests for CertManager
+	filesWritten, err := writeCRD(inputFile, outputFile, isOCIDNS(compContext.EffectiveCR()))
+	if err != nil {
+		return err
 	}
 
 	// Apply the CRD Manifest for CertManager
 	filesApplied, err := k8sutil.ApplyCRDYaml(compContext.Log(), compContext.Client(), crdManifestDir, excludedFiles)
 	compContext.Log().Debugf("applied CRD files for cert-manager: %v", filesApplied)
-	return err
+
+	// Clean up the files written out. This may be different than the files applied
+	return cleanTempFiles(filesWritten)
+}
+
+func cleanTempFiles(tempFiles []string) error {
+	for _, file := range tempFiles {
+		if err := os.Remove(file); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func isOCIDNS(vz *vzapi.Verrazzano) bool {
+	return vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
@@ -255,16 +268,16 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
-//writeCRDWithOCIDNS writes out CertManager CRD manifests with OCI DNS specifications added
+//writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
 // reads the input CRD file line by line, adding OCI DNS snippets
-func writeCRDWithOCIDNS(inFilePath, outFilePath string) error {
+func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) ([]string, error) {
+	var filesWritten = make([]string, 0, 10)
 	infile, err := os.Open(inFilePath)
 	if err != nil {
-		return err
+		return filesWritten, err
 	}
 	defer infile.Close()
 	buffer := bytes.Buffer{}
-	fileNumber := 1
 	reader := bufio.NewReader(infile)
 
 	// Flush the current buffer to the filesystem, creating a new manifest file
@@ -272,7 +285,8 @@ func writeCRDWithOCIDNS(inFilePath, outFilePath string) error {
 		if buffer.Len() < 1 {
 			return nil
 		}
-		outfile, err := os.Create(fmt.Sprintf("%s.%d", outFilePath, fileNumber))
+		path := fmt.Sprintf("%s.%d", outFilePath, len(filesWritten))
+		outfile, err := os.Create(path)
 		if err != nil {
 			return err
 		}
@@ -282,7 +296,7 @@ func writeCRDWithOCIDNS(inFilePath, outFilePath string) error {
 		if err := outfile.Close(); err != nil {
 			return err
 		}
-		fileNumber++
+		filesWritten = append(filesWritten, path)
 		buffer.Reset()
 		return nil
 	}
@@ -293,27 +307,28 @@ func writeCRDWithOCIDNS(inFilePath, outFilePath string) error {
 		if err != nil {
 			// If at the end of the file, flush any buffered data
 			if err == io.EOF {
-				return flushBuffer() // the final file should still exist in the buffer
+				flushErr := flushBuffer()
+				return filesWritten, flushErr
 			}
-			return err
+			return filesWritten, err
 		}
 		lineStr := string(line)
-		// If we are at a YAML document delimiter, flush the current data to the filesystem
+		// If we are at a YAML document delimiter, flush the current data to the file system
 		if lineStr == "---\n" {
 			if err := flushBuffer(); err != nil {
-				return err
+				return filesWritten, err
 			}
 		} else {
 			// If the line specifies that the OCI DNS snippet should be written, write it
-			if strings.HasSuffix(lineStr, snippetSubstring) {
+			if useOCIDNS && strings.HasSuffix(lineStr, snippetSubstring) {
 				padding := strings.Repeat(" ", len(strings.TrimSuffix(lineStr, snippetSubstring)))
 				snippet := createSnippetWithPadding(padding)
 				if _, err := buffer.Write(snippet); err != nil {
-					return err
+					return filesWritten, err
 				}
 			}
 			if _, err := buffer.Write(line); err != nil {
-				return err
+				return filesWritten, err
 			}
 		}
 	}
