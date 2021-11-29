@@ -192,7 +192,6 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				body := []byte(`
 				0
-
 				POST /mal formed ZZZZ/9.7
 				Q: W`)
 				req, err := retryablehttp.NewRequest("POST", serverURL, body)
