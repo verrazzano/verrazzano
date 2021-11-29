@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package namespace
 
@@ -16,8 +16,7 @@ func CreateAndLabelNamespace(client client.Client, ns string, isVerrazzanoManage
 	nsObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), client, nsObj,
 		func() error {
-			mergedMap, _ := MergeMaps(nsObj.Labels, createLabelsMap(ns, isVerrazzanoManaged, withIstioInjection))
-			nsObj.Labels = mergedMap
+			nsObj.Labels, _ = MergeMaps(nsObj.Labels, createLabelsMap(ns, isVerrazzanoManaged, withIstioInjection))
 			return nil
 		},
 	)
@@ -57,10 +56,7 @@ func MergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	}
 	var updated bool
 	for k, v := range from {
-		if _, ok := mergedMap[k]; !ok {
-			mergedMap[k] = v
-			updated = true
-		}
+		mergedMap[k] = v
 	}
 	return mergedMap, updated
 }

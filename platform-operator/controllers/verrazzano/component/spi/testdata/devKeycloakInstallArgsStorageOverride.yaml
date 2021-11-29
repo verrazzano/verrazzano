@@ -30,13 +30,13 @@ spec:
     elasticsearch:
       enabled: true
       installArgs:
-        - name: elasticSearch.nodes.master.replicas
+        - name: nodes.master.replicas
           value: "1"
-        - name: elasticSearch.nodes.master.requests.memory
+        - name: nodes.master.requests.memory
           value: "1G"
-        - name: elasticSearch.nodes.ingest.replicas
+        - name: nodes.ingest.replicas
           value: "0"
-        - name: elasticSearch.nodes.data.replicas
+        - name: nodes.data.replicas
           value: "0"
     fluentd:
       enabled: true

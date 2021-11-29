@@ -348,33 +348,43 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 //  THEN the correct KeyValue objects and overrides file snippets are generated
 func Test_appendVMIValues(t *testing.T) {
 	falseValue := false
+	defaultDevExpectedHelmOverrides := []bom.KeyValue{
+		{Key: "elasticSearch.nodes.master.replicas", Value: "1"},
+		{Key: "elasticSearch.nodes.master.requests.memory", Value: "1G"},
+		{Key: "elasticSearch.nodes.ingest.replicas", Value: "0"},
+		{Key: "elasticSearch.nodes.data.replicas", Value: "0"},
+	}
 	tests := []struct {
-		name         string
-		description  string
-		expectedYAML string
-		actualCR     vzapi.Verrazzano
-		expectedErr  error
+		name                  string
+		description           string
+		expectedYAML          string
+		actualCR              vzapi.Verrazzano
+		expectedHelmOverrides []bom.KeyValue
+		expectedErr           error
 	}{
 		{
-			name:         "VMIProdVerrazzanoNoOverrides",
-			description:  "Test VMI basic prod no user overrides",
-			actualCR:     vzapi.Verrazzano{},
-			expectedYAML: "testdata/vzValuesVMIProdVerrazzanoNoOverrides.yaml",
-			expectedErr:  nil,
+			name:                  "VMIProdVerrazzanoNoOverrides",
+			description:           "Test VMI basic prod no user overrides",
+			actualCR:              vzapi.Verrazzano{},
+			expectedYAML:          "testdata/vzValuesVMIProdVerrazzanoNoOverrides.yaml",
+			expectedHelmOverrides: []bom.KeyValue{},
+			expectedErr:           nil,
 		},
 		{
-			name:         "VMIDevVerrazzanoNoOverrides",
-			description:  "Test VMI basic prod no user overrides",
-			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
-			expectedYAML: "testdata/vzValuesVMIDevVerrazzanoNoOverrides.yaml",
-			expectedErr:  nil,
+			name:                  "VMIDevVerrazzanoNoOverrides",
+			description:           "Test VMI basic dev no user overrides",
+			actualCR:              vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
+			expectedYAML:          "testdata/vzValuesVMIDevVerrazzanoNoOverrides.yaml",
+			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedErr:           nil,
 		},
 		{
-			name:         "VMIManagedClusterVerrazzanoNoOverrides",
-			description:  "Test VMI basic managed-cluster no user overrides",
-			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
-			expectedYAML: "testdata/vzValuesVMIManagedClusterVerrazzanoNoOverrides.yaml",
-			expectedErr:  nil,
+			name:                  "VMIManagedClusterVerrazzanoNoOverrides",
+			description:           "Test VMI basic managed-cluster no user overrides",
+			actualCR:              vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
+			expectedYAML:          "testdata/vzValuesVMIManagedClusterVerrazzanoNoOverrides.yaml",
+			expectedHelmOverrides: []bom.KeyValue{},
+			expectedErr:           nil,
 		},
 		{
 			name:        "VMIDevWithOverrides",
@@ -390,8 +400,9 @@ func Test_appendVMIValues(t *testing.T) {
 					},
 				},
 			},
-			expectedYAML: "testdata/vzValuesVMIDevWithOverrides.yaml",
-			expectedErr:  nil,
+			expectedYAML:          "testdata/vzValuesVMIDevWithOverrides.yaml",
+			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedErr:           nil,
 		},
 		{
 			name:        "VMIDevWithStorageOverrides",
@@ -415,19 +426,53 @@ func Test_appendVMIValues(t *testing.T) {
 					Components: vzapi.ComponentSpec{},
 				},
 			},
-			expectedYAML: "testdata/vzValuesVMIDevWithStorageOverrides.yaml",
-			expectedErr:  nil,
+			expectedYAML:          "testdata/vzValuesVMIDevWithStorageOverrides.yaml",
+			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedErr:           nil,
 		},
 		{
 			name:        "VMIProdWithStorageOverrides",
 			description: "Test VMI prod profile with emptyDir defaultVolumeSource override",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
-					Profile:             "dev",
+					Profile:             "prod",
 					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 				},
 			},
-			expectedYAML: "testdata/vzValuesVMIProdWithStorageOverrides.yaml",
+			expectedYAML:          "testdata/vzValuesVMIProdWithStorageOverrides.yaml",
+			expectedHelmOverrides: []bom.KeyValue{},
+			expectedErr:           nil,
+		},
+		{
+			name:        "VMIProdWithESInstallArgs",
+			description: "Test VMI prod profile with emptyDir defaultVolumeSource override",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:             "prod",
+					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: []vzapi.InstallArgs{
+								{Name: "nodes.master.replicas", Value: "6"},
+								{Name: "nodes.master.requests.memory", Value: "3G"},
+								{Name: "nodes.ingest.replicas", Value: "8"},
+								{Name: "nodes.ingest.requests.memory", Value: "32G"},
+								{Name: "nodes.data.replicas", Value: "16"},
+								{Name: "nodes.data.requests.memory", Value: "32G"},
+							},
+						},
+					},
+				},
+			},
+			expectedHelmOverrides: []bom.KeyValue{
+				{Key: "elasticSearch.nodes.master.replicas", Value: "6"},
+				{Key: "elasticSearch.nodes.master.requests.memory", Value: "3G"},
+				{Key: "elasticSearch.nodes.ingest.replicas", Value: "8"},
+				{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "32G"},
+				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
+				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
+			},
+			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
 			expectedErr:  nil,
 		},
 	}
@@ -453,7 +498,8 @@ func Test_appendVMIValues(t *testing.T) {
 			storageOverride, err := findStorageOverride(fakeContext.EffectiveCR())
 			assert.NoError(err)
 
-			appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
+			keyValues := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
+			assert.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
 
 			data, err := ioutil.ReadFile(test.expectedYAML)
 			assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)

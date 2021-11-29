@@ -9,7 +9,6 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
@@ -41,8 +40,9 @@ import (
 // componentName is the name of the component
 
 const (
-	componentName        = "verrazzano"
-	keycloakInClusterURL = "keycloak-http.keycloak.svc.cluster.local"
+	componentName           = "verrazzano"
+	keycloakInClusterURL    = "keycloak-http.keycloak.svc.cluster.local"
+	esHelmValuePrefixFormat = "elasticSearch.%s"
 )
 
 const workloadName = "system-es-master"
@@ -255,7 +255,14 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValu
 			},
 		}
 	}
-	kvs = append(kvs, helm.GetInstallArgs(effectiveCR.Spec.Components.Elasticsearch.ESInstallArgs)...)
+	if effectiveCR.Spec.Components.Elasticsearch != nil {
+		for _, arg := range effectiveCR.Spec.Components.Elasticsearch.ESInstallArgs {
+			kvs = append(kvs, bom.KeyValue{
+				Key:   fmt.Sprintf(esHelmValuePrefixFormat, arg.Name),
+				Value: arg.Value,
+			})
+		}
+	}
 
 	overrides.Prometheus = &prometheusValues{
 		Enabled:  vzconfig.IsPrometheusEnabled(effectiveCR),

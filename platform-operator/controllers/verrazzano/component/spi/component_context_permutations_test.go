@@ -137,8 +137,8 @@ var devElasticSearchOverrides = vzapi.Verrazzano{
 		Components: vzapi.ComponentSpec{
 			Elasticsearch: &vzapi.ElasticsearchComponent{
 				ESInstallArgs: []vzapi.InstallArgs{
-					{Name: "elasticSearch.nodes.master.replicas", Value: "3"},
-					{Name: "elasticSearch.nodes.master.requests.memory", Value: "3G"},
+					{Name: "nodes.master.replicas", Value: "3"},
+					{Name: "nodes.master.requests.memory", Value: "3G"},
 				},
 			},
 		},
@@ -234,12 +234,12 @@ var prodElasticSearchOverrides = vzapi.Verrazzano{
 		Components: vzapi.ComponentSpec{
 			Elasticsearch: &vzapi.ElasticsearchComponent{
 				ESInstallArgs: []vzapi.InstallArgs{
-					{Name: "elasticSearch.nodes.master.replicas", Value: "3"},
-					{Name: "elasticSearch.nodes.master.requests.memory", Value: "3G"},
-					{Name: "elasticSearch.nodes.ingest.replicas", Value: "6"},
-					{Name: "elasticSearch.nodes.ingest.requests.memory", Value: "32G"},
-					{Name: "elasticSearch.nodes.data.replicas", Value: "6"},
-					{Name: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
+					{Name: "nodes.master.replicas", Value: "3"},
+					{Name: "nodes.master.requests.memory", Value: "3G"},
+					{Name: "nodes.ingest.replicas", Value: "6"},
+					{Name: "nodes.ingest.requests.memory", Value: "32G"},
+					{Name: "nodes.data.replicas", Value: "6"},
+					{Name: "nodes.data.requests.memory", Value: "32G"},
 				},
 			},
 		},
