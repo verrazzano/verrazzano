@@ -87,4 +87,3 @@ func IsRancherEnabled(vz *vzapi.Verrazzano) bool {
 	}
 	return true
 }
-
