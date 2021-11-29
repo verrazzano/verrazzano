@@ -4,14 +4,9 @@
 package integ_test
 
 import (
-	"fmt"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	"testing"
-
-	"github.com/onsi/ginkgo/v2/reporters"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 func TestInteg(t *testing.T) {
