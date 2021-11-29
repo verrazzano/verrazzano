@@ -7,11 +7,17 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
+	testclient "k8s.io/client-go/rest/fake"
+	"net/http"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
@@ -27,6 +33,10 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 	return "", false
 }
 
+// TestAppendRegistryOverrides verifies that registry overrides are added as appropriate
+// GIVEN a Verrzzano CR
+//  WHEN AppendOverrides is called
+//  THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev, false)
 	registry := "foobar"
@@ -48,6 +58,10 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
 }
 
+// TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
+// GIVEN a Verrzzano CR
+//  WHEN AppendOverrides is called
+//  THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(getScheme()), &vzDefaultCA, false)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -60,6 +74,10 @@ func TestAppendCAOverrides(t *testing.T) {
 	assert.Equal(t, privateCAValue, v)
 }
 
+// TestIsReady verifies Rancher is enabled or disabled as expected
+// GIVEN a Verrzzano CR
+//  WHEN IsEnabled is called
+//  THEN IsEnabled should return true/false depending on the enabled state of the CR
 func TestIsEnabled(t *testing.T) {
 	enabled := true
 	disabled := false
@@ -108,20 +126,21 @@ func TestIsEnabled(t *testing.T) {
 }
 
 func TestPreInstall(t *testing.T) {
-	setBashFunc(func(inArgs ...string) (string, string, error) {
-		return "", "", nil
-	})
 	caSecret := createCASecret()
 	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
 }
 
+// TestIsReady verifies that a ready-state Rancher shows as ready
+// GIVEN a ready Rancher install
+//  WHEN IsReady is called
+//  THEN IsReady should return true
 func TestIsReady(t *testing.T) {
 	deploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherName,
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
@@ -129,8 +148,8 @@ func TestIsReady(t *testing.T) {
 	}
 	unreadyDeploy := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherName,
 		},
 	}
 	readyClient := fake.NewFakeClientWithScheme(getScheme(), &deploy)
@@ -160,14 +179,42 @@ func TestIsReady(t *testing.T) {
 	}
 }
 
+// TestPostInstall tests a happy path post install run
+// GIVEN a Rancher install state where all components are ready
+//  WHEN PostInstall is called
+//  THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
-	setBashFunc(func(inArgs ...string) (string, string, error) {
-		return "", "", nil
-	})
+	// mock the k8s resources used in post install
 	caSecret := createCASecret()
+	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
 	rancherPodList := createRancherPodList()
-	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &adminSecret, &rancherPodList)
+	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
+
+	// mock the pod executor when resetting the Rancher admin password
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+	k8sutil.FakePodSTDOUT = "password"
+	setRestClientConfig(func() (*rest.Config, rest.Interface, error) {
+		cfg, _ := rest.InClusterConfig()
+
+		return cfg, &testclient.RESTClient{}, nil
+	})
+
+	// mock the HTTP responses for the Rancher API
+	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
+		url := req.URL.String()
+		if strings.Contains(url, common.RancherServerURLPath) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader("blahblah")),
+			}, nil
+		}
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(`{"token":"token"}`)),
+		}, nil
+	}
+
 	assert.Nil(t, NewComponent().PostInstall(ctx))
 }
