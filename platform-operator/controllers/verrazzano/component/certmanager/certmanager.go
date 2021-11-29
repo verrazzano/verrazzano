@@ -216,6 +216,9 @@ func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) er
 
 	// Apply the CRD Manifest for CertManager
 	filesApplied, err := k8sutil.ApplyCRDYaml(compContext.Log(), compContext.Client(), crdManifestDir, excludedFiles)
+	if err != nil {
+		return err
+	}
 	compContext.Log().Debugf("applied CRD files for cert-manager: %v", filesApplied)
 
 	// Clean up the files written out. This may be different than the files applied
