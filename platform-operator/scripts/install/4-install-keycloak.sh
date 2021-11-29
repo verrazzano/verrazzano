@@ -605,7 +605,6 @@ if [ $console_count -gt 0 ];then
   consoleout
 fi
 if [ $(is_rancher_enabled) == "true" ]; then
-  consoleout "Rancher - https://rancher.${ENV_NAME}.${DNS_SUFFIX}"
   consoleout "User: admin"
   consoleout "Password: kubectl get secret --namespace cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode; echo"
   consoleout

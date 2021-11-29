@@ -26,6 +26,14 @@ const ChartStatusFailed = "failed"
 // Package-level var and functions to allow overriding GetChartStatus for unit test purposes
 type ChartStatusFnType func(releaseName string, namespace string) (string, error)
 
+// HelmOverrides contains all of the overrides that gets passed to the helm cli runner
+type HelmOverrides struct {
+	SetOverrides       string   // for --set
+	SetStringOverrides string   // for --set-string
+	SetFileOverrides   string   // for --set-file
+	FileOverrides      []string // for -f
+}
+
 var chartStatusFn ChartStatusFnType = getChartStatus
 
 // SetChartStatusFunction Override the chart status function for unit testing
@@ -77,9 +85,9 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 	return stdout, nil
 }
 
-// Upgrade will upgrade a Helm release with the specified charts.  The overrideFiles array
+// Upgrade will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
-func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, fileOverrides string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
 	args := []string{"--install"}
@@ -88,7 +96,7 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	// values retrieved from 'helm get values' with the -f arg to 'helm upgrade'. This is a workaround to avoid
 	// a failed helm upgrade that results from a nil reference.  The nil reference occurs when a default value
 	// is added to a new chart and new chart references the new value.
-	for _, overridesFileName := range overridesFiles {
+	for _, overridesFileName := range overrides.FileOverrides {
 		if len(overridesFileName) == 0 {
 			log.Debugf("Empty overrides file name for release %s", releaseName)
 			continue
@@ -98,19 +106,18 @@ func Upgrade(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	}
 
 	// Add the override strings
-	if len(overrides) > 0 {
+	if len(overrides.SetOverrides) > 0 {
 		args = append(args, "--set")
-		args = append(args, overrides)
+		args = append(args, overrides.SetOverrides)
 	}
 	// Add the set-string override strings
-	if len(stringOverrides) > 0 {
+	if len(overrides.SetStringOverrides) > 0 {
 		args = append(args, "--set-string")
-		args = append(args, stringOverrides)
+		args = append(args, overrides.SetStringOverrides)
 	}
-	// Add the set-file override string
-	if len(fileOverrides) > 0 {
+	if len(overrides.SetFileOverrides) > 0 {
 		args = append(args, "--set-file")
-		args = append(args, fileOverrides)
+		args = append(args, overrides.SetFileOverrides)
 	}
 	stdout, stderr, err = runHelm(log, releaseName, namespace, chartDir, "upgrade", wait, args, dryRun)
 	if err != nil {

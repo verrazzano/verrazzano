@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster/examples"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -36,7 +36,7 @@ var failed = false
 
 var _ = AfterEach(func() {
 	// set failed to true if any of the tests has failed
-	failed = failed || CurrentGinkgoTestDescription().Failed
+	failed = failed || CurrentSpecReport().Failed()
 })
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources

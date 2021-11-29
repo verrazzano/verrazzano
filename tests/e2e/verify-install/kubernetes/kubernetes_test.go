@@ -8,8 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
@@ -92,88 +91,88 @@ var _ = Describe("Kubernetes Cluster",
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 
-		ginkgoExt.DescribeTable("deployed Verrazzano components",
+		DescribeTable("deployed Verrazzano components",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			ginkgoExt.Entry("includes verrazzano-operator", "verrazzano-operator", true),
-			ginkgoExt.Entry("does not include verrazzano-web", "verrazzano-web", false),
-			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
-			ginkgoExt.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
-			ginkgoExt.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
-			ginkgoExt.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
-			ginkgoExt.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
-			ginkgoExt.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
+			Entry("includes verrazzano-operator", "verrazzano-operator", true),
+			Entry("does not include verrazzano-web", "verrazzano-web", false),
+			Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
+			Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
+			Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
+			Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
+			Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
+			Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		)
 
-		ginkgoExt.DescribeTable("deployed cert-manager components",
+		DescribeTable("deployed cert-manager components",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "cert-manager")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			ginkgoExt.Entry("includes cert-manager", "cert-manager", true),
-			ginkgoExt.Entry("does include cert-manager-cainjector", "cert-manager-cainjector", true),
+			Entry("includes cert-manager", "cert-manager", true),
+			Entry("does include cert-manager-cainjector", "cert-manager-cainjector", true),
 		)
 
-		ginkgoExt.DescribeTable("deployed ingress components",
+		DescribeTable("deployed ingress components",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "ingress-nginx")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			ginkgoExt.Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
+			Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
 		)
 
-		ginkgoExt.DescribeTable("keycloak components are not deployed",
+		DescribeTable("keycloak components are not deployed",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "keycloak")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			ginkgoExt.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
+			Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
 		if isManagedClusterProfile {
-			ginkgoExt.DescribeTable("rancher components are not deployed",
+			DescribeTable("rancher components are not deployed",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
-				ginkgoExt.Entry("includes rancher", "rancher", false),
+				Entry("includes rancher", "rancher", false),
 			)
 		} else {
-			ginkgoExt.DescribeTable("deployed rancher components",
+			DescribeTable("deployed rancher components",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
-				ginkgoExt.Entry("includes rancher", "rancher", true),
+				Entry("includes rancher", "rancher", true),
 			)
 		}
 
-		ginkgoExt.DescribeTable("deployed VMI components",
+		DescribeTable("deployed VMI components",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			ginkgoExt.Entry("includes prometheus", "vmi-system-prometheus", true),
-			ginkgoExt.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
-			ginkgoExt.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
-			ginkgoExt.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
-			ginkgoExt.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
-			ginkgoExt.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
-			ginkgoExt.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
-			ginkgoExt.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
+			Entry("includes prometheus", "vmi-system-prometheus", true),
+			Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
+			Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
+			Entry("includes es-data", "vmi-system-es-data", isProdProfile),
+			Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
+			Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
+			Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
+			Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)
 
 		// Test components that may not exist for older versions
-		ginkgoExt.DescribeTable("deployed VMI components that are don't exist in older versions",
+		DescribeTable("deployed VMI components that are don't exist in older versions",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
@@ -185,7 +184,7 @@ var _ = Describe("Kubernetes Cluster",
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			ginkgoExt.Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
+			Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
 		It("Expected pods are running", func() {

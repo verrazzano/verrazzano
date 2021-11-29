@@ -7,9 +7,15 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"text/template"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -19,12 +25,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
-	"text/template"
 )
 
 const (
@@ -100,16 +103,21 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create or update the cert-manager namespace: %s", err)
-		return err
+		return ctrlerrrors.RetryableError{
+			Source: c.Name(),
+			Cause:  fmt.Errorf("Failed to create or update the cert-manager namespace: %s", err),
+		}
 	}
 
 	// Apply the cert-manager manifest, patching if needed
 	compContext.Log().Info("Applying cert-manager crds")
-	err := c.ApplyManifest(compContext)
+	err := c.applyManifest(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %s", err)
-		return err
+		return ctrlerrrors.RetryableError{
+			Source: c.Name(),
+			Cause:  fmt.Errorf("Failed to apply the cert-manager manifest: %s", err),
+		}
 	}
 	return nil
 }
@@ -127,28 +135,32 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 	isCAValue, err := isCA(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to verify the config type: %s", err)
-		return err
+		return ctrlerrrors.RetryableError{Source: c.Name()}
 	}
 	if !isCAValue {
 		// Create resources needed for Acme certificates
 		err := createAcmeResources(compContext)
 		if err != nil {
-			compContext.Log().Errorf("Failed creating Acme resources: %s", err)
-			return err
+			return ctrlerrrors.RetryableError{
+				Source: c.Name(),
+				Cause:  fmt.Errorf("Failed creating Acme resources: %s", err),
+			}
 		}
 	} else {
 		// Create resources needed for CA certificates
 		err := createCAResources(compContext)
 		if err != nil {
-			compContext.Log().Errorf("Failed creating CA resources: %s", err)
-			return err
+			return ctrlerrrors.RetryableError{
+				Source: c.Name(),
+				Cause:  fmt.Errorf("Failed creating CA resources: %s", err),
+			}
 		}
 	}
 	return nil
 }
 
-// ApplyManifest uses the patch file to patch the cert manager manifest and apply it to the cluster
-func (c certManagerComponent) ApplyManifest(compContext spi.ComponentContext) error {
+// applyManifest uses the patch file to patch the cert manager manifest and apply it to the cluster
+func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) error {
 	// find the script location
 	script := filepath.Join(config.GetInstallDir(), "apply-cert-manager-manifest.sh")
 
@@ -157,15 +169,19 @@ func (c certManagerComponent) ApplyManifest(compContext spi.ComponentContext) er
 		compContext.Log().Info("Patch cert-manager crds to use OCI DNS")
 		err := os.Setenv("DNS_TYPE", "oci")
 		if err != nil {
-			compContext.Log().Errorf("Could not set DNS_TYPE environment variable: %s", err)
-			return err
+			return ctrlerrrors.RetryableError{
+				Source: c.Name(),
+				Cause:  fmt.Errorf("Could not set DNS_TYPE environment variable: %s", err),
+			}
 		}
 	}
 
 	// Call and execute script for the given DNS type
 	if _, stderr, err := bashFunc(script); err != nil {
-		compContext.Log().Errorf("Failed to apply the cert-manager manifest %s: %s", err, stderr)
-		return err
+		return ctrlerrrors.RetryableError{
+			Source: c.Name(),
+			Cause:  fmt.Errorf("Failed to apply the cert-manager manifest %s: %s", err, stderr),
+		}
 	}
 	return nil
 }
@@ -185,7 +201,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	isCAValue, err := isCA(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to verify the config type: %s", err)
-		return []bom.KeyValue{}, err
+		return []bom.KeyValue{}, ctrlerrrors.RetryableError{Source: ComponentName}
 	}
 	if isCAValue {
 		kvs = append(kvs, bom.KeyValue{Key: "clusterResourceNamespace", Value: namespace})
@@ -220,7 +236,7 @@ func isCA(compContext spi.ComponentContext) (bool, error) {
 	} else if acmeNotEmpty {
 		return false, nil
 	} else {
-		return false, errors.New("Both Acme and CA fields are empty")
+		return false, errors.New("Either Acme or CA certificate authorities must be configured")
 	}
 }
 
@@ -245,8 +261,7 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	// Verify that the secret exists
 	secret := v1.Secret{}
 	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: namespace}, &secret); err != nil {
-		compContext.Log().Errorf("Failed to retireve the OCI DNS config secret: %s", err)
-		return err
+		return fmt.Errorf("Failed to retireve the OCI DNS config secret: %s", err)
 	}
 
 	// Verify the acme environment and set the server
@@ -267,22 +282,19 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	// Parse the template string and create the template object
 	template, err := template.New("clusterIssuer").Parse(clusterIssuerTemplate)
 	if err != nil {
-		compContext.Log().Errorf("Failed to parse the ClusterIssuer yaml template: %s", err)
-		return err
+		return fmt.Errorf("Failed to parse the ClusterIssuer yaml template: %s", err)
 	}
 
 	// Execute the template object with the given data
 	err = template.Execute(&buff, &clusterIssuerData)
 	if err != nil {
-		compContext.Log().Errorf("Failed to execute the ClusterIssuer template: %s", err)
-		return err
+		return fmt.Errorf("Failed to execute the ClusterIssuer template: %s", err)
 	}
 
 	// Create an unstructured object from the template output
 	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
 	if err := yaml.Unmarshal(buff.Bytes(), ciObject); err != nil {
-		compContext.Log().Errorf("Unable to unmarshal yaml: %s", err)
-		return err
+		return fmt.Errorf("Unable to unmarshal yaml: %s", err)
 	}
 
 	// Update or create the unstructured object
@@ -290,8 +302,7 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), ciObject, func() error {
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create or update the ClusterIssuer: %s", err)
-		return err
+		return fmt.Errorf("Failed to create or update the ClusterIssuer: %s", err)
 	}
 	return nil
 }
@@ -315,8 +326,7 @@ func createCAResources(compContext spi.ComponentContext) error {
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &issuer, func() error {
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create or update the Issuer: %s", err)
-		return err
+		return fmt.Errorf("Failed to create or update the Issuer: %s", err)
 	}
 
 	// Create the certificate resource for CA cert
@@ -339,8 +349,7 @@ func createCAResources(compContext spi.ComponentContext) error {
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create or update the Certificate: %s", err)
-		return err
+		return fmt.Errorf("Failed to create or update the Certificate: %s", err)
 	}
 
 	// Create the cluster issuer resource for CA cert
@@ -360,8 +369,7 @@ func createCAResources(compContext spi.ComponentContext) error {
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create or update the ClusterIssuer: %s", err)
-		return err
+		return fmt.Errorf("Failed to create or update the ClusterIssuer: %s", err)
 	}
 	return nil
 }
