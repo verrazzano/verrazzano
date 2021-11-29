@@ -116,7 +116,7 @@ CMDLINE="sleep 5s && \
         mkdir -p ${TEST_BINARIES} && \
         ./lre-config/run_compiled_tests.sh --test-binaries ${TEST_BINARIES} --kubeconfig-location /tmp/lre-config/kubeconfig"
 
-# Add arguments for the script - run_lre_tests.sh
+# Add arguments for the script - run_compiled_tests.sh
 if [ ! -z "${PROMETHEUS_GW_URL}" ]
 then
     CMDLINE="${CMDLINE} --prometheus-pushgateway ${PROMETHEUS_GW_URL}"
