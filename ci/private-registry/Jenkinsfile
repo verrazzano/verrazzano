@@ -39,6 +39,10 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'SELECT_IMAGE_REGISTRY',
+                description: 'Select an image registry',
+                // 1st choice is the default value
+                choices: ["OCIR", "Harbor standalone"])
         string (name: 'ZIPFILE_LOCATION',
                         defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
                         description: 'The bucket location to use for the Zip file download',
