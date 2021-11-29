@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	appsv1 "k8s.io/api/apps/v1"
@@ -81,6 +80,30 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      "verrazzano-authproxy",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      "verrazzano-monitoring-operator",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
 				Name:      "verrazzano-operator",
 			},
 			Status: appsv1.DeploymentStatus{
@@ -110,6 +133,30 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      "verrazzano-authproxy",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   0,
+				UnavailableReplicas: 0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      "verrazzano-monitoring-operator",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   0,
+				UnavailableReplicas: 0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
 				Name:      "verrazzano-operator",
 			},
 			Status: appsv1.DeploymentStatus{
@@ -126,61 +173,93 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	assert.False(t, NewComponent().IsReady(ctx))
 }
 
+// TestIsReadyDeploymentVMIDisabled tests the Verrazzano IsReady call
+// GIVEN a Verrazzano component with all VMI components disabled
+//  WHEN I call IsReady
+//  THEN true is returned if only the verrazzano-authproxy is deployed
+func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	client := fake.NewFakeClientWithScheme(testScheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      "verrazzano-authproxy",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
+			Namespace: globalconst.VerrazzanoSystemNamespace}},
+	)
+	vz := &vzapi.Verrazzano{}
+	falseValue := false
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+	}
+	ctx := spi.NewFakeContext(client, vz, false)
+	assert.True(t, NewComponent().IsReady(ctx))
+}
+
+// TestIsReadyDeploymentVMIDisabled tests the Verrazzano IsReady call
+// GIVEN a Verrazzano component with all VMI components disabled
+//  WHEN I call IsReady
+//  THEN false is returned if only the verrazzano-authproxy is not available
+func TestNotReadyDeploymentVMIDisabled(t *testing.T) {
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	client := fake.NewFakeClientWithScheme(testScheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      "verrazzano-authproxy",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   0,
+				UnavailableReplicas: 0,
+			},
+		},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
+			Namespace: globalconst.VerrazzanoSystemNamespace}},
+	)
+	vz := &vzapi.Verrazzano{}
+	falseValue := false
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+	}
+	ctx := spi.NewFakeContext(client, vz, false)
+	assert.False(t, NewComponent().IsReady(ctx))
+}
+
 // TestPreInstall tests the Verrazzano PreInstall call
 // GIVEN a Verrazzano component
 //  WHEN I call PreInstall when dependencies are met
 //  THEN no error is returned
 func TestPreInstall(t *testing.T) {
-	client := createPreInstallTestClient(true, true)
+	client := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 	err := NewComponent().PreInstall(ctx)
 	assert.NoError(t, err)
 }
 
-// TestPreInstall tests the Verrazzano PreInstall call
-// GIVEN a Verrazzano component
-//  WHEN I call PreInstall with defaults
-//  THEN an error is returned
-func TestPreInstallDependenciesNotMet(t *testing.T) {
-	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &vzapi.Verrazzano{}, false)
-	err := NewComponent().PreInstall(ctx)
-	assert.Error(t, err)
-}
-
-func createPreInstallTestClient(nginxInstalled bool, istioInstalled bool, extraObjs ...runtime.Object) client.Client {
+func createPreInstallTestClient(extraObjs ...runtime.Object) client.Client {
 	objs := []runtime.Object{}
-	if nginxInstalled {
-		objs = append(objs,
-			&appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: globalconst.IstioSystemNamespace,
-					Name:      "istiod",
-				},
-				Status: appsv1.DeploymentStatus{
-					Replicas:            1,
-					ReadyReplicas:       1,
-					AvailableReplicas:   1,
-					UnavailableReplicas: 0,
-				},
-			},
-		)
-	}
-	if nginxInstalled {
-		objs = append(objs,
-			&appsv1.Deployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: globalconst.IngressNamespace,
-					Name:      nginx.ControllerName,
-				},
-				Status: appsv1.DeploymentStatus{
-					Replicas:            1,
-					ReadyReplicas:       1,
-					AvailableReplicas:   1,
-					UnavailableReplicas: 0,
-				},
-			},
-		)
-	}
 	objs = append(objs, extraObjs...)
 	client := fake.NewFakeClientWithScheme(testScheme, objs...)
 	return client

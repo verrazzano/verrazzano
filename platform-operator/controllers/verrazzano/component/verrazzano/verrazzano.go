@@ -9,10 +9,8 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"go.uber.org/zap"
@@ -26,10 +24,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"path/filepath"
 	"os/exec"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -108,7 +108,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	}
 
 	// Write the overrides file to a temp dir and add a helm file override argument
-	overridesFileName, err := generateOverridesFile(&overrides)
+	overridesFileName, err := generateOverridesFile(ctx, &overrides)
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
 	}
@@ -134,12 +134,14 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-func generateOverridesFile(overrides *verrazzanoValues) (string, error) {
+const tmpFilePrefix = "verrazzano-overrides-"
+
+func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues) (string, error) {
 	bytes, err := yaml.Marshal(overrides)
 	if err != nil {
 		return "", err
 	}
-	file, err := os.CreateTemp(os.TempDir(), "verrazzano-overrides-*.yaml")
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.yaml", tmpFilePrefix))
 	if err != nil {
 		return "", err
 	}
@@ -148,6 +150,7 @@ func generateOverridesFile(overrides *verrazzanoValues) (string, error) {
 	if err := writeFileFunc(overridesFileName, bytes, fs.ModeAppend); err != nil {
 		return "", err
 	}
+	vzLog(ctx).Infof("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
 	return overridesFileName, nil
 }
 
@@ -423,20 +426,6 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespa
 	return err
 }
 
-func (c verrazzanoComponent) dependenciesMet(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{}
-	if vzconfig.IsIstioEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{Name: "istiod", Namespace: globalconst.IstioSystemNamespace})
-	}
-	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{Name: nginx.ControllerName, Namespace: globalconst.IngressNamespace})
-	}
-	if len(deployments) > 0 && !status.DeploymentsReady(vzLog(ctx), ctx.Client(), deployments, 1) {
-		return false
-	}
-	return true
-}
-
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
@@ -537,6 +526,24 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 // Add the Verrazzano component field/value to any logging entries
 func vzLog(ctx spi.ComponentContext) *zap.SugaredLogger {
 	return ctx.Log().With("component", componentName)
+}
+
+//cleanTempFiles - Clean up the override temp files in the temp dir
+func cleanTempFiles(ctx spi.ComponentContext) {
+	log := vzLog(ctx)
+	files, err := ioutil.ReadDir(os.TempDir())
+	if err != nil {
+		log.Errorf("Unable to read temp directory: %s", err.Error())
+	}
+	for _, file := range files {
+		if !file.IsDir() && strings.HasPrefix(file.Name(), tmpFilePrefix) && strings.HasSuffix(file.Name(), ".yaml") {
+			fullPath := filepath.Join(os.TempDir(), file.Name())
+			log.Debugf("Deleting temp file %s", fullPath)
+			if err := os.Remove(fullPath); err != nil {
+				log.Errorf("Error deleting temp file %s", fullPath)
+			}
+		}
+	}
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster

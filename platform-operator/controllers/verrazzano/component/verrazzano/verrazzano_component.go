@@ -7,6 +7,8 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -31,6 +33,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
 		},
 	}
 }
@@ -39,12 +42,6 @@ func NewComponent() spi.Component {
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	vzLog(ctx).Debugf("Verrazzano pre-install")
-	if !c.dependenciesMet(ctx) {
-		vzLog(ctx).Debugf("component dependencies not yet met")
-		return ctrlerrors.RetryableError{
-			Source: componentName,
-		}
-	}
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
 	}
@@ -66,12 +63,23 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	deployments := []types.NamespacedName{
-		{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
+		{Name: "verrazzano-authproxy", Namespace: globalconst.VerrazzanoSystemNamespace},
+	}
+	if isVMOEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, []types.NamespacedName{
+			{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
+			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
+		}...)
 	}
 	if !status.DeploymentsReady(vzLog(ctx), ctx.Client(), deployments, 1) {
 		return false
 	}
 	return isVerrazzanoSecretReady(ctx)
+}
+
+func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
+	cleanTempFiles(ctx)
+	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Verrazzano-post-upgrade processing

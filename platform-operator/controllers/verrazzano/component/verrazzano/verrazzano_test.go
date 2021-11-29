@@ -754,9 +754,23 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				expectedNumKvs = 3
 			}
 			assert.Equal(expectedNumKvs, actualNumKvs)
+			// Check Temp file
 			assert.True(kvs[0].IsFile, "Expected generated verrazzano overrides first in list of helm args")
+			tempFilePath := kvs[0].Value
+			_, err = os.Stat(tempFilePath)
+			assert.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
+			cleanTempFiles(fakeContext)
 		})
 	}
+	// Verify temp files are deleted
+	files, err := ioutil.ReadDir(os.TempDir())
+	assert.NoError(t, err, "Error reading temp dir to verify file cleanup")
+	for _, file := range files {
+		assert.False(t,
+			strings.HasPrefix(file.Name(), tmpFilePrefix) && strings.HasSuffix(file.Name(), ".yaml"),
+			"Found unexpected temp file remaining: %s", file.Name())
+	}
+
 }
 
 // Test_findStorageOverride tests the findStorageOverride function
