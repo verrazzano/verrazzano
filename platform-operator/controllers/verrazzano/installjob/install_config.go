@@ -182,10 +182,11 @@ type Rancher struct {
 
 // Fluentd configuration
 type Fluentd struct {
-	Enabled             string       `json:"enabled,omitempty"`
-	FluentdInstallArgs  []InstallArg `json:"fluentdInstallArgs,omitempty"`
-	ElasticsearchURL    string       `json:"elasticsearchURL,omitempty"`
-	ElasticsearchSecret string       `json:"elasticsearchSecret,omitempty"`
+	Enabled             string                  `json:"enabled,omitempty"`
+	FluentdInstallArgs  []InstallArg            `json:"fluentdInstallArgs,omitempty"`
+	ElasticsearchURL    string                  `json:"elasticsearchURL,omitempty"`
+	ElasticsearchSecret string                  `json:"elasticsearchSecret,omitempty"`
+	OCI                 OciLoggingConfiguration `json:"oci,omitempty"`
 }
 
 // InstallConfiguration - Verrazzano installation configuration options
@@ -199,6 +200,13 @@ type InstallConfiguration struct {
 	Rancher         Rancher                     `json:"rancher"`
 	Fluentd         Fluentd                     `json:"fluentd"`
 	VzInstallArgs   []InstallArg                `json:"verrazzanoInstallArgs,omitempty"`
+}
+
+// OciLoggingConfiguration - OCI Logging configuration for Fluentd DaemonSet
+type OciLoggingConfiguration struct {
+	DefaultAppLogID string `json:"defaultAppLogId"`
+	SystemLogID     string `json:"systemLogId"`
+	APISecret       string `json:"apiSecret"`
 }
 
 // GetInstallConfig returns an install configuration in the json format required by the
@@ -786,5 +794,10 @@ func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {
 		fluentd.ElasticsearchSecret = defaultElasticsearchSecret
 	}
 
+	if comp.OCI != nil {
+		fluentd.OCI.DefaultAppLogID = comp.OCI.DefaultAppLogID
+		fluentd.OCI.SystemLogID = comp.OCI.SystemLogID
+		fluentd.OCI.APISecret = comp.OCI.APISecret
+	}
 	return fluentd
 }
