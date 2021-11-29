@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
