@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"io/ioutil"
@@ -64,7 +65,7 @@ func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 
 	ingressHost := ingress.Spec.Rules[0].Host
 	keycloakLoginURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressHost, keycloakAdminUserRealm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, keycloakAdminPassword, keycloakAdminClientID)
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, url.QueryEscape(keycloakAdminPassword), keycloakAdminClientID)
 	fmt.Printf("CDD KeyCloak Body = %s", body)
 	resp, err := PostWithHostHeader(keycloakLoginURL, "application/x-www-form-urlencoded", ingressHost, strings.NewReader(body))
 	if err != nil {
