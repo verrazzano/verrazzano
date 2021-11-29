@@ -219,7 +219,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				ioutil.ReadAll(resp.Body)
 				resp.Body.Close()
-				Expect(resp.StatusCode).To(Equal(400))
+				Expect(resp.StatusCode).To(Equal(403))
 			}
 		})
 
