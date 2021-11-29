@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
