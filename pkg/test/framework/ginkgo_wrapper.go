@@ -12,7 +12,7 @@ import (
 )
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
-func VzBeforeSuite(body interface{}, timeout ...float64) bool {
+func VzBeforeSuite(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzBeforeSuite wrapper")
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
@@ -21,12 +21,12 @@ func VzBeforeSuite(body interface{}, timeout ...float64) bool {
 		pkg.Log(pkg.Info, "BeforeSuite started - placeholder for making API call to emit test related metric(s)")
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, "BeforeSuite ended - placeholder for making API call to emit test related metric(s)")
-	}, timeout...)
+	})
 	return true
 }
 
 // VzAfterSuite - wrapper function for ginkgo AfterSuite
-func VzAfterSuite(body interface{}, timeout ...float64) bool {
+func VzAfterSuite(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzAfterSuite wrapper")
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
@@ -35,12 +35,12 @@ func VzAfterSuite(body interface{}, timeout ...float64) bool {
 		pkg.Log(pkg.Info, "AfterSuite started - placeholder for making API call to emit test related metric(s)")
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, "AfterSuite ended - placeholder for making API call to emit test related metric(s)")
-	}, timeout...)
+	})
 	return true
 }
 
 // VzIt - wrapper function for ginkgo It
-func VzIt(text string, body interface{}, timeout ...float64) bool {
+func VzIt(text string, body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzIt wrapper")
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
@@ -49,21 +49,21 @@ func VzIt(text string, body interface{}, timeout ...float64) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q started - placeholder for making API call to emit test related metric(s)", ginkgo.CurrentGinkgoTestDescription().TestText))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q ended - placeholder for making API call to emit test related metric(s)", ginkgo.CurrentGinkgoTestDescription().TestText))
-	}, timeout...)
+	})
 	return true
 }
 
 // VzBeforeEach - wrapper function for ginkgo BeforeEach
-func VzBeforeEach(body interface{}, timeout ...float64) bool {
+func VzBeforeEach(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzBeforeEach wrapper")
-	ginkgo.BeforeEach(body, timeout...)
+	ginkgo.BeforeEach(body)
 	return true
 }
 
 // VzAfterEach - wrapper function for ginkgo AfterEach
-func VzAfterEach(body interface{}, timeout ...float64) bool {
+func VzAfterEach(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzAfterEach wrapper")
-	ginkgo.AfterEach(body, timeout...)
+	ginkgo.AfterEach(body)
 	return true
 }
 
