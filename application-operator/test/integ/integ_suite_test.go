@@ -5,6 +5,7 @@ package integ_test
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2/reporters"
@@ -14,7 +15,6 @@ import (
 )
 
 func TestInteg(t *testing.T) {
-	RegisterFailHandler(Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("integ-%d-test-result.xml", GinkgoParallelProcess()))
-	RunSpecsWithDefaultAndCustomReporters(t, "Integration Test Suite", []Reporter{junitReporter})
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "Integration Test Suite")
 }
