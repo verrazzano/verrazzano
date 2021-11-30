@@ -562,5 +562,5 @@ func init() {
 type OciLoggingConfiguration struct {
 	DefaultAppLogID string `json:"defaultAppLogId"`
 	SystemLogID     string `json:"systemLogId"`
-	APISecret       string `json:"apiSecret"`
+	APISecret       string `json:"apiSecret,omitempty"`
 }

@@ -217,7 +217,6 @@ spec:
                           systemLogId:
                             type: string
                         required:
-                        - apiSecret
                         - defaultAppLogId
                         - systemLogId
                         type: object

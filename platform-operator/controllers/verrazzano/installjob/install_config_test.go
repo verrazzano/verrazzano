@@ -1476,9 +1476,6 @@ func TestFluentdInstallDefaults(t *testing.T) {
 	assert.Equalf(t, "true", config.Fluentd.Enabled, "Expected Fluentd enabled did not match")
 	assert.Equalf(t, defaultElasticsearchSecret, config.Fluentd.ElasticsearchSecret, "Expected ElasticsearchSecret did not match")
 	assert.Equalf(t, defaultElasticsearchURL, config.Fluentd.ElasticsearchURL, "Expected ElasticsearchURL did not match")
-	assert.Equalf(t, "", config.Fluentd.OCI.DefaultAppLogID, "Default value for OCI Logging configuration DefaultAppLogID is not empty")
-	assert.Equalf(t, "", config.Fluentd.OCI.SystemLogID, "Default value for OCI Logging configuration SystemLogID is not empty")
-	assert.Equalf(t, "", config.Fluentd.OCI.APISecret, "Default value for OCI Logging configuration APISecret is not empty")
 }
 
 // TestFluentdInstallCustom tests the creation of fluentd install configuration
