@@ -143,6 +143,7 @@ function create_image_repos_from_archives() {
   if [ ! -z $OCIR_SCAN_TARGET_ID ]; then
     getTargetJson "target_file"
     if [ $? -eq 0 ]; then
+      echo "Target JSON was retrieved"
       target_accessed="true"
     else
       echo "No target JSON was retrieved, target related operations will be skipped but other processing will proceed based on target id being specified"
@@ -153,6 +154,7 @@ function create_image_repos_from_archives() {
   local reposfile=$(mktemp temp-repositories-XXXXXX.json)
   oci --region ${REGION} artifacts container repository list --compartment-id ${COMPARTMENT_ID} --all > $reposfile
   if [ $? -eq 0 ]; then
+    echo "Repositories listed"
     repositories_listed="true"
   else
     echo "Unable to list the existing repositories to check for existence"
@@ -161,6 +163,7 @@ function create_image_repos_from_archives() {
   # Loop through tar files
   echo "Using local image downloads"
   for file in ${IMAGES_DIR}/*.tar; do
+    echo "Processing file ${file}"
     if [ ! -e ${file} ]; then
       echo "Image tar file ${file} does not exist!"
       exit 1
@@ -230,11 +233,11 @@ function create_image_repos_from_archives() {
   if [ ! -z $OCIR_SCAN_TARGET_ID ] && [ "$target_accessed" == "true" ]; then
     # FIXME: Do not enable until we are sure the VSS lifecycle state issues with update are understood and handled
     #  addNewRepositoriesToTarget "${added_repositories}" $target_file
-    rm $target_file
+    rm $target_file || true
   fi
 
   if [ "$repositories_listed" == "true" ]; then
-    rm $reposfile
+    rm $reposfile || true
   fi
 }
 
