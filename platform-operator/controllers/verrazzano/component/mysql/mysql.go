@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -55,7 +55,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	cr := compContext.EffectiveCR()
 	deployed, err := helmutil.IsReleaseDeployed(ComponentName, vzconst.KeycloakNamespace)
 	if err != nil {
-		return []bom.KeyValue{}, ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	if deployed {
 		secret := &v1.Secret{}
@@ -65,7 +65,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 
 		err = compContext.Client().Get(context.TODO(), nsName, secret)
 		if err != nil {
-			return []bom.KeyValue{}, ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 
 		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
@@ -82,13 +82,13 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	if !deployed {
 		err = createDBFile(compContext)
 		if err != nil {
-			return []bom.KeyValue{}, ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + "/" + mysqlDBFile, SetFile: true})
 	}
 	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
 	if err != nil {
-		return []bom.KeyValue{}, ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	// Convert NGINX install-args to helm overrides
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
@@ -112,7 +112,7 @@ func preInstall(compContext spi.ComponentContext, namespace string) error {
 		ns.Labels["istio-injection"] = "enabled"
 		return nil
 	}); err != nil {
-		return ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	return nil
 }
@@ -132,7 +132,7 @@ func createDBFile(ctx spi.ComponentContext) error {
 	tmpDBFile, err := os.Create(os.TempDir() + "/" + mysqlDBFile)
 	if err != nil {
 		ctx.Log().Errorf("Failed to create temporary MySQL DB file: %v", err)
-		return ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	_, err = tmpDBFile.Write([]byte(fmt.Sprintf(
@@ -144,13 +144,13 @@ func createDBFile(ctx spi.ComponentContext) error {
 	)))
 	if err != nil {
 		ctx.Log().Errorf("Failed to write to temporary file: %v", err)
-		return ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	// Close the file
 	if err := tmpDBFile.Close(); err != nil {
 		ctx.Log().Errorf("Failed to close temporary file: %v", err)
-		return ctrlerrrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	return nil
 }
