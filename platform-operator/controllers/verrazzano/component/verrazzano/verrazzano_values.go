@@ -208,14 +208,8 @@ type externalDNSValues struct {
 }
 
 type securityRoleBindingValues struct {
-	AdminsGroup          string             `json:"adminsGroup,omitempty"`
-	MonitorsGroup        string             `json:"monitorsGroup,omitempty"`
-	UsersGroup           string             `json:"usersGroup,omitempty"`
-	SystemGroup          string             `json:"systemGroup,omitempty"`
-	ProjectAdminsGroup   string             `json:"projectAdminsGroup,omitempty"`
-	ProjectMonitorsGroup string             `json:"projectMonitorsGroup,omitempty"`
-	AdminSubjects        map[string]subject `json:"adminSubjects,omitempty"`
-	MonitorSubjects      map[string]subject `json:"monitorSubjects,omitempty"`
+	AdminSubjects   map[string]subject `json:"adminSubjects,omitempty"`
+	MonitorSubjects map[string]subject `json:"monitorSubjects,omitempty"`
 }
 
 type kubernetesValues struct {
