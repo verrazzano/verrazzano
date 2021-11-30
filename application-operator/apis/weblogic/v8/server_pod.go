@@ -34,7 +34,7 @@ type ServerPod struct {
 	// A list of environment variables to add to a server
 	// +x-kubernetes-list-type=set
 	Env []corev1.EnvVar `json:"env,omitempty"`
-	
+
 	// Optional host aliases that map IPs to associated host names.
 	// +x-kubernetes-list-type=set
 	HostAliases []HostAlias `json:"hostAliases,omitempty"`
