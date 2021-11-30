@@ -35,29 +35,29 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
-			AppendOverridesFunc:     AppendMySQLOverrides,
+			AppendOverridesFunc:     appendMySQLOverrides,
 			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         IsReady,
+			ReadyStatusFunc:         isReady,
 		},
 	}
 }
 
-// IsReady MySQL-specific ready-check
+// isReady MySQL-specific ready-check
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
-	return IsReady(context, c.ReleaseName, c.ChartNamespace)
+	return isReady(context, c.ReleaseName, c.ChartNamespace)
 }
 
-// IsEnabled Kiali-specific enabled check for installation
+// isEnabled Kiali-specific enabled check for installation
 func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return IsEnabled(ctx)
+	return isEnabled(ctx)
 }
 
-// PostInstall Kiali-post-install processing, create or update the Kiali ingress
+// postInstall Kiali-post-install processing, create or update the Kiali ingress
 func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
-	return PreInstall(ctx, c.ChartNamespace)
+	return preInstall(ctx, c.ChartNamespace)
 }
 
-// PostInstall Kiali-post-install processing, create or update the Kiali ingress
+// postInstall Kiali-post-install processing, create or update the Kiali ingress
 func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
-	return PostInstall(ctx)
+	return postInstall(ctx)
 }

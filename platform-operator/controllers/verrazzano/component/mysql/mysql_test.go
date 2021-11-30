@@ -50,23 +50,23 @@ func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte,
 	return r.stdOut, r.stdErr, r.err
 }
 
-// TestAppendMySQLOverrides tests the AppendMySQLOverrides function
-// GIVEN a call to AppendMySQLOverrides
+// TestAppendMySQLOverrides tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an empty VZ CR
 // THEN the correct overrides are returned
 func TestAppendMySQLOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 	assert.Equal(t, mysqlUsername, bom.FindKV(kvs, mysqlUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 }
 
-// TestAppendMySQLOverridesWithInstallArgs tests the AppendMySQLOverrides function
-// GIVEN a call to AppendMySQLOverrides
+// TestAppendMySQLOverridesWithInstallArgs tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an empty VZ CR with MySQL install args
 // THEN the override key value pairs contain the install args
 func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
@@ -85,14 +85,14 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
 }
 
-// TestAppendMySQLOverridesDev tests the AppendMySQLOverrides function
-// GIVEN a call to AppendMySQLOverrides
+// TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an VZ CR with the dev profile
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDev(t *testing.T) {
@@ -106,14 +106,14 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
 }
 
-// TestAppendMySQLOverridesDevWithPersistence tests the AppendMySQLOverrides function
-// GIVEN a call to AppendMySQLOverrides
+// TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an VZ CR with the dev profile and persistence overrides
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
@@ -143,15 +143,15 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
 }
 
-// TestAppendMySQLOverridesProd tests the AppendMySQLOverrides function
-// GIVEN a call to AppendMySQLOverrides
+// TestAppendMySQLOverridesProd tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an VZ CR with the prod profile
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesProd(t *testing.T) {
@@ -162,13 +162,13 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 }
 
-// TestAppendMySQLOverridesProdWithOverrides tests the AppendMySQLOverrides function
-// GIVEN a call to AppendMySQLOverrides
+// TestAppendMySQLOverridesProdWithOverrides tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an VZ CR with the pred profile and a default volume source override
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
@@ -194,15 +194,15 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
 }
 
-// TestAppendMySQLOverridesUpgrade tests the AppendMySQLOverrides function
-// GIVEN a call to AppendMySQLOverrides during upgrade
+// TestAppendMySQLOverridesUpgrade tests the appendMySQLOverrides function
+// GIVEN a call to appendMySQLOverrides during upgrade
 // WHEN I pass in an empty VZ CR
 // THEN the correct overrides are returned
 func TestAppendMySQLOverridesUpgrade(t *testing.T) {
@@ -220,15 +220,15 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 		})
 	helm.SetCmdRunner(deployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(mock, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 }
 
-// TestIsMySQLReady tests the IsReady function
-// GIVEN a call to IsReady
+// TestIsMySQLReady tests the isReady function
+// GIVEN a call to isReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
@@ -244,11 +244,11 @@ func TestIsMySQLReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), ComponentName, vzconst.KeycloakNamespace))
+	assert.True(t, isReady(spi.NewFakeContext(fakeClient, nil, false), ComponentName, vzconst.KeycloakNamespace))
 }
 
-// TestIsMySQLNotReady tests the IsReady function
-// GIVEN a call to IsReady
+// TestIsMySQLNotReady tests the isReady function
+// GIVEN a call to isReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsMySQLNotReady(t *testing.T) {
@@ -264,23 +264,23 @@ func TestIsMySQLNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), "", vzconst.KeycloakNamespace))
+	assert.False(t, isReady(spi.NewFakeContext(fakeClient, nil, false), "", vzconst.KeycloakNamespace))
 }
 
 // TestSQLFileCreatedAndDeleted tests the creation and deletion of the mysql db init file
-// WHEN the AppendMySQLOverrides and then PostInstall functions are called
+// WHEN the appendMySQLOverrides and then postInstall functions are called
 // THEN ensure that the mysql db init file is created successfully and then deleted successfully
 func TestSQLFileCreatedAndDeleted(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
 	fakeContext := spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles")
-	_, err := AppendMySQLOverrides(fakeContext, "", "", "", []bom.KeyValue{})
+	_, err := appendMySQLOverrides(fakeContext, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	sqlFileContents, err := os.ReadFile(os.TempDir() + "/" + mysqlDBFile)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, sqlFileContents)
-	err = PostInstall(fakeContext)
+	err = postInstall(fakeContext)
 	assert.NoError(t, err)
 	assert.NoFileExists(t, os.TempDir()+"/"+mysqlDBFile)
 }

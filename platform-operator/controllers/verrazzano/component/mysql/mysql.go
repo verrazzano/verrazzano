@@ -35,14 +35,14 @@ const (
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
-func IsReady(context spi.ComponentContext, name string, namespace string) bool {
+func isReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: name, Namespace: namespace},
+		{Name: ComponentName, Namespace: vzconst.KeycloakNamespace},
 	}
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
-func IsEnabled(context spi.ComponentContext) bool {
+func isEnabled(context spi.ComponentContext) bool {
 	keycloak := context.EffectiveCR().Spec.Components.Keycloak
 	if keycloak != nil && keycloak.Enabled != nil {
 		return *keycloak.Enabled
@@ -50,8 +50,8 @@ func IsEnabled(context spi.ComponentContext) bool {
 	return false
 }
 
-// AppendMySQLOverrides appends the the password for database user and root user.
-func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+// appendMySQLOverrides appends the the password for database user and root user.
+func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
 	deployed, err := helmutil.IsReleaseDeployed(ComponentName, vzconst.KeycloakNamespace)
 	if err != nil {
@@ -96,10 +96,10 @@ func AppendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	return kvs, nil
 }
 
-// PreInstall Create and label the MySQL namespace, and create any override helm args needed
-func PreInstall(compContext spi.ComponentContext, namespace string) error {
+// preInstall Create and label the MySQL namespace, and create any override helm args needed
+func preInstall(compContext spi.ComponentContext, namespace string) error {
 	if compContext.IsDryRun() {
-		compContext.Log().Infof("MySQL PostInstall dry run")
+		compContext.Log().Infof("MySQL postInstall dry run")
 		return nil
 	}
 	compContext.Log().Infof("Adding label needed by network policies to %s namespace", namespace)
@@ -117,10 +117,10 @@ func PreInstall(compContext spi.ComponentContext, namespace string) error {
 	return nil
 }
 
-// PostInstall Patch the controller service ports based on any user-supplied overrides
-func PostInstall(ctx spi.ComponentContext) error {
+// postInstall Patch the controller service ports based on any user-supplied overrides
+func postInstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Infof("MySQL PostInstall dry run")
+		ctx.Log().Infof("MySQL postInstall dry run")
 		return nil
 	}
 	// Delete create-mysql-db.sql after install
