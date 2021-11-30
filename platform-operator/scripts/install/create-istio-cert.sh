@@ -26,33 +26,33 @@ function create_istio_cert_secret {
   log "Generating CA bundle for Istio"
 
   # Create the private key for the root CA
-  openssl genrsa -out $CERTS_OUT/root-key.pem 4096 || return $?
+  openssl genrsa -out $CERTS_OUT/FilenameRootPrivKey 4096 || return $?
 
   # Generate a root CA with the private key
-  openssl req -config $CONFIG_DIR/istio_root_ca_config.txt -key $CERTS_OUT/root-key.pem -new -x509 -days 7300 -sha256 -extensions v3_ca -out $CERTS_OUT/root-cert.pem || return $?
+  openssl req -config $CONFIG_DIR/istio_root_ca_config.txt -key $CERTS_OUT/FilenameRootPrivKey -new -x509 -days 7300 -sha256 -extensions v3_ca -out $CERTS_OUT/FilenameRootCert || return $?
 
   # Create the private key for the intermediate CA
-  openssl genrsa -out $CERTS_OUT/ca-key.pem 4096 || return $?
+  openssl genrsa -out $CERTS_OUT/FilenameIntermediatePrivKey 4096 || return $?
 
   # Generate certificate signing request (CSR)
-  openssl req -config $CONFIG_DIR/istio_intermediate_ca_config.txt -new -sha256 -key $CERTS_OUT/ca-key.pem -out $CERTS_OUT/intermediate-csr.pem || return $?
+  openssl req -config $CONFIG_DIR/istio_intermediate_ca_config.txt -new -sha256 -key $CERTS_OUT/FilenameIntermediatePrivKey -out $CERTS_OUT/FilenameIntermediateCSR || return $?
 
   # create intermediate cert using the root CA
   openssl ca -batch -config $CONFIG_DIR/istio_root_ca_config.txt -extensions v3_intermediate_ca -days 3650 -notext -md sha256 \
-      -keyfile $CERTS_OUT/root-key.pem \
-      -cert $CERTS_OUT/root-cert.pem \
-      -in $CERTS_OUT/intermediate-csr.pem \
-      -out $CERTS_OUT/ca-cert.pem \
+      -keyfile $CERTS_OUT/FilenameRootPrivKey \
+      -cert $CERTS_OUT/FilenameRootCert \
+      -in $CERTS_OUT/FilenameIntermediateCSR \
+      -out $CERTS_OUT/FilenameIntermediateCert \
       -outdir $CERTS_OUT || return $?
 
   # Create certificate chain file
-  cat $CERTS_OUT/ca-cert.pem $CERTS_OUT/root-cert.pem > $CERTS_OUT/cert-chain.pem || return $?
+  cat $CERTS_OUT/FilenameIntermediateCert $CERTS_OUT/FilenameRootCert > $CERTS_OUT/FilenameCertChain || return $?
 
   kubectl create secret generic cacerts -n istio-system \
-      --from-file=$CERTS_OUT/ca-cert.pem \
-      --from-file=$CERTS_OUT/ca-key.pem  \
-      --from-file=$CERTS_OUT/root-cert.pem \
-      --from-file=$CERTS_OUT/cert-chain.pem || return $?
+      --from-file=$CERTS_OUT/FilenameIntermediateCert \
+      --from-file=$CERTS_OUT/FilenameIntermediatePrivKey  \
+      --from-file=$CERTS_OUT/FilenameRootCert \
+      --from-file=$CERTS_OUT/FilenameCertChain || return $?
 
   rm -rf $CERTS_OUT
   rm -f ./index.txt* serial serial.old
