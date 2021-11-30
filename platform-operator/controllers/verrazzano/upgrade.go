@@ -40,16 +40,17 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
+	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		log.Infof("Upgrading %s", compName)
-		upgradeContext, err := spi.NewContext(log, r, cr, r.DryRun)
-		if err != nil {
-			return newRequeueWithDelay(), err
-		}
-		upgradeContext = upgradeContext.For(compName).Operation("upgrade")
+		upgradeContext := newContext.For(compName).Operation("upgrade")
 		installed, err := comp.IsInstalled(upgradeContext)
 		if err != nil {
 			return newRequeueWithDelay(), err
@@ -79,7 +80,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	}
 
 	// Invoke the global post upgrade function after all components are upgraded.
-	err := postUpgrade(log, r)
+	err = postUpgrade(log, r)
 	if err != nil {
 		log.Errorf("Error running Verrazzano system-level post-upgrade")
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
