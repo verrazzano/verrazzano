@@ -5,7 +5,7 @@ package main
 import (
 	"github.com/verrazzano/verrazzano/tools/eventually-checker/test/internal"
 
-	. "github.com/onsi/ginkgo/v2" //nolint
+	. "github.com/onsi/ginkgo" //nolint
 	. "github.com/onsi/gomega" //nolint
 )
 
