@@ -30,7 +30,7 @@ var _ error = RetryableError{}
 // Error implements the basic Go error contract
 func (r RetryableError) Error() string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("Retryable error for operation %s on source %s", r.Operation, r.Source))
+	builder.WriteString(fmt.Sprintf("Retryable error, source: %s, operation: %s", r.Operation, r.Source))
 	if r.Cause != nil {
 		builder.WriteString(fmt.Sprintf(", cause %s", r.Cause))
 	}

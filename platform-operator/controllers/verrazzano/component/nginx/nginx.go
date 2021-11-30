@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,21 +28,21 @@ const (
 	// ValuesFileOverride Name of the values file override for NGINX
 	ValuesFileOverride = "ingress-nginx-values.yaml"
 
-	ControllerName = "ingress-controller-ingress-nginx-controller"
-	BackendName    = "ingress-controller-ingress-nginx-defaultbackend"
+	ControllerName = vpoconst.NGINXControllerServiceName
+	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
 )
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: ControllerName, Namespace: namespace},
-		{Name: BackendName, Namespace: namespace},
+		{Name: backendName, Namespace: namespace},
 	}
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := context.EffectiveCR()
-	ingressType, err := GetServiceType(cr)
+	ingressType, err := vzconfig.GetServiceType(cr)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
@@ -116,105 +118,4 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 		return []vzapi.InstallArgs{}
 	}
 	return cr.Spec.Components.Ingress.NGINXInstallArgs
-}
-
-// Identify the service type, LB vs NodePort
-func GetServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {
-	ingressConfig := cr.Spec.Components.Ingress
-	if ingressConfig == nil || len(ingressConfig.Type) == 0 {
-		return vzapi.LoadBalancer, nil
-	}
-	switch ingressConfig.Type {
-	case vzapi.NodePort, vzapi.LoadBalancer:
-		return ingressConfig.Type, nil
-	default:
-		return "", fmt.Errorf("Unrecognized ingress type %s", ingressConfig.Type)
-	}
-}
-
-// GetIngressIP Returns the ingress IP of the LoadBalancer
-// - port of install scripts function get_verrazzano_ingress_ip in config.sh
-func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
-	// Default for NodePort services
-	// - On MAC and Windows, container IP is not accessible.  Port forwarding from 127.0.0.1 to container IP is needed.
-	ingressIP := "127.0.0.1"
-	serviceType, err := GetServiceType(vz)
-	if err != nil {
-		return "", err
-	}
-	if serviceType == vzapi.LoadBalancer {
-		svc := v1.Service{}
-		if err := client.Get(context.TODO(), types.NamespacedName{Name: ControllerName, Namespace: ComponentNamespace}, &svc); err != nil {
-			return "", err
-		}
-		// Test for IP from status, if that is not present then assume an on premises installation and use the externalIPs hint
-		if len(svc.Status.LoadBalancer.Ingress) > 0 {
-			ingressIP = svc.Status.LoadBalancer.Ingress[0].IP
-		} else if len(svc.Spec.ExternalIPs) > 0 {
-			// In case of OLCNE, the Status.LoadBalancer.Ingress field will be empty, so use the external IP if present
-			ingressIP = svc.Spec.ExternalIPs[0]
-		} else {
-			return "", fmt.Errorf("No IP found for LoadBalancer service type")
-		}
-	}
-	return ingressIP, nil
-}
-
-// GetDNSSuffix Returns the DNS suffix for the Verrazzano installation
-// - port of install script function get_dns_suffix from config.sh
-func GetDNSSuffix(client client.Client, vz *vzapi.Verrazzano) (string, error) {
-	var dnsSuffix string
-	dnsConfig := vz.Spec.Components.DNS
-	if dnsConfig == nil || dnsConfig.Wildcard != nil {
-		ingressIP, err := GetIngressIP(client, vz)
-		if err != nil {
-			return "", err
-		}
-		dnsSuffix = fmt.Sprintf("%s.%s", ingressIP, getWildcardDomain(dnsConfig))
-	} else if dnsConfig.OCI != nil {
-		dnsSuffix = dnsConfig.OCI.DNSZoneName
-	} else if dnsConfig.External != nil {
-		dnsSuffix = dnsConfig.External.Suffix
-	}
-	if len(dnsSuffix) == 0 {
-		return "", fmt.Errorf("Invalid OCI DNS configuration, no zone name specified")
-	}
-	return dnsSuffix, nil
-}
-
-// BuildDNSDomain Constructs the full DNS subdomain for the deployment
-func BuildDNSDomain(client client.Client, vz *vzapi.Verrazzano) (string, error) {
-	dnsSuffix, err := GetDNSSuffix(client, vz)
-	if err != nil {
-		return "", err
-	}
-	envName := GetEnvName(vz)
-	dnsDomain := fmt.Sprintf("%s.%s", envName, dnsSuffix)
-	return dnsDomain, nil
-}
-
-// GetEnvName Returns the configured environment name, or "default" if not specified in the configuration
-func GetEnvName(vz *vzapi.Verrazzano) string {
-	envName := vz.Spec.EnvironmentName
-	if len(envName) == 0 {
-		envName = "default"
-	}
-	return envName
-}
-
-// IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
-func IsExternalDNSEnabled(vz *vzapi.Verrazzano) bool {
-	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
-		return true
-	}
-	return false
-}
-
-// getWildcardDomain Get the wildcard domain from the Verrazzano config
-func getWildcardDomain(dnsConfig *vzapi.DNSComponent) string {
-	wildcardDomain := "nip.io"
-	if dnsConfig != nil && dnsConfig.Wildcard != nil && len(dnsConfig.Wildcard.Domain) > 0 {
-		wildcardDomain = dnsConfig.Wildcard.Domain
-	}
-	return wildcardDomain
 }

@@ -33,6 +33,8 @@ spec:
           value: "0"
     fluentd:
       enabled: false
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano
     grafana:
       enabled: false
     ingress:
