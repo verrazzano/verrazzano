@@ -761,3 +761,27 @@ func TestValidateVersionHigherOrEqualHigherVersion(t *testing.T) {
 func TestValidateVersionHigherOrEqualLowerVersion(t *testing.T) {
 	assert.True(t, ValidateVersionHigherOrEqual("v1.0.2", "v1.0.1"))
 }
+
+// TestValidateProfileEmptyProfile Tests ValidateProfile() for empty profile
+// GIVEN a request for empty profile
+// WHEN the profile provided is empty
+// THEN no error is returned
+func TestValidateProfileEmptyProfile(t *testing.T) {
+	assert.NoError(t, ValidateProfile(""))
+}
+
+// TestValidateProfileEmptyProfile Tests ValidateProfile() for d pevrofile
+// GIVEN a request for dev profile
+// WHEN the profile provided is dev
+// THEN no error is returned
+func TestValidateProfileDevProfile(t *testing.T) {
+	assert.NoError(t, ValidateProfile("dev"))
+}
+
+// TestValidateProfileInvalidProfile Tests ValidateProfile() for invalid profile
+// GIVEN a request for invalid profile
+// WHEN the profile provided is invalid
+// THEN an error is returned
+func TestValidateProfileInvalidProfile(t *testing.T) {
+	assert.Error(t, ValidateProfile("wrong-profile"))
+}

@@ -27,3 +27,20 @@ func NewComponent() spi.Component {
 		},
 	}
 }
+
+// PostUpgrade Verrazzano-post-upgrade processing
+func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Verrazzano component post-upgrade")
+	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.updateElasticsearchResources(ctx)
+}
+
+// updateElasticsearchResources updates elasticsearch resources
+func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
+	if err := fixupElasticSearchReplicaCount(ctx, c.ChartNamespace); err != nil {
+		return err
+	}
+	return nil
+}
