@@ -77,6 +77,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVerrazzanoSecretReady(ctx)
 }
 
+// PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	return c.HelmComponent.PostInstall(ctx)
@@ -88,6 +89,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
+	cleanTempFiles(ctx)
 	return c.updateElasticsearchResources(ctx)
 }
 

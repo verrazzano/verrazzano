@@ -258,6 +258,28 @@ func TestPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestPostInstall tests the Verrazzano PostInstall call
+// GIVEN a Verrazzano component
+//  WHEN I call PostInstall
+//  THEN no error is returned
+func TestPostInstall(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	err := NewComponent().PostInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade tests the Verrazzano PostUpgrade call
+// GIVEN a Verrazzano component
+//  WHEN I call PostUpgrade
+//  THEN no error is returned
+func TestPostUpgrade(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	err := NewComponent().PostUpgrade(ctx)
+	assert.NoError(t, err)
+}
+
 func createPreInstallTestClient(extraObjs ...runtime.Object) client.Client {
 	objs := []runtime.Object{}
 	objs = append(objs, extraObjs...)
