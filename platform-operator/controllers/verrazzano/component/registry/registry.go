@@ -75,7 +75,7 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
 	log := context.Log()
-	trace, err := checkDependencies(c, context, nil)
+	trace, err := checkDependencies(c, context, make(map[string]bool), make(map[string]bool))
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -94,26 +94,35 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 }
 
 // checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(c spi.Component, context spi.ComponentContext, trace map[string]bool) (map[string]bool, error) {
+func checkDependencies(c spi.Component, context spi.ComponentContext, visited map[string]bool, stateMap map[string]bool) (map[string]bool, error) {
+	compName := c.Name()
+	log := context.Log()
+	log.Debugf("Checking %s dependencies", compName)
+	if _, wasVisited := visited[compName]; wasVisited {
+		return stateMap, fmt.Errorf("Illegal state, dependency cycle found for %s", c.Name())
+	}
+	visited[compName] = true
 	for _, dependencyName := range c.GetDependencies() {
-		if trace == nil {
-			trace = make(map[string]bool)
+		if compName == dependencyName {
+			return stateMap, fmt.Errorf("Illegal state, dependency cycle found for %s", c.Name())
 		}
-		if _, ok := trace[dependencyName]; ok {
-			return trace, fmt.Errorf("Illegal state, dependency cycle found for %s: %s", c.Name(), dependencyName)
+		if _, ok := stateMap[dependencyName]; ok {
+			// dependency already checked
+			log.Debugf("Dependency %s already checked", dependencyName)
+			continue
 		}
 		found, dependency := FindComponent(dependencyName)
 		if !found {
-			return trace, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
+			return stateMap, fmt.Errorf("Illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
-		if trace, err := checkDependencies(dependency, context, trace); err != nil {
+		if trace, err := checkDependencies(dependency, context, visited, stateMap); err != nil {
 			return trace, err
 		}
 		if !dependency.IsReady(context) {
-			trace[dependencyName] = false // dependency is not ready
+			stateMap[dependencyName] = false // dependency is not ready
 			continue
 		}
-		trace[dependencyName] = true // dependency is ready
+		stateMap[dependencyName] = true // dependency is ready
 	}
-	return trace, nil
+	return stateMap, nil
 }
