@@ -22,7 +22,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-// ComponentName is the name of the component
 const (
 	secretName       = "mysql"
 	mysqlUsernameKey = "mysqlUser"
