@@ -42,22 +42,22 @@ func NewComponent() spi.Component {
 	}
 }
 
-// isReady MySQL-specific ready-check
+// IsReady calls MySQL isReady function
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	return isReady(context, c.ReleaseName, c.ChartNamespace)
 }
 
-// isEnabled Kiali-specific enabled check for installation
+// IsEnabled calls MySQL isEnabled function
 func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return isEnabled(ctx)
 }
 
-// postInstall Kiali-post-install processing, create or update the Kiali ingress
+// PreInstall calls MySQL preInstall function
 func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx, c.ChartNamespace)
 }
 
-// postInstall Kiali-post-install processing, create or update the Kiali ingress
+// PostInstall calls MySQL postInstall function
 func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
 }

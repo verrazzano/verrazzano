@@ -35,9 +35,9 @@ const (
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
-func isReady(context spi.ComponentContext) bool {
+func isReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: vzconst.KeycloakNamespace},
+		{Name: name, Namespace: namespace},
 	}
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
