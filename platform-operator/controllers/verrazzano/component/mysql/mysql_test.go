@@ -114,7 +114,7 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 
 // TestAppendMySQLOverridesDevWithPersistence tests the AppendMySQLOverrides function
 // GIVEN a call to AppendMySQLOverrides
-// WHEN I pass in an VZ CR with the dev profile
+// WHEN I pass in an VZ CR with the dev profile and persistence overrides
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	vz := &vzapi.Verrazzano{
@@ -152,7 +152,7 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 
 // TestAppendMySQLOverridesProd tests the AppendMySQLOverrides function
 // GIVEN a call to AppendMySQLOverrides
-// WHEN I pass in an VZ CR with the dev profile
+// WHEN I pass in an VZ CR with the prod profile
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesProd(t *testing.T) {
 	vz := &vzapi.Verrazzano{
@@ -165,6 +165,40 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
+}
+
+// TestAppendMySQLOverridesProdWithOverrides tests the AppendMySQLOverrides function
+// GIVEN a call to AppendMySQLOverrides
+// WHEN I pass in an VZ CR with the pred profile and a default volume source override
+// THEN the overrides contain the correct mysql persistence config
+func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("prod"),
+			DefaultVolumeSource: &v1.VolumeSource{
+				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					ClaimName: "globalOverride",
+				},
+			},
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{{
+				ObjectMeta: metav1.ObjectMeta{Name: "globalOverride"},
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							"storage": pvc100Gi,
+						},
+					},
+				},
+			}},
+		},
+	}
+	helm.SetCmdRunner(notDeployedRunner)
+	defer helm.SetDefaultRunner()
+	kvs, err := AppendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	assert.NoError(t, err)
+	assert.Len(t, kvs, 4)
+	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
+	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
 }
 
 // TestAppendMySQLOverridesUpgrade tests the AppendMySQLOverrides function
@@ -233,6 +267,9 @@ func TestIsMySQLNotReady(t *testing.T) {
 	assert.False(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), "", vzconst.KeycloakNamespace))
 }
 
+// TestSQLFileCreatedAndDeleted tests the creation and deletion of the mysql db init file
+// WHEN the AppendMySQLOverrides and then PostInstall functions are called
+// THEN ensure that the mysql db init file is created successfully and then deleted successfully
 func TestSQLFileCreatedAndDeleted(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	helm.SetCmdRunner(notDeployedRunner)
