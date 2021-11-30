@@ -126,6 +126,7 @@ pipeline {
                         echo "Current execution region: $ocirRegion"
                         echo "OCIR Repository: ${ocirRegistry}"
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                        // TODO: add logging
                     }
                 }
 
@@ -154,7 +155,11 @@ pipeline {
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                     imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
-                    baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
+                    if (SELECT_IMAGE_REGISTRY == "OCIR") {
+                        baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                        // TODO: set baseImageRepo
+                    }
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
                 }
