@@ -28,8 +28,6 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 
 	var requeue bool
 
-
-
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()

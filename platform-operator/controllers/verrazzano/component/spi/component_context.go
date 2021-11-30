@@ -101,6 +101,10 @@ type componentContext struct {
 	cr *vzapi.Verrazzano
 	// effectiveCR Represents the configuration resulting from any named profiles used and any configured overrides in the CR
 	effectiveCR *vzapi.Verrazzano
+	// operation is the defined operation field for the logger. Defaults to nil if not present
+	operation *string
+	// component is the defined component field for the logger. Defaults to nil if not present
+	component *string
 }
 
 func (c componentContext) Log() *zap.SugaredLogger {
@@ -130,6 +134,8 @@ func (c componentContext) Copy() ComponentContext {
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
+		operation:   c.operation,
+		component:   c.component,
 	}
 }
 
@@ -140,6 +146,8 @@ func (c componentContext) For(comp string) ComponentContext {
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
+		operation:   c.operation,
+		component:   &comp,
 	}
 }
 
@@ -150,5 +158,15 @@ func (c componentContext) Operation(op string) ComponentContext {
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
+		operation:   &op,
+		component:   c.component,
 	}
+}
+
+func (c componentContext) GetOperation() *string {
+	return c.operation
+}
+
+func (c componentContext) GetComponent() *string {
+	return c.component
 }

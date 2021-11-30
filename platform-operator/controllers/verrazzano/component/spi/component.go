@@ -27,6 +27,10 @@ type ComponentContext interface {
 	For(comp string) ComponentContext
 	// Operation specifies the logging operation field
 	Operation(op string) ComponentContext
+	// GetOperation returns the operation object in the context
+	GetOperation() *string
+	// GetComponent returns the component object in the context
+	GetComponent() *string
 }
 
 // ComponentInfo interface defines common information and metadata about components
