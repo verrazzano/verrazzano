@@ -6,7 +6,7 @@ package verrazzano_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	rbacv1 "k8s.io/api/rbac/v1"
