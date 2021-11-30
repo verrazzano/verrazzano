@@ -826,6 +826,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
+			compContext = compContext.For(comp.Name()).Operation("initialize")
 			state := installv1alpha1.Disabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)

@@ -49,6 +49,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
+		upgradeContext = upgradeContext.For(compName).Operation("upgrade")
 		installed, err := comp.IsInstalled(upgradeContext)
 		if err != nil {
 			return newRequeueWithDelay(), err

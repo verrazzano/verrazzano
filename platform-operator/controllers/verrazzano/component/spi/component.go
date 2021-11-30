@@ -23,6 +23,10 @@ type ComponentContext interface {
 	IsDryRun() bool
 	// Copy returns a copy of the current context
 	Copy() ComponentContext
+	// For returns a copy of the current context with an updated logging component field
+	For(comp string) ComponentContext
+	// Operation specifies the logging operation field
+	Operation(op string) ComponentContext
 }
 
 // ComponentInfo interface defines common information and metadata about components

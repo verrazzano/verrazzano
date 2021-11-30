@@ -132,3 +132,23 @@ func (c componentContext) Copy() ComponentContext {
 		effectiveCR: c.effectiveCR,
 	}
 }
+
+func (c componentContext) For(comp string) ComponentContext {
+	return componentContext{
+		log:         c.log.With("component", comp),
+		client:      c.Client(),
+		dryRun:      c.dryRun,
+		cr:          c.cr,
+		effectiveCR: c.effectiveCR,
+	}
+}
+
+func (c componentContext) Operation(op string) ComponentContext {
+	return componentContext{
+		log:         c.log.With("operation", op),
+		client:      c.Client(),
+		dryRun:      c.dryRun,
+		cr:          c.cr,
+		effectiveCR: c.effectiveCR,
+	}
+}
