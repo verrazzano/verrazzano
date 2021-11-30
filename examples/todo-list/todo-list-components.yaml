@@ -16,6 +16,8 @@ spec:
           name: todo-domain
           namespace: todo-list
         spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
           image: container-registry.oracle.com/verrazzano/example-todo:1.0.0-1-20210728181814-eb1e622
