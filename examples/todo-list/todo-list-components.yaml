@@ -44,7 +44,7 @@ spec:
               app: todo-domain
               version: v1
             auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-todo:20211124205249-4d3415d
+                - image: container-registry.oracle.com/verrazzano/example-todo:20211129200415-ae4e89e
                   volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
