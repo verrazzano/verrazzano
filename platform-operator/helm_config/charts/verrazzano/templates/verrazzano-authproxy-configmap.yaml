@@ -1113,7 +1113,7 @@ data:
 
         return serverUrl
     end
-    
+
     function me.isBodyValidJson()
         ngx.req.read_body()
         local data = ngx.req.get_body_data()
