@@ -116,6 +116,8 @@ pipeline {
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+
+        HARBOR_STANDALONE_REGISTRY_CREDS = credentials('harbor-standalone-registry-account')
     }
 
     stages {
@@ -217,7 +219,22 @@ pipeline {
                             """
                         }
                     }
-	            }
+                }
+                script {
+                    try {
+                        sh """
+                            echo "${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}" | docker login -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} ${HARBOR_STANDALONE_REGISTRY} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "Harbor standalone instance docker login at ${HARBOR_STANDALONE_REGISTRY} failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
+                            sh """
+                            echo "${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}" | docker login -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} ${HARBOR_STANDALONE_REGISTRY} --password-stdin
+                            """
+                        }
+                    }
+                }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
