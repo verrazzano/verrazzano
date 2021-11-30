@@ -34,6 +34,10 @@ type ServerPod struct {
 	// A list of environment variables to add to a server
 	// +x-kubernetes-list-type=set
 	Env []corev1.EnvVar `json:"env,omitempty"`
+	
+	// Optional host aliases that map IPs to associated host names.
+	// +x-kubernetes-list-type=set
+	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 
 	// InitContainers holds a list of initialization containers that should
 	// be run before starting the main containers in this pod.
@@ -105,8 +109,4 @@ type ServerPod struct {
 	// Additional volumes to be created in the server pod
 	// +x-kubernetes-list-type=set
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
-
-	// Optional host aliases that map IPs to associated host names.
-	// +x-kubernetes-list-type=set
-	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 }
