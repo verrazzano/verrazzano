@@ -4,7 +4,15 @@ package k8sutil_test
 
 import (
 	"fmt"
+	"go.uber.org/zap/zaptest"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
+	testclient "k8s.io/client-go/rest/fake"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -281,4 +289,81 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 	// Reset env variables
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
+}
+
+func TestApplyCRDYaml(t *testing.T) {
+	log := zaptest.NewLogger(t).Sugar()
+	scheme := runtime.NewScheme()
+	_ = apiextensions.AddToScheme(scheme)
+	c := fake.NewFakeClientWithScheme(scheme)
+	dir := "./testdata"
+
+	var tests = []struct {
+		testName      string
+		testDir       string
+		excludedFiles []string
+		applied       []string
+		isErr         bool
+	}{
+		{
+			"should allow creation of CRD files",
+			dir,
+			nil,
+			[]string{"crd1.yaml", "crd2.yaml"},
+			false,
+		},
+		{
+			"should allow filtering of files in crd directory",
+			dir,
+			[]string{"crd1.yaml"},
+			[]string{"crd2.yaml"},
+			false,
+		},
+		{
+			"should fail on non-existent directory",
+			"blahblah",
+			nil,
+			[]string{},
+			true,
+		},
+		{
+			"should fail to unmarshall files that are not YAML",
+			"../httputil",
+			nil,
+			[]string{},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			filesApplied, err := k8sutil.ApplyCRDYaml(log, c, tt.testDir, tt.excludedFiles)
+			if tt.isErr {
+				assert.NotNil(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.applied, filesApplied)
+			}
+		})
+	}
+}
+
+// TestExecPod tests running a command on a remote pod
+// GIVEN a pod in a cluster and a command to run on that pod
+//  WHEN ExecPod is called
+//  THEN ExecPod return the stdout, stderr, and a nil error
+func TestExecPod(t *testing.T) {
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+	k8sutil.FakePodSTDOUT = "foobar"
+	cfg, _ := rest.InClusterConfig()
+	client := &testclient.RESTClient{}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPod(cfg, client, pod, "container", []string{"run", "some", "command"})
+	assert.Nil(t, err)
+	assert.Equal(t, k8sutil.FakePodSTDOUT, stdout)
 }

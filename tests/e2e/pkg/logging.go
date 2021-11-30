@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo"
 )
 
 // LogLevel is the logging level used to control log output
