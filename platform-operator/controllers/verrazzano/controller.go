@@ -819,13 +819,16 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 
 	log.Debugf("initializeComponentStatus for all components")
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
+
+	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
-			compContext, err := spi.NewContext(log, r, cr, r.DryRun)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
+			compContext := newContext.For(comp.Name()).Operation("initialize")
 			state := installv1alpha1.Disabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
@@ -844,7 +847,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 		}
 	}
 	// Update the status
-	err := r.Status().Update(context.TODO(), cr)
+	err = r.Status().Update(context.TODO(), cr)
 	return ctrl.Result{Requeue: true}, err
 }
 
