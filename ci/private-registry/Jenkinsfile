@@ -310,8 +310,8 @@ pipeline {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         PRIVATE_REPO="${baseImageRepo}"
                         REGISTRY="${ocirRegistry}"
-                        PRIVATE_REGISTRY_USR="${getPrivateRegistryUser()}"
-                        PRIVATE_REGISTRY_PSW="${getPrivateRegistryPassword()}"
+                        PRIVATE_REGISTRY_USR=getPrivateRegistryUser()
+                        PRIVATE_REGISTRY_PSW=getPrivateRegistryPassword()
                     }
                     steps {
                         sh """
