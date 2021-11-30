@@ -187,6 +187,8 @@ spec:
             weblogic.resourceVersion: domain-v8
             weblogic.domainUID: bobbys-front-end
         spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
           domainUID: bobbys-front-end
           domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
           image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211027151722-46851d0
