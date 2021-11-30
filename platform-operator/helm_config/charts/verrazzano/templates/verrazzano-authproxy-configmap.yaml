@@ -46,31 +46,32 @@ data:
             auth.bad_request("Invalid Origin header: '*'")
         end
         
-        local originAllowed = auth.isOriginAllowed(h, backend, ingressUri)
-        
-        if not originAllowed then
-          local requestMethod = ngx.req.get_method()
-          -- From https://tools.ietf.org/id/draft-abarth-origin-03.html#server-behavior, if the request Origin is not in
-          -- whitelisted origins and the request method is not a safe non state changing (i.e. GET or HEAD), we should
-          -- abort the request.
-          if requestMethod ~= "GET" and requestMethod ~= "HEAD" and requestMethod ~= "OPTIONS" then
-              auth.forbidden("Origin: " .. h .. "not allowed")
-          end
-        end
-
         ngx.header["Vary"] = "Origin"
-        -- From "Simple Cross-Origin Request, Actual Request, and Redirects" section of https://www.w3.org/TR/2020/SPSD-cors-20200602,
-        -- set the value of Access-Control-Allow-Origin and Access-Control-Allow-Credentials hedaers if there is a match.
+        local requestMethod = ngx.req.get_method()
+        local originAllowed = auth.isOriginAllowed(h, backend, ingressUri)
+
+        -- From https://tools.ietf.org/id/draft-abarth-origin-03.html#server-behavior, if the request Origin is not in
+        -- whitelisted origins and the request method is not a safe non state changing (i.e. GET or HEAD), we should
+        -- abort the request.
+        if not originAllowed and (requestMethod ~= "GET" or requestMethod ~= "HEAD" or requestMethod ~= "OPTIONS") then
+            auth.forbidden("Origin: " .. h .. " not allowed.")
+        end
+        
         if originAllowed then
+            -- From "Simple Cross-Origin Request, Actual Request, and Redirects" section of https://www.w3.org/TR/2020/SPSD-cors-20200602,
+            -- set the value of Access-Control-Allow-Origin and Access-Control-Allow-Credentials hedaers if there is a match.
             ngx.header["Access-Control-Allow-Origin"] = h
             ngx.header["Access-Control-Allow-Credentials"] = "true"
-            if ngx.req.get_method() == "OPTIONS" then
-              ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
-              ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
-              ngx.header["Content-Length"] = 0
-              ngx.status = 200
-              ngx.exit(ngx.HTTP_OK)
+            if requestMethod == "OPTIONS" then
+                ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
+                ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
             end
+        end
+        
+        if requestMethod == "OPTIONS" then
+            ngx.header["Content-Length"] = 0
+            ngx.status = 200
+            ngx.exit(ngx.HTTP_OK)
         end
         
     else
