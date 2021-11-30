@@ -269,13 +269,14 @@ func TestPostInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestPostUpgrade tests the Verrazzano PostUpgrade call
-// GIVEN a Verrazzano component
+// TestPostUpgrade tests the Verrazzano PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
 //  WHEN I call PostUpgrade
 //  THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Version: "v1.2.0"},
+		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"}}, false)
 	err := NewComponent().PostUpgrade(ctx)
 	assert.NoError(t, err)
 }

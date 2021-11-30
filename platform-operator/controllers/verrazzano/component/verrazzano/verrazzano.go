@@ -6,30 +6,30 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"go.uber.org/zap"
-	"io/fs"
-	"io/ioutil"
-	"strings"
-	"time"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
-	"os/exec"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -43,17 +43,18 @@ const (
 	componentName           = "verrazzano"
 	keycloakInClusterURL    = "keycloak-http.keycloak.svc.cluster.local"
 	esHelmValuePrefixFormat = "elasticSearch.%s"
+
+	workloadName  = "system-es-master"
+	containerName = "es-master"
+	portName      = "http"
+	indexPattern  = "verrazzano-*"
 )
 
-const workloadName = "system-es-master"
-const containerName = "es-master"
-const portName = "http"
-const indexPattern = "verrazzano-*"
-
-var execCommand = exec.Command
-
-// For Unit test purposes
-var writeFileFunc = ioutil.WriteFile
+var (
+	// For Unit test purposes
+	execCommand   = exec.Command
+	writeFileFunc = ioutil.WriteFile
+)
 
 func resetWriteFileFunc() {
 	writeFileFunc = ioutil.WriteFile
@@ -68,7 +69,7 @@ func resolveVerrazzanoNamespace(ns string) string {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func VerrazzanoPreUpgrade(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) error {
+func verrazzanoPreUpgrade(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) error {
 	return fixupFluentdDaemonset(log, client, namespace)
 }
 
@@ -549,7 +550,7 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
 func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
 	// Only apply this fix to clusters with Elasticsearch enabled.
-	if !*ctx.EffectiveCR().Spec.Components.Elasticsearch.Enabled {
+	if !vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		ctx.Log().Info("Elasticsearch Post Upgrade: Replica count update unnecessary on managed cluster.")
 		return nil
 	}

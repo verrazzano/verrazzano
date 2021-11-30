@@ -6,11 +6,11 @@ package verrazzano
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
-	"crypto/sha256"
-	"encoding/base64"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 

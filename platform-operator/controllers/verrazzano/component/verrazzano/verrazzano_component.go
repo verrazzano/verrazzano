@@ -95,7 +95,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // updateElasticsearchResources updates elasticsearch resources
 func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
-	if err := fixupElasticSearchReplicaCount(ctx, c.ChartNamespace); err != nil {
+	if err := fixupElasticSearchReplicaCount(ctx, resolveVerrazzanoNamespace(c.ChartNamespace)); err != nil {
 		return err
 	}
 	return nil
