@@ -105,4 +105,8 @@ type ServerPod struct {
 	// Additional volumes to be created in the server pod
 	// +x-kubernetes-list-type=set
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
+
+	// Optional host aliases that map IPs to associated host names.
+	// +x-kubernetes-list-type=set
+	HostAliases []HostAlias `json:"hostAliases,omitempty"`
 }
