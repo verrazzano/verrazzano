@@ -14,27 +14,32 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	helmutil "github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"strings"
 )
 
 const (
-	secretName       = "mysql"
-	mysqlUsernameKey = "mysqlUser"
-	mysqlUsername    = "keycloak"
-	helmPwd          = "mysqlPassword"
-	helmRootPwd      = "mysqlRootPassword"
-	mysqlKey         = "mysql-password"
-	mysqlRootKey     = "mysql-root-password"
-	mysqlDBFile      = "create-mysql-db.sql"
+	secretName          = "mysql"
+	mySQLUsernameKey    = "mysqlUser"
+	mySQLUsername       = "keycloak"
+	helmPwd             = "mysqlPassword"
+	helmRootPwd         = "mysqlRootPassword"
+	mySQLKey            = "mysql-password"
+	mySQLRootKey        = "mysql-root-password"
+	mySQLInitFilePrefix = "init-mysql-"
 )
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
+// isReady checks to see if the MySQL component is in ready state
 func isReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: name, Namespace: namespace},
@@ -42,6 +47,7 @@ func isReady(context spi.ComponentContext, name string, namespace string) bool {
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
+// isEnabled checks to see if the MySQL component is enabled in the effective CR
 func isEnabled(context spi.ComponentContext) bool {
 	keycloak := context.EffectiveCR().Spec.Components.Keycloak
 	if keycloak != nil && keycloak.Enabled != nil {
@@ -50,56 +56,63 @@ func isEnabled(context spi.ComponentContext) bool {
 	return false
 }
 
-// appendMySQLOverrides appends the the password for database user and root user.
+// appendMySQLOverrides appends the MySQL helm overrides
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
+
+	secret := &v1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: vzconst.KeycloakNamespace,
+		Name:      secretName}
+	// Get the mysql secret
+	err := compContext.Client().Get(context.TODO(), nsName, secret)
+	if err != nil && !k8serror.IsNotFound(err) {
+		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+	// see if the mysql exists
+	if !k8serror.IsNotFound(err) {
+		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
+		kvs = append(kvs, bom.KeyValue{
+			Key:   helmRootPwd,
+			Value: string(secret.Data[mySQLRootKey]),
+		})
+		kvs = append(kvs, bom.KeyValue{
+			Key:   helmPwd,
+			Value: string(secret.Data[mySQLKey]),
+		})
+	}
+
+	kvs = append(kvs, bom.KeyValue{Key: mySQLUsernameKey, Value: mySQLUsername})
+
+	// See if MySQL is deployed and create the MySQL init file if not
 	deployed, err := helmutil.IsReleaseDeployed(ComponentName, vzconst.KeycloakNamespace)
 	if err != nil {
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-	if deployed {
-		secret := &v1.Secret{}
-		nsName := types.NamespacedName{
-			Namespace: vzconst.KeycloakNamespace,
-			Name:      secretName}
-
-		err = compContext.Client().Get(context.TODO(), nsName, secret)
-		if err != nil {
-			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-		}
-
-		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
-		kvs = append(kvs, bom.KeyValue{
-			Key:   helmRootPwd,
-			Value: string(secret.Data[mysqlRootKey]),
-		})
-		kvs = append(kvs, bom.KeyValue{
-			Key:   helmPwd,
-			Value: string(secret.Data[mysqlKey]),
-		})
-	}
-	kvs = append(kvs, bom.KeyValue{Key: mysqlUsernameKey, Value: mysqlUsername})
 	if !deployed {
-		err = createDBFile(compContext)
+		mySQLInitFile, err := createMySQLInitFile(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
-		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: os.TempDir() + "/" + mysqlDBFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
 	}
+
+	// generate the MySQl PV overrides
 	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
 	if err != nil {
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-	// Convert NGINX install-args to helm overrides
+
+	// Convert MySQL install-args to helm overrides
 	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
 
 	return kvs, nil
 }
 
-// preInstall Create and label the MySQL namespace, and create any override helm args needed
+// preInstall creates and label the MySQL namespace
 func preInstall(compContext spi.ComponentContext, namespace string) error {
 	if compContext.IsDryRun() {
-		compContext.Log().Infof("MySQL postInstall dry run")
+		compContext.Log().Infof("MySQL PreInstall dry run")
 		return nil
 	}
 	compContext.Log().Infof("Adding label needed by network policies to %s namespace", namespace)
@@ -117,79 +130,85 @@ func preInstall(compContext spi.ComponentContext, namespace string) error {
 	return nil
 }
 
-// postInstall Patch the controller service ports based on any user-supplied overrides
+// postInstall removes the MySQL Init file
 func postInstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Infof("MySQL postInstall dry run")
+		ctx.Log().Infof("MySQL PostInstall dry run")
 		return nil
 	}
 	// Delete create-mysql-db.sql after install
-	return os.Remove(os.TempDir() + "/" + mysqlDBFile)
+	removeMySQLInitFile(ctx)
+	return nil
 }
 
-func createDBFile(ctx spi.ComponentContext) error {
-	fmt.Println(os.Getwd())
-	tmpDBFile, err := os.Create(os.TempDir() + "/" + mysqlDBFile)
+// createMySQLInitFile creates the .sql file that gets passed to helm as an override
+// this initializes the MySQL DB
+func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLInitFilePrefix))
 	if err != nil {
-		ctx.Log().Errorf("Failed to create temporary MySQL DB file: %v", err)
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return "", err
 	}
-
-	_, err = tmpDBFile.Write([]byte(fmt.Sprintf(
+	_, err = file.Write([]byte(fmt.Sprintf(
 		"CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;"+
 			"USE keycloak;"+
 			"GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';"+
 			"FLUSH PRIVILEGES;",
-		mysqlUsername,
+		mySQLUsername,
 	)))
 	if err != nil {
 		ctx.Log().Errorf("Failed to write to temporary file: %v", err)
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return "", err
 	}
-
 	// Close the file
-	if err := tmpDBFile.Close(); err != nil {
+	if err := file.Close(); err != nil {
 		ctx.Log().Errorf("Failed to close temporary file: %v", err)
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return "", err
 	}
-	return nil
+	return file.Name(), nil
 }
 
+// removeMySQLInitFile removes any files from the OS temp dir that match the pattern of the MySQL init file
+func removeMySQLInitFile(ctx spi.ComponentContext) {
+	files, err := ioutil.ReadDir(os.TempDir())
+	if err != nil {
+		ctx.Log().Errorf("Error reading temp directory: %s", err.Error())
+	}
+	for _, file := range files {
+		if !file.IsDir() && strings.HasPrefix(file.Name(), mySQLInitFilePrefix) && strings.HasSuffix(file.Name(), ".sql") {
+			fullPath := filepath.Join(os.TempDir(), file.Name())
+			ctx.Log().Debugf("Deleting temp MySQL init file %s", fullPath)
+			if err := os.Remove(fullPath); err != nil {
+				ctx.Log().Errorf("Error deleting temp MySQL init file %s", fullPath)
+			}
+		}
+	}
+}
+
+// generateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := compContext.EffectiveCR()
-	defaultVolumeSpec := effectiveCR.Spec.DefaultVolumeSource
-
-	// keycloak was not specified in CR so return defaults
-	if effectiveCR.Spec.Components.Keycloak == nil {
-		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   "persistence.enabled",
-				Value: "false",
-			})
-		}
-		return kvs, nil
+	var mySQLVolumeSource *v1.VolumeSource
+	if effectiveCR.Spec.Components.Keycloak != nil {
+		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
 	}
-
-	// Use a volume source specified in the Keycloak config, otherwise use the default spec
-	mysqlVolumeSource := effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
-	if mysqlVolumeSource == nil {
-		mysqlVolumeSource = defaultVolumeSpec
+	if mySQLVolumeSource == nil {
+		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
 	}
 
 	// No volumes to process, return what we have
-	if mysqlVolumeSource == nil {
+	if mySQLVolumeSource == nil {
 		return kvs, nil
 	}
 
-	if mysqlVolumeSource.EmptyDir != nil {
+	if mySQLVolumeSource.EmptyDir != nil {
 		// EmptyDir, disable persistence
 		kvs = append(kvs, bom.KeyValue{
 			Key:   "persistence.enabled",
 			Value: "false",
 		})
-	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
+	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
-		pvcs := mysqlVolumeSource.PersistentVolumeClaim
+		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
 			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)

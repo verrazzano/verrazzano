@@ -15,7 +15,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
@@ -23,6 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
+
+const profilesDir = "../../../../manifests/profiles"
 
 // genericHelmTestRunner is used to run generic OS commands with expected results
 type genericHelmTestRunner struct {
@@ -35,7 +39,7 @@ type genericHelmTestRunner struct {
 var notDeployedRunner = genericHelmTestRunner{
 	stdOut: []byte{},
 	stdErr: []byte("Error: release: not found"),
-	err:    fmt.Errorf("Release was not found in output"),
+	err:    fmt.Errorf("release was not found in output"),
 }
 
 // deployedRunner returns the expected helm status output when mysql is deployed
@@ -58,10 +62,17 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
+		})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
-	assert.Equal(t, mysqlUsername, bom.FindKV(kvs, mysqlUsernameKey))
+	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 }
 
@@ -85,7 +96,14 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false), "", "", "", []bom.KeyValue{})
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
+		})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
@@ -106,7 +124,14 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
+		})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
@@ -143,7 +168,14 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
+		})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
@@ -162,7 +194,15 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
+		})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
+
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 }
@@ -194,7 +234,14 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	}
 	helm.SetCmdRunner(notDeployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles"), "", "", "", []bom.KeyValue{})
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
+		})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
@@ -214,13 +261,13 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
 			secret.Name = secretName
 			secret.Data = map[string][]byte{}
-			secret.Data[mysqlRootKey] = []byte("test-root-key")
-			secret.Data[mysqlKey] = []byte("test-key")
+			secret.Data[mySQLRootKey] = []byte("test-root-key")
+			secret.Data[mySQLKey] = []byte("test-key")
 			return nil
 		})
 	helm.SetCmdRunner(deployedRunner)
 	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false), "", "", "", []bom.KeyValue{})
+	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
@@ -270,17 +317,13 @@ func TestIsMySQLNotReady(t *testing.T) {
 // TestSQLFileCreatedAndDeleted tests the creation and deletion of the mysql db init file
 // WHEN the appendMySQLOverrides and then postInstall functions are called
 // THEN ensure that the mysql db init file is created successfully and then deleted successfully
-func TestSQLFileCreatedAndDeleted(t *testing.T) {
-	vz := &vzapi.Verrazzano{}
-	helm.SetCmdRunner(notDeployedRunner)
-	defer helm.SetDefaultRunner()
-	fakeContext := spi.NewFakeContext(nil, vz, false, "../../../../manifests/profiles")
-	_, err := appendMySQLOverrides(fakeContext, "", "", "", []bom.KeyValue{})
+func TestSQLFileCreatedAndDRemoved(t *testing.T) {
+	fakeContext := spi.NewFakeContext(nil, nil, false)
+	tmpFile, err := createMySQLInitFile(fakeContext)
 	assert.NoError(t, err)
-	sqlFileContents, err := os.ReadFile(os.TempDir() + "/" + mysqlDBFile)
+	tmpFileContents, err := os.ReadFile(tmpFile)
 	assert.NoError(t, err)
-	assert.NotEmpty(t, sqlFileContents)
-	err = postInstall(fakeContext)
-	assert.NoError(t, err)
-	assert.NoFileExists(t, os.TempDir()+"/"+mysqlDBFile)
+	assert.NotEmpty(t, tmpFileContents)
+	removeMySQLInitFile(fakeContext)
+	assert.NoFileExists(t, tmpFile)
 }
