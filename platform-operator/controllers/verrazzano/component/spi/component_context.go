@@ -136,7 +136,7 @@ func (c componentContext) Copy() ComponentContext {
 func (c componentContext) For(comp string) ComponentContext {
 	return componentContext{
 		log:         c.log.With("component", comp),
-		client:      c.Client(),
+		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
@@ -146,7 +146,7 @@ func (c componentContext) For(comp string) ComponentContext {
 func (c componentContext) Operation(op string) ComponentContext {
 	return componentContext{
 		log:         c.log.With("operation", op),
-		client:      c.Client(),
+		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
