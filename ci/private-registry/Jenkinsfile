@@ -286,15 +286,21 @@ pipeline {
         }
         stage('Upload Verrazzano Images') {
             steps {
-                sh """
-                    # Create OCIR repos for the images in the tarballs in the test compartment
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
-                    echo "Upload OCIR region: $ocirRegion"
-                    echo "Upload OCIR Repository: ${ocirRegistry}"
-                    # Run the image-helper to load the images into the OCIR registry in the runner's region
-                    cd ${TARBALL_DIR}
-                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
-                """
+                script {
+                    if (SELECT_IMAGE_REGISTRY == "OCIR") {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            # Run the image-helper to load the images into the OCIR registry in the runner's region
+                            cd ${TARBALL_DIR}
+                            ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                        """
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                        // TODO: Load images to harbor standalone registry
+                    }
+                }
             }
         }
         stage('Acceptance Tests') {
@@ -304,8 +310,8 @@ pipeline {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         PRIVATE_REPO="${baseImageRepo}"
                         REGISTRY="${ocirRegistry}"
-                        PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
-                        PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
+                        PRIVATE_REGISTRY_USR="${getPrivateRegistryUser()}"
+                        PRIVATE_REGISTRY_PSW="${getPrivateRegistryPassword()}"
                     }
                     steps {
                         sh """
@@ -565,6 +571,24 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+def getPrivateRegistryUser() {
+    if (SELECT_IMAGE_REGISTRY == "OCIR") {
+        return ${OCIR_CREDS_USR}
+    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+        return ${HARBOR_STANDALONE_REGISTRY_CREDS_USR}
+    }
+    return ""
+}
+
+def getPrivateRegistryPassword() {
+    if (SELECT_IMAGE_REGISTRY == "OCIR") {
+        return ${OCIR_CREDS_PSW}
+    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+        return ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}
+    }
+    return ""
 }
 
 def runGinkgoRandomize(testSuitePath) {
