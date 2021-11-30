@@ -4,9 +4,8 @@
 package appoper
 
 import (
-	"context"
 	"fmt"
-	"io/ioutil"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
 	"path/filepath"
 
@@ -16,11 +15,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/yaml"
 )
 
 // ComponentName is the name of the component
@@ -91,71 +87,8 @@ func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace
 }
 
 func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _ string) error {
-	var err error
 	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
-
-	files, err := ioutil.ReadDir(path)
-	if err != nil {
-		log.Error(err, "Unable to list files in directory")
-		return err
-	}
-	for _, file := range files {
-		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-		yamlBytes, err := ioutil.ReadFile(path + "/" + file.Name())
-		if err != nil {
-			log.Error(err, "Unable to read file")
-			return err
-		}
-		err = yaml.Unmarshal(yamlBytes, u)
-		if err != nil {
-			log.Error(err, "Unable to unmarshal yaml")
-			return err
-		}
-		if u.GetKind() == "CustomResourceDefinition" {
-			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
-			if err != nil {
-				log.Error(err, "Unable to make a copy of the spec")
-				return err
-			}
-
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), c, u, func() error {
-				return unstructured.SetNestedField(u.Object, specCopy, "spec")
-			})
-			if err != nil {
-				log.Error(err, "Unable persist object to kubernetes")
-				return err
-			}
-		}
-	}
-	for _, file := range files {
-		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-		yamlBytes, err := ioutil.ReadFile(path + "/" + file.Name())
-		if err != nil {
-			log.Error(err, "Unable to read file")
-			return err
-		}
-		err = yaml.Unmarshal(yamlBytes, u)
-		if err != nil {
-			log.Error(err, "Unable to unmarshal yaml")
-			return err
-		}
-		if u.GetKind() != "CustomResourceDefinition" {
-			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
-			if err != nil {
-				log.Error(err, "Unable to make a copy of the spec")
-				return err
-			}
-
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), c, u, func() error {
-				return unstructured.SetNestedField(u.Object, specCopy, "spec")
-			})
-			if err != nil {
-				log.Error(err, "Unable persist object to kubernetes")
-				return err
-			}
-
-		}
-	}
-
-	return nil
+	filesApplied, err := k8sutil.ApplyCRDYaml(log, c, path, nil)
+	log.Debugf("applied CRD files for app operator: %v", filesApplied)
+	return err
 }
