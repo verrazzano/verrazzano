@@ -94,7 +94,7 @@ pipeline {
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
         DATABASE_PSW = credentials('todo-mysql-password')
 
-        PROMETHEUS_GW_URL = credentials('v8o-dev-sauron-prometheus-url')
+        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
     }
 
     stages {
@@ -456,7 +456,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keepGoing --noColor ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${testSuitePath}/...
         """
     }
 }
@@ -587,8 +587,8 @@ def metricTimerEnd(metricName, status) {
         long y = env."${timerEndName}" as long;
         def dur = (y-x)
         labels =  getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.BRANCH_NAME} $labels ${status} ${dur}")
             echo "emit prometheus metrics: $EMIT"
             return EMIT
         }
@@ -616,8 +616,8 @@ def metricBuildDuration() {
     if (params.EMIT_METRICS) {
         labels =  getMetricLabels()
         labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'verrazzano-sauron', variable: 'SAURON_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${SAURON_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
+        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
+            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }

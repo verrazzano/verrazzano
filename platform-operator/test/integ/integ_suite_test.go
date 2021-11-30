@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 
 	. "github.com/onsi/ginkgo"
@@ -16,6 +15,6 @@ import (
 
 func TestInteg(t *testing.T) {
 	RegisterFailHandler(Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("integ-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
+	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("integ-%d-test-result.xml", GinkgoParallelProcess()))
 	RunSpecsWithDefaultAndCustomReporters(t, "Integration Test Suite", []Reporter{junitReporter})
 }

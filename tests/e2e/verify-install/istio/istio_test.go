@@ -8,7 +8,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	ginkgoExt "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,16 +21,16 @@ const (
 var _ = Describe("Istio", func() {
 	const istioNamespace = "istio-system"
 
-	ginkgoExt.DescribeTable("namespace",
+	DescribeTable("namespace",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesNamespaceExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		ginkgoExt.Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
+		Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
 	)
 
-	ginkgoExt.DescribeTable("deployments",
+	DescribeTable("deployments",
 		func(namespace string) {
 			expectedDeployments := []string{
 				"istio-egressgateway",
@@ -56,6 +55,6 @@ var _ = Describe("Istio", func() {
 
 			Expect(deployments).Should(WithTransform(deploymentNames, ContainElements(expectedDeployments)))
 		},
-		ginkgoExt.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
+		Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
 	)
 })

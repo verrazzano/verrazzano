@@ -20,5 +20,5 @@ if [ -z $2 ]; then
     echo "The credentials to push metrics is required."
     exit 1
 fi
-SAURON_CRED=$2
+PROMETHEUS_CRED=$2
 # Add the go code to push metrics

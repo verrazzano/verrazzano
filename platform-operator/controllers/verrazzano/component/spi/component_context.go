@@ -18,6 +18,8 @@ const (
 	baseProfile = "base"
 )
 
+var _ ComponentContext = componentContext{}
+
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log *zap.SugaredLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
 	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
