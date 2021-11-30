@@ -112,7 +112,7 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-func Test_updateKeycloakUris(t *testing.T) {
+/*func Test_updateKeycloakUris(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Profile: "dev",
@@ -372,7 +372,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 			}
 		})
 	}
-}
+}*/
 
 // TestAppendKeycloakOverrides tests that the Keycloak overrides are generated correctly.
 // GIVEN a Verrazzano BOM
