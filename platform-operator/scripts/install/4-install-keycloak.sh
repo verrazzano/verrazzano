@@ -10,12 +10,10 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 set -u
 
 KEYCLOAK_NS=keycloak
-KCADMIN_REALM=master
 KCADMIN_USERNAME=keycloakadmin
 KCADMIN_SECRET=keycloak-http
 VERRAZZANO_INTERNAL_PROM_USER=verrazzano-prom-internal
 VERRAZZANO_INTERNAL_ES_USER=verrazzano-es-internal
-MYSQL_USERNAME=keycloak
 VERRAZZANO_NS=verrazzano-system
 VZ_SYS_REALM=verrazzano-system
 VZ_USERNAME=verrazzano
@@ -32,67 +30,6 @@ else
 fi
 
 DNS_SUFFIX=$(get_dns_suffix ${INGRESS_IP})
-
-function install_mysql {
-  MYSQL_CHART_DIR=${CHARTS_DIR}/mysql
-#  Dont need this check anymore
-  if is_chart_deployed mysql ${KEYCLOAK_NS} ${MYSQL_CHART_DIR} ; then
-    return 0
-  fi
-
-  log "Check for Keycloak namespace"
-  if ! kubectl get namespace ${KEYCLOAK_NS} 2> /dev/null ; then
-    log "Create Keycloak namespace"
-    kubectl create namespace ${KEYCLOAK_NS}
-    # Label the keycloak namespace so that we istio injection is enabled
-    log "Adding label needed for istio sidecar injection to keycloak namespace"
-    kubectl label namespace keycloak "istio-injection=enabled" --overwrite
-    # Label the keycloak namespace so that we can apply network policies
-    log "Adding label needed by network policies to keycloak namespace"
-    kubectl label namespace keycloak "verrazzano.io/namespace=keycloak" --overwrite
-  fi
-
-  # Handle any additional MySQL install args that cannot be in mysql-values.yaml
-#  done in nginx
-  local EXTRA_MYSQL_ARGUMENTS=$(get_mysql_helm_args_from_config)
-  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set mysqlUser=${MYSQL_USERNAME}"
-
-  echo "CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;" > ${TMP_DIR}/create-db.sql
-  echo "USE keycloak;" >> ${TMP_DIR}/create-db.sql
-  # Allow the keycloak user to create/drop tables, indices, foreign key references, and read/write to all tables in keycloak schema
-  echo "GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '${MYSQL_USERNAME}'@'%';" >> ${TMP_DIR}/create-db.sql
-  echo "FLUSH PRIVILEGES;" >> ${TMP_DIR}/create-db.sql
-  EXTRA_MYSQL_ARGUMENTS="$EXTRA_MYSQL_ARGUMENTS --set-file initializationFiles.create-db\.sql=${TMP_DIR}/create-db.sql"
-
-  IMAGE_PULL_SECRETS_ARGUMENT=""
-  # looks at istio or kiali to do this, just add it to the component declaration
-#  ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-  if [ ${REGISTRY_SECRET_EXISTS} == "TRUE" ]; then
-    IMAGE_PULL_SECRETS_ARGUMENT=" --set imagePullSecrets[0].name=${GLOBAL_IMAGE_PULL_SECRET}"
-  fi
-
-  local chart_name=mysql
-  build_image_overrides mysql ${chart_name}
-  local image_args=${HELM_IMAGE_ARGS}
-  build_image_overrides mysql oraclelinux
-  HELM_IMAGE_ARGS="${HELM_IMAGE_ARGS} ${image_args}"
-
-  local PROFILE_VALUES_OVERRIDE=""
-  local profile=$(get_install_profile)
-  if [ "$profile" == "dev" ]; then
-    local PROFILE_VALUES_OVERRIDE=" -f ${VZ_CHARTS_DIR}/verrazzano/mysql.${profile}.yaml"
-  fi
-
-  log "PROFILE VALUES OVERRIDE = ${PROFILE_VALUES_OVERRIDE}"
-
-  helm_install_retry ${chart_name} ${MYSQL_CHART_DIR} ${KEYCLOAK_NS} \
-      -f $VZ_OVERRIDES_DIR/mysql-values.yaml \
-      ${HELM_IMAGE_ARGS} \
-      ${IMAGE_PULL_SECRETS_ARGUMENT} \
-      ${PROFILE_VALUES_OVERRIDE} \
-      ${EXTRA_MYSQL_ARGUMENTS} \
-      || return $?
-}
 
 # build_extra_init_containers_override overrides the keycloak extraInitContainers helm value with YAML that
 # includes the image path constructed from the bill of materials
