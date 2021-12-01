@@ -12,7 +12,6 @@ import (
 )
 
 const log1 = `####<Nov 17, 2021 10:36:24,316 PM GMT> <Info> <Security> <bobs-bookstore-managed-server1> <> <main> <> <> <> <1637188584316> <[severity-value: 64] [partition-id: 0] [partition-name: DOMAIN] > <BEA-090905> <Disabling the CryptoJ JCE Provider self-integrity check for better startup performance. To enable this check, specify -Dweblogic.security.allowCryptoJDefaultJCEVerification=true.> 
-
 `
 const log2 = `####<Nov 17, 2021 5:55:46,955 PM GMT> <Trace> <com.oracle.logging.SystemLogger> <tododomain-adminserver> <AdminServer> <[ACTIVE] ExecuteThread: '9' for queue: 'weblogic.kernel.Default (self-tuning)'> <<WLS Kernel>> <> <cd1631dc-0279-48fc-bb29-85462f5ea85c-00000013> <1637171746955> <[severity-value: 256] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > <BEA-000000> <[com.oracle.cie.wls.config.online.Util:log] CIE Config Helper: registering MBean >>
 ####<Nov 17, 2021 5:55:46,955 PM GMT> <Trace> <com.oracle.logging.SystemLogger> <tododomain-adminserver> <AdminServer> <[ACTIVE] ExecuteThread: '9' for queue: 'weblogic.kernel.Default (self-tuning)'> <<WLS Kernel>> <> <cd1631dc-0279-48fc-bb29-85462f5ea85c-00000013> <1637171746955> <[severity-value: 256] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > <BEA-000000> <[com.oracle.cie.wls.config.online.Util:log] CIE Config Helper: isRegistered MBean: true> `
@@ -70,7 +69,6 @@ Caused By: java.net.UnknownHostException: mysql.wrong.svc.cluster.local: Tempora
 	at weblogic.work.ExecuteThread.execute(ExecuteThread.java:420)
 	at weblogic.work.ExecuteThread.run(ExecuteThread.java:360)
 > 
-
 `
 
 // readFormat reads format1 ~ format13 in WlsFluentdParsingRules and combines format1 ~ format13 into one line
