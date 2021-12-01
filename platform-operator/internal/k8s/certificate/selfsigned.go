@@ -104,9 +104,9 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, erro
 		DNSNames:     []string{config.CommonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName: config.CommonName,
-			Country: []string{config.CountryName},
-			Province: []string{config.StateOrProvinceName},
+			CommonName:   config.CommonName,
+			Country:      []string{config.CountryName},
+			Province:     []string{config.StateOrProvinceName},
 			Organization: []string{config.OrgName},
 		},
 		NotBefore:             config.NotBefore,
@@ -128,6 +128,9 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, erro
 		return nil, err
 	}
 
+	// Reload the root cert info so that we get fields like the Subject Key ID that are generated
+	processedRootCertInfo, err := x509.ParseCertificate(rootCertBytes)
+
 	// PEM encode root cert
 	rootCertPEM := new(bytes.Buffer)
 	_ = pem.Encode(rootCertPEM, &pem.Block{
@@ -138,7 +141,7 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, erro
 	return &rootResult{
 		PrivateKey: rootPrivKey,
 		CertPEM:    rootCertPEM.Bytes(),
-		CertInfo:   rootCertInfo,
+		CertInfo:   processedRootCertInfo,
 	}, nil
 }
 
@@ -149,16 +152,17 @@ func createIntermediateCert(config CertConfig, rootResult *rootResult) (*intermR
 		DNSNames:     []string{config.CommonName},
 		SerialNumber: rootResult.CertInfo.SerialNumber,
 		Subject: pkix.Name{
-			CommonName: config.CommonName,
-			Country: []string{config.CountryName},
-			Province: []string{config.StateOrProvinceName},
+			CommonName:   config.CommonName,
+			Country:      []string{config.CountryName},
+			Province:     []string{config.StateOrProvinceName},
 			Organization: []string{config.OrgName},
 		},
-		NotBefore:      config.NotBefore,
-		NotAfter:       config.NotAfter,
-		IsCA:           true,
-		AuthorityKeyId: rootResult.CertInfo.SubjectKeyId,
-		KeyUsage:       x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
+		NotBefore:             config.NotBefore,
+		NotAfter:              config.NotAfter,
+		IsCA:                  true,
+		AuthorityKeyId:        rootResult.CertInfo.SubjectKeyId,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
 	}
 
 	// generate intermediate cert private key
