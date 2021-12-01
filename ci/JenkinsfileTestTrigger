@@ -56,6 +56,7 @@ pipeline {
     }
 
     environment {
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         KUBERNETES_VERSION = '1.19,1.20,1.21,1.22'
@@ -129,7 +130,7 @@ pipeline {
                 stage('Multi Cluster Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -145,7 +146,7 @@ pipeline {
                 stage('Multi Cluster Tests with External ES') {
                     steps {
                         script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     booleanParam(name: 'EXTERNAL_ELASTICSEARCH', value: true),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -162,7 +163,7 @@ pipeline {
                 stage('Uninstall Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -178,7 +179,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -194,7 +195,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.21') {
                     steps {
                         script {
-                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -212,7 +213,7 @@ pipeline {
                     steps {
                         script {
                             try {
-                                build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -233,7 +234,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -250,7 +251,7 @@ pipeline {
                 stage('Upgrade tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-upgrade-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -298,12 +299,12 @@ def isPagerDutyEnabled() {
 // Called in final post success block of pipeline
 def storePipelineArtifacts() {
     script {
-        // If this is master and it was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of master
+        // If this was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of the branch
+        // NOTE: Normally master and release-* branches are the only ones doing this, but when we need to test out pipeline changes we can make use
+        // as well
         sh """
-            if [ "${env.JOB_NAME}" == "verrazzano-push-triggered-acceptance-tests/master" ]; then
-                echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
-                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
-            fi
+            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
         """
     }
 }
