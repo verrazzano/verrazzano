@@ -120,7 +120,11 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isKeycloakEnabled(ctx)
+	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }
 
 func getCertName(vz *vzapi.Verrazzano) string {
@@ -145,12 +149,4 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		{Namespace: "keycloak",
 			Name: "keycloak"},
 	}, 1)
-}
-
-func isKeycloakEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Keycloak
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
 }
