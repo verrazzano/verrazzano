@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -27,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeIstioInstalledRunner is used to test if Istio is installed
@@ -45,6 +47,24 @@ var installCR = &installv1alpha1.Verrazzano{
 		},
 	},
 }
+
+type fakeMonitor struct {
+	result  bool
+	err     error
+	running bool
+}
+
+func (f *fakeMonitor) checkResult() (bool, error) { return f.result, f.err }
+
+func (f *fakeMonitor) reset() {}
+
+func (f *fakeMonitor) init() {}
+
+func (f *fakeMonitor) sendResult(r bool) {}
+
+func (f *fakeMonitor) isRunning() bool { return f.running }
+
+var _ installMonitor = &fakeMonitor{}
 
 // TestIsOperatorInstallSupported tests if the install is supported
 // GIVEN a component
@@ -108,20 +128,163 @@ func getIsNotInstalledMock(t *testing.T) *mocks.MockClient {
 // TestInstall tests the component install
 // GIVEN a component
 //  WHEN I call Install
-//  THEN the install returns success and passes the correct values to the install function
+//  THEN the install starts a new attempt and returns a RetryableError to requeue
 func TestInstall(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := IstioComponent{
+	comp := istioComponent{
 		ValuesFile: "test-values-file.yaml",
+		monitor:    &fakeMonitor{result: true, running: false},
 	}
+
+	expectedErr := spi2.RetryableError{Source: ComponentName}
+	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+		return expectedErr
+	}
+	defer func() { forkInstallFunc = forkInstall }()
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	istio.SetCmdRunner(fakeRunner{})
 	setInstallFunc(fakeInstall)
 	setBashFunc(fakeBash)
+
 	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
-	assert.NoError(err, "Upgrade returned an error")
+	assert.Equal(expectedErr, err, "Upgrade returned an unexpected error")
+}
+
+// TestBackgroundInstallCompletedSuccessfully tests the component install
+// GIVEN a call to istioComponent.Install()
+//  WHEN when the monitor goroutine failed to successfully complete
+//  THEN the Install() method returns nil without calling the forkInstall function
+func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+		assert.Fail("Unexpected call to forkInstall() function")
+		return nil
+	}
+	defer func() { forkInstallFunc = forkInstall }()
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+	setInstallFunc(fakeInstall)
+	setBashFunc(fakeBash)
+
+	comp.monitor = &fakeMonitor{result: true, running: true}
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	assert.NoError(err)
+}
+
+// TestBackgroundInstallRetryOnFailure tests the component install
+// GIVEN a call to istioComponent.Install()
+//  WHEN when the monitor goroutine failed to successfully complete
+//  THEN the Install() method calls the forkInstall function and returns a retry error
+func TestBackgroundInstallRetryOnFailure(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	forkFuncCalled := false
+	expectedErr := spi2.RetryableError{Source: ComponentName}
+	forkInstallFunc = func(_ spi.ComponentContext, _ installMonitor, _ string, _ []string) error {
+		forkFuncCalled = true
+		return expectedErr
+	}
+	defer func() { forkInstallFunc = forkInstall }()
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+	setInstallFunc(fakeInstall)
+	setBashFunc(fakeBash)
+
+	comp.monitor = &fakeMonitor{result: false, running: true}
+
+	err := comp.Install(spi.NewFakeContext(getIstioInstallMock(t), installCR, false))
+	assert.True(forkFuncCalled)
+	assert.Equal(expectedErr, err)
+}
+
+// Test_forkInstallSuccess tests the forkInstall function
+// GIVEN a call to istioComponent.forkInstall()
+//  WHEN when the monitor install successfully runs istioctl install
+//  THEN retryerrors are returned until the goroutine completes, and sends a success message
+func Test_forkInstallSuccess(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+
+	setInstallFunc(func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), nil
+	})
+	defer func() { installFunc = istio.Install }()
+
+	setBashFunc(fakeBash)
+
+	var monitor installMonitor = &installMonitorType{}
+	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
+	assert.Equal(spi2.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.checkResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		assert.True(result)
+		assert.Nil(retryError)
+		return
+	}
+	assert.Fail("Did not detect completion in time")
+}
+
+// Test_forkInstallFailure tests the forkInstall function
+// GIVEN a call to istioComponent.forkInstall()
+//  WHEN when the monitor install unsuccessfully runs istioctl install
+//  THEN retryerrors are returned until the goroutine completes, and sends a failure message when istioctl fails
+func Test_forkInstallFailure(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := istioComponent{
+		ValuesFile: "test-values-file.yaml",
+	}
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	istio.SetCmdRunner(fakeRunner{})
+
+	cause := fmt.Errorf("Unexpected error on install")
+	setInstallFunc(func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		return []byte(""), []byte(""), cause
+	})
+	defer func() { installFunc = istio.Install }()
+
+	setBashFunc(fakeBash)
+
+	var monitor installMonitor = &installMonitorType{}
+	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
+	assert.Equal(spi2.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.checkResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		assert.False(result)
+		assert.Nil(retryError)
+		return
+	}
+	assert.Fail("Did not detect completion in time")
 }
 
 func getIstioInstallMock(t *testing.T) *mocks.MockClient {
@@ -331,7 +494,7 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeInstall(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeInstall(log *zap.SugaredLogger, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}

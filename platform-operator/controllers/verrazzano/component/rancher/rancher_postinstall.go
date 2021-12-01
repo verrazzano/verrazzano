@@ -24,7 +24,7 @@ const (
 func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
 	_, err := common.GetAdminSecret(c)
 	if err == nil {
-		log.Infof("Rancher Post Install: admin secret exists, skipping object creation")
+		log.Debugf("Rancher Post Install: admin secret exists, skipping object creation")
 		return nil
 	}
 	// if the admin secret doesn't exist, we need to create it
@@ -34,7 +34,7 @@ func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error
 			log.Errorf("Rancher Post Install: Failed to reset admin password: %s", resetPasswordErr)
 			return resetPasswordErr
 		}
-		log.Infof("Rancher Post Install: Creating new admin secret")
+		log.Debugf("Rancher Post Install: Creating new admin secret")
 		return newAdminSecret(c, password)
 	}
 
