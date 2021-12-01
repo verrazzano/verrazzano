@@ -9,10 +9,21 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
@@ -33,26 +44,50 @@ import (
 	"time"
 )
 
+const (
+	profileDir      = "../../../../manifests/profiles"
+	testBomFilePath = "../../testdata/test_bom.json"
+)
+
+var (
+	testScheme  = runtime.NewScheme()
+	pvc100Gi, _ = resource.ParseQuantity("100Gi")
+)
+
+func init() {
+	_ = clientgoscheme.AddToScheme(testScheme)
+
+	_ = vzapi.AddToScheme(testScheme)
+	_ = vzclusters.AddToScheme(testScheme)
+
+	_ = istioclinet.AddToScheme(testScheme)
+	_ = istioclisec.AddToScheme(testScheme)
+
+	// +kubebuilder:scaffold:testScheme
+}
+
 // TestVzResolveNamespace tests the Verrazzano component name
 // GIVEN a Verrazzano component
 //  WHEN I call resolveNamespace
 //  THEN the Verrazzano namespace name is correctly resolved
 func TestVzResolveNamespace(t *testing.T) {
-	const defNs = constants.VerrazzanoSystemNamespace
+	const defNs = vpoconst.VerrazzanoSystemNamespace
 	assert := assert.New(t)
-	ns := ResolveVerrazzanoNamespace("")
+	ns := resolveVerrazzanoNamespace("")
 	assert.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using empty namespace")
-	ns = ResolveVerrazzanoNamespace("default")
+	ns = resolveVerrazzanoNamespace("default")
 	assert.Equal(defNs, ns, "Wrong namespace resolved for Verrazzano when using default namespace")
-	ns = ResolveVerrazzanoNamespace("custom")
+	ns = resolveVerrazzanoNamespace("custom")
 	assert.Equal("custom", ns, "Wrong namespace resolved for Verrazzano when using custom namesapce")
 }
 
 // TestFixupFluentdDaemonset tests calls to fixupFluentdDaemonset
 func TestFixupFluentdDaemonset(t *testing.T) {
-	const defNs = constants.VerrazzanoSystemNamespace
+	const defNs = vpoconst.VerrazzanoSystemNamespace
 	assert := assert.New(t)
-	scheme := newFakeRuntimeScheme()
+	scheme := runtime.NewScheme()
+	appsv1.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
 	client := fake.NewFakeClientWithScheme(scheme)
 	logger, _ := zap.NewProduction()
 	log := logger.Sugar()
@@ -84,11 +119,11 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 							Name: "wrong-name",
 							Env: []corev1.EnvVar{
 								{
-									Name:  constants.ClusterNameEnvVar,
+									Name:  vpoconst.ClusterNameEnvVar,
 									Value: "managed1",
 								},
 								{
-									Name:  constants.ElasticsearchURLEnvVar,
+									Name:  vpoconst.ElasticsearchURLEnvVar,
 									Value: "some-url",
 								},
 							},
@@ -115,12 +150,12 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 
 	// create a secret with needed keys
 	data := make(map[string][]byte)
-	data[constants.ClusterNameData] = []byte("managed1")
-	data[constants.ElasticsearchURLData] = []byte("some-url")
+	data[vpoconst.ClusterNameData] = []byte("managed1")
+	data[vpoconst.ElasticsearchURLData] = []byte("some-url")
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
-			Name:      constants.MCRegistrationSecret,
+			Name:      vpoconst.MCRegistrationSecret,
 		},
 		Data: data,
 	}
@@ -131,17 +166,17 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	clusterNameRef := corev1.EnvVarSource{
 		SecretKeyRef: &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: constants.MCRegistrationSecret,
+				Name: vpoconst.MCRegistrationSecret,
 			},
-			Key: constants.ClusterNameData,
+			Key: vpoconst.ClusterNameData,
 		},
 	}
 	esURLRef := corev1.EnvVarSource{
 		SecretKeyRef: &corev1.SecretKeySelector{
 			LocalObjectReference: corev1.LocalObjectReference{
-				Name: constants.MCRegistrationSecret,
+				Name: vpoconst.MCRegistrationSecret,
 			},
-			Key: constants.ElasticsearchURLData,
+			Key: vpoconst.ElasticsearchURLData,
 		},
 	}
 	daemonSet.Spec.Template.Spec.Containers[0].Env[0].Value = ""
@@ -166,17 +201,17 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	assert.Nil(updatedDaemonSet.Spec.Template.Spec.Containers[0].Env[1].ValueFrom)
 }
 
-const testBomFilePath = "../../testdata/test_bom.json"
-
-// Test_appendOverrides tests the AppendOverrides function
-// GIVEN a call to AppendOverrides
+// Test_appendCustomImageOverrides tests the appendCustomImageOverrides function
+// GIVEN a call to appendCustomImageOverrides
 //  WHEN I call with no extra kvs
 //  THEN the correct KeyValue objects are returned and no error occurs
-func Test_appendOverrides(t *testing.T) {
+func Test_appendCustomImageOverrides(t *testing.T) {
 	assert := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
-
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, nil, false), "", "", "", []bom.KeyValue{})
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	kvs, err := appendCustomImageOverrides([]bom.KeyValue{})
 
 	assert.NoError(err)
 	assert.Len(kvs, 2)
@@ -188,6 +223,797 @@ func Test_appendOverrides(t *testing.T) {
 		Key:   "monitoringOperator.esInitImage",
 		Value: "ghcr.io/oracle/oraclelinux:7.8",
 	})
+}
+
+// Test_appendVerrazzanoValues tests the appendVerrazzanoValues function
+// GIVEN a call to appendVerrazzanoValues
+//  WHEN I call with a ComponentContext with different profiles and overrides
+//  THEN the correct KeyValue objects and overrides file snippets are generated
+func Test_appendVerrazzanoValues(t *testing.T) {
+	falseValue := false
+	tests := []struct {
+		name         string
+		description  string
+		expectedYAML string
+		actualCR     vzapi.Verrazzano
+		expectedErr  error
+	}{
+		{
+			name:         "BasicProdVerrazzanoNoOverrides",
+			description:  "Test basic prod no user overrides",
+			actualCR:     vzapi.Verrazzano{},
+			expectedYAML: "testdata/vzValuesProdNoOverrides.yaml",
+			expectedErr:  nil,
+		},
+		{
+			name:         "BasicDevVerrazzanoNoOverrides",
+			description:  "Test basic prod no user overrides",
+			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
+			expectedYAML: "testdata/vzValuesDevNoOverrides.yaml",
+			expectedErr:  nil,
+		},
+		{
+			name:         "BasicManagedClusterVerrazzanoNoOverrides",
+			description:  "Test basic managed-cluster no user overrides",
+			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
+			expectedYAML: "testdata/vzValuesMgdClusterNoOverrides.yaml",
+			expectedErr:  nil,
+		},
+		{
+			name:        "DevVerrazzanoWithOverrides",
+			description: "Test dev profile with overrides no user overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:         "dev",
+					EnvironmentName: "myenv",
+					Components: vzapi.ComponentSpec{
+						Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Keycloak:      &vzapi.KeycloakComponent{Enabled: &falseValue},
+						Rancher:       &vzapi.RancherComponent{Enabled: &falseValue},
+						DNS:           &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzValuesDevWithOverrides.yaml",
+			expectedErr:  nil,
+		},
+		{
+			name:        "ProdWithExternaDNSEnabled",
+			description: "Test prod with OCI DNS enabled, should enable exeteran-dns component",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							OCI: &vzapi.OCI{
+								OCIConfigSecret:        "myOCISecret",
+								DNSZoneCompartmentOCID: "myCompartmentOCID",
+								DNSZoneOCID:            "myZoneOCID",
+								DNSZoneName:            "myzone.com",
+							},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzValuesProdWithExternalDNS.yaml",
+			expectedErr:  nil,
+		},
+	}
+	defer resetWriteFileFunc()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			t.Log(test.description)
+
+			fakeClient := createFakeClientWithIngress()
+			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
+			values := verrazzanoValues{}
+
+			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
+				if test.expectedErr != nil {
+					return test.expectedErr
+				}
+				assert.Equal([]byte(test.expectedYAML), data)
+				return nil
+			}
+
+			err := appendVerrazzanoValues(fakeContext, &values)
+			if test.expectedErr != nil {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+
+			//outdata, err := yaml.Marshal(&values)
+			//assert.NoError(err)
+			//ioutil.WriteFile(fmt.Sprintf("%s/%s.yaml", os.TempDir(), test.name), outdata, fs.FileMode(0664))
+
+			data, err := ioutil.ReadFile(test.expectedYAML)
+			assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
+			expectedValues := verrazzanoValues{}
+			err = yaml.Unmarshal(data, &expectedValues)
+			assert.NoError(err)
+			assert.Equal(expectedValues, values)
+		})
+	}
+}
+
+// Test_appendVMIValues tests the appendVMIValues function
+// GIVEN a call to appendVMIValues
+//  WHEN I call with a ComponentContext with different profiles and overrides
+//  THEN the correct KeyValue objects and overrides file snippets are generated
+func Test_appendVMIValues(t *testing.T) {
+	falseValue := false
+	defaultDevExpectedHelmOverrides := []bom.KeyValue{
+		{Key: "elasticSearch.nodes.master.replicas", Value: "1"},
+		{Key: "elasticSearch.nodes.master.requests.memory", Value: "1G"},
+		{Key: "elasticSearch.nodes.ingest.replicas", Value: "0"},
+		{Key: "elasticSearch.nodes.data.replicas", Value: "0"},
+	}
+	tests := []struct {
+		name                  string
+		description           string
+		expectedYAML          string
+		actualCR              vzapi.Verrazzano
+		expectedHelmOverrides []bom.KeyValue
+		expectedErr           error
+	}{
+		{
+			name:                  "VMIProdVerrazzanoNoOverrides",
+			description:           "Test VMI basic prod no user overrides",
+			actualCR:              vzapi.Verrazzano{},
+			expectedYAML:          "testdata/vzValuesVMIProdVerrazzanoNoOverrides.yaml",
+			expectedHelmOverrides: []bom.KeyValue{},
+			expectedErr:           nil,
+		},
+		{
+			name:                  "VMIDevVerrazzanoNoOverrides",
+			description:           "Test VMI basic dev no user overrides",
+			actualCR:              vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
+			expectedYAML:          "testdata/vzValuesVMIDevVerrazzanoNoOverrides.yaml",
+			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedErr:           nil,
+		},
+		{
+			name:                  "VMIManagedClusterVerrazzanoNoOverrides",
+			description:           "Test VMI basic managed-cluster no user overrides",
+			actualCR:              vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
+			expectedYAML:          "testdata/vzValuesVMIManagedClusterVerrazzanoNoOverrides.yaml",
+			expectedHelmOverrides: []bom.KeyValue{},
+			expectedErr:           nil,
+		},
+		{
+			name:        "VMIDevWithOverrides",
+			description: "Test VMI dev profile with overrides no user overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile: "dev",
+					Components: vzapi.ComponentSpec{
+						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+					},
+				},
+			},
+			expectedYAML:          "testdata/vzValuesVMIDevWithOverrides.yaml",
+			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedErr:           nil,
+		},
+		{
+			name:        "VMIDevWithStorageOverrides",
+			description: "Test VMI dev profile with overrides no user overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:             "dev",
+					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
+					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+					Components: vzapi.ComponentSpec{},
+				},
+			},
+			expectedYAML:          "testdata/vzValuesVMIDevWithStorageOverrides.yaml",
+			expectedHelmOverrides: defaultDevExpectedHelmOverrides,
+			expectedErr:           nil,
+		},
+		{
+			name:        "VMIProdWithStorageOverrides",
+			description: "Test VMI prod profile with emptyDir defaultVolumeSource override",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:             "prod",
+					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+				},
+			},
+			expectedYAML:          "testdata/vzValuesVMIProdWithStorageOverrides.yaml",
+			expectedHelmOverrides: []bom.KeyValue{},
+			expectedErr:           nil,
+		},
+		{
+			name:        "VMIProdWithESInstallArgs",
+			description: "Test VMI prod profile with emptyDir defaultVolumeSource override",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:             "prod",
+					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: []vzapi.InstallArgs{
+								{Name: "nodes.master.replicas", Value: "6"},
+								{Name: "nodes.master.requests.memory", Value: "3G"},
+								{Name: "nodes.ingest.replicas", Value: "8"},
+								{Name: "nodes.ingest.requests.memory", Value: "32G"},
+								{Name: "nodes.data.replicas", Value: "16"},
+								{Name: "nodes.data.requests.memory", Value: "32G"},
+							},
+						},
+					},
+				},
+			},
+			expectedHelmOverrides: []bom.KeyValue{
+				{Key: "elasticSearch.nodes.master.replicas", Value: "6"},
+				{Key: "elasticSearch.nodes.master.requests.memory", Value: "3G"},
+				{Key: "elasticSearch.nodes.ingest.replicas", Value: "8"},
+				{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "32G"},
+				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
+				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
+			},
+			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
+			expectedErr:  nil,
+		},
+	}
+	defer resetWriteFileFunc()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			t.Log(test.description)
+
+			fakeClient := createFakeClientWithIngress()
+			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
+			values := verrazzanoValues{}
+
+			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
+				if test.expectedErr != nil {
+					return test.expectedErr
+				}
+				assert.Equal([]byte(test.expectedYAML), data)
+				return nil
+			}
+
+			storageOverride, err := findStorageOverride(fakeContext.EffectiveCR())
+			assert.NoError(err)
+
+			keyValues := appendVMIOverrides(fakeContext.EffectiveCR(), &values, storageOverride, []bom.KeyValue{})
+			assert.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
+
+			data, err := ioutil.ReadFile(test.expectedYAML)
+			assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
+			expectedValues := verrazzanoValues{}
+			err = yaml.Unmarshal(data, &expectedValues)
+			assert.NoError(err)
+			assert.Equal(expectedValues, values)
+		})
+	}
+}
+
+// Test_appendVerrazzanoOverrides tests the appendVerrazzanoOverrides function
+// GIVEN a call to appendVerrazzanoOverrides
+//  WHEN I call with a ComponentContext with different profiles and overrides
+//  THEN the correct KeyValue objects and overrides file snippets are generated
+func Test_appendVerrazzanoOverrides(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	falseValue := false
+	trueValue := true
+	tests := []struct {
+		name         string
+		description  string
+		expectedYAML string
+		actualCR     vzapi.Verrazzano
+		expectedErr  error
+		numKeyValues int
+	}{
+		{
+			name:         "ProdDefault",
+			description:  "Test basic prod profile with no user overrides",
+			actualCR:     vzapi.Verrazzano{},
+			expectedYAML: "testdata/vzOverridesProdDefault.yaml",
+		},
+		{
+			name:        "ProdDefaultIOError",
+			description: "Test basic prod profile with no user overrides",
+			actualCR:    vzapi.Verrazzano{},
+			expectedErr: fmt.Errorf("Error writing file"),
+		},
+		{
+			name:         "DevDefault",
+			description:  "Test basic dev profile with no user overrides",
+			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
+			expectedYAML: "testdata/vzOverridesDevDefault.yaml",
+			numKeyValues: 7,
+		},
+		{
+			name:         "ManagedClusterDefault",
+			description:  "Test basic managed-cluster no user overrides",
+			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
+			expectedYAML: "testdata/vzOverridesManagedClusterDefault.yaml",
+		},
+		{
+			name:        "DevWithOverrides",
+			description: "Test dev profile with user overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:         "dev",
+					EnvironmentName: "myenv",
+					Components: vzapi.ComponentSpec{
+						Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Keycloak:      &vzapi.KeycloakComponent{Enabled: &falseValue},
+						Rancher:       &vzapi.RancherComponent{Enabled: &falseValue},
+						DNS:           &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesDevWithOverrides.yaml",
+			numKeyValues: 7,
+		},
+		{
+			name:        "ProdWithExternaDNSEnabled",
+			description: "Test prod with OCI DNS enabled, should enable exeteran-dns component",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							OCI: &vzapi.OCI{
+								OCIConfigSecret:        "myOCISecret",
+								DNSZoneCompartmentOCID: "myCompartmentOCID",
+								DNSZoneOCID:            "myZoneOCID",
+								DNSZoneName:            "myzone.com",
+							},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithExternaDNSEnabled.yaml",
+		},
+		{
+			name:        "ProdWithAdminRoleOverrides",
+			description: "Test prod with Security admin role overrides only",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Security: vzapi.SecuritySpec{
+						AdminSubjects: []rbacv1.Subject{
+							{
+								Kind: "User",
+								Name: "kilgore-trout",
+							},
+							{
+								Kind: "User",
+								Name: "fred-flintstone",
+							},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithAdminRoleOverrides.yaml",
+		},
+		{
+			name:        "ProdWithMonitorRoleOverrides",
+			description: "Test prod with Monitor admin role overrides only",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Security: vzapi.SecuritySpec{
+						MonitorSubjects: []rbacv1.Subject{
+							{
+								Kind: "Group",
+								Name: "group-of-monitors",
+							},
+							{
+								Kind: "User",
+								Name: "joe-monitor",
+							},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithMonitorRoleOverrides.yaml",
+		},
+		{
+			name:        "ProdWithAdminAndMonitorRoleOverrides",
+			description: "Test prod with Security admin and monitor role overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Security: vzapi.SecuritySpec{
+						AdminSubjects: []rbacv1.Subject{
+							{
+								Kind: "User",
+								Name: "kilgore-trout",
+							},
+						},
+						MonitorSubjects: []rbacv1.Subject{
+							{
+								Kind: "Group",
+								Name: "group-of-monitors",
+							},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithAdminAndMonitorRoleOverrides.yaml",
+		},
+		{
+			name:        "ProdWithFluentdEmptyExtraVolumeMountsOverrides",
+			description: "Test prod with a fluentd override with an empty extra volume mounts field",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile: vzapi.Prod,
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							ExtraVolumeMounts: []vzapi.VolumeMount{},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithFluentdEmptyExtraVolumeMountsOverrides.yaml",
+		},
+		{
+			name:        "ProdWithFluentdOverrides",
+			description: "Test prod with fluentd overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile: vzapi.Prod,
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							ExtraVolumeMounts: []vzapi.VolumeMount{
+								{Source: "mysourceDefaults"},
+								{Source: "mysourceRO", ReadOnly: &trueValue},
+								{Source: "mysourceCustomDestRW", Destination: "mydest", ReadOnly: &falseValue},
+							},
+							ElasticsearchURL:    "http://myes.mydomain.com:9200",
+							ElasticsearchSecret: "custom-elasticsearch-secret",
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithFluentdOverrides.yaml",
+		},
+	}
+	defer resetWriteFileFunc()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+			t.Log(test.description)
+
+			fakeClient := createFakeClientWithIngress()
+			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
+
+			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
+				if test.expectedErr != nil {
+					return test.expectedErr
+				}
+				if err := ioutil.WriteFile(filename, data, perm); err != nil {
+					assert.Failf("Failure writing file %s: %s", filename, err)
+					return err
+				}
+				assert.FileExists(filename)
+
+				// Unmarshal the VZ expected and actual data into verrazzanoValues structs
+				// and do a deep-equals comparison using the asserts package
+
+				// Unmarshal the actual generated helm values from code under test
+				actualValues := verrazzanoValues{}
+				err := yaml.Unmarshal(data, &actualValues)
+				assert.NoError(err)
+
+				// read in the expected results data from a file and unmarshal it into a values object
+				expectedData, err := ioutil.ReadFile(test.expectedYAML)
+				assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
+				expectedValues := verrazzanoValues{}
+				err = yaml.Unmarshal(expectedData, &expectedValues)
+				assert.NoError(err)
+
+				// Compare the actual and expected values objects
+				assert.Equal(expectedValues, actualValues)
+				return nil
+			}
+
+			kvs := []bom.KeyValue{}
+			kvs, err := appendVerrazzanoOverrides(fakeContext, "", "", "", kvs)
+			if test.expectedErr != nil {
+				assert.Error(err)
+				assert.Equal([]bom.KeyValue{}, kvs)
+				return
+			}
+			assert.NoError(err)
+
+			actualNumKvs := len(kvs)
+			//t.Logf("Num kvs: %d", actualNumKvs)
+			expectedNumKvs := test.numKeyValues
+			if expectedNumKvs == 0 {
+				// default is 3, 1 file override + 2 custom image overrides
+				expectedNumKvs = 3
+			}
+			assert.Equal(expectedNumKvs, actualNumKvs)
+			// Check Temp file
+			assert.True(kvs[0].IsFile, "Expected generated verrazzano overrides first in list of helm args")
+			tempFilePath := kvs[0].Value
+			_, err = os.Stat(tempFilePath)
+			assert.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
+			cleanTempFiles(fakeContext)
+		})
+	}
+	// Verify temp files are deleted
+	files, err := ioutil.ReadDir(os.TempDir())
+	assert.NoError(t, err, "Error reading temp dir to verify file cleanup")
+	for _, file := range files {
+		assert.False(t,
+			strings.HasPrefix(file.Name(), tmpFilePrefix) && strings.HasSuffix(file.Name(), ".yaml"),
+			"Found unexpected temp file remaining: %s", file.Name())
+	}
+
+}
+
+// Test_findStorageOverride tests the findStorageOverride function
+// GIVEN a call to findStorageOverride
+//  WHEN I call with a ComponentContext with different profiles and overrides
+//  THEN the correct resource overrides or an error are returned
+func Test_findStorageOverride(t *testing.T) {
+
+	tests := []struct {
+		name             string
+		description      string
+		actualCR         vzapi.Verrazzano
+		expectedOverride *resourceRequestValues
+		expectedErr      bool
+	}{
+		{
+			name:        "TestProdNoOverrides",
+			description: "Test storage override with empty CR",
+			actualCR:    vzapi.Verrazzano{},
+		},
+		{
+			name:        "TestProdEmptyDirOverride",
+			description: "Test prod profile with empty dir storage override",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+				},
+			},
+			expectedOverride: &resourceRequestValues{
+				Storage: "",
+			},
+		},
+		{
+			name:        "TestProdPVCOverride",
+			description: "Test prod profile with PVC storage override",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
+					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOverride: &resourceRequestValues{
+				Storage: pvc100Gi.String(),
+			},
+		},
+		{
+			name:        "TestDevPVCOverride",
+			description: "Test dev profile with PVC storage override",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:             vzapi.Dev,
+					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
+					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOverride: &resourceRequestValues{
+				Storage: pvc100Gi.String(),
+			},
+		},
+		{
+			name:        "TestDevUnsupportedVolumeSource",
+			description: "Test dev profile with an unsupported default volume source",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:             vzapi.Dev,
+					DefaultVolumeSource: &corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{}},
+					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: true,
+		},
+		{
+			name:        "TestDevMismatchedPVCClaimName",
+			description: "Test dev profile with PVC default volume source and mismatched PVC claim name",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile:             vzapi.Dev,
+					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "foo"}},
+					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			fakeContext := spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &test.actualCR, false, profileDir)
+
+			override, err := findStorageOverride(fakeContext.EffectiveCR())
+			if test.expectedErr {
+				assert.Error(err)
+			} else {
+				assert.NoError(err)
+			}
+			if test.expectedOverride != nil {
+				if override == nil {
+					assert.FailNow("Expected returned override to not be nil")
+				}
+				assert.Equal(*test.expectedOverride, *override)
+			} else {
+				assert.Nil(override)
+			}
+		})
+	}
+}
+
+// Test_loggingPreInstall tests the Verrazzano loggingPreInstall call
+// GIVEN a Verrazzano component
+//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret
+//  THEN no error is returned
+func Test_loggingPreInstall(t *testing.T) {
+	trueValue := true
+	client := fake.NewFakeClientWithScheme(testScheme,
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: "my-es-secret"},
+		},
+	)
+	ctx := spi.NewFakeContext(client,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Fluentd: &vzapi.FluentdComponent{
+						Enabled:             &trueValue,
+						ElasticsearchURL:    "https://myes.mydomain.com:9200",
+						ElasticsearchSecret: "my-es-secret",
+					},
+				},
+			},
+		},
+		false)
+	err := loggingPreInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// Test_loggingPreInstallSecretNotFound tests the Verrazzano loggingPreInstall call
+// GIVEN a Verrazzano component
+//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret and the secret does not exist
+//  THEN an error is returned
+func Test_loggingPreInstallSecretNotFound(t *testing.T) {
+	trueValue := true
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Fluentd: &vzapi.FluentdComponent{
+						Enabled:             &trueValue,
+						ElasticsearchURL:    "https://myes.mydomain.com:9200",
+						ElasticsearchSecret: "my-es-secret",
+					},
+				},
+			},
+		},
+		false)
+	err := loggingPreInstall(ctx)
+	assert.Error(t, err)
+}
+
+// Test_loggingPreInstallFluentdNotEnabled tests the Verrazzano loggingPreInstall call
+// GIVEN a Verrazzano component
+//  WHEN I call loggingPreInstall and fluentd is disabled
+//  THEN no error is returned
+func Test_loggingPreInstallFluentdNotEnabled(t *testing.T) {
+	falseValue := false
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Fluentd: &vzapi.FluentdComponent{
+						Enabled: &falseValue,
+					},
+				},
+			},
+		},
+		false)
+	err := loggingPreInstall(ctx)
+	assert.NoError(t, err)
+}
+
+func createFakeClientWithIngress() client.Client {
+	fakeClient := fake.NewFakeClientWithScheme(testScheme,
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
+			Spec: corev1.ServiceSpec{
+				Type: corev1.ServiceTypeLoadBalancer,
+			},
+			Status: corev1.ServiceStatus{
+				LoadBalancer: corev1.LoadBalancerStatus{
+					Ingress: []corev1.LoadBalancerIngress{
+						{IP: "11.22.33.44"},
+					},
+				},
+			},
+		},
+	)
+	return fakeClient
 }
 
 // Test_fixupElasticSearchReplicaCount tests the fixupElasticSearchReplicaCount function.

@@ -30,7 +30,6 @@ func NewComponent() spi.Component {
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "verrazzano-application-operator-values.yaml"),
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			ReadyStatusFunc:         IsApplicationOperatorReady,

@@ -1,0 +1,43 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+api:
+  proxy:
+    OidcProviderHost: keycloak.default.11.22.33.44.nip.io
+    OidcProviderHostInCluster: keycloak-http.keycloak.svc.cluster.local
+config:
+  dnsSuffix: 11.22.33.44.nip.io
+  envName: default
+console:
+  enabled: true
+dns:
+  wildcard:
+    domain: nip.io
+elasticSearch:
+  enabled: true
+  nodes:
+    data:
+      requests:
+        storage: ""
+logging:
+  elasticsearchSecret: verrazzano
+  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+fluentd:
+  enabled: true
+grafana:
+  enabled: true
+  requests:
+    storage: ""
+keycloak:
+  enabled: true
+kibana:
+  enabled: true
+monitoringOperator:
+  enabled: true
+prometheus:
+  enabled: true
+  requests:
+    storage: ""
+rancher:
+  enabled: true
+verrazzanoOperator:
+  enabled: true
