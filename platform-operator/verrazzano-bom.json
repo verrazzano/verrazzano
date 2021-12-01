@@ -232,8 +232,8 @@
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20211126105727-f345ec2",
+              "image": "fluentd-kubernetes-daemonset-jenkins",
+              "tag": "20211130084735-068acfe",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
