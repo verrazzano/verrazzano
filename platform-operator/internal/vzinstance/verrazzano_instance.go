@@ -26,7 +26,7 @@ func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.In
 		return nil
 	}
 	if len(ingressList.Items) == 0 {
-		zap.S().Warn("No ingresses found, unable to build instance info")
+		zap.S().Debugf("No ingresses found, unable to build instance info")
 		return nil
 	}
 
@@ -53,7 +53,7 @@ func GetInstanceInfo(client client.Client, cr *v1alpha1.Verrazzano) *v1alpha1.In
 func getSystemIngressURL(ingresses []networkingv1.Ingress, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
 	if ingress == nil {
-		zap.S().Infof("No ingress found for %s/%s", namespace, name)
+		zap.S().Debugf("No ingress found for %s/%s", namespace, name)
 		return nil
 	}
 	url := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)

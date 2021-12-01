@@ -81,8 +81,8 @@ type VerrazzanoSpec struct {
 
 	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
-	// +patchStrategy=replace
-	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"replace"`
+	// +patchStrategy=merge,retainKeys
+	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano

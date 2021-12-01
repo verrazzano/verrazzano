@@ -76,6 +76,12 @@ logging:
 fluentd:
   enabled: true
 
+keycloak:
+  enabled: true
+  
+rancher:
+  enabled: true
+  
 console:
   enabled: true
   name: verrazzano-console
