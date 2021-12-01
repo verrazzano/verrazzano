@@ -124,7 +124,7 @@ pipeline {
         stage ('Periodic Test Suites') {
             when {
                 allOf {
-                    expression {SKIP_TO_PRIVATE_REGISTRY == false}
+                    expression {params.SKIP_TO_PRIVATE_REGISTRY == false}
                 }
             }
             parallel {
