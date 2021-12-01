@@ -4,7 +4,6 @@ package mysql
 
 import (
 	"context"
-	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
@@ -27,32 +25,6 @@ import (
 const profilesDir = "../../../../manifests/profiles"
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
-
-// genericHelmTestRunner is used to run generic OS commands with expected results
-type genericHelmTestRunner struct {
-	stdOut []byte
-	stdErr []byte
-	err    error
-}
-
-// notDeployedRunner returns the expected helm status output when mysql is not deployed
-var notDeployedRunner = genericHelmTestRunner{
-	stdOut: []byte{},
-	stdErr: []byte("Error: release: not found"),
-	err:    fmt.Errorf("release was not found in output"),
-}
-
-// deployedRunner returns the expected helm status output when mysql is deployed
-var deployedRunner = genericHelmTestRunner{
-	stdOut: []byte("{\"info\":{\"status\":\"deployed\"}}"),
-	stdErr: []byte{},
-	err:    nil,
-}
-
-// Run genericHelmTestRunner executor
-func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return r.stdOut, r.stdErr, r.err
-}
 
 // TestAppendMySQLOverrides tests the appendMySQLOverrides function
 // GIVEN a call to appendMySQLOverrides
