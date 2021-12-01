@@ -130,7 +130,10 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, erro
 
 	// Reload the root cert info so that we get fields like the Subject Key ID that are generated
 	processedRootCertInfo, err := x509.ParseCertificate(rootCertBytes)
-
+	if err != nil {
+		return nil, err
+	}
+	
 	// PEM encode root cert
 	rootCertPEM := new(bytes.Buffer)
 	_ = pem.Encode(rootCertPEM, &pem.Block{
