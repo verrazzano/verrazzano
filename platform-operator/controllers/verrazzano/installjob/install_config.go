@@ -408,7 +408,7 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mysqlVolumeSource.PersistentVolumeClaim
-		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, templates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, templates)
 		if !found {
 			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 			return Keycloak{}, err
@@ -551,7 +551,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 			}...)
 		} else if vzSpec.DefaultVolumeSource.PersistentVolumeClaim != nil {
 			pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
-			storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
+			storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
 			if !found {
 				err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 				return []InstallArg{}, err
@@ -697,16 +697,6 @@ func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 	}
 
 	return vmiArgs
-}
-
-// findVolumeTemplate Find a named VolumeClaimTemplate in the list
-func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeClaimSpecTemplate) (*corev1.PersistentVolumeClaimSpec, bool) {
-	for i, template := range templates {
-		if templateName == template.Name {
-			return &templates[i].Spec, true
-		}
-	}
-	return nil, false
 }
 
 func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {

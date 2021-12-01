@@ -11,13 +11,11 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
@@ -27,6 +25,8 @@ import (
 )
 
 const profilesDir = "../../../../manifests/profiles"
+
+var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // genericHelmTestRunner is used to run generic OS commands with expected results
 type genericHelmTestRunner struct {
@@ -60,16 +60,8 @@ func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte,
 // THEN the correct overrides are returned
 func TestAppendMySQLOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	helm.SetCmdRunner(notDeployedRunner)
-	defer helm.SetDefaultRunner()
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
-		})
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
@@ -94,16 +86,8 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	helm.SetCmdRunner(notDeployedRunner)
-	defer helm.SetDefaultRunner()
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
-		})
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
@@ -122,16 +106,8 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 			},
 		},
 	}
-	helm.SetCmdRunner(notDeployedRunner)
-	defer helm.SetDefaultRunner()
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
-		})
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
@@ -166,16 +142,8 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 			},
 		},
 	}
-	helm.SetCmdRunner(notDeployedRunner)
-	defer helm.SetDefaultRunner()
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
-		})
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
@@ -192,17 +160,8 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 			Profile: vzapi.ProfileType("prod"),
 		},
 	}
-	helm.SetCmdRunner(notDeployedRunner)
-	defer helm.SetDefaultRunner()
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
-		})
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
-
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
 }
@@ -232,16 +191,8 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 			}},
 		},
 	}
-	helm.SetCmdRunner(notDeployedRunner)
-	defer helm.SetDefaultRunner()
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
-			return k8serror.NewNotFound(schema.ParseGroupResource("Secret"), secretName)
-		})
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
@@ -265,9 +216,8 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 			secret.Data[mySQLKey] = []byte("test-key")
 			return nil
 		})
-	helm.SetCmdRunner(deployedRunner)
-	defer helm.SetDefaultRunner()
-	kvs, err := appendMySQLOverrides(spi.NewFakeContext(mock, vz, false, profilesDir), "", "", "", []bom.KeyValue{})
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).For(ComponentName).Operation("upgrade")
+	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
