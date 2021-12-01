@@ -34,16 +34,16 @@ func createCerts(log *zap.SugaredLogger) (*certificate.CertPemData, error) {
 		OrgName:             org,
 		StateOrProvinceName: state,
 		CommonName:          "Root CA",
-		NotBefore:           time.Time{},
-		NotAfter:            time.Time{},
+		NotBefore:           time.Now(),
+		NotAfter:            time.Now().AddDate(10, 0, 0),
 	}
 	intermConfig := certificate.CertConfig{
 		CountryName:         country,
 		OrgName:             org,
 		StateOrProvinceName: state,
 		CommonName:          "Intermediate CA",
-		NotBefore:           time.Time{},
-		NotAfter:            time.Time{},
+		NotBefore:           time.Now(),
+		NotAfter:            time.Now().AddDate(5, 0, 0),
 	}
 	pemData, err := certificate.CreateSelfSignedCert(rootConfig, intermConfig)
 	if err != nil {
