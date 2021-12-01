@@ -264,10 +264,10 @@ func TestIsMySQLNotReady(t *testing.T) {
 	assert.False(t, isReady(spi.NewFakeContext(fakeClient, nil, false), "", vzconst.KeycloakNamespace))
 }
 
-// TestSQLFileCreatedAndDRemoved tests the creation and deletion of the mysql db init file
+// TestSQLFileCreatedAndRemoved tests the creation and deletion of the mysql db init file
 // WHEN the appendMySQLOverrides and then postInstall functions are called
 // THEN ensure that the mysql db init file is created successfully and then deleted successfully
-func TestSQLFileCreatedAndDRemoved(t *testing.T) {
+func TestSQLFileCreatedAndRemoved(t *testing.T) {
 	fakeContext := spi.NewFakeContext(nil, nil, false)
 	tmpFile, err := createMySQLInitFile(fakeContext)
 	assert.NoError(t, err)
