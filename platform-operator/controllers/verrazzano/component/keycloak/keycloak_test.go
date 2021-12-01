@@ -254,6 +254,10 @@ func TestUpdateKeycloakUris(t *testing.T) {
 	}
 }
 
+// TestConfigureKeycloakRealms tests configuration of the Keycloak realms
+// GIVEN a client, and a k8s environment
+// WHEN I call configureKeycloakRealms
+// THEN configure the Keycloak realms, otherwise returning an error if the environment is invalid
 func TestConfigureKeycloakRealms(t *testing.T) {
 	loginSecret := createTestKeycloakHttpSecret()
 	nginxService := createTestNginxService()
@@ -417,6 +421,10 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 	})
 }
 
+// TestGetEnvironmentName tests that the environment name is returned correctly
+// GIVEN a environmentName
+// WHEN I call getEnvironmentName
+// THEN return the environmentName if it is not empty, else return default.
 func TestGetEnvironmentName(t *testing.T) {
 	var tests = []struct {
 		in  string
@@ -433,6 +441,10 @@ func TestGetEnvironmentName(t *testing.T) {
 	}
 }
 
+// TestLoginKeycloak tests the login to keycloak interacts with k8s resources as expected
+// GIVEN a client
+// WHEN I call loginKeycloak
+// THEN throw an error if the k8s environment is invalid (bad secret)
 func TestLoginKeycloak(t *testing.T) {
 	httpSecret := createTestKeycloakHttpSecret()
 	httpSecretEmptyPassword := createTestKeycloakHttpSecret()
@@ -475,6 +487,10 @@ func TestLoginKeycloak(t *testing.T) {
 	}
 }
 
+// TestCreateOrUpdateAuthSecret tests creation of the auth secret
+// GIVEN a client
+// WHEN I call createOrUpdateAuthSecret
+// THEN create the auth secret
 func TestCreateOrUpdateAuthSecret(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	ctx := spi.NewFakeContext(c, testVZ, false)
