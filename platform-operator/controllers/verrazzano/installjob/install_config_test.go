@@ -1499,28 +1499,3 @@ func TestFluentdInstallCustom(t *testing.T) {
 	assert.Equalf(t, "es-secret", config.Fluentd.ElasticsearchSecret, "Expected ElasticsearchSecret did not match")
 	assert.Equalf(t, "es-url", config.Fluentd.ElasticsearchURL, "Expected ElasticsearchURL did not match")
 }
-
-// TestFluentdOciLoggingConfiguration tests the creation of fluentd OCI logging configuration
-// GIVEN a verrazzano.install.verrazzano.io custom resource
-//  WHEN I call GetInstallConfig
-//  THEN the fluentd install configuration is created and verified
-func TestFluentdOciLoggingConfiguration(t *testing.T) {
-	vz := installv1alpha1.Verrazzano{
-		Spec: installv1alpha1.VerrazzanoSpec{
-			Components: installv1alpha1.ComponentSpec{
-				Fluentd: &installv1alpha1.FluentdComponent{
-					OCI: &installv1alpha1.OciLoggingConfiguration{
-						DefaultAppLogID: "ocid1.log.test-realm.test-region.app-log-id",
-						SystemLogID:     "ocid1.log.test-realm.test-region.system-log-id",
-						APISecret:       "test-api-secret",
-					},
-				},
-			},
-		},
-	}
-	config, err := GetInstallConfig(&vz)
-	assert.NoError(t, err)
-	assert.Equalf(t, "ocid1.log.test-realm.test-region.app-log-id", config.Fluentd.OCI.DefaultAppLogID, "Expected default application log ocid did not match")
-	assert.Equalf(t, "ocid1.log.test-realm.test-region.system-log-id", config.Fluentd.OCI.SystemLogID, "Expected system log ocid did not match")
-	assert.Equalf(t, "test-api-secret", config.Fluentd.OCI.APISecret, "Expected api secret did not match")
-}
