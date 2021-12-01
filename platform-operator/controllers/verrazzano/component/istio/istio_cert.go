@@ -4,114 +4,80 @@
 package istio
 
 import (
-	"crypto/x509"
-	"crypto/x509/pkix"
+	"context"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"go.uber.org/zap"
-	"math/big"
-	"os"
+	corev1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 )
 
-// createCert creates the cert used by Istio MTLS
-func createCert(log *zap.SugaredLogger, client clipkg.Client, namespace string) error {
-	certDir := os.TempDir()
-	config := certificate.CreateIstioCertConfig(certDir)
-	_, err := certificate.CreateSelfSignedCert(config)
+// createCertSecret creates the secret with cert data used by Istio MTLS
+func createCertSecret(log *zap.SugaredLogger, client clipkg.Client) error {
+	pemData, err := createCerts(log)
 	if err != nil {
-		log.Errorf("Failed to create Certificate for Istio: %v", err)
 		return err
 	}
+	return createSecret(log, client, pemData)
+}
 
+// createCert creates the cert used by Istio MTLS
+func createCerts(log *zap.SugaredLogger) (*certificate.CertPemData, error) {
+	const (
+		country = "US"
+		org = "Oracle Corporation"
+		state = "CA"
+	)
+	rootConfig := certificate.CertConfig{
+		CountryName:         country,
+		OrgName:             org,
+		StateOrProvinceName: state,
+		CommonName:          "Root CA",
+		NotBefore:           time.Time{},
+		NotAfter:            time.Time{},
+	}
+	intermConfig := certificate.CertConfig{
+		CountryName:         country,
+		OrgName:             org,
+		StateOrProvinceName: state,
+		CommonName:          "Intermediate CA",
+		NotBefore:           time.Time{},
+		NotAfter:            time.Time{},
+	}
+	pemData, err := certificate.CreateSelfSignedCert(rootConfig, intermConfig)
+	if err != nil {
+		log.Errorf("Failed to create Certificate for Istio: %v", err)
+		return nil, err
+	}
+	return pemData, nil
+}
+
+func createSecret(log *zap.SugaredLogger, client clipkg.Client, pemData *certificate.CertPemData) error {
+	const (
+		caPem = "ca-cert.pem"
+		caKey = "ca-key.pem"
+		certChainPem = "cert-chain.pem"
+		rootPem = "root-cert.pem"
+		secretName = "cacerts"
+	)
+	var secret corev1.Secret
+	secret.Namespace = IstioNamespace
+	secret.Name = secretName
+
+	_, err:= controllerutil.CreateOrUpdate(context.TODO(), client, &secret, func() error {
+		secret.Type = corev1.SecretTypeOpaque
+		secret.Data = map[string][]byte{
+			caPem:  pemData.IntermediateCertPEM,
+			caKey: 	pemData.IntermediatePrivateKeyPEM,
+			certChainPem: pemData.CertChainPEM,
+			rootPem: pemData.RootCertPEM,
+		}
+		return nil
+	})
+	if err != nil {
+		log.Errorf("Failed to create Istio certificate secret cacerts: %v", err)
+		return  err
+	}
 	return nil
-}
-
-func newRootCert() x509.Certificate {
-	cert := x509.Certificate{
-		Raw:                     nil,
-		RawTBSCertificate:       nil,
-		RawSubjectPublicKeyInfo: nil,
-		RawSubject:              nil,
-		RawIssuer:               nil,
-		Signature:               nil,
-		SignatureAlgorithm:      0,
-		PublicKeyAlgorithm:      0,
-		PublicKey:               nil,
-		Version:                 0,
-		SerialNumber:            &big.Int{},
-		Issuer: pkix.Name{
-			Country:            nil,
-			Organization:       nil,
-			OrganizationalUnit: nil,
-			Locality:           nil,
-			Province:           nil,
-			StreetAddress:      nil,
-			PostalCode:         nil,
-			SerialNumber:       "",
-			CommonName:         "",
-			Names:              nil,
-			ExtraNames:         nil,
-		},
-		Subject: pkix.Name{
-			Country:            nil,
-			Organization:       nil,
-			OrganizationalUnit: nil,
-			Locality:           nil,
-			Province:           nil,
-			StreetAddress:      nil,
-			PostalCode:         nil,
-			SerialNumber:       "",
-			CommonName:         "",
-			Names:              nil,
-			ExtraNames:         nil,
-		},
-		NotBefore:                   time.Time{},
-		NotAfter:                    time.Time{},
-		KeyUsage:                    0,
-		Extensions:                  nil,
-		ExtraExtensions:             nil,
-		UnhandledCriticalExtensions: nil,
-		ExtKeyUsage:                 nil,
-		UnknownExtKeyUsage:          nil,
-		BasicConstraintsValid:       false,
-		IsCA:                        false,
-		MaxPathLen:                  0,
-		MaxPathLenZero:              false,
-		SubjectKeyId:                nil,
-		AuthorityKeyId:              nil,
-		OCSPServer:                  nil,
-		IssuingCertificateURL:       nil,
-		DNSNames:                    nil,
-		EmailAddresses:              nil,
-		IPAddresses:                 nil,
-		URIs:                        nil,
-		PermittedDNSDomainsCritical: false,
-		PermittedDNSDomains:         nil,
-		ExcludedDNSDomains:          nil,
-		PermittedIPRanges:           nil,
-		ExcludedIPRanges:            nil,
-		PermittedEmailAddresses:     nil,
-		ExcludedEmailAddresses:      nil,
-		PermittedURIDomains:         nil,
-		ExcludedURIDomains:          nil,
-		CRLDistributionPoints:       nil,
-		PolicyIdentifiers:           nil,
-	}
-	return cert
-}
-
-
-// CreateIstioCertConfig creates the config needed to create an Istio certificate
-func CreateIstioCertConfig(certDir string) Config {
-	return Config{
-		CertDir:                     certDir,
-		CommonName:                  fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace),
-		IntermediatePrivKeyFilename: "ca-key.pem",
-		IntermediateCertFilename:    "ca-cert.pem",
-		RootCertFilename:            "root-cert.pem",
-		CertChainFilename:           "cert-chain.pem",
-		NotBefore:                   time.Now(),
-		NotAfter:                    time.Now().AddDate(1, 0, 0),
-	}
 }

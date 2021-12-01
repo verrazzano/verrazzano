@@ -19,6 +19,15 @@ type CertConfig struct {
 	// CommonName is the certificate common name
 	CommonName string
 
+	// CountryName is the certificate country name
+	CountryName string
+
+	// OrgName is the organization name
+	OrgName string
+
+	// StateOrProvinceName is the certificate state or province
+	StateOrProvinceName string
+
 	// NotBefore time when certificate is valid
 	NotBefore time.Time
 
@@ -49,7 +58,7 @@ type keyAndCert struct {
 }
 
 // CreateSelfSignedCert creates a self signed cert and returns the generated PEM data
-func CreateSelfSignedCert(config CertConfig) (*CertPemData, error) {
+func CreateSelfSignedCert(rootConfig CertConfig, intermConfig CertConfig,) (*CertPemData, error) {
 	// Create the object that will be loaded with the PEM data
 	pems := CertPemData{}
 
@@ -58,14 +67,14 @@ func CreateSelfSignedCert(config CertConfig) (*CertPemData, error) {
 		return nil, err
 	}
 	// Create the root cert
-	rootKeyAndCert, rootCertInfo, err := createRootCert(config, serialNumber)
+	rootKeyAndCert, rootCertInfo, err := createRootCert(rootConfig, serialNumber)
 	if err != nil {
 		return nil, err
 	}
 	pems.RootCertPEM = rootKeyAndCert.CertPEM
 
 	// Create the intermediate cert
-	intermediateKeyAndCert, err := createIntermediateCert(config, rootCertInfo, rootKeyAndCert)
+	intermediateKeyAndCert, err := createIntermediateCert(intermConfig, rootCertInfo, rootKeyAndCert)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +102,7 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*keyAndCert, *x50
 		NotBefore:             config.NotBefore,
 		NotAfter:              config.NotAfter,
 		IsCA:                  true,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
 	}
 
@@ -142,7 +150,7 @@ func createIntermediateCert(config CertConfig, rootCertInfo *x509.Certificate, r
 		NotBefore:    config.NotBefore,
 		NotAfter:     config.NotAfter,
 		IsCA:         true,
-		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		AuthorityKeyId: rootCertInfo.SubjectKeyId,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 	}
