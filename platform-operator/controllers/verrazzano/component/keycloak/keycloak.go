@@ -16,6 +16,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 	"os"
@@ -181,7 +182,7 @@ func getEnvironmentName(envName string) string {
 
 func updateKeycloakUris(ctx spi.ComponentContext) error {
 	var keycloakClients KeycloakClients
-	cfg, cli, err := k8sutil.RESTClientConfig()
+	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
 	}
@@ -239,7 +240,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 }
 
 func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw string) error {
-	cfg, cli, err := k8sutil.RESTClientConfig()
+	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
 	}
@@ -795,7 +796,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 	return nil
 }
 
-func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli restclient.Interface) error {
+func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -823,7 +824,8 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli restcli
 	}
 	ctx.Log().Infof("CDD Login Cmd = %s", loginCmd)
 	ctx.Log().Infof("CDD Total Cmd = %v", cmd)
-	//	stdOut, stdErr, err := k8sutil.ExecPod(cfg, cli.RESTClient(), &keycloakPod, "keycloak", cmd)
+
+	//stdOut, stdErr, err := k8sutil.ExecPod(cfg, cli.RESTClient(), &keycloakPod, "keycloak", cmd)
 	// err = ExecCmd(cli, cfg, "keycloak-0", loginCmd, os.Stdin, os.Stdout, os.Stderr)
 	stdOut, stdErr, err := ExecCmd(cli, cfg, "keycloak-0", loginCmd)
 	if err != nil {
@@ -836,7 +838,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli restcli
 }
 
 // ExecCmd exec command on specific pod and wait the command's output.
-func ExecCmd(client restclient.Interface, config *restclient.Config, podName string, command string) (string, string, error) {
+func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName string, command string) (string, string, error) {
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -845,7 +847,7 @@ func ExecCmd(client restclient.Interface, config *restclient.Config, podName str
 		"-c",
 		command,
 	}
-	req := client.Post().Resource("pods").Name(podName).
+	req := client.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
 		Namespace("keycloak").SubResource("exec")
 	option := &v1.PodExecOptions{
 		Command:   cmd,

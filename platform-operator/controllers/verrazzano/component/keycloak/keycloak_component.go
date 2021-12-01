@@ -7,10 +7,10 @@ import (
 	"fmt"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -41,7 +41,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Pull Key
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName},
+			Dependencies:            []string{istio.ComponentName, mysql.ComponentName},
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendKeycloakOverrides,
 		},
@@ -144,9 +144,14 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		ctx.Log().Infof("Keycloak IsReady: No Certificate Status conditions found")
 		return false
 	}
+
 	condition := certificate.Status.Conditions[0]
-	return condition.Type == "Ready" && status.StatefulsetReady(ctx.Log(), ctx.Client(), []types.NamespacedName{
-		{Namespace: "keycloak",
-			Name: "keycloak"},
-	}, 1)
+	statefulsetName := []types.NamespacedName{
+		{
+			Namespace: ComponentName,
+			Name:      ComponentName,
+		},
+	}
+	return condition.Type == "Ready" &&
+		status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
 }
