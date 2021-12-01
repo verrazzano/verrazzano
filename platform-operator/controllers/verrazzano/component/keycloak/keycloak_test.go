@@ -112,7 +112,7 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-/*func Test_updateKeycloakUris(t *testing.T) {
+func Test_updateKeycloakUris(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Profile: "dev",
@@ -367,12 +367,13 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 				setBashFunc(fakeBashFail)
 			}
 			defer func() { execCommand = exec.Command }()
-			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
-				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			//  CDD Unit test needs refactoring
+			//			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
+			//				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
+			//			}
 		})
 	}
-}*/
+}
 
 // TestAppendKeycloakOverrides tests that the Keycloak overrides are generated correctly.
 // GIVEN a Verrazzano BOM
