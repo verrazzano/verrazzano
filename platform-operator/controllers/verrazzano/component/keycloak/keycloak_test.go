@@ -64,7 +64,7 @@ func fakeRESTConfig() (*rest.Config, rest.Interface, error) {
 	return cfg, &testclient.RESTClient{}, nil
 }
 
-func createTestKeycloakHttpSecret() *v1.Secret {
+func createTestLoginSecret() *v1.Secret {
 	return &v1.Secret{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -167,7 +167,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testUpdateKeycloakURIs",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(), createTestNginxService()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
 				testVZ,
 				false),
 			wantErr: false,
@@ -183,7 +183,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testFailForKeycloakSecretPasswordEmpty",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(), createTestNginxService()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
 				testVZ,
 				false),
 			wantErr: true,
@@ -191,7 +191,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testFailForAuthenticationToKeycloak",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(), createTestNginxService()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
 				testVZ,
 				false),
 			wantErr: true,
@@ -199,7 +199,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testFailForNoKeycloakClientsReturned",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(), createTestNginxService()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
 				testVZ,
 				false),
 			wantErr: true,
@@ -207,7 +207,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testFailForKeycloakUserNotFound",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(), createTestNginxService()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
 				testVZ,
 				false),
 			wantErr: true,
@@ -215,7 +215,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testFailForNoIngress",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret()),
 				testVZ,
 				false),
 			wantErr: true,
@@ -223,7 +223,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testScriptFailure",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(), createTestNginxService()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
 				testVZ,
 				false),
 			wantErr: true,
@@ -259,7 +259,7 @@ func TestUpdateKeycloakUris(t *testing.T) {
 // WHEN I call configureKeycloakRealms
 // THEN configure the Keycloak realms, otherwise returning an error if the environment is invalid
 func TestConfigureKeycloakRealms(t *testing.T) {
-	loginSecret := createTestKeycloakHttpSecret()
+	loginSecret := createTestLoginSecret()
 	nginxService := createTestNginxService()
 	k8sutil.RESTClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
@@ -446,8 +446,8 @@ func TestGetEnvironmentName(t *testing.T) {
 // WHEN I call loginKeycloak
 // THEN throw an error if the k8s environment is invalid (bad secret)
 func TestLoginKeycloak(t *testing.T) {
-	httpSecret := createTestKeycloakHttpSecret()
-	httpSecretEmptyPassword := createTestKeycloakHttpSecret()
+	httpSecret := createTestLoginSecret()
+	httpSecretEmptyPassword := createTestLoginSecret()
 	httpSecretEmptyPassword.Data["password"] = []byte("")
 	cfg, restclient, _ := fakeRESTConfig()
 	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
