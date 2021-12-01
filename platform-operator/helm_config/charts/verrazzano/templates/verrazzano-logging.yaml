@@ -334,7 +334,7 @@ data:
 
       template_file /fluentd/etc/elasticsearch-template-verrazzano.json
       template_name elasticsearch-template-verrazzano.json
-      template_overwrite false
+      template_overwrite true
 
       # time_as_integer needs to be set to false in order for Fluentd
       # to convert timestamps to Fluent::EventTime objects instead of
@@ -390,7 +390,9 @@ data:
       "settings" : {
         "index.refresh_interval" : "5s",
         "index.mapping.total_fields.limit" : "2000",
-        "number_of_shards": 5
+        "number_of_shards": 5,
+        "index.number_of_replicas" : 0,
+        "index.auto_expand_replicas" : "0-1"
       },
       "mappings" : {
         "dynamic_templates" : [ {

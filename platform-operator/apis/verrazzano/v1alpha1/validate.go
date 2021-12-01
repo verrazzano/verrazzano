@@ -59,6 +59,20 @@ func ValidateVersion(requestedVersion string) error {
 	return nil
 }
 
+// ValidateProfile check that requestedProfile is valid
+func ValidateProfile(requestedProfile ProfileType) error {
+	if len(requestedProfile) != 0 {
+		switch requestedProfile {
+		case Prod, Dev, ManagedCluster:
+			return nil
+		default:
+			return fmt.Errorf("Requested profile %s is invalid.  Valid options are dev, prod, or managed-cluster",
+				requestedProfile)
+		}
+	}
+	return nil
+}
+
 // ValidateUpgradeRequest Ensures that for the upgrade case only the version field has changed
 func ValidateUpgradeRequest(currentSpec *VerrazzanoSpec, newSpec *VerrazzanoSpec) error {
 	if !config.Get().VersionCheckEnabled {
