@@ -65,7 +65,7 @@ type intermResult struct {
 }
 
 // CreateSelfSignedCert creates a self signed cert and returns the generated PEM data
-func CreateSelfSignedCert(rootConfig CertConfig, intermConfig CertConfig, ) (*CertPemData, error) {
+func CreateSelfSignedCert(rootConfig CertConfig, intermConfig CertConfig) (*CertPemData, error) {
 	// Create the object that will be loaded with the PEM data
 	pem := CertPemData{}
 
