@@ -83,7 +83,6 @@ func readFormat() string {
 			s := line[strings.Index(line, "/")+1 : strings.LastIndex(line, "/")]
 			pattern = pattern + strings.ReplaceAll(s, "?<", "?P<")
 			if strings.Contains(line, "format13 /") {
-				format = false
 				return pattern + "(?s)"
 			}
 		}
