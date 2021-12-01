@@ -41,7 +41,7 @@ func NewComponent() spi.Component {
 // PostInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
-	vzLog(ctx).Debugf("Verrazzano pre-install")
+	ctx.Log().Debugf("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
 	}
@@ -53,7 +53,7 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return verrazzanoPreUpgrade(vzLog(ctx), ctx.Client(),
+	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(),
 		c.ReleaseName, resolveVerrazzanoNamespace(c.ChartNamespace), c.ChartDir)
 }
 
@@ -71,7 +71,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
-	if !status.DeploymentsReady(vzLog(ctx), ctx.Client(), deployments, 1) {
+	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1) {
 		return false
 	}
 	return isVerrazzanoSecretReady(ctx)

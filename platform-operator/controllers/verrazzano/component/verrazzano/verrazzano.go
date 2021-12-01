@@ -151,7 +151,7 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues
 	if err := writeFileFunc(overridesFileName, bytes, fs.ModeAppend); err != nil {
 		return "", err
 	}
-	vzLog(ctx).Infof("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
+	ctx.Log().Infof("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
 	return overridesFileName, nil
 }
 
@@ -473,7 +473,7 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 			fluentdConfig.ElasticsearchSecret != globalconst.DefaultElasticsearchSecretName {
 
 			esSecret := fluentdConfig.ElasticsearchSecret
-			vzLog := vzLog(ctx)
+			vzLog := ctx.Log()
 			vzLog.Debugf("Copying custom/external Elasticsearch secret %s to %s namespace",
 				esSecret, globalconst.VerrazzanoSystemNamespace)
 			targetSecret := corev1.Secret{
@@ -515,23 +515,18 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 		types.NamespacedName{Name: "verrazzano", Namespace: globalconst.VerrazzanoSystemNamespace},
 		&corev1.Secret{}); err != nil {
 		if !errors.IsNotFound(err) {
-			vzLog(ctx).Error("Unexpected error getting verrazzano secret: %s", err)
+			ctx.Log().Error("Unexpected error getting verrazzano secret: %s", err)
 			return false
 		}
-		vzLog(ctx).Debugf("Verrazzano secret not found")
+		ctx.Log().Debugf("Verrazzano secret not found")
 		return false
 	}
 	return true
 }
 
-// Add the Verrazzano component field/value to any logging entries
-func vzLog(ctx spi.ComponentContext) *zap.SugaredLogger {
-	return ctx.Log().With("component", componentName)
-}
-
 //cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
-	log := vzLog(ctx)
+	log := ctx.Log()
 	files, err := ioutil.ReadDir(os.TempDir())
 	if err != nil {
 		log.Errorf("Unable to read temp directory: %s", err.Error())
