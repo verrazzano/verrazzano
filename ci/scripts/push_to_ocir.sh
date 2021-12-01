@@ -49,6 +49,7 @@ fi
 # to test with in this run. If they match, then we have already pushed the images for this verrazzano-bom.json
 # into OCIR for this branches periodic runs and we do not need to do that again.
 # If they don't match, or if we didn't have one to compare, then we will proceed to push them to OCIR
+set +e
 if [ -f "${WORKSPACE}/last-ocir-pushed-verrazzano-bom.json" ]; then
   diff ${WORKSPACE}/last-ocir-pushed-verrazzano-bom.json ${BOM_FILE} > /dev/null
   if [ $? -eq 0 ]; then
@@ -60,6 +61,7 @@ if [ -f "${WORKSPACE}/last-ocir-pushed-verrazzano-bom.json" ]; then
 else
   echo "INFO: push_to_ocir: no previous BOM file found to compare, proceeding to push"
 fi
+set -e
 
 # This assumes that the docker login has happened, and that the OCI CLI has access as well with default profile
 
