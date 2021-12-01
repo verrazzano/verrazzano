@@ -37,9 +37,9 @@ const EnvVarKubeConfig = "KUBECONFIG"
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
-type ClientConfigFunc func() (*restclient.Config, restclient.Interface, error)
+type ClientConfigFunc func() (*restclient.Config, kubernetes.Interface, error)
 
-var RESTClientConfig ClientConfigFunc = func() (*restclient.Config, restclient.Interface, error) {
+var ClientConfig ClientConfigFunc = func() (*restclient.Config, kubernetes.Interface, error) {
 	cfg, err := controllerruntime.GetConfig()
 	if err != nil {
 		return nil, nil, err
@@ -48,8 +48,7 @@ var RESTClientConfig ClientConfigFunc = func() (*restclient.Config, restclient.I
 	if err != nil {
 		return nil, nil, err
 	}
-
-	return cfg, c.RESTClient(), nil
+	return cfg, c, nil
 }
 
 // GetKubeConfigLocation Helper function to obtain the default kubeConfig location

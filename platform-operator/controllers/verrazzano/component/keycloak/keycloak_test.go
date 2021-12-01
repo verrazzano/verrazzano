@@ -9,6 +9,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
+	fakeclient "k8s.io/client-go/kubernetes/fake"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	"k8s.io/client-go/rest"
 	testclient "k8s.io/client-go/rest/fake"
 	"os"
@@ -59,9 +63,34 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func fakeRESTConfig() (*rest.Config, rest.Interface, error) {
+// This is due to a bug in the fake client, fakeclient.NewSimpleClientset().CoreV1.RESTClient() is nil
+// So we wrap the structs and supply our own FakeCoreV1 implementation which returns a fake RESTClient object instead of nil
+type (
+	FakeClientSet struct {
+		fakeclient.Clientset
+	}
+	MyFakeCoreV1 struct {
+		fakecorev1.FakeCoreV1
+	}
+)
+
+func (f *FakeClientSet) CoreV1() corev1.CoreV1Interface {
+	return &MyFakeCoreV1{
+		FakeCoreV1: fakecorev1.FakeCoreV1{
+			Fake: &f.Fake,
+		},
+	}
+}
+
+func (f *MyFakeCoreV1) RESTClient() rest.Interface {
+	return &testclient.RESTClient{}
+}
+
+func fakeRESTConfig() (*rest.Config, kubernetes.Interface, error) {
 	cfg, _ := rest.InClusterConfig()
-	return cfg, &testclient.RESTClient{}, nil
+	clientset := fakeclient.NewSimpleClientset()
+	myfakeClientset := &FakeClientSet{Clientset: *clientset}
+	return cfg, myfakeClientset, nil
 }
 
 func createTestLoginSecret() *v1.Secret {
@@ -158,8 +187,7 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 }
 
 func TestUpdateKeycloakURIs(t *testing.T) {
-	// Mock
-	k8sutil.RESTClientConfig = fakeRESTConfig
+	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
 	tests := []struct {
 		name    string
@@ -255,10 +283,9 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 				setBashFunc(fakeBashFail)
 			}
 			defer func() { execCommand = exec.Command }()
-			//  CDD Unit test needs refactoring
-			//			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
-			//				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
-			//			}
+			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
+				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
@@ -270,7 +297,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 func TestConfigureKeycloakRealms(t *testing.T) {
 	loginSecret := createTestLoginSecret()
 	nginxService := createTestNginxService()
-	k8sutil.RESTClientConfig = fakeRESTConfig
+	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
 
 	var tests = []struct {
