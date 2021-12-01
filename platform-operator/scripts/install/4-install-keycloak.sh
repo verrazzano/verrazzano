@@ -69,14 +69,6 @@ function wait_for_mysql() {
   return $?
 }
 
-
-if [ $(is_keycloak_enabled) == "true" ]; then
-  action "Waiting for MySQL to become available" wait_for_mysql || exit 1
-  action "Installing Keycloak" install_keycloak || exit 1
-else
-  log "Skip Keycloak installation, disabled"
-fi
-
 rm -rf $TMP_DIR
 
 consoleout
