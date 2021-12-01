@@ -32,21 +32,13 @@ const (
 var sockShop SockShop
 var username, password string
 
-// variant is used to pass in which version of the sock shop we want to run the test
-// suite against (helidon, micronaut, or spring)
-var variant string
-
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
 
-	// read the variant from the environment - if not specified, default to "helidon"
-	variant := os.Getenv("SOCKS_SHOP_VARIANT")
-	if variant != "helidon" && variant != "micronaut" && variant != "spring" {
-		variant = "helidon"
-	}
+	variant := getVariant()
 	GinkgoWriter.Write([]byte(fmt.Sprintf("*** Socks shop test is running against variant: %s\n", variant)))
 
 	if !skipDeploy {
@@ -263,6 +255,7 @@ var _ = AfterSuite(func() {
 	}
 
 	if !skipUndeploy {
+		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
 		pkg.Log(pkg.Info, "Delete application")
 		Eventually(func() error {
@@ -317,4 +310,15 @@ func appComponentMetricsExists() bool {
 // appConfigMetricsExists checks whether config metrics are available
 func appConfigMetricsExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
+}
+
+// getVariant returns the variant of the sock shop application being tested
+func getVariant() string {
+	// read the variant from the environment - if not specified, default to "helidon"
+	variant := os.Getenv("SOCKS_SHOP_VARIANT")
+	if variant != "helidon" && variant != "micronaut" && variant != "spring" {
+		variant = "helidon"
+	}
+
+	return variant
 }
