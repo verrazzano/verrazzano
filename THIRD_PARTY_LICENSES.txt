@@ -2389,7 +2389,7 @@ github.com/mailru/easyjson
 Copyright (c) 2016 Mail.Ru Group
 
 -------- Dependency
-github.com/onsi/ginkgo/v2
+github.com/onsi/ginkgo
 -------- Copyrights
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
@@ -2467,7 +2467,7 @@ github.com/emicklei/go-restful
 github.com/gertd/go-pluralize
 github.com/json-iterator/go
 github.com/mailru/easyjson
-github.com/onsi/ginkgo/v2
+github.com/onsi/ginkgo
 github.com/onsi/gomega
 github.com/peterbourgon/diskv
 github.com/stretchr/testify
@@ -2568,4 +2568,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 6e6dd73c7ad5e78d957b23f87012268f
+License file based on go.mod with md5 sum: 87c5d7298b011c2756c52e4599e3896d
