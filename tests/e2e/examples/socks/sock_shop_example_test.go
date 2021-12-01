@@ -1,8 +1,6 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// +build unstable_test
-
 package socks
 
 import (
@@ -20,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -266,36 +263,21 @@ var _ = AfterSuite(func() {
 	}
 
 	if !skipUndeploy {
+		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
+		pkg.Log(pkg.Info, "Delete application")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+		pkg.Log(pkg.Info, "Delete components")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+		pkg.Log(pkg.Info, "Delete namespace")
 		Eventually(func() error {
 			return pkg.DeleteNamespace("sockshop")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-		// occassionally the namespace fails to delete, so adding extra debug information here to
-		// capture a cluster dump and hopefully we can figure out what is keeping the namespace
-		// from going away
-		pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
-		var ns *v1.Namespace
-		var err error
-		for i := 0; i < 20; i++ {
-			ns, err = pkg.GetNamespace("sockshop")
-			if err != nil && errors.IsNotFound(err) {
-				pkg.Log(pkg.Info, "Namespace deleted")
-				return
-			}
-			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get namespace: %v", err))
-			}
-			time.Sleep(pollingInterval)
-		}
-
-		pkg.Log(pkg.Error, "Namespace could not be deleted, dumping cluster")
-		if ns != nil {
-			if b, err := json.Marshal(ns); err == nil {
-				pkg.Log(pkg.Info, string(b))
-			}
-		}
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-		Fail("Unable to delete namespace")
 	}
 })
 
