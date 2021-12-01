@@ -233,7 +233,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset-jenkins",
-              "tag": "20211130084735-068acfe",
+              "tag": "20211201113234-be46cc4",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
