@@ -366,9 +366,9 @@ pipeline {
                       failUnhealthy: true,
                       failNoReports: true,
                       onlyStable: false,
-                      fileCoverageTargets: '100, 0, 0',
-                      lineCoverageTargets: '75, 75, 75',
-                      packageCoverageTargets: '100, 0, 0',
+                      fileCoverageTargets: '30, 0, 0',
+                      lineCoverageTargets: '30, 30, 30',
+                      packageCoverageTargets: '30, 0, 0',
                     )
                 }
             }
