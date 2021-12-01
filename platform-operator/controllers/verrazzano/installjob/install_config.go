@@ -350,46 +350,39 @@ func getRancher(rancher *installv1alpha1.RancherComponent) Rancher {
 }
 
 // getKeycloak returns the json representation for the keycloak configuration
-func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []installv1alpha1.VolumeClaimSpecTemplate, defaultVolumeSpec *corev1.VolumeSource) (Keycloak, error) {
-	// keycloak was not specified in CR so return defaults
-	if keycloak == nil {
-		keycloakConfig := Keycloak{Enabled: "true"}
-		if defaultVolumeSpec != nil && defaultVolumeSpec.EmptyDir != nil {
-			var mySQLArgs []InstallArg
-			mySQLArgs = append(mySQLArgs, InstallArg{
-				Name:  "persistence.enabled",
-				Value: "false",
-			})
-			keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
-		}
-		return keycloakConfig, nil
-	}
-
-	// Get the explicit helm args for MySQL
-	mySQLArgs := getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
+func getKeycloak(keycloak *installv1alpha1.KeycloakComponent,
+	templates []installv1alpha1.VolumeClaimSpecTemplate,
+	defaultVolumeSource *corev1.VolumeSource) (Keycloak, error) {
 
 	var enabled string
-	if keycloak.Enabled != nil {
-		enabled = strconv.FormatBool(*keycloak.Enabled)
+	// Get the explicit helm args for Keycloak/MySQL
+	var mySQLArgs []InstallArg
+	var keycloakArgs []InstallArg
+	if keycloak != nil {
+		if keycloak.Enabled != nil {
+			enabled = strconv.FormatBool(*keycloak.Enabled)
+		}
+		mySQLArgs = getInstallArgs(keycloak.MySQL.MySQLInstallArgs)
+		keycloakArgs = getInstallArgs(keycloak.KeycloakInstallArgs)
 	} else {
 		enabled = "true"
 	}
-	keycloakConfig := Keycloak{
-		KeycloakInstallArgs: getInstallArgs(keycloak.KeycloakInstallArgs),
-		MySQL: MySQL{
-			MySQLInstallArgs: mySQLArgs,
-		},
-		Enabled: enabled,
+
+	// Use a volume source specified in the Keycloak config, otherwise use the default volume source
+	mysqlVolumeSource := defaultVolumeSource
+	if keycloak != nil && keycloak.MySQL.VolumeSource != nil {
+		mysqlVolumeSource = keycloak.MySQL.VolumeSource
 	}
 
-	// Use a volume source specified in the Keycloak config, otherwise use the default spec
-	mysqlVolumeSource := keycloak.MySQL.VolumeSource
 	if mysqlVolumeSource == nil {
-		mysqlVolumeSource = defaultVolumeSpec
-	}
-
-	// No volumes to process, return what we have
-	if mysqlVolumeSource == nil {
+		// No volumes to process, return what we have
+		keycloakConfig := Keycloak{
+			Enabled:             enabled,
+			KeycloakInstallArgs: keycloakArgs,
+			MySQL: MySQL{
+				MySQLInstallArgs: mySQLArgs,
+			},
+		}
 		return keycloakConfig, nil
 	}
 
@@ -438,8 +431,13 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 			Value: "true",
 		})
 	}
-	// Update the MySQL Install args
-	keycloakConfig.MySQL.MySQLInstallArgs = mySQLArgs
+	keycloakConfig := Keycloak{
+		Enabled:             enabled,
+		KeycloakInstallArgs: keycloakArgs,
+		MySQL: MySQL{
+			MySQLInstallArgs: mySQLArgs,
+		},
+	}
 	return keycloakConfig, nil
 }
 
