@@ -7,14 +7,13 @@ import (
 	"fmt"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -123,9 +122,13 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return isKeycloakEnabled(ctx)
 }
 
+func getCertName(vz *vzapi.Verrazzano) string {
+	return fmt.Sprintf("%s-secret", getEnvironmentName(vz.Spec.EnvironmentName))
+}
+
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	// TLS cert from Cert Manager should be in Ready state
-	certName := fmt.Sprintf("%s-secret", getEnvironmentName(ctx.EffectiveCR().Spec.EnvironmentName))
+	certName := getCertName(ctx.EffectiveCR())
 	certificate := &certmanager.Certificate{}
 	namespacedName := types.NamespacedName{Name: certName, Namespace: ComponentName}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, certificate); err != nil {
@@ -137,7 +140,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	condition := certificate.Status.Conditions[0]
-	return condition.Type == "Ready" && StatefulsetsReady(ctx.Log(), ctx.Client(), []types.NamespacedName{
+	return condition.Type == "Ready" && status.StatefulsetReady(ctx.Log(), ctx.Client(), []types.NamespacedName{
 		{Namespace: "keycloak",
 			Name: "keycloak"},
 	}, 1)
@@ -149,25 +152,4 @@ func isKeycloakEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
-}
-
-// StatefulsetsReady Check that the named statefulsets have the minimum number of specified replicas ready and available
-func StatefulsetsReady(log *zap.SugaredLogger, client client.Client, statefulsets []types.NamespacedName, expectedReplicas int32) bool {
-	for _, namespacedName := range statefulsets {
-		statefulset := appsv1.StatefulSet{}
-		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
-			if errors.IsNotFound(err) {
-				log.Infof("Keycloak StatefulSetsReady: %v statefulSet not found", namespacedName)
-				// StatefulSet not found
-				return false
-			}
-			log.Errorf("Keycloak StatefulSetsReady: Unexpected error checking %v status: %v", namespacedName, err)
-			return false
-		}
-		if statefulset.Status.ReadyReplicas < expectedReplicas {
-			log.Infof("Keycloak StatefulSetsReady: Not enough available replicas for the %v deployment yet", namespacedName)
-			return false
-		}
-	}
-	return true
 }

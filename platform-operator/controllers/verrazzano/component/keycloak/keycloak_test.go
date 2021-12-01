@@ -157,8 +157,10 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-func TestUpdateKeycloakUris(t *testing.T) {
-
+func TestUpdateKeycloakURIs(t *testing.T) {
+	// Mock
+	k8sutil.RESTClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
 	tests := []struct {
 		name    string
 		args    spi.ComponentContext
@@ -183,7 +185,14 @@ func TestUpdateKeycloakUris(t *testing.T) {
 		{
 			name: "testFailForKeycloakSecretPasswordEmpty",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService(), &v1.Secret{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-http",
+						Namespace: "keycloak",
+					},
+					Data: map[string][]byte{"password": []byte("")},
+				}),
 				testVZ,
 				false),
 			wantErr: true,
@@ -246,10 +255,9 @@ func TestUpdateKeycloakUris(t *testing.T) {
 				setBashFunc(fakeBashFail)
 			}
 			defer func() { execCommand = exec.Command }()
-			//  CDD Unit test needs refactoring
-			//			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
-			//				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
-			//			}
+			if err := updateKeycloakUris(tt.args); (err != nil) != tt.wantErr {
+				t.Errorf("updateKeycloakUris() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
