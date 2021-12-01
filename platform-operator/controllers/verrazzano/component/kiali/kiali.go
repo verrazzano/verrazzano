@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -59,7 +59,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: namespace},
 	}
 	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
-		dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
 			return err
 		}
@@ -108,7 +108,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTP"
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
-		if nginx.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
 		}
@@ -166,7 +166,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 }
 
 func getKialiHostName(context spi.ComponentContext) (string, error) {
-	dnsDomain, err := nginx.BuildDNSDomain(context.Client(), context.EffectiveCR())
+	dnsDomain, err := vzconfig.BuildDNSDomain(context.Client(), context.EffectiveCR())
 	if err != nil {
 		return "", err
 	}

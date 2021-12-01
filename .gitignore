@@ -47,3 +47,4 @@ image-patch-operator/weblogic-imagetool/installers/*
 tools/analysis/THIRD_PARTY_LICENSES.txt
 tests/e2e/**/*.test
 **/.DS_Store
+**/.vscode

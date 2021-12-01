@@ -6,6 +6,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -55,6 +56,10 @@ func (v *Verrazzano) ValidateCreate() error {
 	}
 
 	if err := ValidateVersion(v.Spec.Version); err != nil {
+		return err
+	}
+
+	if err := ValidateProfile(v.Spec.Profile); err != nil {
 		return err
 	}
 

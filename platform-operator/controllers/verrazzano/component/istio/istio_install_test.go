@@ -322,29 +322,6 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 	return mock
 }
 
-// TestCreateEnvoyFilter tests creating the Envoy filter
-// GIVEN a component
-//  WHEN I call createEnvoyFilter
-//  THEN the bash function is called to create the filter
-func TestCreateEnvoyFilter(t *testing.T) {
-	assert := assert.New(t)
-
-	setBashFunc(fakeBash)
-	err := createEnvoyFilter(spi.NewFakeContext(createEnvoyFilterMock(t), installCR, false))
-	assert.NoError(err, "createEnvoyFilter returned an error")
-}
-
-func createEnvoyFilterMock(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioEnvoyFilter}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "EnvoyFilter"}, IstioEnvoyFilter))
-
-	return mock
-}
-
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
 func fakeInstall(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {

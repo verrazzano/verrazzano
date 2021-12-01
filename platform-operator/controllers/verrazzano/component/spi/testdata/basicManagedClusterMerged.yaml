@@ -22,6 +22,8 @@ spec:
       enabled: false
     fluentd:
       enabled: true
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano
     grafana:
       enabled: false
     ingress:
