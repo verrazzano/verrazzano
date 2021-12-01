@@ -48,7 +48,6 @@ var ClientConfig ClientConfigFunc = func() (*restclient.Config, kubernetes.Inter
 	if err != nil {
 		return nil, nil, err
 	}
-
 	return cfg, c, nil
 }
 
