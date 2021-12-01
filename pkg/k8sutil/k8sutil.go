@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -35,6 +36,21 @@ const EnvVarKubeConfig = "KUBECONFIG"
 
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
+
+type ClientConfigFunc func() (*restclient.Config, restclient.Interface, error)
+
+var RESTClientConfig ClientConfigFunc = func() (*restclient.Config, restclient.Interface, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	c, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return cfg, c.RESTClient(), nil
+}
 
 // GetKubeConfigLocation Helper function to obtain the default kubeConfig location
 func GetKubeConfigLocation() (string, error) {

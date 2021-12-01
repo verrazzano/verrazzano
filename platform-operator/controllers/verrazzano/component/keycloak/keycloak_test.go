@@ -6,9 +6,14 @@ package keycloak
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
+	testclient "k8s.io/client-go/rest/fake"
 	"os"
 	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,6 +34,11 @@ const (
 
 var keycloakClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
 var keycloakErrorClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
+var testVZ = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Profile: "dev",
+	},
+}
 
 // fakeBash mocks a successful script run
 func fakeBash(_ ...string) (string, string, error) {
@@ -37,7 +47,7 @@ func fakeBash(_ ...string) (string, string, error) {
 
 // fakeBashFail mocks a failed script run
 func fakeBashFail(_ ...string) (string, string, error) {
-	return "fail", "Script Failed", errors.New("Script Failed")
+	return "fail", "Script Failed", errors.New("script Failed")
 }
 
 func fakeExecCommand(command string, args ...string) *exec.Cmd {
@@ -47,6 +57,41 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	cmd := exec.Command(firstArg, cs...)
 	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
 	return cmd
+}
+
+func fakeRESTConfig() (*rest.Config, rest.Interface, error) {
+	cfg, _ := rest.InClusterConfig()
+	return cfg, &testclient.RESTClient{}, nil
+}
+
+func createTestLoginSecret() *v1.Secret {
+	return &v1.Secret{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "keycloak-http",
+			Namespace: "keycloak",
+		},
+		Data: map[string][]byte{"password": []byte("password")},
+	}
+}
+
+func createTestNginxService() *v1.Service {
+	return &v1.Service{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "ingress-controller-ingress-nginx-controller",
+			Namespace: "ingress-nginx",
+		},
+		Spec: v1.ServiceSpec{},
+		Status: v1.ServiceStatus{
+			LoadBalancer: v1.LoadBalancerStatus{
+				Ingress: []v1.LoadBalancerIngress{
+					{IP: "192.132.111.122",
+						Hostname: ""},
+				},
+			},
+		},
+	}
 }
 
 func TestHelperProcess(t *testing.T) {
@@ -112,13 +157,10 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 	os.Exit(0)
 }
 
-func Test_updateKeycloakUris(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Profile: "dev",
-		},
-	}
-
+func TestUpdateKeycloakURIs(t *testing.T) {
+	// Mock
+	k8sutil.RESTClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
 	tests := []struct {
 		name    string
 		args    spi.ComponentContext
@@ -127,225 +169,71 @@ func Test_updateKeycloakUris(t *testing.T) {
 		{
 			name: "testUpdateKeycloakURIs",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
-					&v1.Service{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "ingress-controller-ingress-nginx-controller",
-							Namespace: "ingress-nginx",
-						},
-						Spec: v1.ServiceSpec{},
-						Status: v1.ServiceStatus{
-							LoadBalancer: v1.LoadBalancerStatus{
-								Ingress: []v1.LoadBalancerIngress{
-									{IP: "192.132.111.122",
-										Hostname: ""},
-								},
-							},
-						},
-					}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				testVZ,
 				false),
 			wantErr: false,
 		},
 		{
 			name: "testFailForNoKeycloakSecret",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme,
-					&v1.Service{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "ingress-controller-ingress-nginx-controller",
-							Namespace: "ingress-nginx",
-						},
-						Spec: v1.ServiceSpec{},
-						Status: v1.ServiceStatus{
-							LoadBalancer: v1.LoadBalancerStatus{
-								Ingress: []v1.LoadBalancerIngress{
-									{IP: "192.132.111.122",
-										Hostname: ""},
-								},
-							},
-						},
-					}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService()),
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForKeycloakSecretPasswordEmpty",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService(), &v1.Secret{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "keycloak-http",
 						Namespace: "keycloak",
 					},
 					Data: map[string][]byte{"password": []byte("")},
-				},
-					&v1.Service{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "ingress-controller-ingress-nginx-controller",
-							Namespace: "ingress-nginx",
-						},
-						Spec: v1.ServiceSpec{},
-						Status: v1.ServiceStatus{
-							LoadBalancer: v1.LoadBalancerStatus{
-								Ingress: []v1.LoadBalancerIngress{
-									{IP: "192.132.111.122",
-										Hostname: ""},
-								},
-							},
-						},
-					}),
-				vz,
+				}),
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForAuthenticationToKeycloak",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
-					&v1.Service{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "ingress-controller-ingress-nginx-controller",
-							Namespace: "ingress-nginx",
-						},
-						Spec: v1.ServiceSpec{},
-						Status: v1.ServiceStatus{
-							LoadBalancer: v1.LoadBalancerStatus{
-								Ingress: []v1.LoadBalancerIngress{
-									{IP: "192.132.111.122",
-										Hostname: ""},
-								},
-							},
-						},
-					}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForNoKeycloakClientsReturned",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
-					&v1.Service{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "ingress-controller-ingress-nginx-controller",
-							Namespace: "ingress-nginx",
-						},
-						Spec: v1.ServiceSpec{},
-						Status: v1.ServiceStatus{
-							LoadBalancer: v1.LoadBalancerStatus{
-								Ingress: []v1.LoadBalancerIngress{
-									{IP: "192.132.111.122",
-										Hostname: ""},
-								},
-							},
-						},
-					}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForKeycloakUserNotFound",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
-					&v1.Service{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "ingress-controller-ingress-nginx-controller",
-							Namespace: "ingress-nginx",
-						},
-						Spec: v1.ServiceSpec{},
-						Status: v1.ServiceStatus{
-							LoadBalancer: v1.LoadBalancerStatus{
-								Ingress: []v1.LoadBalancerIngress{
-									{IP: "192.132.111.122",
-										Hostname: ""},
-								},
-							},
-						},
-					}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForNoIngress",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret()),
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testScriptFailure",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
-					&v1.Service{
-						TypeMeta: metav1.TypeMeta{},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "ingress-controller-ingress-nginx-controller",
-							Namespace: "ingress-nginx",
-						},
-						Spec: v1.ServiceSpec{},
-						Status: v1.ServiceStatus{
-							LoadBalancer: v1.LoadBalancerStatus{
-								Ingress: []v1.LoadBalancerIngress{
-									{IP: "192.132.111.122",
-										Hostname: ""},
-								},
-							},
-						},
-					}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestLoginSecret(), createTestNginxService()),
+				testVZ,
 				false),
 			wantErr: true,
 		},
@@ -375,6 +263,106 @@ func Test_updateKeycloakUris(t *testing.T) {
 	}
 }
 
+// TestConfigureKeycloakRealms tests configuration of the Keycloak realms
+// GIVEN a client, and a k8s environment
+// WHEN I call configureKeycloakRealms
+// THEN configure the Keycloak realms, otherwise returning an error if the environment is invalid
+func TestConfigureKeycloakRealms(t *testing.T) {
+	loginSecret := createTestLoginSecret()
+	nginxService := createTestNginxService()
+	k8sutil.RESTClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+
+	var tests = []struct {
+		name        string
+		c           client.Client
+		stdout      string
+		isErr       bool
+		errContains string
+	}{
+		{
+			"should fail when login fails",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			"blahblah",
+			true,
+			"secrets \"keycloak-http\" not found",
+		},
+		{
+			"should fail to retrieve user group ID from Keycloak when stdout is empty",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			"",
+			true,
+			"Error retrieving User Group ID from Keycloak",
+		},
+		{
+			"should fail when Verrazzano secret is not present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			"blahblah'id",
+			true,
+			"secrets \"verrazzano\" not found",
+		},
+		{
+			"should fail when Verrazzano secret has no password",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "verrazzano",
+					Namespace: "verrazzano-system",
+				},
+				Data: map[string][]byte{
+					"password": []byte(""),
+				},
+			}),
+			"blahblah'id",
+			true,
+			"configureKeycloakRealm: Error retrieving verrazzano password",
+		},
+		{
+			"should fail when nginx service is not present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "verrazzano",
+					Namespace: "verrazzano-system",
+				},
+				Data: map[string][]byte{
+					"password": []byte("blah di blah"),
+				},
+			}),
+			"blahblah'id",
+			true,
+			"services \"ingress-controller-ingress-nginx-controller\" not found",
+		},
+		{
+			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "verrazzano",
+					Namespace: "verrazzano-system",
+				},
+				Data: map[string][]byte{
+					"password": []byte("blah di blah"),
+				},
+			}),
+			"blahblah'id",
+			false,
+			"",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			k8sutil.FakePodSTDOUT = tt.stdout
+			err := configureKeycloakRealms(ctx, "foobar", "barfoo")
+			if tt.isErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 // TestAppendKeycloakOverrides tests that the Keycloak overrides are generated correctly.
 // GIVEN a Verrazzano BOM
 // WHEN I call AppendKeycloakOverrides
@@ -389,22 +377,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Service{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ingress-controller-ingress-nginx-controller",
-			Namespace: "ingress-nginx",
-		},
-		Spec: v1.ServiceSpec{},
-		Status: v1.ServiceStatus{
-			LoadBalancer: v1.LoadBalancerStatus{
-				Ingress: []v1.LoadBalancerIngress{
-					{IP: "192.132.111.122",
-						Hostname: ""},
-				},
-			},
-		},
-	})
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService())
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
@@ -445,22 +418,7 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Service{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "ingress-controller-ingress-nginx-controller",
-			Namespace: "ingress-nginx",
-		},
-		Spec: v1.ServiceSpec{},
-		Status: v1.ServiceStatus{
-			LoadBalancer: v1.LoadBalancerStatus{
-				Ingress: []v1.LoadBalancerIngress{
-					{IP: "192.132.111.122",
-						Hostname: ""},
-				},
-			},
-		},
-	})
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestNginxService())
 	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(client, vz, false), "", "", "", nil)
 
@@ -470,4 +428,81 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 		Key:   tlsSecret,
 		Value: "default-secret",
 	})
+}
+
+// TestGetEnvironmentName tests that the environment name is returned correctly
+// GIVEN a environmentName
+// WHEN I call getEnvironmentName
+// THEN return the environmentName if it is not empty, else return default.
+func TestGetEnvironmentName(t *testing.T) {
+	var tests = []struct {
+		in  string
+		out string
+	}{
+		{"", constants.DefaultEnvironmentName},
+		{"foobar", "foobar"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.out, func(t *testing.T) {
+			assert.Equal(t, tt.out, getEnvironmentName(tt.in))
+		})
+	}
+}
+
+// TestLoginKeycloak tests the login to keycloak interacts with k8s resources as expected
+// GIVEN a client
+// WHEN I call loginKeycloak
+// THEN throw an error if the k8s environment is invalid (bad secret)
+func TestLoginKeycloak(t *testing.T) {
+	httpSecret := createTestLoginSecret()
+	httpSecretEmptyPassword := createTestLoginSecret()
+	httpSecretEmptyPassword.Data["password"] = []byte("")
+	cfg, restclient, _ := fakeRESTConfig()
+	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+
+	var tests = []struct {
+		name  string
+		c     client.Client
+		isErr bool
+	}{
+		{
+			"should fail when secret does not exist",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			true,
+		},
+		{
+			"should fail to find the keycloak password if it is empty",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, httpSecretEmptyPassword),
+			true,
+		},
+		{
+			"should log into keycloak when the password is present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, httpSecret),
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8sutil.FakePodSTDOUT = "blah"
+			err := loginKeycloak(spi.NewFakeContext(tt.c, testVZ, false), cfg, restclient)
+			if tt.isErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestCreateOrUpdateAuthSecret tests creation of the auth secret
+// GIVEN a client
+// WHEN I call createOrUpdateAuthSecret
+// THEN create the auth secret
+func TestCreateOrUpdateAuthSecret(t *testing.T) {
+	c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	ctx := spi.NewFakeContext(c, testVZ, false)
+	err := createOrUpdateAuthSecret(ctx, "ns", "secret", "user", "pass")
+	assert.NoError(t, err)
 }
