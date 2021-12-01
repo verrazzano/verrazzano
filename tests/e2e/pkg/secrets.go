@@ -31,7 +31,7 @@ func ListSecrets(namespace string) (*corev1.SecretList, error) {
 	return secrets, nil
 }
 
-// GetSecret returns the a secret in a given namespace for the cluster specified in the environment
+// GetSecret returns the secret in a given namespace for the cluster specified in the environment
 func GetSecret(namespace string, name string) (*corev1.Secret, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
