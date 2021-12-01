@@ -574,19 +574,19 @@ pipeline {
 }
 
 def getPrivateRegistryUser() {
-    if (SELECT_IMAGE_REGISTRY == "OCIR") {
-        return ${OCIR_CREDS_USR}
-    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
-        return ${HARBOR_STANDALONE_REGISTRY_CREDS_USR}
+    if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
+        return env.OCIR_CREDS_USR
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+        return env.HARBOR_STANDALONE_REGISTRY_CREDS_USR
     }
     return ""
 }
 
 def getPrivateRegistryPassword() {
-    if (SELECT_IMAGE_REGISTRY == "OCIR") {
-        return ${OCIR_CREDS_PSW}
-    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
-        return ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}
+    if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
+        return env.OCIR_CREDS_PSW
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+        return env.HARBOR_STANDALONE_REGISTRY_CREDS_PSW
     }
     return ""
 }
