@@ -206,5 +206,43 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
+		It("should not allow state changing requests without valid origin header", func() {
+			if !isManagedClusterProfile && isTestSupported {
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).ShouldNot(HaveOccurred())
+				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+				Expect(err).ShouldNot(HaveOccurred())
+				req, err := retryablehttp.NewRequest("POST", serverURL, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Add("Origin", "https://invalid-origin")
+				resp, err := httpClient.Do(req)
+				Expect(err).ShouldNot(HaveOccurred())
+				ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+				Expect(resp.StatusCode).To(Equal(403))
+			}
+		})
+
+		It("should allow non state changing requests without valid origin header but not populate Access-Control-Allow-Origin header", func() {
+			if !isManagedClusterProfile && isTestSupported {
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).ShouldNot(HaveOccurred())
+				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+				Expect(err).ShouldNot(HaveOccurred())
+				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				req.Header.Add("Origin", "https://invalid-origin")
+				resp, err := httpClient.Do(req)
+				Expect(err).ShouldNot(HaveOccurred())
+				ioutil.ReadAll(resp.Body)
+				resp.Body.Close()
+				Expect(resp.StatusCode).To(Equal(200))
+				// HTTP Access-Control-Allow-Origin header should never be returned.
+				for headerName, headerValues := range resp.Header {
+					Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
+				}
+			}
+		})
+
 	})
 })
