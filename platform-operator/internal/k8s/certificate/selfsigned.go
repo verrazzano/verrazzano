@@ -105,6 +105,9 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, erro
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName: config.CommonName,
+			Country: []string{config.CountryName},
+			Province: []string{config.StateOrProvinceName},
+			Organization: []string{config.OrgName},
 		},
 		NotBefore:             config.NotBefore,
 		NotAfter:              config.NotAfter,
@@ -147,12 +150,14 @@ func createIntermediateCert(config CertConfig, rootResult *rootResult) (*intermR
 		SerialNumber: rootResult.CertInfo.SerialNumber,
 		Subject: pkix.Name{
 			CommonName: config.CommonName,
+			Country: []string{config.CountryName},
+			Province: []string{config.StateOrProvinceName},
+			Organization: []string{config.OrgName},
 		},
 		NotBefore:      config.NotBefore,
 		NotAfter:       config.NotAfter,
 		IsCA:           true,
 		AuthorityKeyId: rootResult.CertInfo.SubjectKeyId,
-		SubjectKeyId:   []byte{1, 2, 3, 4, 6},
 		KeyUsage:       x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 	}
 
