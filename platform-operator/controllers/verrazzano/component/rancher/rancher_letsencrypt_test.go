@@ -6,7 +6,7 @@ package rancher
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
 	"strings"
