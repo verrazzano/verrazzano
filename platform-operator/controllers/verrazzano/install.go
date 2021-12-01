@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -36,7 +37,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		compContext := newContext.For(compName).Operation("install")
+		compContext := newContext.For(compName).Operation(vzconst.InstallOperation)
 		log.Debugf("processing install for %s", compName)
 
 		if !comp.IsOperatorInstallSupported() {

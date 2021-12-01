@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strconv"
 	"strings"
 
@@ -50,7 +51,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		log.Infof("Upgrading %s", compName)
-		upgradeContext := newContext.For(compName).Operation("upgrade")
+		upgradeContext := newContext.For(compName).Operation(vzconst.UpgradeOperation)
 		installed, err := comp.IsInstalled(upgradeContext)
 		if err != nil {
 			return newRequeueWithDelay(), err

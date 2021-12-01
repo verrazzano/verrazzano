@@ -32,7 +32,7 @@ var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 // THEN the correct overrides are returned
 func TestAppendMySQLOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
@@ -58,7 +58,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
@@ -78,7 +78,7 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
@@ -114,7 +114,7 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
@@ -132,7 +132,7 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 			Profile: vzapi.ProfileType("prod"),
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 2)
@@ -163,7 +163,7 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 			}},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation("install")
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4)
@@ -188,7 +188,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 			secret.Data[mySQLKey] = []byte("test-key")
 			return nil
 		})
-	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).For(ComponentName).Operation("upgrade")
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).For(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3)
