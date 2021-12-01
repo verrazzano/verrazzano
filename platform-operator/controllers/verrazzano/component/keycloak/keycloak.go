@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
@@ -132,7 +132,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	// Get DNS Domain Configuration
-	dnsSubDomain, err := nginx.BuildDNSDomain(compContext.Client(), compContext.EffectiveCR())
+	dnsSubDomain, err := getDNSDomain(compContext.Client(), compContext.EffectiveCR())
 	if err != nil {
 		compContext.Log().Errorf("configureKeycloakRealms: Error retrieving DNS sub domain: %s", err)
 		return nil, err
@@ -519,7 +519,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		ctx.Log().Info("CDD Created ES User PW")
 
 		// Get DNS Domain Configuration
-		dnsSubDomain, err := nginx.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealms: Error retrieving DNS sub domain: %s", err)
 			return err
@@ -910,4 +910,13 @@ func createOrUpdateAuthSecret(ctx spi.ComponentContext, namespace string, secret
 		return err
 	}
 	return nil
+}
+
+func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
+	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
+	if err != nil {
+		return "", err
+	}
+	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
+	return dnsDomain, nil
 }
