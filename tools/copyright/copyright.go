@@ -184,7 +184,7 @@ func runScan(args []string) int {
 	// - if it's a file,scan it
 	// - if it's a dir, walk it and scan it recursively
 	for _, arg := range args {
-		fmt.Println(fmt.Sprintf("Scanning target %s", arg))
+		fmt.Printf("Scanning target %s\n", arg)
 		argInfo, err := os.Stat(arg)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -238,7 +238,7 @@ func checkFile(path string, info os.FileInfo) error {
 	if skipFile(path, info) {
 		numFilesSkipped++
 		if verbose {
-			fmt.Println(fmt.Sprintf("Skipping file %s", path))
+			fmt.Printf("Skipping file %s/n", path)
 		}
 		return nil
 	}
