@@ -26,8 +26,8 @@ func createCertSecret(log *zap.SugaredLogger, client clipkg.Client) error {
 func createCerts(log *zap.SugaredLogger) (*certificate.CertPemData, error) {
 	const (
 		country = "US"
-		org = "Oracle Corporation"
-		state = "CA"
+		org     = "Oracle Corporation"
+		state   = "CA"
 	)
 	rootConfig := certificate.CertConfig{
 		CountryName:         country,
@@ -55,29 +55,29 @@ func createCerts(log *zap.SugaredLogger) (*certificate.CertPemData, error) {
 
 func createSecret(log *zap.SugaredLogger, client clipkg.Client, pemData *certificate.CertPemData) error {
 	const (
-		caPem = "ca-cert.pem"
-		caKey = "ca-key.pem"
+		caPem        = "ca-cert.pem"
+		caKey        = "ca-key.pem"
 		certChainPem = "cert-chain.pem"
-		rootPem = "root-cert.pem"
-		secretName = "cacerts"
+		rootPem      = "root-cert.pem"
+		secretName   = "cacerts"
 	)
 	var secret corev1.Secret
 	secret.Namespace = IstioNamespace
 	secret.Name = secretName
 
-	_, err:= controllerutil.CreateOrUpdate(context.TODO(), client, &secret, func() error {
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), client, &secret, func() error {
 		secret.Type = corev1.SecretTypeOpaque
 		secret.Data = map[string][]byte{
-			caPem:  pemData.IntermediateCertPEM,
-			caKey: 	pemData.IntermediatePrivateKeyPEM,
+			caPem:        pemData.IntermediateCertPEM,
+			caKey:        pemData.IntermediatePrivateKeyPEM,
 			certChainPem: pemData.CertChainPEM,
-			rootPem: pemData.RootCertPEM,
+			rootPem:      pemData.RootCertPEM,
 		}
 		return nil
 	})
 	if err != nil {
 		log.Errorf("Failed to create Istio certificate secret cacerts: %v", err)
-		return  err
+		return err
 	}
 	return nil
 }
