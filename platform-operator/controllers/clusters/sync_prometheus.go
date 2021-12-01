@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -68,7 +68,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 
 		// validate secret if it exists
 		if err := r.Get(context.TODO(), secretNsn, &secret); err != nil {
-			return fmt.Errorf("Failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
+			return fmt.Errorf("failed to fetch the managed cluster CA secret %s/%s, %v", vmc.Namespace, vmc.Spec.CASecret, err)
 		}
 	}
 
@@ -162,7 +162,7 @@ func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Sec
 		return newScrapeConfig, nil
 	}
 
-	vzPromSecret, err := r.getSecret(constants.VerrazzanoPromInternal)
+	vzPromSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoPromInternal, true)
 	if err != nil {
 		return nil, err
 	}
