@@ -7,6 +7,7 @@ import (
 	"fmt"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
