@@ -4,13 +4,14 @@ package vzconfig
 
 import (
 	"fmt"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+
+	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -400,4 +401,57 @@ func TestBuildDNSDomainCustomEnv(t *testing.T) {
 	domain, err := BuildDNSDomain(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
 	assert.NoError(t, err)
 	assert.Equal(t, "myenv.mydomain.com", domain)
+}
+
+// TestFindVolumeTemplate Test the FindVolumeTemplate utility function
+// GIVEN a call to FindVolumeTemplate
+// WHEN valid or invalid arguments are given
+// THEN true and the found template are is returned if found, nil/false otherwise
+func TestFindVolumeTemplate(t *testing.T) {
+
+	specTemplateList := []vzapi.VolumeClaimSpecTemplate{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "default"},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: "defVolume",
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "template1"},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: "temp1Volume",
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "template2"},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				VolumeName: "temp2Volume",
+			},
+		},
+	}
+	// Test boundary conditions
+	invalidName, found := FindVolumeTemplate("blah", specTemplateList)
+	assert.Nil(t, invalidName)
+	assert.False(t, found)
+	emptyName, found2 := FindVolumeTemplate("", specTemplateList)
+	assert.Nil(t, emptyName)
+	assert.False(t, found2)
+	nilList, found3 := FindVolumeTemplate("default", nil)
+	assert.Nil(t, nilList)
+	assert.False(t, found3)
+	emptyList, found4 := FindVolumeTemplate("default", []vzapi.VolumeClaimSpecTemplate{})
+	assert.Nil(t, emptyList)
+	assert.False(t, found4)
+
+	// Test normal behavior
+	defTemplate, found := FindVolumeTemplate("default", specTemplateList)
+	assert.True(t, found)
+	assert.Equal(t, "defVolume", defTemplate.VolumeName)
+	temp1, found := FindVolumeTemplate("template1", specTemplateList)
+	assert.True(t, found)
+	assert.Equal(t, "temp1Volume", temp1.VolumeName)
+	temp2, found := FindVolumeTemplate("template2", specTemplateList)
+	assert.True(t, found)
+	assert.Equal(t, "temp2Volume", temp2.VolumeName)
+
 }

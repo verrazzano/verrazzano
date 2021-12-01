@@ -472,59 +472,6 @@ func TestNodePortInstall(t *testing.T) {
 	assert.Equalf(t, "verrazzano-ca-certificate-secret", config.Certificates.CA.SecretName, "Expected CA secret name did not match")
 }
 
-// TestFindVolumeTemplate Test the findVolumeTemplate utility function
-// GIVEN a call to findVolumeTemplate
-// WHEN valid or invalid arguments are given
-// THEN true and the found template are is returned if found, nil/false otherwise
-func TestFindVolumeTemplate(t *testing.T) {
-
-	specTemplateList := []installv1alpha1.VolumeClaimSpecTemplate{
-		{
-			ObjectMeta: metav1.ObjectMeta{Name: "default"},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				VolumeName: "defVolume",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{Name: "template1"},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				VolumeName: "temp1Volume",
-			},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{Name: "template2"},
-			Spec: corev1.PersistentVolumeClaimSpec{
-				VolumeName: "temp2Volume",
-			},
-		},
-	}
-	// Test boundary conditions
-	invalidName, found := findVolumeTemplate("blah", specTemplateList)
-	assert.Nil(t, invalidName)
-	assert.False(t, found)
-	emptyName, found2 := findVolumeTemplate("", specTemplateList)
-	assert.Nil(t, emptyName)
-	assert.False(t, found2)
-	nilList, found3 := findVolumeTemplate("default", nil)
-	assert.Nil(t, nilList)
-	assert.False(t, found3)
-	emptyList, found4 := findVolumeTemplate("default", []installv1alpha1.VolumeClaimSpecTemplate{})
-	assert.Nil(t, emptyList)
-	assert.False(t, found4)
-
-	// Test normal behavior
-	defTemplate, found := findVolumeTemplate("default", specTemplateList)
-	assert.True(t, found)
-	assert.Equal(t, "defVolume", defTemplate.VolumeName)
-	temp1, found := findVolumeTemplate("template1", specTemplateList)
-	assert.True(t, found)
-	assert.Equal(t, "temp1Volume", temp1.VolumeName)
-	temp2, found := findVolumeTemplate("template2", specTemplateList)
-	assert.True(t, found)
-	assert.Equal(t, "temp2Volume", temp2.VolumeName)
-
-}
-
 // TestGetVerrazzanoInstallArgsNilDefaultVolumeSource Test the getVerrazzanoInstallArgs  function
 // GIVEN a call to getVerrazzanoInstallArgs
 // WHEN No default volume source is specified (nil)

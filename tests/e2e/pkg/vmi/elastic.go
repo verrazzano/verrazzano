@@ -76,7 +76,13 @@ func (e *Elastic) getResponseBody(path string) ([]byte, error) {
 	}
 
 	esURL = esURL + path
-	return e.retryGet(esURL, pkg.Username, pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath), kubeConfigPath)
+
+	password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.retryGet(esURL, pkg.Username, password, kubeConfigPath)
 }
 
 // Connect checks if the elasticsearch cluster can be connected

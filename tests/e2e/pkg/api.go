@@ -48,7 +48,11 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 	}
 	var ingressRules = ingress.Spec.Rules
 	keycloakURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressRules[0].Host, realm)
-	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, GetVerrazzanoPassword(), keycloakAPIClientID)
+	password, err := GetVerrazzanoPassword()
+	if err != nil {
+		return nil, err
+	}
+	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", Username, password, keycloakAPIClientID)
 	resp, err := doReq(keycloakURL, "POST", "application/x-www-form-urlencoded", "", "", "", strings.NewReader(body), keycloakHTTPClient)
 	if err != nil {
 		return nil, err
