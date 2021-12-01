@@ -11,7 +11,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,18 +50,15 @@ func NewComponent() spi.Component {
 
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret. return error which will cause reque
-	ctx.Log().Info("CDD Keycloak PreInstall Check Verrazzano Secret")
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: "verrazzano-system",
 		Name:      "verrazzano",
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("loginKeycloak: Error retrieving Verrazzano password: %s", err)
+		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving Verrazzano password: %s", err)
 		return err
 	}
-	ctx.Log().Info("CDD Keycloak PreInstall Verrazzano Secret Found")
-	ctx.Log().Info("CDD Keycloak PreInstall Check MySQL Secret")
 	// Check MySQL Secret. return error which will cause reque
 	secret = &corev1.Secret{}
 	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -66,13 +66,11 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		Name:      "mysql",
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("loginKeycloak: Error retrieving MySQL password: %s", err)
+		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving MySQL password: %s", err)
 		return err
 	}
-	ctx.Log().Info("CDD Keycloak PreInstall MySQL Secret Found")
 
 	// Create secret for the keycloakadmin user
-	ctx.Log().Info("CDD Keycloak PreInstall Create Keycloak Secret")
 	pw, err := vzpassword.GeneratePassword(15)
 	if err != nil {
 		return err
@@ -81,7 +79,6 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	ctx.Log().Info("CDD Keycloak PreInstall Keycloak Secret Successfully Created")
 	return nil
 }
 
@@ -132,15 +129,18 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	certificate := &certmanager.Certificate{}
 	namespacedName := types.NamespacedName{Name: certName, Namespace: ComponentName}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, certificate); err != nil {
-		ctx.Log().Infof("CDD Keycloak Failed to get Keycloak Certificate: %s", err)
+		ctx.Log().Infof("Keycloak isReady: Failed to get Keycloak Certificate: %s", err)
 		return false
 	}
 	if certificate.Status.Conditions == nil {
-		ctx.Log().Infof("CDD Keycloak No Certificate Status conditions")
+		ctx.Log().Infof("Keycloak IsReady: No Certificate Status conditions found")
 		return false
 	}
 	condition := certificate.Status.Conditions[0]
-	return condition.Type == "Ready"
+	return condition.Type == "Ready" && StatefulsetsReady(ctx.Log(), ctx.Client(), []types.NamespacedName{
+		{Namespace: "keycloak",
+			Name: "keycloak"},
+	}, 1)
 }
 
 func isKeycloakEnabled(ctx spi.ComponentContext) bool {
@@ -149,4 +149,25 @@ func isKeycloakEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// StatefulsetsReady Check that the named statefulsets have the minimum number of specified replicas ready and available
+func StatefulsetsReady(log *zap.SugaredLogger, client client.Client, statefulsets []types.NamespacedName, expectedReplicas int32) bool {
+	for _, namespacedName := range statefulsets {
+		statefulset := appsv1.StatefulSet{}
+		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
+			if errors.IsNotFound(err) {
+				log.Infof("Keycloak StatefulSetsReady: %v statefulSet not found", namespacedName)
+				// StatefulSet not found
+				return false
+			}
+			log.Errorf("Keycloak StatefulSetsReady: Unexpected error checking %v status: %v", namespacedName, err)
+			return false
+		}
+		if statefulset.Status.ReadyReplicas < expectedReplicas {
+			log.Infof("Keycloak StatefulSetsReady: Not enough available replicas for the %v deployment yet", namespacedName)
+			return false
+		}
+	}
+	return true
 }
