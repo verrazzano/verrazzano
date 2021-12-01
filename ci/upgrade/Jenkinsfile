@@ -274,11 +274,6 @@ pipeline {
                         }
                     }
                 }
-                stage('examples todo') {
-                    steps {
-                        runGinkgo('examples/todo', "false", "true")
-                    }
-                }
                 stage('examples socks') {
                     steps {
                         runGinkgo('examples/socks', "false", "true")
