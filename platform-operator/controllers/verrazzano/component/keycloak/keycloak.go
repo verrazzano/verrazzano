@@ -94,6 +94,8 @@ type imageData struct {
 	Image string
 }
 
+var realmCreated bool = false
+
 // AppendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
 // A go template is used to replace the image in the init container spec.
 func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -265,21 +267,24 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		ctx.Log().Info("CDD Successfully Logged Into Keycloak")
 
 		// Create VerrazzanoSystem Realm
-		realm := "realm=" + vzSysRealm
-		createRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh create realms -s " + realm + " -s enabled=false"
-		ctx.Log().Infof("CDD Create Verrazzano System Realm Cmd = %s", createRealmCmd)
-		stdout, stderr, err := ExecCmd(clientset, kconfig, "keycloak-0", createRealmCmd)
-		if err != nil {
-			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano System Realm: stdout = %s, stderr = %s", stdout, stderr)
-			return err
+		if !realmCreated {
+			realm := "realm=" + vzSysRealm
+			createRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh create realms -s " + realm + " -s enabled=false"
+			ctx.Log().Infof("CDD Create Verrazzano System Realm Cmd = %s", createRealmCmd)
+			stdout, stderr, err := ExecCmd(clientset, kconfig, "keycloak-0", createRealmCmd)
+			if err != nil {
+				ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano System Realm: stdout = %s, stderr = %s", stdout, stderr)
+				return err
+			}
+			realmCreated = true
+			ctx.Log().Info("CDD Successfully Created Verrazzano System Realm")
 		}
-		ctx.Log().Info("CDD Successfully Created Verrazzano System Realm")
 
 		// Create Verrazzano Users Group
 		userGroup := "name=" + vzUsersGroup
 		createVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create groups -r " + vzSysRealm + " -s " + userGroup
 		ctx.Log().Infof("CDD Create Verrazzano Users Group Cmd = %s", createVzUserGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzUserGroupCmd)
+		stdout, stderr, err := ExecCmd(clientset, kconfig, "keycloak-0", createVzUserGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Users Group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
