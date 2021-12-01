@@ -6,7 +6,10 @@ package keycloak
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
+	testclient "k8s.io/client-go/rest/fake"
 	"os"
 	"os/exec"
 	"testing"
@@ -29,6 +32,11 @@ const (
 
 var keycloakClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
 var keycloakErrorClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
+var testVZ = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Profile: "dev",
+	},
+}
 
 // fakeBash mocks a successful script run
 func fakeBash(_ ...string) (string, string, error) {
@@ -37,7 +45,7 @@ func fakeBash(_ ...string) (string, string, error) {
 
 // fakeBashFail mocks a failed script run
 func fakeBashFail(_ ...string) (string, string, error) {
-	return "fail", "Script Failed", errors.New("Script Failed")
+	return "fail", "Script Failed", errors.New("script Failed")
 }
 
 func fakeExecCommand(command string, args ...string) *exec.Cmd {
@@ -47,6 +55,25 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 	cmd := exec.Command(firstArg, cs...)
 	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
 	return cmd
+}
+
+func fakeRESTConfig() (*rest.Config, rest.Interface, error) {
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	return cfg, &testclient.RESTClient{}, nil
+}
+
+func createTestKeycloakHttpSecret() *v1.Secret {
+	return &v1.Secret{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "keycloak-http",
+			Namespace: "keycloak",
+		},
+		Data: map[string][]byte{"password": []byte("password")},
+	}
 }
 
 func TestHelperProcess(t *testing.T) {
@@ -113,11 +140,6 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 }
 
 func Test_updateKeycloakUris(t *testing.T) {
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Profile: "dev",
-		},
-	}
 
 	tests := []struct {
 		name    string
@@ -127,14 +149,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 		{
 			name: "testUpdateKeycloakURIs",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(),
 					&v1.Service{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -151,7 +166,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 							},
 						},
 					}),
-				vz,
+				testVZ,
 				false),
 			wantErr: false,
 		},
@@ -175,21 +190,14 @@ func Test_updateKeycloakUris(t *testing.T) {
 							},
 						},
 					}),
-				vz,
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForKeycloakSecretPasswordEmpty",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("")},
-				},
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(),
 					&v1.Service{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -206,21 +214,14 @@ func Test_updateKeycloakUris(t *testing.T) {
 							},
 						},
 					}),
-				vz,
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForAuthenticationToKeycloak",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(),
 					&v1.Service{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -237,21 +238,14 @@ func Test_updateKeycloakUris(t *testing.T) {
 							},
 						},
 					}),
-				vz,
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForNoKeycloakClientsReturned",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(),
 					&v1.Service{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -268,21 +262,14 @@ func Test_updateKeycloakUris(t *testing.T) {
 							},
 						},
 					}),
-				vz,
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForKeycloakUserNotFound",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(),
 					&v1.Service{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -299,36 +286,22 @@ func Test_updateKeycloakUris(t *testing.T) {
 							},
 						},
 					}),
-				vz,
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testFailForNoIngress",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				}),
-				vz,
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret()),
+				testVZ,
 				false),
 			wantErr: true,
 		},
 		{
 			name: "testScriptFailure",
 			args: spi.NewFakeContext(
-				fake.NewFakeClientWithScheme(k8scheme.Scheme, &v1.Secret{
-					TypeMeta: metav1.TypeMeta{},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-http",
-						Namespace: "keycloak",
-					},
-					Data: map[string][]byte{"password": []byte("password")},
-				},
+				fake.NewFakeClientWithScheme(k8scheme.Scheme, createTestKeycloakHttpSecret(),
 					&v1.Service{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -345,7 +318,7 @@ func Test_updateKeycloakUris(t *testing.T) {
 							},
 						},
 					}),
-				vz,
+				testVZ,
 				false),
 			wantErr: true,
 		},
@@ -470,4 +443,20 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 		Key:   tlsSecret,
 		Value: "default-secret",
 	})
+}
+
+func TestGetEnvironmentName(t *testing.T) {
+	var tests = []struct {
+		in  string
+		out string
+	}{
+		{"", constants.DefaultEnvironmentName},
+		{"foobar", "foobar"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.out, func(t *testing.T) {
+			assert.Equal(t, tt.out, getEnvironmentName(tt.in))
+		})
+	}
 }

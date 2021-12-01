@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -190,7 +191,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		err = loginKeycloak(ctx, kconfig, clientset)
+		err = loginKeycloak(ctx, kconfig, clientset.RESTClient())
 		if err != nil {
 			return err
 		}
@@ -255,9 +256,10 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		if err != nil {
 			return err
 		}
+		restClient := clientset.RESTClient()
 
 		// Login to Keycloak
-		err = loginKeycloak(ctx, kconfig, clientset)
+		err = loginKeycloak(ctx, kconfig, restClient)
 		if err != nil {
 			return err
 		}
@@ -268,7 +270,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		realm := "realm=" + vzSysRealm
 		createRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh create realms -s " + realm + " -s enabled=false"
 		ctx.Log().Infof("CDD Create Verrazzano System Realm Cmd = %s", createRealmCmd)
-		stdout, stderr, err := ExecCmd(clientset, kconfig, "keycloak-0", createRealmCmd)
+		stdout, stderr, err := ExecCmd(restClient, kconfig, "keycloak-0", createRealmCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano System Realm: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -279,13 +281,13 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		userGroup := "name=" + vzUsersGroup
 		createVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create groups -r " + vzSysRealm + " -s " + userGroup
 		ctx.Log().Infof("CDD Create Verrazzano Users Group Cmd = %s", createVzUserGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzUserGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzUserGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Users Group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
 		}
 		ctx.Log().Infof("CDD Create Verrazzano Users Group Output: stdout = %s, stderr = %s", stdout, stderr)
-		if len(string(stdout)) == 0 {
+		if len(stdout) == 0 {
 			return errors.New("configureKeycloakRealm: Error retrieving User Group ID from Keycloak, zero length")
 		}
 		arr := strings.Split(stdout, "'")
@@ -298,7 +300,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		adminGroupName := "name=" + vzAdminGroup
 		createVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + adminGroup + " -r " + vzSysRealm + " -s " + adminGroupName
 		ctx.Log().Infof("CDD Create Verrazzano Admin Group Cmd = %s", createVzAdminGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzAdminGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzAdminGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -317,7 +319,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		monitorGroupName := "name=" + vzMonitorGroup
 		createVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + monitorGroup + " -r " + vzSysRealm + " -s " + monitorGroupName
 		ctx.Log().Infof("CDD Create Verrazzano Monitor Group Cmd = %s", createVzMonitorGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzMonitorGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzMonitorGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitor Group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -336,7 +338,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		systemGroupName := "name=" + vzSystemGroup
 		createVzSystemGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + systemGroup + " -r " + vzSysRealm + " -s " + systemGroupName
 		ctx.Log().Infof("CDD Create Verrazzano System Group Cmd = %s", createVzSystemGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzSystemGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzSystemGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano System Group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -347,7 +349,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		apiAccessRole := "name=" + vzAPIAccessRole
 		createAPIAccessRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + apiAccessRole
 		ctx.Log().Infof("CDD Create Verrazzano API Access Role Cmd = %s", createAPIAccessRoleCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createAPIAccessRoleCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createAPIAccessRoleCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano API Access Role: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -358,7 +360,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		consoleUserRole := "name=" + vzConsoleUsersRole
 		createConsoleUserRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + consoleUserRole
 		ctx.Log().Infof("CDD Create Verrazzano Console Users Role Cmd = %s", createConsoleUserRoleCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createConsoleUserRoleCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createConsoleUserRoleCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Console Users Role: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -369,7 +371,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		adminRole := "name=" + vzAdminRole
 		createVzAdminRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + adminRole
 		ctx.Log().Infof("CDD Create Verrazzano Admin Role Cmd = %s", createVzAdminRoleCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzAdminRoleCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzAdminRoleCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Role: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -380,7 +382,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		viewerRole := "name=" + vzViewerRole
 		createVzViewerRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + viewerRole
 		ctx.Log().Infof("CDD Create Verrazzano Viewer Role Cmd = %s", createVzViewerRoleCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzViewerRoleCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzViewerRoleCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Viewer Role: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -390,7 +392,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Granting vz_api_access role to verrazzano users group
 		grantAPIAccessToVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzAPIAccessRole
 		ctx.Log().Infof("CDD Grant API Access to VZ Users Cmd = %s", grantAPIAccessToVzUserGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", grantAPIAccessToVzUserGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", grantAPIAccessToVzUserGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error granting api access role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -400,7 +402,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Granting console_users role to verrazzano users group
 		grantConsoleRoleToVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzConsoleUsersRole
 		ctx.Log().Infof("CDD Grant Console Role to Vz Users Cmd = %s", grantConsoleRoleToVzUserGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", grantConsoleRoleToVzUserGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", grantConsoleRoleToVzUserGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error granting console users role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -410,7 +412,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Granting admin role to verrazzano admin group
 		grantAdminRoleToVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + adminGroupID + " --rolename " + vzAdminRole
 		ctx.Log().Infof("CDD Grant Admin Role to Vz Admin Cmd = %s", grantAdminRoleToVzAdminGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", grantAdminRoleToVzAdminGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", grantAdminRoleToVzAdminGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error granting admin role to Verrazzano admin group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -420,7 +422,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Granting viewer role to verrazzano monitor group
 		grantViewerRoleToVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + monitorGroupID + " --rolename " + vzViewerRole
 		ctx.Log().Infof("CDD Grant Viewer Role to Monitor Group Cmd = %s", grantViewerRoleToVzMonitorGroupCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", grantViewerRoleToVzMonitorGroupCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", grantViewerRoleToVzMonitorGroupCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error granting viewer role to Verrazzano monitoring group: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -432,7 +434,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		vzUserGroup := "groups[0]=/" + vzUsersGroup + "/" + vzAdminGroup
 		createVzUserCmd := "/opt/jboss/keycloak/bin/kcadm.sh create users -r " + vzSysRealm + " -s " + vzUser + " -s " + vzUserGroup + " -s enabled=true"
 		ctx.Log().Infof("CDD Create Verrazzano User Cmd = %s", createVzUserCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzUserCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzUserCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano user: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -442,7 +444,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Grant realm admin role to Verrazzano user
 		grantRealmAdminToVzUserCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --uusername " + vzUserName + " --cclientid realm-management --rolename realm-admin"
 		ctx.Log().Infof("CDD Grant Realm Admin to Verrazzano User Cmd = %s", grantRealmAdminToVzUserCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", grantRealmAdminToVzUserCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", grantRealmAdminToVzUserCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error granting realm admin role to Verrazzano user: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -467,7 +469,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 
 		setVZUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzUserName + " --new-password " + vzpw
 		ctx.Log().Infof("CDD Set Verrazzano User PW Cmd = %s", setVZUserPwCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setVZUserPwCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setVZUserPwCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano user password: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -479,7 +481,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		vzPromUserGroup := "groups[0]=/" + vzUsersGroup + "/" + vzSystemGroup
 		createVZPromUserCmd := "/opt/jboss/keycloak/bin/kcadm.sh create users -r " + vzSysRealm + " -s " + vzPromUser + " -s " + vzPromUserGroup + " -s enabled=true"
 		ctx.Log().Infof("CDD Create Verrazzano Prom User Cmd = %s", createVZPromUserCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVZPromUserCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVZPromUserCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano internal Prometheus user: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -489,7 +491,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Set verrazzano internal prom user password
 		setPromUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzInternalPromUser + " --new-password " + prompw
 		ctx.Log().Infof("CDD Set Verrazzano Prom User PW Cmd = %s", setPromUserPwCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setPromUserPwCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setPromUserPwCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Prometheus user password: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -501,7 +503,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		vzEsUserGroup := "groups[0]=/" + vzUsersGroup + "/" + vzSystemGroup
 		createVzEsUserCmd := "/opt/jboss/keycloak/bin/kcadm.sh create users -r " + vzSysRealm + " -s " + vzEsUser + " -s " + vzEsUserGroup + " -s enabled=true"
 		ctx.Log().Infof("CDD Create VZ ES User Cmd = %s", createVzEsUserCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", createVzEsUserCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", createVzEsUserCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano internal Elasticsearch user: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -511,7 +513,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Set verrazzano internal ES user password
 		setVzESUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzInternalEsUser + " --new-password " + espw
 		ctx.Log().Infof("CDD Set Verrazzano ES User PW Cmd = %s", setVzESUserPwCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setVzESUserPwCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setVzESUserPwCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Elasticsearch user password: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -630,7 +632,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 			"END"
 
 		ctx.Log().Infof("CDD Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", vzPkceCreateCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", vzPkceCreateCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -735,7 +737,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 			"}\n" +
 			"END"
 		ctx.Log().Infof("CDD Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", vzPgCreateCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", vzPgCreateCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error creating verrazzano-pg client: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -745,7 +747,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Setting password policy for master
 		setPolicyCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s \"passwordPolicy=length(8) and notUsername\""
 		ctx.Log().Infof("CDD Setting password policy for master Cmd = %s", setPolicyCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setPolicyCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setPolicyCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error Setting password policy for master: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -755,7 +757,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Setting password policy for $_VZ_REALM
 		setPolicyOnVzRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + vzSysRealm + " -s \"passwordPolicy=length(8) and notUsername\""
 		ctx.Log().Infof("CDD Setting password policy for VZ_REALM Cmd = %s", setPolicyOnVzRealmCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setPolicyOnVzRealmCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setPolicyOnVzRealmCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error Setting password policy for VZ Realm: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -765,7 +767,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Configuring login theme for master
 		setMasterLoginThemeCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/master -s loginTheme=oracle"
 		ctx.Log().Infof("CDD Configuring login theme for master Cmd = %s", setMasterLoginThemeCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setMasterLoginThemeCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setMasterLoginThemeCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error Configuring login theme for master: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -775,7 +777,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Configuring login theme for vzSysRealm
 		setVzRealmLoginThemeCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + vzSysRealm + " -s loginTheme=oracle"
 		ctx.Log().Infof("CDD Configuring login theme for vzSysRealm Cmd = %s", setVzRealmLoginThemeCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setVzRealmLoginThemeCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setVzRealmLoginThemeCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error Configuring login theme for vzSysRealm: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -785,7 +787,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Enabling vzSysRealm realm
 		setVzEnableRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh update realms/" + vzSysRealm + " -s enabled=true"
 		ctx.Log().Infof("CDD Enabling vzSysRealm realm Cmd = %s", setVzEnableRealmCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", setVzEnableRealmCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", setVzEnableRealmCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error Enabling vzSysRealm realm: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -795,7 +797,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 		// Removing login config file
 		removeLoginConfigFileCmd := "rm /root/.keycloak/kcadm.config"
 		ctx.Log().Infof("CDD Removing login config file Cmd = %s", removeLoginConfigFileCmd)
-		stdout, stderr, err = ExecCmd(clientset, kconfig, "keycloak-0", removeLoginConfigFileCmd)
+		stdout, stderr, err = ExecCmd(restClient, kconfig, "keycloak-0", removeLoginConfigFileCmd)
 		if err != nil {
 			ctx.Log().Errorf("configureKeycloakRealm: Error Removing login config file: stdout = %s, stderr = %s", stdout, stderr)
 			return err
@@ -807,7 +809,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 	return nil
 }
 
-func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli *kubernetes.Clientset) error {
+func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli restclient.Interface) error {
 
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
@@ -849,7 +851,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli *kubern
 }
 
 // ExecCmd exec command on specific pod and wait the command's output.
-func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName string, command string) (string, string, error) {
+func ExecCmd(client restclient.Interface, config *restclient.Config, podName string, command string) (string, string, error) {
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
@@ -858,7 +860,7 @@ func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName str
 		"-c",
 		command,
 	}
-	req := client.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
+	req := client.Post().Resource("pods").Name(podName).
 		Namespace("keycloak").SubResource("exec")
 	option := &v1.PodExecOptions{
 		Command:   cmd,
@@ -875,7 +877,7 @@ func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName str
 		option,
 		scheme.ParameterCodec,
 	)
-	executor, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	executor, err := k8sutil.NewPodExecutor(config, "POST", req.URL())
 	if err != nil {
 		return stdout.String(), stderr.String(), err
 	}
