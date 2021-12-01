@@ -22,8 +22,7 @@ const log3 = `####<Nov 17, 2021 10:36:32,616 PM GMT> <Info> <RJVM> <bobs-booksto
  Http Enabled		 true
  Tunneling Enabled	 false
  Outbound Enabled	 false
- Admin Traffic Enabled	 true ResolveDNSName Enabled	 false> 
-
+ Admin Traffic Enabled	 true ResolveDNSName Enabled	 false>
 `
 const log4 = `####<Nov 17, 2021 10:37:35,553 PM GMT> <Info> <JDBC> <bobs-bookstore-managed-server1> <managed-server1> <[ACTIVE] ExecuteThread: '8' for queue: 'weblogic.kernel.Default (self-tuning)'> <<anonymous>> <> <c10cf642-4fbe-4753-9b2c-3c99b96df564-00000013> <1637188655553> <[severity-value: 64] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > <BEA-001156> <Stack trace associated with message 001129 follows: 
 
