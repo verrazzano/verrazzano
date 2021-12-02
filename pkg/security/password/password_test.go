@@ -37,3 +37,39 @@ func TestGeneratePassword(t *testing.T) {
 		})
 	}
 }
+
+// TestMaskFunction tests creating and using the masking function
+// GIVEN a call to MaskFunction
+//  WHEN the created function is invoked
+//  THEN it should mask all specified matches
+func TestMaskFunction(t *testing.T) {
+	f := MaskFunction("password ")
+	var tests = []struct {
+		input  string
+		output string
+	}{
+		{
+			"blah blah password 123 blah blah",
+			"blah blah password ****** blah blah",
+		},
+		{
+			"a password 123 another password 456 and the rest",
+			"a password ****** another password ****** and the rest",
+		},
+		{
+			"password 123",
+			"password ******",
+		},
+		{
+			"no change",
+			"no change",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			res := f(tt.input)
+			assert.Equal(t, tt.output, res)
+		})
+	}
+}
