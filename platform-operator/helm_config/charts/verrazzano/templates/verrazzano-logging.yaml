@@ -70,6 +70,12 @@ data:
 
     # Send to storage
     @include output.conf
+    {{- if .Values.logging.defaultAppLogId }}
+    @include oci-logging-default-app.conf
+    {{- end }}
+    {{- if .Values.logging.systemLogId }}
+    @include oci-logging-system.conf
+    {{- end }}
 
   general.conf: |
     # Prevent Fluentd from handling records containing its own logs. Otherwise
@@ -380,6 +386,40 @@ data:
         queue_limit_length 10
         chunk_full_threshold 0.9
         overflow_action drop_oldest_chunk
+      </buffer>
+    </match>
+
+  oci-logging-default-app.conf: |
+    <filter **>
+       @type record_transformer
+       @id cluster_name
+       <record>
+          cluster_name "#{ENV['CLUSTER_NAME']}"
+       </record>
+    </filter>
+    <match **>
+      @type oci_logging
+      log_object_id {{ .Values.logging.defaultAppLogId }}
+      <buffer>
+        @type file
+        path /fluentd/log/oci-logging-default-app
+      </buffer>
+    </match>
+
+  oci-logging-system.conf: |
+    <filter **>
+       @type record_transformer
+       @id cluster_name
+       <record>
+          cluster_name "#{ENV['CLUSTER_NAME']}"
+       </record>
+    </filter>
+    <match **>
+      @type oci_logging
+      log_object_id {{ .Values.logging.systemLogId }}
+      <buffer>
+        @type file
+        path /fluentd/log/oci-logging-system
       </buffer>
     </match>
 

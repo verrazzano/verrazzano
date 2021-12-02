@@ -332,6 +332,18 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 					volumeMount{Source: vm.Source, Destination: dest, ReadOnly: readOnly})
 			}
 		}
+		// Overrides for OCI Logging integration
+		if fluentd.OCI != nil {
+			if len(fluentd.OCI.DefaultAppLogID) > 0 {
+				overrides.Logging.DefaultAppLogId = fluentd.OCI.DefaultAppLogID
+			}
+			if len(fluentd.OCI.SystemLogID) > 0 {
+				overrides.Logging.SystemLogID = fluentd.OCI.SystemLogID
+			}
+			if len(fluentd.OCI.APISecret) > 0 {
+				overrides.Logging.ApiSecret = fluentd.OCI.APISecret
+			}
+		}
 	}
 }
 
