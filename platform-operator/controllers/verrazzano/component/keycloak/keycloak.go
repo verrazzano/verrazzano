@@ -888,7 +888,7 @@ func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName str
 		Stdin:  os.Stdin,
 		Stdout: stdout,
 		Stderr: stderr,
-		Tty:    true,
+		Tty:    false,
 	})
 	if err != nil {
 		return stdout.String(), stderr.String(), fmt.Errorf("error running command %s on Keycloak Pod: %v", command, err)
