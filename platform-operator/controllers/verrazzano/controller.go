@@ -191,10 +191,6 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return newRequeueWithDelay(), err
 	}
 
-	if err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
-		return newRequeueWithDelay(), err
-	}
-
 	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
 	// admin cluster without needing a VMC.
 	if err := r.syncLocalRegistrationSecret(); err != nil {
@@ -439,6 +435,15 @@ func (r *Reconciler) deleteConfigMap(ctx context.Context, log *zap.SugaredLogger
 	return nil
 }
 
+// checkInstallComplete checks to see if the install is complete
+func (r *Reconciler) checkInstallComplete(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	if checkComponentReadyState(vz) {
+		// Set install complete IFF all subcomponent status' are "Ready"
+		conditionType := installv1alpha1.InstallComplete
+		vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
+	}
+}
+
 // deleteInstallJob Deletes the install job, which will also result in the install pod being deleted.
 func (r *Reconciler) deleteInstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Check if the job for running the install scripts exist
@@ -464,81 +469,6 @@ func (r *Reconciler) deleteInstallJob(log *zap.SugaredLogger, vz *installv1alpha
 	deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
 	log.Debugf("Install job %s in progress, deleting", jobName)
 	return r.Delete(context.TODO(), jobFound, deleteOptions)
-}
-
-// createInstallJob creates the installation job
-func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
-	// Define a new install job resource
-	job := installjob.NewJob(
-		&installjob.JobConfig{
-			JobConfigCommon: k8s.JobConfigCommon{
-				JobName:            buildInstallJobName(vz.Name),
-				Namespace:          getInstallNamespace(),
-				Labels:             vz.Labels,
-				ServiceAccountName: buildServiceAccountName(vz.Name),
-				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
-				DryRun:             r.DryRun,
-			},
-			ConfigMapName: configMapName,
-		})
-
-	// Check if the job for running the install scripts exist
-	jobFound := &batchv1.Job{}
-	log.Debugf("Checking if install job %s exist", buildInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
-	if err != nil && errors.IsNotFound(err) {
-		log.Debugf("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
-		err = r.Create(ctx, job)
-		if err != nil {
-			return err
-		}
-
-		// Add our finalizer if not already added
-		if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
-			log.Debugf("Adding finalizer %s", finalizerName)
-			vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
-			if err := r.Update(ctx, vz); err != nil {
-				return err
-			}
-		}
-
-		// Delete leftover uninstall job if we find one.
-		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), getInstallNamespace(), log)
-		if err != nil {
-			return err
-		}
-
-	} else if err != nil {
-		return err
-	}
-
-	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
-	if err != nil {
-		return err
-	}
-
-	vz.Status.Version = bomSemVer.ToString()
-	err = r.setInstallCondition(log, jobFound, vz)
-
-	return err
-}
-
-// checkInstallJob checks the installation job
-func (r *Reconciler) checkInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
-	// Check if the job for running the install scripts exist
-	jobFound := &batchv1.Job{}
-	log.Debugf("Checking if install job %s exist", buildInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-	// Update condition and status
-	err = r.setInstallCondition(log, jobFound, vz)
-	return err
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -759,43 +689,6 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	return installv1alpha1.Ready
 }
 
-// setInstallCondition sets the Verrazzano resource condition in status for install
-func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
-	// If the job has succeeded or failed add the appropriate condition
-	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
-		for _, condition := range vz.Status.Conditions {
-			if condition.Type == installv1alpha1.InstallComplete || condition.Type == installv1alpha1.InstallFailed {
-				return nil
-			}
-		}
-		var message string
-		var conditionType installv1alpha1.ConditionType
-		if job.Status.Succeeded == 1 {
-			message = "Verrazzano install completed successfully"
-			if checkComponentReadyState(vz) {
-				// Set install complete IFF all subcomponent status' are "Ready"
-				conditionType = installv1alpha1.InstallComplete
-				log.Info(message)
-				vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
-			}
-		} else {
-			message = "Verrazzano install failed to complete"
-			conditionType = installv1alpha1.InstallFailed
-			log.Error(message)
-		}
-		return r.updateStatus(log, vz, message, conditionType)
-	}
-
-	// Add the install started condition if not already added
-	for _, condition := range vz.Status.Conditions {
-		if condition.Type == installv1alpha1.InstallStarted {
-			return nil
-		}
-	}
-
-	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
-}
-
 // checkComponentReadyState returns true if all component-level status' are "Ready"
 func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 	for _, compStatus := range vz.Status.Components {
@@ -807,15 +700,12 @@ func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 }
 
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
-// operator-based in stall.  This is so that we know ahead of time exactly how many components we expect to install
+// operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
 func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	if cr.Status.Components != nil {
-		return ctrl.Result{}, nil
+		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	}
-
-	log.Debugf("initializeComponentStatus for all components")
-	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 
 	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
@@ -823,6 +713,10 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	}
 
 	for _, comp := range registry.GetComponents() {
+		if _, ok := cr.Status.Components[comp.Name()]; ok {
+			// skip if component has been initialized
+			continue
+		}
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
 			compContext := newContext.For(comp.Name()).Operation(vzconst.InitializeOperation)
