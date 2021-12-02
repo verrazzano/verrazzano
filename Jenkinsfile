@@ -105,6 +105,7 @@ pipeline {
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
 
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
