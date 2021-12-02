@@ -70,11 +70,11 @@ var _ = Describe("Private Registry Verification",
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
 						for k := range pod.Spec.Containers {
 							Expect(strings.HasPrefix(pod.Spec.Containers[k].Image, imagePrefix)).To(BeTrue(),
-								fmt.Sprintf("FAIL: The image for the pod %s in containers, doesn't starts with expected registry URL prefix %s", pod.Name, registry))
+								fmt.Sprintf("FAIL: The image for the pod %s in containers, doesn't starts with expected registry URL prefix %s, image name %s", pod.Name, registry, pod.Spec.Containers[k].Image))
 						}
 						for k := range pod.Spec.InitContainers {
 							Expect(strings.HasPrefix(pod.Spec.InitContainers[k].Image, imagePrefix)).To(BeTrue(),
-								fmt.Sprintf("FAIL: The image for the pod %s in initContainers, doesn't starts with expected registry URL prefix %s", pod.Name, registry))
+								fmt.Sprintf("FAIL: The image for the pod %s in initContainers, doesn't starts with expected registry URL prefix %s, image name %s", pod.Name, registry, pod.Spec.InitContainers[k].Image))
 						}
 					}
 				}
