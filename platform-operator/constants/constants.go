@@ -119,3 +119,15 @@ const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 
 // ObservedUpgradeRetryVersion is the previous restart version annotation field
 const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-version"
+
+// NGINXControllerServiceName
+const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
+
+// InstallOperation is the install string
+const InstallOperation = "install"
+
+// UpgradeOperation is the install string
+const UpgradeOperation = "upgrade"
+
+// InitializeOperation is the initialize string
+const InitializeOperation = "initialize"

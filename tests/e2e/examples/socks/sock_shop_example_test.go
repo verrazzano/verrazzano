@@ -15,12 +15,11 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -35,21 +34,13 @@ const (
 var sockShop SockShop
 var username, password string
 
-// variant is used to pass in which version of the sock shop we want to run the test
-// suite against (helidon, micronaut, or spring)
-var variant string
-
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
 
-	// read the variant from the environment - if not specified, default to "helidon"
-	variant := os.Getenv("SOCKS_SHOP_VARIANT")
-	if variant != "helidon" && variant != "micronaut" && variant != "spring" {
-		variant = "helidon"
-	}
+	variant := getVariant()
 	GinkgoWriter.Write([]byte(fmt.Sprintf("*** Socks shop test is running against variant: %s\n", variant)))
 
 	if !skipDeploy {
@@ -266,36 +257,22 @@ var _ = AfterSuite(func() {
 	}
 
 	if !skipUndeploy {
+		variant := getVariant()
+		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
+		pkg.Log(pkg.Info, "Delete application")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+		pkg.Log(pkg.Info, "Delete components")
+		Eventually(func() error {
+			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+		pkg.Log(pkg.Info, "Delete namespace")
 		Eventually(func() error {
 			return pkg.DeleteNamespace("sockshop")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-		// occassionally the namespace fails to delete, so adding extra debug information here to
-		// capture a cluster dump and hopefully we can figure out what is keeping the namespace
-		// from going away
-		pkg.Log(pkg.Info, "Waiting for namespace to be deleted")
-		var ns *v1.Namespace
-		var err error
-		for i := 0; i < 20; i++ {
-			ns, err = pkg.GetNamespace("sockshop")
-			if err != nil && errors.IsNotFound(err) {
-				pkg.Log(pkg.Info, "Namespace deleted")
-				return
-			}
-			if err != nil {
-				pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get namespace: %v", err))
-			}
-			time.Sleep(pollingInterval)
-		}
-
-		pkg.Log(pkg.Error, "Namespace could not be deleted, dumping cluster")
-		if ns != nil {
-			if b, err := json.Marshal(ns); err == nil {
-				pkg.Log(pkg.Info, string(b))
-			}
-		}
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-		Fail("Unable to delete namespace")
 	}
 })
 
@@ -335,4 +312,15 @@ func appComponentMetricsExists() bool {
 // appConfigMetricsExists checks whether config metrics are available
 func appConfigMetricsExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
+}
+
+// getVariant returns the variant of the sock shop application being tested
+func getVariant() string {
+	// read the variant from the environment - if not specified, default to "helidon"
+	variant := os.Getenv("SOCKS_SHOP_VARIANT")
+	if variant != "helidon" && variant != "micronaut" && variant != "spring" {
+		variant = "helidon"
+	}
+
+	return variant
 }

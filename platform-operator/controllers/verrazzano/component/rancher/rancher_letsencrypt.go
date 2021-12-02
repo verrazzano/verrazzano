@@ -5,7 +5,7 @@ package rancher
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
 )

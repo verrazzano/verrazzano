@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -42,18 +42,22 @@ type UsernamePassword struct {
 }
 
 // GetVerrazzanoPassword returns the password credential for the Verrazzano secret
-func GetVerrazzanoPassword() string {
-	secret, _ := GetSecret("verrazzano-system", "verrazzano")
-	return string(secret.Data["password"])
+func GetVerrazzanoPassword() (string, error) {
+	secret, err := GetSecret("verrazzano-system", "verrazzano")
+	if err != nil {
+		return "", err
+	}
+	return string(secret.Data["password"]), nil
 }
 
-func GetVerrazzanoPasswordInCluster(kubeconfigPath string) string {
+// GetVerrazzanoPasswordInCluster returns the password credential for the Verrazzano secret in the "verrazzano-system" namespace for the given cluster
+func GetVerrazzanoPasswordInCluster(kubeconfigPath string) (string, error) {
 	secret, err := GetSecretInCluster("verrazzano-system", "verrazzano", kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get Verrazzano secret: %v", err))
-		return ""
+		return "", err
 	}
-	return string(secret.Data["password"])
+	return string(secret.Data["password"]), nil
 }
 
 // Concurrently executes the given assertions in parallel and waits for them all to complete
