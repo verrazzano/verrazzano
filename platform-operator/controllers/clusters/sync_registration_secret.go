@@ -46,7 +46,10 @@ func (r *VerrazzanoManagedClusterReconciler) createOrUpdateRegistrationSecret(vm
 	secret.Name = name
 
 	return controllerutil.CreateOrUpdate(context.TODO(), r.Client, &secret, func() error {
-		r.mutateRegistrationSecret(&secret, vmc.Name)
+		err := r.mutateRegistrationSecret(&secret, vmc.Name)
+		if err != nil {
+			return err
+		}
 		// This SetControllerReference call will trigger garbage collection i.e. the secret
 		// will automatically get deleted when the VerrazzanoManagedCluster is deleted
 		return controllerutil.SetControllerReference(vmc, &secret, r.Scheme)
