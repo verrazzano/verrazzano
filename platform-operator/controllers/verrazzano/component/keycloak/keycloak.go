@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -239,7 +240,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw string) error {
+func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
@@ -441,21 +442,26 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 	ctx.Log().Info("CDD Granted realmAdmin Role to VZ user")
 
 	// Set verrazzano user password
-	secret := &corev1.Secret{}
-	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: "verrazzano-system",
-		Name:      "verrazzano",
-	}, secret)
+	/*	secret := &corev1.Secret{}
+		err = ctx.Client().Get(context.TODO(), client.ObjectKey{
+			Namespace: "verrazzano-system",
+			Name:      "verrazzano",
+		}, secret)
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error retrieving Verrazzano password: %s", err)
+			return err
+		}
+		pw := secret.Data["password"]
+		vzpw := string(pw)
+		if vzpw == "" {
+			return errors.New("configureKeycloakRealm: Error retrieving verrazzano password")
+		}*/
+
+	vzpw, err := getSecretPassword(ctx, "verrazzano-system", "verrazzano")
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error retrieving Verrazzano password: %s", err)
 		return err
 	}
-	pw := secret.Data["password"]
-	vzpw := string(pw)
-	if vzpw == "" {
-		return errors.New("configureKeycloakRealm: Error retrieving verrazzano password")
-	}
-
 	setVZUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzUserName + " --new-password " + vzpw
 	ctx.Log().Infof("CDD Set Verrazzano User PW Cmd = %s", setVZUserPwCmd)
 	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", setVZUserPwCmd)
@@ -478,6 +484,11 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 	ctx.Log().Info("CDD Successfully Created Prom User")
 
 	// Set verrazzano internal prom user password
+	prompw, err := getSecretPassword(ctx, "verrazzano-system", "verrazzano-prom-internal")
+	if err != nil {
+		ctx.Log().Errorf("configureKeycloakRealm: Error getting Verrazzano internal Prometheus user password: stdout = %s, stderr = %s", stdout, stderr)
+		return err
+	}
 	setPromUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzInternalPromUser + " --new-password " + prompw
 	ctx.Log().Infof("CDD Set Verrazzano Prom User PW Cmd = %s", setPromUserPwCmd)
 	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", setPromUserPwCmd)
@@ -500,6 +511,11 @@ func configureKeycloakRealms(ctx spi.ComponentContext, prompw string, espw strin
 	ctx.Log().Info("CDD Created ES User")
 
 	// Set verrazzano internal ES user password
+	espw, err := getSecretPassword(ctx, "verrazzano-system", "verrazzano-es-internal")
+	if err != nil {
+		ctx.Log().Errorf("configureKeycloakRealm: Error getting Verrazzano internal Elasticsearch user password: stdout = %s, stderr = %s", stdout, stderr)
+		return err
+	}
 	setVzESUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzInternalEsUser + " --new-password " + espw
 	ctx.Log().Infof("CDD Set Verrazzano ES User PW Cmd = %s", setVzESUserPwCmd)
 	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", setVzESUserPwCmd)
@@ -880,25 +896,53 @@ func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName str
 	return stdout.String(), stderr.String(), nil
 }
 
-func createOrUpdateAuthSecret(ctx spi.ComponentContext, namespace string, secretname string, username string, password string) error {
-	secret := v1.Secret{
+func createOrUpdateAuthSecret(ctx spi.ComponentContext, namespace string, secretname string, username string) error {
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: secretname, Namespace: namespace},
 	}
-
-	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &secret, func() error {
-		// Build the secret data
-		secret.Data = map[string][]byte{
-			"username": []byte(username),
-			"password": []byte(password),
-		}
-		return nil
-	})
-	ctx.Log().Infof("Keycloak secret operation result: %s", opResult)
-
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: namespace,
+		Name:      secretname,
+	}, secret)
+	// If the secret doesn't exist, create it
 	if err != nil {
-		return err
+		pw, err := vzpassword.GeneratePassword(15)
+		if err != nil {
+			return err
+		}
+		opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+			// Build the secret data
+			secret.Data = map[string][]byte{
+				"username": []byte(username),
+				"password": []byte(pw),
+			}
+			return nil
+		})
+		ctx.Log().Infof("Keycloak secret operation result: %s", opResult)
+
+		if err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname string) (string, error) {
+	secret := &corev1.Secret{}
+	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
+		Namespace: namespace,
+		Name:      secretname,
+	}, secret)
+	if err != nil {
+		ctx.Log().Errorf("getSecretPassword: Error retrieving secret %s password: %s", secretname, err)
+		return "", err
+	}
+	pw := secret.Data["password"]
+	stringpw := string(pw)
+	if stringpw == "" {
+		return "", fmt.Errorf("getSecretPassword: Error retrieving secret %s password", secretname)
+	}
+	return stringpw, nil
 }
 
 func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
