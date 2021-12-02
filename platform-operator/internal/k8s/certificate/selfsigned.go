@@ -133,7 +133,7 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, erro
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// PEM encode root cert
 	rootCertPEM := new(bytes.Buffer)
 	_ = pem.Encode(rootCertPEM, &pem.Block{
