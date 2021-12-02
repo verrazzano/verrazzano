@@ -44,6 +44,10 @@ pipeline {
 
     environment {
         KUBERNETES_VERSION = '1.17,1.19,1.20'
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
     }
 
     stages {
@@ -102,7 +106,7 @@ pipeline {
                 stage('Multi Cluster Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -114,7 +118,7 @@ pipeline {
                 stage('Uninstall Tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-uninstall-test/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -126,7 +130,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -138,7 +142,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.17') {
                     steps {
                         script {
-                            build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.17'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -151,7 +155,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.19'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -164,7 +168,7 @@ pipeline {
                 stage('Kind Acceptance Tests on 1.20') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
+                            build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -176,5 +180,23 @@ pipeline {
                 }
             }
         }
+    }
+    post {
+        success {
+            storePipelineArtifacts()
+        }
+    }
+}
+
+// Called in final post success block of pipeline
+def storePipelineArtifacts() {
+    script {
+        // If this was clean, record the commit in object store so the periodic test jobs can run against that rather than the head of the branch
+        // NOTE: Normally master and release-* branches are the only ones doing this, but when we need to test out pipeline changes we can make use
+        // as well
+        sh """
+            echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-stable-commit.txt
+            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
+        """
     }
 }
