@@ -122,3 +122,12 @@ const ObservedUpgradeRetryVersion = "verrazzano.io/observed-upgrade-retry-versio
 
 // NGINXControllerServiceName
 const NGINXControllerServiceName = "ingress-controller-ingress-nginx-controller"
+
+// InstallOperation is the install string
+const InstallOperation = "install"
+
+// UpgradeOperation is the install string
+const UpgradeOperation = "upgrade"
+
+// InitializeOperation is the initialize string
+const InitializeOperation = "initialize"

@@ -73,16 +73,20 @@ func getElasticSearchURL(kubeconfigPath string) string {
 	return GetSystemElasticSearchIngressURL(kubeconfigPath)
 }
 
-func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password string) {
+func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password string, err error) {
 	if UseExternalElasticsearch() {
 		esSecret, err := GetSecretInCluster("verrazzano-system", "external-es-secret", kubeconfigPath)
 		if err != nil {
 			Log(Error, fmt.Sprintf("Failed to get external-es-secret secret: %v", err))
-			return "", ""
+			return "", "", err
 		}
-		return string(esSecret.Data["username"]), string(esSecret.Data["password"])
+		return string(esSecret.Data["username"]), string(esSecret.Data["password"]), err
 	}
-	return "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	password, err = GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return "", "", err
+	}
+	return "verrazzano", password, err
 }
 
 // getElasticSearchWithBasicAuth access ES with GET using basic auth, using a given kubeconfig
@@ -145,7 +149,10 @@ func getExternalESCACert(kubeconfigPath string) ([]byte, error) {
 func listSystemElasticSearchIndices(kubeconfigPath string) []string {
 	list := []string{}
 	url := fmt.Sprintf("%s/_all", getElasticSearchURL(kubeconfigPath))
-	username, password := getElasticSearchUsernamePassword(kubeconfigPath)
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return list
+	}
 	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting Elasticsearch indices: url=%s, error=%v", url, err))
@@ -177,7 +184,10 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 	}
 	var result map[string]interface{}
 	url := fmt.Sprintf("%s/%s/_doc/_search?q=%s", getElasticSearchURL(kubeconfigPath), index, query)
-	username, password := getElasticSearchUsernamePassword(kubeconfigPath)
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return result
+	}
 	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, error=%v", url, err))
@@ -355,7 +365,10 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 	}
 	var result map[string]interface{}
 	url := fmt.Sprintf("%s/%s/_search", getElasticSearchURL(kubeconfigPath), index)
-	username, password := getElasticSearchUsernamePassword(configPath)
+	username, password, err := getElasticSearchUsernamePassword(configPath)
+	if err != nil {
+		return result
+	}
 	Log(Debug, fmt.Sprintf("Search: %v \nQuery: \n%v", url, buffer.String()))
 	resp, err := postElasticSearchWithBasicAuth(url, buffer.String(), username, password, configPath)
 	if err != nil {
@@ -383,7 +396,10 @@ func PostElasticsearch(path string, body string) (string, error) {
 		Log(Error, fmt.Sprintf("Error retrieving kubeconfig, error=%v", err))
 		return "", err
 	}
-	username, password := getElasticSearchUsernamePassword(configPath)
+	username, password, err := getElasticSearchUsernamePassword(configPath)
+	if err != nil {
+		return "", err
+	}
 	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
 	resp, err := postElasticSearchWithBasicAuth(url, body, username, password, configPath)
 	return string(resp.Body), err

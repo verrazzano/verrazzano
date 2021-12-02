@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // TestIsExternalDNSEnabledDefault tests the IsExternalDNSEnabled function
@@ -77,26 +76,6 @@ func TestIsExternalDNSEnabledExternalDNS(t *testing.T) {
 		},
 	}
 	assert.False(t, IsExternalDNSEnabled(vz))
-}
-
-// TestFindVolumeTemplate tests the FindVolumeTemplate function
-// GIVEN a call to FindVolumeTemplate
-//  WHEN the template list does and does not have the requested template by name
-//  THEN nil/false is returned if not found, true/template are returned otherwise
-func TestFindVolumeTemplate(t *testing.T) {
-	template, found := FindVolumeTemplate("vmi",
-		[]vzapi.VolumeClaimSpecTemplate{
-			{ObjectMeta: metav1.ObjectMeta{Name: "vmi"}},
-		})
-	assert.True(t, found)
-	assert.NotNil(t, template)
-
-	template, found = FindVolumeTemplate("boo",
-		[]vzapi.VolumeClaimSpecTemplate{
-			{ObjectMeta: metav1.ObjectMeta{Name: "vmi"}},
-		})
-	assert.False(t, found)
-	assert.Nil(t, template)
 }
 
 var trueValue = true
