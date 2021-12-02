@@ -25,10 +25,10 @@ spec:
       elasticsearchURL: https://myes.mycorp.com
       elasticsearchSecret: mysecret
       extraVolumeMounts:
-        - source: /u01/datarw
-          readOnly: false
-        - source: /u01/dataro
-          readOnly: true
+      - source: /u01/datarw
+        readOnly: false
+      - source: /u01/dataro
+        readOnly: true
     grafana:
       enabled: true
     ingress:
