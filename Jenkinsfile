@@ -21,7 +21,7 @@ pipeline {
 
     agent {
        docker {
-            image "${EXPERIMENTAL_DOCKER_IMAGE_1_0}"
+            image "${RUNNER_DOCKER_IMAGE_1_0}"
             args "${RUNNER_DOCKER_ARGS_1_0}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
