@@ -10,7 +10,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"math/big"
 	"time"
 )
 
@@ -56,18 +55,13 @@ type CertResult struct {
 	CertPEM       []byte
 }
 
-// CreateSelfSignedCert creates a self signed cert and returns the generated PEM data
-func CreateSelfSignedCert(rootConfig CertConfig, intermConfig CertConfig) (*CertPemData, error) {
+// CreateCertUsingSelfSignedRoot creates a self signed cert and returns the generated PEM data
+func CreateCertUsingSelfSignedRoot(rootConfig CertConfig, intermConfig CertConfig) (*CertPemData, error) {
 	// Create the object that will be loaded with the PEM data
 	pem := CertPemData{}
 
-	serialNumber, err := newSerialNumber()
-	if err != nil {
-		return nil, err
-	}
-
 	// Create the root cert
-	rResult, err := createRootCert(rootConfig, serialNumber)
+	rResult, err := createRootCert(rootConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +84,14 @@ func CreateSelfSignedCert(rootConfig CertConfig, intermConfig CertConfig) (*Cert
 }
 
 // Create the root certificate
-func createRootCert(config CertConfig, serialNumber *big.Int) (*CertResult, error) {
+func createRootCert(config CertConfig) (*CertResult, error) {
+	serialNumber, err := newSerialNumber()
+	if err != nil {
+		return nil, err
+	}
+
 	// create the root certificate info needed to create the certificate
-	rootCert := &x509.Certificate{
+	certRequest := &x509.Certificate{
 		DNSNames:     []string{config.CommonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -108,15 +107,20 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*CertResult, erro
 		BasicConstraintsValid: true,
 	}
 
-	return createCert(rootCert, rootCert, nil)
+	return createCert(certRequest, certRequest, nil)
 }
 
 // Create the intermediate certificate
 func createIntermediateCert(config CertConfig, rootResult *CertResult) (*CertResult, error) {
+	serialNumber, err := newSerialNumber()
+	if err != nil {
+		return nil, err
+	}
+
 	// create the intermediate certificate info needed to create the certificate
-	intermediateCert := &x509.Certificate{
+	certRequest := &x509.Certificate{
 		DNSNames:     []string{config.CommonName},
-		SerialNumber: rootResult.Cert.SerialNumber,
+		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName:   config.CommonName,
 			Country:      []string{config.CountryName},
@@ -130,11 +134,11 @@ func createIntermediateCert(config CertConfig, rootResult *CertResult) (*CertRes
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
 	}
-	return createCert(intermediateCert, rootResult.Cert, rootResult.PrivateKey)
+	return createCert(certRequest, rootResult.Cert, rootResult.PrivateKey)
 }
 
 // Create the certificate. The parent certificate will be used to sign the new cert
-func createCert(partialCert *x509.Certificate, parentCert *x509.Certificate, parentPrivKey *rsa.PrivateKey) (*CertResult, error) {
+func createCert(certRequest *x509.Certificate, parentCert *x509.Certificate, parentPrivKey *rsa.PrivateKey) (*CertResult, error) {
 	// create private key for this cert
 	privKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
@@ -154,7 +158,7 @@ func createCert(partialCert *x509.Certificate, parentCert *x509.Certificate, par
 	})
 
 	// create the CA certificate using the partial cert as input
-	certBytes, err := x509.CreateCertificate(cryptorand.Reader, partialCert, parentCert, &privKey.PublicKey, parentPrivKey)
+	certBytes, err := x509.CreateCertificate(cryptorand.Reader, certRequest, parentCert, &privKey.PublicKey, parentPrivKey)
 	if err != nil {
 		return nil, err
 	}

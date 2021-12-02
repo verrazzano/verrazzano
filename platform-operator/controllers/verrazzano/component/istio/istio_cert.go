@@ -45,7 +45,7 @@ func createCerts(log *zap.SugaredLogger) (*certificate.CertPemData, error) {
 		NotBefore:           time.Now(),
 		NotAfter:            time.Now().AddDate(5, 0, 0),
 	}
-	pemData, err := certificate.CreateSelfSignedCert(rootConfig, intermConfig)
+	pemData, err := certificate.CreateCertUsingSelfSignedRoot(rootConfig, intermConfig)
 	if err != nil {
 		log.Errorf("Failed to create Certificate for Istio: %v", err)
 		return nil, err

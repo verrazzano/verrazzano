@@ -23,7 +23,7 @@ func TestCreateSelfSignedCert(t *testing.T) {
 	assert.NoError(err, "Error creating self-signed certs")
 
 	parent := pem.IntermediateCertResult
-	certInfo := createPartialCert(parent, "testname")
+	certInfo := createCertRequest(parent, "testname")
 
 	// sign the intermediate cert with the root cert
 	certResult, err := createCert(certInfo, parent.Cert, parent.PrivateKey)
@@ -35,7 +35,7 @@ func TestCreateSelfSignedCert(t *testing.T) {
 func createTestCerts() (*CertPemData, error) {
 	rootConfig := createConfig("Root CA")
 	intermConfig := createConfig("Intermediate CA")
-	pemData, err := CreateSelfSignedCert(rootConfig, intermConfig)
+	pemData, err := CreateCertUsingSelfSignedRoot(rootConfig, intermConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +59,8 @@ func createConfig(cn string) CertConfig {
 	}
 }
 
-// Create a partial cert for testing
-func createPartialCert(parent *CertResult, cn string) *x509.Certificate {
-
+// Create a cert request for testing
+func createCertRequest(parent *CertResult, cn string) *x509.Certificate {
 	config := createConfig(cn)
 
 	// create the new certificate info needed to create the certificate
