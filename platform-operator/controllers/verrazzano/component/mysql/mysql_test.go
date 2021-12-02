@@ -30,7 +30,7 @@ const profilesDir = "../../../../manifests/profiles"
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 2
+	minExpectedHelmOverridesCount = 1
 	busyboxImageNameKey           = "busybox.image"
 	busyboxImageTagKey            = "busybox.tag"
 	testBomFilePath               = "../../testdata/test_bom.json"
@@ -49,7 +49,7 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
@@ -82,8 +82,9 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
@@ -109,8 +110,9 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
@@ -152,9 +154,10 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
@@ -177,7 +180,8 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
@@ -215,9 +219,10 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
@@ -247,7 +252,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).For(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
