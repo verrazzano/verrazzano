@@ -39,7 +39,7 @@ spec:
           value: "3"
         - name: controller.service.externalIPs
           valueList:
-          - 11.22.33.44
+            - 11.22.33.44
       ports:
         - name: http
           nodePort: 30080
@@ -59,7 +59,7 @@ spec:
           value: "3"
         - name: gateways.istio-ingressgateway.externalIPs
           valueList:
-          - 11.22.33.44
+            - 11.22.33.44
     kiali:
       enabled: true
     keycloak:
