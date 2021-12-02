@@ -67,7 +67,7 @@ func fakeExecCommand(command string, args ...string) *exec.Cmd {
 // So we wrap the structs and supply our own FakeCoreV1 implementation which returns a fake RESTClient object instead of nil
 type (
 	FakeClientSet struct {
-		fakeclient.Clientset
+		*fakeclient.Clientset
 	}
 	MyFakeCoreV1 struct {
 		fakecorev1.FakeCoreV1
@@ -89,7 +89,7 @@ func (f *MyFakeCoreV1) RESTClient() rest.Interface {
 func fakeRESTConfig() (*rest.Config, kubernetes.Interface, error) {
 	cfg, _ := rest.InClusterConfig()
 	clientset := fakeclient.NewSimpleClientset()
-	myfakeClientset := &FakeClientSet{Clientset: *clientset}
+	myfakeClientset := &FakeClientSet{Clientset: clientset}
 	return cfg, myfakeClientset, nil
 }
 
@@ -341,7 +341,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			}),
 			"blahblah'id",
 			true,
-			"configureKeycloakRealm: Error retrieving verrazzano password",
+			"getSecretPassword: Error retrieving secret verrazzano password",
 		},
 		{
 			"should fail when nginx service is not present",
@@ -353,7 +353,25 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				Data: map[string][]byte{
 					"password": []byte("blah di blah"),
 				},
-			}),
+			},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-prom-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-es-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				}),
 			"blahblah'id",
 			true,
 			"services \"ingress-controller-ingress-nginx-controller\" not found",
@@ -368,7 +386,25 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				Data: map[string][]byte{
 					"password": []byte("blah di blah"),
 				},
-			}),
+			},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-prom-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-es-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				}),
 			"blahblah'id",
 			false,
 			"",
@@ -379,7 +415,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
 			k8sutil.FakePodSTDOUT = tt.stdout
-			err := configureKeycloakRealms(ctx, "foobar", "barfoo")
+			err := configureKeycloakRealms(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)
@@ -530,6 +566,6 @@ func TestLoginKeycloak(t *testing.T) {
 func TestCreateOrUpdateAuthSecret(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	ctx := spi.NewFakeContext(c, testVZ, false)
-	err := createOrUpdateAuthSecret(ctx, "ns", "secret", "user", "pass")
+	err := createOrUpdateAuthSecret(ctx, "ns", "secret", "user")
 	assert.NoError(t, err)
 }

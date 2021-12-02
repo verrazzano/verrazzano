@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -70,39 +69,30 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Create secret for the keycloakadmin user
-	pw, err := vzpassword.GeneratePassword(15)
+	// Create secret for the keycloakadmin user if it doesn't exist
+	err = createOrUpdateAuthSecret(ctx, "keycloak", "keycloak-http", "keycloakadmin")
 	if err != nil {
 		return err
 	}
-	err = createOrUpdateAuthSecret(ctx, "keycloak", "keycloak-http", "keycloakadmin", pw)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
 func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	// Create secret for the verrazzano-prom-internal user
-	prompw, err := vzpassword.GeneratePassword(15)
+
+	err := createOrUpdateAuthSecret(ctx, "verrazzano-system", "verrazzano-prom-internal", "verrazzano-prom-internal")
 	if err != nil {
 		return err
 	}
-	err = createOrUpdateAuthSecret(ctx, "verrazzano-system", "verrazzano-prom-internal", "verrazzano-prom-internal", prompw)
-	if err != nil {
-		return err
-	}
+
 	// Create secret for the verrazzano-es-internal user
-	espw, err := vzpassword.GeneratePassword(15)
-	if err != nil {
-		return err
-	}
-	err = createOrUpdateAuthSecret(ctx, "verrazzano-system", "verrazzano-es-internal", "verrazzano-es-internal", espw)
+	err = createOrUpdateAuthSecret(ctx, "verrazzano-system", "verrazzano-es-internal", "verrazzano-es-internal")
 	if err != nil {
 		return err
 	}
 	// Create the verrazzano-system realm and populate it with users, groups, clients, etc.
-	err = configureKeycloakRealms(ctx, prompw, espw)
+	err = configureKeycloakRealms(ctx)
 	if err != nil {
 		return err
 	}
