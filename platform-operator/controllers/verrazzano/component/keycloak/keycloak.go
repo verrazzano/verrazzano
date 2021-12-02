@@ -96,6 +96,9 @@ type imageData struct {
 	Image string
 }
 
+// maskPw will mask passwords in strings with '******'
+var maskPw = vzpassword.MaskFunction("password ")
+
 var realmCreated bool = false
 
 // AppendKeycloakOverrides appends the Keycloak theme for the Key keycloak.extraInitContainers.
@@ -456,7 +459,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	setVZUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzUserName + " --new-password " + vzpw
-	ctx.Log().Infof("CDD Set Verrazzano User PW Cmd = %s", setVZUserPwCmd)
+	ctx.Log().Infof("CDD Set Verrazzano User PW Cmd = %s", maskPw(setVZUserPwCmd))
 	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", setVZUserPwCmd)
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano user password: stdout = %s, stderr = %s", stdout, stderr)
@@ -483,7 +486,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	setPromUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzInternalPromUser + " --new-password " + prompw
-	ctx.Log().Infof("CDD Set Verrazzano Prom User PW Cmd = %s", setPromUserPwCmd)
+	ctx.Log().Infof("CDD Set Verrazzano Prom User PW Cmd = %s", maskPw(setPromUserPwCmd))
 	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", setPromUserPwCmd)
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Prometheus user password: stdout = %s, stderr = %s", stdout, stderr)
@@ -510,7 +513,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	setVzESUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + vzInternalEsUser + " --new-password " + espw
-	ctx.Log().Infof("CDD Set Verrazzano ES User PW Cmd = %s", setVzESUserPwCmd)
+	ctx.Log().Infof("CDD Set Verrazzano ES User PW Cmd = %s", maskPw(setVzESUserPwCmd))
 	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", setVzESUserPwCmd)
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Elasticsearch user password: stdout = %s, stderr = %s", stdout, stderr)
@@ -826,13 +829,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	// Login to Keycloak
 
 	loginCmd := "/opt/jboss/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user keycloakadmin --password " + keycloakpw
-	cmd := []string{
-		"bash",
-		"-c",
-		loginCmd,
-	}
-	ctx.Log().Infof("CDD Login Cmd = %s", loginCmd)
-	ctx.Log().Infof("CDD Total Cmd = %v", cmd)
+	ctx.Log().Infof("CDD Login Cmd = %s", maskPw(loginCmd))
 
 	//stdOut, stdErr, err := k8sutil.ExecPod(cfg, cli.RESTClient(), &keycloakPod, "keycloak", cmd)
 	// err = ExecCmd(cli, cfg, "keycloak-0", loginCmd, os.Stdin, os.Stdout, os.Stderr)
