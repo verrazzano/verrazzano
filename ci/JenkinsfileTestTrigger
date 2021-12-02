@@ -209,6 +209,7 @@ pipeline {
                         }
                     }
                 }
+/*
                 stage('Kind Acceptance Tests on 1.22') {
                     steps {
                         script {
@@ -231,6 +232,7 @@ pipeline {
                         }
                     }
                 }
+*/
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
