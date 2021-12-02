@@ -184,16 +184,15 @@ func (r *VerrazzanoManagedClusterReconciler) getSecret(namespace string, secretN
 	if err != nil {
 		if !required && errors.IsNotFound(err) {
 			return corev1.Secret{}, err
-		} else {
-			return corev1.Secret{}, fmt.Errorf("failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
 		}
+		return corev1.Secret{}, fmt.Errorf("failed to fetch the secret %s/%s, %v", nsn.Namespace, nsn.Name, err)
 	}
 	return secret, nil
 }
 
 // Get the CA bundle used by system-tls and the optional rancher-ca-additional secret
 func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) {
-	caBundle := []byte{}
+	var caBundle []byte
 	secret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.SystemTLS, true)
 	if err != nil {
 		return nil, err
@@ -206,32 +205,42 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 		return nil, err
 	}
 	if err == nil {
-		// Decode the SystemTLS bundle
-		systemTLSBundle := make([]byte, base64.StdEncoding.DecodedLen(len(secret.Data[CaCrtKey])))
-		_, err2 := base64.URLEncoding.Decode(systemTLSBundle, secret.Data[CaCrtKey])
-		if err2 != nil {
-			return nil, err2
-		}
-
-		// Decode the additional CA bundle
-		additionalCABundle := make([]byte, base64.StdEncoding.DecodedLen(len(optSecret.Data[rancherCAAdditionalPem])))
-		_, err3 := base64.URLEncoding.Decode(additionalCABundle, optSecret.Data[rancherCAAdditionalPem])
-		if err3 != nil {
-			return nil, err3
-		}
-
 		// Combine the two CA bundles
-		combinedBundle := []byte{}
-		combinedBundle = systemTLSBundle
-		combinedBundle = append(combinedBundle, additionalCABundle...)
-
-		// Encode the combined bundle
-		newBundle := make([]byte, base64.StdEncoding.DecodedLen(len(combinedBundle)))
-		base64.URLEncoding.Encode(newBundle, combinedBundle)
-		caBundle = newBundle
+		caBundle, err = combineBundles(secret.Data[CaCrtKey], optSecret.Data[rancherCAAdditionalPem])
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return caBundle, nil
+}
+
+// combineBundles - Combine two base64 encoded bundles into a single bundle
+func combineBundles(bundle1 []byte, bundle2 []byte) ([]byte, error) {
+	// Decode the first bundle
+	bundle1Decoded := make([]byte, base64.URLEncoding.DecodedLen(len(bundle1)))
+	bundle1DecodedLen, err := base64.URLEncoding.Decode(bundle1Decoded, bundle1)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the second bundle
+	bundle2Decoded := make([]byte, base64.URLEncoding.DecodedLen(len(bundle2)))
+	_, err = base64.URLEncoding.Decode(bundle2Decoded, bundle2)
+	if err != nil {
+		return nil, err
+	}
+
+	// Combine the two CA bundles
+	combinedBundle := make([]byte, bundle1DecodedLen)
+	copy(combinedBundle, bundle1Decoded)
+	combinedBundle = append(combinedBundle, bundle2Decoded...)
+
+	// Encode the combined bundle
+	newBundle := make([]byte, base64.StdEncoding.EncodedLen(len(combinedBundle)))
+	base64.URLEncoding.Encode(newBundle, combinedBundle)
+
+	return newBundle, nil
 }
 
 // Get the keycloak URL
