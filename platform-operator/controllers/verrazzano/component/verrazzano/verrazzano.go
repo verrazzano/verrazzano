@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/security"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -19,6 +18,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"go.uber.org/zap"
@@ -431,7 +431,7 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
-	if _, err := security.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
+	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
 		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
 	}
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
@@ -442,7 +442,7 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
 			return err
 		}
-		if _, err := security.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
+		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
 			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
 		}
 	}

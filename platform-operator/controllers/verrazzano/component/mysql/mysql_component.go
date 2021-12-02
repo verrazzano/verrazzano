@@ -4,13 +4,13 @@
 package mysql
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/security"
 	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
@@ -34,7 +34,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:          vzconst.KeycloakNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  security.DefaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:     appendMySQLOverrides,
 			Dependencies:            []string{istio.ComponentName},
