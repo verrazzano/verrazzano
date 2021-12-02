@@ -42,7 +42,7 @@ pipeline {
         choice (name: 'SELECT_IMAGE_REGISTRY',
                 description: 'Select an image registry',
                 // 1st choice is the default value
-                choices: ["OCIR", "Harbor Standalone instance"])
+                choices: ["Harbor Standalone instance", "OCIR"])
         string (name: 'ZIPFILE_LOCATION',
                         defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
                         description: 'The bucket location to use for the Zip file download',
