@@ -118,6 +118,7 @@ pipeline {
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
 
         HARBOR_STANDALONE_REGISTRY_CREDS = credentials('harbor-standalone-registry-account')
+        HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL = "https://${HARBOR_STANDALONE_REGISTRY}${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
     }
 
     stages {
@@ -129,6 +130,8 @@ pipeline {
                         echo "OCIR Repository: ${ocirRegistry}"
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
                         echo "Harbor registry: ${HARBOR_STANDALONE_REGISTRY}"
+                        echo "Harbor registry REST API Subpath: ${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
+                        echo "Harbor registry REST API full URL: ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL}"
                     }
                 }
 
@@ -160,7 +163,7 @@ pipeline {
                     if (SELECT_IMAGE_REGISTRY == "OCIR") {
                         baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
-                        // TODO: set baseImageRepo
+                        baseImageRepo=imageRepoSubPath
                     }
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
@@ -299,7 +302,11 @@ pipeline {
                             ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                         """
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
-                        // TODO: Load images to harbor standalone registry
+                        sh """
+                            # Run the image-helper to load the images into the OCIR registry in the runner's region
+                            cd ${TARBALL_DIR}
+                            ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_STANDALONE_REGISTRY} -l . -r ${baseImageRepo}
+                        """
                     }
                 }
             }
@@ -310,7 +317,7 @@ pipeline {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         PRIVATE_REPO="${baseImageRepo}"
-                        REGISTRY="${ocirRegistry}"
+                        REGISTRY=getPrivateRegistry()
                         PRIVATE_REGISTRY_USR=getPrivateRegistryUser()
                         PRIVATE_REGISTRY_PSW=getPrivateRegistryPassword()
                     }
@@ -560,18 +567,35 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
-
-                echo "Current execution region: $ocirRegion"
-                echo "OCIR Repository: ${ocirRegistry}"
-                echo "Image repo subpath: ${imageRepoSubPath}"
-                echo "Base image repo: ${baseImageRepo}"
-                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
             """
+
+            script {
+                if (SELECT_IMAGE_REGISTRY == "OCIR") {
+                    sh """
+                        echo "Current execution region: $ocirRegion"
+                        echo "OCIR Repository: ${ocirRegistry}"
+                        echo "Image repo subpath: ${imageRepoSubPath}"
+                        echo "Base image repo: ${baseImageRepo}"
+                        sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+                    """
+                } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                    // TODO: delete harbor images
+                }
+            }
         }
         cleanup {
             deleteDir()
         }
     }
+}
+
+def getPrivateRegistry() {
+    if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
+        return ${ocirRegistry}
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+        return env.HARBOR_STANDALONE_REGISTRY
+    }
+    return ""
 }
 
 def getPrivateRegistryUser() {
