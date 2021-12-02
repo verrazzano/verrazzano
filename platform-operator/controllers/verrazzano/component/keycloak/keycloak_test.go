@@ -54,15 +54,6 @@ func fakeBashFail(_ ...string) (string, string, error) {
 	return "fail", "Script Failed", errors.New("script Failed")
 }
 
-func fakeExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelperProcess", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
-	return cmd
-}
-
 // This is due to a bug in the fake client, fakeclient.NewSimpleClientset().CoreV1.RESTClient() is nil
 // So we wrap the structs and supply our own FakeCoreV1 implementation which returns a fake RESTClient object instead of nil
 type (
@@ -121,6 +112,15 @@ func createTestNginxService() *v1.Service {
 			},
 		},
 	}
+}
+
+func fakeExecCommand(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestHelperProcess", "--", command}
+	cs = append(cs, args...)
+	firstArg := os.Args[0]
+	cmd := exec.Command(firstArg, cs...)
+	cmd.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
+	return cmd
 }
 
 func TestHelperProcess(t *testing.T) {
@@ -183,6 +183,42 @@ func TestFailNoUserHelperProcess(t *testing.T) {
 	}
 
 	fmt.Fprintf(os.Stdout, keycloakErrorClientIds)
+	os.Exit(0)
+}
+
+func fakeCreateUserGroupCommand(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestFakeCreateUserGroup", "--", command}
+	cs = append(cs, args...)
+	firstArg := os.Args[0]
+	cmd := exec.Command(firstArg, cs...)
+	cmd.Env = []string{"GO_WANT_TEST_CREATE_USER_GROUP=1"}
+	return cmd
+}
+
+func TestFakeCreateUserGroup(t *testing.T) {
+	if os.Getenv("GO_WANT_TEST_CREATE_USER_GROUP") != "1" {
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "Created new group with id '6653a73b-f292-4dfe-91cb-956ead33ea67'")
+	os.Exit(0)
+}
+
+func fakeCreateUserGroupCommandFail(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestFakeCreateUserGroupFail", "--", command}
+	cs = append(cs, args...)
+	firstArg := os.Args[0]
+	cmd := exec.Command(firstArg, cs...)
+	cmd.Env = []string{"GO_WANT_TEST_CREATE_USER_GROUP_FAIL=1"}
+	return cmd
+}
+
+func TestFakeCreateUserGroupFail(t *testing.T) {
+	if os.Getenv("GO_WANT_TEST_CREATE_USER_GROUP_FAIL") != "1" {
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "")
 	os.Exit(0)
 }
 
@@ -295,8 +331,8 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 // WHEN I call configureKeycloakRealms
 // THEN configure the Keycloak realms, otherwise returning an error if the environment is invalid
 func TestConfigureKeycloakRealms(t *testing.T) {
-	//	loginSecret := createTestLoginSecret()
-	//	nginxService := createTestNginxService()
+	loginSecret := createTestLoginSecret()
+	nginxService := createTestNginxService()
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
 
@@ -314,69 +350,69 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"secrets \"keycloak-http\" not found",
 		},
-		/*		{
-										"should fail to retrieve user group ID from Keycloak when stdout is empty",
-										fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
-										"",
-										true,
-										"Error retrieving User Group ID from Keycloak",
-									},
-								{
-									"should fail when Verrazzano secret is not present",
-									fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
-									"blahblah'id",
-									true,
-									"secrets \"verrazzano\" not found",
-								},
-						{
-							"should fail when Verrazzano secret has no password",
-							fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-								ObjectMeta: metav1.ObjectMeta{
-									Name:      "verrazzano",
-									Namespace: "verrazzano-system",
-								},
-								Data: map[string][]byte{
-									"password": []byte(""),
-								},
-							}),
-							"blahblah'id",
-							true,
-							"getSecretPassword: Error retrieving secret verrazzano password",
-						},
-				{
-					"should fail when nginx service is not present",
-					fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "verrazzano",
-							Namespace: "verrazzano-system",
-						},
-						Data: map[string][]byte{
-							"password": []byte("blah di blah"),
-						},
+		{
+			"should fail to retrieve user group ID from Keycloak when stdout is empty",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			"",
+			true,
+			"Error retrieving User Group ID from Keycloak",
+		},
+		{
+			"should fail when Verrazzano secret is not present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			"blahblah'id",
+			true,
+			"secrets \"verrazzano\" not found",
+		},
+		{
+			"should fail when Verrazzano secret has no password",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "verrazzano",
+					Namespace: "verrazzano-system",
+				},
+				Data: map[string][]byte{
+					"password": []byte(""),
+				},
+			}),
+			"blahblah'id",
+			true,
+			"getSecretPassword: Error retrieving secret verrazzano password",
+		},
+		{
+			"should fail when nginx service is not present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "verrazzano",
+					Namespace: "verrazzano-system",
+				},
+				Data: map[string][]byte{
+					"password": []byte("blah di blah"),
+				},
+			},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-prom-internal",
+						Namespace: "verrazzano-system",
 					},
-						&v1.Secret{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "verrazzano-prom-internal",
-								Namespace: "verrazzano-system",
-							},
-							Data: map[string][]byte{
-								"password": []byte("blah di blah"),
-							},
-						},
-						&v1.Secret{
-							ObjectMeta: metav1.ObjectMeta{
-								Name:      "verrazzano-es-internal",
-								Namespace: "verrazzano-system",
-							},
-							Data: map[string][]byte{
-								"password": []byte("blah di blah"),
-							},
-						}),
-					"blahblah'id",
-					true,
-					"services \"ingress-controller-ingress-nginx-controller\" not found",
-				},*/
-		/*	{
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-es-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				}),
+			"blahblah'id",
+			true,
+			"services \"ingress-controller-ingress-nginx-controller\" not found",
+		},
+		{
 			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -408,12 +444,16 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			"blahblah'id",
 			false,
 			"",
-		},*/
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			execCommand = fakeCreateUserGroupCommand
+			if tt.name == "should fail to retrieve user group ID from Keycloak when stdout is empty" {
+				execCommand = fakeCreateUserGroupCommandFail
+			}
 			k8sutil.FakePodSTDOUT = tt.stdout
 			err := configureKeycloakRealms(ctx)
 			if tt.isErr {

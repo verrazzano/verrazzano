@@ -284,41 +284,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	userGroupID := arr[1]
 	ctx.Log().Infof("configureKeycloakRealm: User Group ID = %s", userGroupID)
 	ctx.Log().Info("CDD Successfully Created Verrazzano User Group")
-	/*	userGroup := "name=" + vzUsersGroup
-		createVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create groups -r " + vzSysRealm + " -s " + userGroup
-		ctx.Log().Infof("CDD Create Verrazzano Users Group Cmd = %s", createVzUserGroupCmd)
-		stdout, stderr, err := ExecCmd(cli, cfg, "keycloak-0", createVzUserGroupCmd)
-		if err != nil {
-			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Users Group: stdout = %s, stderr = %s", stdout, stderr)
-			return err
-		}
-		ctx.Log().Infof("CDD Create Verrazzano Users Group Output: stdout = %s, stderr = %s", stdout, stderr)
-		if len(stdout) == 0 {
-			return errors.New("configureKeycloakRealm: Error retrieving User Group ID from Keycloak, zero length")
-		}
-		arr := strings.Split(stdout, "'")
-		userGroupID := arr[1]
-		ctx.Log().Infof("configureKeycloakRealm: User Group ID = %s", userGroupID)
-		ctx.Log().Info("CDD Successfully Created Verrazzano User Group")*/
 
 	// Create Verrazzano Admin Group
-	/*	adminGroup := "groups/" + userGroupID + "/children"
-		adminGroupName := "name=" + vzAdminGroup
-		createVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + adminGroup + " -r " + vzSysRealm + " -s " + adminGroupName
-		ctx.Log().Infof("CDD Create Verrazzano Admin Group Cmd = %s", createVzAdminGroupCmd)
-		stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", createVzAdminGroupCmd)
-		if err != nil {
-			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Group: stdout = %s, stderr = %s", stdout, stderr)
-			return err
-		}
-		ctx.Log().Infof("CDD Create Verrazzano Admin Group Output: stdout = %s, stderr = %s", stdout, stderr)
-		if len(stdout) == 0 {
-			return errors.New("configureKeycloakRealm: Error retrieving Admin Group ID from Keycloak, zero length")
-		}
-		arr = strings.Split(stdout, "'")
-		adminGroupID := arr[1]
-		ctx.Log().Infof("configureKeycloakRealm: Admin Group ID = %s", adminGroupID)
-		ctx.Log().Info("CDD Successfully Created Verrazzano Admin Group")*/
 	adminGroup := "groups/" + userGroupID + "/children"
 	adminGroupName := "name=" + vzAdminGroup
 	cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
@@ -338,23 +305,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	ctx.Log().Info("CDD Successfully Created Verrazzano Admin Group")
 
 	// Create Verrazzano Project Monitors Group
-	/*	monitorGroup := "groups/" + userGroupID + "/children"
-		monitorGroupName := "name=" + vzMonitorGroup
-		createVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + monitorGroup + " -r " + vzSysRealm + " -s " + monitorGroupName
-		ctx.Log().Infof("CDD Create Verrazzano Monitor Group Cmd = %s", createVzMonitorGroupCmd)
-		stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", createVzMonitorGroupCmd)
-		if err != nil {
-			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitor Group: stdout = %s, stderr = %s", stdout, stderr)
-			return err
-		}
-		ctx.Log().Infof("CDD Create Verrazzano Project Monitors Group Output: stdout = %s, stderr = %s", stdout, stderr)
-		if len(stdout) == 0 {
-			return errors.New("configureKeycloakRealm: Error retrieving Monitor Group ID from Keycloak, zero length")
-		}
-		arr = strings.Split(stdout, "'")
-		monitorGroupID := arr[1]
-		ctx.Log().Infof("configureKeycloakRealm: Monitor Group ID = %s", monitorGroupID)
-		ctx.Log().Info("CDD Successfully Created Verrazzano Monitors Group")*/
 	monitorGroup := "groups/" + userGroupID + "/children"
 	monitorGroupName := "name=" + vzMonitorGroup
 	cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
