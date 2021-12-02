@@ -62,7 +62,7 @@ var (
 	// the correct copyright line looks like this:
 	// Copyright (c) 2020, Oracle and/or its affiliates.
 	copyrightPattern = `^(#|\/\/|<!--|\/\*|<%--) Copyright \([cC]\) ((?P<CreatedYear>[1-2][0-9][0-9][0-9]), )((?P<UpdatedYear>[1-2][0-9][0-9][0-9]), )?Oracle and\/or its affiliates(\.|\. -->|\. \*\/|\. --%>)$`
-	copyrightRegex   = regexp.MustCompile(copyrightPattern)
+	_                = regexp.MustCompile(copyrightPattern)
 
 	// uplRegex is the regular express for recognizing correctly formatted UPL license headers
 	// Explanation of the regular expression
@@ -75,7 +75,7 @@ var (
 	// the correct copyright line looks like this:
 	// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 	uplPattern = `^(#|\/\/|<!--|\/\*|<%--) Licensed under the Universal Permissive License v 1\.0 as shown at https:\/\/oss\.oracle\.com\/licenses\/upl(\.|\. -->|\. \*\/|\. --%>)$`
-	uplRegex   = regexp.MustCompile(uplPattern)
+	_          = regexp.MustCompile(uplPattern)
 
 	copyrightUplPattern = "(?m)" + copyrightPattern + "\n" + uplPattern + "\n"
 	copyrightUplRegex   = regexp.MustCompile(copyrightUplPattern)
@@ -124,7 +124,6 @@ const (
 	Modified
 	Added
 	Deleted
-	Renamed
 	Copied
 	Unmerged
 	Untracked
@@ -365,7 +364,9 @@ func fixHeaders(args []string) error {
 					if err != nil {
 						return err
 					}
-					out, err := exec.Command("git", "show", fmt.Sprintf("HEAD:%s", gitPath)).Output()
+					getGitHead := fmt.Sprintf("HEAD:%s", gitPath)
+					cmd := exec.Command("git", "show", getGitHead)
+					out, err := cmd.Output()
 					if err != nil {
 						return err
 					}
@@ -384,14 +385,14 @@ func fixHeaders(args []string) error {
 
 			if modifyExistingHeader {
 				replacementHeader := copyrightUplRegex.ReplaceAll(firstBytes, header)
-				if bytes.Compare(firstBytes, replacementHeader) != 0 {
+				if !bytes.Equal(firstBytes, replacementHeader) {
 					replacement = append(replacementHeader, fileContents[len(firstBytes):]...)
 				}
 			} else {
 				replacement = append(header, fileContents...)
 			}
 
-			if bytes.Compare(replacement, []byte{}) != 0 {
+			if !bytes.Equal(replacement, []byte{}) {
 				st, err := os.Stat(path)
 				if err != nil {
 					return err

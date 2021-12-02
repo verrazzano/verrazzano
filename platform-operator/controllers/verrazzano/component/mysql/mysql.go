@@ -6,18 +6,18 @@ package mysql
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	helmutil "github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
-	k8serror "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
@@ -36,8 +36,6 @@ const (
 	mySQLRootKey        = "mysql-root-password"
 	mySQLInitFilePrefix = "init-mysql-"
 )
-
-var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // isReady checks to see if the MySQL component is in ready state
 func isReady(context spi.ComponentContext, name string, namespace string) bool {
@@ -60,17 +58,17 @@ func isEnabled(context spi.ComponentContext) bool {
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
 
-	secret := &v1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: vzconst.KeycloakNamespace,
-		Name:      secretName}
-	// Get the mysql secret
-	err := compContext.Client().Get(context.TODO(), nsName, secret)
-	if err != nil && !k8serror.IsNotFound(err) {
-		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
-	// see if the mysql exists
-	if !k8serror.IsNotFound(err) {
+	if compContext.For(ComponentName).GetOperation() == vzconst.UpgradeOperation {
+		secret := &v1.Secret{}
+		nsName := types.NamespacedName{
+			Namespace: vzconst.KeycloakNamespace,
+			Name:      secretName}
+		// Get the mysql secret
+		err := compContext.Client().Get(context.TODO(), nsName, secret)
+		if err != nil {
+			compContext.Log().Errorf("Error getting mysql secret: %v", err)
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		}
 		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
 		kvs = append(kvs, bom.KeyValue{
 			Key:   helmRootPwd,
@@ -84,12 +82,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 
 	kvs = append(kvs, bom.KeyValue{Key: mySQLUsernameKey, Value: mySQLUsername})
 
-	// See if MySQL is deployed and create the MySQL init file if not
-	deployed, err := helmutil.IsReleaseDeployed(ComponentName, vzconst.KeycloakNamespace)
-	if err != nil {
-		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
-	if !deployed {
+	if compContext.For(ComponentName).GetOperation() == vzconst.InstallOperation {
 		mySQLInitFile, err := createMySQLInitFile(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -98,7 +91,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	// generate the MySQl PV overrides
-	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
+	kvs, err := generateVolumeSourceOverrides(compContext, kvs)
 	if err != nil {
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
@@ -209,7 +202,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
-		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
 			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 			return kvs, err
@@ -246,16 +239,6 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 		})
 	}
 	return kvs, nil
-}
-
-// findVolumeTemplate Find a named VolumeClaimTemplate in the list
-func findVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
-	for i, template := range templates {
-		if templateName == template.Name {
-			return &templates[i].Spec, true
-		}
-	}
-	return nil, false
 }
 
 // getInstallArgs get the install args for MySQL

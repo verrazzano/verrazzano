@@ -9,11 +9,12 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"go.uber.org/zap"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // reconcileComponents reconciles each component using the following rules:
@@ -36,7 +37,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		compContext := newContext.For(compName).Operation("install")
+		compContext := newContext.For(compName).Operation(vzconst.InstallOperation)
 		log.Debugf("processing install for %s", compName)
 
 		if !comp.IsOperatorInstallSupported() {
