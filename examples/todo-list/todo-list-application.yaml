@@ -24,7 +24,7 @@ spec:
             spec:
               rules:
                 - paths:
-                    - path: "/todo"
+                    - path: "/todo/"
                       pathType: Prefix
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap
