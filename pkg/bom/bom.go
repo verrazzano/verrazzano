@@ -109,7 +109,9 @@ type BomImage struct {
 type KeyValue struct {
 	Key       string
 	Value     string
-	SetString bool
+	SetString bool // for --set-string
+	SetFile   bool // for --set-file
+	IsFile    bool // for -f
 }
 
 // Create a new bom from a JSON file
@@ -296,4 +298,14 @@ func (b *Bom) ResolveRepo(sc *BomSubComponent) string {
 		repo = userRepo + slash + repo
 	}
 	return repo
+}
+
+// FindKV searches an array of KeyValue structs for a Key and returns the Value if found, or returns an empty string
+func FindKV(kvs []KeyValue, key string) string {
+	for _, kv := range kvs {
+		if kv.Key == key {
+			return kv.Value
+		}
+	}
+	return ""
 }

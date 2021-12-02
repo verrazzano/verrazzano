@@ -7,14 +7,15 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 #  Code quality targets
 #
+##@ Linting and coverage
 
 .PHONY: check
-check: install-linter word-linter url-linter
+check: install-linter word-linter url-linter ## run all linters
 	$(LINTER) --color never run
 
 # find or download golangci-lint
 .PHONY: install-linter
-install-linter:
+install-linter: ## install linters
 ifeq (, $(shell command -v golangci-lint))
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.38.0
 	$(eval LINTER=$(GOPATH)/bin/golangci-lint)
@@ -27,14 +28,14 @@ endif
 # the actual command being executed in bash is "curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$\)' | ..."
 # additional "$" is to escape literal value in makefile
 .PHONY: word-linter
-word-linter:
+word-linter: ## check for use of 'bad' words
 	curl -sL -o /dev/null -w "%{http_code}" https://bit.ly/3iIUcdL | grep -q '200'
 	! curl -sL https://bit.ly/3iIUcdL | grep -v '^\s*\(#\|$$\)' | grep -f /dev/stdin -r *
 
 .PHONY: url-linter
-url-linter:
+url-linter: ## check for invalid URLs
 	${TOOLS_DIR}/url_linter/invalid_url_linter.sh .
 
 .PHONY: coverage
-coverage:
+coverage:  ## test code coverage
 	${SCRIPT_DIR}/coverage.sh html

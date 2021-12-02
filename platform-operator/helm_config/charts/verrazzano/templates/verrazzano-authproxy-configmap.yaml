@@ -39,46 +39,52 @@ data:
 
     -- CORS handling
     local h, _ = ngx.req.get_headers()["origin"]
-    if h then
+    if h ~= nil and h ~= "" then
         auth.info("Origin header: "..h)
         if h == "*" then
             -- not a legit origin, could be intended to trick us into oversharing
             auth.bad_request("Invalid Origin header: '*'")
         end
+        
+        ngx.header["Vary"] = "Origin"
+        local requestMethod = ngx.req.get_method()
+        local originAllowed = auth.isOriginAllowed(h, backend, ingressUri)
 
-        -- don't respond to CORS request if Origin is null; i.e., disallow the request
-        -- notes:
-        --   -- fetch spec, which defines CORS, says to include the literal value of
-        --      the Origin header (if you aren't returning "*""), with no mention of null
-        --   -- but https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin,
-        --      referencing https://w3c.github.io/webappsec-cors-for-developers/, says NOT to return
-        --      null in allowed origins.
-
-        if h ~= null then
+        -- From https://tools.ietf.org/id/draft-abarth-origin-03.html#server-behavior, if the request Origin is not in
+        -- whitelisted origins and the request method is not a safe non state changing (i.e. GET or HEAD), we should
+        -- abort the request.
+        if not originAllowed and requestMethod ~= "GET" and requestMethod ~= "HEAD" and requestMethod ~= "OPTIONS" then
+            auth.forbidden("Origin: " .. h .. " not allowed.")
+        end
+        
+        if originAllowed then
+            -- From "Simple Cross-Origin Request, Actual Request, and Redirects" section of https://www.w3.org/TR/2020/SPSD-cors-20200602,
+            -- set the value of Access-Control-Allow-Origin and Access-Control-Allow-Credentials hedaers if there is a match.
             ngx.header["Access-Control-Allow-Origin"] = h
             ngx.header["Access-Control-Allow-Credentials"] = "true"
-            ngx.header["Vary"] = "Origin"
-
-            if ngx.req.get_method() == "OPTIONS" then
-                -- auth.info("Processing OPTIONS request, URI is '"..ngx.var.request_uri.."'")
+            if requestMethod == "OPTIONS" then
                 ngx.header["Access-Control-Allow-Headers"] = "authorization, content-type"
                 ngx.header["Access-Control-Allow-Methods"] = "GET, HEAD, POST, PUT, DELETE, OPTIONS, PATCH"
-                ngx.header["Content-Length"] = 0
             end
         end
-
-        if ngx.req.get_method() == "OPTIONS" then
+        
+        if requestMethod == "OPTIONS" then
+            ngx.header["Content-Length"] = 0
             ngx.status = 200
             ngx.exit(ngx.HTTP_OK)
         end
+        
     else
-        -- auth.info("No Origin header found")
         if ngx.req.get_method() == "OPTIONS" then
             auth.bad_request("OPTIONS request with no Origin header")
         end
     end
 
     auth.info("Processing request for backend '"..ingressHost.."'")
+    if (backend == 'console' or backend == 'verrazzano') and (not auth.isBodyValidJson()) then
+        auth.bad_request("Invalid request")
+    end
+
     local authHeader = ngx.req.get_headers()["authorization"]
     local token = nil
     if authHeader then
@@ -1108,6 +1114,69 @@ data:
         return serverUrl
     end
 
+    function me.isBodyValidJson()
+        ngx.req.read_body()
+        local data = ngx.req.get_body_data()
+        if data ~= nil then
+            local decoder = require("cjson.safe").decode
+            local decoded_data, err = decoder(data)
+            if err then
+                me.logJson(ngx.ERR, "Invalid request payload:" .. data)
+                return false
+            end
+        end
+        return true
+    end
+    
+    function me.isOriginAllowed(origin, backend, ingressUri)
+        -- As per https://datatracker.ietf.org/doc/rfc6454, "User Agent Requirements" section a "null" value for 
+        -- Origin header is set by user agents for privacy-sensitive contexts. However it does not defined what 
+        -- a privacy-sensitive context means. The "Privacy-Sensitive Contexts" section of https://wiki.mozilla.org/Security/Origin
+        -- defines certain contexts as privacy sensitive but there also it does not explain behaviour of server for the
+        -- "Access-Control-Allow-Origin" header. Therefore we do not allow such requests.
+        if origin == "null" then
+            return false
+        end
+        
+        if origin == ingressUri then
+            return true
+        end
+
+        local allowedOrigins = nil
+        if backend == 'verrazzano' then
+            allowedOrigins = os.getenv("VZ_API_ALLOWED_ORIGINS")
+        elseif backend == 'console' then
+            allowedOrigins = os.getenv("VZ_CONSOLE_ALLOWED_ORIGINS")
+        elseif backend == 'grafana' then
+            allowedOrigins = os.getenv("VZ_GRAFANA_ALLOWED_ORIGINS")
+        elseif backend == 'prometheus' then
+            allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
+        elseif backend == 'kibana' then
+            allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
+        elseif backend == 'elasticsearch' then
+            allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
+        elseif backend == 'kiali' then
+            allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
+        end
+        
+        if not allowedOrigins or allowedOrigins == "" then
+            return false
+        end
+        
+        for requestOrigin in string.gmatch(origin, '([^ ]+)') do
+            local originFound = false
+            for allowedOrigin in string.gmatch(allowedOrigins, '([^,]+)') do
+                if requestOrigin == allowedOrigin then
+                    originFound = true
+                end
+            end
+            if originFound == false then
+                return false
+            end
+        end
+        return true
+    end
+
     return me
   nginx.conf: |
     #user  nobody;
@@ -1120,6 +1189,13 @@ data:
     env KUBERNETES_SERVICE_PORT;
     env VZ_API_HOST;
     env VZ_API_VERSION;
+    env VZ_API_ALLOWED_ORIGINS;
+    env VZ_CONSOLE_ALLOWED_ORIGINS;
+    env VZ_GRAFANA_ALLOWED_ORIGINS;
+    env VZ_PROMETHEUS_ALLOWED_ORIGINS;
+    env VZ_KIBANA_ALLOWED_ORIGINS;
+    env VZ_ES_ALLOWED_ORIGINS;
+    env VZ_KIALI_ALLOWED_ORIGINS;
 
     events {
         worker_connections  1024;

@@ -13,22 +13,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"k8s.io/apimachinery/pkg/util/rand"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
-
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -38,11 +31,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/yaml"
 )
 
@@ -144,6 +141,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // ReadyState processes the CR while in the ready state
 func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter ReadyState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
@@ -220,6 +218,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 
 // InstallingState processes the CR while in the installing state
 func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter InstallingState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
@@ -242,6 +241,7 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 
 // UninstallingState processes the CR while in the uninstalling state
 func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter UninstallingState")
 	ctx := context.TODO()
 
 	// Update uninstall status
@@ -254,6 +254,8 @@ func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.
 
 // UpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter UpgradingState")
+
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
@@ -266,6 +268,7 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 
 // FailedState only allows uninstall
 func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+	log.Debugf("enter FailedState")
 	ctx := context.TODO()
 
 	// Determine if the user specified to retry upgrade
@@ -810,18 +813,24 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	if cr.Status.Components != nil {
 		return ctrl.Result{}, nil
 	}
+
+	log.Debugf("initializeComponentStatus for all components")
 	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
+
+	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
-			compContext, err := spi.NewContext(log, r, cr, r.DryRun)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
+			compContext := newContext.For(comp.Name()).Operation(vzconst.InitializeOperation)
 			state := installv1alpha1.Disabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
+					log.Errorf("IsInstalled error for component %s: %s", comp.Name(), err)
 					return newRequeueWithDelay(), err
 				}
 				if installed {
@@ -835,7 +844,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 		}
 	}
 	// Update the status
-	err := r.Status().Update(context.TODO(), cr)
+	err = r.Status().Update(context.TODO(), cr)
 	return ctrl.Result{Requeue: true}, err
 }
 
@@ -963,6 +972,7 @@ func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alph
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
 func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *zap.SugaredLogger) error {
+
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
 	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)

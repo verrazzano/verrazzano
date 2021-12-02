@@ -192,7 +192,8 @@ func TestCreateCertSecret(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createCertSecret(spi.NewFakeContext(createCertSecretMock(t), installCR, false))
+	ctx := spi.NewFakeContext(createCertSecretMock(t), installCR, false)
+	err := createCertSecret(ctx.Log(), ctx.Client())
 	assert.NoError(err, "createCertSecret returned an error")
 }
 
@@ -252,6 +253,13 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, IstioCertSecret))
+
+	// Expect a call to create the manifest secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			return nil
+		})
 
 	return mock
 }
@@ -318,29 +326,6 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 			}
 			return nil
 		})
-
-	return mock
-}
-
-// TestCreateEnvoyFilter tests creating the Envoy filter
-// GIVEN a component
-//  WHEN I call createEnvoyFilter
-//  THEN the bash function is called to create the filter
-func TestCreateEnvoyFilter(t *testing.T) {
-	assert := assert.New(t)
-
-	setBashFunc(fakeBash)
-	err := createEnvoyFilter(spi.NewFakeContext(createEnvoyFilterMock(t), installCR, false))
-	assert.NoError(err, "createEnvoyFilter returned an error")
-}
-
-func createEnvoyFilterMock(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioEnvoyFilter}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "EnvoyFilter"}, IstioEnvoyFilter))
 
 	return mock
 }

@@ -5,12 +5,9 @@ package bobsbooks
 
 import (
 	"flag"
-	"fmt"
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 
@@ -24,6 +21,5 @@ func init() {
 
 func TestBobsBooksExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("bobs-books-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Bobs Books Example Test Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Bobs Books Example Test Suite")
 }

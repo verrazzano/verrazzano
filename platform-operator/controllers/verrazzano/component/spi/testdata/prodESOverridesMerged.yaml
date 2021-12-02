@@ -45,6 +45,8 @@ spec:
           value: "32G"
     fluentd:
       enabled: true
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano
     grafana:
       enabled: true
     ingress:
@@ -53,10 +55,6 @@ spec:
       enabled: true
     keycloak:
       enabled: true
-      mysql:
-        volumeSource:
-          persistentVolumeClaim:
-            claimName: default-storage
     kibana:
       enabled: true
     prometheus:

@@ -2,16 +2,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 spec:
   environmentName: default
-  defaultVolumeSource:
-    persistentVolumeClaim:
-      claimName: default-storage
-  volumeClaimSpecTemplates:
-    - metadata:
-        name: default-storage
-      spec:
-        resources:
-          requests:
-            storage: 50Gi
   components:
     certManager:
       certificate:
@@ -29,6 +19,8 @@ spec:
       enabled: true
     fluentd:
       enabled: true
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano
     grafana:
       enabled: true
     ingress:
@@ -37,10 +29,6 @@ spec:
       enabled: true
     keycloak:
       enabled: true
-      mysql:
-        volumeSource:
-          persistentVolumeClaim:
-            claimName: default-storage
     kibana:
       enabled: true
     prometheus:

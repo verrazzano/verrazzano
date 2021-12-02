@@ -487,16 +487,16 @@ The status of that component is reported in the \".status.components\" field of 
 }
 
 VERRAZZANO_DIR=${SCRIPT_DIR}/.verrazzano
-
-VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
-if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
-  fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
+if [[ -z "$VERRAZZNO_KUBECONFIG_DISABLED" ]]; then
+  VERRAZZANO_KUBECONFIG="${VERRAZZANO_KUBECONFIG:-}"
+  if [ -z "${VERRAZZANO_KUBECONFIG}" ] ; then
+    fail "Environment variable VERRAZZANO_KUBECONFIG must be set and point to a valid kubernetes configuration file"
+  fi
+  if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
+    fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
+  fi
+  export KUBECONFIG="${VERRAZZANO_KUBECONFIG}"
 fi
-if [ ! -f "${VERRAZZANO_KUBECONFIG}" ] ; then
-  fail "Environment variable VERRAZZANO_KUBECONFIG points to file ${VERRAZZANO_KUBECONFIG} which does not exist"
-fi
-export KUBECONFIG="${VERRAZZANO_KUBECONFIG}"
-
 
 command -v helm >/dev/null 2>&1 || {
   fail "helm is required but cannot be found on the path. Aborting."

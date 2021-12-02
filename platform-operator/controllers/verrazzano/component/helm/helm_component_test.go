@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
 	"testing"
 
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,7 +103,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	defer setDefaultUpgradeFunc()
@@ -127,7 +128,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -216,6 +217,61 @@ func TestInstall(t *testing.T) {
 	assert.NoError(err, "Upgrade returned an error")
 }
 
+// TestInstallWithFileOverride tests the component install
+// GIVEN a component
+//  WHEN I call Install and the chart is not installed and has a custom overrides
+//  THEN the overrides struct is populated correctly and there are no errors
+func TestInstallWithAllOverride(t *testing.T) {
+	assert := assert.New(t)
+
+	comp := HelmComponent{
+		ReleaseName:             "rancher",
+		ChartDir:                "ChartDir",
+		ChartNamespace:          "chartNS",
+		IgnoreNamespaceOverride: true,
+		ValuesFile:              "ValuesFile",
+		PreUpgradeFunc:          fakePreUpgrade,
+		AppendOverridesFunc: func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+			kvs = append(kvs, bom.KeyValue{Key: "", Value: "my-overrides.yaml", IsFile: true})
+			kvs = append(kvs, bom.KeyValue{Key: "setKey", Value: "setValue"})
+			kvs = append(kvs, bom.KeyValue{Key: "setStringKey", Value: "setStringValue", SetString: true})
+			kvs = append(kvs, bom.KeyValue{Key: "setFileKey", Value: "setFileValue", SetFile: true})
+			return kvs, nil
+		},
+	}
+
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	fakeOverrides = "rancherImageTag=v2.5.7-20210407205410-1c7b39d0c,rancherImage=ghcr.io/verrazzano/rancher"
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetCmdRunner(helmFakeRunner{})
+	defer helm.SetDefaultRunner()
+
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		assert.Contains(overrides.FileOverrides, "my-overrides.yaml", "Overrides file not found")
+		assert.Contains(overrides.SetOverrides, "setKey=setValue", "Incorrect --set overrides")
+		assert.Contains(overrides.SetStringOverrides, "setStringKey=setStringValue", "Incorrect --set overrides")
+		assert.Contains(overrides.SetFileOverrides, "setFileKey=setFileValue", "Incorrect --set overrides")
+		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides)
+	})
+	defer setDefaultUpgradeFunc()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	helm.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStateFunction()
+
+	err := comp.Install(spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false))
+	assert.NoError(err, "Install returned an error")
+}
+
 // TestInstallPreviousFailure tests the component install
 // GIVEN a component
 //  WHEN I call Install and the chart release is in a failed status
@@ -297,8 +353,8 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, stringOverrides string, overrideFiles ...string) (stdout []byte, stderr []byte, err error) {
-		if overrides != expectedOverridesString {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		if overrides.SetOverrides != expectedOverridesString {
 			return nil, nil, fmt.Errorf("Unexpected overrides string %s, expected %s", overrides, expectedOverridesString)
 		}
 		return []byte{}, []byte{}, nil
@@ -428,7 +484,7 @@ func TestReady(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides string, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "rancher" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}
@@ -438,13 +494,20 @@ func fakeUpgrade(log *zap.SugaredLogger, releaseName string, namespace string, c
 	if namespace != "chartNS" {
 		return []byte("error"), []byte(""), errors.New("Invalid chart namespace")
 	}
-	for _, file := range overridesFiles {
-		if file != "ValuesFile" && file == "" {
-			return []byte("error"), []byte(""), errors.New("Invalid values file")
+
+	foundChartOverridesFile := false
+	for _, file := range overrides.FileOverrides {
+		if file == "ValuesFile" {
+			foundChartOverridesFile = true
+			break
 		}
 	}
+	if !foundChartOverridesFile {
+		return []byte("error"), []byte(""), errors.New("Invalid values file")
+	}
+
 	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
-	if overrides != fakeOverrides {
+	if !strings.Contains(overrides.SetOverrides, fakeOverrides) {
 		return []byte("error"), []byte(""), errors.New("Invalid overrides")
 	}
 	return []byte("success"), []byte(""), nil

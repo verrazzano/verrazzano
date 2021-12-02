@@ -10,7 +10,7 @@ import (
 // bashRunner needed for unit tests
 var bashRunner CmdRunner = DefaultRunner{}
 
-// RunBash runs a bach script
+// RunBash runs a bash script
 func RunBash(inArgs ...string) (string, string, error) {
 	args := []string{}
 	for i := range inArgs {

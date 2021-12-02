@@ -7,7 +7,6 @@ spec:
   environmentName: default
   defaultVolumeSource:
     emptyDir: {}
-  volumeClaimSpecTemplates: []
   components:
     certManager:
       certificate:
@@ -34,6 +33,8 @@ spec:
           value: "0"
     fluentd:
       enabled: false
+      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
+      elasticsearchSecret: verrazzano
     grafana:
       enabled: false
     ingress:
@@ -42,9 +43,6 @@ spec:
       enabled: false
     keycloak:
       enabled: false
-      mysql:
-        volumeSource:
-          emptyDir: {}
     kibana:
       enabled: false
     prometheus:

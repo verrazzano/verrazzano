@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211005200943-bd017fde2",
+              "tag": "0.46.0-20211122142855-e5c824157",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "0.46.0-20211005200943-bd017fde2",
+              "tag": "0.46.0-20211122142855-e5c824157",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20211111042807-90c22ba5f",
+              "tag": "1.2.0-20211130230102-4f1415cb5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20211111042920-90c22ba5f",
+              "tag": "1.2.0-20211130230128-4f1415cb5",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20211111042807-90c22ba5f",
+              "tag": "1.2.0-20211130230102-4f1415cb5",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20211111042807-90c22ba5f",
+              "tag": "1.2.0-20211130230102-4f1415cb5",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.7.1-20211111043303-15f77bb5",
+              "tag": "v0.7.1-20211125051406-fb54e02b",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -181,18 +181,18 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "1.1.0-20211115143443-4c8355f",
+              "tag": "1.1.0-20211125052407-cb338f3",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
             {
               "image": "node-exporter",
-              "tag": "1.0.0-20211111042754-ac7cea6",
+              "tag": "1.0.0-20211125052853-e25ae11",
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20211112180721-e0d19c8",
+              "tag": "1.1.0-20211125050625-4558ab0",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -213,38 +213,38 @@
             },
             {
               "image": "elasticsearch",
-              "tag": "7.6.1-20211019200525-4786a7f",
+              "tag": "7.10.2-20211118212642-8549e32c",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "kibana",
-              "tag": "7.6.1-20201130145840-7717e73",
+              "image": "kibana-oss",
+              "tag": "7.10.2-20211119171233-4463f4c",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20211005162936-eced4f4",
+              "tag": "0.3-20211202193501-64d77e0",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211005200943-bd017fde2",
+              "tag": "0.46.0-20211122142855-e5c824157",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210930152433-f345ec2",
+              "tag": "v1.12.3-20211126105727-f345ec2",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "1.1.0-20211115143418-38006bd",
+              "tag": "1.1.0-20211124231328-5ebf051",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211005200943-bd017fde2",
+              "tag": "0.46.0-20211122142855-e5c824157",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
@@ -282,7 +282,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20211005155141-4b3e513",
+              "tag": "v0.3.0-20211202184000-00643c8",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -315,7 +315,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.4",
+              "tag": "3.3.6",
               "helmFullImageKey": "image"
             }
           ]
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211108162355-fe28841361",
+              "tag": "15.0.2-20211125063023-f7fc6e8a67",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -405,7 +405,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.1.0-20210721203500-bc96afd"
+              "tag": "1.1.0-20211124230612-a6ff0b8"
             }
           ]
         }

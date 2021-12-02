@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,6 +23,8 @@ const failedUpgradeLimit = 5
 
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+	log.Debugf("enter reconcileUpgrade")
+
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
@@ -38,32 +42,39 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
+	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
-		upgradeContext, err := spi.NewContext(log, r, cr, r.DryRun)
-		if err != nil {
-			return newRequeueWithDelay(), err
-		}
+		compName := comp.Name()
+		log.Infof("Upgrading %s", compName)
+		upgradeContext := newContext.For(compName).Operation(vzconst.UpgradeOperation)
 		installed, err := comp.IsInstalled(upgradeContext)
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
 		if !installed {
-			log.Infof("Skip upgrade for %s, not installed", comp.Name())
+			log.Infof("Skip upgrade for %s, not installed", compName)
 			continue
 		}
+		log.Infof("Running pre-upgrade for %s", compName)
 		if err := comp.PreUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
+		log.Infof("Running upgrade for %s", compName)
 		if err := comp.Upgrade(upgradeContext); err != nil {
-			log.Errorf("Error upgrading component %s: %v", comp.Name(), err)
-			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", comp.Name(),
+			log.Errorf("Error upgrading component %s: %v", compName, err)
+			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", compName,
 				fmtGeneration(cr.Generation), err.Error())
 			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
 			return ctrl.Result{}, err
 		}
+		log.Infof("Running post-upgrade for %s", compName)
 		if err := comp.PostUpgrade(upgradeContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
@@ -71,8 +82,9 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	}
 
 	// Invoke the global post upgrade function after all components are upgraded.
-	err := postUpgrade(log, r)
+	err = postUpgrade(log, r)
 	if err != nil {
+		log.Errorf("Error running Verrazzano system-level post-upgrade")
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 

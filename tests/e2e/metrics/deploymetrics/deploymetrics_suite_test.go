@@ -4,17 +4,13 @@
 package deploymetrics
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 
 func TestDeploymentMetrics(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junitReporter := reporters.NewJUnitReporter(fmt.Sprintf("deploymetrics-%d-test-result.xml", config.GinkgoConfig.ParallelNode))
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Deployment Metrics Suite", []ginkgo.Reporter{junitReporter})
+	ginkgo.RunSpecs(t, "Deployment Metrics Suite")
 }

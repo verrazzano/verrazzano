@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 )
 
 // RunCommand runs an external process, captures the stdout

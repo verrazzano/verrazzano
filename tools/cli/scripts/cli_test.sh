@@ -85,7 +85,7 @@ kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_N
 
 # run verify-register test
 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-ginkgo -p --randomizeAllSpecs -v -keepGoing --noColor multicluster/verify-register/...
+ginkgo -p --randomize-all -v --keep-going --no-color multicluster/verify-register/...
 
 echo "vz cluster list"
 vz cluster list

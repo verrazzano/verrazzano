@@ -4,7 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 PROMETHEUS_GW_URL=$1
-SAURON_CRED=$2
+PROMETHEUS_CRED=$2
 JOB=$3
 BRANCH=$4
 # BRANCH is used as "instance" for cleanup
@@ -19,8 +19,8 @@ if [ $DURATION -gt 0 ]
 then
     TIME_METRIC="${JOB}_time{${LABELS}} $DURATION $TIMESTAMP"
 fi
-echo "Sending to ${PROMETHEUS_GW_URL}metrics/job/${JOB}"
-cat <<EOF | curl -i --data-binary @- ${PROMETHEUS_GW_URL}metrics/job/${JOB}/instance/${INSTANCE} -u $SAURON_CRED
+echo "Sending to ${PROMETHEUS_GW_URL}/metrics/job/${JOB}"
+cat <<EOF | curl -i --data-binary @- ${PROMETHEUS_GW_URL}/metrics/job/${JOB}/instance/${INSTANCE} -u $PROMETHEUS_CRED
 ${JOB}_status{${LABELS}} $STATUS $TIMESTAMP
 ${TIME_METRIC}
 EOF

@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,21 +28,21 @@ const (
 	// ValuesFileOverride Name of the values file override for NGINX
 	ValuesFileOverride = "ingress-nginx-values.yaml"
 
-	ControllerName = "ingress-controller-ingress-nginx-controller"
-	BackendName    = "ingress-controller-ingress-nginx-defaultbackend"
+	ControllerName = vpoconst.NGINXControllerServiceName
+	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
 )
 
 func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: ControllerName, Namespace: namespace},
-		{Name: BackendName, Namespace: namespace},
+		{Name: backendName, Namespace: namespace},
 	}
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := context.EffectiveCR()
-	ingressType, err := GetServiceType(cr)
+	ingressType, err := vzconfig.GetServiceType(cr)
 	if err != nil {
 		return []bom.KeyValue{}, err
 	}
@@ -117,6 +119,7 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 	}
 	return cr.Spec.Components.Ingress.NGINXInstallArgs
 }
+
 
 // Identify the service type, LB vs NodePort
 func GetServiceType(cr *vzapi.Verrazzano) (vzapi.IngressType, error) {

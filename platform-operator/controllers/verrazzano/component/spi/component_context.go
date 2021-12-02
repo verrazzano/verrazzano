@@ -18,6 +18,8 @@ const (
 	baseProfile = "base"
 )
 
+var _ ComponentContext = componentContext{}
+
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log *zap.SugaredLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
 	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
@@ -60,6 +62,8 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		dryRun:      dryRun,
 		cr:          actualCR,
 		effectiveCR: effectiveCR,
+		operation:   "",
+		component:   "",
 	}
 }
 
@@ -99,6 +103,10 @@ type componentContext struct {
 	cr *vzapi.Verrazzano
 	// effectiveCR Represents the configuration resulting from any named profiles used and any configured overrides in the CR
 	effectiveCR *vzapi.Verrazzano
+	// operation is the defined operation field for the logger. Defaults to nil if not present
+	operation string
+	// component is the defined component field for the logger. Defaults to nil if not present
+	component string
 }
 
 func (c componentContext) Log() *zap.SugaredLogger {
@@ -128,5 +136,39 @@ func (c componentContext) Copy() ComponentContext {
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
+		operation:   c.operation,
+		component:   c.component,
 	}
+}
+
+func (c componentContext) For(comp string) ComponentContext {
+	return componentContext{
+		log:         c.log.With("component", comp),
+		client:      c.client,
+		dryRun:      c.dryRun,
+		cr:          c.cr,
+		effectiveCR: c.effectiveCR,
+		operation:   c.operation,
+		component:   comp,
+	}
+}
+
+func (c componentContext) Operation(op string) ComponentContext {
+	return componentContext{
+		log:         c.log.With("operation", op),
+		client:      c.client,
+		dryRun:      c.dryRun,
+		cr:          c.cr,
+		effectiveCR: c.effectiveCR,
+		operation:   op,
+		component:   c.component,
+	}
+}
+
+func (c componentContext) GetOperation() string {
+	return c.operation
+}
+
+func (c componentContext) GetComponent() string {
+	return c.component
 }

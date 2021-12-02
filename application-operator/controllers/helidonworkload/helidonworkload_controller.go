@@ -11,14 +11,13 @@ import (
 	"strconv"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	appsv1 "k8s.io/api/apps/v1"
@@ -146,7 +145,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// write out restart-version in helidon deployment
-	if err = r.restartHelidon(ctx, workload.Annotations[constants.RestartVersionAnnotation], &workload, log); err != nil {
+	if err = r.restartHelidon(ctx, workload.Annotations[vzconst.RestartVersionAnnotation], &workload, log); err != nil {
 		return reconcile.Result{}, err
 	}
 
