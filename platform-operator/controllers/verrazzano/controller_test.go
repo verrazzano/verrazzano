@@ -17,7 +17,7 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -163,7 +163,7 @@ func TestSuccessfulInstall(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildInstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := installjob.NewJob(&installjob.JobConfig{
+			newJob := rbac.NewJob(&rbac.JobConfig{
 				JobConfigCommon: k8s.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
@@ -766,7 +766,7 @@ func TestUninstallComplete(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := installjob.NewJob(&installjob.JobConfig{
+			newJob := rbac.NewJob(&rbac.JobConfig{
 				JobConfigCommon: k8s.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
@@ -957,7 +957,7 @@ func TestUninstallFailed(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := installjob.NewJob(&installjob.JobConfig{
+			newJob := rbac.NewJob(&rbac.JobConfig{
 				JobConfigCommon: k8s.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
@@ -1062,7 +1062,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
-			newJob := installjob.NewJob(&installjob.JobConfig{
+			newJob := rbac.NewJob(&rbac.JobConfig{
 				JobConfigCommon: k8s.JobConfigCommon{
 					JobName:            name.Name,
 					Namespace:          name.Namespace,
@@ -2254,7 +2254,7 @@ func expectConfigMapExists(mock *mocks.MockClient, name string, labels map[strin
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildConfigMapName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			cm := installjob.NewConfigMap(name.Namespace, name.Name, labels)
+			cm := rbac.NewConfigMap(name.Namespace, name.Name, labels)
 			configMap.ObjectMeta = cm.ObjectMeta
 			return nil
 		})
@@ -2268,7 +2268,7 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding) error {
-			crb := installjob.NewClusterRoleBinding(&verrazzanoToUse, nsName.Name, getInstallNamespace(), buildServiceAccountName(nsName.Name))
+			crb := rbac.NewClusterRoleBinding(&verrazzanoToUse, nsName.Name, getInstallNamespace(), buildServiceAccountName(nsName.Name))
 			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
 			clusterRoleBinding.RoleRef = crb.RoleRef
 			clusterRoleBinding.Subjects = crb.Subjects
@@ -2283,7 +2283,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount) error {
-			newSA := installjob.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
+			newSA := rbac.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		})
