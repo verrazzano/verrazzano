@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificate
@@ -29,6 +29,32 @@ func TestCreateSelfSignedCert(t *testing.T) {
 	certResult, err := createCert(certInfo, parent.Cert, parent.PrivateKey)
 	assert.NoError(err, "Error parsing new certificate")
 	assert.NotNil(certResult, "Nil new certificate")
+}
+
+// TestCreateNoCACert tests that a generated cannot sign another cert
+// GIVEN a cert that cannot sign another cert
+//  WHEN I call CreateSelfSignedCert
+//  THEN the cert creation should fail
+func TestCreateNoCACert(t *testing.T) {
+	assert := assert.New(t)
+
+	pem, err := createTestCerts()
+	assert.NoError(err, "Error creating self-signed certs")
+
+	parent := pem.IntermediateCertResult
+	certInfo := createPartialCert(parent, "testname")
+
+	// sign the intermediate cert with the root cert
+	certResult, err := createCert(certInfo, parent.Cert, parent.PrivateKey)
+	assert.NoError(err, "Error parsing new certificate")
+	assert.NotNil(certResult, "Nil new certificate")
+
+	// Now try creating a cert using the new cert which cannot sign.  It should fail
+	// sign the intermediate cert with the root cert
+	badCertInfo := createPartialCert(certResult, "badcert")
+	badResult, err := createCert(badCertInfo, certResult.Cert, certResult.PrivateKey)
+	assert.Error(err, "Expect error creating new certificate")
+	assert.Nil(badResult, "Expected nil new certificate")
 }
 
 // createCert creates a test cert
