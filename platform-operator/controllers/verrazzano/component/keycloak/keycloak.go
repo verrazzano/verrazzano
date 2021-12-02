@@ -269,56 +269,106 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 	// Create Verrazzano Users Group
 	userGroup := "name=" + vzUsersGroup
-	createVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create groups -r " + vzSysRealm + " -s " + userGroup
-	ctx.Log().Infof("CDD Create Verrazzano Users Group Cmd = %s", createVzUserGroupCmd)
-	stdout, stderr, err := ExecCmd(cli, cfg, "keycloak-0", createVzUserGroupCmd)
+	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
+	ctx.Log().Info("CDD Create Verrazzano Users Group Cmd = %s", cmd.String())
+	out, err := cmd.CombinedOutput()
 	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Users Group: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Users Group: command output = %s", out)
 		return err
 	}
-	ctx.Log().Infof("CDD Create Verrazzano Users Group Output: stdout = %s, stderr = %s", stdout, stderr)
-	if len(stdout) == 0 {
+	ctx.Log().Infof("CDD Create Verrazzano Users Group Output = %s", out)
+	if len(string(out)) == 0 {
 		return errors.New("configureKeycloakRealm: Error retrieving User Group ID from Keycloak, zero length")
 	}
-	arr := strings.Split(stdout, "'")
+	arr := strings.Split(string(out), "'")
 	userGroupID := arr[1]
 	ctx.Log().Infof("configureKeycloakRealm: User Group ID = %s", userGroupID)
 	ctx.Log().Info("CDD Successfully Created Verrazzano User Group")
+	/*	userGroup := "name=" + vzUsersGroup
+		createVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create groups -r " + vzSysRealm + " -s " + userGroup
+		ctx.Log().Infof("CDD Create Verrazzano Users Group Cmd = %s", createVzUserGroupCmd)
+		stdout, stderr, err := ExecCmd(cli, cfg, "keycloak-0", createVzUserGroupCmd)
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Users Group: stdout = %s, stderr = %s", stdout, stderr)
+			return err
+		}
+		ctx.Log().Infof("CDD Create Verrazzano Users Group Output: stdout = %s, stderr = %s", stdout, stderr)
+		if len(stdout) == 0 {
+			return errors.New("configureKeycloakRealm: Error retrieving User Group ID from Keycloak, zero length")
+		}
+		arr := strings.Split(stdout, "'")
+		userGroupID := arr[1]
+		ctx.Log().Infof("configureKeycloakRealm: User Group ID = %s", userGroupID)
+		ctx.Log().Info("CDD Successfully Created Verrazzano User Group")*/
 
 	// Create Verrazzano Admin Group
+	/*	adminGroup := "groups/" + userGroupID + "/children"
+		adminGroupName := "name=" + vzAdminGroup
+		createVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + adminGroup + " -r " + vzSysRealm + " -s " + adminGroupName
+		ctx.Log().Infof("CDD Create Verrazzano Admin Group Cmd = %s", createVzAdminGroupCmd)
+		stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", createVzAdminGroupCmd)
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Group: stdout = %s, stderr = %s", stdout, stderr)
+			return err
+		}
+		ctx.Log().Infof("CDD Create Verrazzano Admin Group Output: stdout = %s, stderr = %s", stdout, stderr)
+		if len(stdout) == 0 {
+			return errors.New("configureKeycloakRealm: Error retrieving Admin Group ID from Keycloak, zero length")
+		}
+		arr = strings.Split(stdout, "'")
+		adminGroupID := arr[1]
+		ctx.Log().Infof("configureKeycloakRealm: Admin Group ID = %s", adminGroupID)
+		ctx.Log().Info("CDD Successfully Created Verrazzano Admin Group")*/
 	adminGroup := "groups/" + userGroupID + "/children"
 	adminGroupName := "name=" + vzAdminGroup
-	createVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + adminGroup + " -r " + vzSysRealm + " -s " + adminGroupName
-	ctx.Log().Infof("CDD Create Verrazzano Admin Group Cmd = %s", createVzAdminGroupCmd)
-	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", createVzAdminGroupCmd)
+	cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
+	ctx.Log().Infof("CDD Create Verrazzano Admin Group Cmd = %s", cmd.String())
+	out, err = cmd.CombinedOutput()
 	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Group: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Group: command output = %s", out)
 		return err
 	}
-	ctx.Log().Infof("CDD Create Verrazzano Admin Group Output: stdout = %s, stderr = %s", stdout, stderr)
-	if len(stdout) == 0 {
+	ctx.Log().Infof("CDD Create Verrazzano Admin Group Output = %s", out)
+	if len(string(out)) == 0 {
 		return errors.New("configureKeycloakRealm: Error retrieving Admin Group ID from Keycloak, zero length")
 	}
-	arr = strings.Split(stdout, "'")
+	arr = strings.Split(string(out), "'")
 	adminGroupID := arr[1]
 	ctx.Log().Infof("configureKeycloakRealm: Admin Group ID = %s", adminGroupID)
 	ctx.Log().Info("CDD Successfully Created Verrazzano Admin Group")
 
 	// Create Verrazzano Project Monitors Group
+	/*	monitorGroup := "groups/" + userGroupID + "/children"
+		monitorGroupName := "name=" + vzMonitorGroup
+		createVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + monitorGroup + " -r " + vzSysRealm + " -s " + monitorGroupName
+		ctx.Log().Infof("CDD Create Verrazzano Monitor Group Cmd = %s", createVzMonitorGroupCmd)
+		stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", createVzMonitorGroupCmd)
+		if err != nil {
+			ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitor Group: stdout = %s, stderr = %s", stdout, stderr)
+			return err
+		}
+		ctx.Log().Infof("CDD Create Verrazzano Project Monitors Group Output: stdout = %s, stderr = %s", stdout, stderr)
+		if len(stdout) == 0 {
+			return errors.New("configureKeycloakRealm: Error retrieving Monitor Group ID from Keycloak, zero length")
+		}
+		arr = strings.Split(stdout, "'")
+		monitorGroupID := arr[1]
+		ctx.Log().Infof("configureKeycloakRealm: Monitor Group ID = %s", monitorGroupID)
+		ctx.Log().Info("CDD Successfully Created Verrazzano Monitors Group")*/
 	monitorGroup := "groups/" + userGroupID + "/children"
 	monitorGroupName := "name=" + vzMonitorGroup
-	createVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + monitorGroup + " -r " + vzSysRealm + " -s " + monitorGroupName
-	ctx.Log().Infof("CDD Create Verrazzano Monitor Group Cmd = %s", createVzMonitorGroupCmd)
-	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", createVzMonitorGroupCmd)
+	cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
+	ctx.Log().Infof("CDD Create Verrazzano Monitors Group Cmd = %s", cmd.String())
+	out, err = cmd.CombinedOutput()
 	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitor Group: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitor Group: command output = %s", out)
 		return err
 	}
-	ctx.Log().Infof("CDD Create Verrazzano Project Monitors Group Output: stdout = %s, stderr = %s", stdout, stderr)
-	if len(stdout) == 0 {
+	ctx.Log().Infof("CDD Create Verrazzano Project Monitors Group Output = %s", out)
+	if len(string(out)) == 0 {
 		return errors.New("configureKeycloakRealm: Error retrieving Monitor Group ID from Keycloak, zero length")
 	}
-	arr = strings.Split(stdout, "'")
+	arr = strings.Split(string(out), "'")
 	monitorGroupID := arr[1]
 	ctx.Log().Infof("configureKeycloakRealm: Monitor Group ID = %s", monitorGroupID)
 	ctx.Log().Info("CDD Successfully Created Verrazzano Monitors Group")
@@ -328,7 +378,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	systemGroupName := "name=" + vzSystemGroup
 	createVzSystemGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh create " + systemGroup + " -r " + vzSysRealm + " -s " + systemGroupName
 	ctx.Log().Infof("CDD Create Verrazzano System Group Cmd = %s", createVzSystemGroupCmd)
-	stdout, stderr, err = ExecCmd(cli, cfg, "keycloak-0", createVzSystemGroupCmd)
+	stdout, stderr, err := ExecCmd(cli, cfg, "keycloak-0", createVzSystemGroupCmd)
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano System Group: stdout = %s, stderr = %s", stdout, stderr)
 		return err
@@ -440,22 +490,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	ctx.Log().Info("CDD Granted realmAdmin Role to VZ user")
-
-	// Set verrazzano user password
-	/*	secret := &corev1.Secret{}
-		err = ctx.Client().Get(context.TODO(), client.ObjectKey{
-			Namespace: "verrazzano-system",
-			Name:      "verrazzano",
-		}, secret)
-		if err != nil {
-			ctx.Log().Errorf("configureKeycloakRealm: Error retrieving Verrazzano password: %s", err)
-			return err
-		}
-		pw := secret.Data["password"]
-		vzpw := string(pw)
-		if vzpw == "" {
-			return errors.New("configureKeycloakRealm: Error retrieving verrazzano password")
-		}*/
 
 	vzpw, err := getSecretPassword(ctx, "verrazzano-system", "verrazzano")
 	if err != nil {
@@ -888,6 +922,7 @@ func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName str
 		Stdin:  os.Stdin,
 		Stdout: stdout,
 		Stderr: stderr,
+		Tty:    false,
 	})
 	if err != nil {
 		return stdout.String(), stderr.String(), fmt.Errorf("error running command %s on Keycloak Pod: %v", command, err)
