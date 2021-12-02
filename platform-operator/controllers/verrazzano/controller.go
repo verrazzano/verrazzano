@@ -5,7 +5,6 @@ package verrazzano
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -40,7 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sigs.k8s.io/yaml"
 )
 
 // Reconciler reconciles a Verrazzano object
@@ -204,8 +202,8 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return result, nil
 	}
 
-	// Create/update a configmap from spec for future comparison on update/upgrade
-	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
+	done, err := r.checkInstallComplete(log, vz)
+	if !done || err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -228,10 +226,10 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 		return result, nil
 	}
 
-	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+	done, err := r.checkInstallComplete(log, vz)
+	if !done || err != nil {
 		return newRequeueWithDelay(), err
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -436,12 +434,14 @@ func (r *Reconciler) deleteConfigMap(ctx context.Context, log *zap.SugaredLogger
 }
 
 // checkInstallComplete checks to see if the install is complete
-func (r *Reconciler) checkInstallComplete(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) checkInstallComplete(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (bool, error) {
 	if checkComponentReadyState(vz) {
 		// Set install complete IFF all subcomponent status' are "Ready"
-		conditionType := installv1alpha1.InstallComplete
+		message := "Verrazzano install completed successfully"
 		vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
+		return true, r.updateStatus(log, vz, message, installv1alpha1.InstallComplete)
 	}
+	return false, nil
 }
 
 // deleteInstallJob Deletes the install job, which will also result in the install pod being deleted.
@@ -703,15 +703,15 @@ func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 // operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
 func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	if cr.Status.Components != nil {
-		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
-	}
-
 	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
 
+	if cr.Status.Components == nil {
+		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
+	}
+	var modified bool
 	for _, comp := range registry.GetComponents() {
 		if _, ok := cr.Status.Components[comp.Name()]; ok {
 			// skip if component has been initialized
@@ -735,8 +735,14 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 				Name:  comp.Name(),
 				State: state,
 			}
+			modified = true
 		}
 	}
+
+	if !modified {
+		return ctrl.Result{}, nil
+	}
+
 	// Update the status
 	err = r.Status().Update(context.TODO(), cr)
 	return ctrl.Result{Requeue: true}, err
@@ -784,73 +790,6 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 	}
 
 	return r.updateStatus(log, vz, "Verrazzano uninstall in progress", installv1alpha1.UninstallStarted)
-}
-
-// saveInstallSpec Saves the install spec in a configmap to use with upgrade/updates later on
-func (r *Reconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (err error) {
-	installSpecBytes, err := yaml.Marshal(vz.Spec)
-	if err != nil {
-		return err
-	}
-	installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
-	installConfig, err := r.getInternalConfigMap(ctx, vz)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return err
-		}
-		configMapName := buildInternalConfigMapName(vz.Name)
-		configData := make(map[string]string)
-		configData[configDataKey] = installSpec
-		// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
-		installConfig = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      configMapName,
-				Namespace: getInstallNamespace(),
-				OwnerReferences: []metav1.OwnerReference{{
-					APIVersion: vz.APIVersion,
-					Kind:       vz.Kind,
-					Name:       vz.Name,
-					UID:        vz.UID,
-				}},
-			},
-			Data: configData,
-		}
-		err := r.Create(ctx, installConfig)
-		if err != nil {
-			log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
-			return err
-		}
-	} else {
-		// Update the configmap if the data has changed
-		currentConfigData := installConfig.Data[configDataKey]
-		if currentConfigData != installSpec {
-			installConfig.Data[configDataKey] = installSpec
-			return r.Update(ctx, installConfig)
-		}
-	}
-	return nil
-}
-
-// getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
-func (r *Reconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
-	configMap, err := r.getInternalConfigMap(ctx, vz)
-	if err != nil {
-		log.Warnf("No saved configuration found for install spec for %s", vz.Name)
-		return nil, err
-	}
-	storedSpec := &installv1alpha1.VerrazzanoSpec{}
-	if specData, ok := configMap.Data[configDataKey]; ok {
-		decodeBytes, err := base64.StdEncoding.DecodeString(specData)
-		if err != nil {
-			log.Errorf("Error decoding saved install spec for %s", vz.Name)
-			return nil, err
-		}
-		if err := yaml.Unmarshal(decodeBytes, storedSpec); err != nil {
-			log.Errorf("Error unmarshalling saved install spec for %s", vz.Name)
-			return nil, err
-		}
-	}
-	return storedSpec, nil
 }
 
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
