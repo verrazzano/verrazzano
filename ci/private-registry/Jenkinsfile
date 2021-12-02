@@ -317,7 +317,7 @@ pipeline {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         PRIVATE_REPO="${baseImageRepo}"
-                        REGISTRY=getPrivateRegistry()
+                        REGISTRY=getPrivateRegistry("${ocirRegistry}")
                         PRIVATE_REGISTRY_USR=getPrivateRegistryUser()
                         PRIVATE_REGISTRY_PSW=getPrivateRegistryPassword()
                     }
@@ -589,9 +589,9 @@ pipeline {
     }
 }
 
-def getPrivateRegistry() {
+def getPrivateRegistry(String ocirRegistry) {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
-        return ${ocirRegistry}
+        return "${ocirRegistry}"
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
         return env.HARBOR_STANDALONE_REGISTRY
     }
