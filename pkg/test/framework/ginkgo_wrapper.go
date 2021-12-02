@@ -71,7 +71,7 @@ func VzAfterEach(body interface{}) bool {
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
 	pkg.Log(pkg.Info, text)
-	ginkgo.Describe(fmt.Sprintf("Executing tests on %s", text), func() {
+	ginkgo.Describe(text, func() {
 		startTime := time.Now()
 		pkg.Log(pkg.Info, "VzDescribe wrapper")
 		reflect.ValueOf(body).Call([]reflect.Value{})
