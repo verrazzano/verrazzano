@@ -68,10 +68,10 @@ func createSecret(log *zap.SugaredLogger, client clipkg.Client, pemData *certifi
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), client, &secret, func() error {
 		secret.Type = corev1.SecretTypeOpaque
 		secret.Data = map[string][]byte{
-			caPem:        pemData.IntermediateCertPEM,
-			caKey:        pemData.IntermediatePrivateKeyPEM,
+			caPem:        pemData.IntermediateCertResult.CertPEM,
+			caKey:        pemData.IntermediateCertResult.PrivateKeyPEM,
 			certChainPem: pemData.CertChainPEM,
-			rootPem:      pemData.RootCertPEM,
+			rootPem:      pemData.RootCertResult.CertPEM,
 		}
 		return nil
 	})

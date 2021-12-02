@@ -41,26 +41,18 @@ type CertPemData struct {
 	// by the root cert
 	CertChainPEM []byte
 
-	// The intermediate certificate in PEM format
-	IntermediateCertPEM []byte
+	// The intermediate cert results
+	IntermediateCertResult *CertResult
 
-	// The intermediate private key in PEM format
-	IntermediatePrivateKeyPEM []byte
-
-	// The root certificate in PEM format
-	RootCertPEM []byte
+	// The root cert results
+	RootCertResult *CertResult
 }
 
-// rootResult contains the root cert generated results
-type rootResult struct {
-	PrivateKey *rsa.PrivateKey
-	CertPEM    []byte
-	CertInfo   *x509.Certificate
-}
-
-// intermResult contains the intermediate cert private key and cert, both in PEM format
-type intermResult struct {
+// CertResult contains the generated cert results
+type CertResult struct {
+	PrivateKey    *rsa.PrivateKey
 	PrivateKeyPEM []byte
+	Cert          *x509.Certificate
 	CertPEM       []byte
 }
 
@@ -73,34 +65,34 @@ func CreateSelfSignedCert(rootConfig CertConfig, intermConfig CertConfig) (*Cert
 	if err != nil {
 		return nil, err
 	}
+
 	// Create the root cert
 	rResult, err := createRootCert(rootConfig, serialNumber)
 	if err != nil {
 		return nil, err
 	}
-	pem.RootCertPEM = rResult.CertPEM
+	pem.RootCertResult = rResult
 
 	// Create the intermediate cert
 	iResult, err := createIntermediateCert(intermConfig, rResult)
 	if err != nil {
 		return nil, err
 	}
-	pem.IntermediateCertPEM = iResult.CertPEM
-	pem.IntermediatePrivateKeyPEM = iResult.PrivateKeyPEM
+	pem.IntermediateCertResult = iResult
 
 	// Write the chain
 	b := bytes.Buffer{}
-	b.Write(pem.IntermediateCertPEM)
-	b.Write(pem.RootCertPEM)
+	b.Write(pem.IntermediateCertResult.CertPEM)
+	b.Write(pem.RootCertResult.CertPEM)
 	pem.CertChainPEM = b.Bytes()
 
 	return &pem, nil
 }
 
 // Create the root certificate
-func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, error) {
+func createRootCert(config CertConfig, serialNumber *big.Int) (*CertResult, error) {
 	// create the root certificate info needed to create the certificate
-	rootCertInfo := &x509.Certificate{
+	rootCert := &x509.Certificate{
 		DNSNames:     []string{config.CommonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -116,44 +108,15 @@ func createRootCert(config CertConfig, serialNumber *big.Int) (*rootResult, erro
 		BasicConstraintsValid: true,
 	}
 
-	// create root private key
-	rootPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
-	if err != nil {
-		return nil, err
-	}
-
-	// create root self-signed CA certificate
-	rootCertBytes, err := x509.CreateCertificate(cryptorand.Reader, rootCertInfo, rootCertInfo, &rootPrivKey.PublicKey, rootPrivKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Reload the root cert info so that we get fields like the Subject Key ID that are generated
-	processedRootCertInfo, err := x509.ParseCertificate(rootCertBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	// PEM encode root cert
-	rootCertPEM := new(bytes.Buffer)
-	_ = pem.Encode(rootCertPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: rootCertBytes,
-	})
-
-	return &rootResult{
-		PrivateKey: rootPrivKey,
-		CertPEM:    rootCertPEM.Bytes(),
-		CertInfo:   processedRootCertInfo,
-	}, nil
+	return createCert(rootCert, rootCert, nil)
 }
 
 // Create the intermediate certificate
-func createIntermediateCert(config CertConfig, rootResult *rootResult) (*intermResult, error) {
+func createIntermediateCert(config CertConfig, rootResult *CertResult) (*CertResult, error) {
 	// create the intermediate certificate info needed to create the certificate
-	intermediateCertInfo := &x509.Certificate{
+	intermediateCert := &x509.Certificate{
 		DNSNames:     []string{config.CommonName},
-		SerialNumber: rootResult.CertInfo.SerialNumber,
+		SerialNumber: rootResult.Cert.SerialNumber,
 		Subject: pkix.Name{
 			CommonName:   config.CommonName,
 			Country:      []string{config.CountryName},
@@ -163,39 +126,56 @@ func createIntermediateCert(config CertConfig, rootResult *rootResult) (*intermR
 		NotBefore:             config.NotBefore,
 		NotAfter:              config.NotAfter,
 		IsCA:                  true,
-		AuthorityKeyId:        rootResult.CertInfo.SubjectKeyId,
+		AuthorityKeyId:        rootResult.Cert.SubjectKeyId,
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
 	}
+	return createCert(intermediateCert, rootResult.Cert, rootResult.PrivateKey)
+}
 
-	// generate intermediate cert private key
+// Create the certificate. The parent certificate will be used to sign the new cert
+func createCert(partialCert *x509.Certificate, parentCert *x509.Certificate, parentPrivKey *rsa.PrivateKey) (*CertResult, error) {
+	// create private key for this cert
 	privKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
 		return nil, err
 	}
 
-	// PEM encode the intermediate private key
+	// For root cert there is no parent key
+	if parentPrivKey == nil {
+		parentPrivKey = privKey
+	}
+
+	// PEM encode the private key
 	privKeyPEM := new(bytes.Buffer)
 	_ = pem.Encode(privKeyPEM, &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privKey),
 	})
 
-	// sign the intermediate cert with the root cert
-	certBytes, err := x509.CreateCertificate(cryptorand.Reader, intermediateCertInfo, rootResult.CertInfo, &privKey.PublicKey, rootResult.PrivateKey)
+	// create the CA certificate using the partial cert as input
+	certBytes, err := x509.CreateCertificate(cryptorand.Reader, partialCert, parentCert, &privKey.PublicKey, parentPrivKey)
 	if err != nil {
 		return nil, err
 	}
 
-	// PEM encode the intermediate cert
+	// PEM encode the new cert
 	certPEM := new(bytes.Buffer)
 	_ = pem.Encode(certPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	})
 
-	return &intermResult{
+	// Reload the cert so that we get fields like the Subject Key ID that are generated
+	newCert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CertResult{
+		PrivateKey:    privKey,
 		PrivateKeyPEM: privKeyPEM.Bytes(),
 		CertPEM:       certPEM.Bytes(),
+		Cert:          newCert,
 	}, nil
 }
