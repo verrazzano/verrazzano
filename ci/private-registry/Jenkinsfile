@@ -42,7 +42,7 @@ pipeline {
         choice (name: 'SELECT_IMAGE_REGISTRY',
                 description: 'Select an image registry',
                 // 1st choice is the default value
-                choices: ["Harbor Standalone instance", "OCIR"])
+                choices: ["OCIR", "Harbor"])
         string (name: 'ZIPFILE_LOCATION',
                         defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
                         description: 'The bucket location to use for the Zip file download',
@@ -128,7 +128,7 @@ pipeline {
                     if (SELECT_IMAGE_REGISTRY == "OCIR") {
                         echo "Current execution region: $ocirRegion"
                         echo "OCIR Repository: ${ocirRegistry}"
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                         echo "Harbor registry: ${HARBOR_STANDALONE_REGISTRY}"
                         echo "Harbor registry REST API Subpath: ${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
                         echo "Harbor registry REST API full URL: ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL}"
@@ -162,7 +162,7 @@ pipeline {
                     imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
                     if (SELECT_IMAGE_REGISTRY == "OCIR") {
                         baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                         baseImageRepo=imageRepoSubPath
                     }
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
@@ -223,7 +223,7 @@ pipeline {
                                 """
                             }
                         }
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                         try {
                             sh """
                                 echo "${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}" | docker login -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} ${HARBOR_STANDALONE_REGISTRY} --password-stdin
@@ -301,7 +301,7 @@ pipeline {
                             cd ${TARBALL_DIR}
                             ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
                         """
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                         sh """
                             # Run the image-helper to load the images into the OCIR registry in the runner's region
                             cd ${TARBALL_DIR}
@@ -578,7 +578,7 @@ pipeline {
                         echo "Base image repo: ${baseImageRepo}"
                         sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
                     """
-                } else if (SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+                } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                     // TODO: delete harbor images
                 }
             }
@@ -592,7 +592,7 @@ pipeline {
 def getPrivateRegistry(String ocirRegistry) {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return "${ocirRegistry}"
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
         return env.HARBOR_STANDALONE_REGISTRY
     }
     return ""
@@ -601,7 +601,7 @@ def getPrivateRegistry(String ocirRegistry) {
 def getPrivateRegistryUser() {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return env.OCIR_CREDS_USR
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
         return env.HARBOR_STANDALONE_REGISTRY_CREDS_USR
     }
     return ""
@@ -610,7 +610,7 @@ def getPrivateRegistryUser() {
 def getPrivateRegistryPassword() {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return env.OCIR_CREDS_PSW
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor Standalone instance") {
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
         return env.HARBOR_STANDALONE_REGISTRY_CREDS_PSW
     }
     return ""
