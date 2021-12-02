@@ -109,6 +109,7 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }

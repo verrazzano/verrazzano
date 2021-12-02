@@ -70,13 +70,15 @@ func VzAfterEach(body interface{}) bool {
 
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
-	startTime := time.Now()
-	pkg.Log(pkg.Debug, "VzDescribe wrapper")
-	ginkgo.Describe(text, body)
-	endTime := time.Now()
-	durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
-	EmitGauge(text, "duration", durationMillis)
-	IncrementCounter(text, "number_of_runs")
+	ginkgo.Describe(text, func() {
+		startTime := time.Now()
+		pkg.Log(pkg.Info, "VzDescribe wrapper")
+		reflect.ValueOf(body).Call([]reflect.Value{})
+		endTime := time.Now()
+		durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
+		EmitGauge(text, "duration", durationMillis)
+		IncrementCounter(text, "number_of_runs")
+	})
 	return true
 }
 
