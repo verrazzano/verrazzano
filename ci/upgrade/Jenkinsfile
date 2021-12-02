@@ -554,7 +554,7 @@ pipeline {
                 }
                 stage('examples todo') {
                     steps {
-                        runGinkgo('examples/todo', "true", "true")
+                        runGinkgo('examples/todo', "false", "true")
                     }
                 }
                 stage('examples bobs-books') {
