@@ -207,8 +207,8 @@ type Condition struct {
 type StateType string
 
 const (
-	// NotInstalled is the state for when a component is not currently installed
-	NotInstalled StateType = "NotInstalled"
+	// Disabled is the state for when a component is not currently installed
+	Disabled StateType = "Disabled"
 
 	// PreInstalling is the state when an install is about to be started
 	PreInstalling StateType = "PreInstalling"

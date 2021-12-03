@@ -617,7 +617,7 @@ func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alp
 // checkComponentReadyState returns true if all component-level status' are "Ready"
 func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
 	for _, compStatus := range vz.Status.Components {
-		if compStatus.State != installv1alpha1.NotInstalled && compStatus.State != installv1alpha1.Ready {
+		if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
 			return false
 		}
 	}
@@ -644,7 +644,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
 			compContext := newContext.For(comp.Name()).Operation(vzconst.InitializeOperation)
-			state := installv1alpha1.NotInstalled
+			state := installv1alpha1.Disabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
