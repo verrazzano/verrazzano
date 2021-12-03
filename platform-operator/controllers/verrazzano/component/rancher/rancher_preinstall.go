@@ -65,7 +65,7 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 			return err
 		}
 		if len(defaultSecret.Data[caCert]) < 1 {
-			return fmt.Errorf("%s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCertsPem)
+			return fmt.Errorf("%s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCert)
 		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
