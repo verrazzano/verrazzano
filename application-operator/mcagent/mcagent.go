@@ -6,16 +6,14 @@ package mcagent
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"time"
-
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -23,8 +21,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"time"
 )
 
 // ENV VAR for registration secret version
@@ -60,7 +60,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 			// received - discard them
 			discardStatusMessages(s.StatusUpdateChannel)
 		}
-		time.Sleep(60 * time.Second)
+		time.Sleep(vzconstants.VMCAgentPollingTimeInterval)
 	}
 }
 
