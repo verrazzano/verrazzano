@@ -76,15 +76,15 @@
       ]
     },
     {
-      "name": "external-dns",
+      "name": "external-dns-jenkins",
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "external-dns",
+          "name": "external-dns-jenkins",
           "images": [
             {
-              "image": "external-dns",
-              "tag": "v0.7.1-20211125051406-fb54e02b",
+              "image": "external-dns-jenkins",
+              "tag": "20211203175136-031cf6fb",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
