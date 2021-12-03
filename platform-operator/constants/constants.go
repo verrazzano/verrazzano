@@ -3,6 +3,8 @@
 
 package constants
 
+import "time"
+
 // SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
 const SystemTLS = "system-tls"
 
@@ -131,3 +133,6 @@ const UpgradeOperation = "upgrade"
 
 // InitializeOperation is the initialize string
 const InitializeOperation = "initialize"
+
+// ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
+const ReconcileLoopRequeueInterval = 3 * time.Minute

@@ -136,8 +136,8 @@ func TestCreateVMC(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -198,8 +198,8 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -259,8 +259,8 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCNoCACert tests the Reconcile method for the following use case
@@ -318,8 +318,8 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCWithExistingScrapeConfiguration tests the Reconcile method for the following use case
@@ -391,8 +391,8 @@ scrape_configs:
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestReplaceExistingScrapeConfiguration tests the Reconcile method for the following use case
@@ -464,8 +464,8 @@ scrape_configs:
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -527,8 +527,8 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCSyncSvcAccountFailed tests the Reconcile method for the following use case
@@ -1188,8 +1188,8 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(constants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
