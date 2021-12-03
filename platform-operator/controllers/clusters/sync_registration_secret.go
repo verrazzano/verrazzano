@@ -5,7 +5,6 @@ package clusters
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -61,7 +60,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	secret.Type = corev1.SecretTypeOpaque
 
 	// Get the fluentd configuration for ES URL and secret
-	r.log.Info("Get the fluentd configuration for ES URL and secret")
 	fluentdESURL, fluentdESSecretName, err := r.getVzESURLSecret()
 	if err != nil {
 		return err
@@ -70,7 +68,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Decide which ES URL to use.
 	// If the fluentd ELASTICSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
 	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
-	r.log.Info("Decide which ES URL to use")
 	esURL := fluentdESURL
 	if esURL == defaultElasticURL {
 		esURL, err = r.getVmiESURL()
@@ -80,7 +77,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the CA bundle needed to connect to the admin keycloak
-	r.log.Info("Get the CA bundle needed to connect to the admin keycloak")
 	adminCaBundle, err := r.getAdminCaBundle()
 	if err != nil {
 		return err
@@ -89,7 +85,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Decide which ES secret to use for username/password and password.
 	// If the fluentd elasticsearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for ES CA bundle.
 	// if the fluentd elasticsearchSecret is not the default, meaning it is a custom secret, use its username/password and CA bundle.
-	r.log.Info("Decide which ES secret to use for username/password and password")
 	var esCaBundle []byte
 	var esUsername []byte
 	var esPassword []byte
@@ -112,14 +107,12 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the keycloak URL
-	r.log.Info("Get the keycloak URL")
 	keycloakURL, err := r.getKeycloakURL()
 	if err != nil {
 		return err
 	}
 
 	// Build the secret data
-	r.log.Infof("Setting secret data - adminCaBundle %s", string(adminCaBundle))
 	secret.Data = map[string][]byte{
 		ManagedClusterNameKey:   []byte(manageClusterName),
 		ESURLKey:                []byte(esURL),
@@ -129,7 +122,6 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		KeycloakURLKey:          []byte(keycloakURL),
 		AdminCaBundleKey:        adminCaBundle,
 	}
-	r.log.Info("returning nil")
 	return nil
 }
 
@@ -219,41 +211,9 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 		caBundle = make([]byte, len(secret.Data[CaCrtKey]))
 		copy(caBundle, secret.Data[CaCrtKey])
 		caBundle = append(caBundle, optSecret.Data[rancherCAAdditionalPem]...)
-		//caBundle, err = combineBundles(secret.Data[CaCrtKey], optSecret.Data[rancherCAAdditionalPem])
-		//if err != nil {
-		//	return nil, err
-		//}
 	}
 
 	return caBundle, nil
-}
-
-// combineBundles - Combine two base64 encoded bundles into a single bundle
-func combineBundles(bundle1 []byte, bundle2 []byte) ([]byte, error) {
-	// Decode the first bundle
-	bundle1Decoded := make([]byte, base64.URLEncoding.DecodedLen(len(bundle1)))
-	bundle1DecodedLen, err := base64.URLEncoding.Decode(bundle1Decoded, bundle1)
-	if err != nil {
-		return nil, err
-	}
-
-	// Decode the second bundle
-	bundle2Decoded := make([]byte, base64.URLEncoding.DecodedLen(len(bundle2)))
-	_, err = base64.URLEncoding.Decode(bundle2Decoded, bundle2)
-	if err != nil {
-		return nil, err
-	}
-
-	// Combine the two CA bundles
-	combinedBundle := make([]byte, bundle1DecodedLen)
-	copy(combinedBundle, bundle1Decoded)
-	combinedBundle = append(combinedBundle, bundle2Decoded...)
-
-	// Encode the combined bundle
-	newBundle := make([]byte, base64.StdEncoding.EncodedLen(len(combinedBundle)))
-	base64.URLEncoding.Encode(newBundle, combinedBundle)
-
-	return newBundle, nil
 }
 
 // Get the keycloak URL
