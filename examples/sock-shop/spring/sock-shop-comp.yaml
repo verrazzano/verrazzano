@@ -66,6 +66,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.catalog.CatalogApp
+            args:
+              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -107,6 +109,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.orders.OrdersApp
+            args:
+              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -148,6 +152,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.payment.PaymentApp
+            args:
+              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -193,6 +199,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.shipping.ShippingApp
+            args:
+              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -238,6 +246,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.users.UsersApplication
+            args:
+              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
