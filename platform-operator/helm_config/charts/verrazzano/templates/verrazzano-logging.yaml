@@ -388,41 +388,36 @@ data:
         overflow_action drop_oldest_chunk
       </buffer>
     </match>
-
+  oci-logging-system.conf: |
+    <match kubernetes.**kube-system** kubernetes.**verrazzano-system**>
+      @type oci_logging
+      log_object_id {{ .Values.logging.systemLogId }}
+      <buffer>
+        @type file
+        path /fluentd/log/oci-logging-system
+        disable_chunk_backup  true
+        chunk_limit_size  5MB
+        flush_interval  180s
+        total_limit_size  1GB
+        overflow_action  throw_exception
+        retry_type  exponential_backoff
+      </buffer>
+    </match>
   oci-logging-default-app.conf: |
-    <filter **>
-       @type record_transformer
-       @id cluster_name
-       <record>
-          cluster_name "#{ENV['CLUSTER_NAME']}"
-       </record>
-    </filter>
     <match **>
       @type oci_logging
       log_object_id {{ .Values.logging.defaultAppLogId }}
       <buffer>
         @type file
         path /fluentd/log/oci-logging-default-app
+        disable_chunk_backup  true
+        chunk_limit_size  5MB
+        flush_interval  180s
+        total_limit_size  1GB
+        overflow_action  throw_exception
+        retry_type  exponential_backoff
       </buffer>
     </match>
-
-  oci-logging-system.conf: |
-    <filter **>
-       @type record_transformer
-       @id cluster_name
-       <record>
-          cluster_name "#{ENV['CLUSTER_NAME']}"
-       </record>
-    </filter>
-    <match **>
-      @type oci_logging
-      log_object_id {{ .Values.logging.systemLogId }}
-      <buffer>
-        @type file
-        path /fluentd/log/oci-logging-system
-      </buffer>
-    </match>
-
   elasticsearch-template-verrazzano.json: |
     {
       "index_patterns" : "verrazzano-*",
