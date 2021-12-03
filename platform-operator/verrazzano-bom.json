@@ -76,7 +76,7 @@
       ]
     },
     {
-      "name": "external-dns-jenkins",
+      "name": "external-dns",
       "subcomponents": [
         {
           "repository": "verrazzano",
