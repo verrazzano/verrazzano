@@ -22,6 +22,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.carts.CartsApp
+            args:
+              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g

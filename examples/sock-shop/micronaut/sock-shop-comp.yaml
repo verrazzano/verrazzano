@@ -25,6 +25,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.carts.Application
+            args:
+              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
