@@ -212,7 +212,7 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 		return result, nil
 	}
 
-	// Change the state back to ready if install complete
+	// Change the state back to ready if install complete otherwise requeue
 	done, err := r.checkInstallComplete(log, vz)
 	if !done || err != nil {
 		return newRequeueWithDelay(), err
