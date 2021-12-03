@@ -216,10 +216,13 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 	}
 	if err == nil {
 		// Combine the two CA bundles
-		caBundle, err = combineBundles(secret.Data[CaCrtKey], optSecret.Data[rancherCAAdditionalPem])
-		if err != nil {
-			return nil, err
-		}
+		caBundle = make([]byte, len(secret.Data[CaCrtKey]))
+		copy(caBundle, secret.Data[CaCrtKey])
+		caBundle = append(caBundle, optSecret.Data[rancherCAAdditionalPem]...)
+		//caBundle, err = combineBundles(secret.Data[CaCrtKey], optSecret.Data[rancherCAAdditionalPem])
+		//if err != nil {
+		//	return nil, err
+		//}
 	}
 
 	return caBundle, nil
