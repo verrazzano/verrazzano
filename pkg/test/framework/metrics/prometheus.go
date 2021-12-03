@@ -5,6 +5,7 @@ package testmetrics
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -97,7 +98,7 @@ func (rcvr *PrometheusMetricsReceiver) overridePusher(pusher push.Pusher) {
 
 func (rcvr *PrometheusMetricsReceiver) makeMetricName(name string) string {
 	if rcvr.Name != "" {
-		return rcvr.Name + "_" + name
+		return strings.Replace(rcvr.Name+"_"+name, "-", "_", -1)
 	}
 	return name
 }
