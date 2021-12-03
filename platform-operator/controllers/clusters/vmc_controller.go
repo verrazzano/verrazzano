@@ -6,6 +6,7 @@ package clusters
 import (
 	"context"
 	"fmt"
+
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
