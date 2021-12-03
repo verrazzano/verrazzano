@@ -222,6 +222,24 @@ func TestFakeCreateUserGroupFail(t *testing.T) {
 	os.Exit(0)
 }
 
+func fakeCreateUserGroupParseCommandFail(command string, args ...string) *exec.Cmd {
+	cs := []string{"-test.run=TestFakeCreateUserGroupParseFail", "--", command}
+	cs = append(cs, args...)
+	firstArg := os.Args[0]
+	cmd := exec.Command(firstArg, cs...)
+	cmd.Env = []string{"GO_WANT_TEST_CREATE_USER_GROUP_PARSE_FAIL=1"}
+	return cmd
+}
+
+func TestFakeCreateUserParseGroupFail(t *testing.T) {
+	if os.Getenv("GO_WANT_TEST_CREATE_USER_GROUP_PARSE_FAIL") != "1" {
+		return
+	}
+
+	fmt.Fprintf(os.Stdout, "Created new group with id 6653a73b-f292-4dfe-91cb-956ead33ea67")
+	os.Exit(0)
+}
+
 func TestUpdateKeycloakURIs(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
@@ -358,6 +376,13 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			"Error retrieving User Group ID from Keycloak",
 		},
 		{
+			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			"",
+			true,
+			"Error parsing output returned from Users Group",
+		},
+		{
 			"should fail when Verrazzano secret is not present",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
 			"blahblah'id",
@@ -453,6 +478,9 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			execCommand = fakeCreateUserGroupCommand
 			if tt.name == "should fail to retrieve user group ID from Keycloak when stdout is empty" {
 				execCommand = fakeCreateUserGroupCommandFail
+			}
+			if tt.name == "should fail to retrieve user group ID from Keycloak when stdout is incorrect" {
+				execCommand = fakeCreateUserGroupParseCommandFail
 			}
 			k8sutil.FakePodSTDOUT = tt.stdout
 			err := configureKeycloakRealms(ctx)

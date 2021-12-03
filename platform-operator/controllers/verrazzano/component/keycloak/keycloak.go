@@ -281,6 +281,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return errors.New("configureKeycloakRealm: Error retrieving User Group ID from Keycloak, zero length")
 	}
 	arr := strings.Split(string(out), "'")
+	if len(arr) != 3 {
+		return fmt.Errorf("configureKeycloakRealm: Error parsing output returned from Users Group create stdout returned = %s", out)
+	}
 	userGroupID := arr[1]
 	ctx.Log().Infof("configureKeycloakRealm: User Group ID = %s", userGroupID)
 	ctx.Log().Info("CDD Successfully Created Verrazzano User Group")
@@ -300,6 +303,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return errors.New("configureKeycloakRealm: Error retrieving Admin Group ID from Keycloak, zero length")
 	}
 	arr = strings.Split(string(out), "'")
+	if len(arr) != 3 {
+		return fmt.Errorf("configureKeycloakRealm: Error parsing output returned from Admin Group create stdout returned = %s", out)
+	}
 	adminGroupID := arr[1]
 	ctx.Log().Infof("configureKeycloakRealm: Admin Group ID = %s", adminGroupID)
 	ctx.Log().Info("CDD Successfully Created Verrazzano Admin Group")
@@ -319,6 +325,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return errors.New("configureKeycloakRealm: Error retrieving Monitor Group ID from Keycloak, zero length")
 	}
 	arr = strings.Split(string(out), "'")
+	if len(arr) != 3 {
+		return fmt.Errorf("configureKeycloakRealm: Error parsing output returned from Monitor Group create stdout returned = %s", out)
+	}
 	monitorGroupID := arr[1]
 	ctx.Log().Infof("configureKeycloakRealm: Monitor Group ID = %s", monitorGroupID)
 	ctx.Log().Info("CDD Successfully Created Verrazzano Monitors Group")
