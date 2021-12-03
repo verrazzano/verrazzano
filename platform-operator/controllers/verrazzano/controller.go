@@ -191,18 +191,9 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return newRequeueWithDelay(), err
 	}
 
-	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
-		return result, nil
-	}
-
-	done, err := r.checkInstallComplete(log, vz)
-	if !done || err != nil {
-		return newRequeueWithDelay(), err
-	}
-
-	return ctrl.Result{}, nil
+	// Change the state to installing
+	err = r.setInstallingState(log, vz)
+	return newRequeueWithDelay(), err
 }
 
 // InstallingState processes the CR while in the installing state
@@ -221,6 +212,7 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 		return result, nil
 	}
 
+	// Change the state back to ready if install complete
 	done, err := r.checkInstallComplete(log, vz)
 	if !done || err != nil {
 		return newRequeueWithDelay(), err
@@ -601,6 +593,12 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	// Return ready for installv1alpha1.InstallComplete, installv1alpha1.UpgradeComplete
 	return installv1alpha1.Ready
 }
+
+// setInstallStartedCondition
+func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
+}
+
 
 // checkComponentReadyState returns true if all component-level status' are "Ready"
 func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {

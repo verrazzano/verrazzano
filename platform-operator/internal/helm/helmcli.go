@@ -222,7 +222,7 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 	}
 	switch releaseStatus {
 	case ChartNotFound:
-		log.Debugf("Chart %s/%s not found", namespace, releaseName)
+		log.Infof("Chart %s/%s not found", namespace, releaseName)
 	case ChartStatusDeployed:
 		return true, nil
 	}
