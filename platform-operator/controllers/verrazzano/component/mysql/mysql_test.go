@@ -4,6 +4,7 @@ package mysql
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
 	"testing"
 
@@ -28,18 +29,31 @@ const profilesDir = "../../../../manifests/profiles"
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
+const (
+	minExpectedHelmOverridesCount = 1
+	busyboxImageNameKey           = "busybox.image"
+	busyboxImageTagKey            = "busybox.tag"
+	testBomFilePath               = "../../testdata/test_bom.json"
+)
+
 // TestAppendMySQLOverrides tests the appendMySQLOverrides function
 // GIVEN a call to appendMySQLOverrides
 // WHEN I pass in an empty VZ CR
 // THEN the correct overrides are returned
 func TestAppendMySQLOverrides(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 	vz := &vzapi.Verrazzano{}
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2)
+	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
 // TestAppendMySQLOverridesWithInstallArgs tests the appendMySQLOverrides function
@@ -47,6 +61,11 @@ func TestAppendMySQLOverrides(t *testing.T) {
 // WHEN I pass in an empty VZ CR with MySQL install args
 // THEN the override key value pairs contain the install args
 func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -63,8 +82,11 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
@@ -72,6 +94,11 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 // WHEN I pass in an VZ CR with the dev profile
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDev(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Profile: vzapi.ProfileType("dev"),
@@ -83,8 +110,11 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
 // TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
@@ -92,6 +122,11 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 // WHEN I pass in an VZ CR with the dev profile and persistence overrides
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Profile: vzapi.ProfileType("dev"),
@@ -119,9 +154,12 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4)
+	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
 // TestAppendMySQLOverridesProd tests the appendMySQLOverrides function
@@ -129,6 +167,11 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 // WHEN I pass in an VZ CR with the prod profile
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesProd(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Profile: vzapi.ProfileType("prod"),
@@ -137,7 +180,10 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2)
+	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
 // TestAppendMySQLOverridesProdWithOverrides tests the appendMySQLOverrides function
@@ -145,6 +191,11 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 // WHEN I pass in an VZ CR with the pred profile and a default volume source override
 // THEN the overrides contain the correct mysql persistence config
 func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Profile: vzapi.ProfileType("prod"),
@@ -168,9 +219,12 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4)
+	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
 // TestAppendMySQLOverridesUpgrade tests the appendMySQLOverrides function
@@ -178,6 +232,11 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 // WHEN I pass in an empty VZ CR
 // THEN the correct overrides are returned
 func TestAppendMySQLOverridesUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
 	vz := &vzapi.Verrazzano{}
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -193,9 +252,11 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).For(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 3)
+	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
 // TestIsMySQLReady tests the isReady function

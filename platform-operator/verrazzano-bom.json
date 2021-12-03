@@ -223,7 +223,7 @@
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20211124230344-64d77e0",
+              "tag": "0.3-20211202193501-64d77e0",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
@@ -282,7 +282,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20211124230812-5ee076b",
+              "tag": "v0.3.0-20211202184000-00643c8",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
