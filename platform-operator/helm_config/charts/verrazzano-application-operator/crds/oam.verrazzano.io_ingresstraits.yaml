@@ -52,6 +52,16 @@ spec:
                       properties:
                         host:
                           type: string
+                        httpCookie:
+                          properties:
+                            name:
+                              type: string
+                            path:
+                              type: string
+                            ttl:
+                              format: int32
+                              type: integer
+                          type: object
                         port:
                           format: int32
                           type: integer

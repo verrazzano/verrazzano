@@ -49,8 +49,15 @@ type IngressPath struct {
 
 // IngressDestination specifies a specific destination host and port for the ingress paths.
 type IngressDestination struct {
-	Host string `json:"host,omitempty"`
-	Port uint32 `json:"port,omitempty"`
+	Host       string                        `json:"host,omitempty"`
+	Port       uint32                        `json:"port,omitempty"`
+	HTTPCookie *IngressDestinationHTTPCookie `json:"httpCookie,omitempty"`
+}
+
+type IngressDestinationHTTPCookie struct {
+	Name string `json:"name,omitempty"`
+	Path string `json:"path,omitempty"`
+	TTL  uint32 `json:"ttl,omitempty"`
 }
 
 // IngressTraitStatus specifies the observed state of an ingress trait and related resources.
