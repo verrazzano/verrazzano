@@ -61,6 +61,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	secret.Type = corev1.SecretTypeOpaque
 
 	// Get the fluentd configuration for ES URL and secret
+	r.log.Info("Get the fluentd configuration for ES URL and secret")
 	fluentdESURL, fluentdESSecretName, err := r.getVzESURLSecret()
 	if err != nil {
 		return err
@@ -69,6 +70,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Decide which ES URL to use.
 	// If the fluentd ELASTICSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
 	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
+	r.log.Info("Decide which ES URL to use")
 	esURL := fluentdESURL
 	if esURL == defaultElasticURL {
 		esURL, err = r.getVmiESURL()
@@ -78,6 +80,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the CA bundle needed to connect to the admin keycloak
+	r.log.Info("Get the CA bundle needed to connect to the admin keycloak")
 	adminCaBundle, err := r.getAdminCaBundle()
 	if err != nil {
 		return err
@@ -86,6 +89,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Decide which ES secret to use for username/password and password.
 	// If the fluentd elasticsearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for ES CA bundle.
 	// if the fluentd elasticsearchSecret is not the default, meaning it is a custom secret, use its username/password and CA bundle.
+	r.log.Info("Decide which ES secret to use for username/password and password")
 	var esCaBundle []byte
 	var esUsername []byte
 	var esPassword []byte
@@ -108,6 +112,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Get the keycloak URL
+	r.log.Info("Get the keycloak URL")
 	keycloakURL, err := r.getKeycloakURL()
 	if err != nil {
 		return err
@@ -124,6 +129,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		KeycloakURLKey:          []byte(keycloakURL),
 		AdminCaBundleKey:        adminCaBundle,
 	}
+	r.log.Info("returning nil")
 	return nil
 }
 
