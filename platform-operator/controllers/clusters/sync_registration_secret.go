@@ -114,6 +114,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Build the secret data
+	r.log.Infof("Setting secret data - adminCaBundle %s", string(adminCaBundle))
 	secret.Data = map[string][]byte{
 		ManagedClusterNameKey:   []byte(manageClusterName),
 		ESURLKey:                []byte(esURL),
