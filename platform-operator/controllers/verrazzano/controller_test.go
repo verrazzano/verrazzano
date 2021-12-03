@@ -6,6 +6,9 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
+	networkingv1 "k8s.io/api/networking/v1"
 	"testing"
 	"time"
 
@@ -24,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -106,8 +108,8 @@ func TestSuccessfulInstall(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 
-	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 	verrazzanoToUse.Status.State = vzapi.Ready
+	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -143,7 +145,7 @@ func TestSuccessfulInstall(t *testing.T) {
 			return nil
 		}).Times(1)
 
-	// Expect a call to get the Verrazzano resource.
+	// Expect a call to list the Ingresses.
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
@@ -395,17 +397,16 @@ func TestCreateVerrazzano(t *testing.T) {
 	// Expect a call to get the Verrazzano system namespace (mock does not exist) and to create it
 	expectVerrazzanoSystemNamespaceDoesNotExist(mock, asserts)
 
-	// Expect a call to update the Verrazzano resource
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
-
-	// Expect a call to get a stale uninstall job resource
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Any()).Return(nil)
-
-	// Expect a call to delete a stale uninstall job resource
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to list the Ingresses.
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+			ingressList.Items = []networkingv1.Ingress{}
+			return nil
+		})
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -554,14 +555,13 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
-	// Expect a call to update the Verrazzano resource
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
-
-	// Expect a call to get a stale uninstall job resource
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Any()).Return(nil)
-
-	// Expect a call to delete a stale uninstall job resource
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	// Expect a call to list the Ingresses.
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+			ingressList.Items = []networkingv1.Ingress{}
+			return nil
+		})
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -623,7 +623,8 @@ func TestUninstallComplete(t *testing.T) {
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State:      vzapi.Ready,
+				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
 						Type: vzapi.UninstallComplete,
@@ -638,6 +639,25 @@ func TestUninstallComplete(t *testing.T) {
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the uninstall Job - return that it exists
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+			newJob := uninstalljob.NewJob(&uninstalljob.JobConfig{
+				JobConfigCommon: k8s.JobConfigCommon{
+					JobName:            name.Name,
+					Namespace:          name.Namespace,
+					Labels:             labels,
+					ServiceAccountName: buildServiceAccountName(name.Name),
+					JobImage:           "image",
+					DryRun:             false,
+				},
+			})
+			job.ObjectMeta = newJob.ObjectMeta
+			job.Spec = newJob.Spec
+			return nil
+		})
 
 	// Expect a call to update the finalizers - return success
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -799,6 +819,28 @@ func TestUninstallFailed(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
+	// Expect a call to get the uninstall Job - return that it exists and the job failed
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+			newJob := uninstalljob.NewJob(&uninstalljob.JobConfig{
+				JobConfigCommon: k8s.JobConfigCommon{
+					JobName:            name.Name,
+					Namespace:          name.Namespace,
+					Labels:             labels,
+					ServiceAccountName: buildServiceAccountName(name.Name),
+					JobImage:           "image",
+					DryRun:             false,
+				},
+			})
+			job.ObjectMeta = newJob.ObjectMeta
+			job.Spec = newJob.Spec
+			job.Status = batchv1.JobStatus{
+				Failed: 1,
+			}
+			return nil
+		})
+
 	// Expect a status update on the job
 	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
@@ -874,6 +916,28 @@ func TestUninstallSucceeded(t *testing.T) {
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the uninstall Job - return that it exists and the job succeeded
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+			newJob := uninstalljob.NewJob(&uninstalljob.JobConfig{
+				JobConfigCommon: k8s.JobConfigCommon{
+					JobName:            name.Name,
+					Namespace:          name.Namespace,
+					Labels:             labels,
+					ServiceAccountName: buildServiceAccountName(name.Name),
+					JobImage:           "image",
+					DryRun:             false,
+				},
+			})
+			job.ObjectMeta = newJob.ObjectMeta
+			job.Spec = newJob.Spec
+			job.Status = batchv1.JobStatus{
+				Succeeded: 1,
+			}
+			return nil
+		})
 
 	// Expect a status update on the job
 	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)

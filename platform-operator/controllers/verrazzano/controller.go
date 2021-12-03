@@ -191,6 +191,21 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return newRequeueWithDelay(), err
 	}
 
+	// Change the state back to ready if install complete otherwise requeue
+	done, err := r.checkInstallComplete(log, vz)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+	if done {
+		return ctrl.Result{}, nil
+	}
+
+	// Delete leftover uninstall job if we find one.
+	err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), getInstallNamespace(), log)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Change the state to installing
 	err = r.setInstallingState(log, vz)
 	return newRequeueWithDelay(), err
@@ -598,7 +613,6 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
 }
-
 
 // checkComponentReadyState returns true if all component-level status' are "Ready"
 func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
