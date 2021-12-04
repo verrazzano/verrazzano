@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -50,9 +49,6 @@ type Reconciler struct {
 
 // Name of finalizer
 const finalizerName = "install.verrazzano.io"
-
-// Key into ConfigMap data for stored install Spec, the data for which will be used for update/upgrade purposes
-const configDataKey = "spec"
 
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
@@ -491,11 +487,6 @@ func buildClusterRoleBindingName(namespace string, name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-%s", namespace, name)
 }
 
-// buildConfigMapName returns the name of a config map for an install job based on Verrazzano resource name.
-func buildConfigMapName(name string) string {
-	return fmt.Sprintf("verrazzano-install-%s", name)
-}
-
 // buildInternalConfigMapName returns the name of the internal configmap associated with an install resource.
 func buildInternalConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-internal", name)
@@ -848,18 +839,6 @@ func getIngressIP(c client.Client) (string, error) {
 		return "127.0.0.1", nil
 	}
 	return "", fmt.Errorf("Unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
-}
-
-func configFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
-	varLog := "/var/log/containers/"
-	var files []string
-	filepath.Walk(varLog, func(path string, info os.FileInfo, err error) error {
-		if info != nil {
-			files = append(files, readLink(path, info)...)
-		}
-		return nil
-	})
-	return addFluentdExtraVolumeMounts(files, vz)
 }
 
 func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
