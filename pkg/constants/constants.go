@@ -71,12 +71,6 @@ const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 // DefaultElasticsearchSecretName default secret name for Elasticsearch credentials
 const DefaultElasticsearchSecretName = "verrazzano"
 
-// VMCAgentPollingTimeInterval - The time interval at which mcagent polls Verrazzano Managed CLuster resource on the admin cluster.
-const VMCAgentPollingTimeInterval = 60 * time.Second
-
-// MaxTimesVMCAgentPollingTime - The constant used to set max polling time for vmc agent to determine VMC state
-const MaxTimesVMCAgentPollingTime = 3
-
 // VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
 const VerrazzanoESInternal = "verrazzano-es-internal"
 
@@ -88,3 +82,9 @@ const SystemTLS = "system-tls"
 
 // AdditionalTLS is an optional tls secret that contains additional CA
 const AdditionalTLS = "tls-ca-additional"
+
+// VMCAgentPollingTimeInterval - The time interval at which mcagent polls Verrazzano Managed CLuster resource on the admin cluster.
+const VMCAgentPollingTimeInterval = 60 * time.Second
+
+// MaxTimesVMCAgentPollingTime - The constant used to set max polling time for vmc agent to determine VMC state
+const MaxTimesVMCAgentPollingTime = 3
