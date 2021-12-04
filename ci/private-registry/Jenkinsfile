@@ -117,6 +117,9 @@ pipeline {
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
 
+        IMAGE_REPO_SUBPATH_PREFIX="verrazzano-private-registry"
+        IMAGE_REPO_SUBPATH_SUFFIX="${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
+
         HARBOR_STANDALONE_REGISTRY_CREDS = credentials('harbor-standalone-registry-account')
         HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL = "https://${HARBOR_STANDALONE_REGISTRY}${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
     }
@@ -159,10 +162,11 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
+                    imageRepoSubPath="${env.IMAGE_REPO_SUBPATH_PREFIX}/${env.IMAGE_REPO_SUBPATH_SUFFIX}".trim().toLowerCase()
                     if (SELECT_IMAGE_REGISTRY == "OCIR") {
                         baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
+                        // In case of Harbor, base image repo should be same as image repo sub path
                         baseImageRepo=imageRepoSubPath
                     }
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
@@ -303,7 +307,7 @@ pipeline {
                         """
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                         sh """
-                            # Run the image-helper to load the images into the OCIR registry in the runner's region
+                            # Run the image-helper to load the images into the Harbor registry
                             cd ${TARBALL_DIR}
                             ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_STANDALONE_REGISTRY} -l . -r ${baseImageRepo}
                         """
@@ -579,7 +583,9 @@ pipeline {
                         sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
                     """
                 } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                    // TODO: delete harbor images
+                    sh """
+                        sh ${TEST_SCRIPTS_DIR}/delete_harbor_repositories.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l ${TARBALL_DIR} -i ${IMAGE_REPO_SUBPATH_SUFFIX}
+                    """
                 }
             }
         }
