@@ -595,9 +595,9 @@ pipeline {
     }
 }
 
-def getPrivateRegistry(String ocirRegistry) {
+def getPrivateRegistry(ocirRegistry) {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
-        return "${ocirRegistry}"
+        return ${ocirRegistry}
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
         return env.HARBOR_STANDALONE_REGISTRY
     }
