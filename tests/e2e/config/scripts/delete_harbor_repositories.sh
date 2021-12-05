@@ -41,8 +41,6 @@ function delete_repositories() {
     local fullImageUrl="$REST_API_BASE_URL/projects/$PROJECT_NAME/repositories/$imageSubPath"
     echo "Proceeding to delete image: $fullImageUrl"
     curl --user $USERNAME:$PASSWORD -X DELETE $fullImageUrl -H "accept: application/json"
-
-    break
   done
 }
 
