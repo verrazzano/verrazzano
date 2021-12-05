@@ -510,7 +510,7 @@ pipeline {
                 // having to duplicate the waits.
                 stage('Verify Registry') {
                     environment {
-                        REGISTRY="${ocirRegistry}"
+                        REGISTRY=getPrivateRegistry("${ocirRegistry}")
                         PRIVATE_REPO="${baseImageRepo}"
                     }
                     parallel {
