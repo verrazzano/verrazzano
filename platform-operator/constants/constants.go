@@ -5,9 +5,6 @@ package constants
 
 import "time"
 
-// SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
-const SystemTLS = "system-tls"
-
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
@@ -16,12 +13,6 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
-
-// VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
-const VerrazzanoPromInternal = "verrazzano-prom-internal"
-
-// VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
-const VerrazzanoESInternal = "verrazzano-es-internal"
 
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
