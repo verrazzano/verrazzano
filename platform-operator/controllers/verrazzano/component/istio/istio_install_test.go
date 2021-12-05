@@ -192,7 +192,8 @@ func TestCreateCertSecret(t *testing.T) {
 	assert := assert.New(t)
 
 	setBashFunc(fakeBash)
-	err := createCertSecret(spi.NewFakeContext(createCertSecretMock(t), installCR, false))
+	ctx := spi.NewFakeContext(createCertSecretMock(t), installCR, false)
+	err := createCertSecret(ctx.Log(), ctx.Client())
 	assert.NoError(err, "createCertSecret returned an error")
 }
 
@@ -252,6 +253,13 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, IstioCertSecret))
+
+	// Expect a call to create the manifest secret
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
+			return nil
+		})
 
 	return mock
 }

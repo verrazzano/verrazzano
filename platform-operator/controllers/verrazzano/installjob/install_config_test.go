@@ -1420,7 +1420,7 @@ func TestFluentdInstallDefaults(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{}
 	config, err := GetInstallConfig(&vz)
 	assert.NoError(t, err)
-	assert.Equalf(t, "true", config.Rancher.Enabled, "Expected Fluentd enabled did not match")
+	assert.Equalf(t, "true", config.Fluentd.Enabled, "Expected Fluentd enabled did not match")
 	assert.Equalf(t, defaultElasticsearchSecret, config.Fluentd.ElasticsearchSecret, "Expected ElasticsearchSecret did not match")
 	assert.Equalf(t, defaultElasticsearchURL, config.Fluentd.ElasticsearchURL, "Expected ElasticsearchURL did not match")
 }

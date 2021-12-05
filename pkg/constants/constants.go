@@ -3,6 +3,8 @@
 
 package constants
 
+import "time"
+
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
@@ -68,3 +70,9 @@ const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 
 // DefaultElasticsearchSecretName default secret name for Elasticsearch credentials
 const DefaultElasticsearchSecretName = "verrazzano"
+
+// VMCAgentPollingTimeInterval - The time interval at which mcagent polls Verrazzano Managed CLuster resource on the admin cluster.
+const VMCAgentPollingTimeInterval = 60 * time.Second
+
+// MaxTimesVMCAgentPollingTime - The constant used to set max polling time for vmc agent to determine VMC state
+const MaxTimesVMCAgentPollingTime = 3

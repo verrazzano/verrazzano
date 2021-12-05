@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -17,13 +19,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-	"strings"
 )
 
 const (
@@ -58,6 +61,11 @@ func isEnabled(context spi.ComponentContext) bool {
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
 
+	kvs, err := appendCustomImageOverrides(kvs)
+	if err != nil {
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+
 	if compContext.For(ComponentName).GetOperation() == vzconst.UpgradeOperation {
 		secret := &v1.Secret{}
 		nsName := types.NamespacedName{
@@ -91,7 +99,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	// generate the MySQl PV overrides
-	kvs, err := generateVolumeSourceOverrides(compContext, kvs)
+	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
 	if err != nil {
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
@@ -238,6 +246,22 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 			Value: "true",
 		})
 	}
+	return kvs, nil
+}
+
+//appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
+func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+
+	imageOverrides, err := bomFile.BuildImageOverrides("oraclelinux")
+	if err != nil {
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+
+	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
 }
 
