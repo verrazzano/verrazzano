@@ -191,7 +191,10 @@ spec:
             adminChannelPortForwardingEnabled: true
           domainUID: bobbys-front-end
           domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
-          image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211027151722-46851d0
+          auxiliaryImageVolumes:
+            - name: auxiliaryImageVolume1
+              mountPath: /auxiliary
+          image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: bobs-books-repo-credentials
           domainHomeSourceType: "FromModel"
@@ -204,6 +207,8 @@ spec:
           configuration:
             introspectorJobActiveDeadlineSeconds: 600
             model:
+              wdtInstallHome: /auxiliary/weblogic-deploy
+              modelHome: /auxiliary/models
               runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
           monitoringExporter:
             imagePullPolicy: IfNotPresent
@@ -232,6 +237,9 @@ spec:
             labels:
               app: bobbys-front-end
               version: v1
+            auxiliaryImages:
+                - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:20211129200415-ae4e89e
+                  volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -442,7 +450,10 @@ spec:
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
-          image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:1.0.0-1-20210728181814-eb1e622
+          auxiliaryImageVolumes:
+            - name: auxiliaryImageVolume1
+              mountPath: /auxiliary
+          image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           includeServerOutInPodLog: true
           replicas: 1
           webLogicCredentialsSecret:
@@ -455,6 +466,8 @@ spec:
             introspectorJobActiveDeadlineSeconds: 600
             model:
               configMap: bobs-bookstore-wdt-config-map
+              wdtInstallHome: /auxiliary/weblogic-deploy
+              modelHome: /auxiliary/models
               runtimeEncryptionSecret: bobs-bookstore-runtime-encrypt-secret
             secrets:
               - mysql-credentials
@@ -485,6 +498,9 @@ spec:
             labels:
               app: bobs-orders-wls
               version: v1
+            auxiliaryImages:
+                - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:20211129200415-ae4e89e
+                  volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"

@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20211125051157-e016368ea",
+              "tag": "1.2.0-20211130230102-4f1415cb5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20211125051708-e016368ea",
+              "tag": "1.2.0-20211130230128-4f1415cb5",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20211125051157-e016368ea",
+              "tag": "1.2.0-20211130230102-4f1415cb5",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20211125051157-e016368ea",
+              "tag": "1.2.0-20211130230102-4f1415cb5",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -223,7 +223,7 @@
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20211124230344-64d77e0",
+              "tag": "0.3-20211202193501-64d77e0",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
@@ -282,7 +282,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20211124230812-5ee076b",
+              "tag": "v0.3.0-20211202184000-00643c8",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -315,7 +315,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.4",
+              "tag": "3.3.6",
               "helmFullImageKey": "image"
             }
           ]

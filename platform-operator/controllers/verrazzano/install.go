@@ -9,11 +9,12 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"go.uber.org/zap"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 // reconcileComponents reconciles each component using the following rules:
@@ -28,7 +29,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 
 	var requeue bool
 
-	compContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -36,6 +37,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
+		compContext := newContext.For(compName).Operation(vzconst.InstallOperation)
 		log.Debugf("processing install for %s", compName)
 
 		if !comp.IsOperatorInstallSupported() {
@@ -53,7 +55,6 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			log.Debugf("component %s is ready", compName)
 			continue
 		case vzapi.Disabled:
-			log.Infof("component %s is not installed", compName)
 			if !comp.IsEnabled(compContext) {
 				log.Debugf("component %s is disabled, skipping install", compName)
 				// User has disabled component in Verrazzano CR, don't install
@@ -71,24 +72,20 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			requeue = true
 
 		case vzapi.PreInstalling:
-			log.Infof("PreInstalling component %s", comp.Name())
+			log.Debugf("PreInstalling component %s", comp.Name())
 			if !registry.ComponentDependenciesMet(comp, compContext) {
 				log.Debugf("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
 				requeue = true
 				continue
 			}
 			if err := comp.PreInstall(compContext); err != nil {
-				if requeueResult, isRequeue := isRequeueError(log, err); isRequeue && !requeueResult.IsZero() {
-					return requeueResult, err
-				}
+				handleError(log, err)
 				requeue = true
 				continue
 			}
 			// If component is not installed,install it
 			if err := comp.Install(compContext); err != nil {
-				if requeueResult, isRequeue := isRequeueError(log, err); isRequeue && !requeueResult.IsZero() {
-					return requeueResult, err
-				}
+				handleError(log, err)
 				requeue = true
 				continue
 			}
@@ -106,10 +103,9 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				log.Debugf("Component %s is ready", compName)
 
 				if err := comp.PostInstall(compContext); err != nil {
-					if requeueResult, isRequeue := isRequeueError(log, err); isRequeue && !requeueResult.IsZero() {
-						return requeueResult, err
-					}
-					return newRequeueWithDelay(), err
+					handleError(log, err)
+					requeue = true
+					continue
 				}
 				log.Infof("Component %s has been successfully installed", comp.Name())
 				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", vzapi.InstallComplete); err != nil {
@@ -149,21 +145,16 @@ func isVersionOk(log *zap.SugaredLogger, compVersion string, vzVersion string) b
 	return !vzSemver.IsLessThan(compSemver)
 }
 
-func isRequeueError(log *zap.SugaredLogger, err error) (ctrl.Result, bool) {
-	result := ctrl.Result{}
+// handleError - detects if a an error is a RetryableError; if it is, logs it appropriately and
+func handleError(log *zap.SugaredLogger, err error) {
 	switch actualErr := err.(type) {
 	case ctrlerrors.RetryableError:
 		if actualErr.HasCause() {
-			log.Errorf("Retryable error occurred: %s", actualErr)
+			log.Errorf("Retryable error occurred, %s", actualErr.Error())
 		} else {
-			log.Debugf("Retryable error returned: %s", actualErr)
+			log.Debugf("Retryable error returned: %s", actualErr.Error())
 		}
-		if !actualErr.Result.IsZero() {
-			return actualErr.Result, true
-		}
-		return newRequeueWithDelay(), true
 	default:
-		log.Errorf("Unexpected error occurred during install/upgrade: %s", actualErr)
+		log.Errorf("Unexpected error occurred during install/upgrade: %s", actualErr.Error())
 	}
-	return result, false
 }

@@ -21,7 +21,11 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", getPrometheusIngressHost(kubeconfigPath), metricsName,
 		label, labelValue)
 
-	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, kubeconfigPath)
 	if err != nil {
 		return "", err
 	}
@@ -35,7 +39,11 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 // QueryMetric queries a metric from the Prometheus host, derived from the kubeconfig
 func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s", getPrometheusIngressHost(kubeconfigPath), metricsName)
-	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", GetVerrazzanoPasswordInCluster(kubeconfigPath), kubeconfigPath)
+	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, kubeconfigPath)
 	if err != nil {
 		return "", err
 	}
