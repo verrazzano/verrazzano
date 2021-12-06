@@ -447,6 +447,8 @@ spec:
             weblogic.resourceVersion: domain-v8
             weblogic.domainUID: bobs-bookstore
         spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
