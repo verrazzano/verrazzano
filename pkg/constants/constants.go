@@ -8,7 +8,7 @@ import "time"
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
-// LifecycleAnnotation - the annotation perform lifecycle actions on a workload
+// LifecycleActionAnnotation - the annotation perform lifecycle actions on a workload
 const LifecycleActionAnnotation = "verrazzano.io/lifecycle-action"
 
 // LifecycleActionStop - the annotation value used to stop a workload
@@ -70,6 +70,18 @@ const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 
 // DefaultElasticsearchSecretName default secret name for Elasticsearch credentials
 const DefaultElasticsearchSecretName = "verrazzano"
+
+// VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
+const VerrazzanoESInternal = "verrazzano-es-internal"
+
+// VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
+const VerrazzanoPromInternal = "verrazzano-prom-internal"
+
+// SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
+const SystemTLS = "system-tls"
+
+// AdditionalTLS is an optional tls secret that contains additional CA
+const AdditionalTLS = "tls-ca-additional"
 
 // VMCAgentPollingTimeInterval - The time interval at which mcagent polls Verrazzano Managed CLuster resource on the admin cluster.
 const VMCAgentPollingTimeInterval = 60 * time.Second
