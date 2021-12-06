@@ -80,11 +80,11 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "external-dns-jenkins",
+          "name": "external-dns",
           "images": [
             {
-              "image": "external-dns-jenkins",
-              "tag": "20211203175136-031cf6fb",
+              "image": "external-dns",
+              "tag": "20211206172437-2c3aa728",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
