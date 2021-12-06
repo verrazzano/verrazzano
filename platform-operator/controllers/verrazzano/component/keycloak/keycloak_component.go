@@ -4,9 +4,7 @@ package keycloak
 
 import (
 	"context"
-	"fmt"
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -71,7 +69,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create secret for the keycloakadmin user if it doesn't exist
-	err = createOrUpdateAuthSecret(ctx, "keycloak", "keycloak-http", "keycloakadmin")
+	err = createAuthSecret(ctx, "keycloak", "keycloak-http", "keycloakadmin")
 	if err != nil {
 		return err
 	}
@@ -81,13 +79,13 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 
 func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	// Create secret for the verrazzano-prom-internal user
-	err := createOrUpdateAuthSecret(ctx, "verrazzano-system", "verrazzano-prom-internal", "verrazzano-prom-internal")
+	err := createAuthSecret(ctx, "verrazzano-system", "verrazzano-prom-internal", "verrazzano-prom-internal")
 	if err != nil {
 		return err
 	}
 
 	// Create secret for the verrazzano-es-internal user
-	err = createOrUpdateAuthSecret(ctx, "verrazzano-system", "verrazzano-es-internal", "verrazzano-es-internal")
+	err = createAuthSecret(ctx, "verrazzano-system", "verrazzano-es-internal", "verrazzano-es-internal")
 	if err != nil {
 		return err
 	}
@@ -98,7 +96,6 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	// If OCI DNS, update annotation on Keycloak Ingress
-	ctx.Log().Infof("CDD Update Ingress because of OCI DNS: %t", vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()))
 	if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 		err := updateKeycloakIngress(ctx)
 		if err != nil {
@@ -111,7 +108,6 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	ctx.Log().Infof("Keycloak post-upgrade")
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
@@ -124,10 +120,6 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
-}
-
-func getCertName(vz *vzapi.Verrazzano) string {
-	return fmt.Sprintf("%s-secret", getEnvironmentName(vz.Spec.EnvironmentName))
 }
 
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
