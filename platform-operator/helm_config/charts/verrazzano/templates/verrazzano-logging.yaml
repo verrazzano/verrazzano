@@ -389,7 +389,7 @@ data:
       </buffer>
     </match>
   oci-logging-system.conf: |
-    <match kubernetes.**kube-system** kubernetes.**verrazzano-system**>
+    <match kubernetes.**verrazzano-system**>
       @type oci_logging
       log_object_id {{ .Values.logging.systemLogId }}
       <buffer>
