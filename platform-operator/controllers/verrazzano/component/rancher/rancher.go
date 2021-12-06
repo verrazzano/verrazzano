@@ -6,8 +6,8 @@ package rancher
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -42,6 +42,8 @@ const (
 const (
 	letsEncryptTLSSource       = "letsEncrypt"
 	caTLSSource                = "secret"
+	caCertsPem                 = "cacerts.pem"
+	caCert                     = "ca.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
@@ -74,7 +76,7 @@ func useAdditionalCAs(acme vzapi.Acme) bool {
 }
 
 func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
-	dnsSuffix, err := nginx.GetDNSSuffix(c, vz)
+	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
 	if err != nil {
 		return "", err
 	}

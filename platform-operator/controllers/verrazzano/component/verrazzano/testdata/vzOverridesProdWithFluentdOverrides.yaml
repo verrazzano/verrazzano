@@ -1,0 +1,44 @@
+# Copyright (c) 2021, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+api:
+  proxy:
+    OidcProviderHost: keycloak.default.11.22.33.44.nip.io
+    OidcProviderHostInCluster: keycloak-http.keycloak.svc.cluster.local
+config:
+  dnsSuffix: 11.22.33.44.nip.io
+  envName: default
+console:
+  enabled: true
+dns:
+  wildcard:
+    domain: nip.io
+elasticSearch:
+  enabled: true
+logging:
+  elasticsearchSecret: custom-elasticsearch-secret
+  elasticsearchURL: http://myes.mydomain.com:9200
+fluentd:
+  enabled: true
+  extraVolumeMounts:
+  - Destination: mysourceDefaults
+    Source: mysourceDefaults
+    readOnly: true
+  - Destination: mysourceRO
+    Source: mysourceRO
+    readOnly: true
+  - Destination: mydest
+    Source: mysourceCustomDestRW
+grafana:
+  enabled: true
+keycloak:
+  enabled: true
+kibana:
+  enabled: true
+monitoringOperator:
+  enabled: true
+prometheus:
+  enabled: true
+rancher:
+  enabled: true
+verrazzanoOperator:
+  enabled: true

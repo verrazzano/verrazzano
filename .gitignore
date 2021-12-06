@@ -24,6 +24,7 @@ known_licenses.txt
 no_licenses.txt
 thirdparty_licenses
 index.yaml
+cert-manager-ocidns.crds.yaml.*
 coverage.cov
 coverageTmp.cov
 coverage.html
@@ -46,3 +47,4 @@ image-patch-operator/weblogic-imagetool/installers/*
 tools/analysis/THIRD_PARTY_LICENSES.txt
 tests/e2e/**/*.test
 **/.DS_Store
+**/.vscode

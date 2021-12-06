@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	appsv1 "k8s.io/api/apps/v1"
@@ -86,7 +86,7 @@ func createCASecret() v1.Secret {
 			Name:      defaultVerrazzanoName,
 		},
 		Data: map[string][]byte{
-			"ca.cert": []byte("blahblah"),
+			caCert: []byte("blahblah"),
 		},
 	}
 }

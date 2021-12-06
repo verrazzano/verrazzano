@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
@@ -50,7 +50,7 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 	if cm == nil {
 		return errors.New("CertificateManager was not found in the effective CR")
 	}
-	dnsSuffix, err := nginx.GetDNSSuffix(c, vz)
+	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
 	if err != nil {
 		return err
 	}

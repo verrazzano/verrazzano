@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,6 +61,67 @@ func TestIsCertManagerEnabled(t *testing.T) {
 	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
 }
 
+// TestIsOCIDNS tests whether the Effective CR is using OCI DNS
+// GIVEN a call to isOCIDNS
+// WHEN OCI DNS is specified in the Verrazzano Spec
+// THEN isOCIDNS should return true
+func TestIsOCIDNS(t *testing.T) {
+	var tests = []struct {
+		name   string
+		vz     *vzapi.Verrazzano
+		ocidns bool
+	}{
+		{
+			"shouldn't be enabled when nil",
+			&vzapi.Verrazzano{},
+			false,
+		},
+		{
+			"should be enabled when OCI DNS present",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							OCI: &vzapi.OCI{},
+						},
+					},
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.ocidns, isOCIDNS(tt.vz))
+		})
+	}
+}
+
+// TestWriteCRD tests writing out the OCI DNS metadata to CertManager CRDs
+// GIVEN a call to writeCRD
+// WHEN the input file exists
+// THEN the output should have ocidns added.
+func TestWriteCRD(t *testing.T) {
+	inputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
+	outputFile := "../../../../thirdparty/manifests/cert-manager/output.crd.yaml"
+	writtenFiles, err := writeCRD(inputFile, outputFile, true)
+	assert.NoError(t, err)
+
+	expectedFiles := 6 // there should be six CRDs in the Cert Manager file
+	assert.NoError(t, err)
+	assert.Equal(t, expectedFiles, len(writtenFiles))
+	assert.NoError(t, cleanTempFiles(writtenFiles))
+}
+
+// TestCleanTempFiles tests cleaning up temp files
+// GIVEN a call to cleanTempFiles
+// WHEN a file is not found
+// THEN cleanTempFiles should return an error
+func TestCleanTempFiles(t *testing.T) {
+	assert.Error(t, cleanTempFiles([]string{"blahblah"}))
+}
+
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
 // GIVEN a call to IsCertManagerEnabled
 // WHEN cert-manager is disabled
@@ -107,6 +169,9 @@ func TestCertManagerPreInstallDryRun(t *testing.T) {
 // WHEN I call PreInstall
 // THEN no errors are returned
 func TestCertManagerPreInstall(t *testing.T) {
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../..", //since we are running inside the cert manager package, root is up 5 directories
+	})
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	setBashFunc(fakeBash)
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
