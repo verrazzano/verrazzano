@@ -86,7 +86,7 @@ func createCASecret() v1.Secret {
 			Name:      defaultVerrazzanoName,
 		},
 		Data: map[string][]byte{
-			"ca.cert": []byte("blahblah"),
+			caCert: []byte("blahblah"),
 		},
 	}
 }
