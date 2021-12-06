@@ -4,7 +4,7 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 )
 
 // ConditionalCheckFunc Test function for conditional specs

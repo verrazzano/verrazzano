@@ -6,21 +6,19 @@ package rancher
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Constants for Kubernetes resource names
 const (
-	// ComponentName is the name of the component
-	ComponentName = "rancher"
-	// ComponentNamespace is the namespace of the component
-	ComponentNamespace     = "cattle-system"
 	OperatorNamespace      = "rancher-operator-system"
 	defaultSecretNamespace = "cert-manager"
 	namespaceLabelKey      = "verrazzano.io/namespace"
-	adminSecretName        = "rancher-admin-secret"
 	rancherTLSSecretName   = "tls-ca"
 	defaultVerrazzanoName  = "verrazzano-ca-certificate-secret"
 )
@@ -48,12 +46,27 @@ const (
 	useBundledSystemChartValue = "true"
 )
 
-type bashFuncSig func(inArgs ...string) (string, string, error)
+type (
+	// restClientConfigSig is a provider for a k8s rest client implementation
+	// override for unit testing
+	restClientConfigSig func() (*rest.Config, rest.Interface, error)
+)
 
-var bashFunc bashFuncSig = vzos.RunBash
+var restClientConfig restClientConfigSig = func() (*rest.Config, rest.Interface, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	client, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cfg, client.CoreV1().RESTClient(), nil
+}
 
-func setBashFunc(f bashFuncSig) {
-	bashFunc = f
+// For unit testing
+func setRestClientConfig(f restClientConfigSig) {
+	restClientConfig = f
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -61,10 +74,10 @@ func useAdditionalCAs(acme vzapi.Acme) bool {
 }
 
 func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
-	dnsSuffix, err := nginx.GetDNSSuffix(c, vz)
+	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
 	if err != nil {
 		return "", err
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", ComponentName, vz.Spec.EnvironmentName, dnsSuffix)
+	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
 	return rancherHostname, nil
 }

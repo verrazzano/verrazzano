@@ -17,7 +17,7 @@ func DeploymentsReady(log *zap.SugaredLogger, client clipkg.Client, deployments 
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				log.Infof("%v deployment not found", namespacedName)
+				log.Debugf("%v deployment not found", namespacedName)
 				// Deployment not found
 				return false
 			}
@@ -25,7 +25,7 @@ func DeploymentsReady(log *zap.SugaredLogger, client clipkg.Client, deployments 
 			return false
 		}
 		if deployment.Status.AvailableReplicas < expectedReplicas {
-			log.Infof("Not enough available replicas for the %v deployment yet", namespacedName)
+			log.Debugf("Not enough available replicas for the %v deployment yet", namespacedName)
 			return false
 		}
 	}

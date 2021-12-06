@@ -8,13 +8,14 @@ package installjob
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strconv"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -408,7 +409,7 @@ func getKeycloak(keycloak *installv1alpha1.KeycloakComponent, templates []instal
 	} else if mysqlVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mysqlVolumeSource.PersistentVolumeClaim
-		storageSpec, found := findVolumeTemplate(pvcs.ClaimName, templates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, templates)
 		if !found {
 			err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 			return Keycloak{}, err
@@ -551,7 +552,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 			}...)
 		} else if vzSpec.DefaultVolumeSource.PersistentVolumeClaim != nil {
 			pvcs := vzSpec.DefaultVolumeSource.PersistentVolumeClaim
-			storageSpec, found := findVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
+			storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, vzSpec.VolumeClaimSpecTemplates)
 			if !found {
 				err := fmt.Errorf("No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 				return []InstallArg{}, err
@@ -577,7 +578,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 	}
 	if len(vzSpec.Security.AdminSubjects) > 0 {
 		for i, v := range vzSpec.Security.AdminSubjects {
-			if err := validateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
+			if err := vzconfig.ValidateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
 				return []InstallArg{}, err
 			}
 			args = append(args, InstallArg{
@@ -608,7 +609,7 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 	}
 	if len(vzSpec.Security.MonitorSubjects) > 0 {
 		for i, v := range vzSpec.Security.MonitorSubjects {
-			if err := validateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
+			if err := vzconfig.ValidateRoleBindingSubject(v, fmt.Sprintf("adminSubjects[%d]", i)); err != nil {
 				return []InstallArg{}, err
 			}
 			args = append(args, InstallArg{
@@ -649,30 +650,6 @@ func getVerrazzanoInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) ([]Install
 	}
 
 	return args, nil
-}
-
-func validateRoleBindingSubject(subject rbacv1.Subject, name string) error {
-	if len(subject.Name) < 1 {
-		err := fmt.Errorf("no name for %s", name)
-		return err
-	}
-	if subject.Kind != "User" && subject.Kind != "Group" && subject.Kind != "ServiceAccount" {
-		err := fmt.Errorf("invalid kind '%s' for %s", subject.Kind, name)
-		return err
-	}
-	if (subject.Kind == "User" || subject.Kind == "Group") && len(subject.APIGroup) > 0 && subject.APIGroup != "rbac.authorization.k8s.io" {
-		err := fmt.Errorf("invalid apiGroup '%s' for %s", subject.APIGroup, name)
-		return err
-	}
-	if subject.Kind == "ServiceAccount" && (len(subject.APIGroup) > 0 || subject.APIGroup != "") {
-		err := fmt.Errorf("invalid apiGroup '%s' for %s", subject.APIGroup, name)
-		return err
-	}
-	if subject.Kind == "ServiceAccount" && len(subject.Namespace) < 1 {
-		err := fmt.Errorf("no namespace for ServiceAccount in %s", name)
-		return err
-	}
-	return nil
 }
 
 func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
@@ -721,16 +698,6 @@ func getVMIInstallArgs(vzSpec *installv1alpha1.VerrazzanoSpec) []InstallArg {
 	}
 
 	return vmiArgs
-}
-
-// findVolumeTemplate Find a named VolumeClaimTemplate in the list
-func findVolumeTemplate(templateName string, templates []installv1alpha1.VolumeClaimSpecTemplate) (*corev1.PersistentVolumeClaimSpec, bool) {
-	for i, template := range templates {
-		if templateName == template.Name {
-			return &templates[i].Spec, true
-		}
-	}
-	return nil, false
 }
 
 func getFluentd(comp *installv1alpha1.FluentdComponent) Fluentd {

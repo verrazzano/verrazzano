@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,15 +42,17 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
+	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		log.Infof("Upgrading %s", compName)
-		upgradeContext, err := spi.NewContext(log, r, cr, r.DryRun)
-		if err != nil {
-			return newRequeueWithDelay(), err
-		}
+		upgradeContext := newContext.For(compName).Operation(vzconst.UpgradeOperation)
 		installed, err := comp.IsInstalled(upgradeContext)
 		if err != nil {
 			return newRequeueWithDelay(), err
@@ -78,7 +82,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	}
 
 	// Invoke the global post upgrade function after all components are upgraded.
-	err := postUpgrade(log, r)
+	err = postUpgrade(log, r)
 	if err != nil {
 		log.Errorf("Error running Verrazzano system-level post-upgrade")
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err

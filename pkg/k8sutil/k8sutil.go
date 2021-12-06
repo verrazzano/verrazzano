@@ -4,11 +4,21 @@
 package k8sutil
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/remotecommand"
+	"net/url"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
@@ -151,4 +161,123 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 	// keep retrying and eventually we should get a gateway with a host
 	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
 	return "", nil
+}
+
+//ApplyCRDYaml persists the CRD YAML files in a given directory
+func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, path string, excludedFileNames []string) ([]string, error) {
+	var err error
+
+	isExcludedFile := func(name string) bool {
+		for _, fileName := range excludedFileNames {
+			if name == fileName {
+				return true
+			}
+		}
+		return false
+	}
+
+	filesApplied := []string{}
+	files, err := os.ReadDir(path)
+	if err != nil {
+		log.Error(err, "Unable to list files in directory")
+		return filesApplied, err
+	}
+	for _, file := range files {
+		if isExcludedFile(file.Name()) {
+			continue
+		}
+		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+		yamlBytes, err := os.ReadFile(path + "/" + file.Name())
+		if err != nil {
+			log.Error(err, "Unable to read file")
+			return filesApplied, err
+		}
+		// Note that we can only unmarshal one document at a time, any remaining bytes are lost after the '---'.
+		// If you have multiple documents in a file, you must separate that file into multiple files,
+		// one for each document.
+		err = yaml.Unmarshal(yamlBytes, u)
+		if err != nil {
+			log.Error(err, "Unable to unmarshal yaml")
+			return filesApplied, err
+		}
+		if u.GetKind() == "CustomResourceDefinition" {
+			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
+			if err != nil {
+				log.Error(err, "Unable to make a copy of the spec")
+				return filesApplied, err
+			}
+
+			_, err = controllerutil.CreateOrUpdate(context.TODO(), c, u, func() error {
+				return unstructured.SetNestedField(u.Object, specCopy, "spec")
+			})
+			if err != nil {
+				log.Error(err, "Unable persist object to kubernetes")
+				return filesApplied, err
+			}
+			filesApplied = append(filesApplied, file.Name())
+		}
+	}
+	return filesApplied, nil
+}
+
+// NewPodExecutor is to be overridden during unit tests
+var NewPodExecutor = remotecommand.NewSPDYExecutor
+
+// FakePodSTDOUT can be used to output arbitrary strings during unit testing
+var FakePodSTDOUT = ""
+
+//NewFakePodExecutor should be used instead of remotecommand.NewSPDYExecutor in unit tests
+func NewFakePodExecutor(config *rest.Config, method string, url *url.URL) (remotecommand.Executor, error) {
+	return &fakeExecutor{method: method, url: url}, nil
+}
+
+// fakeExecutor is for unit testing
+type fakeExecutor struct {
+	method string
+	url    *url.URL
+}
+
+// Stream on a fakeExecutor sets stdout to FakePodSTDOUT
+func (f *fakeExecutor) Stream(options remotecommand.StreamOptions) error {
+	if options.Stdout != nil {
+		buf := new(bytes.Buffer)
+		buf.WriteString(FakePodSTDOUT)
+		if _, err := options.Stdout.Write(buf.Bytes()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
+func ExecPod(cfg *rest.Config, restClient rest.Interface, pod *v1.Pod, container string, command []string) (string, string, error) {
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	request := restClient.
+		Post().
+		Namespace(pod.Namespace).
+		Resource("pods").
+		Name(pod.Name).
+		SubResource("exec").
+		VersionedParams(&v1.PodExecOptions{
+			Container: container,
+			Command:   command,
+			Stdin:     false,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       true,
+		}, scheme.ParameterCodec)
+	executor, err := NewPodExecutor(cfg, "POST", request.URL())
+	if err != nil {
+		return "", "", err
+	}
+	err = executor.Stream(remotecommand.StreamOptions{
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+	if err != nil {
+		return "", "", fmt.Errorf("error running command %s on %v/%v: %v", command, pod.Namespace, pod.Name, err)
+	}
+
+	return stdout.String(), stderr.String(), nil
 }

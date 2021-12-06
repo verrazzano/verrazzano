@@ -40,7 +40,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
 	format10 / <(?<sequenceNumber>(.*?))>/
 	format11 / <(?<severity>(.*?))>/
 	format12 / <(?<messageID>(.*?))>/
-	format13 / <(?<message>[^>]*)>[\s]*/
+	format13 / <(?<message>([\s\S]*?))>\s*$/
 	time_key timestamp
 	keep_time_key true
   </parse>
@@ -66,7 +66,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
 	format10 / <(?<sequenceNumber>(.*?))>/
 	format11 / <(?<severity>(.*?))>/
 	format12 / <(?<messageID>(.*?))>/
-	format13 / <(?<message>[^>]*)>[\s]*/
+	format13 / <(?<message>([\s\S]*?))>\s*$/
 	time_key timestamp
 	keep_time_key true
   </parse>

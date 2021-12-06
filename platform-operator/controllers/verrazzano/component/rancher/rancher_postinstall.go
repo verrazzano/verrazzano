@@ -7,23 +7,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
-type AccessToken struct {
-	Token string `json:"token"`
-}
+const (
+	resetPasswordCommand = "reset-password"
+)
 
 func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
-	_, err := getAdminPassword(c)
+	_, err := common.GetAdminSecret(c)
 	if err == nil {
 		log.Infof("Rancher Post Install: admin secret exists, skipping object creation")
 		return nil
@@ -43,69 +42,61 @@ func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error
 	return err
 }
 
-func getAdminPassword(c client.Client) (string, error) {
-	adminSecret, err := getAdminSecret(c)
+// retryResetPassword retries resetting the Rancher admin password using the Rancher shell
+func resetAdminPassword(c client.Client) (string, error) {
+	cfg, restClient, err := restClientConfig()
 	if err != nil {
 		return "", err
 	}
-
-	return string(adminSecret.Data["password"]), nil
-}
-
-func getAdminSecret(c client.Client) (*v1.Secret, error) {
-	namespacedName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      adminSecretName,
-	}
-	adminSecret := &v1.Secret{}
-	err := c.Get(context.TODO(), namespacedName, adminSecret)
-	return adminSecret, err
-}
-
-// retryResetPassword retries resetting the rancher admin password using the rancher shell
-func resetAdminPassword(c client.Client) (string, error) {
 	podList := &v1.PodList{}
-	labelMatcher := client.MatchingLabels{"app": ComponentName}
-	namespaceMatcher := client.InNamespace(ComponentNamespace)
+	labelMatcher := client.MatchingLabels{"app": common.RancherName}
+	namespaceMatcher := client.InNamespace(common.CattleSystem)
 	if err := c.List(context.TODO(), podList, namespaceMatcher, labelMatcher); err != nil {
 		return "", err
 	}
 	if len(podList.Items) < 1 {
 		return "", errors.New("no Rancher pods found")
 	}
-	podName := podList.Items[0].Name
-	script := filepath.Join(config.GetInstallDir(), "reset-rancher-password.sh")
-	stdout, stderr, err := bashFunc(script, podName, ComponentNamespace)
+	pod := podList.Items[0]
+	stdout, stderr, err := k8sutil.ExecPod(cfg, restClient, &pod, common.RancherName, []string{resetPasswordCommand})
 	if err != nil {
-		return "", fmt.Errorf("%s: %s", err, stderr)
+		return "", err
 	}
 	// Shell output may have a trailing newline
-	password := strings.TrimSuffix(stdout, "\n")
+	password := parsePasswordStdout(stdout)
 	if password == "" {
-		return "", errors.New("failed to generate Rancher admin password, password is empty")
+		return "", fmt.Errorf("failed to reset Rancher admin password: %s", stderr)
 	}
 	return password, nil
 }
 
-// newAdminSecret generates the admin secret for rancher
+// hack to parse the stdout of Rancher reset password
+// we need to remove carriage returns and newlines from the stdout, since it is coming over from the pod's shell
+// STDOUT is usually going to look something like this: "W1122 18:11:20.905585\nNew password for default admin user (user-p958n):\npassword\n"
+func parsePasswordStdout(stdout string) string {
+	partial := strings.Split(strings.TrimSuffix(stdout, "\n"), "\n")
+	var password string
+	switch len(partial) {
+	case 3: // there may be three lines of stdout if a warning message is included
+		password = partial[2]
+	case 2: // usually there are two lines, the reset password message and the new password
+		password = partial[1]
+	default: // if there are not 2 or 3 lines, we cannot guess the output
+		return ""
+	}
+	return strings.TrimSuffix(password, "\r")
+}
+
+// newAdminSecret generates the admin secret for Rancher
 func newAdminSecret(c client.Client, password string) error {
 	adminSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      adminSecretName,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherAdminSecret,
 		},
 		Data: map[string][]byte{
 			"password": []byte(password),
 		},
 	}
 	return c.Create(context.TODO(), adminSecret)
-}
-
-func setServerURL(log *zap.SugaredLogger, password, hostname string) error {
-	script := filepath.Join(config.GetInstallDir(), "put-rancher-server-url.sh")
-	if _, stderr, err := bashFunc(script, password, hostname); err != nil {
-		log.Errorf("Rancher post install: Failed to update Rancher server url: %s: %s", err, stderr)
-		return err
-	}
-	return nil
 }

@@ -81,8 +81,8 @@ type VerrazzanoSpec struct {
 
 	// VolumeClaimSpecTemplates Defines a named set of PVC configurations that can be referenced from components using persistent volumes.
 	// +optional
-	// +patchStrategy=replace
-	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"replace"`
+	// +patchStrategy=merge,retainKeys
+	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano
@@ -445,6 +445,10 @@ type FluentdComponent struct {
 	ElasticsearchURL string `json:"elasticsearchURL,omitempty"`
 	// +optional
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
+
+	// Configuration for integration with OCI (Oracle Cloud Infrastructure) Logging Service
+	// +optional
+	OCI *OciLoggingConfiguration `json:"oci,omitempty"`
 }
 
 // WebLogicOperatorComponent specifies the WebLogic Operator configuration
@@ -552,4 +556,11 @@ type IngressType string
 
 func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
+}
+
+// OCI Logging configuration for Fluentd DaemonSet
+type OciLoggingConfiguration struct {
+	DefaultAppLogID string `json:"defaultAppLogId"`
+	SystemLogID     string `json:"systemLogId"`
+	APISecret       string `json:"apiSecret,omitempty"`
 }

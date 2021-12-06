@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,7 +34,7 @@ var (
 					},
 				},
 				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{Suffix: ComponentName},
+					External: &vzapi.External{Suffix: common.RancherName},
 				},
 			},
 		},
@@ -47,7 +48,7 @@ var (
 					ClusterResourceNamespace: defaultSecretNamespace,
 				}}},
 				DNS: &vzapi.DNSComponent{
-					External: &vzapi.External{Suffix: ComponentName},
+					External: &vzapi.External{Suffix: common.RancherName},
 				},
 			},
 		},
@@ -64,6 +65,18 @@ func getScheme() *runtime.Scheme {
 
 func getTestLogger(t *testing.T) *zap.SugaredLogger {
 	return zaptest.NewLogger(t).Sugar()
+}
+
+func createRootCASecret() v1.Secret {
+	return v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: common.CattleSystem,
+			Name:      common.RancherIngressCAName,
+		},
+		Data: map[string][]byte{
+			common.RancherCACert: []byte("blahblah"),
+		},
+	}
 }
 
 func createCASecret() v1.Secret {
@@ -84,9 +97,9 @@ func createRancherPodList() v1.PodList {
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "rancherpod",
-					Namespace: ComponentNamespace,
+					Namespace: common.CattleSystem,
 					Labels: map[string]string{
-						"app": ComponentName,
+						"app": common.RancherName,
 					},
 				},
 			},
@@ -97,8 +110,8 @@ func createRancherPodList() v1.PodList {
 func createAdminSecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: ComponentNamespace,
-			Name:      adminSecretName,
+			Namespace: common.CattleSystem,
+			Name:      common.RancherAdminSecret,
 		},
 		Data: map[string][]byte{
 			"password": []byte("foobar"),
@@ -106,6 +119,10 @@ func createAdminSecret() v1.Secret {
 	}
 }
 
+// TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
+// GIVEN a Verrazzano CR
+//  WHEN useAdditionalCAs is called
+//  THEN useAdditionalCAs return true or false if additional CAs are required
 func TestUseAdditionalCAs(t *testing.T) {
 	var tests = []struct {
 		in  vzapi.Acme
@@ -122,12 +139,20 @@ func TestUseAdditionalCAs(t *testing.T) {
 	}
 }
 
+// TestGetRancherHostname verifies the Rancher hostname can be generated
+// GIVEN a Verrazzano CR
+//  WHEN getRancherHostname is called
+//  THEN getRancherHostname should return the Rancher hostname
 func TestGetRancherHostname(t *testing.T) {
-	expected := fmt.Sprintf("%s.%s.rancher", ComponentName, vzAcmeDev.Spec.EnvironmentName)
+	expected := fmt.Sprintf("%s.%s.rancher", common.RancherName, vzAcmeDev.Spec.EnvironmentName)
 	actual, _ := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev)
 	assert.Equal(t, expected, actual)
 }
 
+// TestGetRancherHostnameNotFound verifies the Rancher hostname can not be generated in the CR is invalid
+// GIVEN an invalid Verrazzano CR
+//  WHEN getRancherHostname is called
+//  THEN getRancherHostname should return an error
 func TestGetRancherHostnameNotFound(t *testing.T) {
 	_, err := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzapi.Verrazzano{})
 	assert.NotNil(t, err)

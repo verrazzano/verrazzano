@@ -6,12 +6,12 @@ package rancher
 import (
 	"context"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
+	"net/http"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -35,16 +35,16 @@ func createRancherOperatorNamespace(log *zap.SugaredLogger, c client.Client) err
 func createCattleSystemNamespace(log *zap.SugaredLogger, c client.Client) error {
 	namespace := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: ComponentNamespace,
+			Name: common.CattleSystem,
 		},
 	}
-	log.Debugf("Creating %s namespace", ComponentNamespace)
+	log.Debugf("Creating %s namespace", common.CattleSystem)
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
-		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, ComponentNamespace)
+		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, common.CattleSystem)
 		if namespace.Labels == nil {
 			namespace.Labels = map[string]string{}
 		}
-		namespace.Labels[namespaceLabelKey] = ComponentName
+		namespace.Labels[namespaceLabelKey] = common.RancherName
 		return nil
 	}); err != nil {
 		return err
@@ -65,7 +65,7 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
+				Namespace: common.CattleSystem,
 				Name:      rancherTLSSecretName,
 			},
 		}
@@ -90,13 +90,29 @@ func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
 		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
 }
 
-func createAdditionalCertificates(log *zap.SugaredLogger, vz *vzapi.Verrazzano) error {
+func createAdditionalCertificates(log *zap.SugaredLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if (cm != nil && cm.Certificate.Acme != vzapi.Acme{} && useAdditionalCAs(cm.Certificate.Acme)) {
-		log.Infof("Creating additional Rancher certificates for non-production environment")
-		script := filepath.Join(config.GetInstallDir(), "install-rancher-certificates.sh")
-		if _, stderr, err := bashFunc(script); err != nil {
-			log.Errorf("Rancher pre install: Failed to install letsEncrypt certificates: %s: %s", err, stderr)
+		log.Debugf("Creating additional Rancher certificates for non-production environment")
+		secret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: common.CattleSystem,
+				Name:      common.RancherAdditionalIngressCAName,
+			},
+		}
+
+		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, secret, func() error {
+			builder := &certBuilder{
+				hc: &http.Client{},
+			}
+			if err := builder.buildLetsEncryptStagingChain(); err != nil {
+				return err
+			}
+			secret.Data = map[string][]byte{
+				common.RancherCAAdditionalPem: builder.cert,
+			}
+			return nil
+		}); err != nil {
 			return err
 		}
 	}

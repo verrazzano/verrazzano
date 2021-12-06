@@ -206,6 +206,20 @@ spec:
                           - source
                           type: object
                         type: array
+                      oci:
+                        description: Configuration for integration with OCI (Oracle
+                          Cloud Infrastructure) Logging Service
+                        properties:
+                          apiSecret:
+                            type: string
+                          defaultAppLogId:
+                            type: string
+                          systemLogId:
+                            type: string
+                        required:
+                        - defaultAppLogId
+                        - systemLogId
+                        type: object
                     type: object
                   grafana:
                     description: Grafana configuration

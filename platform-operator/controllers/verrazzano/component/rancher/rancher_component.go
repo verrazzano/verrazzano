@@ -10,6 +10,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -30,8 +31,8 @@ func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
 			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
-			ReleaseName:             ComponentName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ReleaseName:             common.RancherName,
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
 			ChartNamespace:          "cattle-system",
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
@@ -58,7 +59,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 //appendRegistryOverrides appends overrides if a custom registry is being used
 func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
-	// If using external registry, add registry overrides to rancher
+	// If using external registry, add registry overrides to Rancher
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry != "" {
 		imageRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
@@ -92,7 +93,7 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 		kvs = append(kvs,
 			bom.KeyValue{
 				Key:   letsEncryptIngressClassKey,
-				Value: ComponentName,
+				Value: common.RancherName,
 			}, bom.KeyValue{
 				Key:   letsEncryptEmailKey,
 				Value: cm.Certificate.Acme.EmailAddress,
@@ -151,7 +152,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := copyDefaultCACertificate(log, c, vz); err != nil {
 		return err
 	}
-	if err := createAdditionalCertificates(log, vz); err != nil {
+	if err := createAdditionalCertificates(log, c, vz); err != nil {
 		return err
 	}
 	return nil
@@ -195,8 +196,8 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 		c := ctx.Client()
 		rancherDeploy := []types.NamespacedName{
 			{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
+				Name:      common.RancherName,
+				Namespace: common.CattleSystem,
 			},
 		}
 		return status.DeploymentsReady(log, c, rancherDeploy, 1)
@@ -220,7 +221,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return err
 	}
-	password, err := getAdminPassword(c)
+	password, err := common.GetAdminSecret(c)
 	if err != nil {
 		return err
 	}
@@ -229,8 +230,13 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := setServerURL(log, password, rancherHostName); err != nil {
+	rest, err := common.NewClient(c, rancherHostName, password)
+	if err != nil {
 		return err
 	}
-	return nil
+	if err := rest.SetAccessToken(); err != nil {
+		return err
+	}
+
+	return rest.PutServerURL()
 }
