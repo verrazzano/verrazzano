@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -180,6 +181,25 @@ func getEnvironmentName(envName string) string {
 	}
 
 	return envName
+}
+
+func updateKeycloakIngress(ctx spi.ComponentContext) error {
+	ctx.Log().Info("CDD UpdateKeycloak Ingress")
+	ingress := networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
+	}
+	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
+		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
+		if err != nil {
+			return err
+		}
+		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
+		ctx.Log().Infof("CDD Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
+		ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
+		return nil
+	})
+	ctx.Log().Infof("CDD Keycloak ingress operation result: %s", opResult)
+	return err
 }
 
 func updateKeycloakUris(ctx spi.ComponentContext) error {

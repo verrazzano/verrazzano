@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
@@ -80,7 +81,6 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 
 func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	// Create secret for the verrazzano-prom-internal user
-
 	err := createOrUpdateAuthSecret(ctx, "verrazzano-system", "verrazzano-prom-internal", "verrazzano-prom-internal")
 	if err != nil {
 		return err
@@ -95,6 +95,15 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	err = configureKeycloakRealms(ctx)
 	if err != nil {
 		return err
+	}
+
+	// If OCI DNS, update annotation on Keycloak Ingress
+	ctx.Log().Infof("CDD Update Ingress because of OCI DNS: %t", vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()))
+	if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		err := updateKeycloakIngress(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
