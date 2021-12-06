@@ -54,10 +54,14 @@ func setBashFunc(f bashFuncSig) {
 type installMonitorType struct {
 	running  bool
 	resultCh chan bool
+	inputCh  chan installRoutineParams
 }
 
-func (m *installMonitorType) sendResult(r bool) {
-	m.resultCh <- r
+//installRoutineParams - Used to pass args to the install goroutine
+type installRoutineParams struct {
+	overrides     string
+	fileOverrides []string
+	log           *zap.SugaredLogger
 }
 
 //installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
@@ -68,12 +72,10 @@ type installMonitor interface {
 	checkResult() (bool, error)
 	// reset - Resets the monitor and closes any open channels
 	reset()
-	// init - Initializes the monitor to wait for notification from the install goroutine
-	init()
-	// sendResult - Used by the goroutine to notify the monitor it is complete
-	sendResult(r bool)
 	//isRunning - returns true of the monitor/goroutine are active
 	isRunning() bool
+	//run - Run the install with the specified args
+	run(args installRoutineParams)
 }
 
 //checkResult - checks for a result from the goroutine
@@ -91,17 +93,42 @@ func (m *installMonitorType) checkResult() (bool, error) {
 func (m *installMonitorType) reset() {
 	m.running = false
 	close(m.resultCh)
-}
-
-//init - init the channel and running indicator
-func (m *installMonitorType) init() {
-	m.running = true
-	m.resultCh = make(chan bool)
+	close(m.inputCh)
 }
 
 //isRunning - returns true of the monitor/goroutine are active
 func (m *installMonitorType) isRunning() bool {
 	return m.running
+}
+
+//run - Run the install in a goroutine
+func (m *installMonitorType) run(args installRoutineParams) {
+	m.running = true
+	m.resultCh = make(chan bool, 2)
+	m.inputCh = make(chan installRoutineParams, 2)
+
+	// Run the install in the background
+	go func(inputCh chan installRoutineParams, outputCh chan bool) {
+		// The function will execute once, sending true on success, false on failure to the channel reader
+		// Read inputs
+		args := <-inputCh
+
+		result := true
+		args.log.Debugf("Starting istioctl install...")
+		stdout, stderr, err := installFunc(args.log, args.overrides, args.fileOverrides...)
+		args.log.Debugf("istioctl stdout: %s", string(stdout))
+		if err != nil {
+			result = false
+			args.log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
+		}
+
+		// Write result
+		args.log.Debugf("Completed istioctl install, result: %s", result)
+		outputCh <- result
+	}(m.inputCh, m.resultCh)
+
+	// Pass in the args to get started
+	m.inputCh <- args
 }
 
 func (i istioComponent) IsOperatorInstallSupported() bool {
@@ -213,20 +240,16 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error {
 	log := compContext.Log()
 	log.Debugf("Creating background install goroutine for Istio")
-	monitor.init()
-	go func() {
-		// The function will execute once, sending true on success, false on failure to the channel reader
-		result := true
-		log.Debugf("Starting istioctl install...")
-		stdout, stderr, err := installFunc(log, overrideStrings, files...)
-		log.Debugf("istioctl stdout: %s", string(stdout))
-		if err != nil {
-			result = false
-			log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
-		}
-		log.Debugf("Completed istioctl install successfully")
-		monitor.sendResult(result)
-	}()
+	// clone the parameters
+	overridesFilesCopy := make([]string, len(files))
+	copy(overridesFilesCopy, files)
+	monitor.run(
+		installRoutineParams{
+			overrides:     overrideStrings,
+			fileOverrides: overridesFilesCopy,
+			log:           log.With(), // clone the logger
+		},
+	)
 	return ctrlerrors.RetryableError{Source: ComponentName}
 }
 

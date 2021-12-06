@@ -54,6 +54,9 @@ type fakeMonitor struct {
 	running bool
 }
 
+func (f *fakeMonitor) run(args installRoutineParams) {
+}
+
 func (f *fakeMonitor) checkResult() (bool, error) { return f.result, f.err }
 
 func (f *fakeMonitor) reset() {}
@@ -224,7 +227,12 @@ func Test_forkInstallSuccess(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	istio.SetCmdRunner(fakeRunner{})
 
-	setInstallFunc(func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	expectedOverridesFiles := []string{comp.ValuesFile, "istio-overrides.yaml"}
+	expectedOverridesString := "myoverride=true"
+
+	setInstallFunc(func(log *zap.SugaredLogger, overridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+		assert.Equal(expectedOverridesFiles, overridesFiles, "Did not get expected override files")
+		assert.Equal(expectedOverridesString, overridesString)
 		return []byte(""), []byte(""), nil
 	})
 	defer func() { installFunc = istio.Install }()
@@ -232,7 +240,7 @@ func Test_forkInstallSuccess(t *testing.T) {
 	setBashFunc(fakeBash)
 
 	var monitor installMonitor = &installMonitorType{}
-	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, "myoverride=true", []string{comp.ValuesFile, "istio-overrides.yaml"})
+	err := forkInstall(spi.NewFakeContext(getIstioInstallMock(t), installCR, false), monitor, expectedOverridesString, expectedOverridesFiles)
 	assert.Equal(spi2.RetryableError{Source: ComponentName}, err)
 	for i := 0; i < 100; i++ {
 		result, retryError := monitor.checkResult()
