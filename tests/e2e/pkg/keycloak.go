@@ -60,12 +60,10 @@ func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 		return nil, err
 	}
 	keycloakAdminPassword := strings.TrimSpace(string(secret.Data["password"]))
-	fmt.Printf("CDD KeyCloak Password = %s", keycloakAdminPassword)
 
 	ingressHost := ingress.Spec.Rules[0].Host
 	keycloakLoginURL := fmt.Sprintf("https://%s/auth/realms/%s/protocol/openid-connect/token", ingressHost, keycloakAdminUserRealm)
 	body := fmt.Sprintf("username=%s&password=%s&grant_type=password&client_id=%s", keycloakAdminUserName, keycloakAdminPassword, keycloakAdminClientID)
-	fmt.Printf("CDD KeyCloak Body = %s", body)
 	resp, err := PostWithHostHeader(keycloakLoginURL, "application/x-www-form-urlencoded", ingressHost, strings.NewReader(body))
 	if err != nil {
 		return nil, err

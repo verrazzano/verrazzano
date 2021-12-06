@@ -634,6 +634,6 @@ func TestLoginKeycloak(t *testing.T) {
 func TestCreateOrUpdateAuthSecret(t *testing.T) {
 	c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	ctx := spi.NewFakeContext(c, testVZ, false)
-	err := createOrUpdateAuthSecret(ctx, "ns", "secret", "user")
+	err := createAuthSecret(ctx, "ns", "secret", "user")
 	assert.NoError(t, err)
 }
