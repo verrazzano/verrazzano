@@ -307,6 +307,8 @@ pipeline {
                         """
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                         sh """
+                            # Create the Harbor project if it does not exist
+                            sh ${TEST_SCRIPTS_DIR}/create_harbor_project.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
                             # Run the image-helper to load the images into the Harbor registry
                             cd ${TARBALL_DIR}
                             ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_STANDALONE_REGISTRY} -l . -r ${baseImageRepo}

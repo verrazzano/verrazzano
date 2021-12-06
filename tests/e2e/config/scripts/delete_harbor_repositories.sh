@@ -2,7 +2,7 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Script for soft deletion images in Harbor image registry.
+# Script for soft deletion images in the Harbor project.
 # Garbage collection setting for actual deletion of data must be enabled in the Harbor instance separately.
 
 set -u
@@ -14,6 +14,27 @@ PASSWORD=
 PROJECT_NAME=
 IMAGES_DIR=
 IMAGE_REPO_SUBPATH_PREFIX=
+
+function usage() {
+  echo """
+  Script for soft deletion images in the Harbor project. Garbage collection setting for actual deletion of data must be
+  enabled in the Harbor instance separately.
+
+  Usage:
+
+  $0 -a <harbor-rest-api-base-url> -u <username> -p <password> -m <project-name> -l <images-directory> -i <image-repository-subpath-prefix>
+
+  Options:
+   -a <harbor-rest-api-base-url>          Base URL of the Harbor REST API (example https://<your-harbor-instance-domain>/api/v2.0)
+   -u <username>                          Username with permissions to create a project in Harbor
+   -p <password>                          Password for the corresponding username
+   -m <project-name>                      The name of the project to be created
+   -l <images-directory>                  Images directory
+   -i <image-repository-subpath-prefix>   Subpath prefix for the image repository
+   -h                                     Display help usage
+  """
+  exit 0
+}
 
 function delete_repositories() {
   local replacement="%252F"
@@ -63,6 +84,9 @@ while getopts 'ha:u:p:m:l:i:' opt; do
     ;;
   i)
     IMAGE_REPO_SUBPATH_PREFIX=$OPTARG
+    ;;
+  h | ?)
+    usage
     ;;
   esac
 done
