@@ -71,7 +71,7 @@ do
         -d|--sleep-duration)           SLEEP_DURATION="$2"; shift; shift;;
         -v|--verbose)                  VERBOSE=true; shift;;
         -h|--help)                     usage;;
-        *)                             usage;;
+	*)                             echo "ERROR: Invalid argument: ${key}"; usage;;
     esac
 done
 
@@ -176,6 +176,9 @@ spec:
       containers:
         - name: ${JOB_NAME}
           image: ${JOB_IMAGE}
+          env:
+             - name: KUBECONFIG
+               value: /tmp/lre-config/kubeconfig
           volumeMounts:
             - name: ocisecret
               mountPath: /var/run/secrets/ocisecret
@@ -203,11 +206,11 @@ spec:
                     mode: 0755
 EOF
 
-kubectl wait -n ${JOB_NAMESPACE} --for=condition=ContainersReady --timeout=100s pod --selector job-name=${JOB_NAME}
+kubectl wait -n ${JOB_NAMESPACE} --for=condition=ContainersReady --timeout=400s pod --selector job-name=${JOB_NAME}
 
 POD_NAME=$(kubectl get pod -n ${JOB_NAMESPACE} -l job-name=${JOB_NAME} -o jsonpath="{.items[0].metadata.name}") 
 echo
 echo "Copy test binaries using the following command:"
 echo "kubectl cp -n ${JOB_NAMESPACE} <path-to-binaries-folder> ${POD_NAME}:${TEST_BINARIES}"
 echo
-kubectl logs -f -n ${JOB_NAMESPACE} -f ${POD_NAME}
+kubectl logs -n ${JOB_NAMESPACE} ${POD_NAME} -f

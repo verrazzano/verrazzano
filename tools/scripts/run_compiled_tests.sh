@@ -145,7 +145,7 @@ do
         -d|--sleep-duration)           SLEEP_DURATION="$2"; shift; shift;;
         -v|--verbose)                  VERBOSE=true; shift;;
         -h|--help)                     usage;;
-        *)                             usage;;
+        *)                             echo "ERROR: Invalid argument: ${key}"; usage;;
     esac
 done
 
