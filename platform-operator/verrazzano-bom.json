@@ -191,8 +191,8 @@
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20211125050625-4558ab0",
+              "image": "verrazzano-monitoring-operator-jenkins",
+              "tag": "1.1.0-20211203232118-39fad13",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -212,13 +212,13 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "elasticsearch",
-              "tag": "7.10.2-20211118212642-8549e32c",
+              "image": "opensearch",
+              "tag": "1.1.0-1",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "kibana-oss",
-              "tag": "7.10.2-20211119171233-4463f4c",
+              "image": "opensearch-dashboards",
+              "tag": "1.1.0-2",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
