@@ -63,3 +63,10 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log logr.Log
 
 	return workload, nil
 }
+
+// IsWeblogicWorkloadKind returns true if the trait references a Verrazzano WebLogic workload kind
+// (VerrazzanoWebLogicWorkload), false otherwise.
+func IsWeblogicWorkloadKind(trait oam.Trait) bool {
+	kind := trait.GetWorkloadReference().Kind
+	return kind == "VerrazzanoWebLogicWorkload"
+}

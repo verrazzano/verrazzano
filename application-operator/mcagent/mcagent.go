@@ -15,6 +15,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -60,7 +61,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 			// received - discard them
 			discardStatusMessages(s.StatusUpdateChannel)
 		}
-		time.Sleep(60 * time.Second)
+		time.Sleep(vzconstants.VMCAgentPollingTimeInterval)
 	}
 }
 

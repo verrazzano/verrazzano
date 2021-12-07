@@ -50,6 +50,8 @@ const (
 	verrazzanoClusterIssuer  = "verrazzano-cluster-issuer"
 	httpServiceNamePrefix    = "http"
 	weblogicOperatorSelector = "weblogic.createdByOperator"
+	wlProxySSLHeader         = "WL-Proxy-SSL"
+	wlProxySSLHeaderVal      = "true"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
@@ -516,6 +518,15 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 	route := istionet.HTTPRoute{
 		Match: matches,
 		Route: []*istionet.HTTPRouteDestination{dest}}
+	if vznav.IsWeblogicWorkloadKind(trait) {
+		route.Headers = &istionet.Headers{
+			Request: &istionet.Headers_HeaderOperations{
+				Add: map[string]string{
+					wlProxySSLHeader: wlProxySSLHeaderVal,
+				},
+			},
+		}
+	}
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
