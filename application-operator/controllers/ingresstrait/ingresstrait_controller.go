@@ -56,7 +56,7 @@ const (
 // Reference: https://github.com/oracle/weblogic-kubernetes-operator/blob/main/operator/src/main/resources/scripts/model_wdt_mii_filter.py
 var (
 	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
-		"tls-default", "tls-cbts", "tls-iiops"}
+		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3"}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
