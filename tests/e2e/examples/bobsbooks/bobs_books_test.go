@@ -172,6 +172,16 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
 		})
+		// Verify the application endpoint is working even without trailing slash.
+		// GIVEN the Bobs Books app is deployed
+		// WHEN the bobbys-books UI is accessed
+		// THEN the expected returned page should contain an expected value.
+		It("Verify bobbys-books UI endpoint without trailing slash is working.", func() {
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/bobbys-front-end", host)
+				return pkg.GetWebPage(url, host)
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
+		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the bobs-orders UI is accessed
