@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"path/filepath"
 	"strings"
 
@@ -33,7 +35,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			ReadyStatusFunc:         IsApplicationOperatorReady,
-			Dependencies:            []string{"oam-kubernetes-runtime"},
+			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
 			PreUpgradeFunc:          ApplyCRDYaml,
 		},
 	}
