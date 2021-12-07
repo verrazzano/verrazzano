@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
+def VERRAZZANO_DEV_VERSION
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
@@ -402,7 +403,7 @@ pipeline {
                             sh """
                                 cd ${WORKSPACE}
                                 echo "Performing pre-release validation checks for target version ${VERRAZZANO_DEV_VERSION}"
-                                ./release/scripts/prerelease_validation.sh "${VERRAZZANO_DEV_VERSION}"
+                                ./release/scripts/prerelease_validation.sh ${VERRAZZANO_DEV_VERSION}
                                 if [ $? -eq 0 ]; then
                                     echo "Passed pre-release checks for ${VERRAZZANO_DEV_VERSION}, promoting this to the latest releasable candidate"
                                     echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
