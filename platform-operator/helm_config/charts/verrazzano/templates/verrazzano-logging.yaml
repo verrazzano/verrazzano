@@ -394,7 +394,7 @@ data:
     </match>
 
   oci-logging-system.conf: |
-    <match kubernetes.**verrazzano-system**>
+    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**monitoring**>
       @type oci_logging
       log_object_id {{ .Values.logging.systemLogId }}
       <buffer>
