@@ -70,11 +70,13 @@ data:
 
     # Send to storage
     @include output.conf
+    {{- if .Values.logging.systemLogId }}
+    @include oci-logging-system.conf
     {{- if .Values.logging.defaultAppLogId }}
     @include oci-logging-default-app.conf
     {{- end }}
-    {{- if .Values.logging.systemLogId }}
-    @include oci-logging-system.conf
+    {{- else }}
+    @include es-output.conf
     {{- end }}
 
   general.conf: |
@@ -329,6 +331,8 @@ data:
           cluster_name "#{ENV['CLUSTER_NAME']}"
        </record>
     </filter>
+
+  es-output.conf: |
     <match **>
       @type elasticsearch
       @id out_elasticsearch
@@ -388,6 +392,7 @@ data:
         overflow_action drop_oldest_chunk
       </buffer>
     </match>
+
   oci-logging-system.conf: |
     <match kubernetes.**verrazzano-system**>
       @type oci_logging
@@ -403,6 +408,7 @@ data:
         retry_type  exponential_backoff
       </buffer>
     </match>
+
   oci-logging-default-app.conf: |
     <match **>
       @type oci_logging
@@ -418,6 +424,7 @@ data:
         retry_type  exponential_backoff
       </buffer>
     </match>
+
   elasticsearch-template-verrazzano.json: |
     {
       "index_patterns" : "verrazzano-*",
