@@ -824,7 +824,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// loginKeycloak logs into Keyclaok so kcadm API calls can be made
+// loginKeycloak logs into Keycloak so kcadm API calls can be made
 func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	// Get the Keycloak admin password
 	secret := &corev1.Secret{}
