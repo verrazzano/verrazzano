@@ -47,9 +47,21 @@ func VzIt(text string, body interface{}) bool {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
 	ginkgo.It(text, func() {
+		startTime := time.Now()
+
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q started - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q ended - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
+
+		endTime := time.Now()
+		durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
+		// push the metrics
+		if EmitGauge(text, "duration", durationMillis) != nil {
+			return
+		}
+		if IncrementCounter(text, "number_of_runs") != nil {
+			return
+		}
 	})
 	return true
 }
@@ -71,21 +83,9 @@ func VzAfterEach(body interface{}) bool {
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
 	ginkgo.Describe(text, func() {
-		startTime := time.Now()
-
-		pkg.Log(pkg.Info, fmt.Sprintf("Describe block %q started - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
+		pkg.Log(pkg.Debug, fmt.Sprintf("Describe block %q started - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 		reflect.ValueOf(body).Call([]reflect.Value{})
-		pkg.Log(pkg.Info, fmt.Sprintf("Describe block %q ended - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
-
-		endTime := time.Now()
-		durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
-
-		if EmitGauge(text, "duration", durationMillis) != nil {
-			return
-		}
-		if IncrementCounter(text, "number_of_runs") != nil {
-			return
-		}
+		pkg.Log(pkg.Debug, fmt.Sprintf("Describe block %q ended - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 	})
 	return true
 }
