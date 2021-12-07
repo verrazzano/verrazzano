@@ -6,76 +6,54 @@
 
 # NOTE: The keycloak image now comes from the bill of materials file (verrazzano-bom.json).
 
-postgresql:
-  enabled: false
+keycloak:
+  existingSecret: keycloak-http
 
-extraEnv: |
-  - name: DB_VENDOR
-    value: mysql
-  - name: DB_ADDR
-    value: mysql
-  - name: DB_PORT
-    value: "3306"
-  - name: DB_DATABASE
-    value: keycloak
-  - name: DB_USER
-    value: "keycloak"
-  - name: DB_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: mysql
-        key: mysql-password
-  - name: PROXY_ADDRESS_FORWARDING
-    value: "true"
-  - name: KEYCLOAK_USER
-    value: "keycloakadmin"
-  - name: KEYCLOAK_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: keycloak-http
-        key: password
+  # NOTE: The extraInitContainers value is now set in the installation script (4-install-keycloak.sh) so that we can specify the
+  # image using data from the bill of materials file (verrazzano-bom.json).
 
-extraVolumes: |
-  - name: theme
-    emptyDir: {}
-  - name: cacerts
-    emptyDir: {}
-  - name: keycloak-http
-    secret:
-       secretName: keycloak-http
+  replicas: 1
+  # NOTE: The keycloak image now comes from the bill of materials file (verrazzano-bom.json).
 
-extraVolumeMounts: |
-  - name: theme
-    mountPath: /opt/jboss/keycloak/themes/oracle
-  - name: keycloak-http
-    mountPath: /etc/keycloak-http
+  containerSecurityContext:
+    runAsUser: 0
+    runAsNonRoot: false
 
-service:
-  port: 8083
+  extraVolumes: |
+    - name: theme
+      emptyDir: {}
+    - name: cacerts
+      emptyDir: {}
+    - name: keycloak-http
+      secret:
+         secretName: keycloak-http
+  extraVolumeMounts: |
+    - name: theme
+      mountPath: /opt/jboss/keycloak/themes/oracle
+    - name: keycloak-http
+      mountPath: /etc/keycloak-http
+  service:
+    port: 8083
+  ingress:
+    enabled: true
+    path: /
 
-ingress:
-  enabled: true
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    kubernetes.io/tls-acme: "true"
-    external-dns.alpha.kubernetes.io/ttl: "60"
-    nginx.ingress.kubernetes.io/service-upstream: "true"
-    nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
-    external-dns.alpha.kubernetes.io/target: "{{ .Values.dnsTarget }}"
-  rules:
-    -
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-      host: "{{ .Values.rulesHost }}"
-  tls:
-    -
-      hosts:
-        - "{{ .Values.tlsHosts }}"
-      secretName: "{{ .Values.tlsSecret }}"
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      kubernetes.io/tls-acme: "true"
+      external-dns.alpha.kubernetes.io/ttl: "60"
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+      nginx.ingress.kubernetes.io/upstream-vhost: "keycloak-http.${namespace}.svc.cluster.local"
 
-securityContext:
-  runAsUser: 0
-  runAsNonRoot: false
+  persistence:
+    deployPostgres: false
+    dbVendor: mysql
+    dbHost: mysql
+    dbPort: 3306
 
-replicas: 1
+  readinessProbe: |
+    httpGet:
+      path: {{ if ne .Values.keycloak.basepath "" }}/{{ .Values.keycloak.basepath }}{{ end }}/realms/master
+      port: http
+    initialDelaySeconds: 45
+    timeoutSeconds: 1

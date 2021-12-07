@@ -35,7 +35,7 @@ const (
 
 // Define the keycloak Key:Value pair for init container.
 // We need to replace image using the real image in the bom
-const kcInitContainerKey = "extraInitContainers"
+const kcInitContainerKey = "keycloak.extraInitContainers"
 const kcInitContainerValueTemplate = `
     - name: theme-provider
       image: {{.Image}}
@@ -112,6 +112,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: b.String(),
 	})
 
+	// TODO: We don't need any of these overrides for 10.0.1
 	// Additional overrides for Keycloak 15.0.2 charts.
 	var keycloakIngress = &networkingv1.Ingress{}
 	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Name: constants.KeycloakIngress, Namespace: constants.KeycloakNamespace}, keycloakIngress)
