@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -16,9 +16,9 @@ import (
 func VzBeforeSuite(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzBeforeSuite wrapper")
 	if !isBodyFunc(body) {
-		Fail("Unsupported body type - expected function")
+		ginkgo.Fail("Unsupported body type - expected function")
 	}
-	BeforeSuite(func() {
+	ginkgo.BeforeSuite(func() {
 		pkg.Log(pkg.Info, "BeforeSuite started - placeholder for making API call to emit test related metric(s)")
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, "BeforeSuite ended - placeholder for making API call to emit test related metric(s)")
@@ -30,9 +30,9 @@ func VzBeforeSuite(body interface{}) bool {
 func VzAfterSuite(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzAfterSuite wrapper")
 	if !isBodyFunc(body) {
-		Fail("Unsupported body type - expected function")
+		ginkgo.Fail("Unsupported body type - expected function")
 	}
-	AfterSuite(func() {
+	ginkgo.AfterSuite(func() {
 		pkg.Log(pkg.Info, "AfterSuite started - placeholder for making API call to emit test related metric(s)")
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, "AfterSuite ended - placeholder for making API call to emit test related metric(s)")
@@ -44,9 +44,9 @@ func VzAfterSuite(body interface{}) bool {
 func VzIt(text string, body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzIt wrapper")
 	if !isBodyFunc(body) {
-		Fail("Unsupported body type - expected function")
+		ginkgo.Fail("Unsupported body type - expected function")
 	}
-	It(text, func() {
+	ginkgo.It(text, func() {
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q started - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q ended - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
@@ -57,20 +57,20 @@ func VzIt(text string, body interface{}) bool {
 // VzBeforeEach - wrapper function for ginkgo BeforeEach
 func VzBeforeEach(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzBeforeEach wrapper")
-	BeforeEach(body)
+	ginkgo.BeforeEach(body)
 	return true
 }
 
 // VzAfterEach - wrapper function for ginkgo AfterEach
 func VzAfterEach(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzAfterEach wrapper")
-	AfterEach(body)
+	ginkgo.AfterEach(body)
 	return true
 }
 
 // VzDescribe - wrapper function for ginkgo Describe
 func VzDescribe(text string, body func()) bool {
-	Describe(text, func() {
+	ginkgo.Describe(text, func() {
 		startTime := time.Now()
 
 		pkg.Log(pkg.Info, fmt.Sprintf("Describe block %q started - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
@@ -93,19 +93,19 @@ func VzDescribe(text string, body func()) bool {
 // VzContext - wrapper function for ginkgo Context
 func VzContext(text string, body func()) bool {
 	pkg.Log(pkg.Debug, "VzContext wrapper")
-	Context(text, body)
+	ginkgo.Context(text, body)
 	return true
 }
 
 // VzCurrentGinkgoTestDescription - wrapper function for ginkgo CurrentGinkgoTestDescription
-func VzCurrentGinkgoTestDescription() SpecReport {
+func VzCurrentGinkgoTestDescription() ginkgo.SpecReport {
 	pkg.Log(pkg.Debug, "VzCurrentGinkgoTestDescription wrapper")
-	return CurrentSpecReport()
+	return ginkgo.CurrentSpecReport()
 }
 
 // VzWhen - wrapper function for ginkgo When
 func VzWhen(text string, body func()) bool {
 	pkg.Log(pkg.Debug, "VzWhen wrapper")
-	When(text, body)
+	ginkgo.When(text, body)
 	return true
 }
