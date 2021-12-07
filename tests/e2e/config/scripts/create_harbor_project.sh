@@ -50,7 +50,7 @@ function create_project() {
     response=$(curl --user $USERNAME:$PASSWORD -X POST $REST_API_BASE_URL/projects -H "accept: application/json" \
                 -H "X-Resource-Name-In-Location: false" -H "Content-Type: application/json" \
                 --silent --output /dev/null -w "%{http_code}" -d "$payload")
-    if [ "$response" -eq 200 ]; then
+    if [ "$response" -eq 201 ]; then
       echo "The project $PROJECT_NAME was successfully created in Harbor"
     else
       echo "The project $PROJECT_NAME could not be successfully created in Harbor"
