@@ -416,7 +416,7 @@ pipeline {
                                 fi
                                 set -e
                             """
-                            currentBuild.displayName = readFile file: release_status.out
+                            currentBuild.displayName = readFile file: "release_status.out"
                         }
                     }
                 }
