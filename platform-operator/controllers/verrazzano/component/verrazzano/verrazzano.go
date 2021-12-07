@@ -6,11 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -48,6 +48,11 @@ const (
 	containerName = "es-master"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
+
+	tmpFilePrefix        = "verrazzano-overrides-"
+	tmpSuffix            = "yaml"
+	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
 var (
@@ -135,14 +140,12 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-const tmpFilePrefix = "verrazzano-overrides-"
-
 func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues) (string, error) {
 	bytes, err := yaml.Marshal(overrides)
 	if err != nil {
 		return "", err
 	}
-	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.yaml", tmpFilePrefix))
+	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
 	if err != nil {
 		return "", err
 	}
@@ -526,19 +529,8 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 
 //cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
-	log := ctx.Log()
-	files, err := ioutil.ReadDir(os.TempDir())
-	if err != nil {
-		log.Errorf("Unable to read temp directory: %s", err.Error())
-	}
-	for _, file := range files {
-		if !file.IsDir() && strings.HasPrefix(file.Name(), tmpFilePrefix) && strings.HasSuffix(file.Name(), ".yaml") {
-			fullPath := filepath.Join(os.TempDir(), file.Name())
-			log.Debugf("Deleting temp file %s", fullPath)
-			if err := os.Remove(fullPath); err != nil {
-				log.Errorf("Error deleting temp file %s", fullPath)
-			}
-		}
+	if err := vzos.RemoveTempFiles(ctx.Log(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Error deleting temp files: %s", err.Error())
 	}
 }
 

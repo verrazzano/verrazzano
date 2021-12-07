@@ -28,6 +28,11 @@ import (
 const (
 	// IstioCertSecret is the secret name used for Istio MTLS certs
 	IstioCertSecret = "cacerts"
+
+	istioTempPrefix           = "istio-"
+	istioTempSuffix           = "yaml"
+	istioTmpFileCreatePattern = istioTempPrefix + "*." + istioTempSuffix
+	istioTmpFileCleanPattern  = istioTempPrefix + ".*\\." + istioTempSuffix
 )
 
 // create func vars for unit tests
@@ -112,18 +117,22 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		// The function will execute once, sending true on success, false on failure to the channel reader
 		// Read inputs
 		args := <-inputCh
+		log := args.log
 
 		result := true
-		args.log.Debugf("Starting istioctl install...")
-		stdout, stderr, err := installFunc(args.log, args.overrides, args.fileOverrides...)
-		args.log.Debugf("istioctl stdout: %s", string(stdout))
+		log.Debugf("Starting istioctl install...")
+		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
+		log.Debugf("istioctl stdout: %s", string(stdout))
 		if err != nil {
 			result = false
-			args.log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
+			log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
 		}
 
+		// Clean up the temp files
+		removeTempFiles(log)
+
 		// Write result
-		args.log.Debugf("Completed istioctl install, result: %s", result)
+		log.Debugf("Completed istioctl install, result: %s", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 
@@ -198,12 +207,11 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		}
 
 		// Write the overrides to a tmp file
-		userFileCR, err = ioutil.TempFile(os.TempDir(), "istio-*.yaml")
+		userFileCR, err = ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
 		if err != nil {
 			log.Errorf("Failed to create temporary file for Istio install: %v", err)
 			return err
 		}
-		defer os.Remove(userFileCR.Name())
 		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
 			log.Errorf("Failed to write to temporary file: %v", err)
 			return err
@@ -305,4 +313,10 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 		return nil
 	})
 	return err
+}
+
+func removeTempFiles(log *zap.SugaredLogger) {
+	if err := vzos.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
+		log.Errorf("Unexpected error removing temp files: %s", err.Error())
+	}
 }
