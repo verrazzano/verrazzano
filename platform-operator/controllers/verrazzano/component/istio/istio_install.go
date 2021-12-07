@@ -9,6 +9,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -265,7 +267,7 @@ func (i istioComponent) PreInstall(compContext spi.ComponentContext) error {
 	if err := labelNamespace(compContext); err != nil {
 		return err
 	}
-	if err := createCertSecret(compContext.Log(), compContext.Client()); err != nil {
+	if err := createCertSecret(compContext); err != nil {
 		return err
 	}
 	return nil
@@ -277,6 +279,30 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 	}
 	if err := createEnvoyFilter(compContext.Log(), compContext.Client()); err != nil {
 		return err
+	}
+	return nil
+}
+
+func createCertSecret(compContext spi.ComponentContext) error {
+	log := compContext.Log()
+	if compContext.IsDryRun() {
+		return nil
+	}
+
+	// Create the cert used by Istio MTLS if it doesn't exist
+	var secret v1.Secret
+	nsn := types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}
+	if err := compContext.Client().Get(context.TODO(), nsn, &secret); err != nil {
+		if !errors.IsNotFound(err) {
+			// Unexpected error
+			return err
+		}
+		// Secret not found - create it
+		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
+		if _, stderr, err := bashFunc(certScript); err != nil {
+			log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
+			return err
+		}
 	}
 	return nil
 }
