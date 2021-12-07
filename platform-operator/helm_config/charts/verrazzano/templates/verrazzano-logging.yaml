@@ -394,7 +394,8 @@ data:
     </match>
 
   oci-logging-system.conf: |
-    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**monitoring**>
+    # Match all "system" namespaces so system log records are sent to a separate OCI Log object
+    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**monitoring** systemd.** fluentd.monitor.metrics>
       @type oci_logging
       log_object_id {{ .Values.logging.systemLogId }}
       <buffer>
