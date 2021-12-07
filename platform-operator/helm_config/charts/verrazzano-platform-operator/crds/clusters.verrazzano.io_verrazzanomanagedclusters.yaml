@@ -118,7 +118,7 @@ spec:
                 type: object
               state:
                 description: State of the Cluster to determine if it is Active, Pending,
-                  or InActive.
+                  or Inactive.
                 type: string
             required:
             - state
