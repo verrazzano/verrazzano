@@ -566,8 +566,8 @@ spec:
             - mountPath: /run/log/journal
               name: run-log-journal
               readOnly: true
-{{- if .Values.logging.extraVolumeMounts }}
-{{- range $i, $e := .Values.logging.extraVolumeMounts }}
+{{- if .Values.fluentd.extraVolumeMounts }}
+{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
             - mountPath: {{ $e.destination }}
               name: extra-volume-{{ $i }}
               readOnly: {{ $e.readOnly }}
@@ -605,8 +605,8 @@ spec:
             path: /run/log/journal
             type: ""
           name: run-log-journal
-{{- if .Values.logging.extraVolumeMounts }}
-{{- range $i, $e := .Values.logging.extraVolumeMounts }}
+{{- if .Values.fluentd.extraVolumeMounts }}
+{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
         - hostPath:
             path: {{ $e.source }}
             type: ""
