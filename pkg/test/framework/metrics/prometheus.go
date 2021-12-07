@@ -5,10 +5,10 @@ package testmetrics
 
 import (
 	"fmt"
-	"strings"
+	"github.com/prometheus/client_golang/prometheus"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
+	gokitmetrics "github.com/go-kit/kit/metrics/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -24,8 +24,8 @@ type PrometheusMetricsReceiverConfig struct {
 type PrometheusMetricsReceiver struct {
 	promPusher *push.Pusher
 	Name       string
-	counters   map[string]prometheus.Counter
-	gauges     map[string]prometheus.Gauge
+	counters   map[string] *gokitmetrics.Counter
+	gauges     map[string] *gokitmetrics.Gauge
 }
 
 func (pcfg *PrometheusMetricsReceiverConfig) GetReceiverType() string {
@@ -34,12 +34,12 @@ func (pcfg *PrometheusMetricsReceiverConfig) GetReceiverType() string {
 
 func (rcvr *PrometheusMetricsReceiver) SetGauge(name string, value float64) error {
 	if rcvr.gauges == nil {
-		rcvr.gauges = make(map[string]prometheus.Gauge)
+		rcvr.gauges = make(map[string] *gokitmetrics.Gauge)
 	}
 	metricName := rcvr.makeMetricName(name)
 	gauge := rcvr.gauges[metricName]
-	if gauge == nil {
-		gauge = prometheus.NewGauge(prometheus.GaugeOpts{Name: metricName})
+	if &gauge == nil {
+		gauge = gokitmetrics.NewGaugeFrom(prometheus.GaugeOpts{Name: metricName}, []string{})
 		rcvr.gauges[metricName] = gauge
 	}
 	gauge.Set(value)
@@ -52,23 +52,30 @@ func (rcvr *PrometheusMetricsReceiver) SetGauge(name string, value float64) erro
 
 func (rcvr *PrometheusMetricsReceiver) IncrementCounter(name string) error {
 	if rcvr.counters == nil {
-		rcvr.counters = make(map[string]prometheus.Counter)
+		rcvr.counters = make(map[string] *gokitmetrics.Counter)
 	}
 	metricName := rcvr.makeMetricName(name)
 	ctr := rcvr.counters[metricName]
-	if ctr == nil {
-		ctr = prometheus.NewCounter(prometheus.CounterOpts{Name: metricName})
+	if &ctr == nil {
+		ctr = gokitmetrics.NewCounterFrom(prometheus.CounterOpts{Name: metricName},[]string{})
 		rcvr.counters[metricName] = ctr
 	}
-	ctr.Inc()
+	ctr.Add(1)
 	pkg.Log(pkg.Info, fmt.Sprintf("Incrementing counter %s", metricName))
 
-	rcvr.asyncPush(ctr, metricName)
+	promctr := prometheus.NewCounter(prometheus.CounterOpts{Name: metricName})
+	ctrp := rcvr.counters[metricName]
+	promctr.Add(ctrp.Value()) //have to copy the counter value from gokit prometheus to client golang counter.
+
+	//rcvr.asyncPush(ctr, metricName)
+	rcvr.asyncPush(rcvr.promPusher.Collector(promctr))
+
 	return nil
 }
 
 // Use a goroutine to asynchronously kick off a push to the Prometheus gateway represented by rcvr.promPusher
-func (rcvr *PrometheusMetricsReceiver) asyncPush(ctr prometheus.Collector, metricName string) {
+//func (rcvr *PrometheusMetricsReceiver) asyncPush(ctr prometheus.Collector, metricName string) {
+func (rcvr *PrometheusMetricsReceiver) asyncPush(ctr prometheus.Collector) {
 	go func() {
 		// push the counter to the gateway
 		if err := rcvr.promPusher.Collector(ctr).Add(); err != nil {
@@ -98,7 +105,7 @@ func (rcvr *PrometheusMetricsReceiver) overridePusher(pusher push.Pusher) {
 
 func (rcvr *PrometheusMetricsReceiver) makeMetricName(name string) string {
 	if rcvr.Name != "" {
-		return strings.Replace(rcvr.Name+"_"+name, "-", "_", -1)
+		return rcvr.Name + "_" + name
 	}
 	return name
 }
