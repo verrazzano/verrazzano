@@ -402,7 +402,7 @@ pipeline {
                             sh """
                                 cd ${WORKSPACE}
                                 echo "Performing pre-release validation checks for target version ${VERRAZZANO_DEV_VERSION}"
-                                ./release/scripts/prerelease_validation.sh ${VERRAZZANO_DEV_VERSION}
+                                ./release/scripts/prerelease_validation.sh "${VERRAZZANO_DEV_VERSION}"
                                 if [ $? -eq 0 ]; then
                                     echo "Passed pre-release checks for ${VERRAZZANO_DEV_VERSION}, promoting this to the latest releasable candidate"
                                     echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
