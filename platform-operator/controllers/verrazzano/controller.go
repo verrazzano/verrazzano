@@ -633,10 +633,10 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
-			// If the component is installed then mark it as ready
+			// Check if the component is disabled or installed
 			compContext := newContext.For(comp.Name()).Operation(vzconst.InitializeOperation)
 			state := installv1alpha1.Disabled
-			if !unitTesting {
+			if !unitTesting && comp.IsEnabled(newContext) {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
 					log.Errorf("IsInstalled error for component %s: %s", comp.Name(), err)
@@ -644,6 +644,8 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 				}
 				if installed {
 					state = installv1alpha1.Ready
+				} else {
+					state = installv1alpha1.Uninstalled
 				}
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
