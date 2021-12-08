@@ -13,15 +13,6 @@ import (
 	"strings"
 	"time"
 
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
-
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/semver"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,9 +24,17 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // componentName is the name of the component
