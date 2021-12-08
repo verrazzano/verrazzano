@@ -6,8 +6,10 @@ package istio
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"go.uber.org/zap"
@@ -20,17 +22,29 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
+	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// IstioCertSecret is the secret name used for Istio MTLS certs
-const IstioCertSecret = "cacerts"
+const (
+	// IstioCertSecret is the secret name used for Istio MTLS certs
+	IstioCertSecret = "cacerts"
+
+	istioTempPrefix           = "istio-"
+	istioTempSuffix           = "yaml"
+	istioTmpFileCreatePattern = istioTempPrefix + "*." + istioTempSuffix
+	istioTmpFileCleanPattern  = istioTempPrefix + ".*\\." + istioTempSuffix
+)
 
 // create func vars for unit tests
 type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 var installFunc installFuncSig = istio.Install
+
+type forkInstallFuncSig func(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error
+
+var forkInstallFunc forkInstallFuncSig = forkInstall
 
 type bashFuncSig func(inArgs ...string) (string, string, error)
 
@@ -44,12 +58,96 @@ func setBashFunc(f bashFuncSig) {
 	bashFunc = f
 }
 
-func (i IstioComponent) IsOperatorInstallSupported() bool {
+type installMonitorType struct {
+	running  bool
+	resultCh chan bool
+	inputCh  chan installRoutineParams
+}
+
+//installRoutineParams - Used to pass args to the install goroutine
+type installRoutineParams struct {
+	overrides     string
+	fileOverrides []string
+	log           *zap.SugaredLogger
+}
+
+//installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
+// istioctl install operations asynchronously.
+type installMonitor interface {
+	// checkResult - Checks for a result from the install goroutine; returns either the result of the operation, or an error indicating
+	// the install is still in progress
+	checkResult() (bool, error)
+	// reset - Resets the monitor and closes any open channels
+	reset()
+	//isRunning - returns true of the monitor/goroutine are active
+	isRunning() bool
+	//run - Run the install with the specified args
+	run(args installRoutineParams)
+}
+
+//checkResult - checks for a result from the goroutine
+// - returns false and a retry error if it's still running, or the result from the channel and nil if an answer was received
+func (m *installMonitorType) checkResult() (bool, error) {
+	select {
+	case result := <-m.resultCh:
+		return result, nil
+	default:
+		return false, ctrlerrors.RetryableError{Source: ComponentName}
+	}
+}
+
+//reset - reset the monitor and close the channel
+func (m *installMonitorType) reset() {
+	m.running = false
+	close(m.resultCh)
+	close(m.inputCh)
+}
+
+//isRunning - returns true of the monitor/goroutine are active
+func (m *installMonitorType) isRunning() bool {
+	return m.running
+}
+
+//run - Run the install in a goroutine
+func (m *installMonitorType) run(args installRoutineParams) {
+	m.running = true
+	m.resultCh = make(chan bool, 2)
+	m.inputCh = make(chan installRoutineParams, 2)
+
+	// Run the install in the background
+	go func(inputCh chan installRoutineParams, outputCh chan bool) {
+		// The function will execute once, sending true on success, false on failure to the channel reader
+		// Read inputs
+		args := <-inputCh
+		log := args.log
+
+		result := true
+		log.Debugf("Starting istioctl install...")
+		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
+		log.Debugf("istioctl stdout: %s", string(stdout))
+		if err != nil {
+			result = false
+			log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
+		}
+
+		// Clean up the temp files
+		removeTempFiles(log)
+
+		// Write result
+		log.Debugf("Completed istioctl install, result: %s", result)
+		outputCh <- result
+	}(m.inputCh, m.resultCh)
+
+	// Pass in the args to get started
+	m.inputCh <- args
+}
+
+func (i istioComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
 // IsInstalled checks if Istio is installed by looking for the Istio control plane deployment
-func (i IstioComponent) IsInstalled(compContext spi.ComponentContext) (bool, error) {
+func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, error) {
 	deployment := appsv1.Deployment{}
 	nsn := types.NamespacedName{Name: IstiodDeployment, Namespace: IstioNamespace}
 	if err := compContext.Client().Get(context.TODO(), nsn, &deployment); err != nil {
@@ -62,7 +160,36 @@ func (i IstioComponent) IsInstalled(compContext spi.ComponentContext) (bool, err
 	return true, nil
 }
 
-func (i IstioComponent) Install(compContext spi.ComponentContext) error {
+//Install - istioComponent install
+//
+// This utilizes the istioctl utility for install, which blocks during the entire installation process.  This can
+// take up to several minutes and block the controller.  For now, we launch the install operation in a goroutine
+// and requeue to check the result later.
+//
+// On subsequent callbacks, we check the status of the goroutine via the 'monitor' object.  If the monitor detects that
+// the goroutine is still running, it returns a RetryableError that we return back to the controller to requeue and
+// check again later.
+//
+// If the monitor detects that the goroutine is finished, we either return nil (success) for the successful install
+// case, or reset the monitor state and drop down to the rest of the install method to retry the install again.
+func (i istioComponent) Install(compContext spi.ComponentContext) error {
+	if i.monitor.isRunning() {
+		// Check the result
+		succeeded, err := i.monitor.checkResult()
+		if err != nil {
+			// Not finished yet, requeue
+			return err
+		}
+		// reset on success or failure
+		i.monitor.reset()
+		// If it's not finished running, requeue
+		if succeeded {
+			return nil
+		}
+		// if we were unsuccessful, reset and drop through to try again
+		compContext.Log().Debug("Error during istio install, retrying")
+	}
+
 	// This IstioOperator YAML uses this imagePullSecret key
 	const imagePullSecretHelmKey = "values.global.imagePullSecrets[0]"
 
@@ -82,12 +209,11 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 		}
 
 		// Write the overrides to a tmp file
-		userFileCR, err = ioutil.TempFile(os.TempDir(), "istio-*.yaml")
+		userFileCR, err = ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
 		if err != nil {
 			log.Errorf("Failed to create temporary file for Istio install: %v", err)
 			return err
 		}
-		defer os.Remove(userFileCR.Name())
 		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
 			log.Errorf("Failed to write to temporary file: %v", err)
 			return err
@@ -113,37 +239,70 @@ func (i IstioComponent) Install(compContext spi.ComponentContext) error {
 		return err
 	}
 
-	if userFileCR == nil {
-		_, _, err := installFunc(log, overrideStrings, i.ValuesFile)
-		if err != nil {
-			return err
-		}
-	} else {
-		_, _, err := installFunc(log, overrideStrings, i.ValuesFile, userFileCR.Name())
-		if err != nil {
-			return err
-		}
+	files := []string{i.ValuesFile}
+	if userFileCR != nil {
+		files = append(files, userFileCR.Name())
 	}
-
-	return nil
+	return forkInstallFunc(compContext, i.monitor, overrideStrings, files)
 }
 
-func (i IstioComponent) PreInstall(compContext spi.ComponentContext) error {
+//forkInstall - istioctl install blocks, fork it into the background
+func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error {
+	log := compContext.Log()
+	log.Debugf("Creating background install goroutine for Istio")
+	// clone the parameters
+	overridesFilesCopy := make([]string, len(files))
+	copy(overridesFilesCopy, files)
+	monitor.run(
+		installRoutineParams{
+			overrides:     overrideStrings,
+			fileOverrides: overridesFilesCopy,
+			log:           log.With(), // clone the logger
+		},
+	)
+	return ctrlerrors.RetryableError{Source: ComponentName}
+}
+
+func (i istioComponent) PreInstall(compContext spi.ComponentContext) error {
 	if err := labelNamespace(compContext); err != nil {
 		return err
 	}
-	if err := createCertSecret(compContext.Log(), compContext.Client()); err != nil {
+	if err := createCertSecret(compContext); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (i IstioComponent) PostInstall(compContext spi.ComponentContext) error {
+func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 	if err := createPeerAuthentication(compContext); err != nil {
 		return err
 	}
 	if err := createEnvoyFilter(compContext.Log(), compContext.Client()); err != nil {
 		return err
+	}
+	return nil
+}
+
+func createCertSecret(compContext spi.ComponentContext) error {
+	log := compContext.Log()
+	if compContext.IsDryRun() {
+		return nil
+	}
+
+	// Create the cert used by Istio MTLS if it doesn't exist
+	var secret v1.Secret
+	nsn := types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}
+	if err := compContext.Client().Get(context.TODO(), nsn, &secret); err != nil {
+		if !errors.IsNotFound(err) {
+			// Unexpected error
+			return err
+		}
+		// Secret not found - create it
+		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
+		if _, stderr, err := bashFunc(certScript); err != nil {
+			log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
+			return err
+		}
 	}
 	return nil
 }
@@ -180,4 +339,10 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 		return nil
 	})
 	return err
+}
+
+func removeTempFiles(log *zap.SugaredLogger) {
+	if err := vzos.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
+		log.Errorf("Unexpected error removing temp files: %s", err.Error())
+	}
 }

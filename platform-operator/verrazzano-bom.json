@@ -238,7 +238,7 @@
             },
             {
               "image": "console",
-              "tag": "1.1.0-20211124231328-5ebf051",
+              "tag": "1.1.0-20211207211335-65467cb",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211125063023-f7fc6e8a67",
+              "tag": "15.0.2-20211202225714-f7fc6e8a67",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -49,7 +49,7 @@ var crInstall = &installv1alpha1.Verrazzano{
 	},
 }
 
-var comp = IstioComponent{}
+var comp = istioComponent{}
 
 const testBomFilePath = "../../testdata/test_bom.json"
 
@@ -69,7 +69,7 @@ func TestGetName(t *testing.T) {
 func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := IstioComponent{
+	comp := istioComponent{
 		ValuesFile:               "test-values-file.yaml",
 		Revision:                 "1-1-1",
 		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
@@ -107,7 +107,7 @@ func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesF
 func TestPostUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := IstioComponent{}
+	comp := istioComponent{}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(fakeRunner{})
@@ -264,7 +264,7 @@ func TestIsReady(t *testing.T) {
 		},
 	},
 	)
-	var iComp IstioComponent
+	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, nil, false)
 	assert.True(t, iComp.IsReady(compContext))
 }
