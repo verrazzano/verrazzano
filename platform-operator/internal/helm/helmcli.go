@@ -72,7 +72,7 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 	}
 
 	cmd := exec.Command("helm", args...)
-	log.Debugf("Running command: %s", cmd.String())
+	log.Infof("Running command: %s", cmd.String())
 	stdout, stderr, err := runner.Run(cmd)
 	if err != nil {
 		log.Errorf("helm get values for %s failed with stderr: %s", releaseName, string(stderr))
@@ -182,7 +182,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 	}
 
 	//  Log upgrade output
-	log.Infof("helm upgrade succeeded for %s", releaseName)
+	log.Debugf("helm upgrade succeeded for %s", releaseName)
 	return stdout, stderr, nil
 }
 
@@ -222,7 +222,7 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 	}
 	switch releaseStatus {
 	case ChartNotFound:
-		log.Infof("Chart %s/%s not found", namespace, releaseName)
+		log.Debugf("Chart %s/%s not found", namespace, releaseName)
 	case ChartStatusDeployed:
 		return true, nil
 	}
