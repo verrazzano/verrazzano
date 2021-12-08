@@ -571,6 +571,27 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 	return nil
 }
 
+func (r *Reconciler) updateComponentState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, componentName string, state installv1alpha1.StateType) error {
+	componentStatus := cr.Status.Components[componentName]
+	if componentStatus == nil {
+		componentStatus = &installv1alpha1.ComponentStatusDetails{
+			Name: componentName,
+		}
+		cr.Status.Components[componentName] = componentStatus
+	}
+
+	// Set the state of resource
+	componentStatus.State = state
+
+	// Update the status
+	err := r.Status().Update(context.TODO(), cr)
+	if err != nil {
+		log.Errorf("Failed to update Verrazzano resource status: %v", err)
+		return err
+	}
+	return nil
+}
+
 func appendConditionIfNecessary(log *zap.SugaredLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
 	for _, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {

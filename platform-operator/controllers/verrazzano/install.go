@@ -54,6 +54,13 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			log.Debugf("component %s is ready", compName)
 			continue
+		case vzapi.Disabled:
+			// Previously disable component is now enabled
+			if err := r.updateComponentState(log, cr, comp.Name(),  vzapi.Uninstalled); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
+			requeue = true
+			continue
 		case vzapi.Uninstalled:
 			if !comp.IsEnabled(compContext) {
 				log.Debugf("component %s is disabled, skipping install", compName)
