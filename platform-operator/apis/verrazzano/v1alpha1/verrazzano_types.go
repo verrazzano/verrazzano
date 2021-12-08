@@ -210,9 +210,6 @@ const (
 	// Disabled is the state for when a component is not currently enabled
 	Disabled StateType = "Disabled"
 
-	// Uninstalled is the state for when a component is not currently installed
-	Uninstalled StateType = "Uninstalled"
-
 	// PreInstalling is the state when an install is about to be started
 	PreInstalling StateType = "PreInstalling"
 

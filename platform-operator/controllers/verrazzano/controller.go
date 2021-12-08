@@ -383,13 +383,17 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.Suga
 
 // checkInstallComplete checks to see if the install is complete
 func (r *Reconciler) checkInstallComplete(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (bool, error) {
-	if checkComponentReadyState(vz) {
-		// Set install complete IFF all subcomponent status' are "Ready"
-		message := "Verrazzano install completed successfully"
-		vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
-		return true, r.updateStatus(log, vz, message, installv1alpha1.InstallComplete)
+	ready, err := r.checkComponentReadyState(log, vz)
+	if err != nil {
+		return false, err
 	}
-	return false, nil
+	if !ready {
+		return false, nil
+	}
+	// Set install complete IFF all subcomponent status' are "Ready"
+	message := "Verrazzano install completed successfully"
+	vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
+	return true, r.updateStatus(log, vz, message, installv1alpha1.InstallComplete)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -571,27 +575,6 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 	return nil
 }
 
-func (r *Reconciler) updateComponentState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, componentName string, state installv1alpha1.StateType) error {
-	componentStatus := cr.Status.Components[componentName]
-	if componentStatus == nil {
-		componentStatus = &installv1alpha1.ComponentStatusDetails{
-			Name: componentName,
-		}
-		cr.Status.Components[componentName] = componentStatus
-	}
-
-	// Set the state of resource
-	componentStatus.State = state
-
-	// Update the status
-	err := r.Status().Update(context.TODO(), cr)
-	if err != nil {
-		log.Errorf("Failed to update Verrazzano resource status: %v", err)
-		return err
-	}
-	return nil
-}
-
 func appendConditionIfNecessary(log *zap.SugaredLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
 	for _, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {
@@ -626,14 +609,28 @@ func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alp
 	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
 }
 
-// checkComponentReadyState returns true if all component-level status' are "Ready"
-func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
-	for _, compStatus := range vz.Status.Components {
-		if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
-			return false
+// checkComponentReadyState returns true if all component-level status' are "Ready" for enabled components
+func (r *Reconciler) checkComponentReadyState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (bool, error) {
+	if unitTesting {
+		for _, compStatus := range cr.Status.Components {
+			if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+
+	context, err := spi.NewContext(log, r, cr, r.DryRun)
+	if err != nil {
+		return false, err
+	}
+	// Return false if any enabled component is not ready
+	for _, comp := range registry.GetComponents() {
+		if comp.IsEnabled(context) && cr.Status.Components[comp.Name()].State != installv1alpha1.Ready {
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
@@ -654,10 +651,10 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
-			// Check if the component is disabled or installed
+			// If the component is installed then mark it as ready
 			compContext := newContext.For(comp.Name()).Operation(vzconst.InitializeOperation)
 			state := installv1alpha1.Disabled
-			if !unitTesting && comp.IsEnabled(newContext) {
+			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
 					log.Errorf("IsInstalled error for component %s: %s", comp.Name(), err)
@@ -665,8 +662,6 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 				}
 				if installed {
 					state = installv1alpha1.Ready
-				} else {
-					state = installv1alpha1.Uninstalled
 				}
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
