@@ -29,8 +29,6 @@ spec:
                     - paths:
                         - path: "/todo"
                           pathType: Prefix
-                      destination:
-                        port: 7001
         - componentName: todo-jdbc-config
         - componentName: mysql-initdb-config
         - componentName: todo-mysql-service
