@@ -105,6 +105,8 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.orders.OrdersApp
+            args:
+              - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
               heapSize: 2g
@@ -235,7 +237,7 @@ spec:
           image: ghcr.io/oracle/coherence-spring-sockshop-users:1.0.1
           imagePullPolicy: IfNotPresent
           application:
-            main: com.oracle.coherence.examples.sockshop.spring.users.UsersApplication
+            main: com.oracle.coherence.examples.sockshop.spring.users.UsersApp
           jvm:
             memory:
               heapSize: 2g
