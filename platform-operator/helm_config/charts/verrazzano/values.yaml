@@ -138,7 +138,7 @@ security:
     "subject-0":
       kind: Group
       name: *default_monitorsGroup
-
+      
 kubernetes:
   service:
     endpoint:

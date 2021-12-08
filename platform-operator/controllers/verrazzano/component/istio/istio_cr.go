@@ -66,7 +66,7 @@ type templateValuesExternalIPs struct {
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
-// Transform the Verrazzano CR IstioComponent provided by the user onto an IstioOperator formatted YAML
+// Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
 func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// All generated YAML will be indented 6 spaces
 	const leftMargin = 0
@@ -74,7 +74,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 
 	var externalIPYAMLTemplateValue string
 
-	// Build a list of YAML strings from the IstioComponent initargs, one for each arg.
+	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{istioEgressGatewayTempate}
 	for _, arg := range comp.IstioInstallArgs {
 		values := arg.ValueList

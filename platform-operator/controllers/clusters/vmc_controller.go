@@ -295,7 +295,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		maxPollingTime := currentTime.Add(vzconstants.VMCAgentPollingTimeInterval * vzconstants.MaxTimesVMCAgentPollingTime)
 		timeDiff := maxPollingTime.Sub(vmc.Status.LastAgentConnectTime.Time)
 		if int(timeDiff.Minutes()) > vzconstants.MaxTimesVMCAgentPollingTime {
-			vmc.Status.State = clustersv1alpha1.StateInActive
+			vmc.Status.State = clustersv1alpha1.StateInactive
 		} else if vmc.Status.State == "" {
 			vmc.Status.State = clustersv1alpha1.StatePending
 		} else {

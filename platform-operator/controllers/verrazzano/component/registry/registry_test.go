@@ -23,6 +23,7 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 	certManagerNamespace      = "cert-manager"
+	profileDir                = "../../../../manifests/profiles"
 )
 
 // TestGetComponents tests getting the components
@@ -345,6 +346,20 @@ func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	// Same dependency listed twice, not an error
 	ready = ComponentDependenciesMet(repeatDepdendency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false))
 	assert.True(t, ready)
+}
+
+// TestRegistryDependencies tests the default Registry components for cycles
+// GIVEN a component
+//  WHEN I call checkDependencies for it
+//  THEN No error is returned that indicates a cycle in the chain
+func TestRegistryDependencies(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	for _, comp := range GetComponents() {
+		_, err := checkDependencies(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false, profileDir),
+			make(map[string]bool), make(map[string]bool))
+		assert.NoError(t, err)
+	}
 }
 
 // TestNoComponentDependencies tests ComponentDependenciesMet
