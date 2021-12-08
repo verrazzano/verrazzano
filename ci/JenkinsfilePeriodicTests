@@ -400,9 +400,10 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
                                 ], wait: true
-                            cd ${WORKSPACE}
-                            copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}", selector: specific("${built.number}"));
-                            currentBuild.displayName = readFile file: "release_status.out"
+                            dir ("${WORKSPACE}") {
+                                copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}", selector: specific("${built.number}"));
+                                currentBuild.displayName = readFile file: "release_status.out"
+                            }
                         }
                     }
                 }
