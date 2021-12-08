@@ -138,9 +138,9 @@ type loggingValues struct {
 	Name                string `json:"name,omitempty"`
 	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
-	DefaultAppLogId     string `json:"defaultAppLogId,omitempty"`
+	DefaultAppLogID     string `json:"defaultAppLogId,omitempty"`
 	SystemLogID         string `json:"systemLogId,omitempty"`
-	ApiSecret           string `json:"apiSecret,omitempty"`
+	APISecret           string `json:"apiSecret,omitempty"`
 }
 
 type fluentdValues struct {
