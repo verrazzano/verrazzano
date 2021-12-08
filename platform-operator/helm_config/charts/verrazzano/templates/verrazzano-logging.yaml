@@ -393,6 +393,7 @@ data:
       </buffer>
     </match>
 
+{{- if .Values.fluentd.oci }}
   oci-logging-system.conf: |
     # Match all "system" namespaces so system log records are sent to a separate OCI Log object
     <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**monitoring** systemd.** fluentd.monitor.metrics>
@@ -425,6 +426,7 @@ data:
         retry_type  exponential_backoff
       </buffer>
     </match>
+{{- end }}
 
   elasticsearch-template-verrazzano.json: |
     {
