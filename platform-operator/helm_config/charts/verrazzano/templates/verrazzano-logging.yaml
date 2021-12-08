@@ -70,10 +70,12 @@ data:
 
     # Send to storage
     @include output.conf
-    {{- if and .Values.fluentd.oci .Values.fluentd.oci.systemLogId }}
+    {{- if .Values.fluentd.oci }}
+    {{- if .Values.fluentd.oci.systemLogId }}
     @include oci-logging-system.conf
-    {{- if and .Values.fluentd.oci .Values.fluentd.oci.defaultAppLogId }}
+    {{- if .Values.fluentd.oci.defaultAppLogId }}
     @include oci-logging-default-app.conf
+    {{- end }}
     {{- end }}
     {{- else }}
     @include es-output.conf
