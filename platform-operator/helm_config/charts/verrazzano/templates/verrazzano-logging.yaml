@@ -385,47 +385,16 @@ data:
 
   elasticsearch-template-verrazzano.json: |
     {
-      "index_patterns" : "verrazzano-*",
-      "version" : 60001,
-      "settings" : {
-        "index.refresh_interval" : "5s",
-        "index.mapping.total_fields.limit" : "2000",
-        "number_of_shards": 5,
-        "index.number_of_replicas" : 0,
-        "index.auto_expand_replicas" : "0-1"
-      },
-      "mappings" : {
-        "dynamic_templates" : [ {
-          "message_field" : {
-            "path_match" : "message",
-            "match_mapping_type" : "string",
-            "mapping" : {
-              "type" : "text",
-              "norms" : false
-            }
-          }
-        }, {
-          "string_fields" : {
-            "match" : "*",
-            "match_mapping_type" : "string",
-            "mapping" : {
-              "type" : "text", "norms" : false,
-              "fields" : {
-                "keyword" : { "type": "keyword", "ignore_above": 256 }
-              }
-            }
-          }
-        } ],
-        "properties" : {
-          "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
-          "@version": { "type": "keyword"},
-          "geoip"  : {
-            "dynamic": true,
-            "properties" : {
-              "ip": { "type": "ip" },
-              "location" : { "type" : "geo_point" },
-              "latitude" : { "type" : "half_float" },
-              "longitude" : { "type" : "half_float" }
+      "index_patterns":"verrazzano-*",
+      "settings":{
+        "number_of_shards":5,
+        "index":{
+          "refresh_interval":"5s",
+          "number_of_replicas":0,
+          "auto_expand_replicas":"0-1",
+          "mapping":{
+            "total_fields":{
+              "limit":"2000"
             }
           }
         }
@@ -566,8 +535,8 @@ spec:
             - mountPath: /run/log/journal
               name: run-log-journal
               readOnly: true
-{{- if .Values.fluentd.extraVolumeMounts }}
-{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
+{{- if .Values.logging.extraVolumeMounts }}
+{{- range $i, $e := .Values.logging.extraVolumeMounts }}
             - mountPath: {{ $e.destination }}
               name: extra-volume-{{ $i }}
               readOnly: {{ $e.readOnly }}
@@ -605,8 +574,8 @@ spec:
             path: /run/log/journal
             type: ""
           name: run-log-journal
-{{- if .Values.fluentd.extraVolumeMounts }}
-{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
+{{- if .Values.logging.extraVolumeMounts }}
+{{- range $i, $e := .Values.logging.extraVolumeMounts }}
         - hostPath:
             path: {{ $e.source }}
             type: ""
