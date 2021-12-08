@@ -116,7 +116,7 @@ pipeline {
             }
         }
     }
-    post {}
+    post {
         always {
             archiveArtifacts artifacts: '**/prerelease_validation.out,**/release_status.out', allowEmptyArchive: true
         }
