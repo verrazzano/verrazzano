@@ -138,15 +138,12 @@ type loggingValues struct {
 	Name                string `json:"name,omitempty"`
 	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
-	DefaultAppLogID     string `json:"defaultAppLogId,omitempty"`
-	SystemLogID         string `json:"systemLogId,omitempty"`
-	APISecret           string `json:"apiSecret,omitempty"`
 }
 
 type fluentdValues struct {
-	Enabled                 bool                `json:"enabled"` // Always write
-	ExtraVolumeMounts       []volumeMount       `json:"extraVolumeMounts,omitempty"`
-	OCILoggingConfiguration *ociLoggingSettings `json:"oci,omitempty"`
+	Enabled           bool                `json:"enabled"` // Always write
+	ExtraVolumeMounts []volumeMount       `json:"extraVolumeMounts,omitempty"`
+	OCI               *ociLoggingSettings `json:"oci,omitempty"`
 }
 
 type consoleValues struct {

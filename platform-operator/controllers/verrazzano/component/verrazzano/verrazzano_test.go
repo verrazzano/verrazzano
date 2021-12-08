@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
@@ -20,6 +21,13 @@ import (
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+	"text/template"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -33,15 +41,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"strings"
-	"testing"
-	"text/template"
-	"time"
 )
 
 const (
@@ -696,6 +698,24 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				},
 			},
 			expectedYAML: "testdata/vzOverridesProdWithFluentdOverrides.yaml",
+		},
+		{
+			name:        "ProdWithFluentdOCILoggingOverrides",
+			description: "Test prod with fluentd OCI Logging overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile: vzapi.Prod,
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							OCI: &vzapi.OciLoggingConfiguration{
+								SystemLogID:     "ocid1.log.oc1.iad.system-log-ocid",
+								DefaultAppLogID: "ocid1.log.oc1.iad.default-app-log-ocid",
+							},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithFluentdOCILoggingOverrides.yaml",
 		},
 	}
 	defer resetWriteFileFunc()

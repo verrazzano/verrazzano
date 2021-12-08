@@ -70,9 +70,9 @@ data:
 
     # Send to storage
     @include output.conf
-    {{- if .Values.logging.systemLogId }}
+    {{- if .Values.fluentd.oci.systemLogId }}
     @include oci-logging-system.conf
-    {{- if .Values.logging.defaultAppLogId }}
+    {{- if .Values.fluentd.oci.defaultAppLogId }}
     @include oci-logging-default-app.conf
     {{- end }}
     {{- else }}
@@ -397,7 +397,7 @@ data:
     # Match all "system" namespaces so system log records are sent to a separate OCI Log object
     <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**monitoring** systemd.** fluentd.monitor.metrics>
       @type oci_logging
-      log_object_id {{ .Values.logging.systemLogId }}
+      log_object_id {{ .Values.fluentd.oci.systemLogId }}
       <buffer>
         @type file
         path /fluentd/log/oci-logging-system
@@ -413,7 +413,7 @@ data:
   oci-logging-default-app.conf: |
     <match **>
       @type oci_logging
-      log_object_id {{ .Values.logging.defaultAppLogId }}
+      log_object_id {{ .Values.fluentd.oci.defaultAppLogId }}
       <buffer>
         @type file
         path /fluentd/log/oci-logging-default-app

@@ -6,13 +6,14 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -337,14 +338,10 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 		}
 		// Overrides for OCI Logging integration
 		if fluentd.OCI != nil {
-			if len(fluentd.OCI.DefaultAppLogID) > 0 {
-				overrides.Logging.DefaultAppLogID = fluentd.OCI.DefaultAppLogID
-			}
-			if len(fluentd.OCI.SystemLogID) > 0 {
-				overrides.Logging.SystemLogID = fluentd.OCI.SystemLogID
-			}
-			if len(fluentd.OCI.APISecret) > 0 {
-				overrides.Logging.APISecret = fluentd.OCI.APISecret
+			overrides.Fluentd.OCI = &ociLoggingSettings{
+				DefaultAppLogID: fluentd.OCI.DefaultAppLogID,
+				SystemLogID:     fluentd.OCI.SystemLogID,
+				APISecret:       fluentd.OCI.APISecret,
 			}
 		}
 	}
