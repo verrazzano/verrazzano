@@ -25,8 +25,6 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.carts.Application
-            args:
-              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -72,8 +70,6 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.catalog.Application
-            args:
-              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -118,8 +114,6 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.orders.Application
-            args:
-              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -164,8 +158,6 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.payment.Application
-            args:
-              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -214,8 +206,6 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.shipping.Application
-            args:
-              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -264,8 +254,6 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.users.Application
-            args:
-              - "--coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g

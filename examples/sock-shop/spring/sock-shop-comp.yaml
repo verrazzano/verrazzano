@@ -18,12 +18,10 @@ spec:
           cluster: SockShopCarts
           role: Carts
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-carts:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-carts:1.0.1
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.carts.CartsApp
-            args:
-              - "-coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -62,12 +60,10 @@ spec:
           cluster: SockShopCatalog
           role: Catalog
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-catalog:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-catalog:1.0.1
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.catalog.CatalogApp
-            args:
-              - "-coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -105,12 +101,10 @@ spec:
           cluster: SockShopOrders
           role: Orders
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-orders:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-orders:1.0.1
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.orders.OrdersApp
-            args:
-              - "-coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -148,12 +142,10 @@ spec:
           cluster: SockShopPayment
           role: Payment
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-payment:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-payment:1.0.1
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.payment.PaymentApp
-            args:
-              - "-coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -195,12 +187,10 @@ spec:
           cluster: SockShopShipping
           role: Shipping
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-shipping:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-shipping:1.0.1
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.shipping.ShippingApp
-            args:
-              - "-coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
@@ -242,12 +232,10 @@ spec:
           cluster: SockShopUsers
           role: Users
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-users:1.0.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-users:1.0.1
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.users.UsersApplication
-            args:
-              - "-coherence.server.startup-timeout=2m"
           jvm:
             memory:
               heapSize: 2g
