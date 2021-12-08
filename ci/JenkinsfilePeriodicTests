@@ -394,28 +394,14 @@ pipeline {
                     }
                 }
                 stage('Release Candidate Validation Checks') {
-                    environment {
-                        JIRA_USERNAME = credentials('jira-username')
-                        JIRA_PASSWORD = credentials('jira-password')
-                    }
                     steps {
                         script {
-                            sh """
-                                set +e
-                                cd ${WORKSPACE}
-                                echo "Performing pre-release validation checks for target version ${VERRAZZANO_DEV_VERSION}"
-                                ./release/scripts/prerelease_validation.sh $VERRAZZANO_DEV_VERSION > $WORKSPACE/prerelease_validation.out
-                                if [ \$? -eq 0 ]; then
-                                    echo "Passed pre-release checks for ${VERRAZZANO_DEV_VERSION}, promoting this to the latest releasable candidate"
-                                    echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
-                                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-$VERRAZZANO_DEV_VERSION-releasable-candidate-commit.txt --file $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
-                                    echo "${env.BUILD_NUMBER} : RELEASE CANDIDATE" > release_status.out
-                                else
-                                    echo "Failed pre-release checks for ${VERRAZZANO_DEV_VERSION}"
-                                    echo "${env.BUILD_NUMBER} : NOT RELEASABLE" > release_status.out
-                                fi
-                                set -e
-                            """
+                            def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                ], wait: true
+                            cd ${WORKSPACE}
+                            copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}", selector: specific("${built.number}"));
                             currentBuild.displayName = readFile file: "release_status.out"
                         }
                     }
@@ -425,7 +411,7 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '**/prerelease_validation.out', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/prerelease_validation.out,**/release_status.out', allowEmptyArchive: true
         }
         failure {
             script {
