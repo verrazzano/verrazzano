@@ -310,7 +310,6 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) {
 	overrides.Fluentd = &fluentdValues{
 		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
-		OCI:     &ociLoggingSettings{},
 	}
 
 	fluentd := effectiveCR.Spec.Components.Fluentd
