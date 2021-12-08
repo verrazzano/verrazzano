@@ -45,8 +45,8 @@ const IstioCoreDNSReleaseName = "istiocoredns"
 // HelmScrtType is the secret type that helm uses to specify its releases
 const HelmScrtType = "helm.sh/release.v1"
 
-// IstioComponent represents an Istio component
-type IstioComponent struct {
+// istioComponent represents an Istio component
+type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
 	ValuesFile string
 
@@ -55,6 +55,9 @@ type IstioComponent struct {
 
 	// InjectedSystemNamespaces are the system namespaces injected with istio
 	InjectedSystemNamespaces []string
+
+	// Internal monitor object for peforming `istioctl` operations in the background
+	monitor installMonitor
 }
 
 type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
@@ -70,7 +73,7 @@ func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type restartComponentsFuncSig func(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error
+type restartComponentsFuncSig func(log *zap.SugaredLogger, err error, i istioComponent, client clipkg.Client) error
 
 var restartComponentsFunction = restartComponents
 
@@ -95,28 +98,29 @@ func SetDefaultHelmUninstallFunction() {
 }
 
 func NewComponent() spi.Component {
-	return IstioComponent{
+	return istioComponent{
 		ValuesFile:               filepath.Join(config.GetHelmOverridesDir(), "istio-cr.yaml"),
 		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
+		monitor:                  &installMonitorType{},
 	}
 }
 
 // IsEnabled returns true if the component is enabled, which is the default
-func (i IstioComponent) IsEnabled(context spi.ComponentContext) bool {
+func (i istioComponent) IsEnabled(context spi.ComponentContext) bool {
 	return true
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
-func (i IstioComponent) GetMinVerrazzanoVersion() string {
+func (i istioComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_0_0
 }
 
 // Name returns the component name
-func (i IstioComponent) Name() string {
+func (i istioComponent) Name() string {
 	return ComponentName
 }
 
-func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
+func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 
 	log := context.Log()
 
@@ -170,7 +174,7 @@ func (i IstioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (i IstioComponent) IsReady(context spi.ComponentContext) bool {
+func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: IstiodDeployment, Namespace: IstioNamespace},
 	}
@@ -178,16 +182,16 @@ func (i IstioComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // GetDependencies returns the dependencies of this component
-func (i IstioComponent) GetDependencies() []string {
+func (i istioComponent) GetDependencies() []string {
 	return []string{}
 }
 
-func (i IstioComponent) PreUpgrade(context spi.ComponentContext) error {
+func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
 	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
 }
 
-func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
+func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	err := deleteIstioCoreDNS(context)
 	if err != nil {
 		return err
@@ -218,7 +222,7 @@ func (i IstioComponent) PostUpgrade(context spi.ComponentContext) error {
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func restartComponents(log *zap.SugaredLogger, err error, i IstioComponent, client clipkg.Client) error {
+func restartComponents(log *zap.SugaredLogger, err error, i istioComponent, client clipkg.Client) error {
 
 	// Restart all the deployments in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
