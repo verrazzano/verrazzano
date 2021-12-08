@@ -27,6 +27,9 @@ spec:
                   destination:
                     host: cidomain-adminserver.console-ingress.svc.cluster.local
                     port: 7001
+                    httpCookie:
+                      name: cidomain
+                      path: /console
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap
     - componentName: todo-mysql-service
