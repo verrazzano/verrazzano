@@ -35,6 +35,11 @@ pipeline {
         DOCKER_REPO = 'ghcr.io'
         GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
 
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
     }
 
