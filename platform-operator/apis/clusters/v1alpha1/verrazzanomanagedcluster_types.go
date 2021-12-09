@@ -42,7 +42,7 @@ type StateType string
 
 const (
 	StateActive   StateType = "Active"
-	StateInActive StateType = "InActive"
+	StateInactive StateType = "Inactive"
 	StatePending  StateType = "Pending"
 )
 
@@ -83,7 +83,7 @@ type VerrazzanoManagedClusterStatus struct {
 	// Last time the agent from this managed cluster connected to the admin cluster.
 	// +optional
 	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
-	// State of the Cluster to determine if it is Active, Pending, or InActive.
+	// State of the Cluster to determine if it is Active, Pending, or Inactive.
 	State StateType `json:"state"`
 	// Verrazzano API Server URL for the managed cluster.
 	APIUrl string `json:"apiUrl,omitempty"`

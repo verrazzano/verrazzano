@@ -141,8 +141,9 @@ type loggingValues struct {
 }
 
 type fluentdValues struct {
-	Enabled           bool          `json:"enabled"` // Always write
-	ExtraVolumeMounts []volumeMount `json:"extraVolumeMounts,omitempty"`
+	Enabled           bool                `json:"enabled"` // Always write
+	ExtraVolumeMounts []volumeMount       `json:"extraVolumeMounts,omitempty"`
+	OCI               *ociLoggingSettings `json:"oci,omitempty"`
 }
 
 type consoleValues struct {
@@ -223,4 +224,10 @@ type serviceSettings struct {
 type endpoint struct {
 	IP   string `json:"ip,omitempty"`
 	Port int    `json:"port,omitempty"`
+}
+
+type ociLoggingSettings struct {
+	DefaultAppLogID string `json:"defaultAppLogId"`
+	SystemLogID     string `json:"systemLogId"`
+	APISecret       string `json:"apiSecret,omitempty"`
 }

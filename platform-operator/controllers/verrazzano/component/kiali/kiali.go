@@ -114,7 +114,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		}
 		return nil
 	})
-	ctx.Log().Infof("Kiali ingress operation result: %s", opResult)
+	ctx.Log().Debugf("Kiali ingress operation result: %s", opResult)
 	return err
 }
 
@@ -161,7 +161,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		}
 		return nil
 	})
-	ctx.Log().Infof("Kiali auth policy op result: %s", opResult)
+	ctx.Log().Debugf("Kiali auth policy op result: %s", opResult)
 	return err
 }
 

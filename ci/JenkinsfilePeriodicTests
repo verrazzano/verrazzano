@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def GIT_COMMIT_TO_USE
+def VERRAZZANO_DEV_VERSION
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def TESTS_FAILED = false
@@ -392,10 +393,27 @@ pipeline {
                         }
                     }
                 }
+                stage('Release Candidate Validation Checks') {
+                    steps {
+                        script {
+                            def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                                ], wait: true
+                            dir ("${WORKSPACE}") {
+                                copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}", selector: specific("${built.number}"));
+                                currentBuild.displayName = readFile file: "release_status.out"
+                            }
+                        }
+                    }
+                }
             }
         }
     }
     post {
+        always {
+            archiveArtifacts artifacts: '**/prerelease_validation.out,**/release_status.out', allowEmptyArchive: true
+        }
         failure {
             script {
                 if (isAlertingEnabled()) {
@@ -437,7 +455,7 @@ def getCronSchedule() {
     if (env.BRANCH_NAME.equals("master")) {
         return "H */2 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@Daily"
+        return "@daily"
     }
     return ""
 }

@@ -6,6 +6,8 @@ package rancher
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	testclient "k8s.io/client-go/rest/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,7 +28,11 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 
 		return cfg, &testclient.RESTClient{}, nil
 	}
-	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
 	podList := createRancherPodList()
 	adminSecret := createAdminSecret()
 
@@ -69,8 +75,7 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			k8sutil.FakePodSTDOUT = tt.stdout
-			setRestClientConfig(tt.f)
+			k8sutilfake.PodSTDOUT = tt.stdout
 			err := createAdminSecretIfNotExists(log, tt.c)
 			if tt.isErr {
 				assert.NotNil(t, err)
