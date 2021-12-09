@@ -40,24 +40,35 @@ spec:
               template.
             properties:
               prometheusConfig:
+                description: PrometheusConfig refers to the templated metrics scraping
+                  configuration
                 properties:
                   scrapeConfigTemplate:
+                    description: ScrapeConfigTemplate is the prometheus scrape target
+                      template to be added to the Prometheus Configmap
                     type: string
                   targetConfigMap:
+                    description: TargetConfigMap contains metadata about the Prometheus
+                      ConfigMap
                     properties:
                       namespace:
+                        description: Namespace containing the Prometheus ConfigMap
                         type: string
                       port:
+                        description: Name of the Prometheus ConfigMap
                         type: string
                     type: object
                 type: object
               workloadSelector:
+                description: TargetWorkload identifies the workloads to which this
+                  template applies.
                 properties:
                   priority:
-                    description: Priority of the the Template
+                    description: Allows for explicit control of template selection.
+                      Workloads with highest priority selected
                     type: integer
                   selector:
-                    description: Selector to match workloads with template
+                    description: The label selector used to match the workload
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -101,6 +112,69 @@ spec:
                         type: object
                     type: object
                 type: object
+            type: object
+          status:
+            description: MetricsTemplateStatus defines the observed state of MetricsTemplate
+              and related resources.
+            properties:
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              resources:
+                description: Related resources affected by this metrics template
+                items:
+                  description: QualifiedResourceRelation identifies a specific related
+                    resource (both APIVersion/Kind and namespace name) along this
+                    the role of the resource in the relationship.
+                  properties:
+                    apiversion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    role:
+                      type: string
+                  required:
+                  - apiversion
+                  - kind
+                  - name
+                  - namespace
+                  - role
+                  type: object
+                type: array
             type: object
         type: object
     served: true
