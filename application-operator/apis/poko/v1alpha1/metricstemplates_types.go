@@ -23,6 +23,7 @@ type MetricsTemplateList struct {
 // MetricsTemplate specifies the metrics template API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +genclient
 type MetricsTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
