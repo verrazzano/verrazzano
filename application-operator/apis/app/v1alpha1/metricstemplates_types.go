@@ -10,9 +10,9 @@ import (
 // MetricsTemplateKind is the Kind of the MetricsTemplate
 const MetricsTemplateKind string = "MetricsTemplate"
 
-/*func init() {
+func init() {
 	SchemeBuilder.Register(&MetricsTemplate{}, &MetricsTemplateList{})
-}*/
+}
 
 // MetricsTemplateList contains a list of metrics templates.
 // +kubebuilder:object:root=true
