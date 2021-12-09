@@ -14,10 +14,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// IstioDefaulterPath specifies the path of Istio defaulter webhook
-const PokoWorkloadPath = "/poko-workload"
+// ScrapeGeneratorloadPath specifies the path of scrape-generator webhook
+const ScrapeGeneratorloadPath = "/scrape-generator"
 
-var workloadLogger = ctrl.Log.WithName("webhooks.poko-workload")
+var workloadLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 
 var count = 0
 

@@ -216,7 +216,7 @@ func main() {
 
 		// Register the mutating webhook for plain old kubernetes objects workloads
 		mgr.GetWebhookServer().Register(
-			webhooks.PokoWorkloadPath,
+			webhooks.ScrapeGeneratorloadPath,
 			&webhook.Admission{
 				Handler: &webhooks.WorkloadWebhook{
 					Client:        mgr.GetClient(),
@@ -225,9 +225,9 @@ func main() {
 				},
 			},
 		)
-		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.PokoMutatingWebhookName)
+		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.ScrapeGeneratorWebhookName)
 		if err != nil {
-			setupLog.Error(err, fmt.Sprintf("unable to update %s mutating webhook configuration", certificates.PokoMutatingWebhookName))
+			setupLog.Error(err, fmt.Sprintf("unable to update %s mutating webhook configuration", certificates.ScrapeGeneratorWebhookName))
 			os.Exit(1)
 		}
 

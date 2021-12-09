@@ -432,12 +432,12 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: verrazzano-application-poko-workload
+  name: verrazzano-application-scrape-generator
   namespace: verrazzano-system
   labels:
     app: verrazzano-application-operator
 webhooks:
-  - name: verrazzano-application-poko-workload.verrazzano.io
+  - name: verrazzano-application-scrape-generator.verrazzano.io
     namespaceSelector:
       matchExpressions:
         - key: kubernetes.io/metadata.name
@@ -447,7 +447,7 @@ webhooks:
       service:
         name: verrazzano-application-operator
         namespace: verrazzano-system
-        path: "/poko-workload"
+        path: "/scrape-generator"
     rules:
       - operations: ["CREATE"]
         apiGroups: ["*"]
