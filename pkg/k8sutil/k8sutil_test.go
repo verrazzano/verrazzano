@@ -354,7 +354,7 @@ func TestApplyCRDYaml(t *testing.T) {
 func TestExecPod(t *testing.T) {
 	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
 	spdyfake.PodSTDOUT = "foobar"
-	client, cfg := spdyfake.NewClientsetConfig()
+	cfg, client := spdyfake.NewClientsetConfig()
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "ns",
