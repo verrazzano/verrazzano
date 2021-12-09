@@ -541,52 +541,55 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 
 //createOfUpdateDestinationRule creates or updates the DestinationRule.
 func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults) {
-	if rule.Destination.HTTPCookie != nil {
-		destinationRule := &istioclient.DestinationRule{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: destinationRuleAPIVersion,
-				Kind:       destinationRuleKind},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: trait.Namespace,
-				Name:      name},
-		}
 
-		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
-			return r.mutateDestinationRule(destinationRule, trait, rule)
-		})
-
-		ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
-		status.Relations = append(status.Relations, ref)
-		status.Results = append(status.Results, res)
-		status.Errors = append(status.Errors, err)
-
-		if err != nil {
-			r.Log.Error(err, "Failed to create or update destination rule.")
-		}
-
+	destinationRule := &istioclient.DestinationRule{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: destinationRuleAPIVersion,
+			Kind:       destinationRuleKind},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: trait.Namespace,
+			Name:      name},
 	}
+
+	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+		return r.mutateDestinationRule(destinationRule, trait, rule)
+	})
+
+	ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
+	status.Relations = append(status.Relations, ref)
+	status.Results = append(status.Results, res)
+	status.Errors = append(status.Errors, err)
+
+	if err != nil {
+		r.Log.Error(err, "Failed to create or update destination rule.")
+	}
+
 }
 
 func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
-	controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
-	destinationRule.Spec = istionet.DestinationRule{
-		Host: rule.Destination.Host,
-		TrafficPolicy: &istionet.TrafficPolicy{
-			LoadBalancer: &istionet.LoadBalancerSettings{
-				LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
-					ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
-						HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
-							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
-								Name: rule.Destination.HTTPCookie.Name,
-								Path: rule.Destination.HTTPCookie.Path,
-								Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
+	if rule.Destination.HTTPCookie != nil {
+		destinationRule.Spec = istionet.DestinationRule{
+			Host: rule.Destination.Host,
+			TrafficPolicy: &istionet.TrafficPolicy{
+				LoadBalancer: &istionet.LoadBalancerSettings{
+					LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
+						ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
+							HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
+								HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
+									Name: rule.Destination.HTTPCookie.Name,
+									Path: rule.Destination.HTTPCookie.Path,
+									Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
+							},
 						},
 					},
 				},
 			},
-		},
+		}
+	} else {
+		destinationRule.Spec = istionet.DestinationRule{}
 	}
 
+	controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
 	return nil
 }
 
