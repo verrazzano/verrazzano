@@ -10,9 +10,9 @@ import (
 // MetricsTemplateKind is the Kind of the MetricsTemplate
 const MetricsTemplateKind string = "MetricsTemplate"
 
-func init() {
+/*func init() {
 	SchemeBuilder.Register(&MetricsTemplate{}, &MetricsTemplateList{})
-}
+}*/
 
 // MetricsTemplateList contains a list of metrics templates.
 // +kubebuilder:object:root=true
@@ -42,19 +42,19 @@ type MetricsTemplateSpec struct {
 // WorkloadSelector identifies the workloads to which this template applies.
 type WorkloadSelector struct {
 	// NamespaceSelector scopes the template to a namespace
-	NamespaceSelector metav1.LabelSelector
+	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
 	// ObjectSelector scopes the template to an object type
-	ObjectSelector metav1.LabelSelector
+	ObjectSelector metav1.LabelSelector `json:"objectSelector,omitempty"`
 
 	// APIGroups scopes the template to listed APIGroups
-	APIGroups []string
+	APIGroups []string `json:"apiGroups,omitempty"`
 
 	// APIVersions scopes the template to listed APIVersions
-	APIVersions []string
+	APIVersions []string `json:"apiVersions,omitempty"`
 
 	// Resources scopes the template to listed workload types
-	Resources []string
+	Resources []string `json:"resources,omitempty"`
 }
 
 // PrometheusConfig refers to the templated metrics scraping configuration
