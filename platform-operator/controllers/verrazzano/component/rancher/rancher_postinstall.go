@@ -63,9 +63,9 @@ func resetAdminPassword(c client.Client) (string, error) {
 	}
 	pod := podList.Items[0]
 	// Ensure the default rancer admin user is present
-	_, _, err = k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{ensureAdminCommand})
+	_, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{ensureAdminCommand})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w", stderr, err)
 	}
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{resetPasswordCommand})
 	if err != nil {
