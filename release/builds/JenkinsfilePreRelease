@@ -11,6 +11,7 @@ def VERRAZZANO_DEV_VERSION
 pipeline {
     options {
         skipDefaultCheckout true
+        copyArtifactPermission('*');
         timestamps ()
     }
 
