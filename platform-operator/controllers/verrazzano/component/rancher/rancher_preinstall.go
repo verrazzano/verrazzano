@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"context"
+	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
@@ -63,16 +64,19 @@ func copyDefaultCACertificate(log *zap.SugaredLogger, c client.Client, vz *vzapi
 		if err := c.Get(context.TODO(), namespacedName, defaultSecret); err != nil {
 			return err
 		}
+		if len(defaultSecret.Data[caCert]) < 1 {
+			return fmt.Errorf("%s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCert)
+		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: common.CattleSystem,
 				Name:      rancherTLSSecretName,
 			},
 		}
-		log.Infof("Copying default Verrazzano secret to Rancher namespace")
+		log.Debugf("Copying default Verrazzano secret to Rancher namespace")
 		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, rancherCaSecret, func() error {
 			rancherCaSecret.Data = map[string][]byte{
-				"cacerts.pem": defaultSecret.Data["ca.cert"],
+				caCertsPem: defaultSecret.Data[caCert],
 			}
 			return nil
 		}); err != nil {

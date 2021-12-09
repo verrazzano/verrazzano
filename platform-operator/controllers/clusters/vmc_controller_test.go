@@ -14,13 +14,13 @@ import (
 	"testing"
 	"time"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -136,8 +136,8 @@ func TestCreateVMC(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -198,8 +198,8 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -259,8 +259,8 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCNoCACert tests the Reconcile method for the following use case
@@ -318,8 +318,8 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCWithExistingScrapeConfiguration tests the Reconcile method for the following use case
@@ -391,8 +391,8 @@ scrape_configs:
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestReplaceExistingScrapeConfiguration tests the Reconcile method for the following use case
@@ -464,8 +464,8 @@ scrape_configs:
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMC tests the Reconcile method for the following use case
@@ -527,8 +527,8 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // TestCreateVMCSyncSvcAccountFailed tests the Reconcile method for the following use case
@@ -1137,14 +1137,14 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	// override the image registry and repo
 	const registry = "unit-test-registry.io"
 	const imageRepo = "unit-test-repo"
-	oldRegistryEnv := os.Getenv(constants.RegistryOverrideEnvVar)
-	oldImageRepoEnv := os.Getenv(constants.ImageRepoOverrideEnvVar)
+	oldRegistryEnv := os.Getenv(vpoconstants.RegistryOverrideEnvVar)
+	oldImageRepoEnv := os.Getenv(vpoconstants.ImageRepoOverrideEnvVar)
 	defer func() {
-		os.Setenv(constants.RegistryOverrideEnvVar, oldRegistryEnv)
-		os.Setenv(constants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
+		os.Setenv(vpoconstants.RegistryOverrideEnvVar, oldRegistryEnv)
+		os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, oldImageRepoEnv)
 	}()
-	os.Setenv(constants.RegistryOverrideEnvVar, registry)
-	os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
+	os.Setenv(vpoconstants.RegistryOverrideEnvVar, registry)
+	os.Setenv(vpoconstants.ImageRepoOverrideEnvVar, imageRepo)
 
 	// replace the image registry in the Rancher agent image with the overridden registry and repo
 	expectedRancherYAML := strings.Replace(rancherManifestYAML, "image: "+rancherAgentRegistry, "image: "+registry+"/"+imageRepo, 1)
@@ -1188,8 +1188,8 @@ func TestRegisterClusterWithRancherOverrideRegistry(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(vpoconstants.ReconcileLoopRequeueInterval), result.RequeueAfter)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
@@ -1243,7 +1243,7 @@ func expectSyncRoleBinding(t *testing.T, mock *mocks.MockClient, name string, su
 		DoAndReturn(func(ctx context.Context, binding *rbacv1.RoleBinding, opts ...client.CreateOption) error {
 			if succeed {
 				asserts.Equalf(generateManagedResourceName(name), binding.Name, "RoleBinding testManagedCluster did not match")
-				asserts.Equalf(constants.MCClusterRole, binding.RoleRef.Name, "RoleBinding roleref did not match")
+				asserts.Equalf(vpoconstants.MCClusterRole, binding.RoleRef.Name, "RoleBinding roleref did not match")
 				asserts.Equalf(generateManagedResourceName(name), binding.Subjects[0].Name, "Subject did not match")
 				asserts.Equalf(constants.VerrazzanoMultiClusterNamespace, binding.Subjects[0].Namespace, "Subject namespace did not match")
 				return nil
@@ -1309,10 +1309,10 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string) {
 
 	// Expect a call to get the verrazzano-admin-cluster configmap
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.AdminClusterConfigMapName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: vpoconstants.AdminClusterConfigMapName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cm *corev1.ConfigMap) error {
 			cm.Data = map[string]string{
-				constants.ServerDataKey: testServerData,
+				vpoconstants.ServerDataKey: testServerData,
 			}
 			return nil
 		})
@@ -1422,6 +1422,11 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			}
 			return nil
 		})
+
+	// Expect a call to get the tls-ca-additional secret, return the secret as not found
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.RancherSystemNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 
 	// Expect a call to get the keycloak ingress and return the ingress.
 	mock.EXPECT().
@@ -1743,7 +1748,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			// assert that the cluster ID in the request body is what we expect
 			body, err := ioutil.ReadAll(req.Body)
 			asserts.NoError(err)
-			jsonString, err := gabs.ParseJSON([]byte(body))
+			jsonString, err := gabs.ParseJSON(body)
 			asserts.NoError(err)
 			clusterID, ok := jsonString.Path("clusterId").Data().(string)
 			asserts.True(ok)

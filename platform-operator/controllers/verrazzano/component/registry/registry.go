@@ -5,19 +5,18 @@ package registry
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -26,6 +25,8 @@ import (
 type GetCompoentsFnType func() []spi.Component
 
 var getComponentsFn = getComponents
+
+var componentsRegistry []spi.Component
 
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
@@ -46,21 +47,24 @@ func GetComponents() []spi.Component {
 
 // getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
 func getComponents() []spi.Component {
-	return []spi.Component{
-		nginx.NewComponent(),
-		certmanager.NewComponent(),
-		externaldns.NewComponent(),
-		rancher.NewComponent(),
-		verrazzano.NewComponent(),
-		coherence.NewComponent(),
-		weblogic.NewComponent(),
-		oam.NewComponent(),
-		appoper.NewComponent(),
-		mysql.NewComponent(),
-		keycloak.NewComponent(),
-		kiali.NewComponent(),
-		istio.NewComponent(),
+	if len(componentsRegistry) == 0 {
+		componentsRegistry = []spi.Component{
+			nginx.NewComponent(),
+			certmanager.NewComponent(),
+			externaldns.NewComponent(),
+			rancher.NewComponent(),
+			verrazzano.NewComponent(),
+			coherence.NewComponent(),
+			weblogic.NewComponent(),
+			oam.NewComponent(),
+			appoper.NewComponent(),
+			mysql.NewComponent(),
+			keycloak.NewComponent(),
+			kiali.NewComponent(),
+			istio.NewComponent(),
+		}
 	}
+	return componentsRegistry
 }
 
 func FindComponent(releaseName string) (bool, spi.Component) {

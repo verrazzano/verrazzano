@@ -50,13 +50,15 @@ const (
 	verrazzanoClusterIssuer  = "verrazzano-cluster-issuer"
 	httpServiceNamePrefix    = "http"
 	weblogicOperatorSelector = "weblogic.createdByOperator"
+	wlProxySSLHeader         = "WL-Proxy-SSL"
+	wlProxySSLHeaderVal      = "true"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
 // Reference: https://github.com/oracle/weblogic-kubernetes-operator/blob/main/operator/src/main/resources/scripts/model_wdt_mii_filter.py
 var (
 	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
-		"tls-default", "tls-cbts", "tls-iiops"}
+		"tls-default", "tls-cbts", "tls-iiops", "tcp-internal-t3"}
 )
 
 // Reconciler is used to reconcile an IngressTrait object
@@ -516,6 +518,15 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 	route := istionet.HTTPRoute{
 		Match: matches,
 		Route: []*istionet.HTTPRouteDestination{dest}}
+	if vznav.IsWeblogicWorkloadKind(trait) {
+		route.Headers = &istionet.Headers{
+			Request: &istionet.Headers_HeaderOperations{
+				Add: map[string]string{
+					wlProxySSLHeader: wlProxySSLHeaderVal,
+				},
+			},
+		}
+	}
 	virtualService.Spec.Http = []*istionet.HTTPRoute{&route}
 
 	// Set the owner reference.
