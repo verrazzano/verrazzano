@@ -1,62 +1,55 @@
 package v1alpha1
 
 import (
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MetricsTraitKind is the Kind of the MetricsTrait
-const MetricsTraitKind string = "MetricsTrait"
+// MetricsTemplateKind is the Kind of the MetricsTemplate
+const MetricsTemplateKind string = "MetricsTemplate"
 
 /*func init() {
-	SchemeBuilder.Register(&MetricsTrait{}, &MetricsTraitList{})
+	SchemeBuilder.Register(&MetricsTemplate{}, &MetricsTemplateList{})
 }*/
 
-// MetricsTraitList contains a list of metrics traits.
+// MetricsTemplateList contains a list of metrics templates.
 // +kubebuilder:object:root=true
-type MetricsTraitList struct {
+type MetricsTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MetricsTrait `json:"items"`
+	Items           []MetricsTemplate `json:"items"`
 }
 
-// MetricsTrait specifies the metrics trait API
+// MetricsTemplate specifies the metrics template API
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-type MetricsTrait struct {
+type MetricsTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MetricsTraitSpec   `json:"spec,omitempty"`
-	Status MetricsTraitStatus `json:"status,omitempty"`
+	Spec MetricsTemplateSpec `json:"spec,omitempty"`
+	//Status MetricsTemplateStatus `json:"status,omitempty"`
 }
 
-// MetricsTraitSpec specifies the desired state of a metrics trait.
-type MetricsTraitSpec struct {
-	// The HTTP port for the related metrics endpoint. Defaults to 8080.
-	Port *int `json:"port,omitempty"`
-
-	// The HTTP path for the related metrics endpoint. Defaults to /metrics.
-	Path *string `json:"path,omitempty"`
-
-	// The name of an opaque secret (i.e. username and password) within the workload's namespace for metrics endpoint access.
-	Secret *string `json:"secret,omitempty"`
-
-	// The prometheus deployment used to scrape the related metrics endpoints.
-	// Defaults to istio-system/prometheus
-	Scraper *string `json:"scraper,omitempty"`
-
-	// A reference to the workload used to generate this metrics trait.
-	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
+// MetricsTemplateSpec specifies the desired state of a metrics template.
+type MetricsTemplateSpec struct {
+	WorkloadSelector *TargetWorkload   `json:"workloadSelector,omitempty"`
+	PrometheusConfig *PrometheusConfig `json:"prometheusConfig,omitempty"`
 }
 
-// MetricsTraitStatus defines the observed state of MetricsTrait and related resources.
-type MetricsTraitStatus struct {
-	// Important: Run code generation after modifying this file.
+type TargetWorkload struct {
+	// Selector to match workloads with template
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 
-	// The reconcile status of this metrics trait
-	oamrt.ConditionedStatus `json:",inline"`
+	// Priority of the the Template
+	Priority *float32 `json:"priority,omitempty"`
+}
 
-	// Related resources affected by this metrics trait
-	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
+type PrometheusConfig struct {
+	TargetConfigMap      *TargetConfigMap `json:"targetConfigMap,omitempty"`
+	ScrapeConfigTemplate *string          `json:"scrapeConfigTemplate,omitempty"`
+}
+
+type TargetConfigMap struct {
+	Namespace *string `json:"namespace,omitempty"`
+	Name      *string `json:"port,omitempty"`
 }
