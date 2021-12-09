@@ -5,8 +5,10 @@ package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
+	"fmt"
 	"os"
+
+	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
@@ -211,6 +213,23 @@ func main() {
 				},
 			},
 		)
+
+		// Register the mutating webhook for plain old kubernetes objects workloads
+		mgr.GetWebhookServer().Register(
+			webhooks.PokoWorkloadPath,
+			&webhook.Admission{
+				Handler: &webhooks.WorkloadWebhook{
+					Client:        mgr.GetClient(),
+					KubeClient:    kubeClient,
+					DynamicClient: dynamicClient,
+				},
+			},
+		)
+		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.PokoMutatingWebhookName)
+		if err != nil {
+			setupLog.Error(err, fmt.Sprintf("unable to update %s mutating webhook configuration", certificates.PokoMutatingWebhookName))
+			os.Exit(1)
+		}
 
 		mgr.GetWebhookServer().CertDir = certDir
 		appconfigWebhook := &webhooks.AppConfigWebhook{

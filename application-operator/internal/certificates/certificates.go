@@ -32,6 +32,8 @@ const (
 	AppConfigMutatingWebhookName = "verrazzano-application-appconfig-defaulter"
 	// IstioMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for Istio pods
 	IstioMutatingWebhookName = "verrazzano-application-istio-defaulter"
+	// PokoMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for plain old kubernetes pods
+	PokoMutatingWebhookName = "verrazzano-application-poko-workload"
 	// VerrazzanoProjectValidatingWebhookName is the resource name for the Verrazzano ValidatingWebhook
 	VerrazzanoProjectValidatingWebhookName = "verrazzano-application-verrazzanoproject"
 	// MultiClusterApplicationConfigurationName is the resource name for the MultiClusterApplicationConfiguration ValidatingWebhook
