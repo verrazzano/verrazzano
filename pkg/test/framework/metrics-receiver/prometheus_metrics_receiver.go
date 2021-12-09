@@ -24,10 +24,10 @@ const (
 var getenvFunc = os.Getenv
 
 type PrometheusMetricsReceiverConfig struct {
-	pushGatewayURL      string
-	pushGatewayUser     string
-	pushGatewayPassword string
-	pushInterval        time.Duration
+	PushGatewayURL      string
+	PushGatewayUser     string
+	PushGatewayPassword string
+	PushInterval        time.Duration
 	Name                string
 }
 
@@ -35,74 +35,86 @@ type PrometheusMetricsReceiver struct {
 	genericRvr GenericMetricsReceiver
 	receiverConfig PrometheusMetricsReceiverConfig
 	pusher              *push.Pusher
+	counters            map[string] prometheus.Counter
+}
+
+
+func (pmrs *PrometheusMetricsReceiver) Name() string {
+	return pmrs.receiverConfig.Name
 }
 
 func (pmrs *PrometheusMetricsReceiver) pushData() error {
-	for cntrName, cntrp := range pmrs.genericRvr.counters {
-		ctr := prometheus.NewCounter(prometheus.CounterOpts{Name: cntrName})
-		ctr.Add(cntrp.Value())
-		pmrs.pusher.Collector(ctr)
-	}
+	//for cntrName, counter := range pmrs.counters {
+	//	counter = pmrs.counters[cntrName]
+		/*
+		if pcntr == nil {
+			pcntr = prometheus.NewCounter(prometheus.CounterOpts{Name: cntrName})
+			//ctr.Add(cntrp.Value())
+			pmrs.counters[cntrName] = pcntr
+			pmrs.pusher.Collector(pcntr)
+		}
+
+		 */
+		//pmrs.pusher.Collector(counter)
+	//}
 	if err := pmrs.pusher.Add(); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("could not push metric data to push gateway: %s", err.Error()))
+	} else {
+		pkg.Log(pkg.Info, "Successfully pushed counter metric")
+		fmt.Println("Successfully pushed")
 	}
 	return nil
 }
 
-func (pmrs *PrometheusMetricsReceiver) IncrementCounter(desc MetricDesc) error {
-	return pmrs.genericRvr.IncrementCounter(desc)
+func (pmrs *PrometheusMetricsReceiver) IncrementGokitCounter(desc MetricDesc) error {
+	err := pmrs.genericRvr.IncrementGokitCounter(desc)
+	pcntr := pmrs.counters[desc.Name]
+	if pcntr == nil {
+		pcntr = prometheus.NewCounter(prometheus.CounterOpts{Name: desc.Name})
+		pmrs.counters[desc.Name] = pcntr
+		pmrs.pusher.Collector(pcntr)
+	}
+	pcntr.Inc()
+	return err
 }
 
-func newPrometheusMetricsReceiver(rcvr GenericMetricsReceiver) (MetricsReceiver, error) {
+func(pmrs * PrometheusMetricsReceiver) GetCounterValue(desc MetricDesc) int {
+	return pmrs.genericRvr.GetCounterValue(desc)
+}
+func newPrometheusMetricsReceiver(rcvr GenericMetricsReceiver) (GokitMetricsReceiver, error) {
 	cfg := PrometheusMetricsReceiverConfig{
-		pushGatewayURL:      getenvFunc(promPushURLEnvVarName),
-		pushGatewayUser:     getenvFunc(promPushUserEnvVarName),
-		pushGatewayPassword: getenvFunc(promPushPasswordEnvVarName),
-		pushInterval:        defaultPushInterval,
+		PushGatewayURL:      getenvFunc(promPushURLEnvVarName),
+		PushGatewayUser:     getenvFunc(promPushUserEnvVarName),
+		PushGatewayPassword: getenvFunc(promPushPasswordEnvVarName),
+		PushInterval:        defaultPushInterval,
 		Name:                rcvr.name,
 	}
 
-	pmrcvr := PrometheusMetricsReceiver{receiverConfig: cfg, genericRvr: rcvr}
-	pmrcvr.pusher = push.New(cfg.pushGatewayURL, cfg.Name)
-	var v MetricsReceiver
+	pmrcvr := PrometheusMetricsReceiver{receiverConfig: cfg,
+		                                counters : make(map[string] prometheus.Counter),
+		                                genericRvr: rcvr}
+	pmrcvr.pusher = push.New(cfg.PushGatewayURL, cfg.Name)
+	if pmrcvr.receiverConfig.PushGatewayUser != "" && pmrcvr.receiverConfig.PushGatewayPassword != "" {
+		pmrcvr.pusher = pmrcvr.pusher.BasicAuth(pmrcvr.receiverConfig.PushGatewayUser, pmrcvr.receiverConfig.PushGatewayPassword)
+	}
+	var v GokitMetricsReceiver
 	v = &pmrcvr
 
 	go func() {
 		// push the counter to the gateway
 		for {
-			time.Sleep(pmrcvr.receiverConfig.pushInterval)
+			//time.Sleep(pmrcvr.receiverConfig.PushInterval)
 			if err := pmrcvr.pushData(); err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("could not push metric to push gateway: %s", err.Error()))
+			} else {
+				pkg.Log(pkg.Info, "Successfully pushed metric data")
 			}
-			pkg.Log(pkg.Info,"Successfully push metric data")
+			time.Sleep(pmrcvr.receiverConfig.PushInterval)
 		}
 	}()
 	return v, nil
 }
 
-/*
-func (pmrs *PrometheusMetricsReceiver) createCounter(opts MetricOpts) *metrics.Counter {
-   var myCounter metrics.Counter
-   //var optLabels stdprometheus.Labels
-   //promCtrOpts
-   var optLabels stdprometheus.Labels = make(map[string]string)
-   if  opts.ConstLabels != nil {
-	   for index, element := range opts.ConstLabels {
-		   optLabels[index] = element
-	   }
-   }
-   var promCtrOpts stdprometheus.CounterOpts = stdprometheus.CounterOpts{
-	                  Namespace:opts.Namespace,
-					  Subsystem: opts.Subsystem,
-					  Name: opts.Name,
-					  Help: opts.Help,
-					  ConstLabels: optLabels,
-   }
-
-   myCounter = prometheus.NewCounterFrom(promCtrOpts, []string{})
-   return &myCounter
-}
-*/
 
 
 

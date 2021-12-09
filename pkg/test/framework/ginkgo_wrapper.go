@@ -5,11 +5,10 @@ package framework
 
 import (
 	"fmt"
-	"reflect"
-	"time"
-
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"reflect"
+	"time"
 )
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
@@ -84,6 +83,10 @@ func VzDescribe(text string, body func()) bool {
 			return
 		}
 		if IncrementCounter(text, "number_of_runs") != nil {
+			return
+		}
+		if IncrementGokitCounter(text, "number_of_runs_gokitcounter") != nil {
+
 			return
 		}
 	})

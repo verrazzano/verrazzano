@@ -4,7 +4,9 @@
 package metrics_receiver
 
 import (
+	"fmt"
 	"github.com/go-kit/kit/metrics/generic"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"os"
 )
 
@@ -23,13 +25,16 @@ type MetricDesc struct {
 }
 
 func (descp *MetricDesc) FQName() string {
-	return descp.Namespace + "." + descp.Subsystem + "." + descp.Name
+	//return descp.Namespace + "." + descp.Subsystem + "." + descp.Name
+	return descp.Name
 }
 
-type MetricsReceiver interface {
+type GokitMetricsReceiver interface {
     //push()
 	//createCounter(MetricOpts) *metrics.Counter
-	IncrementCounter(MetricDesc) error
+	Name() string
+	IncrementGokitCounter(MetricDesc) error
+	GetCounterValue(MetricDesc) int
 }
 
 type GenericMetricsReceiver struct {
@@ -40,37 +45,41 @@ type GenericMetricsReceiver struct {
 }
 
 
-func newMetricsReceiver(name string) (MetricsReceiver, error) {
+func NewMetricsReceiver(name string) (GokitMetricsReceiver, error) {
 	var rcvr GenericMetricsReceiver = GenericMetricsReceiver{name : name,
 	                                   counters : make(map[string] *generic.Counter),
 									   gauges : make(map[string] *generic.Gauge),
 		                               histograms : make(map[string] *generic.Histogram),
 	}
 	metricsReceiverType, isSet := os.LookupEnv(metricsReceiverTypeEnvVarName)
-	var metReceiver MetricsReceiver
+	var metReceiver GokitMetricsReceiver
 	var err error = nil
 	if !isSet {
 		metricsReceiverType = promReceiverType
 	}
 	if metricsReceiverType == promReceiverType {
+	//if metricsReceiverType == "Prometheus" {
 		metReceiver, err = newPrometheusMetricsReceiver(rcvr)
+	//}
 	}
 	return metReceiver, err
 }
 
-func (rcvr * GenericMetricsReceiver) IncrementCounter(desc MetricDesc) error {
+func (rcvr * GenericMetricsReceiver) IncrementGokitCounter(desc MetricDesc) error {
 	fqName := desc.FQName()
 	cntrp := rcvr.counters[fqName]
 	if cntrp == nil {
-		cntrp := generic.NewCounter(fqName)
+		cntrp = generic.NewCounter(fqName)
 		rcvr.counters[fqName] = cntrp
 	}
 	cntrp.Add(1)
+	pkg.Log(pkg.Info, fmt.Sprintf("Incrementing counter %s", fqName))
 	return nil
 }
 
-func(rcvr * GenericMetricsReceiver) getCounterValue(desc MetricDesc) float64 {
+func(rcvr * GenericMetricsReceiver) GetCounterValue(desc MetricDesc) int {
 	fqName := desc.FQName()
 	cntrp := rcvr.counters[fqName]
-	return cntrp.Value();
+	return int(cntrp.Value());
 }
+

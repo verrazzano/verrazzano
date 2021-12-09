@@ -11,7 +11,7 @@ import (
 
 func TestNewPrometheusMetricsReceiver(t *testing.T) {
 	cfg := PrometheusMetricsReceiverConfig{pushGatewayURL: "http://somegateway"}
-	rcvr, err := newMetricsReceiver(cfg.Name)
+	rcvr, err := NewMetricsReceiver(cfg.Name)
 	assert.NoError(t, err)
 	assert.NotNil(t, rcvr)
 
@@ -20,14 +20,14 @@ func TestNewPrometheusMetricsReceiver(t *testing.T) {
 }
 
 func TestPrometheusMetricsReceiver_IncrementCounter(t *testing.T) {
-	cfg := PrometheusMetricsReceiverConfig{pushGatewayURL: "http://somegateway", pushGatewayUser: "someuser", pushGatewayPassword: "pass"}
-	receiver, err := newMetricsReceiver(cfg.Name)
+	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway", pushGatewayUser: "someuser", pushGatewayPassword: "pass"}
+	receiver, err := NewMetricsReceiver(cfg.Name)
 	assert.NoError(t, err)
 	desc := MetricDesc{Name: "MyCounter1"}
-	err = receiver.IncrementCounter(desc)
+	err = receiver.IncrementGokitCounter(desc)
 	assert.NoError(t, err)
 	// again, to test existing counter
-	err = receiver.IncrementCounter(desc)
+	err = receiver.IncrementGokitCounter(desc)
 
 	// TODO mock pusher
 }
