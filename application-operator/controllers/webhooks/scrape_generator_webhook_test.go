@@ -25,7 +25,7 @@ func newScrapeGeneratorWebhook() ScrapeGeneratorWebhook {
 	scheme := newScheme()
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
-	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{})
+	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{})
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := fake.NewFakeClientWithScheme(scheme)
 	v := ScrapeGeneratorWebhook{Client: cli, Decoder: decoder}
@@ -116,6 +116,31 @@ func TestHandleReplicaSet(t *testing.T) {
 	assert.NoError(v.Client.Create(context.TODO(), &testReplicaSet))
 
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
+	res := v.Handle(context.TODO(), req)
+	assert.True(res.Allowed, "Expected validation to succeed.")
+	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
+}
+
+// TestHandleStatefulSet tests the handling of a StatefulSet resource
+// GIVEN a call validate StatefulSet on create or update
+// WHEN the StatefulSet is properly formed
+// THEN the validation should succeed
+func TestHandleStatefulSet(t *testing.T) {
+	assert := assert.New(t)
+	v := newScrapeGeneratorWebhook()
+
+	// Test data
+	testStatefulSet := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+	}
+
+	// Test data
+	assert.NoError(v.Client.Create(context.TODO(), &testStatefulSet))
+
+	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "StatefulSet", testStatefulSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(res.Allowed, "Expected validation to succeed.")
 	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
