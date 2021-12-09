@@ -29,6 +29,7 @@ type WorkloadWebhook struct {
 	DynamicClient dynamic.Interface
 }
 
+// Handle - handler for the mutating webhook
 func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	count++
 	workloadLogger.Info(fmt.Sprintf("entered mutating webhook for group: %s, version: %s, kind: %s, namespace: %s, count: %d", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace, count))

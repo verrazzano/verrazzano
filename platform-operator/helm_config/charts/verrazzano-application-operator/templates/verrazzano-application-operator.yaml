@@ -452,7 +452,7 @@ webhooks:
       - operations: ["CREATE"]
         apiGroups: ["*"]
         apiVersions: ["*"]
-        resources: ["*"]
+        resources: ["deployments","doherences","domains","pods","replicasets","statefulsets"]
         scope: "Namespaced"
     sideEffects: None
     failurePolicy: Fail
