@@ -14,6 +14,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
 	"github.com/go-logr/logr"
+	ptypes "github.com/gogo/protobuf/types"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -557,7 +558,8 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 								HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
 									HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
 										Name: rule.Destination.HTTPCookie.Name,
-										Path: rule.Destination.HTTPCookie.Path},
+										Path: rule.Destination.HTTPCookie.Path,
+										Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
 								},
 							},
 						},

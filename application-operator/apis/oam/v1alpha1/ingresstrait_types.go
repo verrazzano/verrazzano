@@ -4,6 +4,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -55,9 +57,9 @@ type IngressDestination struct {
 }
 
 type IngressDestinationHTTPCookie struct {
-	Name string `json:"name,omitempty"`
-	Path string `json:"path,omitempty"`
-	TTL  uint32 `json:"ttl,omitempty"`
+	Name string        `json:"name,omitempty"`
+	Path string        `json:"path,omitempty"`
+	TTL  time.Duration `json:"ttl,omitempty"`
 }
 
 // IngressTraitStatus specifies the observed state of an ingress trait and related resources.
