@@ -13,11 +13,11 @@ import (
 	fakeRESTClient "k8s.io/client-go/rest/fake"
 )
 
-func NewClientsetConfig(objects ...runtime.Object) (kubernetes.Interface, *restclient.Config) {
+func NewClientsetConfig(objects ...runtime.Object) (*restclient.Config, kubernetes.Interface) {
 	cfg, _ := restclient.InClusterConfig()
 	client := fakeclientset.NewSimpleClientset(objects...)
 	wrappedClient := &WrappedClientset{Clientset: client}
-	return wrappedClient, cfg
+	return cfg, wrappedClient
 }
 
 /*

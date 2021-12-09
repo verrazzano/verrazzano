@@ -19,6 +19,7 @@ import (
 
 const (
 	resetPasswordCommand = "reset-password"
+	ensureAdminCommand   = "ensure-default-admin"
 )
 
 func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
@@ -44,7 +45,10 @@ func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error
 
 // retryResetPassword retries resetting the Rancher admin password using the Rancher shell
 func resetAdminPassword(c client.Client) (string, error) {
-	cfg, restClient, err := restClientConfig()
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return "", err
+	}
 	if err != nil {
 		return "", err
 	}
@@ -58,7 +62,12 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", errors.New("no Rancher pods found")
 	}
 	pod := podList.Items[0]
-	stdout, stderr, err := k8sutil.ExecPod(cfg, restClient, &pod, common.RancherName, []string{resetPasswordCommand})
+	// Ensure the default rancer admin user is present
+	_, _, err = k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{ensureAdminCommand})
+	if err != nil {
+		return "", err
+	}
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{resetPasswordCommand})
 	if err != nil {
 		return "", err
 	}
