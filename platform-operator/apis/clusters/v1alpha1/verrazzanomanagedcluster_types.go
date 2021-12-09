@@ -37,6 +37,15 @@ const (
 	ConditionReady ConditionType = "Ready"
 )
 
+// StateType identifies the state of the VMC which is shown in Verrazzano Dashboard.
+type StateType string
+
+const (
+	StateActive   StateType = "Active"
+	StateInactive StateType = "Inactive"
+	StatePending  StateType = "Pending"
+)
+
 // Condition describes a condition that occurred on the VerrazzanoManagedCluster resource
 type Condition struct {
 	// Type of condition.
@@ -74,6 +83,8 @@ type VerrazzanoManagedClusterStatus struct {
 	// Last time the agent from this managed cluster connected to the admin cluster.
 	// +optional
 	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
+	// State of the Cluster to determine if it is Active, Pending, or Inactive.
+	State StateType `json:"state"`
 	// Verrazzano API Server URL for the managed cluster.
 	APIUrl string `json:"apiUrl,omitempty"`
 	// Prometheus Host for the managed cluster.

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -140,7 +141,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{Requeue: true, RequeueAfter: constants.ReconcileLoopRequeueInterval}, nil
 }
 
 func (r *VerrazzanoManagedClusterReconciler) syncServiceAccount(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
@@ -259,13 +260,15 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) error {
 	var matchingCondition *clustersv1alpha1.Condition
+	var conditionExists bool
 	r.log.Debugf("Entered updateStatus for VMC %s, existing conditions = %v", vmc.Name, vmc.Status.Conditions)
 	for i, existingCondition := range vmc.Status.Conditions {
 		if condition.Type == existingCondition.Type &&
 			condition.Status == existingCondition.Status &&
 			condition.Message == existingCondition.Message {
 			// the exact same condition already exists, don't update
-			return nil
+			conditionExists = true
+			break
 		}
 		if condition.Type == existingCondition.Type {
 			// use the index here since "existingCondition" is a copy and won't point to the object in the slice
@@ -273,12 +276,31 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 			break
 		}
 	}
-	if matchingCondition == nil {
-		vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
-	} else {
-		matchingCondition.Message = condition.Message
-		matchingCondition.Status = condition.Status
-		matchingCondition.LastTransitionTime = condition.LastTransitionTime
+	if !conditionExists {
+
+		if matchingCondition == nil {
+			vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
+		} else {
+			matchingCondition.Message = condition.Message
+			matchingCondition.Status = condition.Status
+			matchingCondition.LastTransitionTime = condition.LastTransitionTime
+		}
+	}
+
+	if vmc.Status.LastAgentConnectTime != nil {
+
+		currentTime := metav1.Now()
+		//Using the current plus added time to find the difference with lastAgentConnectTime to validate
+		//if it exceeds the max allowed time before changing the state of the vmc resource.
+		maxPollingTime := currentTime.Add(vzconstants.VMCAgentPollingTimeInterval * vzconstants.MaxTimesVMCAgentPollingTime)
+		timeDiff := maxPollingTime.Sub(vmc.Status.LastAgentConnectTime.Time)
+		if int(timeDiff.Minutes()) > vzconstants.MaxTimesVMCAgentPollingTime {
+			vmc.Status.State = clustersv1alpha1.StateInactive
+		} else if vmc.Status.State == "" {
+			vmc.Status.State = clustersv1alpha1.StatePending
+		} else {
+			vmc.Status.State = clustersv1alpha1.StateActive
+		}
 	}
 	r.log.Debugf("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	return r.Status().Update(ctx, vmc)

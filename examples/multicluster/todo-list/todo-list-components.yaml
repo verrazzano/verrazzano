@@ -16,6 +16,8 @@ spec:
           name: todo-domain
           namespace: mc-todo-list
         spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
           auxiliaryImageVolumes:
