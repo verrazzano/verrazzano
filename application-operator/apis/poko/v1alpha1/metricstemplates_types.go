@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,24 +33,35 @@ type MetricsTemplate struct {
 
 // MetricsTemplateSpec specifies the desired state of a metrics template.
 type MetricsTemplateSpec struct {
-	WorkloadSelector *TargetWorkload   `json:"workloadSelector,omitempty"`
-	PrometheusConfig *PrometheusConfig `json:"prometheusConfig,omitempty"`
+	WorkloadSelector TargetWorkload   `json:"workloadSelector,omitempty"`
+	PrometheusConfig PrometheusConfig `json:"prometheusConfig,omitempty"`
+}
+
+// MetricsTemplateStatus defines the observed state of MetricsTemplate and related resources.
+type MetricsTemplateStatus struct {
+	// Important: Run code generation after modifying this file.
+
+	// The reconcile status of this metrics template
+	oamrt.ConditionedStatus `json:",inline"`
+
+	// Related resources affected by this metrics template
+	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
 }
 
 type TargetWorkload struct {
 	// Selector to match workloads with template
-	Selector *metav1.LabelSelector `json:"selector,omitempty"`
+	Selector metav1.LabelSelector `json:"selector,omitempty"`
 
 	// Priority of the the Template
-	Priority *float32 `json:"priority,omitempty"`
+	Priority int `json:"priority,omitempty"`
 }
 
 type PrometheusConfig struct {
-	TargetConfigMap      *TargetConfigMap `json:"targetConfigMap,omitempty"`
-	ScrapeConfigTemplate *string          `json:"scrapeConfigTemplate,omitempty"`
+	TargetConfigMap      TargetConfigMap `json:"targetConfigMap,omitempty"`
+	ScrapeConfigTemplate string          `json:"scrapeConfigTemplate,omitempty"`
 }
 
 type TargetConfigMap struct {
-	Namespace *string `json:"namespace,omitempty"`
-	Name      *string `json:"port,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"port,omitempty"`
 }
