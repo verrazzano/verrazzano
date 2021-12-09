@@ -440,8 +440,9 @@ webhooks:
   - name: verrazzano-application-poko-workload.verrazzano.io
     namespaceSelector:
       matchExpressions:
-        - key: poko
-          operator: DoesNotExist
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: ["kube-system", "verrazzano-system", "verrazzano-mc"]
     clientConfig:
       service:
         name: verrazzano-application-operator
