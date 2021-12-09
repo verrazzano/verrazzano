@@ -14,7 +14,7 @@ func init() {
 	SchemeBuilder.Register(&MetricsTemplate{}, &MetricsTemplateList{})
 }
 
-// MetricsTemplateList contains a list of metrics templates.
+// MetricsTemplateList contains a list of metrics templates
 // +kubebuilder:object:root=true
 type MetricsTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -33,13 +33,13 @@ type MetricsTemplate struct {
 	Spec MetricsTemplateSpec `json:"spec,omitempty"`
 }
 
-// MetricsTemplateSpec specifies the desired state of a metrics template.
+// MetricsTemplateSpec specifies the desired state of a metrics template
 type MetricsTemplateSpec struct {
 	WorkloadSelector WorkloadSelector `json:"workloadSelector,omitempty"`
 	PrometheusConfig PrometheusConfig `json:"prometheusConfig,omitempty"`
 }
 
-// WorkloadSelector identifies the workloads to which this template applies.
+// WorkloadSelector identifies the workloads to which this template applies
 type WorkloadSelector struct {
 	// NamespaceSelector scopes the template to a namespace
 	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty"`
@@ -71,5 +71,5 @@ type TargetConfigMap struct {
 	Namespace string `json:"namespace,omitempty"`
 
 	// Name of the Prometheus ConfigMap
-	Name string `json:"port,omitempty"`
+	Name string `json:"name,omitempty"`
 }
