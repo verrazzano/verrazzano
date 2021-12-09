@@ -4,7 +4,6 @@
 package v1alpha1
 
 import (
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,35 +30,31 @@ type MetricsTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MetricsTemplateSpec   `json:"spec,omitempty"`
-	Status MetricsTemplateStatus `json:"status,omitempty"`
+	Spec MetricsTemplateSpec `json:"spec,omitempty"`
 }
 
 // MetricsTemplateSpec specifies the desired state of a metrics template.
 type MetricsTemplateSpec struct {
-	WorkloadSelector TargetWorkload   `json:"workloadSelector,omitempty"`
+	WorkloadSelector WorkloadSelector `json:"workloadSelector,omitempty"`
 	PrometheusConfig PrometheusConfig `json:"prometheusConfig,omitempty"`
 }
 
-// MetricsTemplateStatus defines the observed state of MetricsTemplate and related resources.
-type MetricsTemplateStatus struct {
-	// Important: Run code generation after modifying this file.
+// WorkloadSelector identifies the workloads to which this template applies.
+type WorkloadSelector struct {
+	// NamespaceSelector scopes the template to a namespace
+	NamespaceSelector metav1.LabelSelector
 
-	// The reconcile status of this metrics template
-	oamrt.ConditionedStatus `json:",inline"`
+	// ObjectSelector scopes the template to an object type
+	ObjectSelector metav1.LabelSelector
 
-	// Related resources affected by this metrics template
-	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
-}
+	// APIGroups scopes the template to listed APIGroups
+	APIGroups []string
 
-// TargetWorkload identifies the workloads to which this template applies.
-type TargetWorkload struct {
-	// The label selector used to match the workload
-	Selector metav1.LabelSelector `json:"selector,omitempty"`
+	// APIVersions scopes the template to listed APIVersions
+	APIVersions []string
 
-	// Allows for explicit control of template selection.
-	// Workloads with highest priority selected
-	Priority int `json:"priority,omitempty"`
+	// Resources scopes the template to listed workload types
+	Resources []string
 }
 
 // PrometheusConfig refers to the templated metrics scraping configuration
