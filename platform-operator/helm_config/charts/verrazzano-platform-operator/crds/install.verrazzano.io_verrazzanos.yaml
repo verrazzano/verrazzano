@@ -121,6 +121,8 @@ spec:
                       oci:
                         description: DNS type of OCI (Oracle Cloud Infrastructure)
                         properties:
+                          dnsScope:
+                            type: string
                           dnsZoneCompartmentOCID:
                             type: string
                           dnsZoneName:
