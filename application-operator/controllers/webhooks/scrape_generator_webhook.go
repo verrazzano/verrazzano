@@ -6,8 +6,10 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"net/http"
 
-	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -15,13 +17,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// ScrapeGeneratorloadPath specifies the path of scrape-generator webhook
-const ScrapeGeneratorloadPath = "/scrape-generator"
+// ScrapeGeneratorLoadPath specifies the path of scrape-generator webhook
+const ScrapeGeneratorLoadPath = "/scrape-generator"
 
-var workloadLogger = ctrl.Log.WithName("webhooks.scrape-generator")
+var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 
-// WorkloadWebhook type for workload mutating webhook
-type WorkloadWebhook struct {
+// ScrapeGeneratorWebhook type for the mutating webhook
+type ScrapeGeneratorWebhook struct {
 	client.Client
 	Decoder       *admission.Decoder
 	KubeClient    kubernetes.Interface
@@ -29,8 +31,86 @@ type WorkloadWebhook struct {
 }
 
 // Handle - handler for the mutating webhook
-func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	workloadLogger.Info(fmt.Sprintf("entered %s webhook for group: %s, version: %s, kind: %s, namespace: %s, count: %d", certificates.ScrapeGeneratorWebhookName, req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace))
+func (a *ScrapeGeneratorWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+	scrapeGeneratorLogger.Info(fmt.Sprintf("group: %s, version: %s, kind: %s, namespace: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace))
 
+	// Determine what type of resource to handle
+	switch req.Kind.Kind {
+	case "Pod":
+		return a.handlePod(ctx, req)
+	case "Deployment":
+		return a.handleDeployment(ctx, req)
+	case "ReplicaSet":
+		return a.handleReplicaSet(ctx, req)
+	case "StatefulSet":
+		return a.handleStatefulSet(ctx, req)
+	case "Domain":
+		return a.handleDomain(ctx, req)
+	case "Coherence":
+		return a.handleCoherence(ctx, req)
+	default:
+		scrapeGeneratorLogger.Info(fmt.Sprintf("unsupported kind %s", req.Kind.Kind))
+	}
+
+	return admission.Allowed("not implemented yet")
+}
+
+// InjectDecoder injects the decoder.
+func (a *ScrapeGeneratorWebhook) InjectDecoder(d *admission.Decoder) error {
+	a.Decoder = d
+	return nil
+}
+
+// handlePod - handle Kind type of Pod
+func (a *ScrapeGeneratorWebhook) handlePod(ctx context.Context, req admission.Request) admission.Response {
+	pod := &corev1.Pod{}
+	err := a.Decoder.Decode(req, pod)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	return admission.Allowed("not implemented yet")
+}
+
+// handleDeployment - handle Kind type of Deployment
+func (a *ScrapeGeneratorWebhook) handleDeployment(ctx context.Context, req admission.Request) admission.Response {
+	deployment := &appsv1.Deployment{}
+	err := a.Decoder.Decode(req, deployment)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	return admission.Allowed("not implemented yet")
+}
+
+// handleReplicaSet - handle Kind type of ReplicaSet
+func (a *ScrapeGeneratorWebhook) handleReplicaSet(ctx context.Context, req admission.Request) admission.Response {
+	replicaSet := &appsv1.ReplicaSet{}
+	err := a.Decoder.Decode(req, replicaSet)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	return admission.Allowed("not implemented yet")
+}
+
+// handleStatefulSet - handle Kind type of StatefulSet
+func (a *ScrapeGeneratorWebhook) handleStatefulSet(ctx context.Context, req admission.Request) admission.Response {
+	statefulSet := &appsv1.StatefulSet{}
+	err := a.Decoder.Decode(req, statefulSet)
+	if err != nil {
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+
+	return admission.Allowed("not implemented yet")
+}
+
+// handleDomain - handle Kind type of Domain
+func (a *ScrapeGeneratorWebhook) handleDomain(ctx context.Context, req admission.Request) admission.Response {
+	return admission.Allowed("not implemented yet")
+}
+
+// handleCoherence - handle Kind type of Coherence
+func (a *ScrapeGeneratorWebhook) handleCoherence(ctx context.Context, req admission.Request) admission.Response {
 	return admission.Allowed("not implemented yet")
 }

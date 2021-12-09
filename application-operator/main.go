@@ -216,9 +216,9 @@ func main() {
 
 		// Register the mutating webhook for plain old kubernetes objects workloads
 		mgr.GetWebhookServer().Register(
-			webhooks.ScrapeGeneratorloadPath,
+			webhooks.ScrapeGeneratorLoadPath,
 			&webhook.Admission{
-				Handler: &webhooks.WorkloadWebhook{
+				Handler: &webhooks.ScrapeGeneratorWebhook{
 					Client:        mgr.GetClient(),
 					KubeClient:    kubeClient,
 					DynamicClient: dynamicClient,
