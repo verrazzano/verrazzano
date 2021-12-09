@@ -216,9 +216,9 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
-                            # yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.kiali.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.rancher.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.istio.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
@@ -289,9 +289,9 @@ pipeline {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
-                            # yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.kiali.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.rancher.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
