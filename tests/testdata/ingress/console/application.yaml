@@ -30,7 +30,7 @@ spec:
                     httpCookie:
                       name: cidomain
                       path: /console
-                      ttl: 30s
+                      ttl: 30
     - componentName: todo-jdbc-configmap
     - componentName: todo-mysql-configmap
     - componentName: todo-mysql-service
