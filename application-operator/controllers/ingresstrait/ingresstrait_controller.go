@@ -549,23 +549,6 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: trait.Namespace,
 				Name:      name},
-			Spec: istionet.DestinationRule{
-				Host: rule.Destination.Host,
-				TrafficPolicy: &istionet.TrafficPolicy{
-					LoadBalancer: &istionet.LoadBalancerSettings{
-						LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
-							ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
-								HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
-									HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
-										Name: rule.Destination.HTTPCookie.Name,
-										Path: rule.Destination.HTTPCookie.Path,
-										Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
-								},
-							},
-						},
-					},
-				},
-			},
 		}
 
 		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
@@ -586,6 +569,24 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 
 func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
 	controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
+	destinationRule.Spec = istionet.DestinationRule{
+		Host: rule.Destination.Host,
+		TrafficPolicy: &istionet.TrafficPolicy{
+			LoadBalancer: &istionet.LoadBalancerSettings{
+				LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
+					ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
+						HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
+							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
+								Name: rule.Destination.HTTPCookie.Name,
+								Path: rule.Destination.HTTPCookie.Path,
+								Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	return nil
 }
 
