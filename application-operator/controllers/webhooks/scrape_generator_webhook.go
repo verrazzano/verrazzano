@@ -20,6 +20,9 @@ import (
 // ScrapeGeneratorLoadPath specifies the path of scrape-generator webhook
 const ScrapeGeneratorLoadPath = "/scrape-generator"
 
+// StatusReasonSuccess
+const StatusReasonSuccess = "success"
+
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 
 // ScrapeGeneratorWebhook type for the mutating webhook
@@ -50,9 +53,8 @@ func (a *ScrapeGeneratorWebhook) Handle(ctx context.Context, req admission.Reque
 		return a.handleCoherence(ctx, req)
 	default:
 		scrapeGeneratorLogger.Info(fmt.Sprintf("unsupported kind %s", req.Kind.Kind))
+		return admission.Allowed("not implemented yet")
 	}
-
-	return admission.Allowed("not implemented yet")
 }
 
 // InjectDecoder injects the decoder.
@@ -69,7 +71,7 @@ func (a *ScrapeGeneratorWebhook) handlePod(ctx context.Context, req admission.Re
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	return admission.Allowed("not implemented yet")
+	return admission.Allowed(StatusReasonSuccess)
 }
 
 // handleDeployment - handle Kind type of Deployment
@@ -80,7 +82,7 @@ func (a *ScrapeGeneratorWebhook) handleDeployment(ctx context.Context, req admis
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	return admission.Allowed("not implemented yet")
+	return admission.Allowed(StatusReasonSuccess)
 }
 
 // handleReplicaSet - handle Kind type of ReplicaSet
@@ -91,7 +93,7 @@ func (a *ScrapeGeneratorWebhook) handleReplicaSet(ctx context.Context, req admis
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	return admission.Allowed("not implemented yet")
+	return admission.Allowed(StatusReasonSuccess)
 }
 
 // handleStatefulSet - handle Kind type of StatefulSet
@@ -102,15 +104,15 @@ func (a *ScrapeGeneratorWebhook) handleStatefulSet(ctx context.Context, req admi
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	return admission.Allowed("not implemented yet")
+	return admission.Allowed(StatusReasonSuccess)
 }
 
 // handleDomain - handle Kind type of Domain
 func (a *ScrapeGeneratorWebhook) handleDomain(ctx context.Context, req admission.Request) admission.Response {
-	return admission.Allowed("not implemented yet")
+	return admission.Allowed(StatusReasonSuccess)
 }
 
 // handleCoherence - handle Kind type of Coherence
 func (a *ScrapeGeneratorWebhook) handleCoherence(ctx context.Context, req admission.Request) admission.Response {
-	return admission.Allowed("not implemented yet")
+	return admission.Allowed(StatusReasonSuccess)
 }
