@@ -11,37 +11,37 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"os/exec"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"text/template"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/yaml"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 const (
@@ -696,6 +696,24 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				},
 			},
 			expectedYAML: "testdata/vzOverridesProdWithFluentdOverrides.yaml",
+		},
+		{
+			name:        "ProdWithFluentdOCILoggingOverrides",
+			description: "Test prod with fluentd OCI Logging overrides",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Profile: vzapi.Prod,
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							OCI: &vzapi.OciLoggingConfiguration{
+								SystemLogID:     "ocid1.log.oc1.iad.system-log-ocid",
+								DefaultAppLogID: "ocid1.log.oc1.iad.default-app-log-ocid",
+							},
+						},
+					},
+				},
+			},
+			expectedYAML: "testdata/vzOverridesProdWithFluentdOCILoggingOverrides.yaml",
 		},
 	}
 	defer resetWriteFileFunc()
