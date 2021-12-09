@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -19,8 +20,6 @@ const ScrapeGeneratorloadPath = "/scrape-generator"
 
 var workloadLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 
-var count = 0
-
 // WorkloadWebhook type for workload mutating webhook
 type WorkloadWebhook struct {
 	client.Client
@@ -31,8 +30,7 @@ type WorkloadWebhook struct {
 
 // Handle - handler for the mutating webhook
 func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	count++
-	workloadLogger.Info(fmt.Sprintf("entered mutating webhook for group: %s, version: %s, kind: %s, namespace: %s, count: %d", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace, count))
+	workloadLogger.Info(fmt.Sprintf("entered %s webhook for group: %s, version: %s, kind: %s, namespace: %s, count: %d", certificates.ScrapeGeneratorWebhookName, req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace))
 
-	return admission.Allowed("work in progress")
+	return admission.Allowed("not implemented yet")
 }
