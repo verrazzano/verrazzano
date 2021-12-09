@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
+
 	"github.com/stretchr/testify/assert"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,7 +25,7 @@ func newScrapeGeneratorWebhook() ScrapeGeneratorWebhook {
 	scheme := newScheme()
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
-	}, &corev1.Pod{})
+	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{})
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := fake.NewFakeClientWithScheme(scheme)
 	v := ScrapeGeneratorWebhook{Client: cli, Decoder: decoder}
@@ -64,6 +66,56 @@ func TestHandlePod(t *testing.T) {
 	assert.NoError(v.Client.Create(context.TODO(), &testPod))
 
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Pod", testPod)
+	res := v.Handle(context.TODO(), req)
+	assert.True(res.Allowed, "Expected validation to succeed.")
+	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
+}
+
+// TestHandleDeployment tests the handling of a Deployment resource
+// GIVEN a call validate Deployment on create or update
+// WHEN the Deployment is properly formed
+// THEN the validation should succeed
+func TestHandleDeployment(t *testing.T) {
+	assert := assert.New(t)
+	v := newScrapeGeneratorWebhook()
+
+	// Test data
+	testDeployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+	}
+
+	// Test data
+	assert.NoError(v.Client.Create(context.TODO(), &testDeployment))
+
+	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	res := v.Handle(context.TODO(), req)
+	assert.True(res.Allowed, "Expected validation to succeed.")
+	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
+}
+
+// TestHandleReplicaSet tests the handling of a ReplicaSet resource
+// GIVEN a call validate ReplicaSet on create or update
+// WHEN the ReplicaSet is properly formed
+// THEN the validation should succeed
+func TestHandleReplicaSet(t *testing.T) {
+	assert := assert.New(t)
+	v := newScrapeGeneratorWebhook()
+
+	// Test data
+	testReplicaSet := appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "test",
+		},
+	}
+
+	// Test data
+	assert.NoError(v.Client.Create(context.TODO(), &testReplicaSet))
+
+	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(res.Allowed, "Expected validation to succeed.")
 	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
