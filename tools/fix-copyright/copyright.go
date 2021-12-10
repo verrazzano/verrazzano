@@ -224,11 +224,14 @@ func gitFileInfo(path string) (*GitFileInfo, error) {
 	}
 
 	out, err = exec.Command("git", "log", "--format=%at", "--follow", "--", path).Output()
+	fmt.Println("HERE")
+	fmt.Println(string(out))
+
 	if err != nil {
 		return nil, err
 	}
 	log.Printf("git log --format=%%at --follow -- %s\n%s", path, string(out))
-
+	fmt.Println(string(out))
 	scanner := bufio.NewScanner(strings.NewReader(string(out)))
 	var first, last string
 	for scanner.Scan() {
@@ -432,7 +435,7 @@ func main() {
 
 	help := false
 	flag.StringVar(&extensionFlagVal, "extension", "", "Filename extension to force")
-	flag.BoolVar(&verbose, "verbose", false, "Verbose output")
+	flag.BoolVar(&verbose, "verbose", true, "Verbose output")
 	flag.BoolVar(&help, "help", false, "Display usage help")
 	flag.Usage = printUsage
 	flag.Parse()
