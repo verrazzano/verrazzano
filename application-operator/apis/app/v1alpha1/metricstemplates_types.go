@@ -24,13 +24,12 @@ type MetricsTemplateList struct {
 
 // MetricsTemplate specifies the metrics template API
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
 // +genclient
 type MetricsTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec MetricsTemplateSpec `json:"spec,omitempty"`
+	Spec MetricsTemplateSpec `json:"spec"`
 }
 
 // MetricsTemplateSpec specifies the desired state of a metrics template
@@ -44,7 +43,7 @@ type WorkloadSelector struct {
 	// NamespaceSelector scopes the template to a namespace
 	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// ObjectSelector scopes the template to an object type
+	// ObjectSelector scopes the template to a specifically labelled object instance
 	ObjectSelector metav1.LabelSelector `json:"objectSelector,omitempty"`
 
 	// APIGroups scopes the template to listed APIGroups
@@ -53,23 +52,23 @@ type WorkloadSelector struct {
 	// APIVersions scopes the template to listed APIVersions
 	APIVersions []string `json:"apiVersions,omitempty"`
 
-	// Resources scopes the template to listed workload types
+	// Resources scopes the template to listed object kind
 	Resources []string `json:"resources,omitempty"`
 }
 
 // PrometheusConfig refers to the templated metrics scraping configuration
 type PrometheusConfig struct {
-	TargetConfigMap TargetConfigMap `json:"targetConfigMap,omitempty"`
+	TargetConfigMap TargetConfigMap `json:"targetConfigMap"`
 
-	// ScrapeConfigTemplate is the prometheus scrape target template to be added to the Prometheus Configmap
-	ScrapeConfigTemplate string `json:"scrapeConfigTemplate,omitempty"`
+	// ScrapeConfigTemplate is a template for the Prometheus scrape job to be added to the Prometheus Configmap
+	ScrapeConfigTemplate string `json:"scrapeConfigTemplate"`
 }
 
 // TargetConfigMap contains metadata about the Prometheus ConfigMap
 type TargetConfigMap struct {
 	// Namespace containing the Prometheus ConfigMap
-	Namespace string `json:"namespace,omitempty"`
+	Namespace string `json:"namespace"`
 
 	// Name of the Prometheus ConfigMap
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 }
