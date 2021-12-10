@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f",
+              "tag": "v2.5.9-20211209021347-2e57ce2a4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f"
+              "tag": "v2.5.9-20211209021347-2e57ce2a4"
             }
           ]
         },
@@ -228,12 +228,12 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20211126105727-f345ec2",
+              "tag": "v1.12.3-20211206061401-0302423",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -244,7 +244,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }

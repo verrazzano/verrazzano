@@ -10,17 +10,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/semver"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,9 +24,17 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // componentName is the name of the component
@@ -48,6 +48,11 @@ const (
 	containerName = "es-master"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
+
+	tmpFilePrefix        = "verrazzano-overrides-"
+	tmpSuffix            = "yaml"
+	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
 var (
@@ -135,14 +140,12 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-const tmpFilePrefix = "verrazzano-overrides-"
-
 func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues) (string, error) {
 	bytes, err := yaml.Marshal(overrides)
 	if err != nil {
 		return "", err
 	}
-	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.yaml", tmpFilePrefix))
+	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
 	if err != nil {
 		return "", err
 	}
@@ -330,6 +333,14 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 				}
 				overrides.Fluentd.ExtraVolumeMounts = append(overrides.Fluentd.ExtraVolumeMounts,
 					volumeMount{Source: vm.Source, Destination: dest, ReadOnly: readOnly})
+			}
+		}
+		// Overrides for OCI Logging integration
+		if fluentd.OCI != nil {
+			overrides.Fluentd.OCI = &ociLoggingSettings{
+				DefaultAppLogID: fluentd.OCI.DefaultAppLogID,
+				SystemLogID:     fluentd.OCI.SystemLogID,
+				APISecret:       fluentd.OCI.APISecret,
 			}
 		}
 	}
@@ -526,19 +537,8 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 
 //cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
-	log := ctx.Log()
-	files, err := ioutil.ReadDir(os.TempDir())
-	if err != nil {
-		log.Errorf("Unable to read temp directory: %s", err.Error())
-	}
-	for _, file := range files {
-		if !file.IsDir() && strings.HasPrefix(file.Name(), tmpFilePrefix) && strings.HasSuffix(file.Name(), ".yaml") {
-			fullPath := filepath.Join(os.TempDir(), file.Name())
-			log.Debugf("Deleting temp file %s", fullPath)
-			if err := os.Remove(fullPath); err != nil {
-				log.Errorf("Error deleting temp file %s", fullPath)
-			}
-		}
+	if err := vzos.RemoveTempFiles(ctx.Log(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Error deleting temp files: %s", err.Error())
 	}
 }
 
