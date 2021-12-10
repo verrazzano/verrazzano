@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strconv"
@@ -115,13 +114,4 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil
-}
-
-// getEnvValueWithDefault fetches value from env variable and returns a default value if not set
-func getEnvValueWithDefault(key, defaultValue string) string {
-	_, ok := os.LookupEnv(key)
-	if !ok {
-		return defaultValue
-	}
-	return os.Getenv(key)
 }
