@@ -1,6 +1,8 @@
 # Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+INTERNAL_APP_PATH = ../application-operator/internal/app/crds
+
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: platform-manifests
 platform-manifests: controller-gen
@@ -15,10 +17,12 @@ platform-manifests: controller-gen
 application-manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/clusters/..." output:crd:artifacts:config=$(CRD_PATH)
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/oam/..." output:crd:artifacts:config=$(CRD_PATH)
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/app/..." output:crd:artifacts:config=$(INTERNAL_APP_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
 	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate.go.txt"
 	./hack/update-codegen.sh "oam:v1alpha1" "oam" "boilerplate.go.txt"
+	./hack/update-codegen.sh "app:v1alpha1" "app" "boilerplate.go.txt"
 	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
 
