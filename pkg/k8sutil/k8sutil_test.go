@@ -4,13 +4,12 @@ package k8sutil_test
 
 import (
 	"fmt"
+	spdyfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	"go.uber.org/zap/zaptest"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/rest"
-	testclient "k8s.io/client-go/rest/fake"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -353,17 +352,16 @@ func TestApplyCRDYaml(t *testing.T) {
 //  WHEN ExecPod is called
 //  THEN ExecPod return the stdout, stderr, and a nil error
 func TestExecPod(t *testing.T) {
-	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
-	k8sutil.FakePodSTDOUT = "foobar"
-	cfg, _ := rest.InClusterConfig()
-	client := &testclient.RESTClient{}
+	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
+	spdyfake.PodSTDOUT = "foobar"
+	cfg, client := spdyfake.NewClientsetConfig()
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "ns",
 			Name:      "name",
 		},
 	}
-	stdout, _, err := k8sutil.ExecPod(cfg, client, pod, "container", []string{"run", "some", "command"})
+	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
 	assert.Nil(t, err)
-	assert.Equal(t, k8sutil.FakePodSTDOUT, stdout)
+	assert.Equal(t, spdyfake.PodSTDOUT, stdout)
 }

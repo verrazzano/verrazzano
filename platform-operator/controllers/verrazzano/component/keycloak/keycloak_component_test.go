@@ -9,6 +9,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -143,6 +144,62 @@ func TestIsReady(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
 			assert.Equal(t, tt.isReady, kcComponent.IsReady(ctx))
+		})
+	}
+}
+
+func TestPreinstall(t *testing.T) {
+	vzSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano",
+			Namespace: "verrazzano-system",
+		},
+		Data: map[string][]byte{
+			"password": []byte("password"),
+		},
+	}
+
+	mysqlSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mysql",
+			Namespace: "keycloak",
+		},
+		Data: map[string][]byte{
+			"password": []byte("password"),
+		},
+	}
+
+	var tests = []struct {
+		name   string
+		client client.Client
+		isErr  bool
+	}{
+		{
+			"should fail when verrazzano secret is not present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, mysqlSecret),
+			true,
+		},
+		{
+			"should fail when mysql secret is not present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, vzSecret),
+			true,
+		},
+		{
+			"should pass when both secrets are present",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, vzSecret, mysqlSecret),
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, testVZ, false)
+			err := NewComponent().PreInstall(ctx)
+			if tt.isErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

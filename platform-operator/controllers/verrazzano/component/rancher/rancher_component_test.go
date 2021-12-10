@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -15,8 +16,8 @@ import (
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	testclient "k8s.io/client-go/rest/fake"
 	"net/http"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -193,13 +194,12 @@ func TestPostInstall(t *testing.T) {
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
 
 	// mock the pod executor when resetting the Rancher admin password
-	k8sutil.NewPodExecutor = k8sutil.NewFakePodExecutor
-	k8sutil.FakePodSTDOUT = "password"
-	setRestClientConfig(func() (*rest.Config, rest.Interface, error) {
-		cfg, _ := rest.InClusterConfig()
-
-		return cfg, &testclient.RESTClient{}, nil
-	})
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodSTDOUT = "password"
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
 
 	// mock the HTTP responses for the Rancher API
 	common.HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
