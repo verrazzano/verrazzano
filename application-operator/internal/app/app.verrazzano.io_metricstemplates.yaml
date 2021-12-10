@@ -42,8 +42,8 @@ spec:
                   configuration
                 properties:
                   scrapeConfigTemplate:
-                    description: ScrapeConfigTemplate is the prometheus scrape target
-                      template to be added to the Prometheus Configmap
+                    description: ScrapeConfigTemplate is a template for the Prometheus
+                      scrape job to be added to the Prometheus Configmap
                     type: string
                   targetConfigMap:
                     description: TargetConfigMap contains metadata about the Prometheus
@@ -55,7 +55,13 @@ spec:
                       namespace:
                         description: Namespace containing the Prometheus ConfigMap
                         type: string
+                    required:
+                    - name
+                    - namespace
                     type: object
+                required:
+                - scrapeConfigTemplate
+                - targetConfigMap
                 type: object
               workloadSelector:
                 description: WorkloadSelector identifies the workloads to which this
@@ -116,7 +122,8 @@ spec:
                         type: object
                     type: object
                   objectSelector:
-                    description: ObjectSelector scopes the template to an object type
+                    description: ObjectSelector scopes the template to a specifically
+                      labelled object instance
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -160,18 +167,17 @@ spec:
                         type: object
                     type: object
                   resources:
-                    description: Resources scopes the template to listed workload
-                      types
+                    description: Resources scopes the template to listed object kind
                     items:
                       type: string
                     type: array
                 type: object
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true
-    subresources:
-      status: {}
 status:
   acceptedNames:
     kind: ""
