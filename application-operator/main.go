@@ -4,25 +4,13 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
+	"fmt"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	"github.com/verrazzano/verrazzano/pkg/log"
-	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/tools/clientcmd"
-	ctrl "sigs.k8s.io/controller-runtime"
-	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
-
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
@@ -35,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/multiclustersecret"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters/verrazzanoproject"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/cohworkload"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingtrait"
@@ -43,7 +32,20 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/tools/clientcmd"
+	ctrl "sigs.k8s.io/controller-runtime"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -211,6 +213,26 @@ func main() {
 				},
 			},
 		)
+
+		// Register the mutating webhook for plain old kubernetes objects workloads when the object exists
+		_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
+		if err == nil {
+			mgr.GetWebhookServer().Register(
+				webhooks.ScrapeGeneratorLoadPath,
+				&webhook.Admission{
+					Handler: &webhooks.ScrapeGeneratorWebhook{
+						Client:        mgr.GetClient(),
+						KubeClient:    kubeClient,
+						DynamicClient: dynamicClient,
+					},
+				},
+			)
+			err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.ScrapeGeneratorWebhookName)
+			if err != nil {
+				setupLog.Error(err, fmt.Sprintf("unable to update %s mutating webhook configuration", certificates.ScrapeGeneratorWebhookName))
+				os.Exit(1)
+			}
+		}
 
 		mgr.GetWebhookServer().CertDir = certDir
 		appconfigWebhook := &webhooks.AppConfigWebhook{
