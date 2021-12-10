@@ -22,6 +22,11 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.carts.CartsApp
+            args:
+              - "--port=8080"
+              - "--spring.zipkin.enabled=false"
+              - "--coherence.server.startup-timeout=5m"
+              - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
               heapSize: 2g
@@ -64,6 +69,11 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.catalog.CatalogApp
+            args:
+              - "--port=8080"
+              - "--spring.zipkin.enabled=false"
+              - "--coherence.server.startup-timeout=5m"
+              - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
               heapSize: 2g
@@ -106,6 +116,9 @@ spec:
           application:
             main: com.oracle.coherence.examples.sockshop.spring.orders.OrdersApp
             args:
+              - "--port=8080"
+              - "--spring.zipkin.enabled=false"
+              - "--coherence.server.startup-timeout=5m"
               - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
@@ -148,6 +161,11 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.payment.PaymentApp
+            args:
+              - "--port=8080"
+              - "--spring.zipkin.enabled=false"
+              - "--coherence.server.startup-timeout=5m"
+              - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
               heapSize: 2g
@@ -193,6 +211,11 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.shipping.ShippingApp
+            args:
+              - "--port=8080"
+              - "--spring.zipkin.enabled=false"
+              - "--coherence.server.startup-timeout=5m"
+              - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
               heapSize: 2g
@@ -238,6 +261,11 @@ spec:
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.users.UsersApp
+            args:
+              - "--port=8080"
+              - "--spring.zipkin.enabled=false"
+              - "--coherence.server.startup-timeout=5m"
+              - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
               heapSize: 2g
