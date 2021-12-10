@@ -378,6 +378,7 @@ data:
       password "#{ENV['ELASTICSEARCH_PASSWORD']}"
       bulk_message_request_threshold 16M
       suppress_type_name true
+      type_name _doc
       # 2 ^ 31
       request_timeout 2147483648
       <buffer>
@@ -432,18 +433,51 @@ data:
 
   elasticsearch-template-verrazzano.json: |
     {
-      "index_patterns":"verrazzano-*",
-      "settings":{
-        "number_of_shards":5,
-        "index":{
-          "refresh_interval":"5s",
-          "number_of_replicas":0,
-          "auto_expand_replicas":"0-1",
-          "mapping":{
-            "total_fields":{
-              "limit":"2000"
+      "index_patterns":[
+          "verrazzano-*"
+      ],
+      "template":{
+        "settings":{
+          "number_of_shards":5,
+          "index":{
+            "refresh_interval":"5s",
+            "number_of_replicas":0,
+            "auto_expand_replicas":"0-1",
+            "mapping":{
+              "total_fields":{
+                "limit":"2000"
+              }
             }
           }
+        },
+        "mappings":{
+          "dynamic_templates":[
+            {
+              "message_field":{
+                "path_match":"message",
+                "match_mapping_type":"string",
+                "mapping":{
+                  "type":"text"
+                }
+              }
+            },
+            {
+              "string_fields":{
+                "match":"*",
+                "match_mapping_type":"string",
+                "mapping":{
+                  "type":"text",
+                  "norms":false,
+                  "fields":{
+                    "keyword":{
+                      "type":"keyword",
+                      "ignore_above":256
+                    }
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     }
