@@ -50,12 +50,6 @@ if [ "${MODE}" == "NOOP" ]; then
   echo " Running in NOOP mode, exiting                               "
   echo "*************************************************************"
   exit 0
-elif [ "${MODE}" == "INSTALL" ]; then
-  # Create a kubeconfig and run the installation
-  create-kubeconfig
-  ./platform-operator/scripts/install/1-install-init.sh || dump-install-logs 1
-  ./platform-operator/scripts/install/2-install-system-components.sh || dump-install-logs 1
-  dump-install-logs 0
 elif [ "${MODE}" == "UNINSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig
