@@ -35,7 +35,7 @@ spec:
             type: object
           spec:
             description: MetricsTemplateSpec specifies the desired state of a metrics
-              template.
+              template
             properties:
               prometheusConfig:
                 description: PrometheusConfig refers to the templated metrics scraping
@@ -49,17 +49,17 @@ spec:
                     description: TargetConfigMap contains metadata about the Prometheus
                       ConfigMap
                     properties:
+                      name:
+                        description: Name of the Prometheus ConfigMap
+                        type: string
                       namespace:
                         description: Namespace containing the Prometheus ConfigMap
-                        type: string
-                      port:
-                        description: Name of the Prometheus ConfigMap
                         type: string
                     type: object
                 type: object
               workloadSelector:
                 description: WorkloadSelector identifies the workloads to which this
-                  template applies.
+                  template applies
                 properties:
                   apiGroups:
                     description: APIGroups scopes the template to listed APIGroups
