@@ -26,9 +26,9 @@ const (
 	externalDNSNamespace      = "cert-manager"
 	externalDNSDeploymentName = "external-dns"
 	ociSecretFileName         = "oci.yaml"
-	dnsGlobal    = "global" //default
-	dnsPrivate   = "private"
-	dnsScopeKey  = "DNSScope"
+	dnsGlobal                 = "global" //default
+	dnsPrivate                = "private"
+	dnsScopeKey               = "DNSScope"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
