@@ -4,8 +4,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/containerizedworkload"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -38,6 +41,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingtrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstemplate"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
@@ -370,6 +374,17 @@ func main() {
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ContainerizedWorkload")
 		os.Exit(1)
+	}
+	// Only register the controller if the MetricsTemplate CRD is installed
+	if err = mgr.GetClient().Get(context.TODO(), types.NamespacedName{Namespace: "", Name: "metricstemplates.app.verrazzano.io"}, &apiextv1.CustomResourceDefinition{}); err == nil {
+		if err = (&metricstemplate.Reconciler{
+			Client: mgr.GetClient(),
+			Log:    ctrl.Log.WithName("controllers").WithName("MetricsTemplate"),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "MetricsTemplate")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 
