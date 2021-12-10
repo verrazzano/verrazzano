@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -38,18 +39,18 @@ func (a *ScrapeGeneratorWebhook) Handle(ctx context.Context, req admission.Reque
 	scrapeGeneratorLogger.Info(fmt.Sprintf("group: %s, version: %s, kind: %s, namespace: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace))
 
 	// Determine what type of resource to handle
-	switch req.Kind.Kind {
-	case "Pod":
+	switch strings.ToLower(req.Kind.Kind) {
+	case "pod":
 		return a.handlePod(ctx, req)
-	case "Deployment":
+	case "deployment":
 		return a.handleDeployment(ctx, req)
-	case "ReplicaSet":
+	case "replicaset":
 		return a.handleReplicaSet(ctx, req)
-	case "StatefulSet":
+	case "statefulset":
 		return a.handleStatefulSet(ctx, req)
-	case "Domain":
+	case "domain":
 		return a.handleDomain(ctx, req)
-	case "Coherence":
+	case "coherence":
 		return a.handleCoherence(ctx, req)
 	default:
 		scrapeGeneratorLogger.Info(fmt.Sprintf("unsupported kind %s", req.Kind.Kind))
