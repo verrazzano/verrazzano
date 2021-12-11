@@ -25,7 +25,7 @@ spec:
             args:
               - "--port=8080"
               - "--spring.zipkin.enabled=false"
-              - "--coherence.server.startup-timeout=5m"
+#              - "--coherence.server.startup-timeout=5m"
               - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
@@ -72,7 +72,7 @@ spec:
             args:
               - "--port=8080"
               - "--spring.zipkin.enabled=false"
-              - "--coherence.server.startup-timeout=5m"
+#              - "--coherence.server.startup-timeout=5m"
               - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
@@ -118,7 +118,7 @@ spec:
             args:
               - "--port=8080"
               - "--spring.zipkin.enabled=false"
-              - "--coherence.server.startup-timeout=5m"
+#              - "--coherence.server.startup-timeout=5m"
               - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
@@ -164,7 +164,7 @@ spec:
             args:
               - "--port=8080"
               - "--spring.zipkin.enabled=false"
-              - "--coherence.server.startup-timeout=5m"
+#              - "--coherence.server.startup-timeout=5m"
               - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
@@ -214,7 +214,7 @@ spec:
             args:
               - "--port=8080"
               - "--spring.zipkin.enabled=false"
-              - "--coherence.server.startup-timeout=5m"
+#              - "--coherence.server.startup-timeout=5m"
               - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
@@ -264,7 +264,7 @@ spec:
             args:
               - "--port=8080"
               - "--spring.zipkin.enabled=false"
-              - "--coherence.server.startup-timeout=5m"
+#              - "--coherence.server.startup-timeout=5m"
               - "--spring.sleuth.opentracing.enabled=true"
           jvm:
             memory:
