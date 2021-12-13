@@ -147,7 +147,7 @@ func undeployToDoListExample() {
 		}
 	}
 	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	Fail("Unable to delete secret")
+	//Fail("Unable to delete secret")
 }
 
 var _ = Describe("Verify ToDo List example application.", func() {
