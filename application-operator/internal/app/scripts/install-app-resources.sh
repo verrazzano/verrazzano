@@ -2,7 +2,9 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-kubectl apply -f ../crds/app.verrazzano.io_metricstemplates.yaml
+SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricstemplates.yaml
 
 # Create the MutatingWebhookConfiguration object.  This object will eventually be
 # moved to platform-operator/helm_config/charts/verrazzano-application-operator/templates/verrazzano-application-operator.yaml
