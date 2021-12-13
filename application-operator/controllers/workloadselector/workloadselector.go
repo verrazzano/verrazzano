@@ -8,7 +8,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -20,20 +19,21 @@ type WorkloadSelector struct {
 	DynamicClient dynamic.Interface
 }
 
-// GetMatchingNamespaces returns a list of namespaces matching the specified namespace label selector
-func (w *WorkloadSelector) GetMatchingNamespaces(namespaceSelector *metav1.LabelSelector) (*corev1.NamespaceList, error) {
-	labelMap, err := metav1.LabelSelectorAsMap(namespaceSelector)
+// getMatchingNamespaces returns a list of namespaces matching the specified namespace label selector
+func (w *WorkloadSelector) getMatchingNamespaces(namespaceSelector *metav1.LabelSelector) (*corev1.NamespaceList, error) {
+	labels, err := metav1.LabelSelectorAsSelector(namespaceSelector)
 	if err != nil {
 		return nil, err
 	}
 	options := metav1.ListOptions{
-		LabelSelector: labels.SelectorFromSet(labelMap).String(),
+		LabelSelector: labels.String(),
 	}
 
-	return w.KubeClient.CoreV1().Namespaces().List(context.TODO(), options)
+	namespaceList, err := w.KubeClient.CoreV1().Namespaces().List(context.TODO(), options)
+	return namespaceList, err
 }
 
-func (w *WorkloadSelector) doesWorkloadMatch(workload *unstructured.Unstructured, namespaces *corev1.NamespaceList, objectSelector *metav1.LabelSelector, groups []string, versions []string, kinds []string) (bool, error) {
+func (w *WorkloadSelector) doesWorkloadMatch(workload *unstructured.Unstructured, namespaces *corev1.NamespaceList, objectSelector *metav1.LabelSelector, apiGroups []string, apiVersions []string, apiKinds []string) (bool, error) {
 	// If no namespace list is passed then nothing to check
 	if len(namespaces.Items) == 0 {
 		return false, nil
@@ -46,7 +46,7 @@ func (w *WorkloadSelector) doesWorkloadMatch(workload *unstructured.Unstructured
 	}
 
 	// Check that the workload resource GVK matches expected GVKs
-	if !checkMatch(gv.Version, versions) || !checkMatch(gv.Group, groups) || !checkMatch(workload.GetKind(), kinds) {
+	if !checkMatch(gv.Version, apiVersions) || !checkMatch(gv.Group, apiGroups) || !checkMatch(workload.GetKind(), apiKinds) {
 		return false, nil
 	}
 
@@ -56,12 +56,12 @@ func (w *WorkloadSelector) doesWorkloadMatch(workload *unstructured.Unstructured
 			Version:  gv.Version,
 			Resource: pluralize.NewClient().Plural(strings.ToLower(workload.GetKind())),
 		}
-		labelMap, err := metav1.LabelSelectorAsMap(objectSelector)
+		labelSelector, err := metav1.LabelSelectorAsSelector(objectSelector)
 		if err != nil {
 			return false, err
 		}
 		options := metav1.ListOptions{
-			LabelSelector: labels.SelectorFromSet(labelMap).String(),
+			LabelSelector: labelSelector.String(),
 		}
 		objects, err := w.DynamicClient.Resource(resource).Namespace(namespace.Name).List(context.TODO(), options)
 		if err != nil {
