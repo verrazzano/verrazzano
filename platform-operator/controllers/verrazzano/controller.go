@@ -606,6 +606,13 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 
 // setInstallStartedCondition
 func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	// Set the version in the status.  This will be updated when the starting install condition is updated.
+	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
+	if err != nil {
+		return err
+	}
+
+	vz.Status.Version = bomSemVer.ToString()
 	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
 }
 
