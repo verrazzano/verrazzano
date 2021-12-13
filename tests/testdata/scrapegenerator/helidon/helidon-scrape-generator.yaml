@@ -1,0 +1,22 @@
+// Copyright (c) 2021, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-helidon-deployment
+  namespace: hello-helidon-scrape
+spec:
+  selector:
+    matchLabels:
+      app: hello-helidon-scrape-application
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-helidon-scrape-application
+    spec:
+      containers:
+        - name: hello-helidon-container
+          image: ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20210728181814-eb1e622
+          imagePullPolicy: IfNotPresent
