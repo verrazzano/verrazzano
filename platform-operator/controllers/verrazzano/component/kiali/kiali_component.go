@@ -4,13 +4,14 @@
 package kiali
 
 import (
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path/filepath"
 )
 
 type kialiComponent struct {
@@ -67,10 +68,10 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 // IsEnabled Kiali-specific enabled check for installation
 func (c kialiComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Kiali
-	if comp != nil && comp.Enabled != nil {
-		return *comp.Enabled
+	if comp == nil || comp.Enabled == nil {
+		return true
 	}
-	return c.HelmComponent.IsEnabledFunc(ctx)
+	return *comp.Enabled
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources

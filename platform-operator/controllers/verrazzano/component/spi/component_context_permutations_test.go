@@ -91,6 +91,20 @@ var devOCIDNSOverride = vzapi.Verrazzano{
 	},
 }
 
+var devCertManagerNoCert = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "default-dev",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		Profile: "dev",
+		Components: vzapi.ComponentSpec{
+			CertManager: &vzapi.CertManagerComponent{
+				Enabled: &trueValue,
+			},
+		},
+	},
+}
+
 var devCertManagerOverride = vzapi.Verrazzano{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "dev-cm-override",

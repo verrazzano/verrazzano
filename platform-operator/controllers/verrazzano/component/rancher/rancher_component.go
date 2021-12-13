@@ -6,6 +6,10 @@ package rancher
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -18,9 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
-	"strconv"
 )
 
 type rancherComponent struct {
@@ -127,10 +128,10 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 // and is not enabled by default on managed clusters
 func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Rancher
-	if comp != nil && comp.Enabled != nil {
-		return *comp.Enabled
+	if comp == nil || comp.Enabled == nil {
+		return true
 	}
-	return r.HelmComponent.IsEnabledFunc(ctx)
+	return *comp.Enabled
 }
 
 // PreInstall

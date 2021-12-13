@@ -4,6 +4,8 @@ package keycloak
 
 import (
 	"context"
+	"path/filepath"
+
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -14,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -114,6 +115,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return updateKeycloakUris(ctx)
 }
 
+// IsEnabled Keycloak-specific enabled check for installation
 func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {

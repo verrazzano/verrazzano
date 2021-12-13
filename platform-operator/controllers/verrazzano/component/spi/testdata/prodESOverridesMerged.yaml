@@ -16,7 +16,10 @@ spec:
           requests:
             storage: 2T
   components:
+    applicationOperator:
+      enabled: true
     certManager:
+      enabled: true
       certificate:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
@@ -50,16 +53,23 @@ spec:
     grafana:
       enabled: true
     ingress:
+      enabled: true
       type: LoadBalancer
+    istio:
+      enabled: true
     kiali:
       enabled: true
     keycloak:
       enabled: true
     kibana:
       enabled: true
+    oam:
+      enabled: true
     prometheus:
       enabled: true
     rancher:
+      enabled: true
+    verrazzano:
       enabled: true
     weblogicOperator:
       enabled: true
