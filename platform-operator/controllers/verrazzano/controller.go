@@ -683,23 +683,25 @@ func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Ver
 	// Set the state of resource
 	cr.Status.State = state
 	log.Infof("Setting Verrazzano state: %v", cr.Status.State)
-
-	// Update the status and if there is a conflict, retry
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		err := r.Get(context.TODO(), types.NamespacedName{
-			Name:      cr.GetName(),
-			Namespace: cr.GetNamespace(),
-		}, cr)
+	first_err := r.Status().Update(context.TODO(), cr)
+	if first_err != nil {
+		// Update the status and if there is a conflict, retry
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			err := r.Get(context.TODO(), types.NamespacedName{
+				Name:      cr.GetName(),
+				Namespace: cr.GetNamespace(),
+			}, cr)
+			if err != nil {
+				log.Errorf("Error getting Verrazzano resource with name %s in namespace, %s : %v",
+					cr.GetName(), cr.GetNamespace(), err)
+				return err
+			}
+			return r.Status().Update(context.TODO(), cr)
+		})
 		if err != nil {
-			log.Errorf("Error getting Verrazzano resource with name %s in namespace, %s : %v",
-				cr.GetName(), cr.GetNamespace(), err)
+			log.Errorf("Failed to update Verrazzano resource status: %v", err)
 			return err
 		}
-		return r.Status().Update(context.TODO(), cr)
-	})
-	if err != nil {
-		log.Errorf("Failed to update Verrazzano resource status: %v", err)
-		return err
 	}
 	return nil
 }
