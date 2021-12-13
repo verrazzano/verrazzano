@@ -692,7 +692,7 @@ func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Ver
 		}, cr)
 		if err != nil {
 			log.Errorf("Error getting Verrazzano resource with name %s in namespace, %s : %v",
-				cr.GetName(),cr.GetNamespace(), err)
+				cr.GetName(), cr.GetNamespace(), err)
 			return err
 		}
 		return r.Status().Update(context.TODO(), cr)
