@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"k8s.io/client-go/util/retry"
 	"os"
 	"path/filepath"
 	"strings"
@@ -683,8 +684,17 @@ func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Ver
 	cr.Status.State = state
 	log.Infof("Setting Verrazzano state: %v", cr.Status.State)
 
-	// Update the status
-	err := r.Status().Update(context.TODO(), cr)
+	// Update the status and if there is a conflict, retry
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		err := r.Get(context.TODO(), types.NamespacedName{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+		}, cr)
+		if err != nil {
+			return err
+		}
+		return r.Status().Update(context.TODO(), cr)
+	})
 	if err != nil {
 		log.Errorf("Failed to update Verrazzano resource status: %v", err)
 		return err
