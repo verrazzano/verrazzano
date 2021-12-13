@@ -213,7 +213,7 @@
             },
             {
               "image": "elasticsearch",
-              "tag": "7.10.2-20211118212642-8549e32c",
+              "tag": "7.10.2-20211213153837-168b4642",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211202225714-f7fc6e8a67",
+              "tag": "15.0.2-20211210200419-6fb2551992",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

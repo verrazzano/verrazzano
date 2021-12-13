@@ -53,6 +53,12 @@ spec:
               components:
                 description: Core specifies core Verrazzano configuration
                 properties:
+                  applicationOperator:
+                    description: ApplicationOperator configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   certManager:
                     description: CertManager contains the CertManager component configuration
                     properties:
@@ -232,6 +238,8 @@ spec:
                   ingress:
                     description: Ingress contains the ingress-nginx component configuration
                     properties:
+                      enabled:
+                        type: boolean
                       nginxInstallArgs:
                         description: Arguments for installing NGINX
                         items:
@@ -325,6 +333,8 @@ spec:
                   istio:
                     description: Istio contains the istio component configuration
                     properties:
+                      enabled:
+                        type: boolean
                       istioInstallArgs:
                         description: Arguments for installing Istio
                         items:
@@ -2016,6 +2026,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  oam:
+                    description: OAM configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   prometheus:
                     description: Prometheus configuration
                     properties:
@@ -2024,6 +2040,12 @@ spec:
                     type: object
                   rancher:
                     description: Rancher configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  verrazzano:
+                    description: Verrazzano configuration
                     properties:
                       enabled:
                         type: boolean

@@ -87,14 +87,6 @@ func isReady(compContext spi.ComponentContext) bool {
 	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1)
 }
 
-func isEnabled(compContext spi.ComponentContext) bool {
-	dns := compContext.EffectiveCR().Spec.Components.DNS
-	if dns != nil && dns.OCI != nil {
-		return true
-	}
-	return false
-}
-
 // AppendOverrides builds the set of external-dns overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append all helm overrides for external DNS
