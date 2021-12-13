@@ -6,6 +6,9 @@ kind: Deployment
 metadata:
   name: hello-helidon-deployment
   namespace: hello-helidon-scrape
+  verrazzano.io/metricsEnabled: "true"
+  verrazzano.io/metricsPath: /metrics
+  verrazzano.io/metricsPort: "8080"
 spec:
   selector:
     matchLabels:
@@ -20,3 +23,7 @@ spec:
         - name: hello-helidon-container
           image: ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20210728181814-eb1e622
           imagePullPolicy: IfNotPresent
+          ports:
+            - name: web
+              containerPort: 8080
+              protocol: TCP
