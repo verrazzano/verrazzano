@@ -43,9 +43,9 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	// if failed {
-	// 	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	// }
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	pkg.UndeploySpringBootApplication()
 })
 
