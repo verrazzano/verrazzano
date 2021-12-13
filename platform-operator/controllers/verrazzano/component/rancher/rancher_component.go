@@ -54,6 +54,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   "hostname",
 		Value: rancherHostName,
 	})
+	// Always set useBundledChart=true
+	kvs = append(kvs, bom.KeyValue{
+		Key:   useBundledSystemChartKey,
+		Value: useBundledSystemChartValue,
+	})
 	kvs = appendRegistryOverrides(kvs)
 	return appendCAOverrides(kvs, ctx)
 }
@@ -73,12 +78,8 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   systemDefaultRegistryKey,
 			Value: rancherRegistry,
-		}, bom.KeyValue{
-			Key:   useBundledSystemChartKey,
-			Value: useBundledSystemChartValue,
 		})
 	}
-
 	return kvs
 }
 
