@@ -8,10 +8,9 @@ metadata:
   namespace:
 spec:
   workloadSelector:
-    namespaceSelector:
-      matchExpressions:
-        {key: apiVersion, operator: In, values: ['apps/v1']}
-        {key: kind, operator: In, values: [Deployment]}
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployment"]
   prometheusConfig:
     targetConfigMap:
       namespace: verrazzano-system
