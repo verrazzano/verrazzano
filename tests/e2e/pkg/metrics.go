@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"k8s.io/apimachinery/pkg/types"
+	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // QueryMetricWithLabel queries a metric using a label from the Prometheus host, derived from the kubeconfig
