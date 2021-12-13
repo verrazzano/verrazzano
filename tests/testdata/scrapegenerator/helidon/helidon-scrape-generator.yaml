@@ -6,10 +6,6 @@ kind: Deployment
 metadata:
   name: hello-helidon-deployment
   namespace: hello-helidon-scrape
-  annotations: 
-    verrazzano.io/metricsEnabled: "true"
-    verrazzano.io/metricsPath: /metrics
-    verrazzano.io/metricsPort: "8080"
 spec:
   selector:
     matchLabels:
@@ -19,6 +15,10 @@ spec:
     metadata:
       labels:
         app: hello-helidon-scrape-application
+      annotations:
+        verrazzano.io/metricsEnabled: "true"
+        verrazzano.io/metricsPath: /metrics
+        verrazzano.io/metricsPort: "8080"
     spec:
       containers:
         - name: hello-helidon-container
