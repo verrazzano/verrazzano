@@ -169,6 +169,17 @@
               "tag": "v0.0.14"
             }
           ]
+        },
+        {
+          "registry": "docker.io",
+          "repository": "rancher",
+          "name": "additional-rancher-webhook",
+          "images": [
+            {
+              "image": "rancher-webhook",
+              "tag": "v0.1.1"
+            }
+          ]
         }
       ]
     },
