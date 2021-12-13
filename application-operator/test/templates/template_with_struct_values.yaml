@@ -1,0 +1,4 @@
+data:
+  template:
+    - workload: "{{.workload.Name}}"
+    - profile: "{{.profile.Name}}"

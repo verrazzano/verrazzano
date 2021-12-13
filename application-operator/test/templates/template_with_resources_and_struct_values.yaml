@@ -1,0 +1,7 @@
+data:
+  template:
+    - value1: "{{configmap "testConfigMap" "value1"}}"
+    - value2: "{{configmap "testConfigMap" "value2"}}"
+    - secret: "{{secret "someSecret" "secret1"}}"
+    - workload: "{{.workload.Name}}"
+    - profile: "{{.profile.Name}}"
