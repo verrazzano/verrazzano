@@ -57,6 +57,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
+	_ = k8sapiext.AddToScheme(scheme)
 
 	// Add core oam types to scheme
 	_ = core.AddToScheme(scheme)
@@ -69,7 +70,6 @@ func init() {
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = certapiv1alpha2.AddToScheme(scheme)
-	_ = k8sapiext.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
