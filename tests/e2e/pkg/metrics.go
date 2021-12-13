@@ -162,7 +162,7 @@ func Jq(node interface{}, path ...string) interface{} {
 	return node
 }
 
-func DoesMetricsTemplateExist(namespacedName types.NamespacedName) (bool) {
+func DoesMetricsTemplateExist(namespacedName types.NamespacedName) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))

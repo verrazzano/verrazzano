@@ -54,7 +54,3 @@ func UndeployApplication(namespace string, yamlPath string) {
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }
-
-
-
-
