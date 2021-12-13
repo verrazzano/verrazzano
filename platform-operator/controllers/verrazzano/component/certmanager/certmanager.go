@@ -9,12 +9,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -236,15 +237,6 @@ func cleanTempFiles(tempFiles []string) error {
 
 func isOCIDNS(vz *vzapi.Verrazzano) bool {
 	return vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil
-}
-
-// IsEnabled returns true if the cert-manager is enabled, which is the default
-func (c certManagerComponent) IsEnabled(compContext spi.ComponentContext) bool {
-	comp := compContext.EffectiveCR().Spec.Components.CertManager
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
 }
 
 // AppendOverrides Build the set of cert-manager overrides for the helm install

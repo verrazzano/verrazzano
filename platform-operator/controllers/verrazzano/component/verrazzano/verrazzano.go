@@ -463,14 +463,14 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
-		// Create and/or label the Rancher system namespaces if necessary
-		if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
-		}
 		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
 			true, false); err != nil {
 			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
 		}
+	}
+	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
+	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
+		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
 	}
 	return nil
 }
