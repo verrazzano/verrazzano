@@ -1108,6 +1108,15 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 		return ctrl.Result{}, nil
 	}
 
+	// Add our finalizer if not already added
+	if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
+		log.Debugf("Adding finalizer %s", finalizerName)
+		vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Update(context.TODO(), vz); err != nil {
+			return newRequeueWithDelay(), err
+		}
+	}
+
 	// Cleanup old resources that might be left around when the install used to be done
 	// in the default namespace
 	if err := r.cleanupOld(context.TODO(), log, vz); err != nil {
