@@ -1178,88 +1178,88 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 // WHEN when the restart-version annotation and the observed-restart-version annotation don't match and
 // WHEN spec.version doesn't match status.version
 // THEN ensure the annotations are updated and the reconciler requeues with the Ready StateType
-//func TestRetryUpgrade(t *testing.T) {
-//	initUnitTesing()
-//	namespace := "verrazzano"
-//	name := "test"
-//	var verrazzanoToUse vzapi.Verrazzano
-//
-//	config.SetDefaultBomFilePath(unitTestBomFile)
-//	asserts := assert.New(t)
-//	mocker := gomock.NewController(t)
-//	mock := mocks.NewMockClient(mocker)
-//	mockStatus := mocks.NewMockStatusWriter(mocker)
-//	asserts.NotNil(mockStatus)
-//
-//	defer config.Set(config.Get())
-//	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-//
-//	// Expect a call to get the verrazzano resource.  Return resource with version and the restart-version annotation
-//	mock.EXPECT().
-//		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-//		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-//			verrazzano.TypeMeta = metav1.TypeMeta{
-//				APIVersion: "install.verrazzano.io/v1alpha1",
-//				Kind:       "Verrazzano"}
-//			verrazzano.ObjectMeta = metav1.ObjectMeta{
-//				Namespace:  name.Namespace,
-//				Name:       name.Name,
-//				Finalizers: []string{finalizerName},
-//				Annotations: map[string]string{
-//					constants.UpgradeRetryVersion: "a",
-//				}}
-//			verrazzano.Spec = vzapi.VerrazzanoSpec{
-//				Version: "0.2.0"}
-//			verrazzano.Status = vzapi.VerrazzanoStatus{
-//				State: vzapi.Failed,
-//				Conditions: []vzapi.Condition{
-//					{
-//						Type: vzapi.UpgradeFailed,
-//					},
-//				},
-//				Components: makeVerrazzanoComponentStatusMap(),
-//			}
-//			return nil
-//		})
-//
-//	// Expect a call to get the service account
-//	expectGetServiceAccountExists(mock, name, nil)
-//
-//	// Expect a call to get the ClusterRoleBinding
-//	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-//
-//	// Expect a call to update annotations and ensure annotations are accurate
-//	mock.EXPECT().
-//		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-//		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
-//			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.UpgradeRetryVersion], "a", "Incorrect restart version")
-//			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.ObservedUpgradeRetryVersion], "a", "Incorrect observed restart version")
-//			return nil
-//		})
-//
-//	// Expect a call to get the status writer and return a mock.
-//	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-//
-//	// Expect a call to update the status of the Verrazzano resource
-//	mockStatus.EXPECT().
-//		Update(gomock.Any(), gomock.Any()).
-//		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-//			asserts.Len(verrazzano.Status.Conditions, 1, "Incorrect number of conditions")
-//			asserts.Equal(verrazzano.Status.State, vzapi.Ready, "Incorrect State")
-//			return nil
-//		})
-//
-//	// Create and make the request
-//	request := newRequest(namespace, name)
-//	reconciler := newVerrazzanoReconciler(mock)
-//	result, err := reconciler.Reconcile(request)
-//
-//	// Validate the results
-//	mocker.Finish()
-//	asserts.NoError(err)
-//	asserts.Equal(true, result.Requeue)
-//	asserts.Equal(time.Duration(1), result.RequeueAfter)
-//}
+func TestRetryUpgrade(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
+
+	config.SetDefaultBomFilePath(unitTestBomFile)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Expect a call to get the verrazzano resource.  Return resource with version and the restart-version annotation
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace:  name.Namespace,
+				Name:       name.Name,
+				Finalizers: []string{finalizerName},
+				Annotations: map[string]string{
+					constants.UpgradeRetryVersion: "a",
+				}}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Version: "0.2.0"}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.Failed,
+				Conditions: []vzapi.Condition{
+					{
+						Type: vzapi.UpgradeFailed,
+					},
+				},
+				Components: makeVerrazzanoComponentStatusMap(),
+			}
+			return nil
+		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to update annotations and ensure annotations are accurate
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
+			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.UpgradeRetryVersion], "a", "Incorrect restart version")
+			asserts.Equal(verrazzano.ObjectMeta.Annotations[constants.ObservedUpgradeRetryVersion], "a", "Incorrect observed restart version")
+			return nil
+		})
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 1, "Incorrect number of conditions")
+			asserts.Equal(verrazzano.Status.State, vzapi.Ready, "Incorrect State")
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(1), result.RequeueAfter)
+}
 
 // TestDontRetryUpgrade tests the retryUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after a failed upgrade
