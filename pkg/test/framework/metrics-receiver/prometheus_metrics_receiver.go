@@ -44,19 +44,6 @@ func (pmrs *PrometheusMetricsReceiver) Name() string {
 }
 
 func (pmrs *PrometheusMetricsReceiver) pushData() error {
-	//for cntrName, counter := range pmrs.counters {
-	//	counter = pmrs.counters[cntrName]
-		/*
-		if pcntr == nil {
-			pcntr = prometheus.NewCounter(prometheus.CounterOpts{Name: cntrName})
-			//ctr.Add(cntrp.Value())
-			pmrs.counters[cntrName] = pcntr
-			pmrs.pusher.Collector(pcntr)
-		}
-
-		 */
-		//pmrs.pusher.Collector(counter)
-	//}
 	if err := pmrs.pusher.Add(); err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("could not push metric data to push gateway: %s", err.Error()))
 	} else {
