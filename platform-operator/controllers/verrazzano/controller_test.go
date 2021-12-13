@@ -1208,7 +1208,7 @@ func TestServiceAccountGetError(t *testing.T) {
 	// Expect a call to get the ServiceAccount - return a failure error
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil())).
-		Return(errors.NewBadRequest("failed to get ServiceAccount"))
+		Return(errors.NewBadRequest("failed to get ServiceAccount")).AnyTimes()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -2300,7 +2300,7 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
 			verrazzano.Status = verrazzanoToUse.Status
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectDeleteServiceAccount expects a call to delete the service account used by install
