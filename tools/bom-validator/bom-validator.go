@@ -167,6 +167,7 @@ func validateBOM(vBom *verrazzanoBom, clusterImageMap map[string][tagLen]string,
 	for _, component := range vBom.Components {
 		for _, subcomponent := range component.Subcomponents {
 			if ignoreSubComponent(subcomponent.Name) {
+				fmt.Printf("Subcomponent %s of component %s on ignore list, skipping images %v\n", subcomponent.Name, component.Name, subcomponent.Images)
 				continue
 			}
 			for _, image := range subcomponent.Images {
