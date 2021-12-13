@@ -2568,8 +2568,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-<<<<<<< HEAD
-License file based on go.mod with md5 sum: 15b92f1e405d0ac256c133e7b5b39c23
-=======
-License file based on go.mod with md5 sum: 937cb84ded50cef3a8ab13a528d7bb2b
->>>>>>> 5a85ec766... VZ-4137: Add automated tests for OCI Logging integration
+License file based on go.mod with md5 sum: 127e0b16fe18d22794f1ff447eca11bb
