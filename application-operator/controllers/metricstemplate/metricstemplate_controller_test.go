@@ -85,13 +85,3 @@ func newReconciler(c client.Client) Reconciler {
 		Scheme: scheme}
 	return reconciler
 }
-
-// newRequest creates a new reconciler request for testing
-// namespace - The namespace to use in the request
-// name - The name to use in the request
-func newRequest(namespace string, name string) ctrl.Request {
-	return ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Namespace: namespace,
-			Name:      name}}
-}
