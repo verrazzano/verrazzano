@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -158,4 +160,36 @@ func Jq(node interface{}, path ...string) interface{} {
 		}
 	}
 	return node
+}
+
+func DoesMetricsTemplateExist(namespacedName types.NamespacedName) (bool) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting config from kubeconfig, error: %v", err))
+		return false
+	}
+	client, err := vaoClient.NewForConfig(config)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error creating client from config, error: %v", err))
+		return false
+	}
+
+	metricsTemplateClient := client.AppV1alpha1().MetricsTemplates(namespacedName.Namespace)
+	metricsTemplates, err := metricsTemplateClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Could not list metrics templates, error: %v", err))
+		return false
+	}
+
+	for _, template := range metricsTemplates.Items {
+		if template.Name == namespacedName.Name {
+			return true
+		}
+	}
+	return false
 }

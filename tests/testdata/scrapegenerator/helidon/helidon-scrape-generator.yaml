@@ -1,6 +1,22 @@
 # Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+apiVerison: verrazzano.io/v1alpha1
+kind: MetricsTemplate
+metadata:
+  name: hello-helidon-metrics-template
+  namespace:
+spec:
+  workloadSelector:
+    namespaceSelector:
+      matchExpressions:
+        {key: apiVersion, operator: In, values: ['apps/v1']}
+        {key: kind, operator: In, values: [Deployment]}
+  prometheusConfig:
+    targetConfigMap:
+      namespace: verrazzano-system
+      name: vmi-system-prometheus-config
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,10 +31,6 @@ spec:
     metadata:
       labels:
         app: hello-helidon-scrape-application
-      annotations:
-        verrazzano.io/metricsEnabled: "true"
-        verrazzano.io/metricsPath: /metrics
-        verrazzano.io/metricsPort: "8080"
     spec:
       containers:
         - name: hello-helidon-container

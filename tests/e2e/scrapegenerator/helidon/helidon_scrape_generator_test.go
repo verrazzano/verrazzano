@@ -5,6 +5,7 @@ package helidonscrapegenerator
 
 import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,6 +18,7 @@ const (
 	longPollingInterval  = 20 * time.Second
 	namespace            = "hello-helidon-scrape"
 	applicationPodPrefix = "hello-helidon-deployment-"
+	metricsTemplateName  = "hello-helidon-metrics-template"
 	yamlPath             = "testdata/scrapegenerator/helidon/helidon-scrape-generator.yaml"
 )
 
@@ -36,6 +38,11 @@ var _ = Describe("Verify application.", func() {
 		It("Verify 'hello-helidon-scrape' pod is running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{applicationPodPrefix})
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+		})
+		It("Verify metrics template exists", func() {
+			Eventually(func() bool {
+				return pkg.DoesMetricsTemplateExist(types.NamespacedName{Name: metricsTemplateName, Namespace: namespace})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
