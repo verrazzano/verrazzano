@@ -6,6 +6,9 @@ package externaldns
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -14,8 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
-	"time"
 )
 
 // ComponentName is the name of the component
@@ -72,14 +73,6 @@ func isReady(compContext spi.ComponentContext) bool {
 		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
 	}
 	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1)
-}
-
-func isEnabled(compContext spi.ComponentContext) bool {
-	dns := compContext.EffectiveCR().Spec.Components.DNS
-	if dns != nil && dns.OCI != nil {
-		return true
-	}
-	return false
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install

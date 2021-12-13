@@ -8,14 +8,14 @@ import (
 	"os"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -26,6 +26,19 @@ import (
 )
 
 const profilesDir = "../../../../manifests/profiles"
+const (
+	profilesRelativePath = "../../../../manifests/profiles"
+)
+
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
@@ -311,4 +324,89 @@ func TestSQLFileCreatedAndRemoved(t *testing.T) {
 	assert.NotEmpty(t, tmpFileContents)
 	removeMySQLInitFile(fakeContext)
 	assert.NoFileExists(t, tmpFile)
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is nil
+//  THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilKeycloak tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is nil
+//  THEN true is returned
+func TestIsEnabledNilKeycloak(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledManagedClusterProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak enabled flag is nil and managed cluster profile
+//  THEN false is returned
+func TestIsEnabledManagedClusterProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	cr.Spec.Profile = vzapi.ManagedCluster
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledProdProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak enabled flag is nil and prod profile
+//  THEN false is returned
+func TestIsEnabledProdProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	cr.Spec.Profile = vzapi.Prod
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledDevProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak enabled flag is nil and dev profile
+//  THEN false is returned
+func TestIsEnabledDevProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	cr.Spec.Profile = vzapi.Dev
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }

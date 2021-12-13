@@ -15,6 +15,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const profilesRelativePath = "../../../../manifests/profiles"
+
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			OAM: &vzapi.OAMComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
+
 // TestIsOAMOperatorReady tests the IsOAMReady function
 // GIVEN a call to IsOAMReady
 //  WHEN the deployment object has enough replicas available
@@ -55,4 +67,56 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 		},
 	})
 	assert.False(t, IsOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", constants.VerrazzanoSystemNamespace))
+}
+
+// TestIsEnabledNilOAM tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The OAM component is nil
+//  THEN true is returned
+func TestIsEnabledNilOAM(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.OAM = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The OAM component is nil
+//  THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The OAM component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.OAM.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The OAM component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.OAM.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The OAM component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.OAM.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
