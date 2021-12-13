@@ -683,8 +683,8 @@ func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Ver
 	// Set the state of resource
 	cr.Status.State = state
 	log.Infof("Setting Verrazzano state: %v", cr.Status.State)
-	first_err := r.Status().Update(context.TODO(), cr)
-	if first_err != nil {
+	firstErr := r.Status().Update(context.TODO(), cr)
+	if firstErr != nil {
 		// Update the status and if there is a conflict, retry
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			err := r.Get(context.TODO(), types.NamespacedName{
