@@ -7,9 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 
+	"k8s.io/apimachinery/pkg/types"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
