@@ -56,7 +56,7 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*',
                 trim: true)
         string (name: 'EXCLUDED_TESTS',
-                defaultValue: '_excluded_test',
+                defaultValue: 'scrapegenerator/helidon|_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
     }
@@ -471,6 +471,14 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('loggingtrait/coherenceworkload')
+                            }
+                        }
+                        stage('scrape generator Helidon deployment') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scrapegenerator-helidon"
+                            }
+                            steps {
+                                runGinkgo('scrapegenerator/helidon')
                             }
                         }
                     }
