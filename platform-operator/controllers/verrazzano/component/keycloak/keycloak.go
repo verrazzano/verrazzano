@@ -1261,10 +1261,6 @@ func clientExists(keycloakClients KeycloakClients, clientName string) bool {
 
 func getClientID(keycloakClients KeycloakClients, clientName string) string {
 
-	if len(keycloakClients) == 0 {
-		return ""
-	}
-
 	for _, keycloakClient := range keycloakClients {
 		if keycloakClient.ClientID == clientName {
 			return keycloakClient.ID

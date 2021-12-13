@@ -581,6 +581,59 @@ func TestGetEnvironmentName(t *testing.T) {
 	}
 }
 
+// TestClientExists tests that the function returns false/true whether client exists
+// GIVEN an array of keycloak Clients
+// WHEN I call clientExists
+// THEN return true/false whether the client exists in the array of clients
+func TestClientExists(t *testing.T) {
+	var tests = []struct {
+		name string
+		in   KeycloakClients
+		out  bool
+	}{
+		{"testEmptyClients",
+			KeycloakClients{},
+			false,
+		},
+		{"testClientNotFound",
+			KeycloakClients{
+				{
+					"973973",
+					"thisClient",
+				},
+				{
+					"973974",
+					"thatClient",
+				},
+			},
+			false,
+		},
+		{"testClientFound",
+			KeycloakClients{
+				{
+					"973973",
+					"thisClient",
+				},
+				{
+					"973974",
+					"thatClient",
+				},
+				{
+					"973974",
+					"someClient",
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.out, clientExists(tt.in, "someClient"))
+		})
+	}
+}
+
 // TestLoginKeycloak tests the login to keycloak interacts with k8s resources as expected
 // GIVEN a client
 // WHEN I call loginKeycloak
