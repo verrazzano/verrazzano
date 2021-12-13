@@ -13,7 +13,7 @@ import (
 	k8sreconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// Reconciler reconciles a MetricsTrait object
+// Reconciler reconciles a metrics workload object
 type Reconciler struct {
 	k8sclient.Client
 	Log     logr.Logger
@@ -21,24 +21,39 @@ type Reconciler struct {
 	Scraper string
 }
 
-// SetupWithManager creates a controller and adds it to the manager
+// setupWithManagerForGVK creates a controller for a specific GKV and adds it to the manager.
+func (r *Reconciler) setupWithManagerForGVK(mgr k8scontroller.Manager, group string, version string, kind string) error {
+	u := unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{Group: group, Version: version, Kind: kind})
+	return k8scontroller.NewControllerManagedBy(mgr).For(&u).Complete(r)
+}
+
+// SetupWithManager creates controllers for each supported GKV and adds it to the manager
+// See https://book-v1.book.kubebuilder.io/beyond_basics/controller_watches.html for potentially better way to watch arbitrary resources
 func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
-	//TODO: See https://book-v1.book.kubebuilder.io/beyond_basics/controller_watches.html for watching arbitrary resources
-	//TODO: Need some way to lookup a registered set of workload GKVs
-	types := []*unstructured.Unstructured{
-		newUnstructured("apps", "v1", "Deployment"),
-		newUnstructured("apps", "v1", "ReplicaSet"),
-		newUnstructured("apps", "v1", "StatefulSet"),
-		newUnstructured("apps", "v1", "DaemonSet"),
-		newUnstructured("weblogic.oracle", "v7", "Domain"),
-		newUnstructured("weblogic.oracle", "v8", "Domain"),
-		newUnstructured("coherence.oracle.com", "v1", "Coherence"),
+	//TODO: Need some way to lookup set of supported metwork workload GKVs.
+	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "Deployment"); err != nil {
+		return err
 	}
-	c := k8scontroller.NewControllerManagedBy(mgr)
-	for _, t := range types {
-		c = c.For(t)
+	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "ReplicaSet"); err != nil {
+		return err
 	}
-	return c.Complete(r)
+	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "StatefulSet"); err != nil {
+		return err
+	}
+	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "DaemonSet"); err != nil {
+		return err
+	}
+	if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v7", "Domain"); err != nil {
+		return err
+	}
+	if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v8", "Domain"); err != nil {
+		return err
+	}
+	if err := r.setupWithManagerForGVK(mgr, "coherence.oracle.com", "v1", "Coherence"); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
@@ -46,16 +61,5 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
 	r.Log.V(1).Info("Reconcile metrics scrape config", "resource", req.NamespacedName)
 	//TODO: To be implemented
-	//
 	return k8sreconcile.Result{}, nil
-}
-
-func newUnstructured(group string, version string, kind string) *unstructured.Unstructured {
-	u := unstructured.Unstructured{}
-	u.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   group,
-		Version: version,
-		Kind:    kind,
-	})
-	return &u
 }
