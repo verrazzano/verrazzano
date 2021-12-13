@@ -23,7 +23,7 @@ type WorkloadSelector struct {
 // The criteria used to match is a namespace label selector, object label selector, and group, version,
 // and kind of resource.
 func (w *WorkloadSelector) DoesWorkloadMatch(workload *unstructured.Unstructured, namespaceSelector *metav1.LabelSelector, objectSelector *metav1.LabelSelector, apiGroups []string, apiVersions []string, apiKinds []string) (bool, error) {
-	// Get namespacees that match the given namespace label selector
+	// Get namespaces that match the given namespace label selector
 	namespaces, err := w.getMatchingNamespaces(namespaceSelector)
 	if err != nil {
 		return false, err

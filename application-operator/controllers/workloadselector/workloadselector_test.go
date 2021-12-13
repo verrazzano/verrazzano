@@ -14,6 +14,88 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
+// TestMatch tests DoesWorkloadMatch
+// GIVEN a namespace label selector, object selector, and specific GVK values
+//  WHEN DoesWorkloadMatch is called
+//  THEN a match of true is returned
+func TestMatch(t *testing.T) {
+	ws := &WorkloadSelector{
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
+	}
+
+	labels := map[string]string{
+		"test-label": "true",
+	}
+
+	// Create the namespace
+	ws.createNamespace(t, "test-ns", labels)
+
+	// Create a deployment
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", labels)
+
+	// Namespace selector with match labels
+	namespaceSelector := &metav1.LabelSelector{
+		MatchLabels: labels,
+	}
+
+	// Object selector with match expressions
+	objectSelector := &metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      "test-label",
+				Operator: metav1.LabelSelectorOpExists,
+			},
+		},
+	}
+
+	// workload resource matches
+	found, err := ws.DoesWorkloadMatch(deploy, namespaceSelector, objectSelector, []string{"apps"}, []string{"v1"}, []string{"deployment"})
+	assert.NoError(t, err, "unexpected error matching resource")
+	assert.True(t, found, "expected to find match")
+}
+
+// TestNoMatchNamespace tests DoesWorkloadMatch
+// GIVEN a namespace label selector, object selector, and specific GVK values
+//  WHEN DoesWorkloadMatch is called
+//  THEN a match of false is returned because namespace did not match
+func TestNoMatchNamespace(t *testing.T) {
+	ws := &WorkloadSelector{
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
+	}
+
+	labels := map[string]string{
+		"test-label": "true",
+	}
+
+	// Create the namespace
+	ws.createNamespace(t, "test-ns", nil)
+
+	// Create a deployment
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", labels)
+
+	// Namespace selector with match labels
+	namespaceSelector := &metav1.LabelSelector{
+		MatchLabels: labels,
+	}
+
+	// Object selector with match expressions
+	objectSelector := &metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      "test-label",
+				Operator: metav1.LabelSelectorOpExists,
+			},
+		},
+	}
+
+	// workload resource does not match
+	found, err := ws.DoesWorkloadMatch(deploy, namespaceSelector, objectSelector, []string{"apps"}, []string{"v1"}, []string{"deployment"})
+	assert.NoError(t, err, "unexpected error matching resource")
+	assert.False(t, found, "expected to not find match")
+}
+
 // TestEmptyNamespaceSelectorMatch tests getMatchingNamespaces
 // GIVEN an empty namespace label selector
 //  WHEN getMatchingNamespaces is called
@@ -133,7 +215,7 @@ func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", namespaceLabels)
 
-	// Namespace selector with match labels
+	// Namespace selector with match expressions
 	namespaceSelector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
@@ -163,7 +245,7 @@ func TestMatchExpressionsNamespaceSelectorNoMatch(t *testing.T) {
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
 
-	// Namespace selector with match labels
+	// Namespace selector with match expressions
 	namespaceSelector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
@@ -207,6 +289,10 @@ func TestMatchExactGVK(t *testing.T) {
 	assert.True(t, found, "expected to find match")
 }
 
+// TestMatchWildcardVersion tests doesObjectMatch
+// GIVEN GVK values with a wildcard version and no object label selector
+//  WHEN doesObjectMatch is called
+//  THEN a match of true is returned
 func TestMatchWildcardVersion(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -231,6 +317,10 @@ func TestMatchWildcardVersion(t *testing.T) {
 	assert.True(t, found, "expected to find match")
 }
 
+// TestMatchWildcardGroup tests doesObjectMatch
+// GIVEN GVK values with a wildcard group and no object label selector
+//  WHEN doesObjectMatch is called
+//  THEN a match of true is returned
 func TestMatchWildcardGroup(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -255,6 +345,10 @@ func TestMatchWildcardGroup(t *testing.T) {
 	assert.True(t, found, "expected to find match")
 }
 
+// TestMatchWildcardKind tests doesObjectMatch
+// GIVEN GVK values with a wildcard Kind and no object label selector
+//  WHEN doesObjectMatch is called
+//  THEN a match of true is returned
 func TestMatchWildcardKind(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -279,6 +373,10 @@ func TestMatchWildcardKind(t *testing.T) {
 	assert.True(t, found, "expected to find match")
 }
 
+// TestNoMatchExactGVK tests doesObjectMatch
+// GIVEN specific GVK values and no object label selector
+//  WHEN doesObjectMatch is called
+//  THEN a match of false is returned
 func TestNoMatchExactGVK(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -302,6 +400,10 @@ func TestNoMatchExactGVK(t *testing.T) {
 	assert.False(t, found, "expected to not find match")
 }
 
+// TestNoMatchWildcardVersion tests doesObjectMatch
+// GIVEN GVK values with wildcard version and no object label selector
+//  WHEN doesObjectMatch is called
+//  THEN a match of false is returned
 func TestNoMatchWildcardVersion(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -326,6 +428,10 @@ func TestNoMatchWildcardVersion(t *testing.T) {
 	assert.False(t, found, "expected to not find match")
 }
 
+// TestNoMatchWildcardGroup tests doesObjectMatch
+// GIVEN GVK values with wildcard group version and no object label selector
+//  WHEN doesObjectMatch is called
+//  THEN a match of false is returned
 func TestNoMatchWildcardGroup(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -350,6 +456,10 @@ func TestNoMatchWildcardGroup(t *testing.T) {
 	assert.False(t, found, "expected to not find match")
 }
 
+// TestNoMatchWildcardKind tests doesObjectMatch
+// GIVEN GVK values with wildcard kind version and no object label selector
+//  WHEN doesObjectMatch is called
+//  THEN a match of false is returned
 func TestNoMatchWildcardKind(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -374,6 +484,10 @@ func TestNoMatchWildcardKind(t *testing.T) {
 	assert.False(t, found, "expected to not find match")
 }
 
+// TestMatchLabelsObjectSelectorMatch tests doesObjectMatch
+// GIVEN an object label selector using a MatchLabel
+//  WHEN doesObjectMatch is called
+//  THEN a match of true is returned
 func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -404,6 +518,10 @@ func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 	assert.True(t, found, "expected to find match")
 }
 
+// TestMatchExpressionsObjectSelectorMatch tests doesObjectMatch
+// GIVEN an object label selector using a MatchExpression
+//  WHEN doesObjectMatch is called
+//  THEN a match of true is returned
 func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -439,6 +557,10 @@ func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 	assert.True(t, found, "expected to find match")
 }
 
+// TestMatchLabelsObjectSelectorNoMatch tests doesObjectMatch
+// GIVEN an object label selector using a MatchLabel
+//  WHEN doesObjectMatch is called
+//  THEN a match of false is returned
 func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
@@ -469,6 +591,10 @@ func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 	assert.False(t, found, "expected to not find match")
 }
 
+// TestMatchExpressionsObjectSelectorNoMatch tests doesObjectMatch
+// GIVEN an object label selector using a MatchExpression
+//  WHEN doesObjectMatch is called
+//  THEN a match of false is returned
 func TestMatchExpressionsObjectSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
