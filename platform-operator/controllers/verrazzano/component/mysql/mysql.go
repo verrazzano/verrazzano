@@ -6,6 +6,9 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -19,9 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"io/ioutil"
-	"os"
-	"path/filepath"
-	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,15 +46,6 @@ func isReady(context spi.ComponentContext, name string, namespace string) bool {
 		{Name: name, Namespace: namespace},
 	}
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
-}
-
-// isEnabled checks to see if the MySQL component is enabled in the effective CR
-func isEnabled(context spi.ComponentContext) bool {
-	keycloak := context.EffectiveCR().Spec.Components.Keycloak
-	if keycloak != nil && keycloak.Enabled != nil {
-		return *keycloak.Enabled
-	}
-	return false
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides

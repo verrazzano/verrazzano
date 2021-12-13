@@ -3,11 +3,12 @@
 package nginx
 
 import (
+	"testing"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -17,6 +18,18 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+const profilesRelativePath = "../../../../manifests/profiles"
+
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Ingress: &vzapi.IngressNginxComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
 
 // TestAppendNGINXOverrides tests the AppendOverrides fn
 // GIVEN a call to AppendOverrides
@@ -266,4 +279,56 @@ func TestNewComponent(t *testing.T) {
 	component := NewComponent()
 	assert.NotNil(t, component)
 	assert.Equal(t, ComponentName, component.Name())
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Nginx component is nil
+//  THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilNginx tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Nginx component is nil
+//  THEN true is returned
+func TestIsEnabledNilNginx(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Ingress = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Nginx component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Ingress.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Nginx component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Ingress.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Nginx component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Ingress.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
