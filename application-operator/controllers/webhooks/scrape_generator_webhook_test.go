@@ -15,7 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"k8s.io/client-go/kubernetes/fake"
+	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -26,8 +27,12 @@ func newScrapeGeneratorWebhook() ScrapeGeneratorWebhook {
 		Version: "v1",
 	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{})
 	decoder, _ := admission.NewDecoder(scheme)
-	cli := fake.NewFakeClientWithScheme(scheme)
-	v := ScrapeGeneratorWebhook{Client: cli, Decoder: decoder}
+	cli := ctrlfake.NewFakeClientWithScheme(scheme)
+	v := ScrapeGeneratorWebhook{
+		Client:     cli,
+		Decoder:    decoder,
+		KubeClient: fake.NewSimpleClientset(),
+	}
 	return v
 }
 
@@ -67,7 +72,6 @@ func TestHandlePod(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Pod", testPod)
 	res := v.Handle(context.TODO(), req)
 	assert.True(res.Allowed, "Expected validation to succeed.")
-	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
 }
 
 // TestHandleDeployment tests the handling of a Deployment resource
@@ -92,7 +96,6 @@ func TestHandleDeployment(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(res.Allowed, "Expected validation to succeed.")
-	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
 }
 
 // TestHandleReplicaSet tests the handling of a ReplicaSet resource
@@ -117,7 +120,6 @@ func TestHandleReplicaSet(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(res.Allowed, "Expected validation to succeed.")
-	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
 }
 
 // TestHandleStatefulSet tests the handling of a StatefulSet resource
@@ -142,5 +144,4 @@ func TestHandleStatefulSet(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "StatefulSet", testStatefulSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(res.Allowed, "Expected validation to succeed.")
-	assert.Equal(res.AdmissionResponse.Result.Reason, metav1.StatusReason(StatusReasonSuccess))
 }

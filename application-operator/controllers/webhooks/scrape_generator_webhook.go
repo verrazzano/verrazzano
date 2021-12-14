@@ -5,12 +5,17 @@ package webhooks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -21,7 +26,7 @@ import (
 // ScrapeGeneratorLoadPath specifies the path of scrape-generator webhook
 const ScrapeGeneratorLoadPath = "/scrape-generator"
 
-// StatusReasonSuccess
+// StatusReasonSuccess constant for successful response
 const StatusReasonSuccess = "success"
 
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
@@ -38,20 +43,10 @@ type ScrapeGeneratorWebhook struct {
 func (a *ScrapeGeneratorWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	scrapeGeneratorLogger.Info(fmt.Sprintf("group: %s, version: %s, kind: %s, namespace: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace))
 
-	// Determine what type of resource to handle
+	// Check the type of resource in the admission request
 	switch strings.ToLower(req.Kind.Kind) {
-	case "pod":
-		return a.handlePod(ctx, req)
-	case "deployment":
-		return a.handleDeployment(ctx, req)
-	case "replicaset":
-		return a.handleReplicaSet(ctx, req)
-	case "statefulset":
-		return a.handleStatefulSet(ctx, req)
-	case "domain":
-		return a.handleDomain(ctx, req)
-	case "coherence":
-		return a.handleCoherence(ctx, req)
+	case "pod", "deployment", "replicaset", "statefulset", "domain", "coherence":
+		return a.handleWorkloadResource(ctx, req)
 	default:
 		scrapeGeneratorLogger.Info(fmt.Sprintf("unsupported kind %s", req.Kind.Kind))
 		return admission.Allowed("not implemented yet")
@@ -64,56 +59,72 @@ func (a *ScrapeGeneratorWebhook) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
-// handlePod - handle Kind type of Pod
-func (a *ScrapeGeneratorWebhook) handlePod(ctx context.Context, req admission.Request) admission.Response {
-	pod := &corev1.Pod{}
-	err := a.Decoder.Decode(req, pod)
+func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req admission.Request) admission.Response {
+	unst := &unstructured.Unstructured{}
+	err := a.Decoder.Decode(req, unst)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	return admission.Allowed(StatusReasonSuccess)
-}
-
-// handleDeployment - handle Kind type of Deployment
-func (a *ScrapeGeneratorWebhook) handleDeployment(ctx context.Context, req admission.Request) admission.Response {
-	deployment := &appsv1.Deployment{}
-	err := a.Decoder.Decode(req, deployment)
-	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
+	// For the time being, do not handle any workload resources that have owner references.
+	// NOTE: this will be revisited.
+	if len(unst.GetOwnerReferences()) != 0 {
+		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	return admission.Allowed(StatusReasonSuccess)
-}
-
-// handleReplicaSet - handle Kind type of ReplicaSet
-func (a *ScrapeGeneratorWebhook) handleReplicaSet(ctx context.Context, req admission.Request) admission.Response {
-	replicaSet := &appsv1.ReplicaSet{}
-	err := a.Decoder.Decode(req, replicaSet)
+	// Namespace of workload resource must be labeled with "verrazzano-managed": "true"
+	namespace, err := a.KubeClient.CoreV1().Namespaces().Get(ctx, unst.GetNamespace(), metav1.GetOptions{})
 	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+	if _, ok := namespace.Labels[constants.LabelVerrazzanoManaged]; !ok {
+		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	return admission.Allowed(StatusReasonSuccess)
-}
-
-// handleStatefulSet - handle Kind type of StatefulSet
-func (a *ScrapeGeneratorWebhook) handleStatefulSet(ctx context.Context, req admission.Request) admission.Response {
-	statefulSet := &appsv1.StatefulSet{}
-	err := a.Decoder.Decode(req, statefulSet)
+	// Process the app.verrazzano.io/metrics annotation
+	metricsTemplate, err := a.processMetricsAnnotation(unst)
 	if err != nil {
-		return admission.Errored(http.StatusBadRequest, err)
+		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	return admission.Allowed(StatusReasonSuccess)
+	// Workload resource has a valid metric template
+	if metricsTemplate != nil {
+
+	}
+
+	marshaledWorkloadResource, err := json.Marshal(unst)
+	if err != nil {
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledWorkloadResource)
 }
 
-// handleDomain - handle Kind type of Domain
-func (a *ScrapeGeneratorWebhook) handleDomain(ctx context.Context, req admission.Request) admission.Response {
-	return admission.Allowed(StatusReasonSuccess)
-}
+func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Unstructured) (*vzapp.MetricsTemplate, error) {
+	if metricsTemplate, ok := unst.GetAnnotations()["app.verrazzano.io/metrics"]; ok {
+		if metricsTemplate == "none" {
+			return nil, nil
+		}
 
-// handleCoherence - handle Kind type of Coherence
-func (a *ScrapeGeneratorWebhook) handleCoherence(ctx context.Context, req admission.Request) admission.Response {
-	return admission.Allowed(StatusReasonSuccess)
+		// Look for the metrics template in the namespace of the workload resource
+		template := &vzapp.MetricsTemplate{}
+		namespacedName := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsTemplate}
+		err := a.Client.Get(context.TODO(), namespacedName, template)
+		if err != nil {
+			// If we don't find the metrics template in the namespace of the workload resource then
+			// look in the verrazzano-system namespace
+			if apierrors.IsNotFound(err) {
+				namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: metricsTemplate}
+				err := a.Client.Get(context.TODO(), namespacedName, template)
+				if err != nil {
+					return nil, err
+				}
+				return template, nil
+			}
+			return nil, err
+		}
+
+		return template, nil
+	}
+
+	return nil, nil
 }
