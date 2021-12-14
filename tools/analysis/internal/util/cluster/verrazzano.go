@@ -39,7 +39,7 @@ var verrazzanoAnalysisFunctions = map[string]func(log *zap.SugaredLogger, cluste
 	"Installation status": installationStatus,
 }
 
-// AnalyzeVerrazano handles high level checking for Verrazzano itself. Note that we are not necessarily going to drill deeply here and
+// AnalyzeVerrazzano handles high level checking for Verrazzano itself. Note that we are not necessarily going to drill deeply here and
 // we may actually handle scenarios as part of the other drill-downs separately
 func AnalyzeVerrazzano(log *zap.SugaredLogger, clusterRoot string) (err error) {
 	log.Debugf("AnalyzeVerrazzano called for %s", clusterRoot)
