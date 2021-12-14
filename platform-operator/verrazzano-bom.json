@@ -146,7 +146,7 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.1.1"
+              "tag": "v0.1.2"
             },
             {
               "image": "fleet-agent",
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211210200419-6fb2551992",
+              "tag": "15.0.2-20211213172016-b1b380919c",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
