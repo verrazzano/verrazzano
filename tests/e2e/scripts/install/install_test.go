@@ -47,6 +47,8 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from ingress resources - %v", err))
 		return false
 	}
+	pkg.Log(pkg.Info, fmt.Sprintf("Expected URLs based on ingresses: %v", expectedConsoleUrls ))
+	pkg.Log(pkg.Info, fmt.Sprintf("Actual URLs in Verrazzano resource: %v", consoleUrls ))
 
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }
