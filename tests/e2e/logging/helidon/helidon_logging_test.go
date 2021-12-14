@@ -38,7 +38,15 @@ var _ = BeforeSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	// undeploy the application here
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
