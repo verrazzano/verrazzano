@@ -49,7 +49,7 @@ func preInstall(compContext spi.ComponentContext) error {
 	//check if scope value is valid
 	scope := dns.OCI.DNSScope
 	if strings.ToLower(scope) != dnsGlobal && strings.ToLower(scope) != dnsPrivate && scope != "" {
-		message := fmt.Sprintf("Invalid oci dns scope value: %s. If set ,value can only be 'Global' or 'Private", dns.OCI.DNSScope)
+		message := fmt.Sprintf("Invalid OCI DNS scope value: %s. If set, value can only be 'Global' or 'Private", dns.OCI.DNSScope)
 		compContext.Log().Errorf(message)
 		return errors.New(message)
 	}
