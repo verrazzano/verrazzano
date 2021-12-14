@@ -40,7 +40,10 @@ function usage() {
     -r <docker-registry>    Docker registry to find images in (required)
     -n <ocir-namespace>     OCIR namespace. This is required if the registry is an OCIR registry, and is not needed otherwise (optional)
     -p <repository-path>    Repository name/prefix for each image, e.g \"path/to/my/image\"; not including an OCIR namespace if one is required, if not specified the default will be used according to the BOM
+    -x <ocir-repo-path>     This is the OCIR namespace plus the repository path as well (basically -n and -p combined).
     -a <allow-list>         Allow-list to use for scanning (optional)
+
+    One of the path options must be specified: -x or -p
 
   Pre-requisites:
     This requires that trivy and grype scanners are installed
@@ -106,10 +109,14 @@ function validate_inputs() {
     usage 1 "The repository path must be specified"
   fi
 
-  if [ -z "$OCIR_NAMESPACE" ]; then
-    COMBINED_PATH="$REPO_PATH"
-  else
-    COMBINED_PATH="$OCIR_NAMESPACE/$REPO_PATH"
+  # If we already have a combined path, we were give -x with a namespace and path already
+  # If not, then we check if they gave us -p or -n and -p
+  if [ -z "$COMBINED_PATH" ]; then
+    if [ -z "$OCIR_NAMESPACE" ]; then
+      COMBINED_PATH="$REPO_PATH"
+    else
+      COMBINED_PATH="$OCIR_NAMESPACE/$REPO_PATH"
+    fi
   fi
 }
 
@@ -142,6 +149,9 @@ while getopts 'hb:a:o:n:r:p:' opt; do
   p)
     REPO_PATH=$OPTARG
     ;;
+  x)
+    COMBINED_PATH=$OPTARG
+    REPO_PATH=$(echo $COMBINED_PATH | cut -d "/" -f2-)
   h | ?)
     usage
     ;;
