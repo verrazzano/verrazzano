@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20211130230102-4f1415cb5",
+              "tag": "1.2.0-20211212162439-4f1415cb5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20211130230128-4f1415cb5",
+              "tag": "1.2.0-20211212162513-4f1415cb5",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20211130230102-4f1415cb5",
+              "tag": "1.2.0-20211212162439-4f1415cb5",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20211130230102-4f1415cb5",
+              "tag": "1.2.0-20211212162439-4f1415cb5",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -187,12 +187,12 @@
             },
             {
               "image": "node-exporter",
-              "tag": "1.0.0-20211125052853-e25ae11",
+              "tag": "1.0.0-20211213080828-e25ae11",
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.1.0-20211125050625-4558ab0",
+              "tag": "1.1.0-20211213080834-4558ab0",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -218,7 +218,7 @@
             },
             {
               "image": "kibana-oss",
-              "tag": "7.10.2-20211119171233-4463f4c",
+              "tag": "7.10.2-20211213083528-4463f4c",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -405,7 +405,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.1.0-20211124230612-a6ff0b8"
+              "tag": "1.1.0-20211213082115-a6ff0b8"
             }
           ]
         }
