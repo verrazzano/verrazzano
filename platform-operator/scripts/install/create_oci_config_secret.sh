@@ -54,6 +54,7 @@ function usage {
     echo "  -s config_file_section     The properties section within the OCI configuration file.  Default is DEFAULT"
     echo "  -k secret_name             The secret name containing the OCI configuration.  Default is oci"
     echo "  -c context_name            The kubectl context to use"
+    echo "  -i instance_principal      Use OCI instance principal (true/false)"
     echo "  -h                         Help"
     echo
     exit 1
@@ -66,42 +67,55 @@ SECTION=DEFAULT
 OCI_CONFIG_SECRET_NAME=oci
 K8SCONTEXT=""
 VERRAZZANO_INSTALL_NS=verrazzano-install
+INSTANCE_PRINCIPAL_ENABLED=false
 
-while getopts c:o:s:k:h flag
+while getopts c:o:s:k:i:h flag
 do
     case "${flag}" in
         o) OCI_CONFIG_FILE=${OPTARG};;
         s) SECTION=${OPTARG};;
         k) OCI_CONFIG_SECRET_NAME=${OPTARG};;
         c) K8SCONTEXT="--context=${OPTARG}";;
+        i) INSTANCE_PRINCIPAL_INPUT=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
 done
 
-SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
-eval $SECTION_PROPS
+if [ "${INSTANCE_PRINCIPAL_INPUT:-}" ] ; then
+  if [ ${INSTANCE_PRINCIPAL_INPUT} == "true" ] || [ ${INSTANCE_PRINCIPAL_INPUT} == "false" ]; then
+    INSTANCE_PRINCIPAL_ENABLED=${INSTANCE_PRINCIPAL_INPUT}
+  fi
+fi
 
 #create the yaml file
-echo "auth:" > $OUTPUT_FILE
-echo "  region: $region" >> $OUTPUT_FILE
-echo "  tenancy: $tenancy" >> $OUTPUT_FILE
-echo "  user: $user" >> $OUTPUT_FILE
-echo "  key: |" >> $OUTPUT_FILE
-cat $key_file | sed 's/^/    /' >> $OUTPUT_FILE
-echo "  fingerprint: $fingerprint" >> $OUTPUT_FILE
-if [[ ! -z "$pass_phrase" ]]; then
-  echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
+if [ ${INSTANCE_PRINCIPAL_ENABLED} == "true" ]; then
+  echo "auth:" > $OUTPUT_FILE
+  echo "  useInstancePrincipals: ${INSTANCE_PRINCIPAL_ENABLED}" >> $OUTPUT_FILE
+else
+  SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
+  eval $SECTION_PROPS
+
+  echo "auth:" > $OUTPUT_FILE
+  echo "  region: $region" >> $OUTPUT_FILE
+  echo "  tenancy: $tenancy" >> $OUTPUT_FILE
+  echo "  user: $user" >> $OUTPUT_FILE
+  echo "  key: |" >> $OUTPUT_FILE
+  cat $key_file | sed 's/^/    /' >> $OUTPUT_FILE
+  echo "  fingerprint: $fingerprint" >> $OUTPUT_FILE
+  echo "  useInstancePrincipals: ${INSTANCE_PRINCIPAL_ENABLED}" >> $OUTPUT_FILE
+  if [[ ! -z "$pass_phrase" ]]; then
+    echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
+  fi
 fi
 
 # create the secret in verrazzano-install namespace
 create_secret=true
-
 kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-  # secret exists
-  echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_INSTALL_NS} namespace. Please delete that and try again."
-  exit 1
+   # secret exists
+   echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_INSTALL_NS} namespace. Please delete that and try again."
+   exit 1
 fi
 kubectl ${K8SCONTEXT} create secret -n $VERRAZZANO_INSTALL_NS  generic $OCI_CONFIG_SECRET_NAME --from-file=$OUTPUT_FILE
 
