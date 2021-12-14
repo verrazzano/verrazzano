@@ -5,10 +5,10 @@ package workloadselector
 
 import (
 	"context"
+	"reflect"
 	"strings"
 
 	"github.com/gertd/go-pluralize"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,38 +25,55 @@ type WorkloadSelector struct {
 // DoesWorkloadMatch returns a boolean indicating whether an unstructured resource matches any of the criteria for a match.
 // The criteria used to match is a namespace label selector, object label selector, and group, version,
 // and kind of resource.
-func (w *WorkloadSelector) DoesWorkloadMatch(workload *unstructured.Unstructured, namespaceSelector *metav1.LabelSelector, objectSelector *metav1.LabelSelector, apiGroups []string, apiVersions []string, apiKinds []string) (bool, error) {
-	// Get namespaces that match the given namespace label selector
-	namespaces, err := w.getMatchingNamespaces(namespaceSelector)
+func (w *WorkloadSelector) DoesWorkloadMatch(workload *unstructured.Unstructured, namespaceSelector *metav1.LabelSelector, objectSelector *metav1.LabelSelector, apiGroups []string, apiVersions []string, resources []string) (bool, error) {
+	// Check if we match the given namespace label selector
+	found, err := w.doesNamespaceMatch(workload, namespaceSelector)
 	if err != nil {
 		return false, err
 	}
-
-	// If no namespaces match then no need for any other processing so return no match
-	if len(namespaces.Items) == 0 {
+	if !found {
 		return false, nil
 	}
 
-	return w.doesObjectMatch(workload, namespaces, objectSelector, apiGroups, apiVersions, apiKinds)
+	// If the namespace matches then check if we match the given object label selector
+	return w.doesObjectMatch(workload, objectSelector, apiGroups, apiVersions, resources)
 }
 
-// getMatchingNamespaces returns a list of namespaces matching the specified namespace label selector
-func (w *WorkloadSelector) getMatchingNamespaces(namespaceSelector *metav1.LabelSelector) (*corev1.NamespaceList, error) {
+// doesNamespaceMatch returns a boolean indicating whether an unstructured resource matches the namespace selector
+func (w *WorkloadSelector) doesNamespaceMatch(workload *unstructured.Unstructured, namespaceSelector *metav1.LabelSelector) (bool, error) {
+	// If the namespace label selector is not specified then we don't need to check the namespace
+	if namespaceSelector == nil || reflect.DeepEqual(namespaceSelector, metav1.LabelSelector{}) {
+		return true, nil
+	}
+
 	labels, err := metav1.LabelSelectorAsSelector(namespaceSelector)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	options := metav1.ListOptions{
 		LabelSelector: labels.String(),
 	}
 
-	namespaceList, err := w.KubeClient.CoreV1().Namespaces().List(context.TODO(), options)
-	return namespaceList, err
+	// A list operation is required to use the namespace label selector.  Get all namespaces that
+	// match the label selector and then check if the workload resource namespace matches one of the
+	// returned namespaces.
+	namespaces, err := w.KubeClient.CoreV1().Namespaces().List(context.TODO(), options)
+	if err != nil {
+		return false, err
+	}
+
+	for _, namespace := range namespaces.Items {
+		// Namespace of workload resource must match
+		if workload.GetNamespace() == namespace.Name {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // doesObjectMatch returns a boolean indicating whether an unstructured resource matches the criteria for a match.
-// The criteria used to match is a list of namespaces, object label selector, and group, version, and kind values
-func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, namespaces *corev1.NamespaceList, objectSelector *metav1.LabelSelector, apiGroups []string, apiVersions []string, apiKinds []string) (bool, error) {
+// The criteria used to match is an object label selector, and group, version, and kind values
+func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, objectSelector *metav1.LabelSelector, apiGroups []string, apiVersions []string, resources []string) (bool, error) {
 	// Get the group and version of the workload resource
 	gv, err := schema.ParseGroupVersion(workload.GetAPIVersion())
 	if err != nil {
@@ -64,7 +81,7 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 	}
 
 	// Check that the workload resource GVK matches expected GVKs
-	if !checkMatch(gv.Version, apiVersions) || !checkMatch(gv.Group, apiGroups) || !checkMatch(workload.GetKind(), apiKinds) {
+	if !checkMatch(gv.Version, apiVersions) || !checkMatch(gv.Group, apiGroups) || !checkMatch(workload.GetKind(), resources) {
 		return false, nil
 	}
 
@@ -82,21 +99,15 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 		LabelSelector: labelSelector.String(),
 	}
 
-	for _, namespace := range namespaces.Items {
-		// Namespace of workload resource must match
-		if workload.GetNamespace() != namespace.Name {
-			continue
-		}
-		// Get the list of resources that match the object label selector
-		objects, err := w.DynamicClient.Resource(resource).Namespace(namespace.Name).List(context.TODO(), options)
-		if err != nil {
-			return false, err
-		}
-		// Name of a returned object must match the workload resource name to have a match
-		for _, object := range objects.Items {
-			if object.GetName() == workload.GetName() {
-				return true, nil
-			}
+	// Get the list of resources that match the object label selector
+	objects, err := w.DynamicClient.Resource(resource).Namespace(workload.GetNamespace()).List(context.TODO(), options)
+	if err != nil {
+		return false, err
+	}
+	// Name of a returned object must match the workload resource name to have a match
+	for _, object := range objects.Items {
+		if object.GetName() == workload.GetName() {
+			return true, nil
 		}
 	}
 

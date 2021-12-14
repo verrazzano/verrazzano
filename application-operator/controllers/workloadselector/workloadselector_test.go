@@ -99,58 +99,63 @@ func TestNoMatchNamespace(t *testing.T) {
 	assert.False(t, found, "expected to not find match")
 }
 
-// TestEmptyNamespaceSelectorMatch tests getMatchingNamespaces
+// TestEmptyNamespaceSelectorMatch tests doesNamespaceMatch
 // GIVEN an empty namespace label selector
-//  WHEN getMatchingNamespaces is called
-//  THEN a list of all namespaces should be returned
+//  WHEN doesNamespaceMatch is called
+//  THEN a match of true is returned
 func TestEmptyNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		KubeClient: fake.NewSimpleClientset(),
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
 	}
 
 	// Create a couple of namespaces
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
+
+	// Create a deployment
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", nil)
 
 	// Empty namespace selector
 	namespaceSelector := &metav1.LabelSelector{}
 
 	// Namespace match found
-	namespaces, err := ws.getMatchingNamespaces(namespaceSelector)
+	found, err := ws.doesNamespaceMatch(deploy, namespaceSelector)
 	assert.NoError(t, err, "unexpected error getting namespaces")
-	assert.Len(t, namespaces.Items, 2)
-	assert.Equal(t, "default", namespaces.Items[0].Name)
-	assert.Equal(t, "test-ns", namespaces.Items[1].Name)
+	assert.True(t, found, "expected to find match")
 }
 
-// TestNilNamespaceSelectorMatch tests getMatchingNamespaces
+// TestNilNamespaceSelectorMatch tests doesNamespaceMatch
 // GIVEN a nil namespace label selector
-//  WHEN getMatchingNamespaces is called
-//  THEN a list of all namespaces should be returned
+//  WHEN doesNamespaceMatch is called
+//  THEN a match of true is returned
 func TestNilNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		KubeClient: fake.NewSimpleClientset(),
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
 	}
 
 	// Create a couple of namespaces
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
 
+	// Create a deployment
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", nil)
+
 	// Namespace match found - nil namespace selector specified
-	namespaces, err := ws.getMatchingNamespaces(nil)
+	found, err := ws.doesNamespaceMatch(deploy, nil)
 	assert.NoError(t, err, "unexpected error getting namespaces")
-	assert.Len(t, namespaces.Items, 2)
-	assert.Equal(t, "default", namespaces.Items[0].Name)
-	assert.Equal(t, "test-ns", namespaces.Items[1].Name)
+	assert.True(t, found, "expected to find match")
 }
 
-// TestMatchLabelsNamespaceSelectorMatch tests getMatchingNamespaces
+// TestMatchLabelsNamespaceSelectorMatch tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchLabel
-//  WHEN getMatchingNamespaces is called
-//  THEN a list of matching namespaces should be returned
+//  WHEN doesNamespaceMatch is called
+//  THEN a match of true is returned
 func TestMatchLabelsNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		KubeClient: fake.NewSimpleClientset(),
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
 	}
 
 	namespaceLabels := map[string]string{
@@ -160,6 +165,9 @@ func TestMatchLabelsNamespaceSelectorMatch(t *testing.T) {
 	// Create a couple of namespaces
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", namespaceLabels)
+
+	// Create a deployment
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", nil)
 
 	// Namespace selector with match labels
 	namespaceSelector := &metav1.LabelSelector{
@@ -167,19 +175,19 @@ func TestMatchLabelsNamespaceSelectorMatch(t *testing.T) {
 	}
 
 	// Namespace match found
-	namespaces, err := ws.getMatchingNamespaces(namespaceSelector)
+	found, err := ws.doesNamespaceMatch(deploy, namespaceSelector)
 	assert.NoError(t, err, "unexpected error getting namespaces")
-	assert.Len(t, namespaces.Items, 1)
-	assert.Equal(t, "test-ns", namespaces.Items[0].Name)
+	assert.True(t, found, "expected to find match")
 }
 
-// TestMatchLabelsNamespaceSelectorNoMatch tests getMatchingNamespaces
+// TestMatchLabelsNamespaceSelectorNoMatch tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchLabel
-//  WHEN getMatchingNamespaces is called
-//  THEN no matching namespaces should be returned
+//  WHEN doesNamespaceMatch is called
+//  THEN a match of false is returned
 func TestMatchLabelsNamespaceSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		KubeClient: fake.NewSimpleClientset(),
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
 	}
 
 	namespaceLabels := map[string]string{
@@ -190,24 +198,28 @@ func TestMatchLabelsNamespaceSelectorNoMatch(t *testing.T) {
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
 
+	// Create a deployment
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", nil)
+
 	// Namespace selector with match labels
 	namespaceSelector := &metav1.LabelSelector{
 		MatchLabels: namespaceLabels,
 	}
 
 	// Namespace match not found
-	namespaces, err := ws.getMatchingNamespaces(namespaceSelector)
+	found, err := ws.doesNamespaceMatch(deploy, namespaceSelector)
 	assert.NoError(t, err, "unexpected error getting namespaces")
-	assert.Len(t, namespaces.Items, 0)
+	assert.False(t, found, "expected to not find match")
 }
 
-// TestMatchExpressionsNamespaceSelector tests getMatchingNamespaces
+// TestMatchExpressionsNamespaceSelector tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchExpression
-//  WHEN getMatchingNamespaces is called
-//  THEN a list of matching namespaces should be returned
+//  WHEN doesNamespaceMatch is called
+//  THEN a match of true is returned
 func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 	ws := &WorkloadSelector{
-		KubeClient: fake.NewSimpleClientset(),
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
 	}
 
 	namespaceLabels := map[string]string{
@@ -218,6 +230,8 @@ func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", namespaceLabels)
 
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", nil)
+
 	// Namespace selector with match expressions
 	namespaceSelector := &metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
@@ -229,24 +243,26 @@ func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 	}
 
 	// Namespace selector with match labels
-	namespaces, err := ws.getMatchingNamespaces(namespaceSelector)
+	found, err := ws.doesNamespaceMatch(deploy, namespaceSelector)
 	assert.NoError(t, err, "unexpected error getting namespaces")
-	assert.Len(t, namespaces.Items, 1)
-	assert.Equal(t, "test-ns", namespaces.Items[0].Name)
+	assert.True(t, found, "expected to find match")
 }
 
-// TestMatchExpressionsNamespaceSelectorNoMatch tests getMatchingNamespaces
+// TestMatchExpressionsNamespaceSelectorNoMatch tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchExpression
-//  WHEN getMatchingNamespaces is called
-//  THEN no matching namespaces should be returned
+//  WHEN doesNamespaceMatch is called
+//  THEN a match of false is returned
 func TestMatchExpressionsNamespaceSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		KubeClient: fake.NewSimpleClientset(),
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
 	}
 
 	// Create a couple of namespaces
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
+
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", nil)
 
 	// Namespace selector with match expressions
 	namespaceSelector := &metav1.LabelSelector{
@@ -259,9 +275,9 @@ func TestMatchExpressionsNamespaceSelectorNoMatch(t *testing.T) {
 	}
 
 	// Namespace match not found
-	namespaces, err := ws.getMatchingNamespaces(namespaceSelector)
+	found, err := ws.doesNamespaceMatch(deploy, namespaceSelector)
 	assert.NoError(t, err, "unexpected error getting namespaces")
-	assert.Len(t, namespaces.Items, 0)
+	assert.False(t, found, "expected to not find match")
 }
 
 // TestMatchExactGVK tests doesObjectMatch
@@ -280,14 +296,12 @@ func TestMatchExactGVK(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource matches
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"apps"}, []string{"v1"}, []string{"deployment"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"apps"}, []string{"v1"}, []string{"deployment"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.True(t, found, "expected to find match")
 }
@@ -308,14 +322,12 @@ func TestMatchWildcardVersion(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource matches
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"apps"}, []string{"*"}, []string{"deployment"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"apps"}, []string{"*"}, []string{"deployment"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.True(t, found, "expected to find match")
 }
@@ -336,14 +348,12 @@ func TestMatchWildcardGroup(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource matches
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"*"}, []string{"v1"}, []string{"deployment"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"*"}, []string{"v1"}, []string{"deployment"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.True(t, found, "expected to find match")
 }
@@ -364,14 +374,12 @@ func TestMatchWildcardKind(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource matches
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"apps"}, []string{"v1"}, []string{"*"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"apps"}, []string{"v1"}, []string{"*"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.True(t, found, "expected to find match")
 }
@@ -391,14 +399,12 @@ func TestNoMatchExactGVK(t *testing.T) {
 
 	// One namespace, not including the namespace of the deployment
 	ws.createNamespace(t, "default", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource does not match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"apps"}, []string{"v1"}, []string{"deployment"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"apps"}, []string{"v2"}, []string{"deployment"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.False(t, found, "expected to not find match")
 }
@@ -419,14 +425,12 @@ func TestNoMatchWildcardVersion(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource does not match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"foo"}, []string{"*"}, []string{"deployment"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"foo"}, []string{"*"}, []string{"deployment"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.False(t, found, "expected to not find match")
 }
@@ -447,14 +451,12 @@ func TestNoMatchWildcardGroup(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource does not match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"*"}, []string{"foo"}, []string{"deployment"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"*"}, []string{"foo"}, []string{"deployment"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.False(t, found, "expected to not find match")
 }
@@ -475,14 +477,12 @@ func TestNoMatchWildcardKind(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// No object selector
 	objectSelector := &metav1.LabelSelector{}
 
 	// workload resource does not match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"apps"}, []string{"foo"}, []string{"*"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"apps"}, []string{"foo"}, []string{"*"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.False(t, found, "expected to not find match")
 }
@@ -507,8 +507,6 @@ func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// Object selector with match labels
 	objectSelector := &metav1.LabelSelector{
@@ -516,7 +514,7 @@ func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 	}
 
 	// workload resource match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, nil, nil, nil)
+	found, err := ws.doesObjectMatch(deploy, objectSelector, nil, nil, nil)
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.True(t, found, "expected to find match")
 }
@@ -541,8 +539,6 @@ func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// Object selector with match expressions
 	objectSelector := &metav1.LabelSelector{
@@ -555,7 +551,7 @@ func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 	}
 
 	// workload resource match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"*"}, []string{"*"}, []string{"*"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"*"}, []string{"*"}, []string{"*"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.True(t, found, "expected to find match")
 }
@@ -580,8 +576,6 @@ func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// Object selector with match labels
 	objectSelector := &metav1.LabelSelector{
@@ -589,7 +583,7 @@ func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 	}
 
 	// workload resource match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, nil, nil, nil)
+	found, err := ws.doesObjectMatch(deploy, objectSelector, nil, nil, nil)
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.False(t, found, "expected to not find match")
 }
@@ -610,8 +604,6 @@ func TestMatchExpressionsObjectSelectorNoMatch(t *testing.T) {
 	// Two namespace
 	ws.createNamespace(t, "default", nil)
 	ws.createNamespace(t, "test-ns", nil)
-	namespaces, err := ws.getMatchingNamespaces(nil)
-	assert.NoError(t, err, "unexpected error getting namespace list")
 
 	// Object selector with match expressions
 	objectSelector := &metav1.LabelSelector{
@@ -624,7 +616,7 @@ func TestMatchExpressionsObjectSelectorNoMatch(t *testing.T) {
 	}
 
 	// workload resource did not match
-	found, err := ws.doesObjectMatch(deploy, namespaces, objectSelector, []string{"*"}, []string{"*"}, []string{"*"})
+	found, err := ws.doesObjectMatch(deploy, objectSelector, []string{"*"}, []string{"*"}, []string{"*"})
 	assert.NoError(t, err, "unexpected error matching resource")
 	assert.False(t, found, "expected to not find match")
 }
