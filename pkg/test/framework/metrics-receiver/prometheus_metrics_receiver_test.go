@@ -1,16 +1,15 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package metrics_receiver
+package metricsreceiver
 
 import (
-"testing"
-
-"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestNewPrometheusMetricsReceiver(t *testing.T) {
-	cfg := PrometheusMetricsReceiverConfig{pushGatewayURL: "http://somegateway"}
+	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway"}
 	rcvr, err := NewMetricsReceiver(cfg.Name)
 	assert.NoError(t, err)
 	assert.NotNil(t, rcvr)
@@ -20,14 +19,14 @@ func TestNewPrometheusMetricsReceiver(t *testing.T) {
 }
 
 func TestPrometheusMetricsReceiver_IncrementCounter(t *testing.T) {
-	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway", pushGatewayUser: "someuser", pushGatewayPassword: "pass"}
+	cfg := PrometheusMetricsReceiverConfig{PushGatewayURL: "http://somegateway", PushGatewayUser: "someuser", PushGatewayPassword: "pass"}
 	receiver, err := NewMetricsReceiver(cfg.Name)
 	assert.NoError(t, err)
 	desc := MetricDesc{Name: "MyCounter1"}
 	err = receiver.IncrementGokitCounter(desc)
 	assert.NoError(t, err)
 	// again, to test existing counter
-	err = receiver.IncrementGokitCounter(desc)
+	receiver.IncrementGokitCounter(desc)
 
 	// TODO mock pusher
 }

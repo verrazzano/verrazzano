@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl
 
-package metrics_receiver
+package metricsreceiver
 
 import (
 	"fmt"
@@ -17,7 +17,6 @@ const (
 	promPushURLEnvVarName      = "PROMETHEUS_GW_URL"
 	promPushUserEnvVarName     = "PROMETHEUS_CREDENTIALS_USR"
 	promPushPasswordEnvVarName = "PROMETHEUS_CREDENTIALS_PSW"
-
 	defaultPushInterval        = time.Minute
 )
 
@@ -32,12 +31,11 @@ type PrometheusMetricsReceiverConfig struct {
 }
 
 type PrometheusMetricsReceiver struct {
-	genericRvr GenericMetricsReceiver
+	genericRvr     GenericMetricsReceiver
 	receiverConfig PrometheusMetricsReceiverConfig
-	pusher              *push.Pusher
-	counters            map[string] prometheus.Counter
+	pusher         *push.Pusher
+	counters       map[string]prometheus.Counter
 }
-
 
 func (pmrs *PrometheusMetricsReceiver) Name() string {
 	return pmrs.receiverConfig.Name
@@ -65,7 +63,7 @@ func (pmrs *PrometheusMetricsReceiver) IncrementGokitCounter(desc MetricDesc) er
 	return err
 }
 
-func(pmrs * PrometheusMetricsReceiver) GetCounterValue(desc MetricDesc) int {
+func (pmrs *PrometheusMetricsReceiver) GetCounterValue(desc MetricDesc) int {
 	return pmrs.genericRvr.GetCounterValue(desc)
 }
 func newPrometheusMetricsReceiver(rcvr GenericMetricsReceiver) (GokitMetricsReceiver, error) {
@@ -78,14 +76,13 @@ func newPrometheusMetricsReceiver(rcvr GenericMetricsReceiver) (GokitMetricsRece
 	}
 
 	pmrcvr := PrometheusMetricsReceiver{receiverConfig: cfg,
-		                                counters : make(map[string] prometheus.Counter),
-		                                genericRvr: rcvr}
+		counters:   make(map[string]prometheus.Counter),
+		genericRvr: rcvr}
 	pmrcvr.pusher = push.New(cfg.PushGatewayURL, cfg.Name)
 	if pmrcvr.receiverConfig.PushGatewayUser != "" && pmrcvr.receiverConfig.PushGatewayPassword != "" {
 		pmrcvr.pusher = pmrcvr.pusher.BasicAuth(pmrcvr.receiverConfig.PushGatewayUser, pmrcvr.receiverConfig.PushGatewayPassword)
 	}
-	var v GokitMetricsReceiver
-	v = &pmrcvr
+	var v GokitMetricsReceiver = &pmrcvr
 
 	go func() {
 		// push the counter to the gateway
@@ -101,8 +98,3 @@ func newPrometheusMetricsReceiver(rcvr GenericMetricsReceiver) (GokitMetricsRece
 	}()
 	return v, nil
 }
-
-
-
-
-

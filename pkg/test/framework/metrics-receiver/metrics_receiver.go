@@ -1,7 +1,7 @@
 // Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl
 
-package metrics_receiver
+package metricsreceiver
 
 import (
 	"fmt"
@@ -30,26 +30,23 @@ func (descp *MetricDesc) FQName() string {
 }
 
 type GokitMetricsReceiver interface {
-    //push()
-	//createCounter(MetricOpts) *metrics.Counter
 	Name() string
 	IncrementGokitCounter(MetricDesc) error
 	GetCounterValue(MetricDesc) int
 }
 
 type GenericMetricsReceiver struct {
-	name string
-	counters   map[string] *generic.Counter
-	gauges     map[string] *generic.Gauge
-	histograms map[string] *generic.Histogram
+	name       string
+	counters   map[string]*generic.Counter
+	gauges     map[string]*generic.Gauge
+	histograms map[string]*generic.Histogram
 }
 
-
 func NewMetricsReceiver(name string) (GokitMetricsReceiver, error) {
-	var rcvr GenericMetricsReceiver = GenericMetricsReceiver{name : name,
-	                                   counters : make(map[string] *generic.Counter),
-									   gauges : make(map[string] *generic.Gauge),
-		                               histograms : make(map[string] *generic.Histogram),
+	var rcvr GenericMetricsReceiver = GenericMetricsReceiver{name: name,
+		counters:   make(map[string]*generic.Counter),
+		gauges:     make(map[string]*generic.Gauge),
+		histograms: make(map[string]*generic.Histogram),
 	}
 	metricsReceiverType, isSet := os.LookupEnv(metricsReceiverTypeEnvVarName)
 	var metReceiver GokitMetricsReceiver
@@ -58,14 +55,14 @@ func NewMetricsReceiver(name string) (GokitMetricsReceiver, error) {
 		metricsReceiverType = promReceiverType
 	}
 	if metricsReceiverType == promReceiverType {
-	//if metricsReceiverType == "Prometheus" {
+		//if metricsReceiverType == "Prometheus" {
 		metReceiver, err = newPrometheusMetricsReceiver(rcvr)
-	//}
+		//}
 	}
 	return metReceiver, err
 }
 
-func (rcvr * GenericMetricsReceiver) IncrementGokitCounter(desc MetricDesc) error {
+func (rcvr *GenericMetricsReceiver) IncrementGokitCounter(desc MetricDesc) error {
 	fqName := desc.FQName()
 	cntrp := rcvr.counters[fqName]
 	if cntrp == nil {
@@ -77,9 +74,8 @@ func (rcvr * GenericMetricsReceiver) IncrementGokitCounter(desc MetricDesc) erro
 	return nil
 }
 
-func(rcvr * GenericMetricsReceiver) GetCounterValue(desc MetricDesc) int {
+func (rcvr *GenericMetricsReceiver) GetCounterValue(desc MetricDesc) int {
 	fqName := desc.FQName()
 	cntrp := rcvr.counters[fqName]
-	return int(cntrp.Value());
+	return int(cntrp.Value())
 }
-
