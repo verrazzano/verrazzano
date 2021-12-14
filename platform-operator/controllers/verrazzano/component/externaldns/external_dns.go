@@ -7,9 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -18,6 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // ComponentName is the name of the component
@@ -26,9 +26,9 @@ const (
 	externalDNSNamespace      = "cert-manager"
 	externalDNSDeploymentName = "external-dns"
 	ociSecretFileName         = "oci.yaml"
-	dnsGlobal                 = "GLOBAL" //default
-	dnsPrivate                = "PRIVATE"
-	imagePullSecretHelmKey    = "global.imagePullSecrets[0]"
+	dnsGlobal                 = "global" //default
+	dnsPrivate                = "private"
+	dnsScopeKey               = "DNSScope"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -48,8 +48,8 @@ func preInstall(compContext spi.ComponentContext) error {
 
 	//check if scope value is valid
 	scope := dns.OCI.DNSScope
-	if scope != dnsGlobal && scope != dnsPrivate && scope != "" {
-		message := fmt.Sprintf("Invalid OCI DNS scope value: %s. If set, value can only be 'GLOBAL' or 'PRIVATE", dns.OCI.DNSScope)
+	if strings.ToLower(scope) != dnsGlobal && strings.ToLower(scope) != dnsPrivate && scope != "" {
+		message := fmt.Sprintf("Invalid OCI DNS scope value: %s. If set, value can only be 'Global' or 'Private", dns.OCI.DNSScope)
 		compContext.Log().Errorf(message)
 		return errors.New(message)
 	}
@@ -90,6 +90,7 @@ func isReady(compContext spi.ComponentContext) bool {
 // AppendOverrides builds the set of external-dns overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append all helm overrides for external DNS
+	dns := compContext.EffectiveCR().Spec.Components.DNS
 	nameTimeString := fmt.Sprintf("v8o-local-%s-%s", compContext.EffectiveCR().Spec.EnvironmentName, strconv.FormatInt(time.Now().Unix(), 10))
 	arguments := []bom.KeyValue{
 		{Key: "domainFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName},
@@ -101,6 +102,8 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		{Key: "extraVolumes[0].secret.secretName", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.OCIConfigSecret},
 		{Key: "extraVolumeMounts[0].name", Value: "config"},
 		{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"},
+		{Key: "extraEnv[0].name", Value: dnsScopeKey},
+		{Key: "extraEnv[0].value", Value: strings.ToLower(dns.OCI.DNSScope)},
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil
