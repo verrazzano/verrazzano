@@ -62,7 +62,7 @@ func Test_createMetricsConfigFromEnv(t *testing.T) {
 	cfg, err := createMetricsConfigFromEnv("testname")
 	assert.NoError(t, err)
 	assert.NotNil(t, cfg)
-	assert.Equal(t, "*testmetrics.PrometheusMetricsReceiverConfig", reflect.TypeOf(cfg).String())
+	assert.Equal(t, "*metrics.PrometheusMetricsReceiverConfig", reflect.TypeOf(cfg).String())
 	promCfg := cfg.(*testmetrics.PrometheusMetricsReceiverConfig)
 	assert.Equal(t, testURL, promCfg.PushGatewayURL)
 	assert.Equal(t, testUser, promCfg.PushGatewayUser)

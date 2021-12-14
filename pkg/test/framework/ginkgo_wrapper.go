@@ -5,11 +5,11 @@ package framework
 
 import (
 	"fmt"
-	"reflect"
-	"time"
-
 	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"go.uber.org/zap"
+	"reflect"
 )
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
@@ -41,29 +41,18 @@ func VzAfterSuite(body interface{}) bool {
 }
 
 // VzIt - wrapper function for ginkgo It
-func VzIt(text string, body interface{}) bool {
-	pkg.Log(pkg.Debug, "VzIt wrapper")
+func VzIt(log *zap.SugaredLogger, text string, body interface{}) bool {
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
-	ginkgo.It(text, func() {
-		startTime := time.Now()
-
+	res := ginkgo.It(text, func() {
+		metrics.Emit(log)
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q started - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q ended - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 
-		endTime := time.Now()
-		durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
-		// push the metrics
-		if EmitGauge(text, "duration", durationMillis) != nil {
-			return
-		}
-		if IncrementCounter(text, "number_of_runs") != nil {
-			return
-		}
 	})
-	return true
+	return res
 }
 
 // VzBeforeEach - wrapper function for ginkgo BeforeEach
@@ -74,10 +63,11 @@ func VzBeforeEach(body interface{}) bool {
 }
 
 // VzAfterEach - wrapper function for ginkgo AfterEach
-func VzAfterEach(body interface{}) bool {
-	pkg.Log(pkg.Debug, "VzAfterEach wrapper")
-	ginkgo.AfterEach(body)
-	return true
+func VzAfterEach(log *zap.SugaredLogger, body interface{}) bool {
+	return ginkgo.AfterEach(func() {
+		metrics.Emit(log)
+		reflect.ValueOf(body).Call([]reflect.Value{})
+	})
 }
 
 // VzDescribe - wrapper function for ginkgo Describe

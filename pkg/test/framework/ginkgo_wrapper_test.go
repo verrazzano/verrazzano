@@ -4,6 +4,7 @@
 package framework
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"reflect"
 	"testing"
 
@@ -11,9 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var m, _ = metrics.NewForPackage("framework")
+
 // TestVzAfterEach
 func TestVzAfterEach(t *testing.T) {
-	result := VzAfterEach(func() {})
+	result := VzAfterEach(m, func() {})
 	assert.True(t, result)
 }
 
@@ -44,7 +47,7 @@ func TestVzContext(t *testing.T) {
 // TestVzCurrentGinkgoTestDescription
 func TestVzCurrentGinkgoTestDescription(t *testing.T) {
 	result := VzCurrentGinkgoTestDescription()
-	assert.True(t, reflect.DeepEqual(result, ginkgo.GinkgoTestDescription{}))
+	assert.True(t, reflect.DeepEqual(result, ginkgo.CurrentSpecReport()))
 }
 
 // TestVzDescribe
@@ -55,7 +58,7 @@ func TestVzDescribe(t *testing.T) {
 
 // TestVzIt
 func TestVzIt(t *testing.T) {
-	result := VzIt("Test It", func() {})
+	result := VzIt(m, "Test It", func() {})
 	assert.True(t, result)
 }
 
