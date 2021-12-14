@@ -45,7 +45,7 @@ var _ = BeforeSuite(func() {
 })
 
 var failed = false
-var _ = framework.VzAfterEach(func() {
+var _ = AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
