@@ -5,12 +5,13 @@ package spi
 // Default implementation of the ComponentContext interface
 
 import (
+	"strings"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 const (
@@ -89,6 +90,14 @@ func getEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
 		return nil, err
 	}
 	effectiveCR.Status = vzapi.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
+	// if Certificate in CertManager is empty, set it to default CA
+	var emptyCertConfig = vzapi.Certificate{}
+	if effectiveCR.Spec.Components.CertManager.Certificate == emptyCertConfig {
+		effectiveCR.Spec.Components.CertManager.Certificate.CA = vzapi.CA{
+			SecretName:               "verrazzano-ca-certificate-secret",
+			ClusterResourceNamespace: "cert-manager",
+		}
+	}
 	return effectiveCR, nil
 }
 

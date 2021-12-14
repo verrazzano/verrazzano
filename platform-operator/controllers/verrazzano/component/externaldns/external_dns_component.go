@@ -3,12 +3,13 @@
 package externaldns
 
 import (
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path/filepath"
 )
 
 type externalDNSComponent struct {
@@ -43,5 +44,9 @@ func (e externalDNSComponent) IsReady(compContext spi.ComponentContext) bool {
 }
 
 func (e externalDNSComponent) IsEnabled(compContext spi.ComponentContext) bool {
-	return isEnabled(compContext)
+	dns := compContext.EffectiveCR().Spec.Components.DNS
+	if dns != nil && dns.OCI != nil {
+		return true
+	}
+	return false
 }

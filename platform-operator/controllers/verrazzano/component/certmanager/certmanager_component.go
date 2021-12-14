@@ -4,11 +4,12 @@
 package certmanager
 
 import (
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -37,4 +38,13 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
 		},
 	}
+}
+
+// IsEnabled returns true if the cert-manager is enabled, which is the default
+func (c certManagerComponent) IsEnabled(compContext spi.ComponentContext) bool {
+	comp := compContext.EffectiveCR().Spec.Components.CertManager
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }

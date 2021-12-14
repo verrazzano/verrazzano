@@ -22,13 +22,19 @@ func IsKibanaEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-//IsNGINXEnabled - Always true, for now
-func IsNGINXEnabled(_ *vzapi.Verrazzano) bool {
+//IsNGINXEnabled - Returns false only if explicitly disabled in the CR
+func IsNGINXEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.Ingress != nil && vz.Spec.Components.Ingress.Enabled != nil {
+		return *vz.Spec.Components.Ingress.Enabled
+	}
 	return true
 }
 
-//IsIstioEnabled - Always true, for now
-func IsIstioEnabled(cr *vzapi.Verrazzano) bool {
+//IsIstioEnabled - Returns false only if explicitly disabled in the CR
+func IsIstioEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.Istio != nil && vz.Spec.Components.Istio.Enabled != nil {
+		return *vz.Spec.Components.Istio.Enabled
+	}
 	return true
 }
 
@@ -86,4 +92,12 @@ func IsRancherEnabled(vz *vzapi.Verrazzano) bool {
 		return *vz.Spec.Components.Rancher.Enabled
 	}
 	return true
+}
+
+// IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
+func IsExternalDNSEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
+		return true
+	}
+	return false
 }
