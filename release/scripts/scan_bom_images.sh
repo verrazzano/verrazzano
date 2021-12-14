@@ -152,6 +152,7 @@ while getopts 'hb:a:o:n:r:p:' opt; do
   x)
     COMBINED_PATH=$OPTARG
     REPO_PATH=$(echo $COMBINED_PATH | cut -d "/" -f2-)
+    ;;
   h | ?)
     usage
     ;;
