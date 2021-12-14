@@ -6,7 +6,10 @@ spec:
   profile: "managed-cluster"
   environmentName: default
   components:
+    applicationOperator:
+      enabled: true
     certManager:
+      enabled: true
       certificate:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
@@ -27,16 +30,23 @@ spec:
     grafana:
       enabled: false
     ingress:
+      enabled: true
       type: LoadBalancer
+    istio:
+      enabled: true
     kiali:
       enabled: false
     keycloak:
       enabled: false
     kibana:
       enabled: false
+    oam:
+      enabled: true
     prometheus:
       enabled: true
     rancher:
       enabled: false
+    verrazzano:
+      enabled: true
     weblogicOperator:
       enabled: true

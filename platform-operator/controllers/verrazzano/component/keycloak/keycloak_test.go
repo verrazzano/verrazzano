@@ -6,16 +6,17 @@ package keycloak
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +32,7 @@ import (
 const (
 	testBomFilePath         = "../../testdata/test_bom.json"
 	testKeycloakIngressHost = "keycloak.test-env.192.132.111.122.nip.io"
+	profilesRelativePath    = "../../../../manifests/profiles"
 )
 
 var keycloakClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"clientId\" : \"account\"\n}, {\n  \"id\" : \"4256-a350-e46eb48e8606\",\n  \"clientId\" : \"account-console\"\n}, {\n  \"id\" : \"4c1d-8d1b-68635e005567\",\n  \"clientId\" : \"admin-cli\"\n}, {\n  \"id\" : \"4350-ab70-17c37dd995b9\",\n  \"clientId\" : \"broker\"\n}, {\n  \"id\" : \"4f6d-a495-0e9e3849608e\",\n  \"clientId\" : \"realm-management\"\n}, {\n  \"id\" : \"4d92-9d64-f201698d2b79\",\n  \"clientId\" : \"security-admin-console\"\n}, {\n  \"id\" : \"4160-8593-32697ebf2c11\",\n  \"clientId\" : \"verrazzano-oauth-client\"\n}, {\n  \"id\" : \"bde9-9374bd6a38fd\",\n  \"clientId\" : \"verrazzano-pg\"\n}, {\n  \"id\" : \"8327-13cdbfe3b000\",\n  \"clientId\" : \"verrazzano-pkce\"\n\n}, {\n  \"id\" : \"494a-b7ec-b05681cafc73\",\n  \"clientId\" : \"webui\"\n} ]"
@@ -38,6 +40,15 @@ var keycloakErrorClientIds string = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \
 var testVZ = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "dev",
+	},
+}
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
 	},
 }
 
@@ -608,4 +619,89 @@ func TestCreateOrUpdateAuthSecret(t *testing.T) {
 	ctx := spi.NewFakeContext(c, testVZ, false)
 	err := createAuthSecret(ctx, "ns", "secret", "user")
 	assert.NoError(t, err)
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is nil
+//  THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilKeycloak tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is nil
+//  THEN true is returned
+func TestIsEnabledNilKeycloak(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledManagedClusterProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak enabled flag is nil and managed cluster profile
+//  THEN false is returned
+func TestIsEnabledManagedClusterProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	cr.Spec.Profile = vzapi.ManagedCluster
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledProdProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak enabled flag is nil and prod profile
+//  THEN false is returned
+func TestIsEnabledProdProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	cr.Spec.Profile = vzapi.Prod
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledDevProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Keycloak enabled flag is nil and dev profile
+//  THEN false is returned
+func TestIsEnabledDevProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Keycloak = nil
+	cr.Spec.Profile = vzapi.Dev
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }

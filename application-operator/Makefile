@@ -68,19 +68,23 @@ CLUSTER_DUMP_LOCATION ?= application-operator-integ-cluster-dump
 build: go-fmt go-vet
 	go build -o bin/manager main.go
 
+# Disable the application operator in the local Kubernetes cluster
+# Deletes all of the webhook configuration for the application operator
+# Scales the in-cluster application operator deployment to replicas 0
+.PHONY: disable-operator
+disable-operator:
+	kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator || true
+	kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter || true
+	kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter || true
+	kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject || true
+	kubectl delete mutatingwebhookconfigurations verrazzano-application-scrape-generator || true
+	kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
+
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
 run:
-	# The commands below should be executed to disable the in-cluster verrazzano-application-operator
-	# kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator
-	# kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter
-	# kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter
-	# kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject
-	# kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
-
 	# To enable webhooks: $(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=true --metrics-addr=localhost:0 --cert-dir=build/webhook-certs
 	$(GO) run main.go --kubeconfig=${KUBECONFIG} --enable-webhooks=false --metrics-addr=localhost:0
-
 
 .PHONY: install-oam-crds
 install-oam-crds:
