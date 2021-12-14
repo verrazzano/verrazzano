@@ -774,13 +774,13 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 		return err
 	}
 	setVZUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + userName + " --new-password " + vzpw
-	ctx.Log().Debugf("createUser:: Set Verrazzano User PW Cmd = %s", maskPw(setVZUserPwCmd))
+	ctx.Log().Debugf("createUser: Set Verrazzano User PW Cmd = %s", maskPw(setVZUserPwCmd))
 	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setVZUserPwCmd))
 	if err != nil {
-		ctx.Log().Errorf("createUser:: Error setting Verrazzano user password: stdout = %s, stderr = %s", stdout, stderr)
-		return err
+		ctx.Log().Errorf("createUser: Error setting Verrazzano user password: stdout = %s, stderr = %s", stdout, stderr)
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Debug("createUser:: Created VZ User PW")
+	ctx.Log().Debugf("createUser: Created VZ User %s PW", userName)
 	return nil
 }
 
