@@ -43,7 +43,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 6, len(kvs)) // should only have LetsEncrypt Overrides
+	assert.Equal(t, 7, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Equal(t, 8, len(kvs))
