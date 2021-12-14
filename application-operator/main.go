@@ -11,6 +11,7 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
@@ -27,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingtrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstemplate"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
@@ -36,6 +38,7 @@ import (
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
+	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
@@ -54,12 +57,14 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
+	_ = k8sapiext.AddToScheme(scheme)
 
 	// Add core oam types to scheme
 	_ = core.AddToScheme(scheme)
 
 	// Add ingress trait to scheme
 	_ = vzapi.AddToScheme(scheme)
+	_ = vzapp.AddToScheme(scheme)
 	_ = istioclinet.AddToScheme(scheme)
 	_ = wls.AddToScheme(scheme)
 
@@ -391,6 +396,15 @@ func main() {
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ContainerizedWorkload")
+		os.Exit(1)
+	}
+	// Register the metrics workload controller
+	if err = (&metricstemplate.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("MetricsTemplate"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MetricsTemplate")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
