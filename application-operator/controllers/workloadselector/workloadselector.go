@@ -85,6 +85,11 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 		return false, nil
 	}
 
+	// If the object label selector is not specified then we don't need to check the resource for a match
+	if objectSelector == nil || reflect.DeepEqual(objectSelector, metav1.LabelSelector{}) {
+		return true, nil
+	}
+
 	resource := schema.GroupVersionResource{
 		Group:    gv.Group,
 		Version:  gv.Version,

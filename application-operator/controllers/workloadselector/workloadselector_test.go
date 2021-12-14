@@ -58,6 +58,32 @@ func TestMatch(t *testing.T) {
 	assert.True(t, found, "expected to find match")
 }
 
+// TestMatchDefaults tests DoesWorkloadMatch
+// GIVEN no namespace label selector, no object selector, and no GVK values
+//  WHEN DoesWorkloadMatch is called
+//  THEN a match of true is returned
+func TestMatchDefaults(t *testing.T) {
+	ws := &WorkloadSelector{
+		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+		KubeClient:    fake.NewSimpleClientset(),
+	}
+
+	labels := map[string]string{
+		"test-label": "true",
+	}
+
+	// Create the namespace
+	ws.createNamespace(t, "test-ns", labels)
+
+	// Create a deployment
+	deploy := ws.createDeployment(t, "test-ns", "test-deploy", labels)
+
+	// workload resource matches
+	found, err := ws.DoesWorkloadMatch(deploy, nil, nil, nil, nil, nil)
+	assert.NoError(t, err, "unexpected error matching resource")
+	assert.True(t, found, "expected to find match")
+}
+
 // TestNoMatchNamespace tests DoesWorkloadMatch
 // GIVEN a namespace label selector, object selector, and specific GVK values
 //  WHEN DoesWorkloadMatch is called
