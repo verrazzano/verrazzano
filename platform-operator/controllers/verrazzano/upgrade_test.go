@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	istiocomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -723,15 +721,6 @@ func TestUpgradeCompleted(t *testing.T) {
 			return nil
 		})
 
-	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
-		return []byte(""), []byte(""), nil
-	})
-	defer istiocomp.SetDefaultIstioUpgradeFunction()
-	istiocomp.SetRestartComponentsFunction(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
-		return nil
-	})
-	defer istiocomp.SetDefaultRestartComponentsFunction()
-
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
@@ -774,15 +763,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 		}
 	})
 	defer registry.ResetGetComponentsFn()
-
-	istiocomp.SetIstioUpgradeFunction(func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
-		return []byte(""), []byte(""), nil
-	})
-	defer istiocomp.SetDefaultIstioUpgradeFunction()
-	istiocomp.SetRestartComponentsFunction(func(log *zap.SugaredLogger, err error, i istiocomp.IstioComponent, client client.Client) error {
-		return nil
-	})
-	defer istiocomp.SetDefaultRestartComponentsFunction()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -870,11 +850,6 @@ func TestUpgradeHelmError(t *testing.T) {
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComponent{
-				HelmComponent: helmcomp.HelmComponent{
-					IsEnabledFunc: func(context spi.ComponentContext) bool {
-						return true
-					},
-				},
 				upgradeFunc: func(ctx spi.ComponentContext) error {
 					return fmt.Errorf("Error running upgrade")
 				},

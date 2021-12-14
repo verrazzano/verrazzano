@@ -3,8 +3,7 @@
 
 package constants
 
-// SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
-const SystemTLS = "system-tls"
+import "time"
 
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
@@ -14,12 +13,6 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
-
-// VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
-const VerrazzanoPromInternal = "verrazzano-prom-internal"
-
-// VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
-const VerrazzanoESInternal = "verrazzano-es-internal"
 
 // VerrazzanoMultiClusterNamespace is the multi-cluster namespace for verrazzano
 const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
@@ -131,3 +124,6 @@ const UpgradeOperation = "upgrade"
 
 // InitializeOperation is the initialize string
 const InitializeOperation = "initialize"
+
+// ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
+const ReconcileLoopRequeueInterval = 3 * time.Minute

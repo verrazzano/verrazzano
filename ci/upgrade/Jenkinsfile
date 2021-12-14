@@ -355,7 +355,7 @@ pipeline {
                     kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
 
                     # Do the upgrade
-                    echo "Following is the verrazano CR file with the new version:"
+                    echo "Following is the verrazzano CR file with the new version:"
                     cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 

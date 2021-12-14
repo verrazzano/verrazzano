@@ -248,6 +248,14 @@ type ComponentSpec struct {
 	// +optional
 	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
 
+	// ApplicationOperator configuration
+	// +optional
+	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
+
+	// OAM configuration
+	// +optional
+	OAM *OAMComponent `json:"oam,omitempty"`
+
 	// Console configuration
 	// +optional
 	Console *ConsoleComponent `json:"console,omitempty"`
@@ -300,6 +308,10 @@ type ComponentSpec struct {
 	// WebLogicOperator configuration
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
+
+	// Verrazzano configuration
+	// +optional
+	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -350,6 +362,24 @@ type CoherenceOperatorComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// ApplicationOperatorComponent specifies the Application Operator configuration
+type ApplicationOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// OAMComponent specifies the OAM configuration
+type OAMComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// VerrazzanoComponent specifies the Verrazzano configuration
+type VerrazzanoComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
 // KialiComponent specifies the Kiali configuration
 type KialiComponent struct {
 	// +optional
@@ -387,6 +417,8 @@ type IngressNginxComponent struct {
 	// Ports to be used for NGINX
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // IstioComponent specifies the Istio configuration
@@ -396,6 +428,8 @@ type IstioComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
@@ -543,6 +577,7 @@ type OCI struct {
 	DNSZoneCompartmentOCID string `json:"dnsZoneCompartmentOCID"`
 	DNSZoneOCID            string `json:"dnsZoneOCID"`
 	DNSZoneName            string `json:"dnsZoneName"`
+	DNSScope               string `json:"dnsScope,omitempty"`
 }
 
 // External DNS type

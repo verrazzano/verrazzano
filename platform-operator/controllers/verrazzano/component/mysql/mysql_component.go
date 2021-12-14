@@ -48,9 +48,14 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	return isReady(context, c.ReleaseName, c.ChartNamespace)
 }
 
-// IsEnabled calls MySQL isEnabled function
+// IsEnabled mysql-specific enabled check for installation
+// If keycloak is enabled, mysql is enabled; disabled otherwise
 func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isEnabled(ctx)
+	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }
 
 // PreInstall calls MySQL preInstall function

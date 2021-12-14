@@ -3,6 +3,8 @@
 package verrazzano
 
 import (
+	"path/filepath"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -13,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 type verrazzanoComponent struct {
@@ -99,4 +100,13 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 		return err
 	}
 	return nil
+}
+
+// IsEnabled verrazzano-specific enabled check for installation
+func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.Verrazzano
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }

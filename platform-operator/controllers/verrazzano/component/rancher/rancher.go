@@ -8,9 +8,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -42,32 +39,11 @@ const (
 const (
 	letsEncryptTLSSource       = "letsEncrypt"
 	caTLSSource                = "secret"
+	caCertsPem                 = "cacerts.pem"
+	caCert                     = "ca.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
 )
-
-type (
-	// restClientConfigSig is a provider for a k8s rest client implementation
-	// override for unit testing
-	restClientConfigSig func() (*rest.Config, rest.Interface, error)
-)
-
-var restClientConfig restClientConfigSig = func() (*rest.Config, rest.Interface, error) {
-	cfg, err := controllerruntime.GetConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-	client, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-	return cfg, client.CoreV1().RESTClient(), nil
-}
-
-// For unit testing
-func setRestClientConfig(f restClientConfigSig) {
-	restClientConfig = f
-}
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"

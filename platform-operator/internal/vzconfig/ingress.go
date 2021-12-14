@@ -5,10 +5,11 @@ package vzconfig
 import (
 	"context"
 	"fmt"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -30,14 +31,6 @@ func FindVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTe
 		}
 	}
 	return nil, false
-}
-
-// IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
-func IsExternalDNSEnabled(vz *vzapi.Verrazzano) bool {
-	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
-		return true
-	}
-	return false
 }
 
 // GetWildcardDomain Get the wildcard domain from the Verrazzano config

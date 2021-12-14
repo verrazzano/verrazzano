@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.7.1-20211125051406-fb54e02b",
+              "tag": "v0.7.1-20211213123722-e50bdf23",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f",
+              "tag": "v2.5.9-20211209021347-2e57ce2a4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20211013170111-ec72f6a2f"
+              "tag": "v2.5.9-20211209021347-2e57ce2a4"
             }
           ]
         },
@@ -146,7 +146,7 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.1.1"
+              "tag": "v0.1.2"
             },
             {
               "image": "fleet-agent",
@@ -213,7 +213,7 @@
             },
             {
               "image": "elasticsearch",
-              "tag": "7.10.2-20211118212642-8549e32c",
+              "tag": "7.10.2-20211213153837-168b4642",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -228,23 +228,23 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20211126105727-f345ec2",
+              "tag": "v1.12.3-20211206061401-0302423",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "1.1.0-20211124231328-5ebf051",
+              "tag": "1.1.0-20211207211335-65467cb",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211122142855-e5c824157",
+              "tag": "0.46.0-20211209212613-c6a2d0dd3",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
@@ -393,7 +393,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20211125063023-f7fc6e8a67",
+              "tag": "15.0.2-20211213172016-b1b380919c",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -13,9 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
-	"net/url"
 	"os"
 	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -35,6 +35,20 @@ const EnvVarKubeConfig = "KUBECONFIG"
 
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
+
+type ClientConfigFunc func() (*restclient.Config, kubernetes.Interface, error)
+
+var ClientConfig ClientConfigFunc = func() (*restclient.Config, kubernetes.Interface, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, nil, err
+	}
+	c, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cfg, c, nil
+}
 
 // GetKubeConfigLocation Helper function to obtain the default kubeConfig location
 func GetKubeConfigLocation() (string, error) {
@@ -223,37 +237,13 @@ func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, path string, excluded
 // NewPodExecutor is to be overridden during unit tests
 var NewPodExecutor = remotecommand.NewSPDYExecutor
 
-// FakePodSTDOUT can be used to output arbitrary strings during unit testing
-var FakePodSTDOUT = ""
-
-//NewFakePodExecutor should be used instead of remotecommand.NewSPDYExecutor in unit tests
-func NewFakePodExecutor(config *rest.Config, method string, url *url.URL) (remotecommand.Executor, error) {
-	return &fakeExecutor{method: method, url: url}, nil
-}
-
-// fakeExecutor is for unit testing
-type fakeExecutor struct {
-	method string
-	url    *url.URL
-}
-
-// Stream on a fakeExecutor sets stdout to FakePodSTDOUT
-func (f *fakeExecutor) Stream(options remotecommand.StreamOptions) error {
-	if options.Stdout != nil {
-		buf := new(bytes.Buffer)
-		buf.WriteString(FakePodSTDOUT)
-		if _, err := options.Stdout.Write(buf.Bytes()); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 //ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
-func ExecPod(cfg *rest.Config, restClient rest.Interface, pod *v1.Pod, container string, command []string) (string, string, error) {
+func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, container string, command []string) (string, string, error) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
-	request := restClient.
+	request := client.
+		CoreV1().
+		RESTClient().
 		Post().
 		Namespace(pod.Namespace).
 		Resource("pods").
