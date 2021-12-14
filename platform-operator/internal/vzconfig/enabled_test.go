@@ -3,8 +3,9 @@
 package vzconfig
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"testing"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -393,6 +394,22 @@ func TestIsIstioEnabled(t *testing.T) {
 				Istio: &vzapi.IstioComponent{},
 			},
 		}}))
+	asserts.True(IsIstioEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsIstioEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsNGINXEnabled tests the IsNGINXEnabled function
@@ -406,6 +423,22 @@ func TestIsNGINXEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Ingress: &vzapi.IngressNginxComponent{},
+			},
+		}}))
+	asserts.True(IsNGINXEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Ingress: &vzapi.IngressNginxComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsNGINXEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Ingress: &vzapi.IngressNginxComponent{
+					Enabled: &falseValue,
+				},
 			},
 		}}))
 }

@@ -7,11 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
@@ -105,9 +106,13 @@ func NewComponent() spi.Component {
 	}
 }
 
-// IsEnabled returns true if the component is enabled, which is the default
-func (i istioComponent) IsEnabled(context spi.ComponentContext) bool {
-	return true
+// IsEnabled istio-specific enabled check for installation
+func (i istioComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.Istio
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component

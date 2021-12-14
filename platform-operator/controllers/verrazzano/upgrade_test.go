@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -851,11 +850,6 @@ func TestUpgradeHelmError(t *testing.T) {
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComponent{
-				HelmComponent: helmcomp.HelmComponent{
-					IsEnabledFunc: func(context spi.ComponentContext) bool {
-						return true
-					},
-				},
 				upgradeFunc: func(ctx spi.ComponentContext) error {
 					return fmt.Errorf("Error running upgrade")
 				},
