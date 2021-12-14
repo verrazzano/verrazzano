@@ -129,7 +129,7 @@ function verify_prerequisites() {
   }
 }
 
-while getopts 'hb:a:o:n:r:p:' opt; do
+while getopts 'hb:a:o:n:r:p:x:' opt; do
   case $opt in
   a)
     ALLOW_LIST=$OPTARG
