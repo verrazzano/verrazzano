@@ -5,6 +5,7 @@ package restapi_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"net/http"
 	"time"
 
@@ -14,14 +15,14 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = Describe("keycloak url test", func() {
+var _ = framework.VzDescribe("keycloak url test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	Context("Fetching the keycloak url using api and test ", func() {
-		It("Fetches keycloak url", func() {
+	framework.VzContext("Fetching the keycloak url using api and test ", func() {
+		framework.VzIt("Fetches keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

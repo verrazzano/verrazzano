@@ -5,6 +5,7 @@ package restapi_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -18,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = Describe("rancher url test", func() {
+var _ = framework.VzDescribe("rancher url test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
