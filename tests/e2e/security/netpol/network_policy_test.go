@@ -51,6 +51,7 @@ type accessCheckConfig struct {
 var (
 	expectedPods         = []string{"netpol-test"}
 	waitTimeout          = 5 * time.Minute
+	longWaitTimeout      = 10 * time.Minute
 	pollingInterval      = 30 * time.Second
 	shortWaitTimeout     = 30 * time.Second
 	shortPollingInterval = 10 * time.Second
@@ -109,16 +110,20 @@ var _ = Describe("Test Network Policies", func() {
 	It("Test NetworkPolicy Rules", func() {
 		pkg.Concurrently(
 			func() {
+				Eventually(func(g Gomega) {
 				pkg.Log(pkg.Info, "Test rancher ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 80, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
+				g.Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/instance": "ingress-controller"}}, "ingress-nginx", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 80, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
+				g.Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher ingress failed: reason = %s", err))
+				}, longWaitTimeout, pollingInterval).Should(Succeed())
 			},
 			func() {
-				pkg.Log(pkg.Info, "Test rancher-webhook ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher-webhook"}}, "cattle-system", 9443, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher-webhook ingress failed: reason = %s", err))
+				Eventually(func(g Gomega) {
+					pkg.Log(pkg.Info, "Test rancher-webhook ingress rules")
+					err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher-webhook"}}, "cattle-system", 9443, true)
+					g.Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test rancher-webhook ingress failed: reason = %s", err))
+				}, longWaitTimeout, pollingInterval).Should(Succeed())
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test cert-manager ingress rules")
