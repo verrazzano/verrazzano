@@ -51,4 +51,5 @@ replace (
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.2
 	k8s.io/client-go => k8s.io/client-go v0.19.2
 	k8s.io/code-generator => k8s.io/code-generator v0.19.2
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.7.0
 )

@@ -97,7 +97,7 @@ func VzDescribe(text string, body func()) bool {
 			return
 		}
 		if IncrementGokitCounter(text, "number_of_runs_gokitcounter") != nil {
-      return
+			return
 		}
 	})
 	return true
