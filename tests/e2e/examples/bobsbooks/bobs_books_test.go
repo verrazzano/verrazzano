@@ -5,6 +5,7 @@ package bobsbooks
 
 import (
 	"fmt"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -97,6 +99,23 @@ func deployBobsBooksExample() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, "Waiting for all pods in namespace bobs-books to get into Running state")
+
+	pkg.Log(pkg.Info, "Additional logging to see if all pods are in running state")
+	n := 0
+	for n < 3 {
+		podList, err := pkg.ListPods("bobs-books", metav1.ListOptions{})
+		if err != nil {
+			pkg.Log(pkg.Error, "Error listing pods in bobs-books namespace not listing the pods")
+			break;
+		}
+		for _ , pod := range podList.Items {
+			pkg.Log(pkg.Info, fmt.Sprintf("Pod name: %s, status: %v", pod.GetName(), pod.Status.Phase))
+		}
+		time.Sleep(60)
+		n+=1
+	}
+
 }
 
 func undeployBobsBooksExample() {
