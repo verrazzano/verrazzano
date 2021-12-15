@@ -480,7 +480,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setVZUserPwCmd))
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano user password: stdout = %s, stderr = %s", stdout, stderr)
-		return err
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debug("configureKeycloakRealm: Created VZ User PW")
 
@@ -507,7 +507,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setPromUserPwCmd))
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Prometheus user password: stdout = %s, stderr = %s", stdout, stderr)
-		return err
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debug("configureKeycloakRealm: Created Prom User PW")
 
@@ -534,7 +534,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setVzESUserPwCmd))
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error setting Verrazzano internal Elasticsearch user password: stdout = %s, stderr = %s", stdout, stderr)
-		return err
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debug("configureKeycloakRealm: Created ES User PW")
 
@@ -851,7 +851,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
 		ctx.Log().Errorf("loginKeycloak: Error retrieving logging into Keycloak: stdout = %s: stderr = %s", stdOut, stdErr)
-		return err
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debug("loginKeycloak: Successfully logged into Keycloak")
 

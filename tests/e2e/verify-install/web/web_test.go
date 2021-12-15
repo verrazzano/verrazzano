@@ -18,7 +18,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -171,16 +170,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 		})
 
 		It("can be logged out", func() {
-			if !isManagedClusterProfile {
-				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-				Expect(err).ShouldNot(HaveOccurred())
-				vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-				Expect(err).ShouldNot(HaveOccurred())
-				if v1alpha1.ValidateVersionHigherOrEqual(fmt.Sprintf("v%s", vz.Status.Version), "v1.0.1") {
-					Eventually(func() (*pkg.HTTPResponse, error) {
-						return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
-					}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
-				}
+			if !isManagedClusterProfile && isTestSupported {
+				Eventually(func() (*pkg.HTTPResponse, error) {
+					return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
+				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
 			}
 		})
 

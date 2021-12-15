@@ -577,6 +577,7 @@ type OCI struct {
 	DNSZoneCompartmentOCID string `json:"dnsZoneCompartmentOCID"`
 	DNSZoneOCID            string `json:"dnsZoneOCID"`
 	DNSZoneName            string `json:"dnsZoneName"`
+	DNSScope               string `json:"dnsScope,omitempty"`
 }
 
 // External DNS type
