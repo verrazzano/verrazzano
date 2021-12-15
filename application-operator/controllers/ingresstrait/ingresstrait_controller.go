@@ -207,7 +207,10 @@ func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
 
 // cleanupCert cleans up the generated certificate for the given app config
 func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
-	gatewayCertName := fmt.Sprintf("%s-%s-cert", trait.Namespace, trait.Name)
+	gatewayCertName, err := buildCertificateNameFromAppName(trait)
+	if err != nil {
+		return err
+	}
 	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: constants.IstioSystemNamespace}
 	var cert *certapiv1alpha2.Certificate
 	cert, err = r.fetchCert(context.TODO(), r.Client, namespacedName)
@@ -222,7 +225,11 @@ func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
 
 // cleanupSecret cleans up the generated secret for the given app config
 func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait) (err error) {
-	gatewaySecretName := fmt.Sprintf("%s-%s-cert-secret", trait.Namespace, trait.Name)
+	gatewayCertName, err := buildCertificateNameFromAppName(trait)
+	if err != nil {
+		return err
+	}
+	gatewaySecretName := fmt.Sprintf("%s-secret", gatewayCertName)
 	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: constants.IstioSystemNamespace}
 	var secret *corev1.Secret
 	secret, err = r.fetchSecret(context.TODO(), r.Client, namespacedName)
