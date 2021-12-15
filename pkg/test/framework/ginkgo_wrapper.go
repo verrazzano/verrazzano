@@ -5,11 +5,13 @@ package framework
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	"reflect"
+	"time"
+
+	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
@@ -40,19 +42,41 @@ func VzAfterSuite(body interface{}) bool {
 	return true
 }
 
-// VzIt - wrapper function for ginkgo It
-func VzIt(log *zap.SugaredLogger, text string, body interface{}) bool {
+//ItM wraps It to emit a metric
+func ItM(log *zap.SugaredLogger, text string, body interface{}) bool {
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
-	res := ginkgo.It(text, func() {
-		metrics.Emit(log)
+	return ginkgo.It(text, func() {
+		metrics.Emit(log) // Starting point metric
+		reflect.ValueOf(body).Call([]reflect.Value{})
+	})
+}
+
+// VzIt - wrapper function for ginkgo It
+func VzIt(text string, body interface{}) bool {
+	pkg.Log(pkg.Debug, "VzIt wrapper")
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
+	ginkgo.It(text, func() {
+		startTime := time.Now()
+
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q started - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		pkg.Log(pkg.Info, fmt.Sprintf("It block %q ended - placeholder for making API call to emit test related metric(s)", VzCurrentGinkgoTestDescription().LeafNodeText))
 
+		endTime := time.Now()
+		durationMillis := float64(endTime.Sub(startTime) / time.Millisecond)
+		// push the metrics
+		if EmitGauge(text, "duration", durationMillis) != nil {
+			return
+		}
+		if IncrementCounter(text, "number_of_runs") != nil {
+			return
+		}
 	})
-	return res
+	return true
 }
 
 // VzBeforeEach - wrapper function for ginkgo BeforeEach
@@ -62,12 +86,22 @@ func VzBeforeEach(body interface{}) bool {
 	return true
 }
 
-// VzAfterEach - wrapper function for ginkgo AfterEach
-func VzAfterEach(log *zap.SugaredLogger, body interface{}) bool {
+//AfterEachM wraps after each to emit a metric
+func AfterEachM(log *zap.SugaredLogger, body interface{}) bool {
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
 	return ginkgo.AfterEach(func() {
-		metrics.Emit(log)
+		metrics.Emit(log) // Starting point metric
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	})
+}
+
+// VzAfterEach - wrapper function for ginkgo AfterEach
+func VzAfterEach(body interface{}) bool {
+	pkg.Log(pkg.Debug, "VzAfterEach wrapper")
+	ginkgo.AfterEach(body)
+	return true
 }
 
 // VzDescribe - wrapper function for ginkgo Describe

@@ -11,16 +11,18 @@ import (
 )
 
 var _ = Describe("Logger", func() {
-	m, _ := metrics.NewForPackage("metrics_test")
+	// Setup the Suite
+	m, _ := metrics.NewMetricsLogger("metrics")
+	_ = framework.AfterEachM(m, func() {})
 
-	_ = framework.VzAfterEach(m, func() {})
-
-	framework.VzIt(m, "Should do a thing", func() {
+	framework.ItM(m, "Should do a thing", func() {
 		fmt.Println("Ran a test!")
+		// Emits a metric with key(foo), value(bar)
+		metrics.Emit(m.With("foo", "bar"))
 
 	})
 
-	framework.VzIt(m, "Should do another thing", func() {
+	framework.ItM(m, "Should do another thing", func() {
 		fmt.Println("Second test!")
 
 	})
