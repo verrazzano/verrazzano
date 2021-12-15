@@ -42,7 +42,7 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        BRANCH_NAME="master"
+        BRANCH_NAME="anajosep/fix_flaky_tests"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
     }
 
@@ -94,58 +94,6 @@ pipeline {
         // list here based on parameters (ie: for now requires touching the Jenkinsfile)
         stage ('Flaky Test Suites') {
             parallel {
-                stage('Flaky Multi Cluster Tests') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-multi-cluster-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                ], wait: true
-                        }
-                    }
-                }
-                stage('Flaky Uninstall Tests') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-uninstall-test/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                ], wait: true
-                        }
-                    }
-                }
-                stage('Flaky OCI DNS tests') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                ], wait: true
-                        }
-                    }
-                }
-                stage('Flaky Upgrade Tests') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-upgrade-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                ], wait: true
-                        }
-                    }
-                }
                 stage('Flaky Kind Acceptance Tests on 1.20') {
                     steps {
                         script {

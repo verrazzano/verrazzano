@@ -111,6 +111,14 @@ done
 
 ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${WORKSPACE}/post-vz-install-cluster-dump -r ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
 
+# Check if the installation errors in the installation and fail the tests
+grep "InstallFailure" ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
+if [ $? -eq 0 ]; then
+  cat ${WORKSPACE}/post-vz-install-cluster-dump/analysis.report
+  echo "[ERROR] Analysis report contains installation failure message failing the tests"
+  exit 1
+fi
+
 # wait for Verrazzano install to complete
 ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 if [ $? -ne 0 ]; then
