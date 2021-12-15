@@ -5,8 +5,11 @@ package metricstemplate
 
 import (
 	"context"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
@@ -174,7 +177,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 		return err
 	}
 
-	// Create get the metrics template from the UID
+	// Get the metrics template from the UID
 	labels := resource.GetLabels()
 	metricsTemplateUID := labels["app.verrazzano.io/metrics-template-uid"]
 	var metricsTemplate vzapi.MetricsTemplate
@@ -183,22 +186,50 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 		return err
 	}
 
+	// Get the namespace for the template
+	var resourceNamespace *unstructured.Unstructured
+	r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace(), Namespace: constants.DefaultNamespace}, resourceNamespace)
+
+	// Organize inputs for template processor
+	templateInputs := map[string]interface{}{
+		"workload": &resource,
+		"namespace": &resourceNamespace,
+	}
+
+	// Get scrape config from the template processor and convert it to
+	templateProcessor := vztemplate.NewProcessor(r.Client, metricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate)
+	scrapeConfigString, err := templateProcessor.Process(templateInputs)
+	if err != nil {
+		return err
+	}
+	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
+	if err != nil {
+		return err
+	}
+	newScrapeConfig, err := gabs.ParseJSON(configYaml)
+
 	// Create or Update scrape config with job name matching resource
+	existingUpdated := false
 	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
 	for index, scrapeConfig := range scrapeConfigs {
 		existingJobName := scrapeConfig.Search(prometheusJobNameLabel).Data()
 		createdJobName := createJobName(namespacedName, resource.GetUID())
 		if existingJobName == createdJobName {
 			// Remove and recreate scrape config
-			err = scrapeConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
+			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
 				return err
 			}
-			err = scrapeConfig.ArrayAppendP("", prometheusScrapeConfigsLabel)
+			err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 			if err != nil {
 				return err
 			}
+			existingUpdated = true
+			break
 		}
+	}
+	if !existingUpdated {
+		err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 	}
 
 	// Repopulate the configmap data
