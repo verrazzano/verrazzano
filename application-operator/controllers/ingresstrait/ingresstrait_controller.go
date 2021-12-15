@@ -56,7 +56,7 @@ const (
 	wlProxySSLHeaderVal       = "true"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
-	finalizerName            = "ingresstrait.finalizers.verrazzano.io"
+	finalizerName             = "ingresstrait.finalizers.verrazzano.io"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
@@ -101,18 +101,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if isTraitBeingDeleted(trait) {
 			if err = r.cleanup(trait); err != nil {
 				return reconcile.Result{}, err
-			} else {
-				// resource cleanup has succeeded, remove the finalizer
-				if err = r.removeFinalizerIfRequired(ctx, trait); err != nil {
-					return reconcile.Result{}, err
-				}
 			}
-			return reconcile.Result{}, nil
-		} else {
-			// add finalizer
-			if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
+			// resource cleanup has succeeded, remove the finalizer
+			if err = r.removeFinalizerIfRequired(ctx, trait); err != nil {
 				return reconcile.Result{}, err
 			}
+			return reconcile.Result{}, nil
+		}
+		// add finalizer
+		if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
+			return reconcile.Result{}, err
 		}
 	} else {
 		return reconcile.Result{}, nil

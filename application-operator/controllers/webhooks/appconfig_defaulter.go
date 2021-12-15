@@ -105,4 +105,3 @@ func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfigur
 	}
 	return ap.cleanupAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name)
 }
-

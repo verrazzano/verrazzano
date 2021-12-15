@@ -427,11 +427,11 @@ func TestDeleteCertAndSecretWhenTraitIsDeleted(t *testing.T) {
 				APIVersion: "oam.verrazzano.io/v1alpha1",
 				Kind:       "IngressTrait"}
 			trait.ObjectMeta = metav1.ObjectMeta{
-				Namespace: name.Namespace,
-				Name:      name.Name,
+				Namespace:         name.Namespace,
+				Name:              name.Name,
 				DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				Finalizers: []string{"ingresstrait.finalizers.verrazzano.io"},
-				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+				Finalizers:        []string{"ingresstrait.finalizers.verrazzano.io"},
+				Labels:            map[string]string{oam.LabelAppName: "myapp"}}
 			trait.Spec.Rules = []vzapi.IngressRule{{
 				Hosts: []string{"test-host"},
 				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
@@ -444,8 +444,8 @@ func TestDeleteCertAndSecretWhenTraitIsDeleted(t *testing.T) {
 		})
 	// Expect a call to get the associated certificate
 	mock.EXPECT(). // get certificate
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-test-trait-name-cert"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cert *certapiv1alpha2.Certificate) error {
+			Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-test-trait-name-cert"}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, cert *certapiv1alpha2.Certificate) error {
 			cert.Namespace = name.Namespace
 			cert.Name = name.Name
 			return nil
