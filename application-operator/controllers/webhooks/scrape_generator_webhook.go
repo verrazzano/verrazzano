@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,9 +33,8 @@ var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 // ScrapeGeneratorWebhook type for the mutating webhook
 type ScrapeGeneratorWebhook struct {
 	client.Client
-	Decoder       *admission.Decoder
-	KubeClient    kubernetes.Interface
-	DynamicClient dynamic.Interface
+	Decoder    *admission.Decoder
+	KubeClient kubernetes.Interface
 }
 
 // Handle - handler for the mutating webhook

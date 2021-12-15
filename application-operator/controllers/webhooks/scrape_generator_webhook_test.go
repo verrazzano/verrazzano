@@ -59,14 +59,13 @@ func TestHandlePod(t *testing.T) {
 	v := newScrapeGeneratorWebhook()
 
 	// Test data
+	v.createNamespace(t, "test", nil)
 	testPod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "test",
 		},
 	}
-
-	// Test data
 	assert.NoError(v.Client.Create(context.TODO(), &testPod))
 
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Pod", testPod)
@@ -83,14 +82,13 @@ func TestHandleDeployment(t *testing.T) {
 	v := newScrapeGeneratorWebhook()
 
 	// Test data
+	v.createNamespace(t, "test", nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "test",
 		},
 	}
-
-	// Test data
 	assert.NoError(v.Client.Create(context.TODO(), &testDeployment))
 
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
@@ -107,14 +105,13 @@ func TestHandleReplicaSet(t *testing.T) {
 	v := newScrapeGeneratorWebhook()
 
 	// Test data
+	v.createNamespace(t, "test", nil)
 	testReplicaSet := appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "test",
 		},
 	}
-
-	// Test data
 	assert.NoError(v.Client.Create(context.TODO(), &testReplicaSet))
 
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
@@ -131,17 +128,27 @@ func TestHandleStatefulSet(t *testing.T) {
 	v := newScrapeGeneratorWebhook()
 
 	// Test data
+	v.createNamespace(t, "test", nil)
 	testStatefulSet := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "test",
 		},
 	}
-
-	// Test data
 	assert.NoError(v.Client.Create(context.TODO(), &testStatefulSet))
 
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "StatefulSet", testStatefulSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(res.Allowed, "Expected validation to succeed.")
+}
+
+func (v *ScrapeGeneratorWebhook) createNamespace(t *testing.T, name string, labels map[string]string) {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: labels,
+		},
+	}
+	_, err := v.KubeClient.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
+	assert.NoError(t, err, "unexpected error creating namespace")
 }
