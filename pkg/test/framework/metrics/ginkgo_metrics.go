@@ -23,7 +23,7 @@ import (
 
 const (
 	Started  = "started"
-	Status   = "Status"
+	Status   = "status"
 	attempts = "attempts"
 	test     = "test"
 	pending  = "pending"
@@ -53,7 +53,7 @@ type (
 		Data      string `json:"msg"`
 		Timestamp int64  `json:"timestamp"`
 		Test      string `json:"test,omitempty"`
-		Status    string `json:"Status,omitempty"`
+		Status    string `json:"status,omitempty"`
 	}
 )
 
