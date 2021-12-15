@@ -26,7 +26,6 @@ const (
 	Status   = "status"
 	attempts = "attempts"
 	test     = "test"
-	pending  = "pending"
 
 	metricsIndex     = "metrics"
 	testLogIndex     = "testlogs"
