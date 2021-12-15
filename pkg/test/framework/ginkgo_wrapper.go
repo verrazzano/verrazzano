@@ -92,7 +92,7 @@ func AfterEachM(log *zap.SugaredLogger, body interface{}) bool {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
 	return ginkgo.AfterEach(func() {
-		metrics.Emit(log) // Starting point metric
+		metrics.Emit(log.With(metrics.Started)) // Starting point metric
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	})
 }

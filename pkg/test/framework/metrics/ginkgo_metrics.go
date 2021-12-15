@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	status   = "status"
+	Started  = "started"
+	Status   = "Status"
 	attempts = "attempts"
 	test     = "test"
 	pending  = "pending"
@@ -52,7 +53,7 @@ type (
 		Data      string `json:"msg"`
 		Timestamp int64  `json:"timestamp"`
 		Test      string `json:"test,omitempty"`
-		Status    string `json:"status,omitempty"`
+		Status    string `json:"Status,omitempty"`
 	}
 )
 
@@ -204,18 +205,12 @@ func TeeToSearchWriter() {
 
 func Emit(log *zap.SugaredLogger) {
 	spec := ginkgo.CurrentSpecReport()
-	s := getStatus(spec.State)
+	if spec.State != types.SpecStateInvalid {
+		log = log.With(Status, spec.State.String())
+	}
 	t := spec.LeafNodeText
 
-	log.With(status, s).
-		With(attempts, spec.NumAttempts).
+	log.With(attempts, spec.NumAttempts).
 		With(test, t).
 		Info()
-}
-
-func getStatus(state types.SpecState) string {
-	if state == types.SpecStateInvalid {
-		return pending
-	}
-	return state.String()
 }
