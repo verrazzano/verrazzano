@@ -10,8 +10,11 @@ import (
 	"net/http"
 	"strings"
 
+	"k8s.io/client-go/dynamic"
+
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,7 +32,10 @@ const ScrapeGeneratorLoadPath = "/scrape-generator"
 const StatusReasonSuccess = "success"
 
 const (
-	MetricsAnnotation = "app.verrazzano.io/metrics"
+	MetricsAnnotation                 = "app.verrazzano.io/metrics"
+	MetricsWorkloadUidAnnotation      = "app.verrazzano.io/metrics-workload-uid"
+	MetricsTemplateUidAnnotation      = "app.verrazzano.io/metrics-template-uid"
+	MetricsPromConfigMapUidAnnotation = "app.verrazzano.io/metrics-prometheus-configmap-uid"
 )
 
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
@@ -37,8 +43,9 @@ var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 // ScrapeGeneratorWebhook type for the mutating webhook
 type ScrapeGeneratorWebhook struct {
 	client.Client
-	Decoder    *admission.Decoder
-	KubeClient kubernetes.Interface
+	Decoder       *admission.Decoder
+	DynamicClient dynamic.Interface
+	KubeClient    kubernetes.Interface
 }
 
 // Handle - handler for the mutating webhook
@@ -74,7 +81,8 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	// Namespace of workload resource must be labeled with "verrazzano-managed": "true"
+	// Namespace of workload resource must be labeled with "verrazzano-managed": "true".
+	// If not labeled this way there is nothing to do.
 	namespace, err := a.KubeClient.CoreV1().Namespaces().Get(ctx, unst.GetNamespace(), metav1.GetOptions{})
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -83,15 +91,46 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	// Process the app.verrazzano.io/metrics annotation
+	// Process the app.verrazzano.io/metrics annotation and get the metrics template if specified.
 	metricsTemplate, err := a.processMetricsAnnotation(unst)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	// Workload resource has a valid metric template.  Add the required annotations.
+	// Workload resource specifies a valid metrics template.
+	// We use that metrics template and add the required annotations.
 	if metricsTemplate != nil {
-		// TODO: call function to populate the annotations of the workload resource
+		err = a.populateAnnotations(ctx, unst, metricsTemplate)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+	} else {
+		// Workload resource does not specify a metrics template.
+		// Look for a matching metrics template workload whose workload selector matches.
+		// First, check the namepsace of the workload resource and then check the verrazzano-system namespace
+		// NOTE: use the first match for now
+		found := true
+		metricsTemplate, err := a.findMatchingTemplate(ctx, unst, unst.GetNamespace())
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+		if metricsTemplate == nil {
+			metricsTemplate, err := a.findMatchingTemplate(ctx, unst, constants.VerrazzanoSystemNamespace)
+			if err != nil {
+				return admission.Errored(http.StatusInternalServerError, err)
+			}
+			if metricsTemplate == nil {
+				found = false
+			}
+		}
+
+		// We found a matching metrics template so add the required annotations.
+		if found {
+			err = a.populateAnnotations(ctx, unst, metricsTemplate)
+			if err != nil {
+				return admission.Errored(http.StatusInternalServerError, err)
+			}
+		}
 	}
 
 	marshaledWorkloadResource, err := json.Marshal(unst)
@@ -128,6 +167,58 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 		}
 
 		return template, nil
+	}
+
+	return nil, nil
+}
+
+// populateAnnotations adds metrics annotations to the workload resource
+func (a *ScrapeGeneratorWebhook) populateAnnotations(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
+	configMap, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	annotations := unst.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	annotations[MetricsWorkloadUidAnnotation] = string(unst.GetUID())
+	annotations[MetricsTemplateUidAnnotation] = string(template.UID)
+	annotations[MetricsPromConfigMapUidAnnotation] = string(configMap.UID)
+
+	return nil
+}
+
+// findMatchingTemplate returns a matching template for a given namespace
+func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst *unstructured.Unstructured, namespace string) (*vzapp.MetricsTemplate, error) {
+	// Get the list of metrics templates for the given namespace
+	templateList := &vzapp.MetricsTemplateList{}
+	err := a.Client.List(ctx, templateList, &client.ListOptions{Namespace: namespace})
+	if err != nil {
+		return nil, err
+	}
+
+	ws := &workloadselector.WorkloadSelector{
+		DynamicClient: a.DynamicClient,
+		KubeClient:    a.KubeClient,
+	}
+
+	// Iterate through the metrics template list and check if we find a matching template for the workload resource
+	for _, template := range templateList.Items {
+		found, err := ws.DoesWorkloadMatch(unst,
+			&template.Spec.WorkloadSelector.NamespaceSelector,
+			&template.Spec.WorkloadSelector.ObjectSelector,
+			template.Spec.WorkloadSelector.APIGroups,
+			template.Spec.WorkloadSelector.APIVersions,
+			template.Spec.WorkloadSelector.Resources)
+		if err != nil {
+			return nil, err
+		}
+		// Found a match, return the matching metrics template
+		if found {
+			return &template, nil
+		}
 	}
 
 	return nil, nil
