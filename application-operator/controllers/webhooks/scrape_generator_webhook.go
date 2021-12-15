@@ -28,6 +28,10 @@ const ScrapeGeneratorLoadPath = "/scrape-generator"
 // StatusReasonSuccess constant for successful response
 const StatusReasonSuccess = "success"
 
+const (
+	MetricsAnnotation = "app.verrazzano.io/metrics"
+)
+
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 
 // ScrapeGeneratorWebhook type for the mutating webhook
@@ -64,7 +68,7 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	// For the time being, do not handle any workload resources that have owner references.
+	// Do not handle any workload resources that have owner references.
 	// NOTE: this will be revisited.
 	if len(unst.GetOwnerReferences()) != 0 {
 		return admission.Allowed(StatusReasonSuccess)
@@ -85,9 +89,9 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	// Workload resource has a valid metric template
+	// Workload resource has a valid metric template.  Add the required annotations.
 	if metricsTemplate != nil {
-
+		// TODO: call function to populate the annotations of the workload resource
 	}
 
 	marshaledWorkloadResource, err := json.Marshal(unst)
@@ -97,8 +101,10 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledWorkloadResource)
 }
 
+// processMetricsAnnotation checks the workload resource for the "app.verrazzano.io/metrics" annotation and returns the
+// metrics template referenced in the annotation
 func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Unstructured) (*vzapp.MetricsTemplate, error) {
-	if metricsTemplate, ok := unst.GetAnnotations()["app.verrazzano.io/metrics"]; ok {
+	if metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if metricsTemplate == "none" {
 			return nil, nil
 		}
