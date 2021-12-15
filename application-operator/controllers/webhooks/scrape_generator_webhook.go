@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"strings"
 
-	"k8s.io/client-go/dynamic"
-
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
@@ -19,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -87,11 +86,18 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
-	if _, ok := namespace.Labels[constants.LabelVerrazzanoManaged]; !ok {
+	if namespace.Labels[constants.LabelVerrazzanoManaged] != "true" {
 		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	// Process the app.verrazzano.io/metrics annotation and get the metrics template if specified.
+	// If "none" is specified for annotation"app.verrazzano.io/metrics" then this namespace has opted out of metrics.
+	if metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
+		if metricsTemplate == "none" {
+			return admission.Allowed(StatusReasonSuccess)
+		}
+	}
+
+	// Process the app.verrazzano.io/metrics annotation and get the metrics template, if specified.
 	metricsTemplate, err := a.processMetricsAnnotation(unst)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
@@ -144,10 +150,6 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 // metrics template referenced in the annotation
 func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Unstructured) (*vzapp.MetricsTemplate, error) {
 	if metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
-		if metricsTemplate == "none" {
-			return nil, nil
-		}
-
 		// Look for the metrics template in the namespace of the workload resource
 		template := &vzapp.MetricsTemplate{}
 		namespacedName := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsTemplate}
@@ -175,6 +177,7 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 // populateAnnotations adds metrics annotations to the workload resource
 func (a *ScrapeGeneratorWebhook) populateAnnotations(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
 	configMap, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
+	// TODO: handle the case where we don't specify the configMap
 	if err != nil {
 		return err
 	}
@@ -186,6 +189,8 @@ func (a *ScrapeGeneratorWebhook) populateAnnotations(ctx context.Context, unst *
 	annotations[MetricsWorkloadUidAnnotation] = string(unst.GetUID())
 	annotations[MetricsTemplateUidAnnotation] = string(template.UID)
 	annotations[MetricsPromConfigMapUidAnnotation] = string(configMap.UID)
+
+	unst.SetAnnotations(annotations)
 
 	return nil
 }
