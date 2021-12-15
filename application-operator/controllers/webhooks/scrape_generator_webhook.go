@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -32,9 +33,9 @@ const StatusReasonSuccess = "success"
 
 const (
 	MetricsAnnotation                 = "app.verrazzano.io/metrics"
-	MetricsWorkloadUidAnnotation      = "app.verrazzano.io/metrics-workload-uid"
-	MetricsTemplateUidAnnotation      = "app.verrazzano.io/metrics-template-uid"
-	MetricsPromConfigMapUidAnnotation = "app.verrazzano.io/metrics-prometheus-configmap-uid"
+	MetricsWorkloadUIDAnnotation      = "app.verrazzano.io/metrics-workload-uid"
+	MetricsTemplateUIDAnnotation      = "app.verrazzano.io/metrics-template-uid"
+	MetricsPromConfigMapUIDAnnotation = "app.verrazzano.io/metrics-prometheus-configmap-uid"
 )
 
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
@@ -90,7 +91,7 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	// If "none" is specified for annotation"app.verrazzano.io/metrics" then this namespace has opted out of metrics.
+	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
 	if metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if metricsTemplate == "none" {
 			return admission.Allowed(StatusReasonSuccess)
@@ -113,21 +114,23 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	} else {
 		// Workload resource does not specify a metrics template.
 		// Look for a matching metrics template workload whose workload selector matches.
-		// First, check the namepsace of the workload resource and then check the verrazzano-system namespace
+		// First, check the namespace of the workload resource and then check the verrazzano-system namespace
 		// NOTE: use the first match for now
+		var metricsTemplate = &vzapp.MetricsTemplate{}
 		found := true
 		metricsTemplate, err := a.findMatchingTemplate(ctx, unst, unst.GetNamespace())
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 		if metricsTemplate == nil {
-			metricsTemplate, err := a.findMatchingTemplate(ctx, unst, constants.VerrazzanoSystemNamespace)
+			template, err := a.findMatchingTemplate(ctx, unst, constants.VerrazzanoSystemNamespace)
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
-			if metricsTemplate == nil {
+			if template == nil {
 				found = false
 			}
+			metricsTemplate = template
 		}
 
 		// We found a matching metrics template so add the required annotations.
@@ -176,8 +179,13 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 
 // populateAnnotations adds metrics annotations to the workload resource
 func (a *ScrapeGeneratorWebhook) populateAnnotations(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
+	// When the Prometheus target config map was not specified in the metrics template then we do not update
+	// the workload resource annotations.
+	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
+		return nil
+	}
+
 	configMap, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
-	// TODO: handle the case where we don't specify the configMap
 	if err != nil {
 		return err
 	}
@@ -186,9 +194,9 @@ func (a *ScrapeGeneratorWebhook) populateAnnotations(ctx context.Context, unst *
 		annotations = make(map[string]string)
 	}
 
-	annotations[MetricsWorkloadUidAnnotation] = string(unst.GetUID())
-	annotations[MetricsTemplateUidAnnotation] = string(template.UID)
-	annotations[MetricsPromConfigMapUidAnnotation] = string(configMap.UID)
+	annotations[MetricsWorkloadUIDAnnotation] = string(unst.GetUID())
+	annotations[MetricsTemplateUIDAnnotation] = string(template.UID)
+	annotations[MetricsPromConfigMapUIDAnnotation] = string(configMap.UID)
 
 	unst.SetAnnotations(annotations)
 
@@ -211,6 +219,10 @@ func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst 
 
 	// Iterate through the metrics template list and check if we find a matching template for the workload resource
 	for _, template := range templateList.Items {
+		// If the template workload selector was not specified then don't try to match this template
+		if reflect.DeepEqual(template.Spec.WorkloadSelector, vzapp.WorkloadSelector{}) {
+			continue
+		}
 		found, err := ws.DoesWorkloadMatch(unst,
 			&template.Spec.WorkloadSelector.NamespaceSelector,
 			&template.Spec.WorkloadSelector.ObjectSelector,

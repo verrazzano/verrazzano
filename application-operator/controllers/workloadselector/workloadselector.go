@@ -5,7 +5,6 @@ package workloadselector
 
 import (
 	"context"
-	"reflect"
 	"strings"
 
 	"github.com/gertd/go-pluralize"
@@ -42,14 +41,14 @@ func (w *WorkloadSelector) DoesWorkloadMatch(workload *unstructured.Unstructured
 // doesNamespaceMatch returns a boolean indicating whether an unstructured resource matches the namespace selector
 func (w *WorkloadSelector) doesNamespaceMatch(workload *unstructured.Unstructured, namespaceSelector *metav1.LabelSelector) (bool, error) {
 	// If the namespace label selector is not specified then we don't need to check the namespace
-	if namespaceSelector == nil || reflect.DeepEqual(namespaceSelector, metav1.LabelSelector{}) {
-		return true, nil
-	}
-
 	labels, err := metav1.LabelSelectorAsSelector(namespaceSelector)
 	if err != nil {
 		return false, err
 	}
+	if labels.Empty() {
+		return true, nil
+	}
+
 	options := metav1.ListOptions{
 		LabelSelector: labels.String(),
 	}
@@ -86,7 +85,11 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 	}
 
 	// If the object label selector is not specified then we don't need to check the resource for a match
-	if objectSelector == nil || reflect.DeepEqual(objectSelector, metav1.LabelSelector{}) {
+	labelSelector, err := metav1.LabelSelectorAsSelector(objectSelector)
+	if err != nil {
+		return false, err
+	}
+	if labelSelector.Empty() {
 		return true, nil
 	}
 
@@ -96,10 +99,6 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 		Resource: pluralize.NewClient().Plural(strings.ToLower(workload.GetKind())),
 	}
 
-	labelSelector, err := metav1.LabelSelectorAsSelector(objectSelector)
-	if err != nil {
-		return false, err
-	}
 	options := metav1.ListOptions{
 		LabelSelector: labelSelector.String(),
 	}
