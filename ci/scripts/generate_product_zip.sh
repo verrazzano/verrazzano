@@ -56,7 +56,7 @@ readmeFile="readme.txt"
 cat <<EOF > ${WORKSPACE}/${readmeFile}
 Verrazzano Enterprise Container Platform archive for private registry install.
 
-See https://verrazzano.io/docs/setup/private-registry/private-registry for details.
+See https://verrazzano.io/latest/docs/setup/private-registry/private-registry for details.
 EOF
 
 tools/scripts/generate_tarball.sh ${WORKSPACE}/tar-files/verrazzano-bom.json ${WORKSPACE}/tar-files ${WORKSPACE}/${tarfile}
