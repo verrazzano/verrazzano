@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"k8s.io/client-go/util/workqueue"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"strconv"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -57,6 +59,9 @@ type Reconciler struct {
 // SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+		}).
 		For(&vzapi.VerrazzanoHelidonWorkload{}).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&corev1.Service{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).

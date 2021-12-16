@@ -7,13 +7,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
+	"k8s.io/client-go/util/workqueue"
 	"os"
 	"strings"
 	"time"
 
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
@@ -56,7 +59,7 @@ var initializedSet = make(map[string]bool)
 // systemNamespaceLabels the verrazzano-system namespace labels required
 var systemNamespaceLabels = map[string]string{
 	"istio-injection":         "enabled",
-	"verrazzano.io/namespace": vzconst.VerrazzanoSystemNamespace,
+	"verrazzano.io/namespace": vpoconst.VerrazzanoSystemNamespace,
 }
 
 // Set to true during unit testing
@@ -176,7 +179,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
 	if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
-		log.Errorf("Failed to create namespace %v: %v", vzconst.VerrazzanoSystemNamespace, err)
+		log.Errorf("Failed to create namespace %v: %v", vpoconst.VerrazzanoSystemNamespace, err)
 		return newRequeueWithDelay(), err
 	}
 
@@ -293,7 +296,7 @@ func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano) error {
 	// ensure the secret exists before proceeding
 	secret := &corev1.Secret{}
-	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vzconst.VerrazzanoInstallNamespace}, secret)
+	err := r.Get(context.TODO(), types.NamespacedName{Name: vz.Spec.Components.DNS.OCI.OCIConfigSecret, Namespace: vpoconst.VerrazzanoInstallNamespace}, secret)
 	if err != nil {
 		return err
 	}
@@ -435,6 +438,9 @@ func (r *Reconciler) deleteNamespace(ctx context.Context, log *zap.SugaredLogger
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+		}).
 		For(&installv1alpha1.Verrazzano{}).Build(r)
 	return err
 }
@@ -659,7 +665,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
-			compContext := newContext.For(comp.Name()).Operation(vzconst.InitializeOperation)
+			compContext := newContext.For(comp.Name()).Operation(vpoconst.InitializeOperation)
 			state := installv1alpha1.Disabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
@@ -742,17 +748,17 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *z
 
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
-	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
+	err := r.Get(ctx, types.NamespacedName{Name: vpoconst.VerrazzanoSystemNamespace}, &vzSystemNS)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
 		}
-		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
+		vzSystemNS.Name = vpoconst.VerrazzanoSystemNamespace
 		vzSystemNS.Labels, _ = mergeMaps(nil, systemNamespaceLabels)
 		if err := r.Create(ctx, &vzSystemNS); err != nil {
 			return err
 		}
-		log.Debugf("Namespace %v was successfully created", vzconst.VerrazzanoSystemNamespace)
+		log.Debugf("Namespace %v was successfully created", vpoconst.VerrazzanoSystemNamespace)
 		return nil
 	}
 	// Namespace exists, see if we need to add the label
@@ -808,7 +814,7 @@ func removeString(slice []string, s string) (result []string) {
 func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	subdomain := vz.Spec.EnvironmentName
 	if len(subdomain) == 0 {
-		subdomain = vzconst.DefaultEnvironmentName
+		subdomain = vpoconst.DefaultEnvironmentName
 	}
 	baseDomain, err := buildDomainSuffix(c, vz)
 	if err != nil {
@@ -944,23 +950,23 @@ func commonPath(a, b string) string {
 
 // Get the install namespace where this controller is running.
 func getInstallNamespace() string {
-	return vzconst.VerrazzanoInstallNamespace
+	return vpoconst.VerrazzanoInstallNamespace
 }
 
 func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verrazzano) (bool, error) {
 	// get the user-specified restart version - if it's missing then there's nothing to do here
-	restartVersion, ok := vz.Annotations[vzconst.UpgradeRetryVersion]
+	restartVersion, ok := vz.Annotations[vpoconst.UpgradeRetryVersion]
 	if !ok {
 		return false, nil
 	}
 
 	// get the annotation with the previous restart version - if it's missing or the versions do not
 	// match, then return true
-	prevRestartVersion, ok := vz.Annotations[vzconst.ObservedUpgradeRetryVersion]
+	prevRestartVersion, ok := vz.Annotations[vpoconst.ObservedUpgradeRetryVersion]
 	if !ok || restartVersion != prevRestartVersion {
 
 		// add/update the previous restart version annotation to the CR
-		vz.Annotations[vzconst.ObservedUpgradeRetryVersion] = restartVersion
+		vz.Annotations[vpoconst.ObservedUpgradeRetryVersion] = restartVersion
 		err := r.Client.Update(ctx, vz)
 		return true, err
 	}
@@ -1014,7 +1020,7 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 	}
 
 	// Delete the verrazzano-system namespace
-	err = r.deleteNamespace(ctx, log, vzconst.VerrazzanoSystemNamespace)
+	err = r.deleteNamespace(ctx, log, vpoconst.VerrazzanoSystemNamespace)
 	if err != nil {
 		return err
 	}
@@ -1031,7 +1037,7 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz 
 	}
 
 	// Delete install service account
-	err = r.deleteServiceAccount(ctx, log, vz, vzconst.DefaultNamespace)
+	err = r.deleteServiceAccount(ctx, log, vz, vpoconst.DefaultNamespace)
 	if err != nil {
 		return err
 	}

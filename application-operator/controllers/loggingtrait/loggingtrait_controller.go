@@ -6,7 +6,10 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"k8s.io/client-go/util/workqueue"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -502,6 +505,9 @@ func resourceExists(ctx context.Context, r client.Reader, apiVersion string, kin
 
 func (r *LoggingTraitReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+		}).
 		For(&oamv1alpha1.LoggingTrait{}).
 		Complete(r)
 }

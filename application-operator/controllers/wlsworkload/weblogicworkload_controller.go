@@ -10,9 +10,11 @@ import (
 	"errors"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"k8s.io/client-go/util/workqueue"
 	"math/big"
 	"os"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"strconv"
 	"strings"
 
@@ -212,6 +214,9 @@ type Reconciler struct {
 // SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+		}).
 		For(&vzapi.VerrazzanoWebLogicWorkload{}).
 		Complete(r)
 }

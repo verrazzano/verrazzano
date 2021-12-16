@@ -6,8 +6,10 @@ package clusters
 import (
 	"context"
 	"fmt"
+	"k8s.io/client-go/util/workqueue"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -230,6 +232,9 @@ func generateManagedResourceName(clusterName string) string {
 // SetupWithManager creates a new controller and adds it to the manager
 func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+		}).
 		For(&clustersv1alpha1.VerrazzanoManagedCluster{}).
 		Complete(r)
 }
@@ -292,9 +297,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		currentTime := metav1.Now()
 		//Using the current plus added time to find the difference with lastAgentConnectTime to validate
 		//if it exceeds the max allowed time before changing the state of the vmc resource.
-		maxPollingTime := currentTime.Add(vzconstants.VMCAgentPollingTimeInterval * vzconstants.MaxTimesVMCAgentPollingTime)
+		maxPollingTime := currentTime.Add(vzconst.VMCAgentPollingTimeInterval * vzconst.MaxTimesVMCAgentPollingTime)
 		timeDiff := maxPollingTime.Sub(vmc.Status.LastAgentConnectTime.Time)
-		if int(timeDiff.Minutes()) > vzconstants.MaxTimesVMCAgentPollingTime {
+		if int(timeDiff.Minutes()) > vzconst.MaxTimesVMCAgentPollingTime {
 			vmc.Status.State = clustersv1alpha1.StateInactive
 		} else if vmc.Status.State == "" {
 			vmc.Status.State = clustersv1alpha1.StatePending

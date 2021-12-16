@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"k8s.io/client-go/util/workqueue"
 	"reflect"
@@ -77,13 +78,9 @@ type Reconciler struct {
 
 // SetupWithManager creates a controller and adds it to the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	const (
-		baseDelay = 5
-		maxDelay  = 40
-	)
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(baseDelay, maxDelay),
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
 		}).
 		For(&vzapi.IngressTrait{}).
 		Complete(r)
