@@ -31,11 +31,6 @@ const (
 )
 
 type (
-	MetricWriter interface {
-		zapcore.WriteSyncer
-		FromEnv() zapcore.WriteSyncer
-	}
-
 	GinkgoLogFormatter struct {
 		writers []zapcore.WriteSyncer
 	}
