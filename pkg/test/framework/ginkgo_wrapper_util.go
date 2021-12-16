@@ -11,6 +11,7 @@ import (
 	"time"
 
 	testmetrics "github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	testgometrics "github.com/verrazzano/verrazzano/pkg/test/framework/metrics-receiver"
 )
 
 const (
@@ -89,4 +90,12 @@ func IncrementCounter(testName string, metricName string) error {
 		return err
 	}
 	return metricsReceiver.IncrementCounter(metricName)
+}
+
+func IncrementGokitCounter(testName string, metricName string) error {
+	metricsReceiver, err := testgometrics.NewMetricsReceiver(testName)
+	if err != nil {
+		return err
+	}
+	return metricsReceiver.IncrementGokitCounter(testgometrics.MetricDesc{Name: metricName})
 }
