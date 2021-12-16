@@ -440,7 +440,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	ctx.Log().Info("configureKeycloakRealm: Keycloak PostUpgrade SUCCESS")
+	ctx.Log().Infof("configureKeycloakRealm: successfully configured realm %s", vzSysRealm)
 	return nil
 }
 
