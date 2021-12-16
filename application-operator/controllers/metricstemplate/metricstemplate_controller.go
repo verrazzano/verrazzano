@@ -253,6 +253,9 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 	}
 	if !existingUpdated {
 		err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Repopulate the ConfigMap data

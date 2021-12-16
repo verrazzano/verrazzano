@@ -33,11 +33,11 @@ func getConfigData(configMap *v1.ConfigMap) (*gabs.Container, error) {
 		}, configMap.Name)
 	}
 	oldPromConfigData := configMap.Data[prometheusConfigKey]
-	promConfigJson, err := yaml.YAMLToJSON([]byte(oldPromConfigData))
+	promConfigJSON, err := yaml.YAMLToJSON([]byte(oldPromConfigData))
 	if err != nil {
 		return nil, err
 	}
-	promConfig, err := gabs.ParseJSON(promConfigJson)
+	promConfig, err := gabs.ParseJSON(promConfigJSON)
 	if err != nil {
 		return nil, err
 	}
