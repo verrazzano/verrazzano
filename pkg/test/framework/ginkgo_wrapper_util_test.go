@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	testmetrics "github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 )
 
 // TestIsBodyFunc - test function for introspecting an interface value
@@ -62,8 +62,8 @@ func Test_createMetricsConfigFromEnv(t *testing.T) {
 	cfg, err := createMetricsConfigFromEnv("testname")
 	assert.NoError(t, err)
 	assert.NotNil(t, cfg)
-	assert.Equal(t, "*testmetrics.PrometheusMetricsReceiverConfig", reflect.TypeOf(cfg).String())
-	promCfg := cfg.(*testmetrics.PrometheusMetricsReceiverConfig)
+	assert.Equal(t, "*metrics.PrometheusMetricsReceiverConfig", reflect.TypeOf(cfg).String())
+	promCfg := cfg.(*metrics.PrometheusMetricsReceiverConfig)
 	assert.Equal(t, testURL, promCfg.PushGatewayURL)
 	assert.Equal(t, testUser, promCfg.PushGatewayUser)
 	assert.Equal(t, testPass, promCfg.PushGatewayPassword)
