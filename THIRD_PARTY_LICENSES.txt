@@ -2446,6 +2446,9 @@ Copyright (c) 2013 Blake Embrey (hello@blakeembrey.com)
 github.com/go-kit/kit
 -------- Copyrights
 Copyright (c) 2015 Peter Bourgon
+Copyright (c) 2014 Simon Eskildsen
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
 
 -------- Dependency
 github.com/json-iterator/go
@@ -2504,10 +2507,9 @@ go.uber.org/zap
 Copyright (c) 2016-2017 Uber Technologies, Inc.
 Copyright (c) 2016 Uber Technologies, Inc.
 Copyright (c) "*" Uber Technologies, Inc.")
-Copyright (c) 2020 Uber Technologies, Inc.
 Copyright (c) 2017 Uber Technologies, Inc.
 Copyright (c) 2019 Uber Technologies, Inc.
-Copyright (c) 2021 Uber Technologies, Inc.
+Copyright (c) 2020 Uber Technologies, Inc.
 Copyright (c) 2016, 2017 Uber Technologies, Inc.
 Copyright (c) 2018 Uber Technologies, Inc.
 
@@ -2646,4 +2648,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: e5c1fd239cbb24416cb394921e08ab73
+License file based on go.mod with md5 sum: ef8a8c0cb6ccdcc1601284eda03d9286
