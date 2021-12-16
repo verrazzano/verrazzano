@@ -259,11 +259,11 @@ func TestComponentDependenciesCycles(t *testing.T) {
 			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
 			"fake2": fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
 			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			"fake3": fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			"fake4": fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			"fake5": fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			"fake6": fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
-			nocycles.Name(): nocycles,
+			"fake3":               fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
+			"fake4":               fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
+			"fake5":               fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
+			"fake6":               fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			nocycles.Name():       nocycles,
 			indirectCycle1.Name(): indirectCycle1,
 			indirectCycle2.Name(): indirectCycle2,
 		}
@@ -297,11 +297,11 @@ func Test_checkDependencies(t *testing.T) {
 			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
 			"fake2": fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
 			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			"fake3": fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			"fake4": fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			"fake5": fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			"fake6": fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
-			nocycles.Name(): nocycles,
+			"fake3":               fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
+			"fake4":               fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
+			"fake5":               fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
+			"fake6":               fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			nocycles.Name():       nocycles,
 			indirectCycle1.Name(): indirectCycle1,
 			indirectCycle2.Name(): indirectCycle2,
 		}
@@ -342,9 +342,9 @@ func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	repeatDepdendency := fakeComponent{name: "repeatDependency", dependencies: []string{"fake1", "fake2", "fake1"}}
 	OverrideGetComponentsFn(func() map[string]spi.Component {
 		return map[string]spi.Component{
-			"fake1": fakeComponent{name: "fake1"},
-			"fake2": fakeComponent{name: "fake2", dependencies: []string{"fake1"}},
-			chainNoCycle.Name(): chainNoCycle,
+			"fake1":                  fakeComponent{name: "fake1"},
+			"fake2":                  fakeComponent{name: "fake2", dependencies: []string{"fake1"}},
+			chainNoCycle.Name():      chainNoCycle,
 			repeatDepdendency.Name(): repeatDepdendency,
 		}
 	})

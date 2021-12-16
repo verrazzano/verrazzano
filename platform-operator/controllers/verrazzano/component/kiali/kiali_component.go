@@ -36,10 +36,10 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{nginx.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
-			IngressNames:            []types.NamespacedName {
+			IngressNames: []types.NamespacedName{
 				{
 					Namespace: constants.VerrazzanoSystemNamespace,
-					Name: kialiIngressName,
+					Name:      kialiIngressName,
 				},
 			},
 		},

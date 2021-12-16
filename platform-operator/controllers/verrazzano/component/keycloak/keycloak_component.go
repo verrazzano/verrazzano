@@ -47,10 +47,10 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{istio.ComponentName, mysql.ComponentName},
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendKeycloakOverrides,
-			IngressNames:            []types.NamespacedName{
+			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
-					Name: constants.KeycloakIngress,
+					Name:      constants.KeycloakIngress,
 				},
 			},
 		},
@@ -158,4 +158,3 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	return condition.Type == "Ready" &&
 		status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
 }
-

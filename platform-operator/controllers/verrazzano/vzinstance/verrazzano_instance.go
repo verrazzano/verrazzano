@@ -87,7 +87,6 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, cr *v1alpha1.Verra
 	return getSystemIngressURL(ingresses, ingNames[0].Namespace, ingNames[0].Name)
 }
 
-
 func getSystemIngressURL(ingresses []networkingv1.Ingress, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
 	if ingress == nil {

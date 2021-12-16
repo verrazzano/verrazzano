@@ -235,7 +235,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	// If the component has any ingresses associated, those should be present
 	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context.EffectiveCR())) {
 		return ctrlerrors.RetryableError{
-			Source: h.ReleaseName,
+			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
 		}
 	}
