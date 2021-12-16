@@ -31,7 +31,7 @@ var _ = framework.VzDescribe("VMI urls test", func() {
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
-		framework.VzIt("Fetches VMI", func() {
+		framework.ItM(metricsLogger, "Fetches VMI", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -70,7 +70,7 @@ var _ = framework.VzDescribe("VMI urls test", func() {
 			}
 		})
 
-		framework.VzIt("Accesses VMI endpoints", func() {
+		framework.ItM(metricsLogger,"Accesses VMI endpoints", func() {
 			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -123,6 +123,8 @@ var _ = framework.VzDescribe("VMI urls test", func() {
 		})
 	})
 })
+
+var _ = framework.AfterEachM(metricsLogger, func() {})
 
 func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress, err := api.GetIngress("verrazzano-system", ingressName)

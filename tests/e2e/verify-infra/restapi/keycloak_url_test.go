@@ -23,7 +23,7 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 	)
 
 	framework.VzContext("Fetching the keycloak url using api and test ", func() {
-		framework.VzIt("Fetches keycloak url", func() {
+		framework.ItM(metricsLogger,"Fetches keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -49,7 +49,6 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 				Expect(keycloakURL).NotTo(BeEmpty())
 				var httpResponse *pkg.HTTPResponse
 
-				metricsLogger, _ := metrics.NewMetricsLogger("restapi_test")
 				start := time.Now()
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					var err error
@@ -63,3 +62,6 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 		})
 	})
 })
+
+var _ = framework.AfterEachM(metricsLogger, func() {})
+
