@@ -59,8 +59,8 @@ pipeline {
                 """
 
                 script {
-                    def props = readProperties file: "${WORKSPACE}/last-stable-commit.txt"
-                    GIT_COMMIT_TO_USE = props['git-commit']
+
+                    GIT_COMMIT_TO_USE = "63a51f7869ca27bf3c8d9e3bc9af70ebc4a5d5e4"
                     echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
                     def scmInfo = checkout([
                         $class: 'GitSCM',
