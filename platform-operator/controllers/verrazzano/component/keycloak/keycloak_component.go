@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -22,6 +23,9 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "keycloak"
 
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.KeycloakNamespace
+
 // KeycloakComponent represents an Keycloak component
 type KeycloakComponent struct {
 	helm.HelmComponent
@@ -36,13 +40,19 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          ComponentName,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Pull Key
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
 			Dependencies:            []string{istio.ComponentName, mysql.ComponentName},
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendKeycloakOverrides,
+			IngressNames:            []types.NamespacedName{
+				{
+					Namespace: ComponentNamespace,
+					Name: constants.KeycloakIngress,
+				},
+			},
 		},
 	}
 }
@@ -51,8 +61,8 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret. return error which will cause reque
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: "verrazzano-system",
-		Name:      "verrazzano",
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      constants.Verrazzano,
 	}, secret)
 	if err != nil {
 		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving Verrazzano password: %s", err)
@@ -61,8 +71,8 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check MySQL Secret. return error which will cause reque
 	secret = &corev1.Secret{}
 	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: "keycloak",
-		Name:      "mysql",
+		Namespace: ComponentNamespace,
+		Name:      mysql.ComponentName,
 	}, secret)
 	if err != nil {
 		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving MySQL password: %s", err)
@@ -70,7 +80,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create secret for the keycloakadmin user if it doesn't exist
-	err = createAuthSecret(ctx, "keycloak", "keycloak-http", "keycloakadmin")
+	err = createAuthSecret(ctx, ComponentNamespace, "keycloak-http", "keycloakadmin")
 	if err != nil {
 		return err
 	}
@@ -80,13 +90,13 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 
 func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	// Create secret for the verrazzano-prom-internal user
-	err := createAuthSecret(ctx, "verrazzano-system", "verrazzano-prom-internal", "verrazzano-prom-internal")
+	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-prom-internal", "verrazzano-prom-internal")
 	if err != nil {
 		return err
 	}
 
 	// Create secret for the verrazzano-es-internal user
-	err = createAuthSecret(ctx, "verrazzano-system", "verrazzano-es-internal", "verrazzano-es-internal")
+	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-es-internal", "verrazzano-es-internal")
 	if err != nil {
 		return err
 	}
@@ -104,7 +114,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		}
 	}
 
-	return nil
+	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
@@ -128,7 +138,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	// TLS cert from Cert Manager should be in Ready state
 	certName := getCertName(ctx.EffectiveCR())
 	certificate := &certmanager.Certificate{}
-	namespacedName := types.NamespacedName{Name: certName, Namespace: ComponentName}
+	namespacedName := types.NamespacedName{Name: certName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, certificate); err != nil {
 		ctx.Log().Infof("Keycloak isReady: Failed to get Keycloak Certificate: %s", err)
 		return false
@@ -141,10 +151,11 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	condition := certificate.Status.Conditions[0]
 	statefulsetName := []types.NamespacedName{
 		{
-			Namespace: ComponentName,
+			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 	}
 	return condition.Type == "Ready" &&
 		status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
 }
+
