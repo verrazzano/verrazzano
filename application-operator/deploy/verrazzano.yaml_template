@@ -94,6 +94,14 @@ rules:
     verbs:
       - '*'
   - apiGroups:
+      - app.verrazzano.io
+    resources:
+      - metricstemplates
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - clusters.verrazzano.io
     resources:
       - multiclusterapplicationconfigurations/status

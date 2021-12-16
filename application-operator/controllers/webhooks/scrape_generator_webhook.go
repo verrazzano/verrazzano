@@ -50,7 +50,7 @@ type ScrapeGeneratorWebhook struct {
 
 // Handle - handler for the mutating webhook
 func (a *ScrapeGeneratorWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	scrapeGeneratorLogger.Info(fmt.Sprintf("group: %s, version: %s, kind: %s, namespace: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace))
+	scrapeGeneratorLogger.Info(fmt.Sprintf("group: %s, version: %s, kind: %s, namespace: %s, name: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace, req.Name))
 
 	// Check the type of resource in the admission request
 	switch strings.ToLower(req.Kind.Kind) {
