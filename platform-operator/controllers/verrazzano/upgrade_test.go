@@ -668,9 +668,9 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{},
+	registry.OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"fakeCompName": fakeComponent{},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
@@ -757,9 +757,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{},
+	registry.OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"fakeCompName": fakeComponent{},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
@@ -847,15 +847,16 @@ func TestUpgradeHelmError(t *testing.T) {
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
+	registry.OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"fakeCompName": fakeComponent{
 				upgradeFunc: func(ctx spi.ComponentContext) error {
 					return fmt.Errorf("Error running upgrade")
 				},
 			},
 		}
 	})
+
 	defer registry.ResetGetComponentsFn()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
@@ -956,9 +957,9 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{
+	registry.OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"fakeCompName": fakeComponent{
 				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
 					return false, fmt.Errorf("Error running isInstalled")
 				},
@@ -1036,9 +1037,9 @@ func TestUpgradeComponent(t *testing.T) {
 
 	mockComp := mocks.NewMockComponent(mocker)
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			mockComp,
+	registry.OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"mockCompName": mockComp,
 		}
 	})
 	defer registry.ResetGetComponentsFn()
@@ -1119,10 +1120,10 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockEnabledComp := mocks.NewMockComponent(mocker)
 	mockDisabledComp := mocks.NewMockComponent(mocker)
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			mockEnabledComp,
-			mockDisabledComp,
+	registry.OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"mockEnabledCompName":  mockEnabledComp,
+			"mockDisabledCompName": mockDisabledComp,
 		}
 	})
 	defer registry.ResetGetComponentsFn()

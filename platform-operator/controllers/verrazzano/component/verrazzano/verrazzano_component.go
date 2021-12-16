@@ -27,8 +27,8 @@ const vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 func NewComponent() spi.Component {
 	return verrazzanoComponent{
 		helm.HelmComponent{
-			ReleaseName:             componentName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), componentName),
+			ReleaseName:             ComponentName,
+			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
@@ -45,10 +45,10 @@ func NewComponent() spi.Component {
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
-		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	if err := loggingPreInstall(ctx); err != nil {
-		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	return nil
 }

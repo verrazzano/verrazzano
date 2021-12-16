@@ -115,9 +115,9 @@ func TestSuccessfulInstall(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
 
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{},
+	registry.OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"fakeCompName": fakeComponent{},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
