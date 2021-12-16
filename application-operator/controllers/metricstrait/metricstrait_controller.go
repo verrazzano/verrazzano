@@ -1006,8 +1006,8 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 				if err != nil {
 					return job, nil, fmt.Errorf("failed to create a password_file: %w", err)
 				}
-				var passwd string = string(password)
-				err = os.WriteFile(filePath, []byte(passwd), 0666)
+
+				err = os.WriteFile(filePath, password, 0666)
 				if err != nil {
 					return job, nil, fmt.Errorf("failed to write to the password_file: %w", err)
 				}
