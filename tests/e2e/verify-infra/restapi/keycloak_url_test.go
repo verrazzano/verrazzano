@@ -23,7 +23,7 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 	)
 
 	framework.VzContext("Fetching the keycloak url using api and test ", func() {
-		framework.ItM(metricsLogger,"Fetches keycloak url", func() {
+		framework.ItM(metricsLogger, "Fetches keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -64,4 +64,3 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 })
 
 var _ = framework.AfterEachM(metricsLogger, func() {})
-

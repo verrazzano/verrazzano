@@ -70,7 +70,7 @@ var _ = framework.VzDescribe("VMI urls test", func() {
 			}
 		})
 
-		framework.ItM(metricsLogger,"Accesses VMI endpoints", func() {
+		framework.ItM(metricsLogger, "Accesses VMI endpoints", func() {
 			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

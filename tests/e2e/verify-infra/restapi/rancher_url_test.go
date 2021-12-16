@@ -27,7 +27,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 	)
 
 	Context("Fetching the rancher url using api and test ", func() {
-		framework.ItM(metricsLogger,"Fetches rancher url", func() {
+		framework.ItM(metricsLogger, "Fetches rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
