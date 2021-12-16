@@ -6,6 +6,7 @@ package metricstrait
 import (
 	"context"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -73,8 +74,9 @@ const (
 	// basicAuthUsernameLabel config label for Prometheus username
 	basicAuthUsernameLabel = "username"
 	// basicPathPasswordLabel config label for Prometheus password
-	basicPathPasswordLabel = "password"
-
+	//	basicPathPasswordLabel = "password"
+	// basicPasswordFileLabel config label for Prometheus password_file
+	basicPasswordFileLabel = "password_file"
 	// Template placeholders for the Prometheus scrape config template
 	appNameHolder       = "##APP_NAME##"
 	compNameHolder      = "##COMP_NAME##"
@@ -995,8 +997,21 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 				config.Set(string(username), basicAuthLabel, basicAuthUsernameLabel)
 			}
 			password, passwordFound := secret.Data["password"]
+			// if passwordFound {
+			//	config.Set(string(password), basicAuthLabel, basicPathPasswordLabel)
+			// }
 			if passwordFound {
-				config.Set(string(password), basicAuthLabel, basicPathPasswordLabel)
+				var filePath string = "/tmp/password_file_" + strconv.Itoa(rand.Intn(1000000))
+				_, err := os.Create(filePath)
+				if err != nil {
+					return job, nil, fmt.Errorf("failed to create a password_file: %w", err)
+				}
+				var passwd string = string(password)
+				err = os.WriteFile(filePath, []byte(passwd), 0666)
+				if err != nil {
+					return job, nil, fmt.Errorf("failed to write to the password_file: %w", err)
+				}
+				config.Set(filePath, basicAuthLabel, basicPasswordFileLabel)
 			}
 		}
 		return job, config, nil
