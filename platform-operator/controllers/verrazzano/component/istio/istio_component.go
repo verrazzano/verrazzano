@@ -227,7 +227,7 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 }
 
 // GetIngressNames returns the list of ingress names associated with the component
-func (i istioComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.NamespacedName {
+func (i istioComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
 	return []types.NamespacedName{}
 }
 

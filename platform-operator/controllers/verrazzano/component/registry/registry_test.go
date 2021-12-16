@@ -466,6 +466,6 @@ func (f fakeComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) GetIngressNames(cr *v1alpha1.Verrazzano) []types.NamespacedName {
+func (f fakeComponent) GetIngressNames(effectiveCR *v1alpha1.Verrazzano) []types.NamespacedName {
 	return []types.NamespacedName{}
 }

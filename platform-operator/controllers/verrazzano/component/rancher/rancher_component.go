@@ -254,4 +254,3 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 
 	return r.HelmComponent.PostInstall(ctx)
 }
-

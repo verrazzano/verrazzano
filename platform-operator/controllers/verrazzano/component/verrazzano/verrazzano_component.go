@@ -116,7 +116,7 @@ func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
-func (c verrazzanoComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.NamespacedName {
+func (c verrazzanoComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
 	ingressNames := []types.NamespacedName{
 		{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -124,28 +124,28 @@ func (c verrazzanoComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.Names
 		},
 	}
 
-	if vzconfig.IsElasticsearchEnabled(cr) {
+	if vzconfig.IsElasticsearchEnabled(effectiveCR) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name: constants.ElasticsearchIngress,
 		})
 	}
 
-	if vzconfig.IsGrafanaEnabled(cr) {
+	if vzconfig.IsGrafanaEnabled(effectiveCR) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name: constants.GrafanaIngress,
 		})
 	}
 
-	if vzconfig.IsKibanaEnabled(cr) {
+	if vzconfig.IsKibanaEnabled(effectiveCR) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name: constants.KibanaIngress,
 		})
 	}
 
-	if vzconfig.IsPrometheusEnabled(cr) {
+	if vzconfig.IsPrometheusEnabled(effectiveCR) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name: constants.PrometheusIngress,
