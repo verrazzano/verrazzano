@@ -144,7 +144,7 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 	}
 	helidonTestContainer := corev1.Container{
 		Name:  "hello-helidon-container-new",
-		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20211215184123-0a1b633",
 		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort,
 		},
@@ -205,7 +205,7 @@ func TestReconcileCreateHelidon(t *testing.T) {
 	}
 	helidonTestContainer := corev1.Container{
 		Name:  "hello-helidon-container-new",
-		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20211215184123-0a1b633",
 		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort,
 		},
@@ -318,14 +318,14 @@ func TestReconcileCreateHelidonWithMultipleContainers(t *testing.T) {
 	}
 	helidonTestContainer := corev1.Container{
 		Name:  "hello-helidon-container-new",
-		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20211215184123-0a1b633",
 		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort,
 		},
 	}
 	helidonTestContainer2 := corev1.Container{
 		Name:  "hello-helidon-container-new2",
-		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.10-3-20201016220428-56fb4d4",
+		Image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20211215184123-0a1b633",
 		Ports: []corev1.ContainerPort{
 			helidonTestContainerPort2,
 		},
