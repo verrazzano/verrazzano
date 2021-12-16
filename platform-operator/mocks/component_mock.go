@@ -8,9 +8,12 @@
 package mocks
 
 import (
-	gomock "github.com/golang/mock/gomock"
-	spi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	spi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // MockComponent is a mock of Component interface
@@ -218,3 +221,15 @@ func (mr *MockComponentMockRecorder) Upgrade(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upgrade", reflect.TypeOf((*MockComponent)(nil).Upgrade), arg0)
 }
+
+// GetIngressNames returns the list of ingress names associated with the component
+func (m *MockComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.NamespacedName {
+	return []types.NamespacedName{}
+}
+
+// GetIngressNames indicates an expected call of GetIngressNames
+func (mr *MockComponentMockRecorder) GetIngressNames(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNames", reflect.TypeOf((*MockComponent)(nil).GetIngressNames), arg0)
+}
+

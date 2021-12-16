@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -223,6 +224,11 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 	return nil
+}
+
+// GetIngressNames returns the list of ingress names associated with the component
+func (i istioComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.NamespacedName {
+	return []types.NamespacedName{}
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets

@@ -289,7 +289,7 @@ func TestPostInstall(t *testing.T) {
 
 	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
 	// when all the ingresses are present in the cluster
-	vzIngressNames := vzComp.(verrazzanoComponent).getIngressNames(ctx)
+	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx.EffectiveCR())
 	for _, ingressName := range vzIngressNames {
 		client.Create(context.TODO(), &v1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},

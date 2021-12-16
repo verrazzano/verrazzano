@@ -604,6 +604,9 @@ func TestUninstallComplete(t *testing.T) {
 		Time: time.Now(),
 	}
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -676,6 +679,9 @@ func TestUninstallComplete(t *testing.T) {
 	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
 	expectDeleteNamespace(mock)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -762,6 +768,9 @@ func TestUninstallStarted(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -861,6 +870,9 @@ func TestUninstallFailed(t *testing.T) {
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
 	expectDeleteNamespace(mock)
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -958,6 +970,9 @@ func TestUninstallSucceeded(t *testing.T) {
 	expectDeleteClusterRoleBinding(mock, getInstallNamespace(), name)
 	expectDeleteServiceAccount(mock, getInstallNamespace(), name)
 	expectDeleteNamespace(mock)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1275,6 +1290,9 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest(errMsg))
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -1333,6 +1351,9 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).
 		Return(errors.NewBadRequest(errMsg))
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -1394,6 +1415,9 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get Secret"))
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)

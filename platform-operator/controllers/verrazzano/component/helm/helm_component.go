@@ -452,3 +452,7 @@ func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
 	}
 	return installArgs
 }
+
+func (c HelmComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.NamespacedName {
+	return c.IngressNames
+}

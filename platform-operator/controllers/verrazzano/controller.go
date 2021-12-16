@@ -116,14 +116,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	spiContext, err := spi.NewContext(log, r, vz, r.DryRun)
+
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.Failed:
 		return r.FailedState(vz, log)
 	case installv1alpha1.Installing:
-		return r.InstallingState(vz, log)
+		return r.InstallingState(spiContext)
 	case installv1alpha1.Ready:
-		return r.ReadyState(vz, log)
+		return r.ReadyState(spiContext)
 	case installv1alpha1.Uninstalling:
 		return r.UninstallingState(vz, log)
 	case installv1alpha1.Upgrading:
@@ -134,17 +136,20 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // ReadyState processes the CR while in the ready state
-func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) ReadyState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	log := spiCtx.Log()
+	actualCR := spiCtx.ActualCR()
+
 	log.Debugf("enter ReadyState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
+	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, actualCR)
 	}
 
 	// Pre-populate the component status fields
-	result, err := r.initializeComponentStatus(log, vz)
+	result, err := r.initializeComponentStatus(log, actualCR)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
@@ -152,13 +157,13 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	// If Verrazzano is installed see if upgrade is needed
-	if isInstalled(vz.Status) {
+	if isInstalled(actualCR.Status) {
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
-		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
-			return r.reconcileUpgrade(log, vz)
+		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
+			return r.reconcileUpgrade(log, actualCR)
 		}
-		if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+		if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 			return newRequeueWithDelay(), err
 		} else if shouldRequeue(result) {
 			return result, nil
@@ -167,8 +172,8 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
-	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
-		err := r.doesOCIDNSConfigSecretExist(vz)
+	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {
+		err := r.doesOCIDNSConfigSecretExist(actualCR)
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
@@ -189,7 +194,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	// Change the state back to ready if install complete otherwise requeue
-	done, err := r.checkInstallComplete(log, vz)
+	done, err := r.checkInstallComplete(spiCtx)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -198,34 +203,36 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	// Delete leftover uninstall job if we find one.
-	err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), getInstallNamespace(), log)
+	err = r.cleanupUninstallJob(buildUninstallJobName(actualCR.Name), getInstallNamespace(), log)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
 
 	// Change the state to installing
-	err = r.setInstallingState(log, vz)
+	err = r.setInstallingState(log, actualCR)
 	return newRequeueWithDelay(), err
 }
 
 // InstallingState processes the CR while in the installing state
-func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) InstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	log := spiCtx.Log()
+	actualCR := spiCtx.ActualCR()
 	log.Debugf("enter InstallingState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
+	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, actualCR)
 	}
 
-	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+	if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
 		return result, nil
 	}
 
 	// Change the state back to ready if install complete otherwise requeue
-	done, err := r.checkInstallComplete(log, vz)
+	done, err := r.checkInstallComplete(spiCtx)
 	if !done || err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -383,8 +390,10 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.Suga
 }
 
 // checkInstallComplete checks to see if the install is complete
-func (r *Reconciler) checkInstallComplete(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (bool, error) {
-	ready, err := r.checkComponentReadyState(log, vz)
+func (r *Reconciler) checkInstallComplete(spiCtx spi.ComponentContext) (bool, error) {
+	log := spiCtx.Log()
+	actualCR := spiCtx.ActualCR()
+	ready, err := r.checkComponentReadyState(log, actualCR)
 	if err != nil {
 		return false, err
 	}
@@ -393,8 +402,11 @@ func (r *Reconciler) checkInstallComplete(log *zap.SugaredLogger, vz *installv1a
 	}
 	// Set install complete IFF all subcomponent status' are "Ready"
 	message := "Verrazzano install completed successfully"
-	vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
-	return true, r.updateStatus(log, vz, message, installv1alpha1.InstallComplete)
+	// To get the instance info, we need the effective CR with component enabed/disabled statuses.
+	actualCR.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, spiCtx.EffectiveCR())
+
+	// Status update must be performed on the actual CR read from K8S
+	return true, r.updateStatus(log, actualCR, message, installv1alpha1.InstallComplete)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
