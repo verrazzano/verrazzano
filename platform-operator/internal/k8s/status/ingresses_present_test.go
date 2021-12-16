@@ -29,9 +29,9 @@ func TestIngressesPresent(t *testing.T) {
 
 	var noName []types.NamespacedName = nil
 	var tests = []struct {
-		name  string
-		c     client.Client
-		n     []types.NamespacedName
+		name    string
+		c       client.Client
+		n       []types.NamespacedName
 		present bool
 	}{
 		{

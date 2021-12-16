@@ -117,6 +117,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	spiContext, err := spi.NewContext(log, r, vz, r.DryRun)
+	if err != nil {
+		log.Errorf("Could not create component context: %v", err)
+		return newRequeueWithDelay(), err
+	}
 
 	// Process CR based on state
 	switch vz.Status.State {
@@ -393,7 +397,7 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.Suga
 func (r *Reconciler) checkInstallComplete(spiCtx spi.ComponentContext) (bool, error) {
 	log := spiCtx.Log()
 	actualCR := spiCtx.ActualCR()
-	ready, err := r.checkComponentReadyState(log, actualCR)
+	ready, err := r.checkComponentReadyState(spiCtx)
 	if err != nil {
 		return false, err
 	}
@@ -630,7 +634,8 @@ func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alp
 }
 
 // checkComponentReadyState returns true if all component-level status' are "Ready" for enabled components
-func (r *Reconciler) checkComponentReadyState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (bool, error) {
+func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (bool, error) {
+	cr := context.ActualCR()
 	if unitTesting {
 		for _, compStatus := range cr.Status.Components {
 			if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
@@ -640,10 +645,6 @@ func (r *Reconciler) checkComponentReadyState(log *zap.SugaredLogger, cr *instal
 		return true, nil
 	}
 
-	context, err := spi.NewContext(log, r, cr, r.DryRun)
-	if err != nil {
-		return false, err
-	}
 	// Return false if any enabled component is not ready
 	for _, comp := range registry.GetComponents() {
 		if comp.IsEnabled(context) && cr.Status.Components[comp.Name()].State != installv1alpha1.Ready {
