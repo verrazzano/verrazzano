@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -463,4 +464,8 @@ func (f fakeComponent) Upgrade(context spi.ComponentContext) error {
 
 func (f fakeComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
+}
+
+func (f fakeComponent) GetIngressNames(cr *v1alpha1.Verrazzano) []types.NamespacedName {
+	return []types.NamespacedName{}
 }

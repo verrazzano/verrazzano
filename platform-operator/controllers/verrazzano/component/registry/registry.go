@@ -73,12 +73,6 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 		return true, foundComp
 	}
 	return false, &helm.HelmComponent{}
-	/*for _, comp := range GetComponents() {
-		if comp.Name() == releaseName {
-			return true, comp
-		}
-	}
-	return false, &helm.HelmComponent{}*/
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
