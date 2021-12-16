@@ -44,7 +44,7 @@ func TestVzContext(t *testing.T) {
 // TestVzCurrentGinkgoTestDescription
 func TestVzCurrentGinkgoTestDescription(t *testing.T) {
 	result := VzCurrentGinkgoTestDescription()
-	assert.True(t, reflect.DeepEqual(result, ginkgo.GinkgoTestDescription{}))
+	assert.True(t, reflect.DeepEqual(result, ginkgo.CurrentSpecReport()))
 }
 
 // TestVzDescribe
