@@ -93,6 +93,8 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 // getRequestedResource returns an Unstructured value from the namespace and name given in the request
 func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
 	uns := unstructured.Unstructured{}
+	// TODO: Replace with more generic lookup
+	uns.SetGroupVersionKind(schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "Deployment"})
 	if err := r.Client.Get(context.TODO(), namespacedName, &uns); err != nil {
 		return nil, err
 	}
