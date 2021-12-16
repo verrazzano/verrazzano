@@ -14,6 +14,7 @@ import (
 
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vztime "github.com/verrazzano/verrazzano/pkg/time"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -77,6 +78,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	cmapiv1.AddToScheme(r.Scheme)
 
 	log.Debugf("Reconciler called")
+	return ctrl.Result{}, errors.NewBadRequest("testing backoff")
 
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
@@ -439,7 +441,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
+				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
+				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
 		}).
 		For(&installv1alpha1.Verrazzano{}).Build(r)
 	return err

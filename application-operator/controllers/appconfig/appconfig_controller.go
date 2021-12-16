@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vztime "github.com/verrazzano/verrazzano/pkg/time"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/util/workqueue"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -32,6 +35,11 @@ type Reconciler struct {
 // SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
+				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
+				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
+		}).
 		For(&oamv1.ApplicationConfiguration{}).
 		Complete(r)
 }

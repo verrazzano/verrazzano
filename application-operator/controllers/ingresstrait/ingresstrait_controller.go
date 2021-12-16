@@ -9,6 +9,7 @@ import (
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	vztime "github.com/verrazzano/verrazzano/pkg/time"
 	"k8s.io/client-go/util/workqueue"
 	"reflect"
 	"strings"
@@ -80,7 +81,9 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
+				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
+				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
 		}).
 		For(&vzapi.IngressTrait{}).
 		Complete(r)

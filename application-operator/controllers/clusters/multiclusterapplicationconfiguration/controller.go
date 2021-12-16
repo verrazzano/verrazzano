@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vztime "github.com/verrazzano/verrazzano/pkg/time"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -99,7 +100,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(vzconst.ControllerBaseDelay, vzconst.ControllerMaxDelay),
+			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
+				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
+				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
 		}).
 		For(&clustersv1alpha1.MultiClusterApplicationConfiguration{}).
 		Complete(r)
