@@ -31,7 +31,7 @@ const ScrapeGeneratorLoadPath = "/scrape-generator"
 // StatusReasonSuccess constant for successful response
 const StatusReasonSuccess = "success"
 
-const ( app.verrazzano.io/metrics
+const (
 	MetricsAnnotation            = "app.verrazzano.io/metrics"
 	MetricsWorkloadUIDLabel      = "app.verrazzano.io/metrics-workload-uid"
 	MetricsTemplateUIDLabel      = "app.verrazzano.io/metrics-template-uid"
