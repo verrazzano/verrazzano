@@ -26,7 +26,7 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 )
 
-var metricsLogger, _ = metrics.NewMetricsLogger("metrics")
+var metricsLogger, _ = metrics.NewMetricsLogger("helidon")
 
 var _ = framework.VzBeforeSuite(func() {
 	if !skipDeploy {

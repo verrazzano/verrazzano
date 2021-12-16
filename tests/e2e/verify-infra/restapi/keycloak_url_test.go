@@ -49,7 +49,7 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 				Expect(keycloakURL).NotTo(BeEmpty())
 				var httpResponse *pkg.HTTPResponse
 
-				metricsLogger, _ := metrics.NewMetricsLogger("metrics")
+				metricsLogger, _ := metrics.NewMetricsLogger("restapi_test")
 				start := time.Now()
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					var err error
