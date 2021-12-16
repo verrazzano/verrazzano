@@ -116,7 +116,7 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		// Look for a matching metrics template workload whose workload selector matches.
 		// First, check the namespace of the workload resource and then check the verrazzano-system namespace
 		// NOTE: use the first match for now
-		var metricsTemplate = &vzapp.MetricsTemplate{}
+		var metricsTemplate *vzapp.MetricsTemplate
 		found := true
 		metricsTemplate, err := a.findMatchingTemplate(ctx, unst, unst.GetNamespace())
 		if err != nil {
