@@ -281,7 +281,7 @@ func (r *Reconciler) getResourceFromUID(ctx context.Context, resource k8sruntime
 	objects := unstructured.UnstructuredList{}
 	objectKind := resource.GetObjectKind()
 	gvk := objectKind.GroupVersionKind()
-	objects.SetAPIVersion(gvk.Version)
+	objects.SetAPIVersion(gvk.GroupVersion().String())
 	objects.SetKind(gvk.Kind + "List")
 	err := r.Client.List(ctx, &objects)
 	if err != nil {
