@@ -6,6 +6,7 @@ package restapi_test
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"time"
 
@@ -48,11 +49,14 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 				Expect(keycloakURL).NotTo(BeEmpty())
 				var httpResponse *pkg.HTTPResponse
 
+				metricsLogger, _ := metrics.NewMetricsLogger("metrics")
+				start := time.Now()
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					var err error
 					httpResponse, err = pkg.GetWebPage(keycloakURL, "")
 					return httpResponse, err
 				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
+				metrics.Emit(metricsLogger.With("verify_infra_keycloak_url_web_response_time", time.Since(start)))
 
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 			}
