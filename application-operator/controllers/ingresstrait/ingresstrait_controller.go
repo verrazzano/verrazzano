@@ -129,7 +129,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	} else if len(services) == 0 {
 		// This will be the case if the service has not started yet so we requeue and try again.
-		return reconcile.Result{Requeue: true}, err
+		return reconcile.Result{Requeue: true, RequeueAfter: vzconst.ControllerBaseDelay}, err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
