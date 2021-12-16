@@ -32,9 +32,11 @@ const (
 
 type (
 	GinkgoLogFormatter struct {
+		uuid    string
 		writers []zapcore.WriteSyncer
 	}
 	GinkgoLogMessage struct {
+		SuiteUUID string `json:"suite_uuid"`
 		Data      string `json:"msg"`
 		Timestamp int64  `json:"timestamp"`
 		Test      string `json:"test,omitempty"`
@@ -96,13 +98,16 @@ func NewMetricsLogger(pkg string) (*zap.SugaredLogger, error) {
 		return nil, err
 	}
 
-	TeeWriters()
-	return log.Sugar().With("suite_uuid", uuid.NewUUID()).With("package", pkg), nil
+	suiteUUID := uuid.NewUUID()
+
+	TeeWriters(string(suiteUUID))
+	return log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg), nil
 }
 
-func (g GinkgoLogFormatter) Write(data []byte) (int, error) {
+func (g *GinkgoLogFormatter) Write(data []byte) (int, error) {
 	//spec := ginkgo.CurrentSpecReport()
 	msg := GinkgoLogMessage{
+		SuiteUUID: g.uuid,
 		Data:      string(data),
 		Timestamp: Millis(),
 		//Test:      spec.LeafNodeText,
@@ -128,7 +133,7 @@ func Millis() int64 {
 
 //configureOutputs configures the search output path if it is available
 func configureOutputs() ([]string, error) {
-	outputs := []string{"stdout"}
+	var outputs []string
 	searchWriter, err := SearchWriterFromEnv(metricsIndex)
 
 	// Register SearchWriter
@@ -145,16 +150,20 @@ func configureOutputs() ([]string, error) {
 }
 
 //TeeWriters adds any WriteSyncer implementations to the Ginkgo output tee
-func TeeWriters() {
+func TeeWriters(suiteUUID string) {
+	ginkgo.GinkgoWriter.ClearTeeWriters()
 	var writers []zapcore.WriteSyncer
 	searchWriter, err := SearchWriterFromEnv(testLogIndex)
-	if err != nil {
+	if err == nil {
 		logger.Debug("configured new SearchWriter")
 		writers = append(writers, searchWriter)
 	}
 
 	if len(writers) > 0 {
-		logFormatter := GinkgoLogFormatter{writers: writers}
+		logFormatter := &GinkgoLogFormatter{
+			uuid:    suiteUUID,
+			writers: writers,
+		}
 		ginkgo.GinkgoWriter.TeeTo(logFormatter)
 	}
 }
