@@ -5,10 +5,13 @@ package framework
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"go.uber.org/zap"
 	"reflect"
 	"time"
+
+	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite
@@ -37,6 +40,17 @@ func VzAfterSuite(body interface{}) bool {
 		pkg.Log(pkg.Info, "AfterSuite ended - placeholder for making API call to emit test related metric(s)")
 	})
 	return true
+}
+
+//ItM wraps It to emit a metric
+func ItM(log *zap.SugaredLogger, text string, body interface{}) bool {
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
+	return ginkgo.It(text, func() {
+		metrics.Emit(log.With(metrics.Status, metrics.Started)) // Starting point metric
+		reflect.ValueOf(body).Call([]reflect.Value{})
+	})
 }
 
 // VzIt - wrapper function for ginkgo It
@@ -70,6 +84,17 @@ func VzBeforeEach(body interface{}) bool {
 	pkg.Log(pkg.Debug, "VzBeforeEach wrapper")
 	ginkgo.BeforeEach(body)
 	return true
+}
+
+//AfterEachM wraps after each to emit a metric
+func AfterEachM(log *zap.SugaredLogger, body interface{}) bool {
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
+	return ginkgo.AfterEach(func() {
+		metrics.Emit(log) // Starting point metric
+		reflect.ValueOf(body).Call([]reflect.Value{})
+	})
 }
 
 // VzAfterEach - wrapper function for ginkgo AfterEach
