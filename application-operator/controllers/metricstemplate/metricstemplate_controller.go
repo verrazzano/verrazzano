@@ -201,16 +201,23 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 	}
 
 	// Get the namespace for the template
-	resourceNamespace := unstructured.Unstructured{}
+	resourceNamespace := v1.Namespace{}
 	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace(), Namespace: constants.DefaultNamespace}, &resourceNamespace)
 	if err != nil {
 		return err
 	}
 
+	// Create Unstructured Namespace
+	resourceNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&resourceNamespace)
+	if err != nil {
+		return err
+	}
+	resourceNamespaceUnstructured := unstructured.Unstructured{Object: resourceNamespaceUnstructuredMap}
+
 	// Organize inputs for template processor
 	templateInputs := map[string]interface{}{
 		"workload":  resource.Object,
-		"namespace": resourceNamespace.Object,
+		"namespace": resourceNamespaceUnstructured.Object,
 	}
 
 	// Get scrape config from the template processor and process the template inputs
