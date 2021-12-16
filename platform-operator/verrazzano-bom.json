@@ -181,7 +181,7 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "1.1.0-20211215040101-8b3d2c8",
+              "tag": "1.1.0-20211125052407-cb338f3",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
