@@ -68,6 +68,8 @@ func (a *ScrapeGeneratorWebhook) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
+// handleWorkloadResource decodes the admission request for a workload resource into an unstructured
+// and then processes workload resource
 func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req admission.Request) admission.Response {
 	unst := &unstructured.Unstructured{}
 	err := a.Decoder.Decode(req, unst)
