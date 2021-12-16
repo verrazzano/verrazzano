@@ -60,7 +60,7 @@ pipeline {
 
                 script {
 
-                    GIT_COMMIT_TO_USE = "63a51f7869ca27bf3c8d9e3bc9af70ebc4a5d5e4"
+                    GIT_COMMIT_TO_USE = "70e61bdb19e1d502b7dd339b47715e330c84541f"
                     echo "SCM checkout of ${GIT_COMMIT_TO_USE}"
                     def scmInfo = checkout([
                         $class: 'GitSCM',
