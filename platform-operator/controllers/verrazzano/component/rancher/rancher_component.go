@@ -42,10 +42,10 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
-			IngressNames:            []types.NamespacedName{
+			IngressNames: []types.NamespacedName{
 				{
 					Namespace: common.CattleSystem,
-					Name: common.RancherIngressName,
+					Name:      common.RancherIngressName,
 				},
 			},
 		},

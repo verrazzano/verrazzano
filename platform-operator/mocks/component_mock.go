@@ -232,4 +232,3 @@ func (mr *MockComponentMockRecorder) GetIngressNames(arg0 interface{}) *gomock.C
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressNames", reflect.TypeOf((*MockComponent)(nil).GetIngressNames), arg0)
 }
-
