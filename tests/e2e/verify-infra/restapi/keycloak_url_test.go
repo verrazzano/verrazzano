@@ -55,7 +55,7 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 					httpResponse, err = pkg.GetWebPage(keycloakURL, "")
 					return httpResponse, err
 				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
-				metrics.Emit(metricsLogger.With("verify_infra_keycloak_url_web_response_time", time.Since(start)))
+				metrics.Emit(metricsLogger.With("url_web_response_time", time.Since(start).Milliseconds()))
 
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 			}

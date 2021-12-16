@@ -115,7 +115,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
-				metrics.Emit(metricsLogger.With("get_token_elapsed_time", time.Since(start)))
+				metrics.Emit(metricsLogger.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
 				state := ""
@@ -155,7 +155,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
-				metrics.Emit(metricsLogger.With("get_cluster_state_elapsed_time", time.Since(start)))
+				metrics.Emit(metricsLogger.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(state).To(Equal("active"), "rancher local cluster not in active state")
 			}

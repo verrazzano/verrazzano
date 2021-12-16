@@ -45,7 +45,7 @@ var _ = framework.VzBeforeSuite(func() {
 		Eventually(func() error {
 			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
-		metrics.Emit(metricsLogger.With("deployment_elapsed_time", time.Since(start)))
+		metrics.Emit(metricsLogger.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
@@ -64,7 +64,7 @@ var _ = framework.VzAfterSuite(func() {
 		Eventually(func() error {
 			return pkg.DeleteNamespace("hello-helidon")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-		metrics.Emit(metricsLogger.With("undeployment_elapsed_time", time.Since(start)))
+		metrics.Emit(metricsLogger.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
