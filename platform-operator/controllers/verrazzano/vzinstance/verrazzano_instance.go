@@ -80,7 +80,7 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, cr *v1alpha1.Verra
 		return nil
 	}
 	ingNames := comp.GetIngressNames(cr)
-	if ingNames == nil || len(ingNames) == 0 {
+	if len(ingNames) == 0 {
 		zap.S().Debugf("No ingress found for component %s", componentName)
 		return nil
 	}

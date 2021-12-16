@@ -429,6 +429,10 @@ func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
 }
 
+func (h HelmComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
+	return h.IngressNames
+}
+
 // GetInstallArgs returns the list of install args as Helm value pairs
 func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
 	installArgs := []bom.KeyValue{}
@@ -450,8 +454,4 @@ func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
 		}
 	}
 	return installArgs
-}
-
-func (c HelmComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
-	return c.IngressNames
 }
