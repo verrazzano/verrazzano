@@ -43,16 +43,14 @@ func VzAfterSuite(body interface{}) bool {
 }
 
 //ItM wraps It to emit a metric
-func ItM(log *zap.SugaredLogger, text string, body interface{}) *zap.SugaredLogger {
+func ItM(log *zap.SugaredLogger, text string, body interface{}) bool {
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
-	ginkgo.It(text, func() {
+	return ginkgo.It(text, func() {
 		metrics.Emit(log.With(metrics.Status, metrics.Started)) // Starting point metric
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	})
-
-	return log
 }
 
 // VzIt - wrapper function for ginkgo It
@@ -94,7 +92,6 @@ func AfterEachM(log *zap.SugaredLogger, body interface{}) bool {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
 	return ginkgo.AfterEach(func() {
-
 		metrics.Emit(log.With(metrics.Duration, metrics.DurationMillis()))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	})
