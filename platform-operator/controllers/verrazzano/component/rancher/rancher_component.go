@@ -40,6 +40,12 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
+			IngressNames:            []types.NamespacedName{
+				{
+					Namespace: common.CattleSystem,
+					Name: common.RancherIngressName,
+				},
+			},
 		},
 	}
 }
@@ -240,5 +246,10 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	return rest.PutServerURL()
+	if err := rest.PutServerURL(); err != nil {
+		return err
+	}
+
+	return r.HelmComponent.PostInstall(ctx)
 }
+

@@ -26,6 +26,7 @@ const (
 
 	kialiHostName    = "kiali.vmi.system"
 	kialiSystemName  = "vmi-system-kiali"
+	kialiIngressName = kialiSystemName
 	kialiServicePort = "20001"
 	kialiMetricsPort = "9090"
 	webFQDNKey       = "server.web_fqdn"
