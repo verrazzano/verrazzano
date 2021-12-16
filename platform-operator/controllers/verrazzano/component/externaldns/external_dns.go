@@ -24,6 +24,7 @@ const (
 	externalDNSNamespace      = "cert-manager"
 	externalDNSDeploymentName = "external-dns"
 	ociSecretFileName         = "oci.yaml"
+	imagePullSecretHelmKey    = "global.imagePullSecrets[0]"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
