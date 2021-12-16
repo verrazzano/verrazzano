@@ -315,7 +315,12 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.NotNil(t, res.Patches)
-	assert.Len(t, res.Patches, 3)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-prometheus-configmap-uid")
+	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-template-uid")
+	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-workload-uid")
 }
 
 // TestHandleMetricsTemplateSystemNamespace tests the handling of a workload resource which references a metrics
@@ -363,7 +368,12 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.NotNil(t, res.Patches)
-	assert.Len(t, res.Patches, 3)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-prometheus-configmap-uid")
+	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-template-uid")
+	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-workload-uid")
 }
 
 // TestHandleMetricsTemplateConfigMapNotFound tests the handling of a workload resource which references a metrics
@@ -469,7 +479,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 	assert.NotNil(t, res.Patches)
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/annotations", res.Patches[0].Path)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-prometheus-configmap-uid")
 	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-template-uid")
 	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-workload-uid")
@@ -533,7 +543,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 	assert.NotNil(t, res.Patches)
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/annotations", res.Patches[0].Path)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-prometheus-configmap-uid")
 	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-template-uid")
 	assert.Contains(t, res.Patches[0].Value, "app.verrazzano.io/metrics-workload-uid")

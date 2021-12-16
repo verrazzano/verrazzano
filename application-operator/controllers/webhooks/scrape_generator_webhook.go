@@ -31,11 +31,11 @@ const ScrapeGeneratorLoadPath = "/scrape-generator"
 // StatusReasonSuccess constant for successful response
 const StatusReasonSuccess = "success"
 
-const (
-	MetricsAnnotation                 = "app.verrazzano.io/metrics"
-	MetricsWorkloadUIDAnnotation      = "app.verrazzano.io/metrics-workload-uid"
-	MetricsTemplateUIDAnnotation      = "app.verrazzano.io/metrics-template-uid"
-	MetricsPromConfigMapUIDAnnotation = "app.verrazzano.io/metrics-prometheus-configmap-uid"
+const ( app.verrazzano.io/metrics
+	MetricsAnnotation            = "app.verrazzano.io/metrics"
+	MetricsWorkloadUIDLabel      = "app.verrazzano.io/metrics-workload-uid"
+	MetricsTemplateUIDLabel      = "app.verrazzano.io/metrics-template-uid"
+	MetricsPromConfigMapUIDLabel = "app.verrazzano.io/metrics-prometheus-configmap-uid"
 )
 
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
@@ -94,8 +94,8 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	}
 
 	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
-	if metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
-		if metricsTemplate == "none" {
+	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
+		if metricsTemplateAnnotation == "none" {
 			return admission.Allowed(StatusReasonSuccess)
 		}
 	}
@@ -107,9 +107,9 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	}
 
 	// Workload resource specifies a valid metrics template.
-	// We use that metrics template and add the required annotations.
+	// We use that metrics template and add the required labels.
 	if metricsTemplate != nil {
-		err = a.populateAnnotations(ctx, unst, metricsTemplate)
+		err = a.populateLabels(ctx, unst, metricsTemplate)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
@@ -135,9 +135,9 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 			metricsTemplate = template
 		}
 
-		// We found a matching metrics template so add the required annotations.
+		// We found a matching metrics template so add the required labels.
 		if found {
-			err = a.populateAnnotations(ctx, unst, metricsTemplate)
+			err = a.populateLabels(ctx, unst, metricsTemplate)
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
@@ -179,10 +179,10 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 	return nil, nil
 }
 
-// populateAnnotations adds metrics annotations to the workload resource
-func (a *ScrapeGeneratorWebhook) populateAnnotations(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
+// populateLabels adds metrics labels to the workload resource
+func (a *ScrapeGeneratorWebhook) populateLabels(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
 	// When the Prometheus target config map was not specified in the metrics template then we do not update
-	// the workload resource annotations.
+	// the workload resource labels.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
 		return nil
 	}
@@ -191,16 +191,16 @@ func (a *ScrapeGeneratorWebhook) populateAnnotations(ctx context.Context, unst *
 	if err != nil {
 		return err
 	}
-	annotations := unst.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
+	labels := unst.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
 	}
 
-	annotations[MetricsWorkloadUIDAnnotation] = string(unst.GetUID())
-	annotations[MetricsTemplateUIDAnnotation] = string(template.UID)
-	annotations[MetricsPromConfigMapUIDAnnotation] = string(configMap.UID)
+	labels[MetricsWorkloadUIDLabel] = string(unst.GetUID())
+	labels[MetricsTemplateUIDLabel] = string(template.UID)
+	labels[MetricsPromConfigMapUIDLabel] = string(configMap.UID)
 
-	unst.SetAnnotations(annotations)
+	unst.SetLabels(labels)
 
 	return nil
 }
