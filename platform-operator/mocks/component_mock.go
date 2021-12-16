@@ -223,7 +223,7 @@ func (mr *MockComponentMockRecorder) Upgrade(arg0 interface{}) *gomock.Call {
 }
 
 // GetIngressNames returns the list of ingress names associated with the component
-func (m *MockComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.NamespacedName {
+func (m *MockComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
 	return []types.NamespacedName{}
 }
 

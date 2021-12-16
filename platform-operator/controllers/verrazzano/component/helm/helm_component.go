@@ -66,10 +66,10 @@ type HelmComponent struct {
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
-	//SupportsOperatorInstall Indicates whether or not the component supports install via the operator
+	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
-	//WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
+	// WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
 	WaitForInstall bool
 
 	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
@@ -84,8 +84,7 @@ type HelmComponent struct {
 
 	// The minimum required Verrazzano version.
 	MinVerrazzanoVersion string
-
-	IngressNames []types.NamespacedName
+	IngressNames         []types.NamespacedName
 }
 
 // Verify that HelmComponent implements Component
@@ -234,7 +233,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	}
 
 	// If the component has any ingresses associated, those should be present
-	if !status.IngressesPresent(context.Log(), context.Client(), h.IngressNames) {
+	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context.EffectiveCR())) {
 		return ctrlerrors.RetryableError{
 			Source: h.ReleaseName,
 			Operation: "Check if Ingresses are present",
@@ -453,6 +452,6 @@ func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
 	return installArgs
 }
 
-func (c HelmComponent) GetIngressNames(cr *vzapi.Verrazzano) []types.NamespacedName {
+func (c HelmComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
 	return c.IngressNames
 }
