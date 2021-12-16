@@ -11,6 +11,7 @@ import (
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -90,17 +91,17 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 }
 
 // getRequestedResource returns an Unstructured value from the namespace and name given in the request
-func (r *Reconciler) getRequestedResource (namespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
-	var uns *unstructured.Unstructured
-	r.Log.Info("Fetch related resource", "resource", namespacedName)
-	if err := r.Client.Get(context.TODO(), namespacedName, uns); err != nil {
+func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
+	uns := unstructured.Unstructured{}
+	if err := r.Client.Get(context.TODO(), namespacedName, &uns); err != nil {
 		return nil, err
 	}
-	return uns, nil
+	return &uns, nil
 }
 
 // reconcileTraitDelete completes the reconcile process for an object that is being deleted
 func (r *Reconciler) reconcileTraitDelete(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
+	r.Log.V(2).Info("Reconcile for deleted object", "resource", resource.GetName())
 	if err := r.mutatePrometheusScrapeConfig(ctx, resource, r.deleteScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
@@ -109,13 +110,17 @@ func (r *Reconciler) reconcileTraitDelete(ctx context.Context, resource *unstruc
 
 // reconcileTraitCreateOrUpdate completes the reconcile process for an object that is being created or updated
 func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
+	r.Log.V(2).Info("Reconcile for created or updated object", "resource", resource.GetName())
 	if err := r.mutatePrometheusScrapeConfig(ctx, resource, r.createOrUpdateScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 	return k8scontroller.Result{}, nil
 }
 
+// mutatePrometheusScrapeConfig takes the resource and a mutate function that determines the mutations of the scrape config
+// mutations are dependant upon the status of the deletion timestamp
 func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource *unstructured.Unstructured, mutatefn func(configMap *v1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error) error {
+	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", resource.GetName())
 	// Verify that the configmap label
 	labels := resource.GetLabels()
 	configmapUID, labelExists := labels["app.verrazzano.io/metrics-prometheus-configmap-uid"]
@@ -137,11 +142,16 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 	}
 
 	//Apply the updated configmap
-	r.Client.Update(ctx, &configMap)
+	err = r.Client.Update(ctx, &configMap)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
+// Delete scrape config is a mutation function that deletes the scrape config data from the Prometheus ConfigMap
 func (r *Reconciler) deleteScrapeConfig(configMap *v1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
+	r.Log.V(2).Info("Scrape Config is being deleted from the Prometheus Config", "resource", resource.GetName())
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
 	if err != nil {
@@ -170,7 +180,9 @@ func (r *Reconciler) deleteScrapeConfig(configMap *v1.ConfigMap, namespacedName 
 	return nil
 }
 
+// createOrUpdateScrapeConfig is a mutation function that creates or updates the scrape config data within the given Prometheus ConfigMap
 func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
+	r.Log.V(2).Info("Scrape Config is being created or update in the Prometheus config", "resource", resource.GetName())
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
 	if err != nil {
@@ -187,33 +199,44 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 	}
 
 	// Get the namespace for the template
-	var resourceNamespace *unstructured.Unstructured
-	r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace(), Namespace: constants.DefaultNamespace}, resourceNamespace)
+	resourceNamespace := unstructured.Unstructured{}
+	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace(), Namespace: constants.DefaultNamespace}, &resourceNamespace)
+	if err != nil {
+		return err
+	}
 
 	// Organize inputs for template processor
 	templateInputs := map[string]interface{}{
-		"workload": &resource,
-		"namespace": &resourceNamespace,
+		"workload":  resource.Object,
+		"namespace": resourceNamespace.Object,
 	}
 
-	// Get scrape config from the template processor and convert it to
+	// Get scrape config from the template processor and process the template inputs
 	templateProcessor := vztemplate.NewProcessor(r.Client, metricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate)
 	scrapeConfigString, err := templateProcessor.Process(templateInputs)
 	if err != nil {
 		return err
 	}
+
+	// Prepend job name to the template
+	createdJobName := createJobName(namespacedName, resource.GetUID())
+	scrapeConfigString = formatJobName(createdJobName) + scrapeConfigString
+
+	// Format scrape config into readable container
 	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
 	if err != nil {
 		return err
 	}
 	newScrapeConfig, err := gabs.ParseJSON(configYaml)
+	if err != nil {
+		return err
+	}
 
 	// Create or Update scrape config with job name matching resource
 	existingUpdated := false
 	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
 	for index, scrapeConfig := range scrapeConfigs {
 		existingJobName := scrapeConfig.Search(prometheusJobNameLabel).Data()
-		createdJobName := createJobName(namespacedName, resource.GetUID())
 		if existingJobName == createdJobName {
 			// Remove and recreate scrape config
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
@@ -232,7 +255,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 		err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 	}
 
-	// Repopulate the configmap data
+	// Repopulate the ConfigMap data
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
 		return err
@@ -241,16 +264,28 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 	return nil
 }
 
+// getResourceFromUID will return a Kubernetes resource given a template object and UID
 func (r *Reconciler) getResourceFromUID(ctx context.Context, resource k8sruntime.Object, objectUID string) error {
-	var objects *unstructured.UnstructuredList
-	r.Client.List(ctx, objects)
+	objects := unstructured.UnstructuredList{}
+	objectKind := resource.GetObjectKind()
+	gvk := objectKind.GroupVersionKind()
+	objects.SetAPIVersion(gvk.Version)
+	objects.SetKind(gvk.Kind + "List")
+	err := r.Client.List(ctx, &objects)
+	if err != nil {
+		return err
+	}
 	for _, object := range objects.Items {
 		if string(object.GetUID()) == objectUID {
 			err := k8sruntime.DefaultUnstructuredConverter.FromUnstructured(object.UnstructuredContent(), resource)
 			if err != nil {
 				return err
 			}
+			return nil
 		}
 	}
-	return nil
+	return errors.NewNotFound(schema.GroupResource{
+		Group:    gvk.Group,
+		Resource: gvk.Kind,
+	}, objectUID)
 }

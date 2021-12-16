@@ -1,0 +1,217 @@
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - vmi-system-alertmanager:9093
+global:
+  evaluation_interval: 30s
+  scrape_interval: 20s
+rule_files:
+- /etc/prometheus/rules/*.rules
+scrape_configs:
+- job_name: prometheus
+  scrape_interval: 20s
+  scrape_timeout: 15s
+  static_configs:
+  - targets:
+    - localhost:9090
+- job_name: node-exporter
+  kubernetes_sd_configs:
+  - role: endpoints
+  relabel_configs:
+  - action: keep
+    regex: node-exporter
+    source_labels:
+    - __meta_kubernetes_endpoints_name
+  scrape_interval: 20s
+  scrape_timeout: 15s
+- bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+  job_name: cadvisor
+  kubernetes_sd_configs:
+  - role: node
+  relabel_configs:
+  - action: labelmap
+    regex: __meta_kubernetes_node_label_(.+)
+  - replacement: kubernetes.default.svc:443
+    target_label: __address__
+  - regex: (.+)
+    replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+    source_labels:
+    - __meta_kubernetes_node_name
+    target_label: __metrics_path__
+  scheme: https
+  scrape_interval: 20s
+  scrape_timeout: 15s
+  tls_config:
+    ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    insecure_skip_verify: true
+- job_name: nginx-ingress-controller
+  kubernetes_sd_configs:
+  - namespaces:
+      names:
+      - ingress-nginx
+    role: pod
+  relabel_configs:
+  - action: keep
+    regex: true
+    source_labels:
+    - __meta_kubernetes_pod_annotation_system_io_scrape
+  - action: labelmap
+    regex: __meta_kubernetes_pod_label_(.+)
+  - action: replace
+    source_labels:
+    - __meta_kubernetes_namespace
+    target_label: kubernetes_namespace
+  - action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:10254
+    source_labels:
+    - __address__
+    - __meta_kubernetes_pod_annotation_prometheus_io_port
+    target_label: __address__
+  - action: replace
+    source_labels:
+    - __meta_kubernetes_pod_name
+    target_label: kubernetes_pod_name
+- job_name: envoy-stats
+  kubernetes_sd_configs:
+  - role: pod
+  metrics_path: /stats/prometheus
+  relabel_configs:
+  - action: keep
+    regex: .*-envoy-prom
+    source_labels:
+    - __meta_kubernetes_pod_container_port_name
+  - action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:15090
+    source_labels:
+    - __address__
+    - __meta_kubernetes_pod_annotation_prometheus_io_port
+    target_label: __address__
+  - action: labeldrop
+    regex: __meta_kubernetes_pod_label_(.+)
+  - action: replace
+    source_labels:
+    - __meta_kubernetes_namespace
+    target_label: namespace
+  - action: replace
+    source_labels:
+    - __meta_kubernetes_pod_name
+    target_label: pod_name
+- job_name: pilot
+  kubernetes_sd_configs:
+  - namespaces:
+      names:
+      - istio-system
+    role: endpoints
+  relabel_configs:
+  - action: keep
+    regex: istiod;http-monitoring
+    source_labels:
+    - __meta_kubernetes_service_name
+    - __meta_kubernetes_endpoint_port_name
+  - source_labels:
+    - __meta_kubernetes_service_label_app
+    target_label: app
+- job_name: hello-helidon-appconf_default_hello-helidon_hello-helidon-component
+  kubernetes_sd_configs:
+  - namespaces:
+      names:
+      - hello-helidon
+    role: pod
+  relabel_configs:
+  - action: keep
+    regex: true;hello-helidon-appconf;hello-helidon-component
+    source_labels:
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled
+    - __meta_kubernetes_pod_label_app_oam_dev_name
+    - __meta_kubernetes_pod_label_app_oam_dev_component
+  - action: replace
+    regex: (.+)
+    source_labels:
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath
+    target_label: __metrics_path__
+  - action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:$2
+    source_labels:
+    - __address__
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort
+    target_label: __address__
+  - action: replace
+    regex: (.*)
+    replacement: $1
+    source_labels:
+    - __meta_kubernetes_namespace
+    target_label: namespace
+  - action: labelmap
+    regex: __meta_kubernetes_pod_label_(.+)
+  - action: replace
+    source_labels:
+    - __meta_kubernetes_pod_name
+    target_label: pod_name
+  - action: labeldrop
+    regex: (controller_revision_hash)
+  - action: replace
+    regex: .*/(.*)$
+    replacement: $1
+    source_labels:
+    - name
+    target_label: webapp
+  scheme: https
+  tls_config:
+    ca_file: /etc/istio-certs/root-cert.pem
+    cert_file: /etc/istio-certs/cert-chain.pem
+    insecure_skip_verify: true
+    key_file: /etc/istio-certs/key.pem
+- job_name: update-ns_update-deployment_updateUID
+  kubernetes_sd_configs:
+  - namespaces:
+      names:
+      - hello-helidon-scrape
+    role: pod
+  relabel_configs:
+  - action: keep
+    regex: true;hello-helidon-scrape-application
+    source_labels:
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled
+    - __meta_kubernetes_pod_label_app
+  - action: replace
+    regex: (.+)
+    source_labels:
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath
+    target_label: __metrics_path__
+  - action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:$2
+    source_labels:
+    - __address__
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort
+    target_label: __address__
+  - action: replace
+    regex: (.*)
+    replacement: $1
+    source_labels:
+    - __meta_kubernetes_namespace
+    target_label: namespace
+  - action: labelmap
+    regex: __meta_kubernetes_pod_label_(.+)
+  - action: replace
+    source_labels:
+    - __meta_kubernetes_pod_name
+    target_label: pod_name
+  - action: labeldrop
+    regex: (controller_revision_hash)
+  - action: replace
+    regex: .*/(.*)$
+    replacement: $1
+    source_labels:
+    - name
+    target_label: webapp
+  scheme: https
+  tls_config:
+    ca_file: /etc/istio-certs/root-cert.pem
+    cert_file: /etc/istio-certs/cert-chain.pem
+    insecure_skip_verify: true
+    key_file: /etc/istio-certs/key.pem

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/Jeffail/gabs/v2"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
@@ -19,11 +21,17 @@ const (
 
 // Creates a job name in the format <namespace>_<name>_<uid>
 func createJobName(namespacedName types.NamespacedName, resourceUID types.UID) string {
-	return fmt.Sprintf("%s_%s_%s",namespacedName.Namespace, namespacedName.Name, resourceUID)
+	return fmt.Sprintf("%s_%s_%s", namespacedName.Namespace, namespacedName.Name, resourceUID)
 }
 
 // returns a container of the Prometheus config data from the configmap
 func getConfigData(configMap *v1.ConfigMap) (*gabs.Container, error) {
+	if configMap.Data == nil {
+		return nil, errors.NewNotFound(schema.GroupResource{
+			Group:    "default",
+			Resource: configMap.Kind,
+		}, configMap.Name)
+	}
 	oldPromConfigData := configMap.Data[prometheusConfigKey]
 	promConfigJson, err := yaml.YAMLToJSON([]byte(oldPromConfigData))
 	if err != nil {
@@ -34,4 +42,9 @@ func getConfigData(configMap *v1.ConfigMap) (*gabs.Container, error) {
 		return nil, err
 	}
 	return promConfig, nil
+}
+
+// Formats job name as specified by the Prometheus config
+func formatJobName(jobName string) string {
+	return "job_name: " + jobName + "\n"
 }
