@@ -5,9 +5,21 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,19 +47,19 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	assert.Len(comps, 13, "Wrong number of components")
-	assert.Equal(comps[0].Name(), "ingress-controller")
-	assert.Equal(comps[1].Name(), "cert-manager")
-	assert.Equal(comps[2].Name(), "external-dns")
-	assert.Equal(comps[3].Name(), "rancher")
-	assert.Equal(comps[4].Name(), "verrazzano")
-	assert.Equal(comps[5].Name(), "coherence-operator")
-	assert.Equal(comps[6].Name(), "weblogic-operator")
-	assert.Equal(comps[7].Name(), "oam-kubernetes-runtime")
-	assert.Equal(comps[8].Name(), "verrazzano-application-operator")
-	assert.Equal(comps[9].Name(), "mysql")
-	assert.Equal(comps[10].Name(), "keycloak")
-	assert.Equal(comps[11].Name(), "kiali-server")
-	assert.Equal(comps[12].Name(), istio.ComponentName)
+	assert.Equal(comps[nginx.ComponentName].Name(), nginx.ComponentName)
+	assert.Equal(comps[certmanager.ComponentName].Name(), certmanager.ComponentName)
+	assert.Equal(comps[externaldns.ComponentName].Name(), externaldns.ComponentName)
+	assert.Equal(comps[rancher.ComponentName].Name(), rancher.ComponentName)
+	assert.Equal(comps[verrazzano.ComponentName].Name(), verrazzano.ComponentName)
+	assert.Equal(comps[coherence.ComponentName].Name(), coherence.ComponentName)
+	assert.Equal(comps[weblogic.ComponentName].Name(), weblogic.ComponentName)
+	assert.Equal(comps[oam.ComponentName].Name(), oam.ComponentName)
+	assert.Equal(comps[appoper.ComponentName].Name(), appoper.ComponentName)
+	assert.Equal(comps[mysql.ComponentName].Name(), mysql.ComponentName)
+	assert.Equal(comps[keycloak.ComponentName].Name(), keycloak.ComponentName)
+	assert.Equal(comps[kiali.ComponentName].Name(), kiali.ComponentName)
+	assert.Equal(comps[istio.ComponentName].Name(), istio.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -240,19 +252,19 @@ func TestComponentDependenciesCycles(t *testing.T) {
 	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
 	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
 	noDependencies := fakeComponent{name: "fake1"}
-	OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			noDependencies,
+	OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			noDependencies.Name(): noDependencies,
 			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
+			"fake2": fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
 			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
-			nocycles,
-			indirectCycle1,
-			indirectCycle2,
+			"fake3": fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
+			"fake4": fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
+			"fake5": fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
+			"fake6": fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			nocycles.Name(): nocycles,
+			indirectCycle1.Name(): indirectCycle1,
+			indirectCycle2.Name(): indirectCycle2,
 		}
 	})
 	defer ResetGetComponentsFn()
@@ -278,19 +290,19 @@ func Test_checkDependencies(t *testing.T) {
 	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
 	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
 	noDependencies := fakeComponent{name: "fake1"}
-	OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			noDependencies,
+	OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			noDependencies.Name(): noDependencies,
 			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
+			"fake2": fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
 			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
-			nocycles,
-			indirectCycle1,
-			indirectCycle2,
+			"fake3": fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
+			"fake4": fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
+			"fake5": fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
+			"fake6": fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			nocycles.Name(): nocycles,
+			indirectCycle1.Name(): indirectCycle1,
+			indirectCycle2.Name(): indirectCycle2,
 		}
 	})
 	defer ResetGetComponentsFn()
@@ -327,12 +339,12 @@ func Test_checkDependencies(t *testing.T) {
 func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	chainNoCycle := fakeComponent{name: "chainNoCycle", dependencies: []string{"fake2"}}
 	repeatDepdendency := fakeComponent{name: "repeatDependency", dependencies: []string{"fake1", "fake2", "fake1"}}
-	OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{name: "fake1"},
-			fakeComponent{name: "fake2", dependencies: []string{"fake1"}},
-			chainNoCycle,
-			repeatDepdendency,
+	OverrideGetComponentsFn(func() map[string]spi.Component {
+		return map[string]spi.Component{
+			"fake1": fakeComponent{name: "fake1"},
+			"fake2": fakeComponent{name: "fake2", dependencies: []string{"fake1"}},
+			chainNoCycle.Name(): chainNoCycle,
+			repeatDepdendency.Name(): repeatDepdendency,
 		}
 	})
 	defer ResetGetComponentsFn()

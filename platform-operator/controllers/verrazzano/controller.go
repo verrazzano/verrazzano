@@ -6,10 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -17,8 +18,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
