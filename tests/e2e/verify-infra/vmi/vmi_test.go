@@ -18,6 +18,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -90,7 +91,7 @@ var (
 	elasticPollingInterval = 5 * time.Second
 )
 
-var _ = BeforeSuite(func() {
+var _ = framework.VzBeforeSuite(func() {
 	var err error
 
 	httpClient, err = pkg.GetSystemVmiHTTPClient()
@@ -124,11 +125,11 @@ var _ = BeforeSuite(func() {
 	elastic = vmi.GetElastic("system")
 })
 
-var _ = Describe("VMI", func() {
+var _ = framework.VzDescribe("VMI", func() {
 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
-		It("Elasticsearch should NOT be present", func() {
+		framework.VzIt("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
 			Eventually(func() (bool, error) {
 				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
@@ -150,7 +151,7 @@ var _ = Describe("VMI", func() {
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 		})
 	} else {
-		It("Elasticsearch endpoint should be accessible", func() {
+		framework.VzIt("Elasticsearch endpoint should be accessible", func() {
 			elasticPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
 			}
@@ -164,7 +165,7 @@ var _ = Describe("VMI", func() {
 			Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 		})
 
-		It("Elasticsearch verrazzano-system Index should be accessible", func() {
+		framework.VzIt("Elasticsearch verrazzano-system Index should be accessible", func() {
 			indexName := "verrazzano-namespace-verrazzano-system"
 			pkg.Concurrently(
 				func() {
@@ -190,12 +191,12 @@ var _ = Describe("VMI", func() {
 			)
 		})
 
-		It("Elasticsearch health should be green", func() {
+		framework.VzIt("Elasticsearch health should be green", func() {
 			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
 			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
 		})
 
-		It("Elasticsearch systemd journal Index should be accessible", func() {
+		framework.VzIt("Elasticsearch systemd journal Index should be accessible", func() {
 			Eventually(func() bool {
 				return pkg.FindAnyLog("verrazzano-systemd-journal",
 					[]pkg.Match{
@@ -206,7 +207,7 @@ var _ = Describe("VMI", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 		})
 
-		It("Kibana endpoint should be accessible", func() {
+		framework.VzIt("Kibana endpoint should be accessible", func() {
 			kibanaPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
 			}
@@ -215,16 +216,16 @@ var _ = Describe("VMI", func() {
 			assertOidcIngressByName("vmi-system-kibana")
 		})
 
-		It("Prometheus endpoint should be accessible", func() {
+		framework.VzIt("Prometheus endpoint should be accessible", func() {
 			assertOidcIngressByName("vmi-system-prometheus")
 		})
 
-		It("Grafana endpoint should be accessible", func() {
+		framework.VzIt("Grafana endpoint should be accessible", func() {
 			Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
 			assertOidcIngressByName("vmi-system-grafana")
 		})
 
-		It("Default dashboard should be installed in System Grafana for shared VMI", func() {
+		framework.VzIt("Default dashboard should be installed in System Grafana for shared VMI", func() {
 			pkg.Concurrently(
 				func() { assertDashboard("Host%20Metrics") },
 				func() { assertDashboard("WebLogic%20Server%20Dashboard") },
@@ -248,7 +249,7 @@ var _ = Describe("VMI", func() {
 			)
 		})
 
-		It("Elasticsearch should be oss flavor", func() {
+		framework.VzIt("Elasticsearch should be oss flavor", func() {
 			elastic.Connect()
 			Expect(elastic.EsVersion.BuildFlavor).To(Equal("oss"), "elasticsearch should be oss flavor")
 			findLibs, _, _ := pkg.Execute("vmi-system-es-master-0", "es-master", verrazzanoNamespace, []string{"find", ".", "-name", "*x*pack*"})
@@ -278,7 +279,7 @@ var _ = Describe("VMI", func() {
 		})
 	}
 
-	It("Verify the instance info endpoint URLs", func() {
+	framework.VzIt("Verify the instance info endpoint URLs", func() {
 		if !isManagedClusterProfile {
 			assertInstanceInfoURLs()
 		}
@@ -295,7 +296,7 @@ var _ = Describe("VMI", func() {
 	}
 
 	if pkg.IsDevProfile() {
-		It("Check persistent volumes for dev profile", func() {
+		framework.VzIt("Check persistent volumes for dev profile", func() {
 			expectedVolumes := 0
 			if override != nil {
 				expectedVolumes = 3
@@ -308,12 +309,12 @@ var _ = Describe("VMI", func() {
 			}
 		})
 	} else if isManagedClusterProfile {
-		It("Check persistent volumes for managed cluster profile", func() {
+		framework.VzIt("Check persistent volumes for managed cluster profile", func() {
 			Expect(len(volumeClaims)).To(Equal(1))
 			assertPersistentVolume("vmi-system-prometheus", size)
 		})
 	} else if pkg.IsProdProfile() {
-		It("Check persistent volumes for prod cluster profile", func() {
+		framework.VzIt("Check persistent volumes for prod cluster profile", func() {
 			Expect(len(volumeClaims)).To(Equal(7))
 			assertPersistentVolume("vmi-system-prometheus", size)
 			assertPersistentVolume("vmi-system-grafana", size)

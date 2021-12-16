@@ -5,6 +5,8 @@ package restapi_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -18,14 +20,14 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = Describe("rancher url test", func() {
+var _ = framework.VzDescribe("rancher url test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
 	Context("Fetching the rancher url using api and test ", func() {
-		It("Fetches rancher url", func() {
+		framework.ItM(metricsLogger, "Fetches rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -69,6 +71,7 @@ var _ = Describe("rancher url test", func() {
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 
 				var token string
+				start := time.Now()
 				Eventually(func() error {
 					var err error
 					secret, err := pkg.GetSecret("cattle-system", "rancher-admin-secret")
@@ -112,9 +115,11 @@ var _ = Describe("rancher url test", func() {
 
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
+				metrics.Emit(metricsLogger.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
 				state := ""
+				start = time.Now()
 				Eventually(func() error {
 					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), nil)
 					if err != nil {
@@ -150,9 +155,12 @@ var _ = Describe("rancher url test", func() {
 
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
+				metrics.Emit(metricsLogger.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(state).To(Equal("active"), "rancher local cluster not in active state")
 			}
 		})
 	})
 })
+
+var _ = framework.AfterEachM(metricsLogger, func() {})
