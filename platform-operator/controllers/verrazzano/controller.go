@@ -75,7 +75,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	cmapiv1.AddToScheme(r.Scheme)
 
 	log.Debugf("Reconciler called")
-	return ctrl.Result{}, errors.NewBadRequest("testing backoff")
 
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
