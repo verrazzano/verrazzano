@@ -103,6 +103,16 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 				Name:       "test-workload-name"}
 			return nil
 		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
 	// Expect a call to get the containerized workload resource
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
@@ -272,6 +282,16 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 				Name:       "test-workload-name"}
 			return nil
 		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
 	// Expect a call to get the containerized workload resource
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
@@ -391,6 +411,89 @@ func TestSuccessfullyCreateNewIngressWithCertSecret(t *testing.T) {
 	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestDeleteCertAndSecretWhenTraitIsDeleted tests the Reconcile method for the following use case.
+// GIVEN a request to reconcile an ingress trait resource that is marked for deletion
+// WHEN the trait exists
+// THEN ensure that the cert and secret associated with the trait are also deleted
+func TestDeleteCertAndSecretWhenTraitIsDeleted(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	// Expect a call to get the ingress trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
+			trait.TypeMeta = metav1.TypeMeta{
+				APIVersion: "oam.verrazzano.io/v1alpha1",
+				Kind:       "IngressTrait"}
+			trait.ObjectMeta = metav1.ObjectMeta{
+				Namespace:         name.Namespace,
+				Name:              name.Name,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				Finalizers:        []string{"ingresstrait.finalizers.verrazzano.io"},
+				Labels:            map[string]string{oam.LabelAppName: "myapp"}}
+			trait.Spec.Rules = []vzapi.IngressRule{{
+				Hosts: []string{"test-host"},
+				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
+			trait.Spec.TLS = vzapi.IngressSecurity{SecretName: "cert-secret"}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to get the associated certificate
+	mock.EXPECT(). // get certificate
+			Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, cert *certapiv1alpha2.Certificate) error {
+			cert.Namespace = name.Namespace
+			cert.Name = name.Name
+			return nil
+		})
+	// Expect a call to delete the cert
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
+			assert.Equal("istio-system", cert.Namespace)
+			assert.Equal("test-space-myapp-cert", cert.Name)
+			return nil
+		})
+	// Expect a call to get the secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert-secret"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *k8score.Secret) error {
+			sec.Namespace = name.Namespace
+			sec.Name = name.Name
+			return nil
+		})
+	// Expect a call to delete the secret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, sec *k8score.Secret, opt *client.DeleteOptions) error {
+			assert.Equal("istio-system", sec.Namespace)
+			assert.Equal("test-space-myapp-cert-secret", sec.Name)
+			return nil
+		})
+	// Expect a call to update the the ingress trait.
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.IngressTrait) error {
+		assert.Equal("test-space", obj.Namespace)
+		assert.Equal("test-trait-name", obj.Name)
+		assert.Len(obj.Finalizers, 0)
+		return nil
+	})
+
+	// Create and make the request
+	request := newRequest("test-space", "test-trait-name")
+	reconciler := newIngressTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // TestSuccessfullyUpdateIngressWithCertSecret tests the Reconcile method for the following use case.
 // GIVEN a request to reconcile an ingress trait resource that specifies a certificate secret to use for security
 // WHEN the trait and ingress/gateway exist
@@ -419,6 +522,16 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 				APIVersion: "core.oam.dev/v1alpha2",
 				Kind:       "ContainerizedWorkload",
 				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 			return nil
 		})
 	// Expect a call to get the containerized workload resource
@@ -588,6 +701,16 @@ func TestFailureCreateNewIngressWithSecretNoHosts(t *testing.T) {
 				Name:       "test-workload-name"}
 			return nil
 		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
 	// Expect a call to get the containerized workload resource
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
@@ -686,6 +809,16 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 				APIVersion: "core.oam.dev/v1alpha2",
 				Kind:       "ContainerizedWorkload",
 				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 			return nil
 		})
 	// Expect a call to get the containerized workload resource
@@ -791,6 +924,16 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 				APIVersion: "oam.verrazzano.io/v1alpha1",
 				Kind:       "VerrazzanoCoherenceWorkload",
 				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 			return nil
 		})
 
@@ -981,6 +1124,16 @@ func TestFailureToGetWorkload(t *testing.T) {
 				Name:       "test-workload-name"}
 			return nil
 		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
 	// Expect a call to get the containerized workload resource and return an error
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
@@ -1026,6 +1179,16 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 				APIVersion: "core.oam.dev/v1alpha2",
 				Kind:       "ContainerizedWorkload",
 				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 			return nil
 		})
 	// Expect a call to get the containerized workload resource
@@ -1086,6 +1249,16 @@ func TestFailureToUpdateStatus(t *testing.T) {
 				APIVersion: "core.oam.dev/v1alpha2",
 				Kind:       "ContainerizedWorkload",
 				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 			return nil
 		})
 	// Expect a call to get the containerized workload resource
@@ -1749,8 +1922,7 @@ func TestGetNotFoundResource(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-name"}, gomock.Any()).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "oam.verrazzano.io", Resource: "IngressTrait"}, "test-name")).
-		AnyTimes()
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "oam.verrazzano.io", Resource: "IngressTrait"}, "test-name"))
 	reconciler := newIngressTraitReconciler(mock)
 	request := newRequest("test-space", "test-name")
 	result, err := reconciler.Reconcile(request)
@@ -3076,6 +3248,16 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 				APIVersion: "oam.verrazzano.io/v1alpha1",
 				Kind:       "VerrazzanoCoherenceWorkload",
 				Name:       "test-workload-name"}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait) error {
+			assert.Equal("test-space", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("ingresstrait.finalizers.verrazzano.io", trait.Finalizers[0])
 			return nil
 		})
 
