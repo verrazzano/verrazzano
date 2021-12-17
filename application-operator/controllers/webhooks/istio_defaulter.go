@@ -7,12 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/controller"
 	"net/http"
 	"strings"
 
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	"istio.io/api/type/v1beta1"
@@ -273,7 +273,7 @@ func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, name
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)
 
-		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
+		group, version := controller.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
 		resource := schema.GroupVersionResource{
 			Group:    group,
 			Version:  version,

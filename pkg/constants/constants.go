@@ -88,9 +88,3 @@ const VMCAgentPollingTimeInterval = 60 * time.Second
 
 // MaxTimesVMCAgentPollingTime - The constant used to set max polling time for vmc agent to determine VMC state
 const MaxTimesVMCAgentPollingTime = 3
-
-// Default base delay for controller runtime requeue
-const ControllerBaseDelay = 5
-
-// Default maximum delay for controller runtime requeue
-const ControllerMaxDelay = 60

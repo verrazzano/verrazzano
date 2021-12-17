@@ -6,8 +6,7 @@ package clusters
 import (
 	"context"
 	"fmt"
-	vztime "github.com/verrazzano/verrazzano/pkg/time"
-	"k8s.io/client-go/util/workqueue"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -234,9 +233,7 @@ func generateManagedResourceName(clusterName string) string {
 func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
-				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
-				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
+			RateLimiter: vzctrl.NewDefaultRateLimiter(),
 		}).
 		For(&clustersv1alpha1.VerrazzanoManagedCluster{}).
 		Complete(r)

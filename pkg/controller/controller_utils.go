@@ -1,16 +1,20 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controllers
+package controller
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/util/rand"
+	"time"
+	"strconv"
+	"strings"
+
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"strconv"
-	"strings"
 )
 
 // ConvertAPIVersionToGroupAndVersion splits APIVersion into API and version parts.
@@ -36,4 +40,33 @@ func EnsureLastGenerationInStatus(client clipkg.Client, wl *vzapi.VerrazzanoWebL
 	wl.Status.LastGeneration = strconv.Itoa(int(wl.Generation))
 	err := client.Status().Update(context.TODO(), wl)
 	return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+}
+
+// NewResultRequeueShortDelay creates a new Result that will cause a reconcile requeue after a short delay
+func NewResultRequeueShortDelay() ctrl.Result {
+	var seconds = rand.IntnRange(3, 5)
+	return ctrl.Result{Requeue: true, RequeueAfter: secsToDuration(seconds)}
+}
+
+// ShouldRequeue Return true if requeue is needed
+func ShouldRequeue(r ctrl.Result) bool {
+	return r.Requeue || r.RequeueAfter > 0
+}
+
+// NewDefaultRateLimiter returns a RateLimiter with default base backoff and max backoff
+func NewDefaultRateLimiter() workqueue.RateLimiter {
+
+	// Default base delay for controller runtime requeue
+	const BaseDelay = 5
+
+	// Default maximum delay for controller runtime requeue
+	const MaxDelay = 60
+
+	return workqueue.NewItemExponentialFailureRateLimiter(
+		secsToDuration(BaseDelay),
+		secsToDuration(MaxDelay))
+}
+
+func secsToDuration(secs int) time.Duration {
+	return time.Duration(float64(secs) * float64(time.Second))
 }

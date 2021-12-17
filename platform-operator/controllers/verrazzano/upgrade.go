@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -44,7 +45,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 
 	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
@@ -55,7 +56,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 		upgradeContext := newContext.For(compName).Operation(vzconst.UpgradeOperation)
 		installed, err := comp.IsInstalled(upgradeContext)
 		if err != nil {
-			return newRequeueWithDelay(), err
+			return vzctrl.NewResultRequeueShortDelay(), err
 		}
 		if !installed {
 			log.Infof("Skip upgrade for %s, not installed", compName)
@@ -92,7 +93,7 @@ func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha
 	log.Info(msg)
 	cr.Status.Version = targetVersion
 	if err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	return ctrl.Result{}, nil

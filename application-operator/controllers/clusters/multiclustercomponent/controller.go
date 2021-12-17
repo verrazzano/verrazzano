@@ -5,9 +5,7 @@ package multiclustercomponent
 
 import (
 	"context"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vztime "github.com/verrazzano/verrazzano/pkg/time"
-	"k8s.io/client-go/util/workqueue"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -97,9 +95,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
-				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
-				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
+			RateLimiter: vzctrl.NewDefaultRateLimiter(),
 		}).
 		For(&clustersv1alpha1.MultiClusterComponent{}).
 		Complete(r)

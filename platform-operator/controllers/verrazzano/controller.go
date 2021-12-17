@@ -7,14 +7,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
-	"k8s.io/client-go/util/workqueue"
 	"os"
 	"strings"
 	"time"
 
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vztime "github.com/verrazzano/verrazzano/pkg/time"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 
@@ -32,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -99,7 +96,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Errorf("unable to set watch for Job resource: %v", err)
 		return result, err
 	}
-	if shouldRequeue(result) {
+	if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
@@ -107,10 +104,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// This needs to be done for every state since the initForVzResource might have deleted
 	// role binding during old resource cleanup.
 	if err := r.createServiceAccount(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 	if err := r.createClusterRoleBinding(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Init the state to Ready if this CR has never been processed
@@ -150,8 +147,8 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	// Pre-populate the component status fields
 	result, err := r.initializeComponentStatus(log, vz)
 	if err != nil {
-		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
+		return vzctrl.NewResultRequeueShortDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
@@ -163,8 +160,8 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 			return r.reconcileUpgrade(log, vz)
 		}
 		if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
-			return newRequeueWithDelay(), err
-		} else if shouldRequeue(result) {
+			return vzctrl.NewResultRequeueShortDelay(), err
+		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
 		return ctrl.Result{}, nil
@@ -174,7 +171,7 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
 		err := r.doesOCIDNSConfigSecretExist(vz)
 		if err != nil {
-			return newRequeueWithDelay(), err
+			return vzctrl.NewResultRequeueShortDelay(), err
 		}
 	}
 
@@ -182,20 +179,20 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
 	if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
 		log.Errorf("Failed to create namespace %v: %v", vpoconst.VerrazzanoSystemNamespace, err)
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
 	// admin cluster without needing a VMC.
 	if err := r.syncLocalRegistrationSecret(); err != nil {
 		log.Errorf("Failed to sync the local registration secret: %v", err)
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Change the state back to ready if install complete otherwise requeue
 	done, err := r.checkInstallComplete(log, vz)
 	if err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 	if done {
 		return ctrl.Result{}, nil
@@ -204,12 +201,12 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	// Delete leftover uninstall job if we find one.
 	err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), getInstallNamespace(), log)
 	if err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Change the state to installing
 	err = r.setInstallingState(log, vz)
-	return newRequeueWithDelay(), err
+	return vzctrl.NewResultRequeueShortDelay(), err
 }
 
 // InstallingState processes the CR while in the installing state
@@ -223,15 +220,15 @@ func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.Su
 	}
 
 	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
+		return vzctrl.NewResultRequeueShortDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
 	// Change the state back to ready if install complete otherwise requeue
 	done, err := r.checkInstallComplete(log, vz)
 	if !done || err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 	return ctrl.Result{}, nil
 }
@@ -254,13 +251,13 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 	log.Debugf("enter UpgradingState")
 
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
+		return vzctrl.NewResultRequeueShortDelay(), err
+	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 	// Upgrade should always requeue to ensure that reconciler runs post upgrade to install
 	// components that may have been waiting for upgrade
-	return newRequeueWithDelay(), nil
+	return vzctrl.NewResultRequeueShortDelay(), nil
 }
 
 // FailedState only allows uninstall
@@ -272,7 +269,7 @@ func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 	retry, err := r.retryUpgrade(ctx, vz)
 	if err != nil {
 		log.Errorf("Failed to update the annotations: %v", err)
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	if retry {
@@ -281,7 +278,7 @@ func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.Sugare
 		err = r.updateState(log, vz, installv1alpha1.Ready)
 		if err != nil {
 			log.Errorf("Failed to update the state to ready: %v", err)
-			return newRequeueWithDelay(), err
+			return vzctrl.NewResultRequeueShortDelay(), err
 		}
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
@@ -441,9 +438,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	var err error
 	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
-				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
-				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
+			RateLimiter: vzctrl.NewDefaultRateLimiter(),
 		}).
 		For(&installv1alpha1.Verrazzano{}).Build(r)
 	return err
@@ -663,7 +658,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 
 	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	for _, comp := range registry.GetComponents() {
@@ -675,7 +670,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
 					log.Errorf("IsInstalled error for component %s: %s", comp.Name(), err)
-					return newRequeueWithDelay(), err
+					return vzctrl.NewResultRequeueShortDelay(), err
 				}
 				if installed {
 					state = installv1alpha1.Ready
@@ -984,7 +979,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 		// Create the uninstall job if it doesn't exist
 		if err := r.createUninstallJob(log, vz); err != nil {
 			log.Errorf("Failed creating the uninstall job: %v", err)
-			return newRequeueWithDelay(), err
+			return vzctrl.NewResultRequeueShortDelay(), err
 		}
 
 		// Remove the finalizer and update the Verrazzano resource if the uninstall has finished.
@@ -992,7 +987,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 			if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
 				err := r.cleanup(ctx, log, vz)
 				if err != nil {
-					return newRequeueWithDelay(), err
+					return vzctrl.NewResultRequeueShortDelay(), err
 				}
 
 				// All install related resources have been deleted, delete the finalizer so that the Verrazzano
@@ -1001,7 +996,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 				vz.ObjectMeta.Finalizers = removeString(vz.ObjectMeta.Finalizers, finalizerName)
 				err = r.Update(ctx, vz)
 				if err != nil {
-					return newRequeueWithDelay(), err
+					return vzctrl.NewResultRequeueShortDelay(), err
 				}
 			}
 		}
@@ -1047,18 +1042,6 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz 
 	}
 
 	return nil
-}
-
-// Create a new Result that will cause a reconcile requeue after a short delay
-func newRequeueWithDelay() ctrl.Result {
-	var seconds = rand.IntnRange(3, 5)
-	delaySecs := time.Duration(seconds) * time.Second
-	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
-}
-
-// Return true if requeue is needed
-func shouldRequeue(r ctrl.Result) bool {
-	return r.Requeue || r.RequeueAfter > 0
 }
 
 // Watch the jobs in the verrazzano-install for this vz resource.  The reconcile loop will be called
@@ -1123,20 +1106,20 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 		log.Debugf("Adding finalizer %s", finalizerName)
 		vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
 		if err := r.Update(context.TODO(), vz); err != nil {
-			return newRequeueWithDelay(), err
+			return vzctrl.NewResultRequeueShortDelay(), err
 		}
 	}
 
 	// Cleanup old resources that might be left around when the install used to be done
 	// in the default namespace
 	if err := r.cleanupOld(context.TODO(), log, vz); err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Watch the jobs in the operator namespace for this VZ CR
 	if err := r.watchJobs(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("unable to set Job watch for Verrrazzano CR %s: %v", vz.Name, err)
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Update the map indicating the resource is being watched

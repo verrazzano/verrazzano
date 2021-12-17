@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -31,7 +32,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 
 	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
-		return newRequeueWithDelay(), err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
@@ -119,7 +120,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 		}
 	}
 	if requeue {
-		return newRequeueWithDelay(), nil
+		return vzctrl.NewResultRequeueShortDelay(), nil
 	}
 	return ctrl.Result{}, nil
 }

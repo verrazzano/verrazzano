@@ -7,10 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	vztime "github.com/verrazzano/verrazzano/pkg/time"
-	"k8s.io/client-go/util/workqueue"
 	"reflect"
 	"strings"
 
@@ -23,7 +21,6 @@ import (
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	istionet "istio.io/api/networking/v1alpha3"
@@ -81,9 +78,7 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
-			RateLimiter: workqueue.NewItemExponentialFailureRateLimiter(
-				vztime.SecsToDuration(vzconst.ControllerBaseDelay),
-				vztime.SecsToDuration(vzconst.ControllerMaxDelay)),
+			RateLimiter: vzctrl.NewDefaultRateLimiter(),
 		}).
 		For(&vzapi.IngressTrait{}).
 		Complete(r)
@@ -132,7 +127,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	} else if len(services) == 0 {
 		// This will be the case if the service has not started yet so we requeue and try again.
-		return reconcile.Result{Requeue: true, RequeueAfter: vzconst.ControllerBaseDelay}, err
+		return vzctrl.NewResultRequeueShortDelay(), err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
@@ -1034,7 +1029,7 @@ func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstruc
 // apiVersion - The CR APIVersion
 // kind - The CR Kind
 func convertAPIVersionAndKindToNamespacedName(apiVersion string, kind string) types.NamespacedName {
-	grp, ver := controllers.ConvertAPIVersionToGroupAndVersion(apiVersion)
+	grp, ver := vzctrl.ConvertAPIVersionToGroupAndVersion(apiVersion)
 	res := pluralize.NewClient().Plural(strings.ToLower(kind))
 	grpVerRes := metav1.GroupVersionResource{
 		Group:    grp,
