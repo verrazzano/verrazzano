@@ -9,6 +9,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
@@ -115,6 +116,74 @@ func TestGetRequestedResource(t *testing.T) {
 	newUnstructuredDeployment, err := reconciler.getRequestedResource(namespacedName)
 	assert.NoError(err, "Expected no error retrieving the Deployment")
 	assert.Equal(unstructuredDeployment, *newUnstructuredDeployment)
+}
+
+// TestAddFinalizer tests the addition of a finalizer to the requested resource
+// GIVEN a resource that is being created
+// WHEN the function is called
+// THEN the finalizer should be added
+func TestAddFinalizer(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	reconciler := newReconciler(mock)
+
+	deployment := k8sapps.Deployment{
+		ObjectMeta: k8smetav1.ObjectMeta{
+			Namespace: testDeploymentNamespace,
+			Name:      testDeploymentName,
+		},
+	}
+	unstructuredDeploymentMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&deployment)
+	assert.NoError(err, "Expected no error creating unstructured Deployment")
+	unstructuredDeployment := unstructured.Unstructured{Object: unstructuredDeploymentMap}
+
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, _ *unstructured.Unstructured) error {
+			deployment.Finalizers = append(deployment.GetFinalizers(), finalizerName)
+			return nil
+		})
+
+	err = reconciler.addFinalizerIfRequired(context.TODO(), &unstructuredDeployment)
+	assert.Equal([]string{finalizerName}, deployment.GetFinalizers())
+	assert.NoError(err, "Expected no error adding finalizer to the Deployment")
+}
+
+// TestRemoveFinalizer tests the removal of a finalizer on the requested resource
+// GIVEN a resource that is being deleted has the metricstemplate finalizer
+// WHEN the function is called
+// THEN the finalizer should be removed
+func TestRemoveFinalizer(t *testing.T) {
+	assert := asserts.New(t)
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	reconciler := newReconciler(mock)
+
+	deployment := k8sapps.Deployment{
+		ObjectMeta: k8smetav1.ObjectMeta{
+			Namespace:  testDeploymentNamespace,
+			Name:       testDeploymentName,
+			Finalizers: []string{finalizerName},
+			DeletionTimestamp: &k8smetav1.Time{
+				Time: time.Now(),
+			},
+		},
+	}
+	unstructuredDeploymentMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&deployment)
+	assert.NoError(err, "Expected no error creating unstructured Deployment")
+	unstructuredDeployment := unstructured.Unstructured{Object: unstructuredDeploymentMap}
+
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, _ *unstructured.Unstructured) error {
+			deployment.Finalizers = vzstring.RemoveStringFromSlice(deployment.Finalizers, finalizerName)
+			return nil
+		})
+
+	err = reconciler.removeFinalizerIfRequired(context.TODO(), &unstructuredDeployment)
+	assert.Equal([]string{}, deployment.GetFinalizers())
+	assert.NoError(err, "Expected no error adding finalizer to the Deployment")
 }
 
 // TestCreateScrapeConfig tests the creation of the scrape config job
@@ -308,6 +377,12 @@ func TestReconcileTraitCreateOrUpdate(t *testing.T) {
 	assert.NoError(err, "Expected no error creating unstructured Deployment")
 	unstructuredDeployment := unstructured.Unstructured{Object: unstructuredDeploymentMap}
 
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, _ *unstructured.Unstructured) error {
+			deployment.Finalizers = append(deployment.GetFinalizers(), finalizerName)
+			return nil
+		})
+
 	controllerResult, err := reconciler.reconcileTraitCreateOrUpdate(context.TODO(), &unstructuredDeployment)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})
@@ -337,6 +412,12 @@ func TestReconcileTraitDelete(t *testing.T) {
 	unstructuredDeploymentMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&deployment)
 	assert.NoError(err, "Expected no error creating unstructured Deployment")
 	unstructuredDeployment := unstructured.Unstructured{Object: unstructuredDeploymentMap}
+
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, _ *unstructured.Unstructured) error {
+			unstructuredDeployment.SetFinalizers(vzstring.RemoveStringFromSlice(unstructuredDeployment.GetFinalizers(), finalizerName))
+			return nil
+		})
 
 	controllerResult, err := reconciler.reconcileTraitDelete(context.TODO(), &unstructuredDeployment)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
