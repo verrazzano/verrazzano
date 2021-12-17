@@ -17,6 +17,12 @@ const (
 	prometheusConfigKey          = "prometheus.yml"
 	prometheusScrapeConfigsLabel = "scrape_configs"
 	prometheusJobNameLabel       = "job_name"
+
+	configMapKind       = "ConfigMap"
+	configMapAPIVersion = "v1"
+
+	metricsTemplateKind       = "MetricsTemplate"
+	metricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 )
 
 // Creates a job name in the format <namespace>_<name>_<uid>

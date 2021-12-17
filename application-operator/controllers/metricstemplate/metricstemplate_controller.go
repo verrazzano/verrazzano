@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -131,7 +132,12 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 	}
 
 	// Find ConfigMap by the Given UID and delete the scrape config
-	var configMap v1.ConfigMap
+	configMap := v1.ConfigMap{
+		TypeMeta: v12.TypeMeta{
+			Kind:       configMapKind,
+			APIVersion: configMapAPIVersion,
+		},
+	}
 	err := r.getResourceFromUID(ctx, &configMap, configmapUID)
 	if err != nil {
 		return err
@@ -194,7 +200,12 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 	// Get the metrics template from the UID
 	labels := resource.GetLabels()
 	metricsTemplateUID := labels["app.verrazzano.io/metrics-template-uid"]
-	var metricsTemplate vzapi.MetricsTemplate
+	metricsTemplate := vzapi.MetricsTemplate{
+		TypeMeta: v12.TypeMeta{
+			Kind:       metricsTemplateKind,
+			APIVersion: metricsTemplateAPIVersion,
+		},
+	}
 	err = r.getResourceFromUID(context.Background(), &metricsTemplate, metricsTemplateUID)
 	if err != nil {
 		return err

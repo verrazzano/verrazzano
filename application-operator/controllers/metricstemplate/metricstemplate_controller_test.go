@@ -16,6 +16,7 @@ import (
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"os"
@@ -64,11 +65,19 @@ func TestGetResourceFromUID(t *testing.T) {
 	reconciler := newReconciler(mock)
 
 	configMap := k8score.ConfigMap{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
 		ObjectMeta: k8smetav1.ObjectMeta{UID: types.UID(testCMUID)},
 	}
 	expectListObject(&configMap, mock)
 
 	metricsTemplate := v1alpha1.MetricsTemplate{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       "MetricsTemplate",
+			APIVersion: "app.verrazzano.io/v1alpha1",
+		},
 		ObjectMeta: k8smetav1.ObjectMeta{UID: types.UID(testMTUID)},
 	}
 	expectListObject(&metricsTemplate, mock)
@@ -139,6 +148,10 @@ func TestCreateScrapeConfig(t *testing.T) {
 	scrapeConfigTemplate, err := os.ReadFile("./testdata/scrape-config-template.yaml")
 	assert.NoError(err, "Expected no error reading the scrape config test template")
 	metricsTemplate := v1alpha1.MetricsTemplate{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       metricsTemplateKind,
+			APIVersion: metricsTemplateAPIVersion,
+		},
 		ObjectMeta: k8smetav1.ObjectMeta{UID: types.UID(testMTUID)},
 		Spec: v1alpha1.MetricsTemplateSpec{
 			PrometheusConfig: v1alpha1.PrometheusConfig{
@@ -149,21 +162,9 @@ func TestCreateScrapeConfig(t *testing.T) {
 	expectListObject(&metricsTemplate, mock)
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testDeploymentNamespace, Namespace: constants.DefaultNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, namespaceUnstructured *unstructured.Unstructured) error {
-			namespace := k8score.Namespace{
-				ObjectMeta: k8smetav1.ObjectMeta{
-					Name: testDeploymentNamespace,
-					Labels: map[string]string{
-						"istio-injection": "enabled",
-					},
-				},
-			}
-			namespaceUnstructuredMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&namespace)
-			if err != nil {
-				return err
-			}
-			namespaceUnstructured.Object = namespaceUnstructuredMap
-
+		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
+			namespace.Labels = map[string]string{"istio-injection": "enabled"}
+			namespace.Name = testDeploymentNamespace
 			return nil
 		})
 
@@ -203,6 +204,10 @@ func TestUpdateScrapeConfig(t *testing.T) {
 	scrapeConfigTemplate, err := os.ReadFile("./testdata/scrape-config-template.yaml")
 	assert.NoError(err, "Expected no error reading the scrape config test template")
 	metricsTemplate := v1alpha1.MetricsTemplate{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       metricsTemplateKind,
+			APIVersion: metricsTemplateAPIVersion,
+		},
 		ObjectMeta: k8smetav1.ObjectMeta{UID: types.UID(testMTUID)},
 		Spec: v1alpha1.MetricsTemplateSpec{
 			PrometheusConfig: v1alpha1.PrometheusConfig{
@@ -213,21 +218,9 @@ func TestUpdateScrapeConfig(t *testing.T) {
 	expectListObject(&metricsTemplate, mock)
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testExistsDeploymentNamespace, Namespace: constants.DefaultNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, namespaceUnstructured *unstructured.Unstructured) error {
-			namespace := k8score.Namespace{
-				ObjectMeta: k8smetav1.ObjectMeta{
-					Name: testExistsDeploymentNamespace,
-					Labels: map[string]string{
-						"istio-injection": "enabled",
-					},
-				},
-			}
-			namespaceUnstructuredMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&namespace)
-			if err != nil {
-				return err
-			}
-			namespaceUnstructured.Object = namespaceUnstructuredMap
-
+		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
+			namespace.Labels = map[string]string{"istio-injection": "enabled"}
+			namespace.Name = testDeploymentNamespace
 			return nil
 		})
 
@@ -279,6 +272,10 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
 	configMap.SetUID(testCMUID)
+	configMap.SetGroupVersionKind(schema.GroupVersionKind{
+		Version: configMapAPIVersion,
+		Kind:    configMapKind,
+	})
 	expectListObject(configMap, mock)
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil)).Return(nil)
@@ -420,8 +417,8 @@ func expectListObject(resource runtime.Object, mock *mocks.MockClient) {
 	objectKind := resource.GetObjectKind()
 	gvk := objectKind.GroupVersionKind()
 	unstructuredList := unstructured.UnstructuredList{}
+	unstructuredList.SetAPIVersion(gvk.GroupVersion().String())
 	unstructuredList.SetKind(gvk.Kind + "List")
-	unstructuredList.SetAPIVersion(gvk.Version)
 
 	mock.EXPECT().List(gomock.Any(), gomock.Eq(&unstructuredList)).DoAndReturn(
 		func(ctx context.Context, object *unstructured.UnstructuredList) error {
