@@ -24,7 +24,24 @@ func GeneratePassword(length int) (string, error) {
 		return "", err
 	}
 	pw := b64.URLEncoding.EncodeToString(b)
+	pw, err = makeAlphaNumeric(pw)
+	if err != nil {
+		return "", err
+	}
+	if len(pw) < length {
+		return GeneratePassword(length)
+	}
 	return pw[:length], nil
+}
+
+// makeAlphaNumeric removes all special characters from a password string
+func makeAlphaNumeric(input string) (string, error) {
+	// Make a Regex to say we only want letters and numbers
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		return "", err
+	}
+	return reg.ReplaceAllString(input, ""), nil
 }
 
 //MaskFunction creates a function intended to mask passwords which are substrings in other strings
