@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -104,6 +105,11 @@ func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (
 // reconcileTraitDelete completes the reconcile process for an object that is being deleted
 func (r *Reconciler) reconcileTraitDelete(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for deleted object", "resource", resource.GetName())
+	err := r.removeFinalizerIfRequired(ctx, resource)
+	if err != nil {
+		return k8scontroller.Result{Requeue: true}, err
+	}
+
 	if err := r.mutatePrometheusScrapeConfig(ctx, resource, r.deleteScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
@@ -113,10 +119,43 @@ func (r *Reconciler) reconcileTraitDelete(ctx context.Context, resource *unstruc
 // reconcileTraitCreateOrUpdate completes the reconcile process for an object that is being created or updated
 func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for created or updated object", "resource", resource.GetName())
+	err := r.addFinalizerIfRequired(ctx, resource)
+	if err != nil {
+		return k8scontroller.Result{Requeue: true}, err
+	}
+
 	if err := r.mutatePrometheusScrapeConfig(ctx, resource, r.createOrUpdateScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 	return k8scontroller.Result{}, nil
+}
+
+// addFinalizerIfRequired adds the finalizer to the trait if required
+// The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, resource *unstructured.Unstructured) error {
+	if resource.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(resource.GetFinalizers(), finalizerName) {
+		resourceName := resource.GetName()
+		r.Log.V(2).Info("Adding finalizer from resource", "resource", resourceName)
+		resource.SetFinalizers(append(resource.GetFinalizers(), finalizerName))
+		if err := r.Update(ctx, resource); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// removeFinalizerIfRequired removes the finalizer from the trait if required
+// The finalizer is only removed if the trait is being deleted and the finalizer had been added
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, resource *unstructured.Unstructured) error {
+	if !resource.GetDeletionTimestamp().IsZero() && vzstring.SliceContainsString(resource.GetFinalizers(), finalizerName) {
+		resourceName := resource.GetName()
+		r.Log.Info("Removing finalizer from resource", "resource", resourceName)
+		resource.SetFinalizers(vzstring.RemoveStringFromSlice(resource.GetFinalizers(), finalizerName))
+		if err := r.Update(ctx, resource); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // mutatePrometheusScrapeConfig takes the resource and a mutate function that determines the mutations of the scrape config
