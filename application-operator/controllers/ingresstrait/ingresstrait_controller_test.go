@@ -172,7 +172,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 		})
 	// Expect a call to get the certificate related to the ingress trait
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-test-trait-name-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
 	// Expect a call to get the Verrazzano ingress and return the ingress.
 	mock.EXPECT().
@@ -444,7 +444,7 @@ func TestDeleteCertAndSecretWhenTraitIsDeleted(t *testing.T) {
 		})
 	// Expect a call to get the associated certificate
 	mock.EXPECT(). // get certificate
-			Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
+			Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-test-trait-name-cert"}, gomock.Not(gomock.Nil())).
 			DoAndReturn(func(ctx context.Context, name types.NamespacedName, cert *certapiv1alpha2.Certificate) error {
 			cert.Namespace = name.Namespace
 			cert.Name = name.Name
@@ -455,12 +455,12 @@ func TestDeleteCertAndSecretWhenTraitIsDeleted(t *testing.T) {
 		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
 			assert.Equal("istio-system", cert.Namespace)
-			assert.Equal("test-space-myapp-cert", cert.Name)
+			assert.Equal("test-space-myapp-test-trait-name-cert", cert.Name)
 			return nil
 		})
 	// Expect a call to get the secret
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert-secret"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-test-trait-name-cert-secret"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *k8score.Secret) error {
 			sec.Namespace = name.Namespace
 			sec.Name = name.Name
@@ -471,7 +471,7 @@ func TestDeleteCertAndSecretWhenTraitIsDeleted(t *testing.T) {
 		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, sec *k8score.Secret, opt *client.DeleteOptions) error {
 			assert.Equal("istio-system", sec.Namespace)
-			assert.Equal("test-space-myapp-cert-secret", sec.Name)
+			assert.Equal("test-space-myapp-test-trait-name-cert-secret", sec.Name)
 			return nil
 		})
 	// Expect a call to update the the ingress trait.
@@ -987,7 +987,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 		})
 	// Expect a call to get the certificate related to the ingress trait
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-test-trait-name-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
 	// Expect a call to list the child Service resources of the Coherence workload definition
 	mock.EXPECT().
@@ -1315,7 +1315,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 		})
 	// Expect a call to get the certificate related to the ingress trait
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-test-trait-name-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
 	// Expect a call to get the app config and return that it is not found.
 	mock.EXPECT().
@@ -2564,7 +2564,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
@@ -2664,7 +2664,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
@@ -2769,7 +2769,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
@@ -2898,7 +2898,7 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	vs := istioclient.VirtualService{}
@@ -3016,7 +3016,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	assert.Equal("https", gw.Spec.Servers[0].Port.Name)
 	assert.Equal(uint32(443), gw.Spec.Servers[0].Port.Number)
 	assert.Equal("HTTPS", gw.Spec.Servers[0].Port.Protocol)
-	assert.Equal("test-namespace-test-appconf-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
+	assert.Equal("test-namespace-test-appconf-test-trait-cert-secret", gw.Spec.Servers[0].Tls.CredentialName)
 	assert.Equal("SIMPLE", gw.Spec.Servers[0].Tls.Mode.String())
 
 	// Verify the VirtualService was created and is valid.
@@ -3311,7 +3311,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 		})
 	// Expect a call to get the certificate related to the ingress trait
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-test-trait-name-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
 	// Expect a call to list the child Service resources of the Coherence workload definition
 	mock.EXPECT().
