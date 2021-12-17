@@ -24,7 +24,7 @@ const (
 	metricsTemplateKind       = "MetricsTemplate"
 	metricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
-	finalizerName = "metricstemplate.finalizers.verrazzano.io"
+	finalizerName = "metricstemplate.finalizers.verrazzano.io/finalizer"
 )
 
 // Creates a job name in the format <namespace>_<name>_<uid>
