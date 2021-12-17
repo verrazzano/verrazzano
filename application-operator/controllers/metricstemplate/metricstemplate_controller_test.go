@@ -9,7 +9,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
@@ -161,7 +160,7 @@ func TestCreateScrapeConfig(t *testing.T) {
 	}
 	expectListObject(&metricsTemplate, mock)
 
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testDeploymentNamespace, Namespace: constants.DefaultNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testDeploymentNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
 			namespace.Labels = map[string]string{"istio-injection": "enabled"}
 			namespace.Name = testDeploymentNamespace
@@ -217,7 +216,7 @@ func TestUpdateScrapeConfig(t *testing.T) {
 	}
 	expectListObject(&metricsTemplate, mock)
 
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testExistsDeploymentNamespace, Namespace: constants.DefaultNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testExistsDeploymentNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
 			namespace.Labels = map[string]string{"istio-injection": "enabled"}
 			namespace.Name = testDeploymentNamespace

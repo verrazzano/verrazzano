@@ -9,7 +9,6 @@ import (
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -213,7 +212,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 
 	// Get the namespace for the template
 	resourceNamespace := v1.Namespace{}
-	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace(), Namespace: constants.DefaultNamespace}, &resourceNamespace)
+	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace()}, &resourceNamespace)
 	if err != nil {
 		return err
 	}
