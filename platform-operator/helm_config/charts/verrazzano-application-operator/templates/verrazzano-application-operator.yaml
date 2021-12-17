@@ -225,6 +225,20 @@ rules:
       - update
       - watch
   - apiGroups:
+      - app.verrazzano.io
+    resources:
+      - '*'
+      - '*/status'
+    verbs:
+      - create
+      - delete
+      - deletecollection
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
       - security.istio.io
     resources:
       - authorizationpolicies
