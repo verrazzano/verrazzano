@@ -125,7 +125,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 			return nil
 		})
 	// Expect a call to get the containerized workload resource definition
-	mock.EXPECT(). // get workload definition
+	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *v1alpha2.WorkloadDefinition) error {
 			workloadDef.Namespace = name.Namespace

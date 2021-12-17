@@ -131,7 +131,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
-func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, ) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
+func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
 	// If there are no rules, create a single default rule
