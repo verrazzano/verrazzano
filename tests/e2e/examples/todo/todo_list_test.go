@@ -118,7 +118,7 @@ func undeployToDoListExample() {
 	// THEN the certificate should have been cleaned up
 	pkg.Log(pkg.Info, "Deleted certificate check")
 	Eventually(func() bool {
-		_, err := pkg.GetCertificate("istio-system", "todo-list-todo-appconf-cert")
+		_, err := pkg.GetCertificate("istio-system", "todo-list-todo-appconf-todo-domain-ingress-cert")
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
@@ -129,7 +129,7 @@ func undeployToDoListExample() {
 	var secret *v1.Secret
 	var err error
 	for i := 0; i < 30; i++ {
-		secret, err = pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+		secret, err = pkg.GetSecret("istio-system", "todo-list-todo-appconf-todo-domain-ingress-cert-secret")
 		if err != nil && errors.IsNotFound(err) {
 			pkg.Log(pkg.Info, "Secret deleted")
 			return
@@ -164,9 +164,9 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist
-		It("Verify 'todo-list-todo-appconf-cert-secret' has been created", func() {
+		It("Verify 'todo-list-todo-appconf-todo-domain-ingress-cert-secret' has been created", func() {
 			Eventually(func() (*v1.Secret, error) {
-				return pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+				return pkg.GetSecret("istio-system", "todo-list-todo-appconf-todo-domain-ingress-cert-secret")
 			}, longWaitTimeout, longPollingInterval).ShouldNot(BeNil())
 		})
 		// GIVEN the ToDoList app is deployed
