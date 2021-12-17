@@ -455,8 +455,13 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		if err != nil {
 			return err
 		}
+		appName, ok := trait.Labels[oam.LabelAppName]
+		if !ok {
+			r.Log.Info("OAM app name label missing from metadata, will use wildcard for certificate host")
+			appName = "*"
+		}
 		certificate.Spec = certapiv1alpha2.CertificateSpec{
-			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
+			DNSNames:   []string{fmt.Sprintf("%s.%s", appName, appDomainName)},
 			SecretName: secretName,
 			IssuerRef: certv1.ObjectReference{
 				Name: verrazzanoClusterIssuer,
@@ -507,7 +512,7 @@ func buildCertificateNameFromAppName(trait *vzapi.IngressTrait) (string, error) 
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
 	}
-	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName), nil
+	return fmt.Sprintf("%s-%s-%s-cert", trait.Namespace, appName, trait.Name), nil
 }
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
