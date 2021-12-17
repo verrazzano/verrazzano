@@ -219,6 +219,7 @@ func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
 	}
 	if cert != nil {
 		err = r.Client.Delete(context.TODO(), cert, &client.DeleteOptions{})
+		r.Log.Info("Ingress trait certificate deleted", "cert", namespacedName)
 	}
 	return
 }
@@ -238,6 +239,7 @@ func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait) (err error) {
 	}
 	if secret != nil {
 		err = r.Client.Delete(context.TODO(), secret, &client.DeleteOptions{})
+		r.Log.Info("Ingress trait certificate secret deleted", "secret", namespacedName)
 	}
 	return
 }
