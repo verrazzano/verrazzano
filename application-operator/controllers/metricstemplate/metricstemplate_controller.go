@@ -84,7 +84,7 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 		return k8scontroller.Result{}, nil
 	}
 
-	if resource.GetDeletionTimestamp() == nil {
+	if resource.GetDeletionTimestamp().IsZero() {
 		return r.reconcileTraitCreateOrUpdate(ctx, resource)
 	}
 	return r.reconcileTraitDelete(ctx, resource)
