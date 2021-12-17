@@ -422,11 +422,11 @@ func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }
 
-func (f fakeComponent) IsReady(context spi.ComponentContext) bool {
+func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
 
-func (f fakeComponent) IsEnabled(context spi.ComponentContext) bool {
+func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
 	return f.enabled
 }
 
@@ -438,34 +438,34 @@ func (f fakeComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-func (f fakeComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
+func (f fakeComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
 	return true, nil
 }
 
-func (f fakeComponent) PreInstall(context spi.ComponentContext) error {
+func (f fakeComponent) PreInstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) Install(context spi.ComponentContext) error {
+func (f fakeComponent) Install(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) PostInstall(context spi.ComponentContext) error {
+func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) PreUpgrade(context spi.ComponentContext) error {
+func (f fakeComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) Upgrade(context spi.ComponentContext) error {
+func (f fakeComponent) Upgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) PostUpgrade(context spi.ComponentContext) error {
+func (f fakeComponent) PostUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) GetIngressNames(effectiveCR *v1alpha1.Verrazzano) []types.NamespacedName {
+func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }

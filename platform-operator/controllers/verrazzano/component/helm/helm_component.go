@@ -233,7 +233,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	}
 
 	// If the component has any ingresses associated, those should be present
-	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context.EffectiveCR())) {
+	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context)) {
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
@@ -429,7 +429,7 @@ func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
 }
 
-func (h HelmComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
+func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.NamespacedName {
 	return h.IngressNames
 }
 

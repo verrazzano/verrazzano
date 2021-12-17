@@ -47,7 +47,7 @@ type ComponentInfo interface {
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component
-	GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName
+	GetIngressNames(context ComponentContext) []types.NamespacedName
 }
 
 // ComponentInstaller interface defines installs operations for components that support it

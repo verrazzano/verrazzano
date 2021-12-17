@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	networkingv1 "k8s.io/api/networking/v1"
 	"testing"
 	"time"
 
@@ -146,12 +145,12 @@ func TestSuccessfulInstall(t *testing.T) {
 		}).Times(1)
 
 	// Expect a call to list the Ingresses.
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-			ingressList.Items = []networkingv1.Ingress{}
-			return nil
-		})
+	//mock.EXPECT().
+	//	List(gomock.Any(), gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+	//		ingressList.Items = []networkingv1.Ingress{}
+	//		return nil
+	//	})
 
 	// Expect local registration calls
 	expectSyncLocalRegistration(t, mock, name)
@@ -401,12 +400,12 @@ func TestCreateVerrazzano(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// Expect a call to list the Ingresses.
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-			ingressList.Items = []networkingv1.Ingress{}
-			return nil
-		})
+	//mock.EXPECT().
+	//	List(gomock.Any(), gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+	//		ingressList.Items = []networkingv1.Ingress{}
+	//		return nil
+	//	})
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -556,12 +555,12 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
 	// Expect a call to list the Ingresses.
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-			ingressList.Items = []networkingv1.Ingress{}
-			return nil
-		})
+	//mock.EXPECT().
+	//	List(gomock.Any(), gomock.Not(gomock.Nil())).
+	//	DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
+	//		ingressList.Items = []networkingv1.Ingress{}
+	//		return nil
+	//	})
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()

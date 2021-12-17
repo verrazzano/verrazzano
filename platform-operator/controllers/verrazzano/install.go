@@ -63,7 +63,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 					comp.Name(), comp.GetMinVerrazzanoVersion())
 				continue
 			}
-			if err := r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall); err != nil {
+			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.PreInstall); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			requeue = true
@@ -86,7 +86,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				requeue = true
 				continue
 			}
-			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install started", vzapi.InstallStarted); err != nil {
+			if err := r.updateComponentStatus(compContext, "Install started", vzapi.InstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			// Install started requeue to check status
@@ -105,7 +105,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 					continue
 				}
 				log.Infof("Component %s has been successfully installed", comp.Name())
-				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", vzapi.InstallComplete); err != nil {
+				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 				// Don't requeue because of this component, it is done install

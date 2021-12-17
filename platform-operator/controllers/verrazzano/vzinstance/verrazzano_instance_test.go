@@ -6,6 +6,7 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -118,7 +119,7 @@ func TestGetInstanceInfo(t *testing.T) {
 		},
 	}
 
-	instanceInfo := GetInstanceInfo(mock, vz)
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, false))
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -189,7 +190,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 			return nil
 		})
 
-	instanceInfo := GetInstanceInfo(mock, &v1alpha1.Verrazzano{})
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, false))
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -219,7 +220,7 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 			return fmt.Errorf("test error")
 		})
 
-	info := GetInstanceInfo(mock, &v1alpha1.Verrazzano{})
+	info := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, false))
 	mocker.Finish()
 	assert.Nil(t, info)
 }
@@ -256,7 +257,7 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 		},
 	}
 
-	instanceInfo := GetInstanceInfo(mock, vz)
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, false))
 	mocker.Finish()
 	assert.Nil(t, instanceInfo)
 }
