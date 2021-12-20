@@ -83,8 +83,8 @@
           "name": "external-dns",
           "images": [
             {
-              "image": "external-dns-jenkins",
-              "tag": "20211217202315-75565f9d",
+              "image": "external-dns",
+              "tag": "v0.7.1-20211220163634-96309cf6",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
