@@ -28,13 +28,12 @@ const (
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 10 * time.Minute
 	pollingInterval      = 30 * time.Second
-	sockshopAppName		 = "sockshop-appconfig"
+	sockshopAppName      = "sockshop-appconfig"
 	sockshopNamespace    = "sockshop"
-	)
+)
 
 var sockShop SockShop
 var username, password string
-
 
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
@@ -254,6 +253,9 @@ var _ = AfterEach(func() {
 
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	if !skipUndeploy {
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
@@ -269,7 +271,7 @@ var _ = AfterSuite(func() {
 
 		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
 		Eventually(func() bool {
-			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName )
+			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName)
 			if err == nil {
 				return false
 			}
