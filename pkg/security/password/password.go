@@ -18,18 +18,16 @@ func GeneratePassword(length int) (string, error) {
 	if length < 1 {
 		return "", fmt.Errorf("cannot create password of length %d", length)
 	}
-	b := make([]byte, length)
+	// Enlarge buffer so plenty of room is left when special characters are stripped out
+	b := make([]byte, length*3)
 	_, err := rand.Read(b)
 	if err != nil {
 		return "", err
 	}
-	pw := b64.URLEncoding.EncodeToString(b)
+	pw := b64.StdEncoding.EncodeToString(b)
 	pw, err = makeAlphaNumeric(pw)
 	if err != nil {
 		return "", err
-	}
-	if len(pw) < length {
-		return GeneratePassword(length)
 	}
 	return pw[:length], nil
 }
