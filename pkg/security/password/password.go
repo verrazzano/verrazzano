@@ -18,13 +18,28 @@ func GeneratePassword(length int) (string, error) {
 	if length < 1 {
 		return "", fmt.Errorf("cannot create password of length %d", length)
 	}
-	b := make([]byte, length)
+	// Enlarge buffer so plenty of room is left when special characters are stripped out
+	b := make([]byte, length*3)
 	_, err := rand.Read(b)
 	if err != nil {
 		return "", err
 	}
-	pw := b64.URLEncoding.EncodeToString(b)
+	pw := b64.StdEncoding.EncodeToString(b)
+	pw, err = makeAlphaNumeric(pw)
+	if err != nil {
+		return "", err
+	}
 	return pw[:length], nil
+}
+
+// makeAlphaNumeric removes all special characters from a password string
+func makeAlphaNumeric(input string) (string, error) {
+	// Make a Regex to say we only want letters and numbers
+	reg, err := regexp.Compile("[^a-zA-Z0-9]+")
+	if err != nil {
+		return "", err
+	}
+	return reg.ReplaceAllString(input, ""), nil
 }
 
 //MaskFunction creates a function intended to mask passwords which are substrings in other strings
