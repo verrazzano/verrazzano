@@ -90,7 +90,7 @@ func undeployMetricsApplication() {
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(testNamespace)
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 }
 
 var _ = Describe("Verify DeployMetrics Application", func() {
