@@ -41,7 +41,7 @@ pipeline {
         choice (name: 'SELECT_IMAGE_REGISTRY',
                 description: 'Select an image registry',
                 // 1st choice is the default value
-                choices: ["OCIR", "Harbor"])
+                choices: ["OCIR", "Harbor", "Harbor ephemeral"])
         string (name: 'ZIPFILE_LOCATION',
                         defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
                         description: 'The bucket location to use for the Zip file download',
@@ -241,6 +241,8 @@ pipeline {
                                 """
                             }
                         }
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+                        //TODO - docker login will likely need to be done later
                     }
                 }
                 sh """
@@ -313,6 +315,8 @@ pipeline {
                             cd ${TARBALL_DIR}
                             ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_STANDALONE_REGISTRY} -l . -r ${baseImageRepo}
                         """
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+                        //TODO - upload image will need to be done later
                     }
                 }
             }
