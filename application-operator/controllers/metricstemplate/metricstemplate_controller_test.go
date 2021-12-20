@@ -403,16 +403,16 @@ func TestReconcileTraitCreateOrUpdate(t *testing.T) {
 			return nil
 		})
 
-	controllerResult, err := reconciler.reconcileTraitCreateOrUpdate(context.TODO(), &unstructuredDeployment)
+	controllerResult, err := reconciler.reconcileTemplateCreateOrUpdate(context.TODO(), &unstructuredDeployment)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})
 }
 
-// TestReconcileTraitDelete tests the reconciliation for a deletion
+// TestReconcileTemplateDelete tests the reconciliation for a deletion
 // GIVEN an object and a request
 // WHEN the reconciler processes the request
 // THEN verify the process returns no error
-func TestReconcileTraitDelete(t *testing.T) {
+func TestReconcileTemplateDelete(t *testing.T) {
 	assert := asserts.New(t)
 
 	mocker := gomock.NewController(t)
@@ -439,7 +439,7 @@ func TestReconcileTraitDelete(t *testing.T) {
 			return nil
 		})
 
-	controllerResult, err := reconciler.reconcileTraitDelete(context.TODO(), &unstructuredDeployment)
+	controllerResult, err := reconciler.reconcileTemplateDelete(context.TODO(), &unstructuredDeployment)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})
 }

@@ -10,9 +10,9 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	v1 "k8s.io/api/core/v1"
+	k8scorev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -86,9 +86,9 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	}
 
 	if resource.GetDeletionTimestamp().IsZero() {
-		return r.reconcileTraitCreateOrUpdate(ctx, resource)
+		return r.reconcileTemplateCreateOrUpdate(ctx, resource)
 	}
-	return r.reconcileTraitDelete(ctx, resource)
+	return r.reconcileTemplateDelete(ctx, resource)
 }
 
 // getRequestedResource returns an Unstructured value from the namespace and name given in the request
@@ -102,8 +102,8 @@ func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (
 	return &uns, nil
 }
 
-// reconcileTraitDelete completes the reconcile process for an object that is being deleted
-func (r *Reconciler) reconcileTraitDelete(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
+// reconcileTemplateDelete completes the reconcile process for an object that is being deleted
+func (r *Reconciler) reconcileTemplateDelete(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for deleted object", "resource", resource.GetName())
 	err := r.removeFinalizerIfRequired(ctx, resource)
 	if err != nil {
@@ -116,8 +116,8 @@ func (r *Reconciler) reconcileTraitDelete(ctx context.Context, resource *unstruc
 	return k8scontroller.Result{}, nil
 }
 
-// reconcileTraitCreateOrUpdate completes the reconcile process for an object that is being created or updated
-func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
+// reconcileTemplateCreateOrUpdate completes the reconcile process for an object that is being created or updated
+func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for created or updated object", "resource", resource.GetName())
 	err := r.addFinalizerIfRequired(ctx, resource)
 	if err != nil {
@@ -130,8 +130,8 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, resource 
 	return k8scontroller.Result{}, nil
 }
 
-// addFinalizerIfRequired adds the finalizer to the trait if required
-// The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
+// addFinalizerIfRequired adds the finalizer to the Template if required
+// The finalizer is only added if the Template is not being deleted and the finalizer has not previously been added
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, resource *unstructured.Unstructured) error {
 	if resource.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(resource.GetFinalizers(), finalizerName) {
 		resourceName := resource.GetName()
@@ -144,8 +144,8 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, resource *unstr
 	return nil
 }
 
-// removeFinalizerIfRequired removes the finalizer from the trait if required
-// The finalizer is only removed if the trait is being deleted and the finalizer had been added
+// removeFinalizerIfRequired removes the finalizer from the template if required
+// The finalizer is only removed if the template is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, resource *unstructured.Unstructured) error {
 	if !resource.GetDeletionTimestamp().IsZero() && vzstring.SliceContainsString(resource.GetFinalizers(), finalizerName) {
 		resourceName := resource.GetName()
@@ -160,7 +160,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, resource *un
 
 // mutatePrometheusScrapeConfig takes the resource and a mutate function that determines the mutations of the scrape config
 // mutations are dependant upon the status of the deletion timestamp
-func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource *unstructured.Unstructured, mutatefn func(configMap *v1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error) error {
+func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource *unstructured.Unstructured, mutatefn func(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error) error {
 	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", resource.GetName())
 	// Verify that the configmap label
 	labels := resource.GetLabels()
@@ -170,8 +170,8 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 	}
 
 	// Find ConfigMap by the Given UID and delete the scrape config
-	configMap := v1.ConfigMap{
-		TypeMeta: v12.TypeMeta{
+	configMap := k8scorev1.ConfigMap{
+		TypeMeta: k8smetav1.TypeMeta{
 			Kind:       configMapKind,
 			APIVersion: configMapAPIVersion,
 		},
@@ -196,7 +196,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 }
 
 // Delete scrape config is a mutation function that deletes the scrape config data from the Prometheus ConfigMap
-func (r *Reconciler) deleteScrapeConfig(configMap *v1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
+func (r *Reconciler) deleteScrapeConfig(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
 	r.Log.V(2).Info("Scrape Config is being deleted from the Prometheus Config", "resource", resource.GetName())
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
@@ -227,7 +227,7 @@ func (r *Reconciler) deleteScrapeConfig(configMap *v1.ConfigMap, namespacedName 
 }
 
 // createOrUpdateScrapeConfig is a mutation function that creates or updates the scrape config data within the given Prometheus ConfigMap
-func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
+func (r *Reconciler) createOrUpdateScrapeConfig(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
 	r.Log.V(2).Info("Scrape Config is being created or update in the Prometheus config", "resource", resource.GetName())
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
@@ -239,7 +239,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 	labels := resource.GetLabels()
 	metricsTemplateUID := labels[metricsTemplateUIDLabel]
 	metricsTemplate := vzapi.MetricsTemplate{
-		TypeMeta: v12.TypeMeta{
+		TypeMeta: k8smetav1.TypeMeta{
 			Kind:       metricsTemplateKind,
 			APIVersion: metricsTemplateAPIVersion,
 		},
@@ -250,7 +250,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 	}
 
 	// Get the namespace for the template
-	resourceNamespace := v1.Namespace{}
+	resourceNamespace := k8scorev1.Namespace{}
 	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace()}, &resourceNamespace)
 	if err != nil {
 		return err
