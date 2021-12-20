@@ -125,7 +125,7 @@ func isConsoleIngressHost(ingressHost string) bool {
 }
 
 // isConsoleURLExpected - Returns true in VZ < 1.2.0. For VZ >= 1.2.0, returns false only if explicitly disabled
-// in the CR
+// in the CR or when managed cluster profile is used
 func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
 	isAtleastVz12, err := pkg.IsVerrazzanoMinVersion("1.2.0")
 	if err != nil {
