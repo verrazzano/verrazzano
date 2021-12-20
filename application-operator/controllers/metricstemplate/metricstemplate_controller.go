@@ -80,7 +80,7 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	// Check for label in resource
 	// If no label exists, do nothing
 	labels := resource.GetLabels()
-	resourceUID, keyExists := labels["app.verrazzano.io/metrics-workload-uid"]
+	resourceUID, keyExists := labels[metricsWorkloadUIDLabel]
 	if !keyExists || resourceUID != string(resource.GetUID()) {
 		return k8scontroller.Result{}, nil
 	}
@@ -164,7 +164,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", resource.GetName())
 	// Verify that the configmap label
 	labels := resource.GetLabels()
-	configmapUID, labelExists := labels["app.verrazzano.io/metrics-prometheus-configmap-uid"]
+	configmapUID, labelExists := labels[metricsPromConfigMapUIDLabel]
 	if !labelExists {
 		return nil
 	}
@@ -237,7 +237,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *v1.ConfigMap, namespa
 
 	// Get the metrics template from the UID
 	labels := resource.GetLabels()
-	metricsTemplateUID := labels["app.verrazzano.io/metrics-template-uid"]
+	metricsTemplateUID := labels[metricsTemplateUIDLabel]
 	metricsTemplate := vzapi.MetricsTemplate{
 		TypeMeta: v12.TypeMeta{
 			Kind:       metricsTemplateKind,
