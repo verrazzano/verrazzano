@@ -97,9 +97,9 @@ pipeline {
                 OCI_OS_BUCKET="verrazzano-builds"
                 OCI_CLI_AUTH="api_key"
                 OCI_CLI_TENANCY = credentials('oci-tenancy')
-                OCI_CLI_USER = credentials('oci-dev-user-ocid')
-                OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-                OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                OCI_CLI_USER = credentials('oci-user-ocid')
+                OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+                OCI_CLI_KEY_FILE = credentials('oci-api-key')
                 OCI_CLI_REGION = "us-phoenix-1"
                 OCI_REGION = "${env.OCI_CLI_REGION}"
             }
