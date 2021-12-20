@@ -197,15 +197,15 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi
 func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
 	err = r.cleanupCert(trait)
 	if err != nil {
-		return
+		return err
 	}
 
 	err = r.cleanupSecret(trait)
 	if err != nil {
-		return
+		return err
 	}
 
-	return
+	return nil
 }
 
 // cleanupCert cleans up the generated certificate for the given app config
@@ -222,9 +222,12 @@ func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
 	}
 	if cert != nil {
 		err = r.Client.Delete(context.TODO(), cert, &client.DeleteOptions{})
+		if err != nil {
+			return err
+		}
 		r.Log.Info("Ingress trait certificate deleted", "cert", namespacedName)
 	}
-	return
+	return nil
 }
 
 // cleanupSecret cleans up the generated secret for the given app config
@@ -242,9 +245,12 @@ func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait) (err error) {
 	}
 	if secret != nil {
 		err = r.Client.Delete(context.TODO(), secret, &client.DeleteOptions{})
+		if err != nil {
+			return err
+		}
 		r.Log.Info("Ingress trait certificate secret deleted", "secret", namespacedName)
 	}
-	return
+	return nil
 }
 
 // fetchCert gets the cert for the given name; returns nil Certificate if not found
