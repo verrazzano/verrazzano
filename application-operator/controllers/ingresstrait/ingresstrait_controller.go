@@ -103,6 +103,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				return reconcile.Result{}, err
 			}
 			// resource cleanup has succeeded, remove the finalizer
+			r.Log.Info("Successfully deleted ingress certificate and secret")
 			if err = r.removeFinalizerIfRequired(ctx, trait); err != nil {
 				return reconcile.Result{}, err
 			}
