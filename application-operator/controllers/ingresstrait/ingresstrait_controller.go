@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"reflect"
 	"strings"
@@ -116,18 +117,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	// Find the services associated with the trait in the application configuration.
-	var services []*corev1.Service
-	services, err = r.fetchServicesFromTrait(ctx, trait)
+	// Create or update the child resources of the trait and collect the outcomes.
+	status, result, err := r.createOrUpdateChildResources(ctx, trait)
 	if err != nil {
 		return reconcile.Result{}, err
-	} else if len(services) == 0 {
-		// This will be the case if the service has not started yet so we requeue and try again.
-		return reconcile.Result{Requeue: true}, err
+	} else if result.Requeue {
+		return result, nil
 	}
-
-	// Create or update the child resources of the trait and collect the outcomes.
-	status := r.createOrUpdateChildResources(ctx, trait, services)
 
 	// Update the status of the trait resource using the outcomes of the create or update.
 	return r.updateTraitStatus(ctx, trait, status)
@@ -135,7 +131,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // createOrUpdateChildResources creates or updates the Gateway and VirtualService resources that
 // should be used to setup ingress to the service.
-func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait, services []*corev1.Service) *reconcileresults.ReconcileResults {
+func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vzapi.IngressTrait) (*reconcileresults.ReconcileResults, ctrl.Result, error) {
 	status := reconcileresults.ReconcileResults{}
 	rules := trait.Spec.Rules
 	// If there are no rules, create a single default rule
@@ -149,7 +145,19 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 			if err != nil {
 				status.Errors = append(status.Errors, err)
 			} else {
+				// Must create GW before service so that external DNS sees the GW once the service is created
 				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status)
+
+				// Find the services associated with the trait in the application configuration.
+				var services []*corev1.Service
+				services, err = r.fetchServicesFromTrait(ctx, trait)
+				if err != nil {
+					return &status, reconcile.Result{}, err
+				} else if len(services) == 0 {
+					// This will be the case if the service has not started yet so we requeue and try again.
+					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
+				}
+
 				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
 				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, services, gateway, &status)
@@ -157,7 +165,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 			}
 		}
 	}
-	return &status
+	return &status, ctrl.Result{}, nil
 }
 
 // addFinalizerIfRequired adds the finalizer to the trait if required
@@ -526,6 +534,11 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, gateway, func() error {
 		return r.mutateGateway(gateway, trait, rule, secretName)
 	})
+
+	// Return if no changes
+	if res == controllerutil.OperationResultNone {
+		return gateway
+	}
 
 	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: name, Role: "gateway"}
 	status.Relations = append(status.Relations, ref)
