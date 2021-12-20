@@ -63,9 +63,12 @@ func postRecord(hc *http.Client, basicAuth, uri string, reader io.Reader) error 
 	req.Header.Set("Content-Type", "application/json")
 
 	if basicAuth != "" { // Basic Auth is used if provided
-		req.Header.Set("Authorization", basicAuth)
+		req.Header.Set("Authorization", fmt.Sprintf("basic %s", basicAuth))
 	}
-	_, err = hc.Do(req)
+	resp, err := hc.Do(req)
+	if resp != nil && resp.StatusCode != http.StatusCreated {
+		logger.Errorf("error when posting record[%d: %s]", resp.StatusCode, resp.Status)
+	}
 	return err
 }
 
