@@ -10,7 +10,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 ##@ Linting and coverage
 
 .PHONY: check
-check: install-linter word-linter url-linter ## run all linters
+check: install-linter word-linter # url-linter ## run all linters
 	$(LINTER) --color never run
 
 # find or download golangci-lint
