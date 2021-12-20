@@ -92,6 +92,9 @@ const IngressNginxNamespace = "ingress-nginx"
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
 
+// RancherIngress is the name of the ingress for Rancher
+const RancherIngress = "rancher"
+
 //  KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
 

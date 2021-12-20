@@ -23,7 +23,6 @@ const (
 	RancherName = "rancher"
 	// CattleSystem is the namespace of the component
 	CattleSystem                   = "cattle-system"
-	RancherIngressName             = "rancher"
 	RancherIngressCAName           = "tls-rancher-ingress"
 	RancherAdditionalIngressCAName = "tls-ca-additional"
 	RancherAdminSecret             = "rancher-admin-secret"

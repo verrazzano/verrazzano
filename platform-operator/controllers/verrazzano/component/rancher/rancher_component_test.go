@@ -195,7 +195,7 @@ func TestPostInstall(t *testing.T) {
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: common.CattleSystem,
-			Name:      common.RancherIngressName,
+			Name:      constants.RancherIngress,
 		},
 	}
 	clientWithoutIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)

@@ -20,11 +20,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-const systemNamespace = "verrazzano-system"
-
 // GetInstanceInfo returns the instance info for the local install.
 func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
-
 	ingressList := &networkingv1.IngressList{}
 	err := ctx.Client().List(context.TODO(), ingressList)
 	if err != nil {

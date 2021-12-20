@@ -63,7 +63,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-es-ingest"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: esURL},
@@ -71,7 +71,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-prometheus"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: promURL},
@@ -79,7 +79,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-grafana"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-grafana"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: grafanaURL},
@@ -87,7 +87,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-kibana"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: kibanaURL},
@@ -95,7 +95,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},
@@ -171,7 +171,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-prometheus"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: promURL},
@@ -179,7 +179,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},

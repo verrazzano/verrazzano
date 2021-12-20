@@ -144,14 +144,6 @@ func TestSuccessfulInstall(t *testing.T) {
 			return nil
 		}).Times(1)
 
-	// Expect a call to list the Ingresses.
-	//mock.EXPECT().
-	//	List(gomock.Any(), gomock.Not(gomock.Nil())).
-	//	DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-	//		ingressList.Items = []networkingv1.Ingress{}
-	//		return nil
-	//	})
-
 	// Expect local registration calls
 	expectSyncLocalRegistration(t, mock, name)
 
@@ -399,14 +391,6 @@ func TestCreateVerrazzano(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
-	// Expect a call to list the Ingresses.
-	//mock.EXPECT().
-	//	List(gomock.Any(), gomock.Not(gomock.Nil())).
-	//	DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-	//		ingressList.Items = []networkingv1.Ingress{}
-	//		return nil
-	//	})
-
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
@@ -553,14 +537,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 
 	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
-
-	// Expect a call to list the Ingresses.
-	//mock.EXPECT().
-	//	List(gomock.Any(), gomock.Not(gomock.Nil())).
-	//	DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-	//		ingressList.Items = []networkingv1.Ingress{}
-	//		return nil
-	//	})
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -1814,17 +1790,11 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 // expectDeleteServiceAccount expects a call to delete the service account used by install
 func expectDeleteServiceAccount(mock *mocks.MockClient, namespace string, name string) {
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-
-	// Expect a call to get the ServiceAccount - return that it exists
-	// mock.EXPECT().Delete(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: buildServiceAccountName(name)}, gomock.Any()).Return(nil)
 }
 
 // expectDeleteNamespace expects a call to delete the verrazzano-system ns
 func expectDeleteNamespace(mock *mocks.MockClient) {
 	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-
-	// Expect a call to get the ServiceAccount - return that it exists
-	// mock.EXPECT().Delete(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VerrazzanoSystemNamespace}, gomock.Any()).Return(nil)
 }
 
 // expectDeleteClusterRoleBinding expects a call to delete the ClusterRoleBinding for the Verrazzano with the given

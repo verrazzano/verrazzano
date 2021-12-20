@@ -45,7 +45,7 @@ func NewComponent() spi.Component {
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: common.CattleSystem,
-					Name:      common.RancherIngressName,
+					Name:      constants.RancherIngress,
 				},
 			},
 		},
