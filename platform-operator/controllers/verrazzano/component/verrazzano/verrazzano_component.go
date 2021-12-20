@@ -7,7 +7,6 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -84,7 +83,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
-	c.HelmComponent.IngressNames = c.GetIngressNames(ctx.EffectiveCR())
+	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -116,7 +115,8 @@ func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
-func (c verrazzanoComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []types.NamespacedName {
+func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+
 	ingressNames := []types.NamespacedName{
 		{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -124,28 +124,28 @@ func (c verrazzanoComponent) GetIngressNames(effectiveCR *vzapi.Verrazzano) []ty
 		},
 	}
 
-	if vzconfig.IsElasticsearchEnabled(effectiveCR) {
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      constants.ElasticsearchIngress,
 		})
 	}
 
-	if vzconfig.IsGrafanaEnabled(effectiveCR) {
+	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      constants.GrafanaIngress,
 		})
 	}
 
-	if vzconfig.IsKibanaEnabled(effectiveCR) {
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      constants.KibanaIngress,
 		})
 	}
 
-	if vzconfig.IsPrometheusEnabled(effectiveCR) {
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      constants.PrometheusIngress,

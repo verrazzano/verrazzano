@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"os"
 	"strings"
 	"time"
@@ -18,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 
 	"go.uber.org/zap"
@@ -406,9 +406,6 @@ func (r *Reconciler) checkInstallComplete(spiCtx spi.ComponentContext) (bool, er
 	}
 	// Set install complete IFF all subcomponent status' are "Ready"
 	message := "Verrazzano install completed successfully"
-	// To get the instance info, we need the effective CR with component enabed/disabled statuses.
-	actualCR.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, spiCtx.EffectiveCR())
-
 	// Status update must be performed on the actual CR read from K8S
 	return true, r.updateStatus(log, actualCR, message, installv1alpha1.InstallComplete)
 }
@@ -554,7 +551,7 @@ func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Ver
 	return nil
 }
 
-func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, componentName string, message string, conditionType installv1alpha1.ConditionType) error {
+func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -564,6 +561,10 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
+
+	componentName := compContext.GetComponent()
+	cr := compContext.ActualCR()
+	log := compContext.Log()
 
 	if cr.Status.Components == nil {
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
@@ -576,7 +577,7 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 		cr.Status.Components[componentName] = componentStatus
 	}
 	if conditionType == installv1alpha1.InstallComplete {
-		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, cr)
+		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
 	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
 

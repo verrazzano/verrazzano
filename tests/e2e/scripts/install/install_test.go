@@ -6,7 +6,9 @@ package installscript_test
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -101,9 +103,32 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 		return expectedUrls, err
 	}
 
+	consoleEnabled, err := IsConsoleEnabled(kubeConfig)
+	if err != nil {
+		return expectedUrls, err
+	}
+
 	for _, ingress := range ingresses.Items {
-		expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host))
+		ingressHost := ingress.Spec.Rules[0].Host
+		// If it's not the console ingress, or it is and the console is enabled, add it to the expected set of URLs
+		if !strings.HasPrefix(ingressHost, "verrazzano") || consoleEnabled {
+			expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingressHost))
+		}
 	}
 
 	return expectedUrls, nil
+}
+
+//IsConsoleEnabled - Returns false only if explicitly disabled in the CR
+func IsConsoleEnabled(kubeconfigPath string) (bool, error) {
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	// Return the value of the Console enabled flag if present
+	if vz != nil && vz.Spec.Components.Console != nil && vz.Spec.Components.Console.Enabled != nil {
+		return *vz.Spec.Components.Console.Enabled, nil
+	}
+	// otherwise, expect console to be enabled for all profiles but managed-cluster
+	return vz.Spec.Profile != vzapi.ManagedCluster, nil
 }
