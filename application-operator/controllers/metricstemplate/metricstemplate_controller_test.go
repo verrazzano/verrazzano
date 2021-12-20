@@ -208,6 +208,16 @@ func TestCreateScrapeConfig(t *testing.T) {
 			},
 			UID: testDeploymentUID,
 		},
+		Spec: k8sapps.DeploymentSpec{
+
+			Template: k8score.PodTemplateSpec{
+				ObjectMeta: k8smetav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "hello-helidon",
+					},
+				},
+			},
+		},
 	}
 	unstructuredDeploymentMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&deployment)
 	assert.NoError(err, "Expected no error creating unstructured Deployment")
@@ -263,6 +273,16 @@ func TestUpdateScrapeConfig(t *testing.T) {
 				"app.verrazzano.io/metrics-template-uid": testMTUID,
 			},
 			UID: testExistsDeploymentUID,
+		},
+		Spec: k8sapps.DeploymentSpec{
+
+			Template: k8score.PodTemplateSpec{
+				ObjectMeta: k8smetav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": "hello-helidon",
+					},
+				},
+			},
 		},
 	}
 	unstructuredDeploymentMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&deployment)
