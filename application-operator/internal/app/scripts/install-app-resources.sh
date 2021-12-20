@@ -22,7 +22,10 @@ webhooks:
       matchExpressions:
         - key: kubernetes.io/metadata.name
           operator: NotIn
-          values: ["kube-system", "verrazzano-system", "verrazzano-mc"]
+          values: ["kube-system", "verrazzano-mc"]
+        - key: verrazzano.io/namespace
+          operator: NotIn
+          values: ["verrazzano-system"]
     clientConfig:
       service:
         name: verrazzano-application-operator

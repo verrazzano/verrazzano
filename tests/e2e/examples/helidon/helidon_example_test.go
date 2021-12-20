@@ -44,7 +44,15 @@ var _ = BeforeSuite(func() {
 	}
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	if !skipUndeploy {
 		// undeploy the application here
 		Eventually(func() error {

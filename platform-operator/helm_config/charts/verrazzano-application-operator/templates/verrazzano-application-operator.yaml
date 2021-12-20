@@ -153,6 +153,14 @@ rules:
       - update
       - watch
   - apiGroups:
+      - app.verrazzano.io
+    resources:
+      - metricstemplates
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - coherence.oracle.com
     resources:
       - coherence
