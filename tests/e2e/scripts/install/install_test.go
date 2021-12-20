@@ -107,7 +107,7 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 	if err != nil {
 		return expectedUrls, err
 	}
-	
+
 	for _, ingress := range ingresses.Items {
 		ingressHost := ingress.Spec.Rules[0].Host
 		// If it's not the console ingress, or it is and the console is enabled, add it to the expected set of URLs
