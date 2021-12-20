@@ -125,15 +125,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.Failed:
-		return r.FailedState(vz, log)
+		return r.FailedState(spiContext)
 	case installv1alpha1.Installing:
 		return r.InstallingState(spiContext)
 	case installv1alpha1.Ready:
 		return r.ReadyState(spiContext)
 	case installv1alpha1.Uninstalling:
-		return r.UninstallingState(vz, log)
+		return r.UninstallingState(spiContext)
 	case installv1alpha1.Upgrading:
-		return r.UpgradingState(vz, log)
+		return r.UpgradingState(spiContext)
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
@@ -244,7 +244,9 @@ func (r *Reconciler) InstallingState(spiCtx spi.ComponentContext) (ctrl.Result, 
 }
 
 // UninstallingState processes the CR while in the uninstalling state
-func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) UninstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	vz := spiCtx.ActualCR()
+	log := spiCtx.Log()
 	log.Debugf("enter UninstallingState")
 	ctx := context.TODO()
 
@@ -257,7 +259,9 @@ func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.
 }
 
 // UpgradingState processes the CR while in the upgrading state
-func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) UpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	vz := spiCtx.ActualCR()
+	log := spiCtx.Log()
 	log.Debugf("enter UpgradingState")
 
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
@@ -271,7 +275,9 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 }
 
 // FailedState only allows uninstall
-func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) FailedState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	vz := spiCtx.ActualCR()
+	log := spiCtx.Log()
 	log.Debugf("enter FailedState")
 	ctx := context.TODO()
 
