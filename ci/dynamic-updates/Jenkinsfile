@@ -567,9 +567,6 @@ def generate_nonwls_tests(dumpRoot) {
         "examples logging helidon": {
             runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
         },
-        "examples socks": {
-            runGinkgo('examples/socks', "${dumpRoot}/examples-socks")
-        },
         "examples spring": {
             runGinkgo('examples/springboot', "${dumpRoot}/examples-spring")
         },
@@ -590,6 +587,10 @@ def generate_wls_tests(dumpRoot) {
             } else {
                 echo "Slow tests disabled, skipping Bob's Books tests"
             }
+        },
+        "examples socks": {
+            // socks uses COH
+            runGinkgo('examples/socks', "${dumpRoot}/examples-socks")
         },
         "examples todo": {
             runGinkgo('examples/todo', "${dumpRoot}/examples-todo")
