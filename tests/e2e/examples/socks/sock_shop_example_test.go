@@ -254,10 +254,6 @@ var _ = AfterEach(func() {
 
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
-
 	if !skipUndeploy {
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
@@ -301,6 +297,9 @@ var _ = AfterSuite(func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop namespace: %v\n", err.Error()))
 			return false
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 })
 
