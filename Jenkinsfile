@@ -833,7 +833,7 @@ def getSuspectList(commitList, userMappings) {
     }
     def suspectList = []
     for (int i = 0; i < commitList.size(); i++) {
-        def id = commitList[i]
+        def id = "1fd745b787b9504237a01129fd38ebfa8064c3b8" // FORCE FAILURE TO TEST commitList[i]
         try {
             def gitAuthor = sh(
                 script: "git log --format='%ae' '$id^!'",
