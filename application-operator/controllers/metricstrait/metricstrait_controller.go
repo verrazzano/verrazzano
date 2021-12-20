@@ -1001,7 +1001,7 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			//	config.Set(string(password), basicAuthLabel, basicPathPasswordLabel)
 			// }
 			if passwordFound {
-				var filePath string = "/etc/prometheus/password_file_" + strconv.Itoa(rand.Intn(1000000)) + ".txt"
+				var filePath string = "/etc/prometheus/password_file_" + strconv.Itoa(rand.Intn(1000000))
 
 				err = os.WriteFile(filePath, password, 0777)
 				if err != nil {
