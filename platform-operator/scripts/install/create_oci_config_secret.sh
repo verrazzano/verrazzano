@@ -106,8 +106,8 @@ fi
 
 # create the secret in verrazzano-install namespace
 create_secret=true
-OCI_SECRET_OUTPUT=`kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS | grep -v NAME | awk '{print $1}'`
-if [ "${OCI_SECRET_OUTPUT:-}" ] ; then
+kubectl ${K8SCONTEXT} get secret $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS > /dev/null 2>&1
+if [ $? -eq 0 ]; then
    # secret exists
    echo "Secret $OCI_CONFIG_SECRET_NAME already exists in ${VERRAZZANO_INSTALL_NS} namespace. Please delete that and try again."
    exit 1
