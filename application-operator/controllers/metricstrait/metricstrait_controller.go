@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+	"os/exec"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
@@ -1001,13 +1002,16 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			//	config.Set(string(password), basicAuthLabel, basicPathPasswordLabel)
 			// }
 			if passwordFound {
-				var filePath string = "/etc/prometheus/password_file_" + strconv.Itoa(rand.Intn(1000000))
-
+				var filePath string = "/tmp/password_file.txt"
 				err = os.WriteFile(filePath, password, 0777)
 				if err != nil {
 					return job, nil, fmt.Errorf("failed to write to the password_file: %w", err)
 				}
-				config.Set(filePath, basicAuthLabel, basicPasswordFileLabel)
+				err := exec.Command("/bin/sh","prometheus_passwd.sh").Run()
+				if err != nil {
+					return job, nil, err
+				}
+				config.Set("etc/prometheus/password_file.txt", basicAuthLabel, basicPasswordFileLabel)
 			}
 		}
 		return job, config, nil
