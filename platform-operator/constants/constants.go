@@ -95,6 +95,9 @@ const IstioSystemNamespace = "istio-system"
 // RancherIngress is the name of the ingress for Rancher
 const RancherIngress = "rancher"
 
+// KialiIngress is the name of the ingress for Kiali
+const KialiIngress = "vmi-system-kiali"
+
 //  KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
 

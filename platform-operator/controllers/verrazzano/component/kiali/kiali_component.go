@@ -39,7 +39,7 @@ func NewComponent() spi.Component {
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: constants.VerrazzanoSystemNamespace,
-					Name:      kialiIngressName,
+					Name:      constants.KialiIngress,
 				},
 			},
 		},
