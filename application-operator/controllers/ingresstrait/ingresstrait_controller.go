@@ -98,7 +98,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// If the trait no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if trait != nil {
-		if isTraitBeingDeleted(trait) {
+		if r.isTraitBeingDeleted(trait) {
 			if err = r.cleanup(trait); err != nil {
 				return reconcile.Result{}, err
 			}
@@ -110,6 +110,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return reconcile.Result{}, nil
 		}
 		// add finalizer
+		r.Log.Info("adding finalizer to trait", "trait", trait)
 		if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -301,8 +302,10 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Ingress
 
 // isTraitBeingDeleted determines if the trait is in the process of being deleted.
 // This is done checking for a non-nil deletion timestamp.
-func isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
-	return trait != nil && trait.GetDeletionTimestamp() != nil
+func (r *Reconciler) isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
+	deleted := trait != nil && trait.GetDeletionTimestamp() != nil
+	r.Log.Info("Is trait being deleted", "result", deleted)
+	return deleted
 }
 
 // fetchTrait attempts to get a trait given a namespaced name.
@@ -312,10 +315,10 @@ func (r *Reconciler) fetchTrait(ctx context.Context, name types.NamespacedName) 
 	r.Log.Info("Fetch trait", "trait", name)
 	if err := r.Get(ctx, name, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("Trait has been deleted")
+			r.Log.Info("Trait has been deleted", "trait", name)
 			return nil, nil
 		}
-		r.Log.Info("Failed to fetch trait")
+		r.Log.Info("Failed to fetch trait", "trait", name)
 		return nil, err
 	}
 	return &trait, nil
