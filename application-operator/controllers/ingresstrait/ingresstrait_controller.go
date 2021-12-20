@@ -99,6 +99,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// If the trait no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if trait != nil {
 		if r.isTraitBeingDeleted(trait) {
+			r.Log.Info("Trait is being deleted - attempting associated resource cleanup", "trait", trait)
 			if err = r.cleanup(trait); err != nil {
 				return reconcile.Result{}, err
 			}
