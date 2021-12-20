@@ -8,6 +8,7 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"os"
 	"strconv"
@@ -27,10 +28,13 @@ const (
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 10 * time.Minute
 	pollingInterval      = 30 * time.Second
-)
+	sockshopAppName		 = "sockshop-appconfig"
+	sockshopNamespace    = "sockshop"
+	)
 
 var sockShop SockShop
 var username, password string
+
 
 // creates the sockshop namespace and applies the components and application yaml
 var _ = BeforeSuite(func() {
@@ -267,9 +271,35 @@ var _ = AfterSuite(func() {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
+		Eventually(func() bool {
+			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName )
+			if err == nil {
+				return false
+			}
+			if errors.IsNotFound(err) {
+				return true
+			}
+			pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop appconfig: %v\n", err.Error()))
+			return false
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
 		pkg.Log(pkg.Info, "Delete namespace")
 		Eventually(func() error {
-			return pkg.DeleteNamespace("sockshop")
+			return pkg.DeleteNamespace(sockshopNamespace)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+		pkg.Log(pkg.Info, "Wait for sockshop namespace to be deleted")
+		Eventually(func() bool {
+			_, err := pkg.DoesNamespaceExist(sockshopNamespace)
+			if err == nil {
+				return false
+			}
+			if errors.IsNotFound(err) {
+				return true
+			}
+			pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop namespace: %v\n", err.Error()))
+			return false
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	}
 })
