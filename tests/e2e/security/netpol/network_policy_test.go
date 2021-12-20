@@ -30,7 +30,7 @@ const (
 
 var (
 	expectedPods    = []string{"netpol-test"}
-	waitTimeout     = 3 * time.Minute
+	waitTimeout     = 15 * time.Minute
 	pollingInterval = 30 * time.Second
 )
 
