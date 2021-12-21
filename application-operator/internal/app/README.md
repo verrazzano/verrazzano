@@ -13,7 +13,7 @@ Once these CRDs and manifests are installed the Verrazzano Application Operator 
 ## Demo
 Use the following steps to demonstrate the function of the metrics template scrape generator:
 
-- Deploy a Verrazzano version with the updated controller and webhook
+- Deploy Verrazzano from master
   
 - run the script `scripts/install-app-resources.sh`
   to install the MetricsTemplate CRD, The MetricsTemplate resource, and the scrape generator mutating webhook.
@@ -36,7 +36,7 @@ Use the following steps to demonstrate the function of the metrics template scra
 - Create a LoadBalancer service for the application with port `8080` to allow access to the pod from Prometheus
   
 - For a sample application, you can use the Deployment and Service located in `resources/hello-helidon-test-deployment.yaml`.
-  - This example will require the namespace `hallo-helidon-namespace` to be created.
+  - This example will require the namespace `hello-helidon-namespace` to be created.
 
 - Once the Deployment and Service are running, check the Prometheus targets for a target titled `<namespace>_<deployment-name>-<deploument-UID>`
   - For now, the container ports will show up in the target as unavailable. 
