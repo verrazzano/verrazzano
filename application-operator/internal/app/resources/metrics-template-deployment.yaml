@@ -7,6 +7,10 @@ metadata:
   name: test-metrics-template
   namespace: verrazzano-system
 spec:
+  workloadSelector:
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployment"]
   prometheusConfig:
     targetConfigMap:
       namespace: verrazzano-system

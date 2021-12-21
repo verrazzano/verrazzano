@@ -25,6 +25,7 @@ Use the following steps to demonstrate the function of the metrics template scra
   - `kubectl delete pod -n verrazzano-system application-operator-XX-XX`
   
 - Create the example namespace that contains these labels to enable Verrazzano and Istio.
+  - `kubectl create namespace hello-helidon-namespace`
   - `kubectl label namespace hello-helidon-namespace verrazzano-managed=true istio-injection=enabled`
   
 - Apply the example Deployment and Service to trigger the Metrics Template Webhook and Controller.
