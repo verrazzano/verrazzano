@@ -32,10 +32,7 @@ const ScrapeGeneratorLoadPath = "/scrape-generator"
 const StatusReasonSuccess = "success"
 
 const (
-	MetricsAnnotation            = "app.verrazzano.io/metrics"
-	MetricsWorkloadUIDLabel      = "app.verrazzano.io/metrics-workload-uid"
-	MetricsTemplateUIDLabel      = "app.verrazzano.io/metrics-template-uid"
-	MetricsPromConfigMapUIDLabel = "app.verrazzano.io/metrics-prometheus-configmap-uid"
+	MetricsAnnotation = "app.verrazzano.io/metrics"
 )
 
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
@@ -196,9 +193,9 @@ func (a *ScrapeGeneratorWebhook) populateLabels(ctx context.Context, unst *unstr
 		labels = make(map[string]string)
 	}
 
-	labels[MetricsWorkloadUIDLabel] = string(unst.GetUID())
-	labels[MetricsTemplateUIDLabel] = string(template.UID)
-	labels[MetricsPromConfigMapUIDLabel] = string(configMap.UID)
+	labels[constants.MetricsWorkloadUIDLabel] = string(unst.GetUID())
+	labels[constants.MetricsTemplateUIDLabel] = string(template.UID)
+	labels[constants.MetricsPromConfigMapUIDLabel] = string(configMap.UID)
 
 	unst.SetLabels(labels)
 

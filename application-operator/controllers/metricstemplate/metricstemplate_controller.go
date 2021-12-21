@@ -8,6 +8,7 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	k8scorev1 "k8s.io/api/core/v1"
@@ -80,7 +81,7 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	// Check for label in resource
 	// If no label exists, do nothing
 	labels := resource.GetLabels()
-	resourceUID, keyExists := labels[metricsWorkloadUIDLabel]
+	resourceUID, keyExists := labels[constants.MetricsWorkloadUIDLabel]
 	if !keyExists || resourceUID != string(resource.GetUID()) {
 		return k8scontroller.Result{}, nil
 	}
@@ -164,7 +165,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", resource.GetName())
 	// Verify that the configmap label
 	labels := resource.GetLabels()
-	configmapUID, labelExists := labels[metricsPromConfigMapUIDLabel]
+	configmapUID, labelExists := labels[constants.MetricsPromConfigMapUIDLabel]
 	if !labelExists {
 		return nil
 	}
@@ -237,7 +238,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *k8scorev1.ConfigMap, 
 
 	// Get the metrics template from the UID
 	labels := resource.GetLabels()
-	metricsTemplateUID := labels[metricsTemplateUIDLabel]
+	metricsTemplateUID := labels[constants.MetricsTemplateUIDLabel]
 	metricsTemplate := vzapi.MetricsTemplate{
 		TypeMeta: k8smetav1.TypeMeta{
 			Kind:       metricsTemplateKind,

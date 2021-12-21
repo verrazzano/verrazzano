@@ -25,10 +25,6 @@ const (
 	metricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
 	finalizerName = "metricstemplate.finalizers.verrazzano.io/finalizer"
-
-	metricsWorkloadUIDLabel      = "app.verrazzano.io/metrics-workload-uid"
-	metricsTemplateUIDLabel      = "app.verrazzano.io/metrics-template-uid"
-	metricsPromConfigMapUIDLabel = "app.verrazzano.io/metrics-prometheus-configmap-uid"
 )
 
 // Creates a job name in the format <namespace>_<name>_<uid>
