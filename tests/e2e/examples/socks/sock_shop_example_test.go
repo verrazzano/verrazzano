@@ -256,13 +256,14 @@ var _ = AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
+	failed = false
 	if !skipUndeploy {
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
 		pkg.Log(pkg.Info, "Delete application")
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
