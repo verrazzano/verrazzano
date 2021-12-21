@@ -5,6 +5,7 @@ package metricstemplate
 
 import (
 	"context"
+	"fmt"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -98,6 +99,7 @@ func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (
 	// TODO: Replace with more generic lookup
 	uns.SetGroupVersionKind(schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "Deployment"})
 	if err := r.Client.Get(context.TODO(), namespacedName, &uns); err != nil {
+		r.Log.Error(err, fmt.Sprintf("Could not get the requested resource: %s", uns.GetKind()))
 		return nil, err
 	}
 	return &uns, nil
@@ -139,6 +141,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, resource *unstr
 		r.Log.V(2).Info("Adding finalizer from resource", "resource", resourceName)
 		resource.SetFinalizers(append(resource.GetFinalizers(), finalizerName))
 		if err := r.Update(ctx, resource); err != nil {
+			r.Log.Error(err, fmt.Sprintf("Could not update the finalizer for resource: %s/%s", resource.GetKind(), resource.GetName()))
 			return err
 		}
 	}
@@ -153,6 +156,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, resource *un
 		r.Log.Info("Removing finalizer from resource", "resource", resourceName)
 		resource.SetFinalizers(vzstring.RemoveStringFromSlice(resource.GetFinalizers(), finalizerName))
 		if err := r.Update(ctx, resource); err != nil {
+			r.Log.Error(err, fmt.Sprintf("Could not update the finalizer for resource: %s/%s, ", resource.GetKind(), resource.GetName()))
 			return err
 		}
 	}
@@ -191,6 +195,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 	//Apply the updated configmap
 	err = r.Client.Update(ctx, &configMap)
 	if err != nil {
+		r.Log.Error(err, fmt.Sprintf("Could not update the ConfigMap: %s", configMap.GetName()))
 		return err
 	}
 	return nil
@@ -254,6 +259,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *k8scorev1.ConfigMap, 
 	resourceNamespace := k8scorev1.Namespace{}
 	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace()}, &resourceNamespace)
 	if err != nil {
+		r.Log.Error(err, fmt.Sprintf("Could not get the Namespace: %s", resourceNamespace.GetName()))
 		return err
 	}
 
