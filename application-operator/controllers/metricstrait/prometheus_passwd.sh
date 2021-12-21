@@ -8,4 +8,4 @@ SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
 POD_NAME=$(kubectl get pods -n verrazzano-system | grep prometheus | awk '{print $2}')
 
-kubectl cp /tmp/password_file.txt verrazzano-system/${POD_NAME}:etc/prometheus/password_file.txt
+kubectl cp /tmp/password_file.txt verrazzano-system/$POD_NAME:etc/prometheus/password_file.txt
