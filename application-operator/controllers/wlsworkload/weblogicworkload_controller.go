@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"math/big"
 	"os"
 	"reflect"
@@ -25,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
@@ -383,9 +383,9 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	var workload vzapi.VerrazzanoWebLogicWorkload
 	if err := r.Get(ctx, name, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("VerrazzanoWebLogicWorkload has been deleted", "name", name)
+			r.Log.Info("VerrazzanoWebLogicWorkload has been deleted", "workload", name)
 		} else {
-			r.Log.Error(err, "Failed to fetch VerrazzanoWebLogicWorkload", "name", name)
+			r.Log.Error(err, "Failed to fetch VerrazzanoWebLogicWorkload", "workload", name)
 		}
 		return nil, err
 	}
