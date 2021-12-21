@@ -25,9 +25,9 @@ deploy_contour () {
 }
 
 deploy_certificates() {
-  kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.crds.yaml
   helm repo add jetstack https://charts.jetstack.io
   helm repo update
+  kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.crds.yaml
   helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.6.1
   kubectl apply -f - <<EOF
     apiVersion: cert-manager.io/v1
@@ -58,6 +58,7 @@ load_images() {
 
 deploy_harbor() {
   helm repo add harbor https://helm.goharbor.io
+  helm repo update
   # Install harbor
   helm install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
