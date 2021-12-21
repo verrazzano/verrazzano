@@ -28,7 +28,17 @@ Use the following steps to demonstrate the function of the metrics template scra
 - Create a Deployment in the labeled namespace. 
   - Make sure to populate the `spec.selector.matchlabels` and `spec.template.metadata.labels` with the same custom value:
   
-    `app: <application-name>`
+    ```yaml
+    spec:
+      selector:
+        matchLabels:
+          app: hello-helidon-application
+      template:
+        metadata:
+          labels:
+            app: hello-helidon-application
+    ```
+    
   - Annotate the Deployment to enable metrics the Metrics Template Webhook:
     
     `app.verrazzano.io/metrics=test-metrics-template`
@@ -39,8 +49,10 @@ Use the following steps to demonstrate the function of the metrics template scra
   - This example will require the namespace `hello-helidon-namespace` to be created.
 
 - Once the Deployment and Service are running, check the Prometheus targets for a target titled `<namespace>_<deployment-name>-<deploument-UID>`
-  - For now, the container ports will show up in the target as unavailable. 
-    Fixing this issue will require more elaboration and time and will be sorted out in the near future.
+  - For now, the container ports will show up in the Prometheus target section as Unavailable.
+    The ports are available, just not set up for Prometheus scraping.
+    In the future, the template implementation will have to exclude these ports from being targeted by Prometheus.
+    Fixing this issue will require more elaboration and time and will be sorted out soon.
     
 ## Testing
 The acceptance tests for this feature are disabled by default.
