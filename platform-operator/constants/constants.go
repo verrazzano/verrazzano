@@ -44,9 +44,6 @@ const ServerDataKey = "server"
 // VzConsoleIngress - the name of the ingress for Verrazzano console and api
 const VzConsoleIngress = "verrazzano-ingress"
 
-// KeycloakIngress - the name of the ingress for Keycloak console and api
-const KeycloakIngress = "keycloak"
-
 // RegistryOverrideEnvVar is the environment variable name used to override the registry housing images we install
 const RegistryOverrideEnvVar = "REGISTRY"
 
@@ -74,6 +71,18 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 // ElasticsearchURLEnvVar is the environment variable used to identify the admin clusters Elasticsearch URL
 const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
 
+// ElasticsearchIngress is the name of the ingress for Elasticsearch
+const ElasticsearchIngress = "vmi-system-es-ingest"
+
+// GrafanaIngress is the name of the ingress for Grafana
+const GrafanaIngress = "vmi-system-grafana"
+
+// KibanaIngress is the name of the ingress for Kibana
+const KibanaIngress = "vmi-system-kibana"
+
+// PrometheusIngress is the name of the ingress for Prometheus
+const PrometheusIngress = "vmi-system-prometheus"
+
 // GlobalImagePullSecName is the name of the global image pull secret
 const GlobalImagePullSecName = "verrazzano-container-registry"
 
@@ -83,8 +92,17 @@ const IngressNginxNamespace = "ingress-nginx"
 // IstioSystemNamespace - the Istio system namespace
 const IstioSystemNamespace = "istio-system"
 
+// RancherIngress is the name of the ingress for Rancher
+const RancherIngress = "rancher"
+
+// KialiIngress is the name of the ingress for Kiali
+const KialiIngress = "vmi-system-kiali"
+
 //  KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
+
+// KeycloakIngress - the name of the ingress for Keycloak console and api
+const KeycloakIngress = "keycloak"
 
 // VerrazzanoAuthProxyServiceName is the name of the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"

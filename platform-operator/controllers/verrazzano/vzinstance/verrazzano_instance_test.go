@@ -6,6 +6,7 @@ package vzinstance
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -62,7 +63,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-es-ingest"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: esURL},
@@ -70,7 +71,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-prometheus"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: promURL},
@@ -78,7 +79,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-grafana"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-grafana"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: grafanaURL},
@@ -86,7 +87,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-kibana"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: kibanaURL},
@@ -94,7 +95,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},
@@ -118,7 +119,7 @@ func TestGetInstanceInfo(t *testing.T) {
 		},
 	}
 
-	instanceInfo := GetInstanceInfo(mock, vz)
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, false))
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -170,7 +171,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: "vmi-system-prometheus"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: promURL},
@@ -178,7 +179,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: systemNamespace, Name: constants.VzConsoleIngress},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: consoleURL},
@@ -189,7 +190,7 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 			return nil
 		})
 
-	instanceInfo := GetInstanceInfo(mock, &v1alpha1.Verrazzano{})
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, false))
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -219,7 +220,7 @@ func TestGetInstanceInfoGetError(t *testing.T) {
 			return fmt.Errorf("test error")
 		})
 
-	info := GetInstanceInfo(mock, &v1alpha1.Verrazzano{})
+	info := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, false))
 	mocker.Finish()
 	assert.Nil(t, info)
 }
@@ -256,7 +257,7 @@ func TestGetInstanceInfoNoIngresses(t *testing.T) {
 		},
 	}
 
-	instanceInfo := GetInstanceInfo(mock, vz)
+	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, false))
 	mocker.Finish()
 	assert.Nil(t, instanceInfo)
 }

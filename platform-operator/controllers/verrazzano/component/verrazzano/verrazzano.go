@@ -37,10 +37,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
-// componentName is the name of the component
+// ComponentName is the name of the component
 
 const (
-	componentName           = "verrazzano"
+	ComponentName           = "verrazzano"
 	keycloakInClusterURL    = "keycloak-http.keycloak.svc.cluster.local"
 	esHelmValuePrefixFormat = "elasticSearch.%s"
 
@@ -101,7 +101,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 
 	// Append the simple overrides
 	if err := appendVerrazzanoValues(ctx, &overrides); err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	// Append any VMI overrides to the override values object, and any installArgs overrides to the kvs list
 	vzkvs = appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, vzkvs)
@@ -110,13 +110,13 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	appendFluentdOverrides(effectiveCR, &overrides)
 	// append the security role overrides
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
@@ -128,12 +128,12 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	imageOverrides, err := bomFile.BuildImageOverrides("monitoring-init-images")
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	kvs = append(kvs, imageOverrides...)
@@ -171,7 +171,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
 		return ctrlerrors.RetryableError{
-			Source: componentName,
+			Source: ComponentName,
 			Cause:  err,
 		}
 	}
@@ -446,7 +446,7 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return err
 	}
 	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
-		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
 		return err
@@ -457,18 +457,18 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 			return err
 		}
 		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 	}
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 	}
 	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
 			true, false); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 	}
 	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
@@ -526,13 +526,13 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 			if err != nil {
 				if !errors.IsNotFound(err) {
 					return ctrlerrors.RetryableError{
-						Source: componentName,
+						Source: ComponentName,
 						Cause:  err,
 					}
 				}
 				vzLog.Errorf("Custom Elasticsearch secret %s not found in namespace %s",
 					esSecret, constants.VerrazzanoInstallNamespace)
-				return ctrlerrors.RetryableError{Source: componentName}
+				return ctrlerrors.RetryableError{Source: ComponentName}
 			}
 		}
 	}

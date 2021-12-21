@@ -467,7 +467,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 	ctx.Log().Debug("configureKeycloakRealm: Granted realmAdmin Role to VZ user")
 
-	vzpw, err := getSecretPassword(ctx, "verrazzano-system", "verrazzano")
+	vzpw, err := getSecretPassword(ctx, constants.VerrazzanoSystemNamespace, "verrazzano")
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error retrieving Verrazzano password: %s", err)
 		return err
@@ -494,7 +494,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("configureKeycloakRealm: Successfully Created Prom User")
 
 	// Set verrazzano internal prom user password
-	prompw, err := getSecretPassword(ctx, "verrazzano-system", "verrazzano-prom-internal")
+	prompw, err := getSecretPassword(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-prom-internal")
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error getting Verrazzano internal Prometheus user password: stdout = %s, stderr = %s", stdout, stderr)
 		return err
@@ -521,7 +521,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("configureKeycloakRealm: Created ES User")
 
 	// Set verrazzano internal ES user password
-	espw, err := getSecretPassword(ctx, "verrazzano-system", "verrazzano-es-internal")
+	espw, err := getSecretPassword(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-es-internal")
 	if err != nil {
 		ctx.Log().Errorf("configureKeycloakRealm: Error getting Verrazzano internal Elasticsearch user password: stdout = %s, stderr = %s", stdout, stderr)
 		return err
@@ -867,7 +867,7 @@ func keycloakPod() *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "keycloak-0",
-			Namespace: ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 }
