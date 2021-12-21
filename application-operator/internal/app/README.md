@@ -21,7 +21,7 @@ Use the following steps to demonstrate the function of the metrics template scra
 - restart the application-operator pod to register the webhook. 
   (Otherwise, you will not be able to create deployments)
   
-- Create a namespace that contains these labels to enable Verrazzano and Istio:
+- Create an application namespace that contains these labels to enable Verrazzano and Istio:
   
   `kubectl label namespace <namespace-name> verrazzano-managed=true istio-injection=enabled`
   
@@ -29,7 +29,7 @@ Use the following steps to demonstrate the function of the metrics template scra
   - Make sure to populate the `spec.selector.matchlabels` and `spec.template.metadata.labels` with the same custom value:
   
     `app: <application-name>`
-  - Annotate the Deployment with this to enable metrics the Metrics Template Webhook:
+  - Annotate the Deployment to enable metrics the Metrics Template Webhook:
     
     `app.verrazzano.io/metrics=test-metrics-template`
     

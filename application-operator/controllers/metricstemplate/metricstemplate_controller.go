@@ -160,7 +160,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, resource *un
 
 // mutatePrometheusScrapeConfig takes the resource and a mutate function that determines the mutations of the scrape config
 // mutations are dependant upon the status of the deletion timestamp
-func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource *unstructured.Unstructured, mutatefn func(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error) error {
+func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource *unstructured.Unstructured, mutateFn func(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error) error {
 	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", resource.GetName())
 	// Verify that the configmap label
 	labels := resource.GetLabels()
@@ -182,7 +182,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 	}
 
 	// Mutate the ConfigMap based on the given function
-	err = mutatefn(&configMap, types.NamespacedName{Name: resource.GetName(), Namespace: resource.GetNamespace()}, resource)
+	err = mutateFn(&configMap, types.NamespacedName{Name: resource.GetName(), Namespace: resource.GetNamespace()}, resource)
 	if err != nil {
 		return err
 	}
