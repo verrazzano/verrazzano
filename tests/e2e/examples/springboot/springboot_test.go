@@ -23,7 +23,7 @@ var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
-var longWaitTimeout = 10 * time.Minute
+var longWaitTimeout = 15 * time.Minute
 var longPollingInterval = 20 * time.Second
 
 var _ = BeforeSuite(func() {
@@ -100,7 +100,7 @@ var _ = Describe("Verify Spring Boot Application", func() {
 		It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPodsSpringBootApp)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			}, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
