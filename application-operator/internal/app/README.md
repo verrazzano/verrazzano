@@ -18,7 +18,7 @@ Use the following steps to demonstrate the function of the metrics template scra
 - run the script `scripts/install-app-resources.sh`
   to install the MetricsTemplate CRD, The MetricsTemplate resource, and the scrape generator mutating webhook.
   
-- restart the application-operator pod to register the webhook. 
+- Restart the application-operator pod to register the webhook. 
   (Otherwise, you will not be able to create deployments)
   
 - Create an application namespace that contains these labels to enable Verrazzano and Istio:
@@ -33,9 +33,10 @@ Use the following steps to demonstrate the function of the metrics template scra
     
     `app.verrazzano.io/metrics=test-metrics-template`
     
-- Create a LoadBalancer service with port `8080` to allow access to the pod from Prometheus
+- Create a LoadBalancer service for the application with port `8080` to allow access to the pod from Prometheus
   
-- For a sample application, you can use the Deployment and Service located in `resources/hello-helidon-test-deployment.yaml`
+- For a sample application, you can use the Deployment and Service located in `resources/hello-helidon-test-deployment.yaml`.
+  - This example will require the namespace `hallo-helidon-namespace` to be created.
 
 - Once the Deployment and Service are running, check the Prometheus targets for a target titled `<namespace>_<deployment-name>-<deploument-UID>`
   - For now, the container ports will show up in the target as unavailable. 
