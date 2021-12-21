@@ -179,7 +179,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 // addFinalizerIfRequired adds the finalizer to the trait if required
 // The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
-	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
+	if !r.isTraitBeingDeleted(trait) && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
 		r.Log.V(1).Info("Adding finalizer to trait", "trait", traitName)
 		trait.Finalizers = append(trait.Finalizers, finalizerName)
@@ -195,7 +195,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.In
 // removeFinalizerIfRequired removes the finalizer from the trait if required
 // The finalizer is only removed if the trait is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
-	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
+	if r.isTraitBeingDeleted(trait) && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
 		r.Log.Info("Removing finalizer from trait", "trait", trait)
 		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
@@ -325,7 +325,7 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Ingress
 // isTraitBeingDeleted determines if the trait is in the process of being deleted.
 // This is done checking for a non-nil deletion timestamp.
 func (r *Reconciler) isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
-	deleted := trait != nil && trait.GetDeletionTimestamp() != nil
+	deleted := !trait.GetDeletionTimestamp().IsZero()
 	r.Log.Info("Is trait being deleted", "trait", trait, "result", deleted)
 	return deleted
 }
@@ -499,7 +499,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 
 		return nil
 	})
-	r.Log.Info("certificate created based on ingress trait", "trait", trait, "name", certName)
+	r.Log.Info("certificate created/updated based on ingress trait", "trait", trait, "name", certName)
 	ref := vzapi.QualifiedResourceRelation{APIVersion: certificateAPIVersion, Kind: certificateKind, Name: certificate.Name, Role: "certificate"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
