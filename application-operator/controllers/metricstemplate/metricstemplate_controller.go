@@ -218,6 +218,7 @@ func (r *Reconciler) deleteScrapeConfig(configMap *k8scorev1.ConfigMap, namespac
 		if existingJobName == createdJobName {
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
+				r.Log.Error(err, "Could remove array slice from Prometheus config")
 				return err
 			}
 		}
@@ -226,6 +227,7 @@ func (r *Reconciler) deleteScrapeConfig(configMap *k8scorev1.ConfigMap, namespac
 	// Repopulate the configmap data
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
+		r.Log.Error(err, "Could convert Prometheus config data to YAML")
 		return err
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
@@ -290,10 +292,12 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *k8scorev1.ConfigMap, 
 	// Format scrape config into readable container
 	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
 	if err != nil {
+		r.Log.Error(err, "Could not convert scrape config YAML to JSON")
 		return err
 	}
 	newScrapeConfig, err := gabs.ParseJSON(configYaml)
 	if err != nil {
+		r.Log.Error(err, "Could not convert scrape config JSON to container")
 		return err
 	}
 
