@@ -197,7 +197,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.In
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
 	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
-		r.Log.Info("Removing finalizer from trait", "trait", traitName)
+		r.Log.Info("Removing finalizer from trait", "trait", trait)
 		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
 			r.Log.Error(err, "failed to remove finalizer to trait", "trait", traitName)
