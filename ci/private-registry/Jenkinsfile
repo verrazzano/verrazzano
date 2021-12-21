@@ -343,6 +343,7 @@ pipeline {
                             }
                         }
                         sh """
+                            printenv
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${baseImageRepo}
                         """
