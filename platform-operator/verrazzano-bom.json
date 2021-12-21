@@ -212,8 +212,8 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "elasticsearch-jenkins",
-              "tag": "20211220060846-76920bf7",
+              "image": "elasticsearch",
+              "tag": "7.10.2-20211213153837-168b4642",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -392,8 +392,8 @@
           "name": "keycloak",
           "images": [
             {
-              "image": "keycloak-jenkins",
-              "tag": "15.0.2-20211220054146-136f5c709a",
+              "image": "keycloak",
+              "tag": "15.0.2-20211213172016-b1b380919c",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
