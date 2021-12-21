@@ -15,16 +15,16 @@ Use the following steps to demonstrate the function of the metrics template scra
 
 ### Demo instructions
 
-- Deploy Verrazzano from master
+- Deploy Verrazzano from master.
   
 - To install the MetricsTemplate CRD, The MetricsTemplate resource, and the scrape generator mutating webhook, run this script.
   - `./scripts/install-app-resources.sh`
   
 - Restart the application-operator pod to register the webhook. 
-  (Otherwise, you will not be able to create deployments)
+  (Otherwise, you will not be able to create deployments).
   - `kubectl delete pod -n verrazzano-system application-operator-XX-XX`
   
-- Create the example namespace that contains these labels to enable Verrazzano and Istio:
+- Create the example namespace that contains these labels to enable Verrazzano and Istio.
   - `kubectl label namespace hello-helidon-namespace verrazzano-managed=true istio-injection=enabled`
   
 - Apply the example Deployment and Service to trigger the Metrics Template Webhook and Controller.
@@ -35,7 +35,7 @@ Use the following steps to demonstrate the function of the metrics template scra
   
 ### Demo Details
   
-- Deployments have to have the `spec.selector.matchlabels` and `spec.template.metadata.labels` with the same custom value:
+- Deployments have to have the `spec.selector.matchlabels` and `spec.template.metadata.labels` with the same custom value.
   
     ```yaml
     spec:
