@@ -243,15 +243,15 @@ func TestBomSubcomponentOverrides(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Equal("ghcr.io", bom.GetRegistry(), "Global registry not correct")
-	assert.Equal("myreg.io", bom.ResolveRegistry(nginxSubcomponent, &BomImage{}), "NGINX subcomponent registry not correct")
-	assert.Equal("myrepoprefix/testnginx", bom.ResolveRepo(nginxSubcomponent, &BomImage{}), "NGINX subcomponent repo not correct")
+	assert.Equal("myreg.io", bom.ResolveRegistry(nginxSubcomponent, BomImage{}), "NGINX subcomponent registry not correct")
+	assert.Equal("myrepoprefix/testnginx", bom.ResolveRepo(nginxSubcomponent, BomImage{}), "NGINX subcomponent repo not correct")
 
 	vpoSubcomponent, err := bom.GetSubcomponent("verrazzano-platform-operator")
 	assert.NotNil(t, vpoSubcomponent)
 	assert.NoError(err)
 
-	assert.Equal("ghcr.io", bom.ResolveRegistry(vpoSubcomponent, &BomImage{}), "VPO subcomponent registry not correct")
-	assert.Equal("verrazzano", bom.ResolveRepo(vpoSubcomponent, &BomImage{}), "VPO subcomponent repo not correct")
+	assert.Equal("ghcr.io", bom.ResolveRegistry(vpoSubcomponent, BomImage{}), "VPO subcomponent registry not correct")
+	assert.Equal("verrazzano", bom.ResolveRepo(vpoSubcomponent, BomImage{}), "VPO subcomponent repo not correct")
 }
 
 func TestBomImageOverrides(t *testing.T) {
@@ -261,6 +261,6 @@ func TestBomImageOverrides(t *testing.T) {
 	sc, err := bom.GetSubcomponent("verrazzano-platform-operator")
 	assert.NoError(t, err)
 	img := sc.Images[0]
-	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, &img))
-	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, &img))
+	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, img))
+	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, img))
 }

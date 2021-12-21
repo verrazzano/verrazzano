@@ -205,8 +205,8 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 	var kvs []KeyValue
 	for _, imageBom := range sc.Images {
 		fullImageBldr := strings.Builder{}
-		registry := b.ResolveRegistry(sc, &imageBom)
-		repo := b.ResolveRepo(sc, &imageBom)
+		registry := b.ResolveRegistry(sc, imageBom)
+		repo := b.ResolveRepo(sc, imageBom)
 
 		// Normally, the registry is the first segment of the image name, for example "ghcr.io/"
 		// However, there are exceptions like in external-dns, where the registry is a separate helm field,
@@ -282,7 +282,7 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 }
 
 // ResolveRegistry resolves the registry name using the ENV var if it exists.
-func (b *Bom) ResolveRegistry(sc *BomSubComponent, img *BomImage) string {
+func (b *Bom) ResolveRegistry(sc *BomSubComponent, img BomImage) string {
 	// Get the registry ENV override, if it doesn't exist use the default
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
@@ -298,7 +298,7 @@ func (b *Bom) ResolveRegistry(sc *BomSubComponent, img *BomImage) string {
 }
 
 // ResolveRepo resolves the repository name using the ENV var if it exists.
-func (b *Bom) ResolveRepo(sc *BomSubComponent, img *BomImage) string {
+func (b *Bom) ResolveRepo(sc *BomSubComponent, img BomImage) string {
 	// Get the repo ENV override.  This needs to get prepended to the bom repo
 	userRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
 	repo := sc.Repository
