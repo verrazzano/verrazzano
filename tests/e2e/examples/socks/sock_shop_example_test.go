@@ -96,7 +96,7 @@ var _ = Describe("Sock Shop Application", func() {
 	sockShop.SetHostHeader(hostname)
 
 	It("SockShop can be accessed and user can be registered", func() {
-		Eventually(func() bool {
+		Eventually(func() (bool, error) {
 			return sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
 	})
