@@ -180,12 +180,13 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
 	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
-		r.Log.V(1).Info("Adding finalizer from trait", "trait", traitName)
+		r.Log.V(1).Info("Adding finalizer to trait", "trait", traitName)
 		trait.Finalizers = append(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
 			r.Log.Error(err, "failed to add finalizer to trait", "trait", traitName)
 			return err
 		}
+		r.Log.Info("Trait updated with finalizer", "trait", trait)
 	}
 	return nil
 }
