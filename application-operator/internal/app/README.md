@@ -52,11 +52,7 @@ Use the following steps to demonstrate the function of the metrics template scra
     
 - The LoadBalancer service for the application opens port `8080` to allow access to the pod from Prometheus.
 
-- For now, the endpoint `https://<service-url>:8080/metrics` will successfully communicate metrics to Prometheus.
-  Extra container ports might show up in the Prometheus target section and be unavailable.
-  The ports are available, just not set up for Prometheus scraping.
-  In the future, the template implementation will have to exclude these ports from being targeted by Prometheus.
-  Fixing this issue will require more elaboration and time and will be sorted out soon.
+- The endpoint `https://<pod-url>:8080/metrics` should successfully communicate metrics to Prometheus.
     
 ## Testing
 The acceptance tests for this feature are disabled by default.
