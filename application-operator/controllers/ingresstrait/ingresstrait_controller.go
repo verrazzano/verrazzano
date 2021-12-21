@@ -227,6 +227,7 @@ func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
 func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
 	gatewayCertName, err := buildCertificateNameFromAppName(trait)
 	if err != nil {
+		r.Log.Error(err, "Error building certificate name", "trait", trait.Name)
 		return err
 	}
 	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: constants.IstioSystemNamespace}
@@ -238,6 +239,7 @@ func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
 	if cert != nil {
 		err = r.Client.Delete(context.TODO(), cert, &client.DeleteOptions{})
 		if err != nil {
+			r.Log.Error(err, "Error deleting the cert", "cert", namespacedName)
 			return err
 		}
 		r.Log.Info("Ingress trait certificate deleted", "cert", namespacedName)
@@ -249,6 +251,7 @@ func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
 func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait) (err error) {
 	gatewayCertName, err := buildCertificateNameFromAppName(trait)
 	if err != nil {
+		r.Log.Error(err, "Error building certificate name", "trait", trait.Name)
 		return err
 	}
 	gatewaySecretName := fmt.Sprintf("%s-secret", gatewayCertName)
@@ -261,6 +264,8 @@ func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait) (err error) {
 	if secret != nil {
 		err = r.Client.Delete(context.TODO(), secret, &client.DeleteOptions{})
 		if err != nil {
+			r.Log.Error(err, "Error deleting the secret", "secret", namespacedName)
+
 			return err
 		}
 		r.Log.Info("Ingress trait certificate secret deleted", "secret", namespacedName)
@@ -462,7 +467,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 
 	certName, err = buildCertificateNameFromAppName(trait)
 	if err != nil {
-		r.Log.Error(err, "failed to create certificate name from ingress trait")
+		r.Log.Error(err, "Error building certificate name", "trait", trait.Name)
 		status.Errors = append(status.Errors, err)
 		status.Results = append(status.Results, controllerutil.OperationResultNone)
 		return ""
@@ -610,10 +615,12 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 		appConfig := &v1alpha2.ApplicationConfiguration{}
 		err := r.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: appName}, appConfig)
 		if err != nil {
+			r.Log.Error(err, " Error getting getting app name", "app", appName)
 			return err
 		}
 		err = controllerutil.SetControllerReference(appConfig, gateway, r.Scheme)
 		if err != nil {
+			r.Log.Error(err, "Error setting controller reference")
 			return err
 		}
 	}
@@ -686,6 +693,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 	}
 	dest, err := createDestinationFromRuleOrService(rule, services)
 	if err != nil {
+		r.Log.Error(err, "Error setting destination rule")
 		return err
 	}
 	route := istionet.HTTPRoute{
@@ -1043,6 +1051,7 @@ func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstruc
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(child.UnstructuredContent(), &service)
 			if err != nil {
 				// maybe we should continue here and hope that another child can be converted?
+				r.Log.Error(err, "Error converting child", "child", child.GetName())
 				return nil, err
 			}
 			services = append(services, &service)
