@@ -262,7 +262,7 @@ var _ = AfterSuite(func() {
 		pkg.Log(pkg.Info, "Delete application")
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
@@ -272,14 +272,14 @@ var _ = AfterSuite(func() {
 		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
 		Eventually(func() bool {
 			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName)
+			if err != nil && errors.IsNotFound(err) {
+				return true
+			}
 			if err != nil {
-				if errors.IsNotFound(err) {
-					return true
-				}
 				pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop appconfig: %v\n", err.Error()))
 			}
 			return false
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 		pkg.Log(pkg.Info, "Delete namespace")
 		Eventually(func() error {
@@ -289,14 +289,14 @@ var _ = AfterSuite(func() {
 		pkg.Log(pkg.Info, "Wait for sockshop namespace to be deleted")
 		Eventually(func() bool {
 			_, err := pkg.GetNamespace(sockshopNamespace)
+			if err != nil && errors.IsNotFound(err) {
+				return true
+			}
 			if err != nil {
-				if errors.IsNotFound(err) {
-					return true
-				}
 				pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop namespace: %v\n", err.Error()))
 			}
 			return false
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 	}
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
