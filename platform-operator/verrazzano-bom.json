@@ -176,6 +176,23 @@
       "name": "verrazzano",
       "subcomponents": [
         {
+          "name": "verrazzano-test",
+          "registry": "phx.ocir.io",
+          "repository": "odx-sre/sauron",
+          "images": [
+            {
+              "image": "opensearch",
+              "tag": "1.1.0-1",
+              "helmFullImageKey": "monitoringOperator.esImage"
+            },
+            {
+              "image": "opensearch-dashboards",
+              "tag": "1.1.0-2",
+              "helmFullImageKey": "monitoringOperator.kibanaImage"
+            }
+          ]
+        },
+        {
           "repository": "verrazzano",
           "name": "verrazzano",
           "images": [
@@ -210,18 +227,6 @@
               "image": "prometheus",
               "tag": "v2.21.0-1",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
-            },
-            {
-              "image": "opensearch",
-              "tag": "1.1.0-1",
-              "image": "elasticsearch",
-              "tag": "7.10.2-20211220140552-8bd728ed",
-              "helmFullImageKey": "monitoringOperator.esImage"
-            },
-            {
-              "image": "opensearch-dashboards",
-              "tag": "1.1.0-2",
-              "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
               "image": "configmap-reload",
