@@ -323,7 +323,7 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Ingress
 // This is done checking for a non-nil deletion timestamp.
 func (r *Reconciler) isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
 	deleted := trait != nil && trait.GetDeletionTimestamp() != nil
-	r.Log.Info("Is trait being deleted", "result", deleted)
+	r.Log.Info("Is trait being deleted", "trait", trait, "result", deleted)
 	return deleted
 }
 
@@ -496,6 +496,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 
 		return nil
 	})
+	r.Log.Info("certificate created based on ingress trait", "trait", trait, "name", certName)
 	ref := vzapi.QualifiedResourceRelation{APIVersion: certificateAPIVersion, Kind: certificateKind, Name: certificate.Name, Role: "certificate"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
