@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -15,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"io"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -43,7 +45,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 6, len(kvs)) // should only have LetsEncrypt Overrides
+	assert.Equal(t, 7, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Equal(t, 8, len(kvs))
@@ -190,8 +192,17 @@ func TestPostInstall(t *testing.T) {
 	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
 	rancherPodList := createRancherPodList()
-	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)
-	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
+	ingress := v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: common.CattleSystem,
+			Name:      constants.RancherIngress,
+		},
+	}
+	clientWithoutIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)
+	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
+
+	clientWithIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList, &ingress)
+	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
 
 	// mock the pod executor when resetting the Rancher admin password
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
@@ -216,5 +227,7 @@ func TestPostInstall(t *testing.T) {
 		}, nil
 	}
 
-	assert.Nil(t, NewComponent().PostInstall(ctx))
+	component := NewComponent()
+	assert.IsType(t, spi2.RetryableError{}, component.PostInstall(ctxWithoutIngress))
+	assert.Nil(t, component.PostInstall(ctxWithIngress))
 }

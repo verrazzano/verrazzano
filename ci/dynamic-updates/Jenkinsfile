@@ -216,6 +216,21 @@ pipeline {
                             cd ${GO_REPO_PATH}/verrazzano
                             yq -i eval '.spec.components.weblogicOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.coherenceOperator.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.kiali.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.istio.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.applicationOperator.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.oam.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.fluentd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.prometheus.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+                            yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
                     }
@@ -268,10 +283,43 @@ pipeline {
                     }
                 }
 
-                stage('Post-Install Verify') {
+                // Update1 enables disabled components except WLS/COH
+                stage('Verrazzano Update1') {
+                    steps {
+                        sh """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.kiali.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.rancher.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
+                            kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+                            ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
+                        """
+                    }
+                    post {
+                        always {
+                            dumpVerrazzanoPlatformOperatorLogs("verrazzano-update1")
+                            archiveArtifacts artifacts: "vz-update1.yaml,**/logs/**", allowEmptyArchive: true
+                        }
+                    }
+                }
+
+                stage('Post-Update1 Verify Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-verify-infra"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-verify-infra"
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -284,14 +332,14 @@ pipeline {
                     }
                 }
 
-                stage('Post-Install Infra Tests') {
+                stage('Post-Update1 Infra Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-infra-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
                     steps {
                         script {
-                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update1-infra-tests")
                         }
                     }
                     post {
@@ -302,15 +350,15 @@ pipeline {
                     }
                 }
 
-                stage('Post-Install Acceptance Tests') {
+                stage('Post-Update1 Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-install-infra-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
                     steps {
                         script {
                             // Run all but the WLS tests
-                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests")
+                            parallel generateNonWLSAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update1-acceptance-tests")
                         }
                     }
                     post {
@@ -321,29 +369,30 @@ pipeline {
                     }
                 }
 
-                stage('Update Verrazzano') {
+                // Update2 enables COH/WLS operators
+                stage('Verrazzano Update2') {
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/vz-update.yaml
-                            yq -i eval '.spec.components.weblogicOperator.enabled = true' ${WORKSPACE}/vz-update.yaml
-                            yq -i eval '.spec.components.coherenceOperator.enabled = true' ${WORKSPACE}/vz-update.yaml
-                            kubectl apply -f ${WORKSPACE}/vz-update.yaml
+                            cp ${WORKSPACE}/vz-update1.yaml ${WORKSPACE}/vz-update2.yaml
+                            yq -i eval '.spec.components.weblogicOperator.enabled = true' ${WORKSPACE}/vz-update2.yaml
+                            yq -i eval '.spec.components.coherenceOperator.enabled = true' ${WORKSPACE}/vz-update2.yaml
+                            kubectl apply -f ${WORKSPACE}/vz-update2.yaml
                             ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
                         """
                     }
                     post {
                         always {
                             dumpVerrazzanoPlatformOperatorLogs("update-verrazzano")
-                            archiveArtifacts artifacts: "vz-update.yaml,**/logs/**", allowEmptyArchive: true
+                            archiveArtifacts artifacts: "vz-update2.yaml,**/logs/**", allowEmptyArchive: true
                         }
                     }
                 }
 
-                stage('Post-update Tests') {
+                stage('Post-update2 Verify Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update-verify-install"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
                     }
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -356,14 +405,14 @@ pipeline {
                     }
                 }
 
-                stage('Post-Update Infra Tests') {
+                stage('Post-Update2 Infra Tests') {
                     environment {
                         TEST_ENV = "KIND"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update-infra-tests"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-infra-tests"
                     }
                     steps {
                         script {
-                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-install-infra-tests")
+                            parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update2-infra-tests")
                         }
                     }
                     post {
@@ -374,7 +423,7 @@ pipeline {
                     }
                 }
 
-                stage('Post-update Acceptance Tests') {
+                stage('Post-update2 Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
@@ -382,7 +431,7 @@ pipeline {
                     steps {
                         // Run all acceptance tests
                         script {
-                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-install-acceptance-tests")
+                            parallel generateAllAcceptanceTestStages("${TEST_DUMP_ROOT}/post-update2-acceptance-tests")
                         }
                     }
                     post {
@@ -518,9 +567,6 @@ def generate_nonwls_tests(dumpRoot) {
         "examples logging helidon": {
             runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
         },
-        "examples socks": {
-            runGinkgo('examples/socks', "${dumpRoot}/examples-socks")
-        },
         "examples spring": {
             runGinkgo('examples/springboot', "${dumpRoot}/examples-spring")
         },
@@ -541,6 +587,10 @@ def generate_wls_tests(dumpRoot) {
             } else {
                 echo "Slow tests disabled, skipping Bob's Books tests"
             }
+        },
+        "examples socks": {
+            // socks uses COH
+            runGinkgo('examples/socks', "${dumpRoot}/examples-socks")
         },
         "examples todo": {
             runGinkgo('examples/todo', "${dumpRoot}/examples-todo")

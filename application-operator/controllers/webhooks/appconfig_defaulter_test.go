@@ -14,18 +14,12 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	istiofake "istio.io/client-go/pkg/clientset/versioned/fake"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	k8sschema "k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 	"sigs.k8s.io/yaml"
 )
@@ -146,60 +140,11 @@ func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
 }
 
 func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryRun bool) {
-	const istioSystem = "istio-system"
-	const certName = "default-hello-app-cert"
-	const secretName = "default-hello-app-cert-secret"
 
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
 	if !dryRun {
-		// get cert
-		mockClient.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: istioSystem, Name: certName}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, cert *certapiv1alpha2.Certificate) error {
-				if certFound {
-					cert.Namespace = istioSystem
-					cert.Name = certName
-					return nil
-				}
-				return k8serrors.NewNotFound(k8sschema.GroupResource{}, certName)
-			})
-
-		// delete cert
-		if certFound {
-			mockClient.EXPECT().
-				Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-				DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
-					assert.Equal(t, istioSystem, cert.Namespace)
-					assert.Equal(t, certName, cert.Name)
-					return nil
-				})
-		}
-
-		// get secret
-		mockClient.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: istioSystem, Name: secretName}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *corev1.Secret) error {
-				if secretFound {
-					sec.Namespace = istioSystem
-					sec.Name = secretName
-					return nil
-				}
-				return k8serrors.NewNotFound(k8sschema.GroupResource{}, secretName)
-			})
-
-		// delete secret
-		if secretFound {
-			mockClient.EXPECT().
-				Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-				DoAndReturn(func(ctx context.Context, sec *corev1.Secret, opt *client.DeleteOptions) error {
-					assert.Equal(t, istioSystem, sec.Namespace)
-					assert.Equal(t, secretName, sec.Name)
-					return nil
-				})
-		}
-
 		// list projects
 		mockClient.EXPECT().
 			List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any())

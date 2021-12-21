@@ -17,7 +17,7 @@ import (
 
 const (
 	longPollingInterval  = 20 * time.Second
-	longWaitTimeout      = 10 * time.Minute
+	longWaitTimeout      = 20 * time.Minute
 	pollingInterval      = 5 * time.Second
 	waitTimeout          = 5 * time.Minute
 	consistentlyDuration = 1 * time.Minute

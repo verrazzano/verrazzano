@@ -3,19 +3,35 @@
 package verrazzano
 
 import (
+	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
+
+const profilesRelativePath = "../../../../manifests/profiles"
+
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Verrazzano: &vzapi.VerrazzanoComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
 // GIVEN a Verrazzano component
@@ -265,7 +281,21 @@ func TestPreInstall(t *testing.T) {
 func TestPostInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme)
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	err := NewComponent().PostInstall(ctx)
+	vzComp := NewComponent()
+
+	// PostInstall will fail because the expected VZ ingresses are not present in cluster
+	err := vzComp.PostInstall(ctx)
+	assert.IsType(t, spi2.RetryableError{}, err)
+
+	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
+	// when all the ingresses are present in the cluster
+	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
+	for _, ingressName := range vzIngressNames {
+		client.Create(context.TODO(), &v1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
+		})
+	}
+	err = vzComp.PostInstall(ctx)
 	assert.NoError(t, err)
 }
 
@@ -286,4 +316,56 @@ func createPreInstallTestClient(extraObjs ...runtime.Object) client.Client {
 	objs = append(objs, extraObjs...)
 	client := fake.NewFakeClientWithScheme(testScheme, objs...)
 	return client
+}
+
+// TestIsEnabledNilVerrazzano tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Verrazzano component is nil
+//  THEN true is returned
+func TestIsEnabledNilVerrazzano(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Verrazzano = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Verrazzano component is nil
+//  THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Verrazzano component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Verrazzano.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Verrazzano component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Verrazzano component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
