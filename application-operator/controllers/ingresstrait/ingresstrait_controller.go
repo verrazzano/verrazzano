@@ -7,11 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -92,8 +93,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	ctx := context.Background()
-	log := r.Log.WithValues("trait", req.NamespacedName)
-	log.Info("Reconcile ingress trait")
+	r.Log.Info("Reconcile ingress trait", "trait", req.NamespacedName)
 
 	// Fetch the trait.
 	var trait *vzapi.IngressTrait
@@ -176,7 +176,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 // The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
 	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
+		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
 		r.Log.V(1).Info("Adding finalizer from trait", "trait", traitName)
 		trait.Finalizers = append(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
@@ -191,7 +191,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.In
 // The finalizer is only removed if the trait is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
 	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
+		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
 		r.Log.Info("Removing finalizer from trait", "trait", traitName)
 		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
@@ -341,7 +341,7 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 	workloadName := convertAPIVersionAndKindToNamespacedName(workloadAPIVer, workloadKind)
 	workloadDef := v1alpha2.WorkloadDefinition{}
 	if err := r.Get(ctx, workloadName, &workloadDef); err != nil {
-		r.Log.Error(err, "Failed to fetch workload definition", "name", workloadName)
+		r.Log.Error(err, "Failed to fetch workload definition", "workload", workloadName)
 		return nil, err
 	}
 	return &workloadDef, nil
