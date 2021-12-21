@@ -473,7 +473,7 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
 	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	return nil
 }
