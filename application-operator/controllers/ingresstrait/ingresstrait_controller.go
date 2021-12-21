@@ -203,6 +203,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi
 			r.Log.Error(err, "failed to remove finalizer to trait", "trait", traitName)
 			return err
 		}
+		r.Log.Info("Trait updated with finalizer removal", "trait", trait)
 	}
 	return nil
 }
