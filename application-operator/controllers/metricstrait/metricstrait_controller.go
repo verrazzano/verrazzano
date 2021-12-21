@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"time"
-	"os/exec"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
@@ -1007,7 +1007,7 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 				if err != nil {
 					return job, nil, fmt.Errorf("failed to write to the password_file: %w", err)
 				}
-				err := exec.Command("/bin/sh","prometheus_passwd.sh").Run()
+				err := exec.Command("/bin/bash", "./prometheus_passwd.sh").Run()
 				if err != nil {
 					return job, nil, err
 				}
