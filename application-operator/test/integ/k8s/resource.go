@@ -93,7 +93,7 @@ func (c Client) IsDeploymentUpdated(name string, namespace string) bool {
 
 // DoesPodExist returns true if a Pod with the given prefix exists
 func (c Client) DoesPodExist(name string, namespace string) bool {
-	return (c.getPod(name, namespace) != nil)
+	return c.getPod(name, namespace) != nil
 }
 
 // DoesContainerExist returns true if a container with the given name exists in the pod
