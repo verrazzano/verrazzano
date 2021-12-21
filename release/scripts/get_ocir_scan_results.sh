@@ -75,12 +75,12 @@ function generate_detail_text_report() {
   echo "Issue Count:          $RESULT_COUNT" >> $RESULT_FILE_BASE-ocir-report.out
   echo "Highest Severity:     $RESULT_SEVERITY" >> $RESULT_FILE_BASE-ocir-report.out
   echo "Issues:" >> $RESULT_FILE_BASE-ocir-report.out
-  cat $RESULT_FILE_BASE-details.csv >> $RESULT_FILE_BASE-ocir-report.out
+  cat $RESULT_FILE_BASE-ocir-details.csv >> $RESULT_FILE_BASE-ocir-report.out
 
   # Contribute a subset of details to the overall summary report. This includes only CRITICAL and HIGH CVE's
   echo "+++++"
   echo "Image:                $RESULT_REPOSITORY_IMAGE:$RESULT_IMAGE_TAG" >> $OVERALL_SUMMARY
-  cat $RESULT_FILE_BASE-details.csv | grep -e 'CRITICAL' -e 'HIGH' >> $OVERALL_SUMMARY
+  cat $RESULT_FILE_BASE-ocir-details.csv | grep -e 'CRITICAL' -e 'HIGH' >> $OVERALL_SUMMARY
   echo "-----"
 }
 
