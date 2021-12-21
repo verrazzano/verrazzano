@@ -74,11 +74,11 @@ deploy_harbor() {
 }
 
 start_installation() {
-  if [ -z "$GO_REPO_PATH" ] || [ -z "$WORKSPACE" ] || [ -z "$TARBALL_DIR" ] || [ -z "$CLUSTER_NAME" ] ||
-    [ -z "$KIND_KUBERNETES_CLUSTER_VERSION" ] || [ -z "$KUBECONFIG" ] ||
-    [ -z "$IMAGE_PULL_SECRET" ] || [ -z "$PRIVATE_REPO" ] || [ -z "$REGISTRY" ] || [ -z "$PRIVATE_REGISTRY_USR" ] ||
-    [ -z "$PRIVATE_REGISTRY_PSW" ] || [ -z "$VZ_ENVIRONMENT_NAME" ] || [ -z "$INSTALL_PROFILE" ] ||
-    [ -z "$TESTS_EXECUTED_FILE" ] || [ -z "$INSTALL_CONFIG_FILE_KIND" ] || [ -z "$TEST_SCRIPTS_DIR" ] || [ -z "$SETUP_HARBOR" ]; then
+  if [ -z "${GO_REPO_PATH}" ] || [ -z "${WORKSPACE}" ] || [ -z "${TARBALL_DIR}" ] || [ -z "${CLUSTER_NAME}" ] ||
+    [ -z "${KIND_KUBERNETES_CLUSTER_VERSION}" ] || [ -z "${KUBECONFIG}" ] ||
+    [ -z "${IMAGE_PULL_SECRET}" ] || [ -z "${PRIVATE_REPO}" ] || [ -z "${REGISTRY}" ] || [ -z "${PRIVATE_REGISTRY_USR}" ] ||
+    [ -z "${PRIVATE_REGISTRY_PSW}" ] || [ -z "${VZ_ENVIRONMENT_NAME}" ] || [ -z "${INSTALL_PROFILE}" ] ||
+    [ -z "${TESTS_EXECUTED_FILE}" ] || [ -z "${INSTALL_CONFIG_FILE_KIND}" ] || [ -z "${TEST_SCRIPTS_DIR}" ] || [ -z "${SETUP_HARBOR}" ]; then
     echo "This script must only be called from Jenkins and requires a number of environment variables are set"
     exit 1
   fi
