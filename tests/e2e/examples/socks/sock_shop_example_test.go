@@ -272,13 +272,12 @@ var _ = AfterSuite(func() {
 		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
 		Eventually(func() bool {
 			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName)
-			if err == nil {
-				return false
+			if err != nil {
+				if errors.IsNotFound(err) {
+					return true
+				}
+				pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop appconfig: %v\n", err.Error()))
 			}
-			if errors.IsNotFound(err) {
-				return true
-			}
-			pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop appconfig: %v\n", err.Error()))
 			return false
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -289,14 +288,13 @@ var _ = AfterSuite(func() {
 
 		pkg.Log(pkg.Info, "Wait for sockshop namespace to be deleted")
 		Eventually(func() bool {
-			_, err := pkg.DoesNamespaceExist(sockshopNamespace)
-			if err == nil {
-				return false
+			_, err := pkg.GetNamespace(sockshopNamespace)
+			if err != nil {
+				if errors.IsNotFound(err) {
+					return true
+				}
+				pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop namespace: %v\n", err.Error()))
 			}
-			if errors.IsNotFound(err) {
-				return true
-			}
-			pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop namespace: %v\n", err.Error()))
 			return false
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	}
