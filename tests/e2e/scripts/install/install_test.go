@@ -124,20 +124,20 @@ func isConsoleIngressHost(ingressHost string) bool {
 	return strings.HasPrefix(ingressHost, "verrazzano.")
 }
 
-// isConsoleURLExpected - Returns true in VZ < 1.2.0. For VZ >= 1.2.0, returns false only if explicitly disabled
+// isConsoleURLExpected - Returns true in VZ < 1.1.1. For VZ >= 1.1.1, returns false only if explicitly disabled
 // in the CR or when managed cluster profile is used
 func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
-	isAtleastVz12, err := pkg.IsVerrazzanoMinVersion("1.2.0")
+	isAtleastVz12, err := pkg.IsVerrazzanoMinVersion("1.1.1")
 	if err != nil {
 		return false, err
 	}
-	// Pre 1.2.0, the console URL was always present irrespective of whether console is enabled
-	// This behavior changed in VZ 1.2.0
+	// Pre 1.1.1, the console URL was always present irrespective of whether console is enabled
+	// This behavior changed in VZ 1.1.1
 	if !isAtleastVz12 {
 		return true, nil
 	}
 
-	// In 1.2.0 and later, the console URL will only be present in the VZ status instance info if the console is enabled
+	// In 1.1.1 and later, the console URL will only be present in the VZ status instance info if the console is enabled
 	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return false, err
