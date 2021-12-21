@@ -171,6 +171,9 @@ pipeline {
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
                         // In case of Harbor, base image repo should be same as image repo sub path
                         baseImageRepo=imageRepoSubPath
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+                        // In case of Harbor, base image repo should be same as image repo sub path
+                        baseImageRepo=imageRepoSubPath
                     }
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
