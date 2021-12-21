@@ -609,20 +609,10 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 			},
 		},
 	}
-	// Set the owner reference.
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if ok {
-		//appConfig := &v1alpha2.ApplicationConfiguration{}
-		//err := r.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: appName}, appConfig)
-		//if err != nil {
-		//	r.Log.Error(err, " Error getting getting app name", "app", appName)
-		//	return err
-		//}
-		err = controllerutil.SetControllerReference(trait, gateway, r.Scheme)
-		if err != nil {
-			r.Log.Error(err, "Error setting controller reference")
-			return err
-		}
+	err = controllerutil.SetControllerReference(trait, gateway, r.Scheme)
+	if err != nil {
+		r.Log.Error(err, "Error setting controller reference")
+		return err
 	}
 	return nil
 }
