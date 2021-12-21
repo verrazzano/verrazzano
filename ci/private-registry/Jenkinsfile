@@ -122,6 +122,9 @@ pipeline {
 
         HARBOR_STANDALONE_REGISTRY_CREDS = credentials('harbor-standalone-registry-account')
         HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL = "https://${HARBOR_STANDALONE_REGISTRY}${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
+
+        HARBOR_EPHEMERAL_REGISTRY="ephemeral.harbor.dev.io"
+        HARBOR_EPHEMERAL_ADMIN_PASSWORD="admin"
     }
 
     stages {
@@ -333,10 +336,15 @@ pipeline {
                             env.REGISTRY=getPrivateRegistry()
                             env.PRIVATE_REGISTRY_USR=getPrivateRegistryUser()
                             env.PRIVATE_REGISTRY_PSW=getPrivateRegistryPassword()
+                            if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+                                env.SETUP_HARBOR=true
+                            } else {
+                                env.SETUP_HARBOR=false
+                            }
                         }
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${baseImageRepo}
                         """
                     }
                     post {
@@ -623,6 +631,8 @@ def getPrivateRegistry() {
         return env.OCIR_REGISTRY
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
         return env.HARBOR_STANDALONE_REGISTRY
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+        return env.HARBOR_EPHEMERAL_REGISTRY
     }
     return ""
 }
@@ -632,6 +642,9 @@ def getPrivateRegistryUser() {
         return env.OCIR_CREDS_USR
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
         return env.HARBOR_STANDALONE_REGISTRY_CREDS_USR
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+        // the default "admin" user in Harbor
+        return "admin"
     }
     return ""
 }
@@ -641,6 +654,8 @@ def getPrivateRegistryPassword() {
         return env.OCIR_CREDS_PSW
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
         return env.HARBOR_STANDALONE_REGISTRY_CREDS_PSW
+    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+        return env.HARBOR_EPHEMERAL_ADMIN_PASSWORD
     }
     return ""
 }
