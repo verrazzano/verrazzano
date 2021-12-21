@@ -11,22 +11,31 @@ These are required for this feature to function.
 Once these CRDs and manifests are installed the Verrazzano Application Operator must be restarted.
 
 ## Demo
-Use the following steps to demonstrate the function of the metrics template scrape generator:
+Use the following steps to demonstrate the function of the metrics template scrape generator.
+
+### Demo instructions
 
 - Deploy Verrazzano from master
   
-- run the script `scripts/install-app-resources.sh`
-  to install the MetricsTemplate CRD, The MetricsTemplate resource, and the scrape generator mutating webhook.
+- To install the MetricsTemplate CRD, The MetricsTemplate resource, and the scrape generator mutating webhook, run this script.
+  - `./scripts/install-app-resources.sh`
   
 - Restart the application-operator pod to register the webhook. 
   (Otherwise, you will not be able to create deployments)
+  - `kubectl delete pod -n verrazzano-system application-operator-XX-XX`
   
-- Create an application namespace that contains these labels to enable Verrazzano and Istio:
+- Create the example namespace that contains these labels to enable Verrazzano and Istio:
+  - `kubectl label namespace hello-helidon-namespace verrazzano-managed=true istio-injection=enabled`
   
-  `kubectl label namespace <namespace-name> verrazzano-managed=true istio-injection=enabled`
+- Apply the example Deployment and Service to trigger the Metrics Template Webhook and Controller.
+  - `kubectl apply -f resources/hello-helidon-test-deployment.yaml`
+
+- Once the Deployment and Service are running, check the Prometheus targets for this title.
+  - `hello-helidon-namespace_hello-helidon-deployment_<deploument-UID>`
   
-- Create a Deployment in the labeled namespace. 
-  - Make sure to populate the `spec.selector.matchlabels` and `spec.template.metadata.labels` with the same custom value:
+### Demo Details
+  
+- Deployments have to have the `spec.selector.matchlabels` and `spec.template.metadata.labels` with the same custom value:
   
     ```yaml
     spec:
@@ -38,21 +47,15 @@ Use the following steps to demonstrate the function of the metrics template scra
           labels:
             app: hello-helidon-application
     ```
+  - The current implementation looks for these labels to be present when applying the template.
     
-  - Annotate the Deployment to enable metrics the Metrics Template Webhook:
-    
-    `app.verrazzano.io/metrics=test-metrics-template`
-    
-- Create a LoadBalancer service for the application with port `8080` to allow access to the pod from Prometheus
-  
-- For a sample application, you can use the Deployment and Service located in `resources/hello-helidon-test-deployment.yaml`.
-  - This example will require the namespace `hello-helidon-namespace` to be created.
+- The LoadBalancer service for the application opens port `8080` to allow access to the pod from Prometheus.
 
-- Once the Deployment and Service are running, check the Prometheus targets for a target titled `<namespace>_<deployment-name>-<deploument-UID>`
-  - For now, the container ports will show up in the Prometheus target section as Unavailable.
-    The ports are available, just not set up for Prometheus scraping.
-    In the future, the template implementation will have to exclude these ports from being targeted by Prometheus.
-    Fixing this issue will require more elaboration and time and will be sorted out soon.
+- For now, the endpoint `https://<service-url>:8080/metrics` will successfully communicate metrics to Prometheus.
+  Extra container ports might show up in the Prometheus target section and be unavailable.
+  The ports are available, just not set up for Prometheus scraping.
+  In the future, the template implementation will have to exclude these ports from being targeted by Prometheus.
+  Fixing this issue will require more elaboration and time and will be sorted out soon.
     
 ## Testing
 The acceptance tests for this feature are disabled by default.
