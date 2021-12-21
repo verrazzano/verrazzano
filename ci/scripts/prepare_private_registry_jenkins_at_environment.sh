@@ -74,6 +74,7 @@ deploy_harbor() {
   #kubectl wait --namespace default --for=condition=ready pod --all --timeout=120s
   sleep 30
 
+  cd ${TEST_SCRIPTS_DIR}
   # Create the Harbor project if it does not exist
   ${TEST_SCRIPTS_DIR}/create_harbor_project.sh -a "https://${REGISTRY}/api/v2.0" -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
 }
