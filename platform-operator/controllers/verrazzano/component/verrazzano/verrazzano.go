@@ -439,6 +439,9 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespa
 }
 
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {
+	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
+		return err
+	}
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
@@ -471,6 +474,22 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 			true, false); err != nil {
 			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
 		}
+	}
+	return nil
+}
+
+// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
+func LabelKubeSystemNamespace(client clipkg.Client) error {
+	const KubeSystemNamespace = "kube-system"
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
+		return nil
+	}); err != nil {
+		return err
 	}
 	return nil
 }
