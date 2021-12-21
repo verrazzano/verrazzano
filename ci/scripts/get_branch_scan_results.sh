@@ -80,6 +80,7 @@ if [ $? -eq 0 ]; then
   mkdir -p ${SCAN_RESULTS_DIR}
   ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_PERIODIC_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_PERIODIC_BOM_FILE}
+  ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
 else
   echo "INFO: Did not find a periodic BOM for ${CLEAN_BRANCH_NAME}"
   rm ${SCAN_LAST_PERIODIC_BOM_FILE} || true
@@ -93,6 +94,7 @@ if [ $? -eq 0 ]; then
   mkdir -p ${SCAN_RESULTS_DIR}
   ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_SNAPSHOT_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
   ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_SNAPSHOT_BOM_FILE}
+  ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
 else
   echo "INFO: Did not find a snapshot BOM for ${CLEAN_BRANCH_NAME}"
   rm ${SCAN_LAST_SNAPSHOT_BOM_FILE} || true
@@ -107,6 +109,7 @@ if [[ "${CLEAN_BRANCH_NAME}" != "master" ]] && [[ "${CLEAN_BRANCH_NAME}" != rele
     mkdir -p ${SCAN_RESULTS_DIR}
     ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_FEATURE_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_FEATURE_BOM_FILE}
+    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
   else
     echo "INFO: Did not find a feature BOM for ${CLEAN_BRANCH_NAME}"
     rm ${SCAN_FEATURE_BOM_FILE} || true
@@ -133,5 +136,6 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
     echo "Fetching scan results for BOM: ${SCAN_BOM_FILE}"
     ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
+    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR}
   done
 fi

@@ -80,10 +80,12 @@ function scan_images_in_bom() {
     # FIXME: Add allowlist support
 
     echo "performing trivy scan for $SCAN_IMAGE"
-    trivy image -f json -o ${RESULT_FILE_PREFIX}-trivy.json ${SCAN_IMAGE} 2> ${RESULT_FILE_PREFIX}-trivy.err || echo "trivy scan failed for $SCAN_IMAGE"
+    trivy image -f json -o ${RESULT_FILE_PREFIX}-trivy-details.json ${SCAN_IMAGE} 2> ${RESULT_FILE_PREFIX}-trivy.err || echo "trivy scan failed for $SCAN_IMAGE"
+    cat ${RESULT_FILE_PREFIX}-trivy-details.json | jq -r '.Results[].Vulnerabilities[] | { sev: .Severity, cve: ."VulnerabilityID", description: .Description } ' | sed 's/\\[nt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-trivy-details.csv
 
     echo "performing grype scan for $BOM_IMAGE"
-    grype ${SCAN_IMAGE} -o json > ${RESULT_FILE_PREFIX}-grype.json 2> ${RESULT_FILE_PREFIX}-grype.err || echo "grype scan failed for $SCAN_IMAGE"
+    grype ${SCAN_IMAGE} -o json > ${RESULT_FILE_PREFIX}-grype-details.json 2> ${RESULT_FILE_PREFIX}-grype.err || echo "grype scan failed for $SCAN_IMAGE"
+    cat ${RESULT_FILE_PREFIX}-grype-details.json | jq -r '.matches[] | { sev: .vulnerability.severity, cve: .vulnerability.id, description: .vulnerability.description } ' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-grype-details.csv
   done <$bomimages
   rm $bomimages
 }
