@@ -20,7 +20,7 @@ CHART_LOCATION=${TARBALL_DIR}/charts
 deploy_contour () {
   kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
   kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
-  kubectl wait --namespace projectcontour --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
+  kubectl wait --namespace projectcontour --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=5m
 }
 
 deploy_certificates() {
@@ -45,7 +45,7 @@ deploy_certificates() {
         #http01: {}
 EOF
 
-  kubectl wait --namespace cert-manager --for=condition=ready pod --all --timeout=120s
+  kubectl wait --namespace cert-manager --for=condition=ready pod --all --timeout=5m
 }
 
 load_images() {
@@ -67,7 +67,7 @@ deploy_harbor() {
     --set persistence.enabled=false \
     --set harborAdminPassword=${PRIVATE_REGISTRY_PSW}
 
-  kubectl wait --namespace default --for=condition=ready pod --all --timeout=120s
+  kubectl wait --namespace default --for=condition=ready pod --all --timeout=5m
 
   # Create the Harbor project if it does not exist
   ./${TEST_SCRIPTS_DIR}/create_harbor_project.sh -a "https://${REGISTRY}/api/v2.0" -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
