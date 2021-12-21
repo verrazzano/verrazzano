@@ -57,6 +57,7 @@ load_images() {
 }
 
 deploy_harbor() {
+  helm repo update
   # Install harbor
   helm install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
@@ -73,7 +74,7 @@ deploy_harbor() {
   sleep 30
 
   # Create the Harbor project if it does not exist
-  ./${TEST_SCRIPTS_DIR}/create_harbor_project.sh -a "https://${REGISTRY}/api/v2.0" -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
+  ${TEST_SCRIPTS_DIR}/create_harbor_project.sh -a "https://${REGISTRY}/api/v2.0" -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
 }
 
 start_installation() {
