@@ -13,9 +13,31 @@ CLEANUP_KIND_CONTAINERS=${5:-true}
 CONNECT_JENKINS_RUNNER_TO_NETWORK=${6:-true}
 KIND_AT_CACHE=${7:-false}
 SETUP_CALICO=${8:-false}
-KIND_AT_CACHE_NAME=${9:-"NONE"}
+SETUP_HARBOR=${9:-false}
+KIND_AT_CACHE_NAME=${10:-"NONE"}
 KIND_IMAGE=""
 CALICO_SUFFIX=""
+KIND_CONFIG_FILE=""
+
+set_kind_config() {
+  KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}.yaml
+  local harbor_suffix=""
+  if [ ${SETUP_HARBOR} == true ]; then
+    harbor_suffix="-harbor"
+  fi
+
+  if [ ${KIND_AT_CACHE} == true ]; then
+    if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
+      # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
+      # for multi-cluster tests at the moment)
+      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" kind-config-ci${CALICO_SUFFIX}${harbor_suffix}.yaml > kind-config-ci${CALICO_SUFFIX}${harbor_suffix}_${KIND_AT_CACHE_NAME}.yaml
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}${harbor_suffix}_${KIND_AT_CACHE_NAME}.yaml
+    else
+      # If no cache name specified use at_tests cache
+      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}${harbor_suffix}.yaml
+    fi
+  fi
+}
 
 create_kind_cluster() {
   if [ ${K8S_VERSION} == 1.19 ]; then
@@ -53,18 +75,7 @@ create_kind_cluster() {
   echo "Kubeconfig ${KUBECONFIG}"
   echo "KIND Image : ${KIND_IMAGE}"
   cd ${SCRIPT_DIR}/
-  KIND_CONFIG_FILE=kind-config${CALICO_SUFFIX}.yaml
-  if [ ${KIND_AT_CACHE} == true ]; then
-    if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
-      # If a cache name was specified, replace the at_test cache name with the one specified (this is used only
-      # for multi-cluster tests at the moment)
-      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" kind-config-ci${CALICO_SUFFIX}.yaml > kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
-      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
-    else
-      # If no cache name specified use at_tests cache
-      KIND_CONFIG_FILE=kind-config-ci${CALICO_SUFFIX}.yaml
-    fi
-  fi
+  set_kind_config
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
   echo "Listing permissions for /dev/null"
