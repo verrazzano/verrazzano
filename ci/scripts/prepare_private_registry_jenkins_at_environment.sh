@@ -57,7 +57,7 @@ load_images() {
 }
 
 deploy_harbor() {
-  helm repo update
+  helm repo add harbor https://helm.goharbor.io
   # Install harbor
   helm install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
