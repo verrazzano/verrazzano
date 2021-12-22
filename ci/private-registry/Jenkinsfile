@@ -139,6 +139,10 @@ pipeline {
                         echo "Harbor registry: ${HARBOR_STANDALONE_REGISTRY}"
                         echo "Harbor registry REST API Subpath: ${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
                         echo "Harbor registry REST API full URL: ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL}"
+                    } else if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+                        sh """
+                        ping ephemeral.harbor.v8o.io
+                        """
                     }
                 }
 
