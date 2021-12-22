@@ -69,6 +69,8 @@ deploy_harbor() {
   tar -zxvf ${helm_zip}
   cd linux-amd64
   # Install harbor via new version of helm
+  ./helm repo add harbor https://helm.goharbor.io
+  ./helm repo update
   ./helm install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
     --set expose.ingress.annotations.'kubernetes\.io/ingress\.class'=contour \
