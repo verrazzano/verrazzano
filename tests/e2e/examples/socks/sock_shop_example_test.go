@@ -34,6 +34,9 @@ const (
 	sockshopNamespace    = "sockshop"
 )
 
+// Needed to get around linter
+var gingoFail = ginkgo.Fail
+
 var sockShop SockShop
 var username, password string
 
@@ -354,5 +357,5 @@ func getVariant() string {
 // FailHandler to handle failures
 func FailHandler(message string, callerSkip ...int) {
 	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	ginkgo.Fail(message, callerSkip...)
+	gingoFail(message, callerSkip...)
 }
