@@ -7,7 +7,10 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"math/rand"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -206,6 +209,28 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req.Header.Add("Origin", "https://invalid-origin")
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "access-control-allow-origin", 200)
+				})
+			}
+		})
+
+		It("should return 502 for invalid URL not present in ingress", func() {
+			if !isManagedClusterProfile {
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				Expect(err).ShouldNot(HaveOccurred())
+				httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+				Expect(err).ShouldNot(HaveOccurred())
+				// make a random string of numbers
+				rand.Seed(time.Now().UnixNano())
+				numstr := ""
+				numints := rand.Perm(10)
+				for _, val := range numints {
+					numstr = numstr + strconv.Itoa(val)
+				}
+				invalidURL := strings.Replace(serverURL, "https://verrazzano.", fmt.Sprintf("https://%s.", numstr), 1)
+				req, err := retryablehttp.NewRequest("GET", invalidURL, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 502)
 				})
 			}
 		})
