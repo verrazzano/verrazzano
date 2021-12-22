@@ -243,6 +243,7 @@ func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst 
 		}
 		// Found a match, return the matching metrics template
 		if found {
+			scrapeGeneratorLogger.Info("found matching metrics template", "Namespace", namespace, "Name", template.Name)
 			return &template, nil
 		}
 	}
