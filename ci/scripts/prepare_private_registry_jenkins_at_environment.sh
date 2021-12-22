@@ -24,11 +24,25 @@ deploy_contour () {
   sleep 30
 }
 
+install_new_harbor_version() {
+  cd ${WORKSPACE}
+  # Downloading newer version of helm in order to prevent harbor installation issues
+  helm_zip="helm-v3.7.2-linux-amd64.tar.gz"
+  echo "Downloading helm 3.7.2 via command: curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}"
+  curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}
+  if [ $? -ne 0 ]; then
+    echo "Error downloading helm 3.7.2"
+    exit 1
+  fi
+  tar -zxvf ${helm_zip}
+}
+
 deploy_certificates() {
-  helm repo add jetstack https://charts.jetstack.io
-  helm repo update
+  cd ${WORKSPACE}/linux-amd64
+  ./helm --kubeconfig=${KUBECONFIG} repo add jetstack https://charts.jetstack.io
+  ./helm --kubeconfig=${KUBECONFIG} repo update
   kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.crds.yaml
-  helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.6.1
+  ./helm --kubeconfig=${KUBECONFIG} install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.6.1
   kubectl apply -f - <<EOF
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
@@ -57,21 +71,11 @@ load_images() {
 }
 
 deploy_harbor() {
-  cd ${WORKSPACE}
-  # Downloading newer version of helm in order to prevent harbor installation issues
-  helm_zip="helm-v3.7.2-linux-amd64.tar.gz"
-  echo "Downloading helm 3.7.2 via command: curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}"
-  curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}
-  if [ $? -ne 0 ]; then
-    echo "Error downloading helm 3.7.2"
-    exit 1
-  fi
-  tar -zxvf ${helm_zip}
-  cd linux-amd64
+  cd ${WORKSPACE}/linux-amd64
   # Install harbor via new version of helm
-  ./helm repo add harbor https://helm.goharbor.io
-  ./helm repo update
-  ./helm install ephemeral-harbor harbor/harbor \
+  ./helm --kubeconfig=${KUBECONFIG} repo add harbor https://helm.goharbor.io
+  ./helm --kubeconfig=${KUBECONFIG} repo update
+  ./helm --kubeconfig=${KUBECONFIG} install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
     --set expose.ingress.annotations.'kubernetes\.io/ingress\.class'=contour \
     --set expose.ingress.annotations.'certmanager\.k8s\.io/cluster-issuer'=letsencrypt-prod \
