@@ -40,19 +40,6 @@ const (
 	UnknownAuthenticationType AuthenticationType = "unknown_auth_type"
 )
 
-// AuthenticationType for auth
-type AuthenticationType string
-
-const (
-	// UserPrincipal is default auth type
-	UserPrincipal AuthenticationType = "user_principal"
-	// InstancePrincipal is used for instance principle auth type
-	InstancePrincipal AuthenticationType = "instance_principal"
-	// InstancePrincipalDelegationToken is used for instance principle delegation token auth type
-	InstancePrincipalDelegationToken AuthenticationType = "instance_principle_delegation_token"
-	// UnknownAuthenticationType is used for none meaningful auth type
-	UnknownAuthenticationType AuthenticationType = "unknown_auth_type"
-)
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=verrazzanos
