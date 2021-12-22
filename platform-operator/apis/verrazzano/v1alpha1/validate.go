@@ -23,7 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const ociSecretFileName         = "oci.yaml"
+const ociSecretFileName = "oci.yaml"
+
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
@@ -168,13 +169,13 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 
 		// validate auth_type
 		var auth OciAuth
-		err  = yaml.Unmarshal(secret.Data[ociSecretFileName],&auth)
+		err = yaml.Unmarshal(secret.Data[ociSecretFileName], &auth)
 		if err != nil {
-			zap.S().Infof("Json unmarshalling failed due to %v",err)
+			zap.S().Infof("Json unmarshalling failed due to %v", err)
 			return err
 		}
 		if auth.Auth.AuthType != InstancePrincipal && auth.Auth.AuthType != UserPrincipal && auth.Auth.AuthType != "" {
-			return fmt.Errorf("The authtype \"%v\" in OCI secret must be either '%s' or '%s'", auth.Auth.AuthType,UserPrincipal,InstancePrincipal)
+			return fmt.Errorf("The authtype \"%v\" in OCI secret must be either '%s' or '%s'", auth.Auth.AuthType, UserPrincipal, InstancePrincipal)
 		}
 	}
 

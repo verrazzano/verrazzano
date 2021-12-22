@@ -26,6 +26,7 @@ const (
 	// NodePort is an ingress type of NodePort.
 	NodePort IngressType = "NodePort"
 )
+
 // AuthenticationType for auth
 type AuthenticationType string
 
@@ -39,7 +40,6 @@ const (
 	// UnknownAuthenticationType is used for none meaningful auth type
 	UnknownAuthenticationType AuthenticationType = "unknown_auth_type"
 )
-
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=verrazzanos
@@ -616,11 +616,11 @@ type OciLoggingConfiguration struct {
 
 // OCI Secret Auth
 type AuthData struct {
-	Region      string `yaml:"region"`
-	Tenancy     string `yaml:"tenancy"`
-	User        string `yaml:"user"`
-	Key         string `yaml:"key"`
-	Fingerprint string `yaml:"fingerprint"`
+	Region      string             `yaml:"region"`
+	Tenancy     string             `yaml:"tenancy"`
+	User        string             `yaml:"user"`
+	Key         string             `yaml:"key"`
+	Fingerprint string             `yaml:"fingerprint"`
 	AuthType    AuthenticationType `json:"authtype"`
 }
 type OciAuth struct {
