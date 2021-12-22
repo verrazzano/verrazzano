@@ -76,6 +76,7 @@ deploy_harbor() {
 
   cd ${TEST_SCRIPTS_DIR}
   # Create the Harbor project if it does not exist
+  chmod +x create_harbor_project.sh
   ./create_harbor_project.sh -a "https://${REGISTRY}/api/v2.0" -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
 }
 
