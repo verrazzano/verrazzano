@@ -9,6 +9,7 @@ def agentLabel = "phxlarge"
 def ocirRegion = "phx"
 def imageRepoSubPath=""
 def baseImageRepo=""
+def dockerRunnerArgs="${RUNNER_DOCKER_ARGS} --add-host=docker:ephemeral.harbor.v8o.io"
 
 pipeline {
     options {
@@ -18,7 +19,7 @@ pipeline {
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
-            args "{RUNNER_DOCKER_ARGS} --add-host=docker:ephemeral.harbor.v8o.io"
+            args "${dockerRunnerArgs}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
