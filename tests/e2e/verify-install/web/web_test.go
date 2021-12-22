@@ -194,7 +194,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req.Header.Add("Origin", "https://invalid-origin")
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 403)
-				}).Should(BeTrue())
+				}).Should(BeNil())
 			}
 		})
 
@@ -209,7 +209,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req.Header.Add("Origin", "https://invalid-origin")
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "access-control-allow-origin", 200)
-				})
+				}).Should(BeNil())
 			}
 		})
 
@@ -231,7 +231,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 502)
-				})
+				}).Should(BeNil())
 			}
 		})
 
