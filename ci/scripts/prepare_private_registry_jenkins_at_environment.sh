@@ -57,11 +57,23 @@ load_images() {
 }
 
 deploy_harbor() {
-  helm version
-  helm repo add harbor https://helm.goharbor.io
-  helm repo update
-  # Install harbor
-  helm install ephemeral-harbor harbor/harbor \
+  cd ${WORKSPACE}
+  # Downloading newer version of helm in order to prevent harbor installation issues
+  helm_zip="helm-v3.7.2-linux-amd64.tar.gz"
+  echo "Downloading helm 3.7.2 via commnand: curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}"
+  curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}
+  if [ $? -ne 0 ]; then
+    echo "Error downloading helm 3.7.2"
+    exit 1
+  fi
+  tar -zxvf ${helm_zip}
+  mv linux-amd64/helm /usr/local/bin/helm_372
+  if [ $? -ne 0 ]; then
+    echo "Error while moving helm 3.7.2"
+    exit 1
+  fi
+  # Install harbor via new version of helm
+  helm_372 install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
     --set expose.ingress.annotations.'kubernetes\.io/ingress\.class'=contour \
     --set expose.ingress.annotations.'certmanager\.k8s\.io/cluster-issuer'=letsencrypt-prod \
