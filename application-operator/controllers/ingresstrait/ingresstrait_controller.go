@@ -310,7 +310,7 @@ func getGatewayName(trait *vzapi.IngressTrait) (string, error) {
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to generate gateway name")
 	}
-	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
+	gwName := fmt.Sprintf("%s-%s-%s-gw", trait.Namespace, appName, trait.Name)
 	return gwName, nil
 }
 
