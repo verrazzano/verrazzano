@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	helmcomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -350,6 +349,9 @@ func TestUpgradeStarted(t *testing.T) {
 			return nil
 		})
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -437,6 +439,9 @@ func TestUpgradeTooManyFailures(t *testing.T) {
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -537,6 +542,9 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			return nil
 		})
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -635,6 +643,9 @@ func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
 
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -851,17 +862,13 @@ func TestUpgradeHelmError(t *testing.T) {
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComponent{
-				HelmComponent: helmcomp.HelmComponent{
-					IsEnabledFunc: func(context spi.ComponentContext) bool {
-						return true
-					},
-				},
 				upgradeFunc: func(ctx spi.ComponentContext) error {
 					return fmt.Errorf("Error running upgrade")
 				},
 			},
 		}
 	})
+
 	defer registry.ResetGetComponentsFn()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
@@ -1194,6 +1201,9 @@ func TestRetryUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
 	// Expect a call to get the verrazzano resource.  Return resource with version and the restart-version annotation
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -1280,6 +1290,9 @@ func TestDontRetryUpgrade(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version and the restart-version annotation
 	mock.EXPECT().

@@ -3,18 +3,22 @@
 package verrazzano
 
 import (
+	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
@@ -265,7 +269,21 @@ func TestPreInstall(t *testing.T) {
 func TestPostInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme)
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	err := NewComponent().PostInstall(ctx)
+	vzComp := NewComponent()
+
+	// PostInstall will fail because the expected VZ ingresses are not present in cluster
+	err := vzComp.PostInstall(ctx)
+	assert.IsType(t, spi2.RetryableError{}, err)
+
+	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
+	// when all the ingresses are present in the cluster
+	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
+	for _, ingressName := range vzIngressNames {
+		client.Create(context.TODO(), &v1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
+		})
+	}
+	err = vzComp.PostInstall(ctx)
 	assert.NoError(t, err)
 }
 
