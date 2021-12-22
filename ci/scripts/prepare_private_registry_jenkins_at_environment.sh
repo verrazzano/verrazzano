@@ -67,13 +67,9 @@ deploy_harbor() {
     exit 1
   fi
   tar -zxvf ${helm_zip}
-  mv linux-amd64/helm /usr/local/bin/helm_372
-  if [ $? -ne 0 ]; then
-    echo "Error while moving helm 3.7.2"
-    exit 1
-  fi
+  cd linux-amd64
   # Install harbor via new version of helm
-  helm_372 install ephemeral-harbor harbor/harbor \
+  ./helm install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
     --set expose.ingress.annotations.'kubernetes\.io/ingress\.class'=contour \
     --set expose.ingress.annotations.'certmanager\.k8s\.io/cluster-issuer'=letsencrypt-prod \
