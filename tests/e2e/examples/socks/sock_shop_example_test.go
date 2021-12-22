@@ -259,8 +259,6 @@ var _ = AfterSuite(func() {
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
 		pkg.Log(pkg.Info, "Delete application")
 
-		Expect(false).Should(BeTrue())
-
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
