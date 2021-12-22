@@ -18,7 +18,7 @@ pipeline {
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
-            args "${EXPERIMENTAL_RUNNER_DOCKER_ARGS}"
+            args "{RUNNER_DOCKER_ARGS} --add-host=docker:ephemeral.harbor.v8o.io"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
