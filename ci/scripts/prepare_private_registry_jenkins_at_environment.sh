@@ -24,7 +24,7 @@ deploy_contour () {
   sleep 30
 }
 
-install_new_harbor_version() {
+install_new_helm_version() {
   cd ${WORKSPACE}
   # Downloading newer version of helm in order to prevent harbor installation issues
   helm_zip="helm-v3.7.2-linux-amd64.tar.gz"
@@ -134,6 +134,11 @@ start_installation() {
   ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
   if [ $SETUP_HARBOR == true ]; then
+    install_new_helm_version
+    if [ $? -ne 0 ]; then
+      echo "Deployment of new helm version failed"
+      exit 1
+    fi
     deploy_contour
     if [ $? -ne 0 ]; then
       echo "Deployment of contour failed"
