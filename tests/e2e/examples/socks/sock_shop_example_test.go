@@ -8,7 +8,6 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"os"
@@ -33,9 +32,6 @@ const (
 	sockshopAppName      = "sockshop-appconfig"
 	sockshopNamespace    = "sockshop"
 )
-
-// Needed to get around linter
-var gingoFail = ginkgo.Fail
 
 var sockShop SockShop
 var username, password string
@@ -357,5 +353,5 @@ func getVariant() string {
 // FailHandler to handle failures
 func FailHandler(message string, callerSkip ...int) {
 	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	gingoFail(message, callerSkip...)
+	Fail(message, callerSkip...)
 }
