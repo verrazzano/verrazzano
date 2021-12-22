@@ -23,8 +23,7 @@ import (
 //  THEN a match of true is returned
 func TestMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	labels := map[string]string{
@@ -64,8 +63,7 @@ func TestMatch(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchDefaults(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	labels := map[string]string{
@@ -90,8 +88,7 @@ func TestMatchDefaults(t *testing.T) {
 //  THEN a match of false is returned because namespace did not match
 func TestNoMatchNamespace(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	labels := map[string]string{
@@ -131,8 +128,7 @@ func TestNoMatchNamespace(t *testing.T) {
 //  THEN a match of true is returned
 func TestEmptyNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create a couple of namespaces
@@ -157,8 +153,7 @@ func TestEmptyNamespaceSelectorMatch(t *testing.T) {
 //  THEN a match of true is returned
 func TestNilNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create a couple of namespaces
@@ -180,8 +175,7 @@ func TestNilNamespaceSelectorMatch(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchLabelsNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	namespaceLabels := map[string]string{
@@ -212,8 +206,7 @@ func TestMatchLabelsNamespaceSelectorMatch(t *testing.T) {
 //  THEN a match of false is returned
 func TestMatchLabelsNamespaceSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	namespaceLabels := map[string]string{
@@ -244,8 +237,7 @@ func TestMatchLabelsNamespaceSelectorNoMatch(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	namespaceLabels := map[string]string{
@@ -280,8 +272,7 @@ func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 //  THEN a match of false is returned
 func TestMatchExpressionsNamespaceSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create a couple of namespaces
@@ -312,8 +303,7 @@ func TestMatchExpressionsNamespaceSelectorNoMatch(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchExactGVK(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -338,8 +328,7 @@ func TestMatchExactGVK(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchWildcardVersion(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -364,8 +353,7 @@ func TestMatchWildcardVersion(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchWildcardGroup(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -390,8 +378,7 @@ func TestMatchWildcardGroup(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchWildcardKind(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -416,8 +403,7 @@ func TestMatchWildcardKind(t *testing.T) {
 //  THEN a match of false is returned
 func TestNoMatchExactGVK(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -441,8 +427,7 @@ func TestNoMatchExactGVK(t *testing.T) {
 //  THEN a match of false is returned
 func TestNoMatchWildcardVersion(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -467,8 +452,7 @@ func TestNoMatchWildcardVersion(t *testing.T) {
 //  THEN a match of false is returned
 func TestNoMatchWildcardGroup(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -493,8 +477,7 @@ func TestNoMatchWildcardGroup(t *testing.T) {
 //  THEN a match of false is returned
 func TestNoMatchWildcardKind(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -519,8 +502,7 @@ func TestNoMatchWildcardKind(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	labels := map[string]string{
@@ -551,8 +533,7 @@ func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 //  THEN a match of true is returned
 func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	labels := map[string]string{
@@ -588,8 +569,7 @@ func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 //  THEN a match of false is returned
 func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	labels := map[string]string{
@@ -620,8 +600,7 @@ func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 //  THEN a match of false is returned
 func TestMatchExpressionsObjectSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		KubeClient: fake.NewSimpleClientset(),
 	}
 
 	// Create deployment
@@ -666,7 +645,8 @@ func (w *WorkloadSelector) createDeployment(t *testing.T, namespace string, name
 		Version:  "v1",
 		Resource: "deployments",
 	}
-	uout, err := w.DynamicClient.Resource(resource).Namespace(namespace).Create(context.TODO(), u, metav1.CreateOptions{})
+	dynamicClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
+	uout, err := dynamicClient.Resource(resource).Namespace(namespace).Create(context.TODO(), u, metav1.CreateOptions{})
 	assert.NoError(t, err, "unexpected error creating deployment")
 
 	return uout
