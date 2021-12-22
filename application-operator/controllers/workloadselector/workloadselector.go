@@ -44,16 +44,17 @@ func (w *WorkloadSelector) doesNamespaceMatch(workload *unstructured.Unstructure
 		return true, nil
 	}
 
+	// Get the namespace object for the workload resource
 	namespace, err := w.KubeClient.CoreV1().Namespaces().Get(context.TODO(), workload.GetNamespace(), metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
 
+	// Check if the namespace labels match the namespace label selector
 	label, err := metav1.LabelSelectorAsSelector(namespaceSelector)
 	if err != nil {
 		return false, err
 	}
-
 	if label.Matches(labels.Set(namespace.GetLabels())) {
 		return true, nil
 	}
@@ -80,11 +81,11 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 		return true, nil
 	}
 
+	// Check if the workload resource labels match the object label selector
 	label, err := metav1.LabelSelectorAsSelector(objectSelector)
 	if err != nil {
 		return false, err
 	}
-
 	if label.Matches(labels.Set(workload.GetLabels())) {
 		return true, nil
 	}
