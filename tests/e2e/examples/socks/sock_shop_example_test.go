@@ -8,6 +8,7 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"os"
@@ -254,10 +255,6 @@ var _ = AfterEach(func() {
 
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
-	failed = false
 	if !skipUndeploy {
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
@@ -299,9 +296,6 @@ var _ = AfterSuite(func() {
 			}
 			return false
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-	}
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 })
 
@@ -352,4 +346,10 @@ func getVariant() string {
 	}
 
 	return variant
+}
+
+// FailHandler to handle failures
+func FailHandler(message string, callerSkip ...int) {
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
+	ginkgo.Fail(message, callerSkip...)
 }
