@@ -98,7 +98,9 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				// There should be no server header found and no errors should occur during the request
-				Eventually(pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "server", 0)).Should(BeNil())
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "server", 0)
+				}).Should(BeNil())
 			}
 		})
 
@@ -111,8 +113,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				// HTTP Access-Control-Allow-Origin header should never be returned.
-				Eventually(pkg.CheckStatusAndResponseHeaderAbsent(
-					httpClient, req, "access-control-allow-origin", 0)).Should(BeNil())
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(
+						httpClient, req, "access-control-allow-origin", 0)
+				}).Should(BeNil())
 			}
 		})
 
@@ -125,8 +129,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				req.Header.Add("Origin", "*")
 				Expect(err).ShouldNot(HaveOccurred())
-				Eventually(pkg.CheckStatusAndResponseHeaderAbsent(
-					httpClient, req, "access-control-allow-origin", 0)).Should(BeNil())
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(
+						httpClient, req, "access-control-allow-origin", 0)
+				}).Should(BeNil())
 			}
 		})
 
@@ -139,8 +145,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				req.Header.Add("Origin", "null")
 				Expect(err).ShouldNot(HaveOccurred())
-				Eventually(pkg.CheckStatusAndResponseHeaderAbsent(
-					httpClient, req, "access-control-allow-origin", 0)).Should(BeNil())
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(
+						httpClient, req, "access-control-allow-origin", 0)
+				}).Should(BeNil())
 			}
 		})
 
@@ -166,7 +174,9 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Content-Length", "36")
 				req.Header.Add("Transfer-Encoding", "chunked")
-				Eventually(pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 400)).Should(BeNil())
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 400)
+				}).Should(BeNil())
 			}
 		})
 
@@ -179,7 +189,9 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("POST", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Origin", "https://invalid-origin")
-				Eventually(pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 403)).Should(BeTrue())
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 403)
+				}).Should(BeTrue())
 			}
 		})
 
@@ -192,7 +204,9 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Origin", "https://invalid-origin")
-				Eventually(pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "access-control-allow-origin", 200))
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "access-control-allow-origin", 200)
+				})
 			}
 		})
 
