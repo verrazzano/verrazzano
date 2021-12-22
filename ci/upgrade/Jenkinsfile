@@ -585,11 +585,20 @@ pipeline {
             }
         }
         stage('Uninstall') {
+            options {
+                timeout(time: 30, unit: "MINUTES")
+            }
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        kubectl delete verrazzano my-verrazzano
-                    """
+                script {
+                    try {
+                        sh """
+                            kubectl delete verrazzano my-verrazzano
+                        """
+                    } catch (err) {
+                        currentBuild.result = "FAILURE"
+                        echo "Caught: ${err}"
+                        err 'Verrazzano uninstall failed'
+                    }
                 }
             }
             post {
