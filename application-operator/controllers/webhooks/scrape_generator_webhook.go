@@ -25,14 +25,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// ScrapeGeneratorLoadPath specifies the path of scrape-generator webhook
-const ScrapeGeneratorLoadPath = "/scrape-generator"
-
-// StatusReasonSuccess constant for successful response
-const StatusReasonSuccess = "success"
-
 const (
-	MetricsAnnotation = "app.verrazzano.io/metrics"
+	MetricsAnnotation       = "app.verrazzano.io/metrics"
+	ScrapeGeneratorLoadPath = "/scrape-generator"
+	StatusReasonSuccess     = "success"
 )
 
 var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
@@ -71,6 +67,7 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	unst := &unstructured.Unstructured{}
 	err := a.Decoder.Decode(req, unst)
 	if err != nil {
+		scrapeGeneratorLogger.Error(err, "error decoding object in admission request")
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
@@ -84,6 +81,7 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	// If not labeled this way there is nothing to do.
 	namespace, err := a.KubeClient.CoreV1().Namespaces().Get(ctx, unst.GetNamespace(), metav1.GetOptions{})
 	if err != nil {
+		scrapeGeneratorLogger.Error(err, "error getting namespace of workload resource")
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 	if namespace.Labels[constants.LabelVerrazzanoManaged] != "true" {
@@ -93,6 +91,7 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if metricsTemplateAnnotation == "none" {
+			scrapeGeneratorLogger.Info(fmt.Sprintf("%s is set to none - opting out of metrics", MetricsAnnotation))
 			return admission.Allowed(StatusReasonSuccess)
 		}
 	}
@@ -143,6 +142,7 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 
 	marshaledWorkloadResource, err := json.Marshal(unst)
 	if err != nil {
+		scrapeGeneratorLogger.Error(err, "error marshalling workload resource")
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledWorkloadResource)
@@ -163,13 +163,18 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 				namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: metricsTemplate}
 				err := a.Client.Get(context.TODO(), namespacedName, template)
 				if err != nil {
+					scrapeGeneratorLogger.Error(err, "error getting metrics template", "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
 					return nil, err
 				}
+				scrapeGeneratorLogger.Info("found matching metrics template", "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
 				return template, nil
 			}
+
+			scrapeGeneratorLogger.Error(err, "error getting metrics template", "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
 			return nil, err
 		}
 
+		scrapeGeneratorLogger.Info("found matching metrics template", "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
 		return template, nil
 	}
 
@@ -181,11 +186,13 @@ func (a *ScrapeGeneratorWebhook) populateLabels(ctx context.Context, unst *unstr
 	// When the Prometheus target config map was not specified in the metrics template then we do not update
 	// the workload resource labels.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
+		scrapeGeneratorLogger.Info("Prometheus target config map not specified - workload labels not updated", "Namespace", template.Namespace, "Name", template.Name)
 		return nil
 	}
 
 	configMap, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
 	if err != nil {
+		scrapeGeneratorLogger.Error(err, "error getting Prometheus target config map")
 		return err
 	}
 	labels := unst.GetLabels()
@@ -208,6 +215,7 @@ func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst 
 	templateList := &vzapp.MetricsTemplateList{}
 	err := a.Client.List(ctx, templateList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
+		scrapeGeneratorLogger.Error(err, "error getting list of metrics templates", "Namespace", namespace)
 		return nil, err
 	}
 
@@ -220,6 +228,7 @@ func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst 
 	for _, template := range templateList.Items {
 		// If the template workload selector was not specified then don't try to match this template
 		if reflect.DeepEqual(template.Spec.WorkloadSelector, vzapp.WorkloadSelector{}) {
+			scrapeGeneratorLogger.Info("workloadSelector not specified - no workload match checking performed", "Namespace", template.Namespace, "Name", template.Name)
 			continue
 		}
 		found, err := ws.DoesWorkloadMatch(unst,
@@ -229,6 +238,7 @@ func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst 
 			template.Spec.WorkloadSelector.APIVersions,
 			template.Spec.WorkloadSelector.Resources)
 		if err != nil {
+			scrapeGeneratorLogger.Error(err, "error looking for a matching metrics template")
 			return nil, err
 		}
 		// Found a match, return the matching metrics template
