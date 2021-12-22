@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -22,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const ociSecretFileName         = "oci.yaml"
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
@@ -162,6 +164,17 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 				return fmt.Errorf("The secret \"%s\" must be created in the %s namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace)
 			}
 			return err
+		}
+
+		// validate auth_type
+		var auth OciAuth
+		err  = yaml.Unmarshal(secret.Data[ociSecretFileName],&auth)
+		if err != nil {
+			zap.S().Infof("Json unmarshalling failed due to %v",err)
+			return err
+		}
+		if auth.Auth.AuthType != InstancePrincipal && auth.Auth.AuthType != UserPrincipal && auth.Auth.AuthType != "" {
+			return fmt.Errorf("The authtype \"%v\" in OCI secret must be either '%s' or '%s'", auth.Auth.AuthType,UserPrincipal,InstancePrincipal)
 		}
 	}
 

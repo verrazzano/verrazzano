@@ -26,6 +26,19 @@ const (
 	// NodePort is an ingress type of NodePort.
 	NodePort IngressType = "NodePort"
 )
+// AuthenticationType for auth
+type AuthenticationType string
+
+const (
+	// UserPrincipal is default auth type
+	UserPrincipal AuthenticationType = "user_principal"
+	// InstancePrincipal is used for instance principle auth type
+	InstancePrincipal AuthenticationType = "instance_principal"
+	// InstancePrincipalDelegationToken is used for instance principle delegation token auth type
+	InstancePrincipalDelegationToken AuthenticationType = "instance_principle_delegation_token"
+	// UnknownAuthenticationType is used for none meaningful auth type
+	UnknownAuthenticationType AuthenticationType = "unknown_auth_type"
+)
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=verrazzanos
@@ -599,3 +612,17 @@ type OciLoggingConfiguration struct {
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
 }
+
+// OCI Secret Auth
+type AuthData struct {
+	Region      string `yaml:"region"`
+	Tenancy     string `yaml:"tenancy"`
+	User        string `yaml:"user"`
+	Key         string `yaml:"key"`
+	Fingerprint string `yaml:"fingerprint"`
+	AuthType    AuthenticationType `json:"authtype"`
+}
+type OciAuth struct {
+	Auth AuthData `yaml:"auth"`
+}
+
