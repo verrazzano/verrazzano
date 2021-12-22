@@ -310,7 +310,7 @@ func getGatewayName(trait *vzapi.IngressTrait) (string, error) {
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to generate gateway name")
 	}
-	gwName := fmt.Sprintf("%s-%s-%s-gw", trait.Namespace, appName, trait.Name)
+	gwName := fmt.Sprintf("%s-%s-gw", trait.Namespace, appName)
 	return gwName, nil
 }
 
@@ -488,13 +488,8 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		if err != nil {
 			return err
 		}
-		appName, ok := trait.Labels[oam.LabelAppName]
-		if !ok {
-			r.Log.Info("OAM app name label missing from metadata, will use wildcard for certificate host")
-			appName = "*"
-		}
 		certificate.Spec = certapiv1alpha2.CertificateSpec{
-			DNSNames:   []string{fmt.Sprintf("%s.%s", appName, appDomainName)},
+			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
 			SecretName: secretName,
 			IssuerRef: certv1.ObjectReference{
 				Name: verrazzanoClusterIssuer,
@@ -546,7 +541,7 @@ func buildCertificateNameFromAppName(trait *vzapi.IngressTrait) (string, error) 
 	if !ok {
 		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
 	}
-	return fmt.Sprintf("%s-%s-%s-cert", trait.Namespace, appName, trait.Name), nil
+	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName), nil
 }
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
@@ -609,10 +604,20 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 			},
 		},
 	}
-	err = controllerutil.SetControllerReference(trait, gateway, r.Scheme)
-	if err != nil {
-		r.Log.Error(err, "Error setting controller reference")
-		return err
+	// Set the owner reference.
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if ok {
+		appConfig := &v1alpha2.ApplicationConfiguration{}
+		err := r.Get(context.TODO(), types.NamespacedName{Namespace: trait.Namespace, Name: appName}, appConfig)
+		if err != nil {
+			r.Log.Error(err, " Error getting getting app name", "app", appName)
+			return err
+		}
+		err = controllerutil.SetControllerReference(appConfig, gateway, r.Scheme)
+		if err != nil {
+			r.Log.Error(err, "Error setting controller reference")
+			return err
+		}
 	}
 	return nil
 }
