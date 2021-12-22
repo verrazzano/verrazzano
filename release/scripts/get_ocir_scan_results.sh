@@ -44,8 +44,8 @@ function get_scan_summaries() {
   # TBD: Add filtering here
   # TBD: Need to add more fields here so we can at least have the result OCIDs and may also want times in case there are multiple scan results to differentiate
   # TBD: For multiple scans assuming -u will be mostly a noop here, ie: if we include all fields we wouldn't see any duplicates
-  oci vulnerability-scanning container scan result list --compartment-id $OCIR_COMPARTMENT_ID --region $OCI_REGION --all > $SCAN_RESULTS_DIR/scan-all-summary.json
-  cat $SCAN_RESULTS_DIR/scan-all-summary.json | jq -r '.data.items[] | { finished: ."time-finished", sev: ."highest-problem-severity", full: (.repository + ":" + .image), repo: .repository, image: .image, count: ."problem-count", id: .id } ' | jq -r '[.[]] | @csv' | sort -u > $SCAN_RESULTS_DIR/scan-all-summary.csv
+  oci vulnerability-scanning container scan result list --compartment-id $OCIR_COMPARTMENT_ID --region $OCI_REGION --all > $SCAN_RESULTS_DIR/ocir-scan-all-summary.json
+  cat $SCAN_RESULTS_DIR/ocir-scan-all-summary.json | jq -r '.data.items[] | { finished: ."time-finished", sev: ."highest-problem-severity", full: (.repository + ":" + .image), repo: .repository, image: .image, count: ."problem-count", id: .id } ' | jq -r '[.[]] | @csv' | sort -u > $SCAN_RESULTS_DIR/ocir-scan-all-summary.csv
 }
 
 # This will generate a more human readable text report. More suitable for forming a BUG report with than the CSV alone.
@@ -69,18 +69,18 @@ function generate_detail_text_report() {
   TIME_FINISHED=$7
   OVERALL_SUMMARY=$8
   # REVIEW: Rudimentary for now, can work on the format later, etc...
-  echo "OCIR Result Scan ID:  $SCAN_RESULT_OCID" > $RESULT_FILE_BASE-report.out
-  echo "Scan Finished:        $TIME_FINISHED" >> $RESULT_FILE_BASE-report.out
-  echo "Image:                $RESULT_REPOSITORY_IMAGE:$RESULT_IMAGE_TAG" >> $RESULT_FILE_BASE-report.out
-  echo "Issue Count:          $RESULT_COUNT" >> $RESULT_FILE_BASE-report.out
-  echo "Highest Severity:     $RESULT_SEVERITY" >> $RESULT_FILE_BASE-report.out
-  echo "Issues:" >> $RESULT_FILE_BASE-report.out
-  cat $RESULT_FILE_BASE-details.csv >> $RESULT_FILE_BASE-report.out
+  echo "OCIR Result Scan ID:  $SCAN_RESULT_OCID" > $RESULT_FILE_BASE-ocir-report.out
+  echo "Scan Finished:        $TIME_FINISHED" >> $RESULT_FILE_BASE-ocir-report.out
+  echo "Image:                $RESULT_REPOSITORY_IMAGE:$RESULT_IMAGE_TAG" >> $RESULT_FILE_BASE-ocir-report.out
+  echo "Issue Count:          $RESULT_COUNT" >> $RESULT_FILE_BASE-ocir-report.out
+  echo "Highest Severity:     $RESULT_SEVERITY" >> $RESULT_FILE_BASE-ocir-report.out
+  echo "Issues:" >> $RESULT_FILE_BASE-ocir-report.out
+  cat $RESULT_FILE_BASE-ocir-details.csv >> $RESULT_FILE_BASE-ocir-report.out
 
   # Contribute a subset of details to the overall summary report. This includes only CRITICAL and HIGH CVE's
   echo "+++++"
   echo "Image:                $RESULT_REPOSITORY_IMAGE:$RESULT_IMAGE_TAG" >> $OVERALL_SUMMARY
-  cat $RESULT_FILE_BASE-details.csv | grep -e 'CRITICAL' -e 'HIGH' >> $OVERALL_SUMMARY
+  cat $RESULT_FILE_BASE-ocir-details.csv | grep -e 'CRITICAL' -e 'HIGH' >> $OVERALL_SUMMARY
   echo "-----"
 }
 
@@ -101,9 +101,9 @@ function get_scan_details() {
   RESULT_COUNT=$4
   SCAN_RESULT_OCID=$5
   RESULT_FILE_BASE=$6
-  oci vulnerability-scanning container scan result get --container-scan-result-id $5 --region $OCI_REGION > $RESULT_FILE_BASE-details.json
-  cat $RESULT_FILE_BASE-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_BASE-details.csv
-  TIME_FINISHED=$(cat $RESULT_FILE_BASE-details.json | jq -r '.data."time-finished"')
+  oci vulnerability-scanning container scan result get --container-scan-result-id $5 --region $OCI_REGION > $RESULT_FILE_BASE-ocir-details.json
+  cat $RESULT_FILE_BASE-ocir-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_BASE-ocir-details.csv
+  TIME_FINISHED=$(cat $RESULT_FILE_BASE-ocir-details.json | jq -r '.data."time-finished"')
   generate_detail_text_report $1 $2 $3 $4 $5 $6 $TIME_FINISHED $7
 }
 
@@ -116,7 +116,7 @@ function get_all_scan_details() {
   [ ! -f "$1" ] && { echo "ERROR: get_all_scan_details invalid args: $1"; return; }
 
   local bomimages=$(mktemp temp-bom-images-XXXXXX.out)
-  local overallsummary=$SCAN_RESULTS_DIR/overall-scan-report.out
+  local overallsummary=$SCAN_RESULTS_DIR/overall-scan-ocir-report.out
   sh $TOOL_SCRIPT_DIR/vz-registry-image-helper.sh -m $bomimages -t $OCIR_SCAN_REGISTRY -r $OCIR_REPOSITORY_BASE -b $1
 
   # trim off the registry and base info so the images we have can be used for lookups in the CSV data
@@ -131,11 +131,11 @@ function get_all_scan_details() {
 
     # Find all scan summary entries for the image
     local imagecsv=(mktemp temp_image-csv-XXXXXX.csv)
-    grep $BOM_IMAGE $SCAN_RESULTS_DIR/scan-all-summary.csv > $imagecsv
+    grep $BOM_IMAGE $SCAN_RESULTS_DIR/ocir-scan-all-summary.csv > $imagecsv
 
     if [ ! -s "$imagecsv" ]; then
       echo "ERROR: No scan results found for $BOM_IMAGE"
-      echo "$BOM_IMAGE" >> $SCAN_RESULTS_DIR/IMAGES-MISSING-SCANS.OUT
+      echo "$BOM_IMAGE" >> $SCAN_RESULTS_DIR/IMAGES-MISSING-OCIR-SCANS.OUT
     else
       # The summary is sorted ascending with the finished time as the first field, so get the last non-empty line
       # of the CSV matches for this image for the most recent scan
