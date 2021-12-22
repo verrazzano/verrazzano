@@ -27,6 +27,7 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 10 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
 	sockshopAppName      = "sockshop-appconfig"
 	sockshopNamespace    = "sockshop"
@@ -81,7 +82,7 @@ const registerTemp = `{
 var _ = Describe("Sock Shop Application", func() {
 	It("Verify application pods are running", func() {
 		// checks that all pods are up and running
-		Eventually(sockshopPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 	})
 
 	var hostname = ""
