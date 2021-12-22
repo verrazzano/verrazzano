@@ -18,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,9 +35,8 @@ var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
 // ScrapeGeneratorWebhook type for the mutating webhook
 type ScrapeGeneratorWebhook struct {
 	client.Client
-	Decoder       *admission.Decoder
-	DynamicClient dynamic.Interface
-	KubeClient    kubernetes.Interface
+	Decoder    *admission.Decoder
+	KubeClient kubernetes.Interface
 }
 
 // Handle - handler for the mutating webhook
@@ -220,8 +218,7 @@ func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst 
 	}
 
 	ws := &workloadselector.WorkloadSelector{
-		DynamicClient: a.DynamicClient,
-		KubeClient:    a.KubeClient,
+		KubeClient: a.KubeClient,
 	}
 
 	// Iterate through the metrics template list and check if we find a matching template for the workload resource

@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -32,10 +31,9 @@ func newScrapeGeneratorWebhook() ScrapeGeneratorWebhook {
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewFakeClientWithScheme(scheme)
 	v := ScrapeGeneratorWebhook{
-		Client:        cli,
-		Decoder:       decoder,
-		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-		KubeClient:    fake.NewSimpleClientset(),
+		Client:     cli,
+		Decoder:    decoder,
+		KubeClient: fake.NewSimpleClientset(),
 	}
 	return v
 }
