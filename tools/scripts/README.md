@@ -65,4 +65,4 @@ helm upgrade --install myv8o ./charts/verrazzano-platform-operator \
     --set global.repository=${MYREPO} --wait
 ```
 
-After the Verrazzano Platform Operator is running, proceed with installing Verrazzano as documented at https://verrazzano.io/docs/setup/install/installation/.
+After the Verrazzano Platform Operator is running, proceed with installing Verrazzano as documented at https://verrazzano.io/latest/docs/setup/install/installation/.
