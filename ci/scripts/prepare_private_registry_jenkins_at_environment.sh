@@ -60,7 +60,7 @@ deploy_harbor() {
   cd ${WORKSPACE}
   # Downloading newer version of helm in order to prevent harbor installation issues
   helm_zip="helm-v3.7.2-linux-amd64.tar.gz"
-  echo "Downloading helm 3.7.2 via commnand: curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}"
+  echo "Downloading helm 3.7.2 via command: curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}"
   curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}
   if [ $? -ne 0 ]; then
     echo "Error downloading helm 3.7.2"
