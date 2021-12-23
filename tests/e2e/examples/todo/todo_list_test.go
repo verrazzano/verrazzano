@@ -225,7 +225,17 @@ var _ = Describe("Verify ToDo List example application.", func() {
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("[")))
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
-				return pkg.PutWithHostHeader(url, "application/json", host, nil)
+				resp, err := pkg.PutWithHostHeader(url, "application/json", host, nil)
+				pkg.Log(pkg.Info, fmt.Sprintf("Put status code is %d", resp.StatusCode))
+				pkg.Log(pkg.Info, fmt.Sprintf("err is %v", err))
+				return resp, err
+			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(204))
+			Eventually(func() (*pkg.HTTPResponse, error) {
+				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
+				resp, err := pkg.PutWithHostHeader(url, "application/json", host, nil)
+				pkg.Log(pkg.Info, fmt.Sprintf("Put status code is %d", resp.StatusCode))
+				pkg.Log(pkg.Info, fmt.Sprintf("err is %v", err))
+				return resp, err
 			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(204))
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
