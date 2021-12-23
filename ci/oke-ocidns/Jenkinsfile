@@ -325,7 +325,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE}
                     """
                 }
             }
