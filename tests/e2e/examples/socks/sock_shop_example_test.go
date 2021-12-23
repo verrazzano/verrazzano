@@ -247,13 +247,11 @@ var _ = Describe("Sock Shop Application", func() {
 
 })
 
-var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
-})
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.AfterEach(func() {})
 
 // undeploys the application, components, and namespace
-var _ = AfterSuite(func() {
+var _ = clusterDump.AfterSuite(func() {
 	if !skipUndeploy {
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
@@ -346,10 +344,4 @@ func getVariant() string {
 	}
 
 	return variant
-}
-
-// FailHandler to handle failures
-func FailHandler(message string, callerSkip ...int) {
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	Fail(message, callerSkip...)
 }
