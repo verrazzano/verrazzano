@@ -49,6 +49,9 @@ pipeline {
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+        choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
+            // 1st choice is the default value
+            choices: [ "GLOBAL","PRIVATE" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
                 choices: [ "v1.20.8", "1.18.10", "v1.19.7", "v1.19.12" ])
@@ -79,10 +82,6 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
-        string (name: 'DNS_SCOPE',
-                        defaultValue: 'GLOBAL',
-                        description: 'Specifies  to operate only on resources that have a matching DNS scope.Optional. GLOBAL, PRIVATE. Default: GLOBAL',
-                        trim: true)
     }
 
     environment {
@@ -148,7 +147,8 @@ pipeline {
         INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
         INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
 
-        OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
+        //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
+        OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? z${zoneId}-private.v8o.io : z${zoneId}.v8o.io}"
         CERT_ISSUER="${params.CERT_ISSUER}"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
 
