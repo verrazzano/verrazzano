@@ -521,6 +521,16 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 	return ns, nil
 }
 
+func RemoveNamespaceFinalizers(namespace *corev1.Namespace) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return err
+	}
+	namespace.ObjectMeta.Finalizers = nil
+	_, err = clientset.CoreV1().Namespaces().Update(context.TODO(), namespace, metav1.UpdateOptions{})
+	return err
+}
+
 // DeleteNamespace deletes a namespace in the cluster specified in the environment
 func DeleteNamespace(name string) error {
 	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {

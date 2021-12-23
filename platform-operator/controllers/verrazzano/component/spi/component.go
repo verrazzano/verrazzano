@@ -6,6 +6,7 @@ package spi
 import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -45,6 +46,8 @@ type ComponentInfo interface {
 	IsEnabled(context ComponentContext) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
+	// GetIngressNames returns a list of names of the ingresses associated with the component
+	GetIngressNames(context ComponentContext) []types.NamespacedName
 }
 
 // ComponentInstaller interface defines installs operations for components that support it
