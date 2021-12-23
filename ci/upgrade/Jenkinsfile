@@ -209,6 +209,10 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
+                    git checkout ${params.VERSION_FOR_INSTALL}
+                    cp ./examples /tmp/examples
+                    git checkout master
+                    mv /tmp/examples ./examples
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                 """
             }
