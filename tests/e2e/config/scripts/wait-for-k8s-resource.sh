@@ -27,14 +27,14 @@ fi
 retval=1
 i=0
 
-while [[ $retval -ne 0 ]] && [[ $i -lt 30 ]] ; do
-  sleep 10
+while [[ $retval -ne 0 ]] ; do
+  sleep 5
   output=$(kubectl wait --namespace ${namespace} --for=condition=$condition ${resourceType} ${selectorOption} ${allFlag} --timeout=0 2>&1)
   retval=$?
   i=$((i+1))
 done
 
-if [ $retval -eq 0 ] || [[ $i -eq 30 ]] ; then
+if [ $retval -eq 0 ] ; then
     echo "Wait Failed"
     exit 1
 fi
