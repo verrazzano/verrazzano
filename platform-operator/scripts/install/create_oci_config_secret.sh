@@ -12,7 +12,6 @@ fi
 
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true' EXIT
-#trap 'rm -rf ${TMP_DIR} || true' EXIT
 
 # read a config item from a specified section of an oci config file
 function read_config() {
