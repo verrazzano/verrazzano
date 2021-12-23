@@ -94,31 +94,34 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	ctx := context.Background()
 	r.Log.Info("Reconcile ingress trait", "trait", req.NamespacedName)
+	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
 
 	// Fetch the trait.
 	var trait *vzapi.IngressTrait
-	if trait, err = r.fetchTrait(ctx, req.NamespacedName); err != nil {
+	if trait, err = r.fetchTrait(ctx, nsn); err != nil {
 		return reconcile.Result{}, err
+	}
+	if trait == nil {
+		r.Log.Info("FetchTrait returned nil ", "trait", nsn)
+		return reconcile.Result{}, nil
 	}
 
 	// If the trait no longer exists or is being deleted then cleanup the associated cert and secret resources
-	if trait != nil {
-		if isTraitBeingDeleted(trait) {
-			if err = r.cleanup(trait); err != nil {
-				return reconcile.Result{}, err
-			}
-			// resource cleanup has succeeded, remove the finalizer
-			if err = r.removeFinalizerIfRequired(ctx, trait); err != nil {
-				return reconcile.Result{}, err
-			}
-			return reconcile.Result{}, nil
-		}
-		// add finalizer
-		if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
+	if isTraitBeingDeleted(trait) {
+		r.Log.Info("Trait is being deleted", "trait", nsn)
+		if err = r.cleanup(trait); err != nil {
 			return reconcile.Result{}, err
 		}
-	} else {
+		// resource cleanup has succeeded, remove the finalizer
+		if err = r.removeFinalizerIfRequired(ctx, trait); err != nil {
+			return reconcile.Result{}, err
+		}
 		return reconcile.Result{}, nil
+	}
+
+	// add finalizer
+	if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
+		return reconcile.Result{}, err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
@@ -209,22 +212,19 @@ func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
 		r.Log.Error(err, "Error building certificate name", "trait", trait.Name)
 		return err
 	}
-
-	err = r.cleanupCert(trait, certName)
+	err = r.cleanupCert(certName)
 	if err != nil {
 		return
 	}
-
-	err = r.cleanupSecret(trait, certName)
+	err = r.cleanupSecret(certName)
 	if err != nil {
 		return
 	}
-
 	return
 }
 
 // cleanupCert deletes up the generated certificate for the given app config
-func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait, certName string) (err error) {
+func (r *Reconciler) cleanupCert(certName string) (err error) {
 	nsn := types.NamespacedName{Name: certName, Namespace: constants.IstioSystemNamespace}
 	cert := &certapiv1alpha2.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -233,9 +233,11 @@ func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait, certName string) (er
 		},
 	}
 	// Delete the cert, ignore not found
+	r.Log.Info("Deleting cert", "cert", nsn)
 	err = r.Delete(context.TODO(), cert, &client.DeleteOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
+			r.Log.Info("NotFound deleting cert", "cert", nsn)
 			return nil
 		}
 		r.Log.Error(err, "Error deleting the cert", "cert", nsn)
@@ -246,7 +248,7 @@ func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait, certName string) (er
 }
 
 // cleanupSecret deletes up the generated secret for the given app config
-func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait, certName string) (err error) {
+func (r *Reconciler) cleanupSecret(certName string) (err error) {
 	secretName := fmt.Sprintf("%s-secret", certName)
 	nsn := types.NamespacedName{Name: secretName, Namespace: constants.IstioSystemNamespace}
 	secret := &corev1.Secret{
@@ -256,9 +258,11 @@ func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait, certName string) (
 		},
 	}
 	// Delete the secret, ignore not found
+	r.Log.Info("Deleting secret", "secret", nsn)
 	err = r.Delete(context.TODO(), secret, &client.DeleteOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
+			r.Log.Info("NotFound deleting secret", "secret", nsn)
 			return nil
 		}
 		r.Log.Error(err, "Error deleting the secret", "secret", nsn)
@@ -300,15 +304,15 @@ func isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
 
 // fetchTrait attempts to get a trait given a namespaced name.
 // Will return nil for the trait and no error if the trait does not exist.
-func (r *Reconciler) fetchTrait(ctx context.Context, name types.NamespacedName) (*vzapi.IngressTrait, error) {
+func (r *Reconciler) fetchTrait(ctx context.Context, nsn types.NamespacedName) (*vzapi.IngressTrait, error) {
 	var trait vzapi.IngressTrait
-	r.Log.Info("Fetch trait", "trait", name)
-	if err := r.Get(ctx, name, &trait); err != nil {
+	r.Log.Info("Fetching trait", "trait", nsn)
+	if err := r.Get(ctx, nsn, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("Trait has been deleted")
+			r.Log.Info("Trait is not found", "trait", nsn)
 			return nil, nil
 		}
-		r.Log.Info("Failed to fetch trait")
+		r.Log.Info("Failed to fetch trait", "trait", nsn)
 		return nil, err
 	}
 	return &trait, nil
