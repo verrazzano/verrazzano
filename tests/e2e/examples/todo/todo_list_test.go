@@ -223,24 +223,29 @@ var _ = Describe("Verify ToDo List example application.", func() {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("[")))
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			Eventually(func() bool {
 				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
 				resp, err := pkg.PutWithHostHeader(url, "application/json", host, nil)
-				pkg.Log(pkg.Info, fmt.Sprintf("Put status code is %d", resp.StatusCode))
-				pkg.Log(pkg.Info, fmt.Sprintf("err is %v", err))
-				return resp, err
-			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(204))
-			Eventually(func() (*pkg.HTTPResponse, error) {
-				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
-				resp, err := pkg.PutWithHostHeader(url, "application/json", host, nil)
-				pkg.Log(pkg.Info, fmt.Sprintf("Put status code is %d", resp.StatusCode))
-				pkg.Log(pkg.Info, fmt.Sprintf("err is %v", err))
-				return resp, err
-			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(204))
-			Eventually(func() (*pkg.HTTPResponse, error) {
-				url := fmt.Sprintf("https://%s/todo/rest/items", host)
-				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains(task)))
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("PUT failed with error: %v", err))
+					return false
+				}
+				if resp.StatusCode != http.StatusNoContent {
+					pkg.Log(pkg.Error, fmt.Sprintf("Put status code is: %d", resp.StatusCode))
+					return false
+				}
+				url = fmt.Sprintf("https://%s/todo/rest/items", host)
+				resp, err = pkg.GetWebPage(url, host)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("GET failed with error: %v", err))
+					return false
+				}
+				if resp.StatusCode == http.StatusOK && resp.Body != nil {
+					return true
+				}
+				pkg.Log(pkg.Error, fmt.Sprintf("Get status code is: %d", resp.StatusCode))
+				return false
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
 
