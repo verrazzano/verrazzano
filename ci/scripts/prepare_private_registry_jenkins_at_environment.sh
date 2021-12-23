@@ -18,10 +18,15 @@ BOM_FILE=${TARBALL_DIR}/verrazzano-bom.json
 CHART_LOCATION=${TARBALL_DIR}/charts
 
 deploy_contour () {
+  local namespace="projectcontour"
   kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
-  kubectl patch daemonsets -n projectcontour envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
-  #kubectl wait --namespace projectcontour --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
-  sleep 30
+  kubectl patch daemonsets -n ${namespace} envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
+  # wait for contour to complete
+  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh ${namespace} "ready" "pod" false "app.kubernetes.io/component=controller"
+  if [ $? -ne 0 ]; then
+    echo "Deployment of contour failed"
+    exit 1
+  fi
 }
 
 install_new_helm_version() {
@@ -35,14 +40,18 @@ install_new_helm_version() {
     exit 1
   fi
   tar -zxvf ${helm_zip}
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
 }
 
 deploy_certificates() {
+  local namespace="cert-manager"
   cd ${WORKSPACE}/linux-amd64
   ./helm --kubeconfig=${KUBECONFIG} repo add jetstack https://charts.jetstack.io
   ./helm --kubeconfig=${KUBECONFIG} repo update
   kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.crds.yaml
-  ./helm --kubeconfig=${KUBECONFIG} install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --version v1.6.1
+  ./helm --kubeconfig=${KUBECONFIG} install cert-manager jetstack/cert-manager --namespace ${cert-manager} --create-namespace --version v1.6.1
   kubectl apply -f - <<EOF
     apiVersion: cert-manager.io/v1
     kind: ClusterIssuer
@@ -60,14 +69,22 @@ deploy_certificates() {
         #http01: {}
 EOF
 
-  #kubectl wait --namespace cert-manager --for=condition=ready pod --all --timeout=120s
-  sleep 30
+  # wait for cert-manager to complete
+  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh ${namespace} "ready" "pod" true
+  if [ $? -ne 0 ]; then
+    echo "Deployment of certificates failed"
+    exit 1
+  fi
 }
 
 load_images() {
   # Run the image-helper to load the images into the Harbor registry
   cd ${TARBALL_DIR}
   ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_EPHEMERAL_REGISTRY} -l . -r ${BASE_IMAGE_REPO}
+  if [ $? -ne 0 ]; then
+    echo "Loading images into Harbor failed"
+    exit 1
+  fi
 }
 
 deploy_harbor() {
@@ -86,12 +103,19 @@ deploy_harbor() {
     --set persistence.enabled=false \
     --set harborAdminPassword=${PRIVATE_REGISTRY_PSW}
 
-  #kubectl wait --namespace default --for=condition=ready pod --all --timeout=120s
-  sleep 30
+  # wait for harbor installation to complete
+  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh "default" "ready" "pod" true
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
 
   cd ${TEST_SCRIPTS_DIR}
   # Create the Harbor project if it does not exist
   ./create_harbor_project.sh -a "https://${REGISTRY}/api/v2.0" -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
+  if [ $? -ne 0 ]; then
+    echo "Harbor installation failed"
+    exit 1
+  fi
 }
 
 start_installation() {
@@ -135,30 +159,10 @@ start_installation() {
 
   if [ $SETUP_HARBOR == true ]; then
     install_new_helm_version
-    if [ $? -ne 0 ]; then
-      echo "Deployment of new helm version failed"
-      exit 1
-    fi
     deploy_contour
-    if [ $? -ne 0 ]; then
-      echo "Deployment of contour failed"
-      exit 1
-    fi
     deploy_certificates
-    if [ $? -ne 0 ]; then
-      echo "Deployment of certificates failed"
-      exit 1
-    fi
     deploy_harbor
-    if [ $? -ne 0 ]; then
-      echo "Harbor installation failed"
-      exit 1
-    fi
     load_images
-    if [ $? -ne 0 ]; then
-      echo "Loading images into Harbor failed"
-      exit 1
-    fi
   fi
 
   cd ${GO_REPO_PATH}/verrazzano
