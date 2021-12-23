@@ -609,8 +609,8 @@ spec:
             - mountPath: /run/log/journal
               name: run-log-journal
               readOnly: true
-{{- if .Values.logging.extraVolumeMounts }}
-{{- range $i, $e := .Values.logging.extraVolumeMounts }}
+{{- if .Values.fluentd.extraVolumeMounts }}
+{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
             - mountPath: {{ $e.destination }}
               name: extra-volume-{{ $i }}
               readOnly: {{ $e.readOnly }}
@@ -628,8 +628,8 @@ spec:
           emptyDir: {}
         - name: secret-volume
           secret:
-  {{- if .Values.logging.elasticsearchSecret }}
-            secretName: {{ .Values.logging.elasticsearchSecret }}
+  {{- if .Values.fluentd.elasticsearchSecret }}
+            secretName: {{ .Values.fluentd.elasticsearchSecret }}
   {{- else }}
             secretName: verrazzano
   {{- end }}
