@@ -13,7 +13,6 @@ spec:
         dnsZoneCompartmentOCID: dnsZoneCompartmentOcid
         dnsZoneOCID: dnsZoneOcid
         dnsZoneName: my.dns.zone.name
-        dnsScope: GLOBAL
     ingress:
       type: LoadBalancer
     fluentd:

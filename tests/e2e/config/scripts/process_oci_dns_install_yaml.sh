@@ -6,7 +6,7 @@
 INSTALL_CONFIG_TO_EDIT=$1
 CERT_MGR=${2:-"acme"}
 ACME_ENV=${3:-"staging"}
-DNS_SCOPE=$3
+DNS_SCOPE=${4:-"GLOBAL"}
 
 echo "Editing install config file for OCI DNS ${INSTALL_CONFIG_TO_EDIT}"
 yq -i eval ".spec.environmentName = \"${VZ_ENVIRONMENT_NAME}\"" ${INSTALL_CONFIG_TO_EDIT}
