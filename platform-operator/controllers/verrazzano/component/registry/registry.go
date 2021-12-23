@@ -22,11 +22,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 )
 
-type GetCompoentsFnType func() map[string]spi.Component
+type GetCompoentsFnType func() []spi.Component
 
 var getComponentsFn = getComponents
 
-var componentsRegistry map[string]spi.Component
+var componentsRegistry []spi.Component
 
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
@@ -41,36 +41,37 @@ func ResetGetComponentsFn() {
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 // The components will be processed in the order items in the array
-func GetComponents() map[string]spi.Component {
+func GetComponents() []spi.Component {
 	return getComponentsFn()
 }
 
 // getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
-func getComponents() map[string]spi.Component {
+func getComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
-		componentsRegistry = map[string]spi.Component{
-			nginx.ComponentName:       nginx.NewComponent(),
-			certmanager.ComponentName: certmanager.NewComponent(),
-			externaldns.ComponentName: externaldns.NewComponent(),
-			rancher.ComponentName:     rancher.NewComponent(),
-			verrazzano.ComponentName:  verrazzano.NewComponent(),
-			coherence.ComponentName:   coherence.NewComponent(),
-			weblogic.ComponentName:    weblogic.NewComponent(),
-			oam.ComponentName:         oam.NewComponent(),
-			appoper.ComponentName:     appoper.NewComponent(),
-			mysql.ComponentName:       mysql.NewComponent(),
-			keycloak.ComponentName:    keycloak.NewComponent(),
-			kiali.ComponentName:       kiali.NewComponent(),
-			istio.ComponentName:       istio.NewComponent(),
+		componentsRegistry = []spi.Component{
+			nginx.NewComponent(),
+			certmanager.NewComponent(),
+			externaldns.NewComponent(),
+			rancher.NewComponent(),
+			verrazzano.NewComponent(),
+			coherence.NewComponent(),
+			weblogic.NewComponent(),
+			oam.NewComponent(),
+			appoper.NewComponent(),
+			mysql.NewComponent(),
+			keycloak.NewComponent(),
+			kiali.NewComponent(),
+			istio.NewComponent(),
 		}
 	}
 	return componentsRegistry
 }
 
 func FindComponent(releaseName string) (bool, spi.Component) {
-	foundComp := GetComponents()[releaseName]
-	if foundComp != nil {
-		return true, foundComp
+	for _, comp := range GetComponents() {
+		if comp.Name() == releaseName {
+			return true, comp
+		}
 	}
 	return false, &helm.HelmComponent{}
 }

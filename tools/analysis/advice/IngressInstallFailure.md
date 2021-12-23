@@ -1,1 +1,1 @@
-See [https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure/](https://verrazzano.io/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure/)
+See [https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure/](https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinstallfailure/)

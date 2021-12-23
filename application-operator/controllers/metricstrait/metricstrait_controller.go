@@ -293,7 +293,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 // The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait) error {
 	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
+		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
 		r.Log.V(1).Info("Adding finalizer from trait", "trait", traitName)
 		trait.Finalizers = append(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
@@ -308,7 +308,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.Me
 // The finalizer is only removed if the trait is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait) error {
 	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta).String()
+		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
 		r.Log.Info("Removing finalizer from trait", "trait", traitName)
 		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {

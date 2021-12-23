@@ -386,8 +386,8 @@ func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, 
 		return nil, err
 	}
 
-	registry := bomFile.ResolveRegistry(sc)
-	repo := bomFile.ResolveRepo(sc)
+	registry := bomFile.ResolveRegistry(sc, bom.BomImage{})
+	repo := bomFile.ResolveRepo(sc, bom.BomImage{})
 
 	// Override the global.hub if either of the 2 env vars were defined
 	if registry != bomFile.GetRegistry() || repo != sc.Repository {
