@@ -586,7 +586,7 @@ pipeline {
         }
         stage('Uninstall') {
             options {
-                timeout(time: 30, unit: "MINUTES")
+                timeout(time: 5, unit: "MINUTES")
             }
             steps {
                 script {
@@ -624,6 +624,9 @@ pipeline {
                 }
                 failure {
                     dumpK8sCluster('uninstall-failure-cluster-dump')
+                }
+                aborted {
+                    dumpK8sCluster('uninstall-aborted-cluster-dump')
                 }
             }
         }
