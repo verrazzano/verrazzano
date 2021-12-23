@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type kialiComponent struct {
@@ -35,6 +36,12 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{nginx.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Name:      constants.KialiIngress,
+				},
+			},
 		},
 	}
 }
@@ -42,10 +49,10 @@ func NewComponent() spi.Component {
 // PostInstall Kiali-post-install processing, create or update the Kiali ingress
 func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali post-install")
-	if err := c.HelmComponent.PostInstall(ctx); err != nil {
+	if err := c.createOrUpdateKialiResources(ctx); err != nil {
 		return err
 	}
-	return c.createOrUpdateKialiResources(ctx)
+	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress
