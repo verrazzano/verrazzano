@@ -8,9 +8,10 @@
 function usage {
     echo
     echo "usage: $0 [-o operation] [-c compartment_ocid] [-s subdomain_name] "
-    echo "  -o operation               'create' or 'delete'. Optional.  Defaults to 'create'."
-    echo "  -c compartment_ocid        Compartment OCID. Optional.  Defaults to TIBURON-DEV compartment OCID."
-    echo "  -s submdomain_name         subdomain prefix for v8o.io. Required."
+    echo "  -o  operation               'create' or 'delete'. Optional.  Defaults to 'create'."
+    echo "  -c  compartment_ocid        Compartment OCID. Optional.  Defaults to TIBURON-DEV compartment OCID."
+    echo "  -s  submdomain_name         subdomain prefix for v8o.io. Required."
+    echo "  -sc DNS scope               Specifies  to operate only on resources that have a matching DNS scope.Optional. GLOBAL, PRIVATE"
     echo "  -h                         Help"
     echo
     exit 1
@@ -19,13 +20,15 @@ function usage {
 SUBDOMAIN_NAME=""
 COMPARTMENT_OCID="${TF_VAR_compartment_id}"
 OPERATION="create"
+DNS_SCOPE="GLOBAL"
 
-while getopts o:c:s:h flag
+while getopts o:c:s:sc:h flag
 do
     case "${flag}" in
         o) OPERATION=${OPTARG};;
         c) COMPARTMENT_OCID=${OPTARG};;
         s) SUBDOMAIN_NAME=${OPTARG};;
+        sc) DNS_SCOPE_INPUT=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
@@ -34,6 +37,12 @@ done
 if [ -z "${SUBDOMAIN_NAME}" ] ; then
     echo "subdomain name must be set!"
     exit 1
+fi
+
+if [ "${DNS_SCOPE_INPUT:-}" ] ; then
+  if [ ${DNS_SCOPE_INPUT} == "GLOBAL" ] || [ ${DNS_SCOPE_INPUT} == "PRIVATE" ]; then
+    DNS_SCOPE=${DNS_SCOPE_INPUT}
+  fi
 fi
 
 set -o pipefail
@@ -45,7 +54,7 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
-  zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY | jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+  zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
   status_code=$?
   if [ ${status_code} -ne 0 ]; then
     echo "Failed creating zone, attempting to fetch zone to see if it already exists"
