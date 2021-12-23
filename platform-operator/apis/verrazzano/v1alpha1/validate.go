@@ -23,7 +23,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const ociSecretFileName = "oci.yaml"
+type authenticationType string
+
+const (
+	// UserPrincipal is default auth type
+	userPrincipal authenticationType = "user_principal"
+	// InstancePrincipal is used for instance principle auth type
+	instancePrincipal authenticationType = "instance_principal"
+	// InstancePrincipalDelegationToken is used for instance principle delegation token auth type
+	InstancePrincipalDelegationToken authenticationType = "instance_principle_delegation_token"
+	// UnknownAuthenticationType is used for none meaningful auth type
+	UnknownAuthenticationType authenticationType = "unknown_auth_type"
+	ociSecretFileName                            = "oci.yaml"
+)
+
+// OCI Secret Auth
+type authData struct {
+	Region      string             `yaml:"region"`
+	Tenancy     string             `yaml:"tenancy"`
+	User        string             `yaml:"user"`
+	Key         string             `yaml:"key"`
+	Fingerprint string             `yaml:"fingerprint"`
+	AuthType    authenticationType `yaml:"authtype"`
+}
+type ociAuth struct {
+	auth authData `yaml:"auth"`
+}
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
@@ -168,14 +193,14 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 		}
 
 		// validate auth_type
-		var auth OciAuth
-		err = yaml.Unmarshal(secret.Data[ociSecretFileName], &auth)
+		var authProp ociAuth
+		err = yaml.Unmarshal(secret.Data[ociSecretFileName], &authProp)
 		if err != nil {
 			zap.S().Errorf("yaml unmarshalling failed due to %v", err)
 			return err
 		}
-		if auth.Auth.AuthType != InstancePrincipal && auth.Auth.AuthType != UserPrincipal && auth.Auth.AuthType != "" {
-			return fmt.Errorf("The authtype \"%v\" in OCI secret must be either '%s' or '%s'", auth.Auth.AuthType, UserPrincipal, InstancePrincipal)
+		if authProp.auth.AuthType != instancePrincipal && authProp.auth.AuthType != userPrincipal && authProp.auth.AuthType != "" {
+			return fmt.Errorf("The authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.auth.AuthType, userPrincipal, instancePrincipal)
 		}
 	}
 
