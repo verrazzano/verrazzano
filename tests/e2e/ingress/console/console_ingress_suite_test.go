@@ -4,14 +4,14 @@
 package ingress
 
 import (
+	"github.com/onsi/gomega"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 // TestConsoleIngress tests an ingress trait setup for console access.
 func TestConsoleIngress(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
+	gomega.RegisterFailHandler(FailHandler)
 	ginkgo.RunSpecs(t, "Console Ingress Test Suite")
 }

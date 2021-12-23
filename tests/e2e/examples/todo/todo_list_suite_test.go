@@ -5,10 +5,10 @@ package todo
 
 import (
 	"flag"
+	"github.com/onsi/gomega"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var skipDeploy bool
@@ -21,6 +21,6 @@ func init() {
 
 // TestToDoListExample tests the ToDoList example
 func TestToDoListExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
+	gomega.RegisterFailHandler(FailHandler)
 	ginkgo.RunSpecs(t, "ToDo List Example Test Suite")
 }
