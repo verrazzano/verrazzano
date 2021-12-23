@@ -254,14 +254,11 @@ var _ = AfterEach(func() {
 
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
-	failed = false
 	if !skipUndeploy {
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
 		pkg.Log(pkg.Info, "Delete application")
+
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -299,9 +296,6 @@ var _ = AfterSuite(func() {
 			}
 			return false
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-	}
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 })
 
@@ -352,4 +346,10 @@ func getVariant() string {
 	}
 
 	return variant
+}
+
+// FailHandler to handle failures
+func FailHandler(message string, callerSkip ...int) {
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
+	Fail(message, callerSkip...)
 }

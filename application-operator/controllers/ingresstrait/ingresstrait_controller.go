@@ -204,12 +204,18 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi
 
 // cleanupAppConfig cleans up the generated certificates and secrets associated with the given app config
 func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
-	err = r.cleanupCert(trait)
+	certName, err := buildCertificateNameFromAppName(trait)
+	if err != nil {
+		r.Log.Error(err, "Error building certificate name", "trait", trait.Name)
+		return err
+	}
+
+	err = r.cleanupCert(trait, certName)
 	if err != nil {
 		return
 	}
 
-	err = r.cleanupSecret(trait)
+	err = r.cleanupSecret(trait, certName)
 	if err != nil {
 		return
 	}
@@ -217,71 +223,49 @@ func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
 	return
 }
 
-// cleanupCert cleans up the generated certificate for the given app config
-func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait) (err error) {
-	gatewayCertName, err := buildCertificateNameFromAppName(trait)
-	if err != nil {
-		return err
+// cleanupCert deletes up the generated certificate for the given app config
+func (r *Reconciler) cleanupCert(trait *vzapi.IngressTrait, certName string) (err error) {
+	nsn := types.NamespacedName{Name: certName, Namespace: constants.IstioSystemNamespace}
+	cert := &certapiv1alpha2.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: nsn.Namespace,
+			Name:      nsn.Name,
+		},
 	}
-	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: constants.IstioSystemNamespace}
-	var cert *certapiv1alpha2.Certificate
-	cert, err = r.fetchCert(context.TODO(), r.Client, namespacedName)
-	if err != nil {
-		return err
-	}
-	if cert != nil {
-		err = r.Client.Delete(context.TODO(), cert, &client.DeleteOptions{})
-	}
-	return
-}
-
-// cleanupSecret cleans up the generated secret for the given app config
-func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait) (err error) {
-	gatewayCertName, err := buildCertificateNameFromAppName(trait)
-	if err != nil {
-		return err
-	}
-	gatewaySecretName := fmt.Sprintf("%s-secret", gatewayCertName)
-	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: constants.IstioSystemNamespace}
-	var secret *corev1.Secret
-	secret, err = r.fetchSecret(context.TODO(), r.Client, namespacedName)
-	if err != nil {
-		return err
-	}
-	if secret != nil {
-		err = r.Client.Delete(context.TODO(), secret, &client.DeleteOptions{})
-	}
-	return
-}
-
-// fetchCert gets the cert for the given name; returns nil Certificate if not found
-func (r *Reconciler) fetchCert(ctx context.Context, c client.Reader, name types.NamespacedName) (*certapiv1alpha2.Certificate, error) {
-	var cert certapiv1alpha2.Certificate
-	err := c.Get(ctx, name, &cert)
+	// Delete the cert, ignore not found
+	err = r.Delete(context.TODO(), cert, &client.DeleteOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("cert does not exist", "cert", name)
-			return nil, nil
+			return nil
 		}
-		r.Log.Info("failed to fetch cert", "cert", name)
-		return nil, err
+		r.Log.Error(err, "Error deleting the cert", "cert", nsn)
+		return err
 	}
-	return &cert, err
+	r.Log.Info("Ingress trait certificate deleted", "cert", nsn)
+	return nil
 }
 
-// fetchSecret gets the secret for the given name; returns nil Secret if not found
-func (r *Reconciler) fetchSecret(ctx context.Context, c client.Reader, name types.NamespacedName) (*corev1.Secret, error) {
-	var secret corev1.Secret
-	err := c.Get(ctx, name, &secret)
+// cleanupSecret deletes up the generated secret for the given app config
+func (r *Reconciler) cleanupSecret(trait *vzapi.IngressTrait, certName string) (err error) {
+	secretName := fmt.Sprintf("%s-secret", certName)
+	nsn := types.NamespacedName{Name: secretName, Namespace: constants.IstioSystemNamespace}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: nsn.Namespace,
+			Name:      nsn.Name,
+		},
+	}
+	// Delete the secret, ignore not found
+	err = r.Delete(context.TODO(), secret, &client.DeleteOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("secret does not exist", "secret", name)
-			return nil, nil
+			return nil
 		}
-		r.Log.Info("failed to fetch secret", "secret", name)
-		return nil, err
+		r.Log.Error(err, "Error deleting the secret", "secret", nsn)
+		return err
 	}
-	return &secret, err
+	r.Log.Info("Ingress trait secret deleted", "cert", nsn)
+	return nil
 }
 
 // getGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns

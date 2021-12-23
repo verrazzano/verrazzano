@@ -442,28 +442,12 @@ func TestDeleteCertAndSecretWhenTraitIsDeleted(t *testing.T) {
 				Name:       "test-workload-name"}
 			return nil
 		})
-	// Expect a call to get the associated certificate
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, cert *certapiv1alpha2.Certificate) error {
-			cert.Namespace = name.Namespace
-			cert.Name = name.Name
-			return nil
-		})
 	// Expect a call to delete the cert
 	mock.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
 			assert.Equal("istio-system", cert.Namespace)
 			assert.Equal("test-space-myapp-cert", cert.Name)
-			return nil
-		})
-	// Expect a call to get the secret
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert-secret"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, sec *k8score.Secret) error {
-			sec.Namespace = name.Namespace
-			sec.Name = name.Name
 			return nil
 		})
 	// Expect a call to delete the secret
