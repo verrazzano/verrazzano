@@ -100,7 +100,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				// There should be no server header found and no errors should occur during the request
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "server", 0)
-				}).Should(BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -116,7 +116,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(
 						httpClient, req, "access-control-allow-origin", 0)
-				}).Should(BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -132,7 +132,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(
 						httpClient, req, "access-control-allow-origin", 0)
-				}).Should(BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -148,7 +148,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(
 						httpClient, req, "access-control-allow-origin", 0)
-				}).Should(BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -176,7 +176,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req.Header.Add("Transfer-Encoding", "chunked")
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 400)
-				}).Should(BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -191,7 +191,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req.Header.Add("Origin", "https://invalid-origin")
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 403)
-				}).Should(BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -206,7 +206,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req.Header.Add("Origin", "https://invalid-origin")
 				Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "access-control-allow-origin", 200)
-				}).Should(BeNil())
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 	})
