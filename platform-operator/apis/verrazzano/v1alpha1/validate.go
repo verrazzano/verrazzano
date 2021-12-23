@@ -171,7 +171,7 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 		var auth OciAuth
 		err = yaml.Unmarshal(secret.Data[ociSecretFileName], &auth)
 		if err != nil {
-			zap.S().Infof("yaml unmarshalling failed due to %v", err)
+			zap.S().Errorf("yaml unmarshalling failed due to %v", err)
 			return err
 		}
 		if auth.Auth.AuthType != InstancePrincipal && auth.Auth.AuthType != UserPrincipal && auth.Auth.AuthType != "" {
