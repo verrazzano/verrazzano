@@ -41,7 +41,7 @@ function create_project() {
   # Check whether the project exists in Harbor
   echo "Check whether the project $PROJECT_NAME exists in Harbor: $fullProjectUrlExists"
 
-  response=$(curl --user $USERNAME:$PASSWORD -I $fullProjectUrlExists -H "accept: application/json" --silent --output /dev/null -w "%{http_code}")
+  response=$(curl --user $USERNAME:$PASSWORD -I $fullProjectUrlExists -H "accept: application/json" --silent -w "%{http_code}")
 
   # if the curl command succeeded
   if [ "$response" -eq 404 ]; then
@@ -49,7 +49,7 @@ function create_project() {
     payload="{\"project_name\":\"$PROJECT_NAME\",\"metadata\":{\"public\":\"$IS_PUBLIC\"}}"
     response=$(curl --user $USERNAME:$PASSWORD -X POST $REST_API_BASE_URL/projects -H "accept: application/json" \
                 -H "X-Resource-Name-In-Location: false" -H "Content-Type: application/json" \
-                --silent --output /dev/null -w "%{http_code}" -d "$payload")
+                --silent -w "%{http_code}" -d "$payload")
     if [ "$response" -eq 201 ]; then
       echo "The project $PROJECT_NAME was successfully created in Harbor"
     else
