@@ -310,7 +310,7 @@ pipeline {
             when { expression { return params.TEST_ENV == 'ocidns_oke' } }
             steps {
                 script {
-                    dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -sc ${params.DNS_SCOPE}", returnStdout: true)
+                    dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
                 }
             }
         }

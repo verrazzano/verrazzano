@@ -22,13 +22,17 @@ COMPARTMENT_OCID="${TF_VAR_compartment_id}"
 OPERATION="create"
 DNS_SCOPE="GLOBAL"
 
-while getopts o:c:s:sc:h flag
+log () {
+  echo "$(date '+[%Y-%m-%d %I:%M:%S %p]') : $1"
+}
+
+while getopts o:c:s:k:h flag
 do
     case "${flag}" in
         o) OPERATION=${OPTARG};;
         c) COMPARTMENT_OCID=${OPTARG};;
         s) SUBDOMAIN_NAME=${OPTARG};;
-        sc) DNS_SCOPE_INPUT=${OPTARG};;
+        k) DNS_SCOPE_INPUT=${OPTARG};;
         h) usage;;
         *) usage;;
     esac
@@ -39,14 +43,17 @@ if [ -z "${SUBDOMAIN_NAME}" ] ; then
     exit 1
 fi
 
+
 if [ "${DNS_SCOPE_INPUT:-}" ] ; then
   if [ ${DNS_SCOPE_INPUT} == "GLOBAL" ] || [ ${DNS_SCOPE_INPUT} == "PRIVATE" ]; then
     DNS_SCOPE=${DNS_SCOPE_INPUT}
+     echo "DNS_SCOPE is " $DNS_SCOPE_INPUT
   fi
 fi
 
 set -o pipefail
 ZONE_NAME="${SUBDOMAIN_NAME}.v8o.io"
+VIEW_NAME="${SUBDOMAIN_NAME}-view"
 
 zone_ocid=""
 status_code=1
@@ -54,35 +61,107 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
-  zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
-  status_code=$?
-  if [ ${status_code} -ne 0 ]; then
-    echo "Failed creating zone, attempting to fetch zone to see if it already exists"
-    oci dns zone get --zone-name-or-id ${ZONE_NAME}
-  fi
+  if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
+    log "Creating private dns view '${VIEW_NAME}' details in compartment '${COMPARTMENT_ID}'"
+    oci dns view create -c ${COMPARTMENT_ID} \
+        --display-name ${VIEW_NAME} \
+        --scope PRIVATE
+    if [ $? -ne 0 ];then
+        log "Error while creating dns view"
+    fi
+
+    log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
+    VCN_VIEW_ID=$(oci dns view list \
+    	            -c ${COMPARTMENT_OCID} \
+    	            --display-name ${VIEW_NAME} \
+    	            | jq '.data[0].id' -r)
+    if [ $? -ne 0 ];then
+        log "Error while creating view '${VIEW_NAME}'"
+    fi	            
+    zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+    status_code=$?
+    if [ ${status_code} -ne 0 ]; then
+      log "Failed creating private zone, attempting to fetch zone to see if it already exists"
+      oci dns zone get --zone-name-or-id ${ZONE_NAME}
+    fi
+    
+    log "Fetching vcn '${TF_VAR_label_prefix}-oke-vcn' details in compartment '${COMPARTMENT_OCID}'"
+    VCN_ID=$(oci network vcn list \
+      --compartment-id "${COMPARTMENT_OCID}" \
+      --display-name "${TF_VAR_label_prefix}-oke-vcn" \
+      | jq -r '.data[0].id')
+    if [ $? -ne 0 ];then
+      log "Error while fetching vcn '${TF_VAR_label_prefix}-oke-vcn' details"
+    fi
+    
+    log "Updating vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
+    DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
+    oci dns resolver update \
+    --resolver-id ${DNS_RESOLVER_ID} \
+    --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' \
+    --scope PRIVATE \
+    --force
+    if [ $? -ne 0 ];then
+        log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
+    fi
+  else
+     zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+     status_code=$?
+       if [ ${status_code} -ne 0 ]; then
+         log "Failed creating global zone, attempting to fetch zone to see if it already exists"
+         oci dns zone get --zone-name-or-id ${ZONE_NAME}
+       fi
+  fi 
+  
 elif [ $OPERATION == "delete" ]; then
-  oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
-  status_code=$?
-  if [ ${status_code} -ne 0 ]; then
-    echo "DNS zone deletion failed on first try. Retrying once."
+  if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
+    log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
+    VCN_VIEW_ID=$(oci dns view list \
+                  -c ${COMPARTMENT_OCID} \
+                  --display-name ${VIEW_NAME} \
+                  | jq '.data[0].id' -r)
+    if [ $? -ne 0 ];then
+        log "Error while creating view '${VIEW_NAME}'"
+    fi
+
+    oci dns view delete --view-id ${VCN_VIEW_ID} --force
+    if [ $? -ne 0 ];then
+        log "Error while creating view '${VIEW_NAME}'"
+    fi
+
+    oci dns zone delete --zone-name-or-id ${ZONE_NAME} --scope PRIVATE --force
+    status_code=$?
+    if [ ${status_code} -ne 0 ]; then
+      log "DNS zone deletion failed on first try. Retrying once."
+      oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
+      status_code=$?
+    fi
+
+  else
     oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
     status_code=$?
+    if [ ${status_code} -ne 0 ]; then
+      log "DNS zone deletion failed on first try. Retrying once."
+      oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
+      status_code=$?
+    fi
   fi
+
 else
-  echo "Unknown operation: ${OPERATION}"
+  log "Unknown operation: ${OPERATION}"
   usage
 fi
 
 if [ ${status_code} -eq 0 ]; then
   # OCI CLI query succeeded
   if [ $OPERATION == "create" ]; then
-    echo $zone_ocid
+    log $zone_ocid
   else
     exit 0
   fi
 else
   # OCI CLI generated an error exit code
-  echo "Error invoking OCI CLI to perform DNS zone operation"
+  log "Error invoking OCI CLI to perform DNS zone operation"
   exit 1
 fi
 
