@@ -104,10 +104,7 @@ if [ $OPERATION == "create" ]; then
 elif [ $OPERATION == "delete" ]; then
   if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
     log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
-    VCN_VIEW_ID=$(oci dns view list \
-                  -c ${COMPARTMENT_OCID} \
-                  --display-name ${VIEW_NAME} \
-                  | jq '.data[0].id' -r)
+    VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
     if [ $? -ne 0 ];then
         log "Error while creating view '${VIEW_NAME}'"
     fi
