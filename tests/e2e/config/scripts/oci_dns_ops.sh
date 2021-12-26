@@ -80,6 +80,12 @@ if [ $OPERATION == "create" ]; then
       oci dns zone get --zone-name-or-id ${ZONE_NAME}
     fi
 
+    log "Fetching vcn id  '${TF_VAR_label_prefix}-oke-vcn'"
+    VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
+    if [ $? -ne 0 ];then
+        log "Failed to fetch vcn '${TF_VAR_label_prefix}-oke-vcn'"
+    fi
+
     log "Updating vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
     oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force
