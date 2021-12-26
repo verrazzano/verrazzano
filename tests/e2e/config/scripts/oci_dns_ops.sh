@@ -63,18 +63,13 @@ if [ $OPERATION == "create" ]; then
   sudo yum -y install patch >/dev/null 2>&1
   if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
     log "Creating private dns view '${VIEW_NAME}' details in compartment '${COMPARTMENT_ID}'"
-    oci dns view create -c ${COMPARTMENT_ID} \
-        --display-name ${VIEW_NAME} \
-        --scope PRIVATE
+    oci dns view create -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} --scope PRIVATE
     if [ $? -ne 0 ];then
         log "Error while creating dns view"
     fi
 
     log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
-    VCN_VIEW_ID=$(oci dns view list \
-    	            -c ${COMPARTMENT_OCID} \
-    	            --display-name ${VIEW_NAME} \
-    	            | jq '.data[0].id' -r)
+    VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
     if [ $? -ne 0 ];then
         log "Error while creating view '${VIEW_NAME}'"
     fi	            
@@ -84,23 +79,10 @@ if [ $OPERATION == "create" ]; then
       log "Failed creating private zone, attempting to fetch zone to see if it already exists"
       oci dns zone get --zone-name-or-id ${ZONE_NAME}
     fi
-    
-    log "Fetching vcn '${TF_VAR_label_prefix}-oke-vcn' details in compartment '${COMPARTMENT_OCID}'"
-    VCN_ID=$(oci network vcn list \
-      --compartment-id "${COMPARTMENT_OCID}" \
-      --display-name "${TF_VAR_label_prefix}-oke-vcn" \
-      | jq -r '.data[0].id')
-    if [ $? -ne 0 ];then
-      log "Error while fetching vcn '${TF_VAR_label_prefix}-oke-vcn' details"
-    fi
-    
+
     log "Updating vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
-    oci dns resolver update \
-    --resolver-id ${DNS_RESOLVER_ID} \
-    --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' \
-    --scope PRIVATE \
-    --force
+    oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force
     if [ $? -ne 0 ];then
         log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     fi
