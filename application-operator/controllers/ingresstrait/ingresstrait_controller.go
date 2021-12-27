@@ -10,10 +10,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
@@ -24,8 +20,10 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -38,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -671,61 +670,56 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 
 //createOfUpdateDestinationRule creates or updates the DestinationRule.
 func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults) {
+	if rule.Destination.HTTPCookie != nil {
+		destinationRule := &istioclient.DestinationRule{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: destinationRuleAPIVersion,
+				Kind:       destinationRuleKind},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: trait.Namespace,
+				Name:      name},
+		}
 
-	destinationRule := &istioclient.DestinationRule{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: destinationRuleAPIVersion,
-			Kind:       destinationRuleKind},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: trait.Namespace,
-			Name:      name},
+		res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
+			return r.mutateDestinationRule(destinationRule, trait, rule)
+		})
+
+		ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
+		status.Relations = append(status.Relations, ref)
+		status.Results = append(status.Results, res)
+		status.Errors = append(status.Errors, err)
+
+		if err != nil {
+			r.Log.Error(err, "Failed to create or update destination rule.")
+		}
 	}
-
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
-		return r.mutateDestinationRule(destinationRule, trait, rule)
-	})
-
-	ref := vzapi.QualifiedResourceRelation{APIVersion: destinationRuleAPIVersion, Kind: destinationRuleKind, Name: name, Role: "destinationrule"}
-	status.Relations = append(status.Relations, ref)
-	status.Results = append(status.Results, res)
-	status.Errors = append(status.Errors, err)
-
-	if err != nil {
-		r.Log.Error(err, "Failed to create or update destination rule.")
-	}
-
 }
 
 func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.DestinationRule, trait *vzapi.IngressTrait, rule vzapi.IngressRule) error {
-	if rule.Destination.HTTPCookie != nil {
-		destinationRule.Spec = istionet.DestinationRule{
-			Host: rule.Destination.Host,
-			TrafficPolicy: &istionet.TrafficPolicy{
-				LoadBalancer: &istionet.LoadBalancerSettings{
-					LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
-						ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
-							HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
-								HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
-									Name: rule.Destination.HTTPCookie.Name,
-									Path: rule.Destination.HTTPCookie.Path,
-									Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
-							},
+	destinationRule.Spec = istionet.DestinationRule{
+		Host: rule.Destination.Host,
+		TrafficPolicy: &istionet.TrafficPolicy{
+			LoadBalancer: &istionet.LoadBalancerSettings{
+				LbPolicy: &istionet.LoadBalancerSettings_ConsistentHash{
+					ConsistentHash: &istionet.LoadBalancerSettings_ConsistentHashLB{
+						HashKey: &istionet.LoadBalancerSettings_ConsistentHashLB_HttpCookie{
+							HttpCookie: &istionet.LoadBalancerSettings_ConsistentHashLB_HTTPCookie{
+								Name: rule.Destination.HTTPCookie.Name,
+								Path: rule.Destination.HTTPCookie.Path,
+								Ttl:  ptypes.DurationProto(rule.Destination.HTTPCookie.TTL)},
 						},
 					},
 				},
 			},
-		}
-	} else {
-		destinationRule.Spec = istionet.DestinationRule{}
+		},
 	}
 
-	controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
-	return nil
+	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
 }
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
 // If the rule contains destination information that is used.
-// Otherwise the appropriate service is selected and its information is used.
+// Otherwise, the appropriate service is selected and its information is used.
 func createDestinationFromRuleOrService(rule vzapi.IngressRule, services []*corev1.Service) (*istionet.HTTPRouteDestination, error) {
 	if len(rule.Destination.Host) > 0 {
 		dest := &istionet.HTTPRouteDestination{Destination: &istionet.Destination{Host: rule.Destination.Host}}
