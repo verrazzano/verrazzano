@@ -14,7 +14,7 @@ function usage {
     echo "  -o  operation               'create' or 'delete'. Optional.  Defaults to 'create'."
     echo "  -c  compartment_ocid        Compartment OCID. Optional.  Defaults to TIBURON-DEV compartment OCID."
     echo "  -s  submdomain_name         subdomain prefix for v8o.io. Required."
-    echo "  -sc DNS scope               Specifies  to operate only on resources that have a matching DNS scope.Optional. GLOBAL, PRIVATE"
+    echo "  -k DNS scope                Specifies  to operate only on resources that have a matching DNS scope.Optional. GLOBAL, PRIVATE"
     echo "  -h                         Help"
     echo
     exit 1
@@ -65,6 +65,7 @@ if [ $OPERATION == "create" ]; then
   # exit
   sudo yum -y install patch >/dev/null 2>&1
   if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
+    env
     log "Creating private dns view '${VIEW_NAME}' details in compartment '${COMPARTMENT_ID}'"
     oci dns view create -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} --scope PRIVATE
     if [ $? -ne 0 ];then
