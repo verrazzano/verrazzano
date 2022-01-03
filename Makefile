@@ -99,7 +99,7 @@ copyright-check-year: copyright-test ## check copyright notices have correct cur
 
 .PHONY: copyright-check
 copyright-check: copyright-test  ## check copyright notices are correct
-	go run tools/copyright/copyright.go --verbose --enforce-current .
+	go run tools/copyright/copyright.go --verbose .
 
 .PHONY: copyright-check-local
 copyright-check-local: copyright-test  ## check copyright notices are correct in local working copy
