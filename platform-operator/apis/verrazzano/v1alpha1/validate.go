@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/yaml"
 
