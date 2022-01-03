@@ -213,10 +213,15 @@ func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
 	// Check if the TLS certificate associated to this ingress trait is also used by other ingress traits,
 	// if so do not delete the TLS certifacte and its associated secret. If no other ingress traits
 	// references the certificate, then proceed with the deletion of the Certificate and Secret objects
-	if !r.checkIfCertSafeToDelete(trait, certName) {
+	certDeleteFlag, err := r.checkIfCertSafeToDelete(trait, certName)
+	if err != nil {
+		r.Log.Error(err, "Error checking if certificate is safe to delete", "trait", trait.Name)
+		return err
+	}
+	if !certDeleteFlag {
+		r.Log.Info("Not deleting the cert as its referenced by other ingress traits", "cert", certName)
 		return
 	}
-
 	err = r.cleanupCert(trait, certName)
 	if err != nil {
 		return
@@ -233,12 +238,16 @@ func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
 // checkIfCertSafeToDelete checks if the TLS certificate referenced by this ingress trait is also referenced by other
 // ingress traits in the same namespace and Application. If there are other ingress traits referencing the same
 // TLS certificate, then it is not safe to delete it.
-func (r *Reconciler) checkIfCertSafeToDelete(trait *vzapi.IngressTrait, certName string) bool {
+func (r *Reconciler) checkIfCertSafeToDelete(trait *vzapi.IngressTrait, certName string) (bool, error) {
 	// Get all IngressTraits associated with this ApplicationConfiguration in the same namespace
 	ingressTraitList := vzapi.IngressTraitList{}
-	r.Client.List(context.TODO(), &ingressTraitList,
+	err := r.Client.List(context.TODO(), &ingressTraitList,
 		client.InNamespace(trait.GetNamespace()),
 		client.MatchingLabels(map[string]string{oam.LabelAppName: trait.Labels[oam.LabelAppName]}))
+	if err != nil {
+		r.Log.Error(err, "Error listing all ingress resources for app", oam.LabelAppName, trait.Labels[oam.LabelAppName], "namespace", trait.GetNamespace())
+		return false, err
+	}
 	// Iterate the IngressTraits and see if any of them refer the same certificate as this IngressTrait
 	for _, ingress := range ingressTraitList.Items {
 		// if it is the current IngressTrait, ignore it and look for other IngressTraits
@@ -249,11 +258,11 @@ func (r *Reconciler) checkIfCertSafeToDelete(trait *vzapi.IngressTrait, certName
 			if resource.Kind == certificateKind && resource.Name == certName {
 				// It is not safe to delete the Certificate object as it is associated to at least
 				// one another IngressTrait in the same ApplicationConfiguration
-				return false
+				return false, nil
 			}
 		}
 	}
-	return true
+	return true, nil
 }
 
 // cleanupCert deletes up the generated certificate for the given app config
