@@ -209,6 +209,7 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
+                    git fetch origin tag ${params.VERSION_FOR_INSTALL} --no-tags
                     git checkout ${params.VERSION_FOR_INSTALL}
                     cp -R ${GO_REPO_PATH}/verrazzano/examples /tmp/examples
                     git checkout -f ${params.GIT_COMMIT_FOR_UPGRADE}
