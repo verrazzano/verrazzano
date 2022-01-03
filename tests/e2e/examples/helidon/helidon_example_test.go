@@ -88,7 +88,7 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	// THEN the expected pod must be running in the test namespace
 	Describe("Verify hello-helidon-deployment pod is running.", func() {
 		It("and waiting for expected pods must be running", func() {
-			Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(helloHelidonPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
