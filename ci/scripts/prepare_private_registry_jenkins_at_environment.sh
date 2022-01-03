@@ -112,6 +112,15 @@ deploy_harbor() {
 #  fi
   sleep 50
 
+  docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
+  if [ $? -ne 0 ]; then
+    echo "docker login to Harbor ephemeral failed"
+  fi
+
+  docker pull nginx:1-alpine
+  docker tag nginx:1-alpine ${REGISTRY}/library/nginx:1-test
+  docker push ${REGISTRY}/library/nginx:1-test
+
   cd ${TEST_SCRIPTS_DIR}
   # Create the Harbor project if it does not exist
   ./create_harbor_project.sh -a "https://${REGISTRY}/api/v2.0" -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
