@@ -40,6 +40,7 @@ var _ = AfterSuite(func() {
 	if failed {
 		// Dump todo domain pods
 		pkg.DumpContainerLogs("todo-list", "tododomain-adminserver", "weblogic-server", "/scratch/logs/todo-domain")
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {
 		undeployToDoListExample()
@@ -145,6 +146,7 @@ func undeployToDoListExample() {
 			pkg.Log(pkg.Info, string(b))
 		}
 	}
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
 	Fail("Unable to delete secret")
 }
 
@@ -421,9 +423,3 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		})
 	})
 })
-
-// FailHandler to handle failures
-func FailHandler(message string, callerSkip ...int) {
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	Fail(message, callerSkip...)
-}

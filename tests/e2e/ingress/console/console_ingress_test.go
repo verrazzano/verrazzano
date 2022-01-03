@@ -157,9 +157,3 @@ var _ = Describe("Verify application.", func() {
 		})
 	})
 })
-
-// FailHandler to handle failures
-func FailHandler(message string, callerSkip ...int) {
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	Fail(message, callerSkip...)
-}
