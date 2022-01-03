@@ -29,7 +29,7 @@ SCRIPT_DIR=$(dirname "$0")
 # Check for CRD changes
 
 echo "Checking for CRD changes... you should visually inspect for potential backward incompatibilities"
-$SCRIPT_DIR/compare_crds.sh
+$SCRIPT_DIR/compare_crds.sh $VERSION
 EXIT_CODE=$?
 echo ""
 

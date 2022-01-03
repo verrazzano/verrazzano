@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"strconv"
 	"strings"
@@ -19,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	v1 "k8s.io/api/apps/v1"
@@ -275,9 +275,9 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	var workload vzapi.VerrazzanoCoherenceWorkload
 	if err := r.Get(ctx, name, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("VerrazzanoCoherenceWorkload has been deleted", "name", name)
+			r.Log.Info("VerrazzanoCoherenceWorkload has been deleted", "workload", name)
 		} else {
-			r.Log.Error(err, "Failed to fetch VerrazzanoCoherenceWorkload", "name", name)
+			r.Log.Error(err, "Failed to fetch VerrazzanoCoherenceWorkload", "workload", name)
 		}
 		return nil, err
 	}

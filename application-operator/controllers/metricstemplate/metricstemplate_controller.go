@@ -46,24 +46,25 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "Deployment"); err != nil {
 		return err
 	}
-	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "ReplicaSet"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "StatefulSet"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "DaemonSet"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v7", "Domain"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v8", "Domain"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "coherence.oracle.com", "v1", "Coherence"); err != nil {
-		return err
-	}
+	// Disabling for now as Domain and Coherence cause problems when those CRDs don't exist.
+	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "ReplicaSet"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "StatefulSet"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "DaemonSet"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v7", "Domain"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v8", "Domain"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "coherence.oracle.com", "v1", "Coherence"); err != nil {
+	//	return err
+	//}
 	return nil
 }
 

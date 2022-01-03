@@ -1,0 +1,24 @@
+{
+  "registry": "ghcr.io",
+  "version": "0.17.0",
+  "components": [
+    {
+      "name": "verrazzano-platform-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-platform-operator",
+          "images": [
+            {
+              "image": "VERRAZZANO_PLATFORM_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_PLATFORM_OPERATOR_TAG",
+              "registry": "testRegistry",
+              "repository": "testRepository",
+              "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
