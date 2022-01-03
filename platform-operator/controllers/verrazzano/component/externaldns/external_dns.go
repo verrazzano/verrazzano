@@ -29,6 +29,7 @@ const (
 	dnsGlobal                 = "global" //default
 	dnsPrivate                = "private"
 	dnsScopeKey               = "DNSScope"
+	imagePullSecretHelmKey    = "global.imagePullSecrets[0]"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
