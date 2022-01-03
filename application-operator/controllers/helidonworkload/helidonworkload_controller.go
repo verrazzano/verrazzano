@@ -7,15 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
-	"strconv"
-	"strings"
-
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -258,19 +257,17 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				for _, port := range container.Ports {
 					// All ports within a ServiceSpec must have unique names.
 					// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
-					name := container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
+					name := strings.ToLower(string(corev1.ProtocolTCP)) + "-" + container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
 					protocol := corev1.ProtocolTCP
 					if len(port.Protocol) > 0 {
 						protocol = port.Protocol
 					}
-					appProtocol := strings.ToLower(string(corev1.ProtocolTCP))
 
 					servicePort := corev1.ServicePort{
 						Name:        name,
 						Port:        port.ContainerPort,
 						TargetPort:  intstr.FromInt(int(port.ContainerPort)),
 						Protocol:    protocol,
-						AppProtocol: &appProtocol,
 					}
 					r.Log.V(1).Info("Appending port to service", "servicePort", servicePort)
 					s.Spec.Ports = append(s.Spec.Ports, servicePort)
