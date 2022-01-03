@@ -264,10 +264,10 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 					}
 
 					servicePort := corev1.ServicePort{
-						Name:        name,
-						Port:        port.ContainerPort,
-						TargetPort:  intstr.FromInt(int(port.ContainerPort)),
-						Protocol:    protocol,
+						Name:       name,
+						Port:       port.ContainerPort,
+						TargetPort: intstr.FromInt(int(port.ContainerPort)),
+						Protocol:   protocol,
 					}
 					r.Log.V(1).Info("Appending port to service", "servicePort", servicePort)
 					s.Spec.Ports = append(s.Spec.Ports, servicePort)
