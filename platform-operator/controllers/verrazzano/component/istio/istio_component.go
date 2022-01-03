@@ -225,6 +225,11 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
+// GetIngressNames returns the list of ingress names associated with the component
+func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
+}
+
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
 func restartComponents(log *zap.SugaredLogger, err error, i istioComponent, client clipkg.Client) error {
@@ -381,8 +386,8 @@ func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, 
 		return nil, err
 	}
 
-	registry := bomFile.ResolveRegistry(sc)
-	repo := bomFile.ResolveRepo(sc)
+	registry := bomFile.ResolveRegistry(sc, bom.BomImage{})
+	repo := bomFile.ResolveRepo(sc, bom.BomImage{})
 
 	// Override the global.hub if either of the 2 env vars were defined
 	if registry != bomFile.GetRegistry() || repo != sc.Repository {
