@@ -51,12 +51,10 @@ if [ "${MODE}" == "NOOP" ]; then
   echo "*************************************************************"
   exit 0
 elif [ "${MODE}" == "INSTALL" ]; then
-  # Create a kubeconfig and run the installation
-  create-kubeconfig
-  ./platform-operator/scripts/install/1-install-init.sh || dump-install-logs 1
-  ./platform-operator/scripts/install/2-install-system-components.sh || dump-install-logs 1
-  ./platform-operator/scripts/install/4-install-keycloak.sh || dump-install-logs 1
-  dump-install-logs 0
+  echo "*************************************************************"
+  echo " INSTALL is a NOOP                              "
+  echo "*************************************************************"
+  exit 0
 elif [ "${MODE}" == "UNINSTALL" ]; then
   # Create a kubeconfig and run the installation
   create-kubeconfig

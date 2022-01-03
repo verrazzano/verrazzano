@@ -6,8 +6,10 @@ package controllers
 import (
 	"context"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 
 	"strconv"
 	"strings"
@@ -36,4 +38,21 @@ func EnsureLastGenerationInStatus(client clipkg.Client, wl *vzapi.VerrazzanoWebL
 	wl.Status.LastGeneration = strconv.Itoa(int(wl.Generation))
 	err := client.Status().Update(context.TODO(), wl)
 	return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+}
+
+// NewDefaultRateLimiter returns a RateLimiter with default base backoff and max backoff
+func NewDefaultRateLimiter() workqueue.RateLimiter {
+	// Default base delay for controller runtime requeue
+	const BaseDelay = 5
+
+	// Default maximum delay for controller runtime requeue
+	const MaxDelay = 60
+
+	return workqueue.NewItemExponentialFailureRateLimiter(
+		secsToDuration(BaseDelay),
+		secsToDuration(MaxDelay))
+}
+
+func secsToDuration(secs int) time.Duration {
+	return time.Duration(float64(secs) * float64(time.Second))
 }

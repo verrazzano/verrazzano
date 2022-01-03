@@ -9,7 +9,10 @@ import (
 	"os"
 	"strings"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -63,13 +66,10 @@ type HelmComponent struct {
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
-	// IsEnabledFunc is a required function to determine if the component is enabled
-	IsEnabledFunc isEnabledFuncSig
-
-	//SupportsOperatorInstall Indicates whether or not the component supports install via the operator
+	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
-	//WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
+	// WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
 	WaitForInstall bool
 
 	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
@@ -84,13 +84,11 @@ type HelmComponent struct {
 
 	// The minimum required Verrazzano version.
 	MinVerrazzanoVersion string
+	IngressNames         []types.NamespacedName
 }
 
 // Verify that HelmComponent implements Component
 var _ spi.Component = HelmComponent{}
-
-// isEnabledFuncSig is the signature for the isEnabled function
-type isEnabledFuncSig func(context spi.ComponentContext) bool
 
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
 type preInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string) error
@@ -178,10 +176,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled Indicates whether or not a component is enabled for installation
 func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
-	if h.IsEnabledFunc == nil {
-		return true
-	}
-	return h.IsEnabledFunc(context)
+	return true
 }
 
 // Install installs the component using Helm
@@ -236,6 +231,15 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 			return err
 		}
 	}
+
+	// If the component has any ingresses associated, those should be present
+	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context)) {
+		return ctrlerrors.RetryableError{
+			Source:    h.ReleaseName,
+			Operation: "Check if Ingresses are present",
+		}
+	}
+
 	return nil
 }
 
@@ -423,6 +427,10 @@ func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 
 func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
+}
+
+func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.NamespacedName {
+	return h.IngressNames
 }
 
 // GetInstallArgs returns the list of install args as Helm value pairs

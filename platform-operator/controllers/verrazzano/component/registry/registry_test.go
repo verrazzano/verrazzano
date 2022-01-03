@@ -5,12 +5,25 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -23,6 +36,7 @@ const (
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
 	certManagerNamespace      = "cert-manager"
+	profileDir                = "../../../../manifests/profiles"
 )
 
 // TestGetComponents tests getting the components
@@ -34,18 +48,18 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	assert.Len(comps, 13, "Wrong number of components")
-	assert.Equal(comps[0].Name(), "ingress-controller")
-	assert.Equal(comps[1].Name(), "cert-manager")
-	assert.Equal(comps[2].Name(), "external-dns")
-	assert.Equal(comps[3].Name(), "rancher")
-	assert.Equal(comps[4].Name(), "verrazzano")
-	assert.Equal(comps[5].Name(), "coherence-operator")
-	assert.Equal(comps[6].Name(), "weblogic-operator")
-	assert.Equal(comps[7].Name(), "oam-kubernetes-runtime")
-	assert.Equal(comps[8].Name(), "verrazzano-application-operator")
-	assert.Equal(comps[9].Name(), "mysql")
-	assert.Equal(comps[10].Name(), "keycloak")
-	assert.Equal(comps[11].Name(), "kiali-server")
+	assert.Equal(comps[0].Name(), nginx.ComponentName)
+	assert.Equal(comps[1].Name(), certmanager.ComponentName)
+	assert.Equal(comps[2].Name(), externaldns.ComponentName)
+	assert.Equal(comps[3].Name(), rancher.ComponentName)
+	assert.Equal(comps[4].Name(), verrazzano.ComponentName)
+	assert.Equal(comps[5].Name(), coherence.ComponentName)
+	assert.Equal(comps[6].Name(), weblogic.ComponentName)
+	assert.Equal(comps[7].Name(), oam.ComponentName)
+	assert.Equal(comps[8].Name(), appoper.ComponentName)
+	assert.Equal(comps[9].Name(), mysql.ComponentName)
+	assert.Equal(comps[10].Name(), keycloak.ComponentName)
+	assert.Equal(comps[11].Name(), kiali.ComponentName)
 	assert.Equal(comps[12].Name(), istio.ComponentName)
 }
 
@@ -347,6 +361,20 @@ func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	assert.True(t, ready)
 }
 
+// TestRegistryDependencies tests the default Registry components for cycles
+// GIVEN a component
+//  WHEN I call checkDependencies for it
+//  THEN No error is returned that indicates a cycle in the chain
+func TestRegistryDependencies(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+
+	for _, comp := range GetComponents() {
+		_, err := checkDependencies(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false, profileDir),
+			make(map[string]bool), make(map[string]bool))
+		assert.NoError(t, err)
+	}
+}
+
 // TestNoComponentDependencies tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
@@ -394,11 +422,11 @@ func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }
 
-func (f fakeComponent) IsReady(context spi.ComponentContext) bool {
+func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
 
-func (f fakeComponent) IsEnabled(context spi.ComponentContext) bool {
+func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
 	return f.enabled
 }
 
@@ -410,30 +438,34 @@ func (f fakeComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-func (f fakeComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
+func (f fakeComponent) IsInstalled(_ spi.ComponentContext) (bool, error) {
 	return true, nil
 }
 
-func (f fakeComponent) PreInstall(context spi.ComponentContext) error {
+func (f fakeComponent) PreInstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) Install(context spi.ComponentContext) error {
+func (f fakeComponent) Install(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) PostInstall(context spi.ComponentContext) error {
+func (f fakeComponent) PostInstall(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) PreUpgrade(context spi.ComponentContext) error {
+func (f fakeComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) Upgrade(context spi.ComponentContext) error {
+func (f fakeComponent) Upgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (f fakeComponent) PostUpgrade(context spi.ComponentContext) error {
+func (f fakeComponent) PostUpgrade(_ spi.ComponentContext) error {
 	return nil
+}
+
+func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
 }

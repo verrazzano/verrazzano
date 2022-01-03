@@ -20,6 +20,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const profilesRelativePath = "../../../../manifests/profiles"
+
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			ApplicationOperator: &vzapi.ApplicationOperatorComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
+
 // TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
 //  WHEN a VMC exists but no associated ClusterRoleBinding
@@ -93,4 +105,56 @@ func newScheme() *runtime.Scheme {
 	vzapi.AddToScheme(scheme)
 	rbacv1.AddToScheme(scheme)
 	return scheme
+}
+
+// TestIsEnabledNilApplicationOperator tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The ApplicationOperator component is nil
+//  THEN true is returned
+func TestIsEnabledNilApplicationOperator(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ApplicationOperator = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The ApplicationOperator component is nil
+//  THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The ApplicationOperator component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ApplicationOperator.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The ApplicationOperator component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ApplicationOperator.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The ApplicationOperator component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ApplicationOperator.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }

@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"path/filepath"
 	"strings"
 
@@ -33,7 +35,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			ReadyStatusFunc:         IsApplicationOperatorReady,
-			Dependencies:            []string{"oam-kubernetes-runtime"},
+			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
 			PreUpgradeFunc:          ApplyCRDYaml,
 		},
 	}
@@ -72,4 +74,13 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 	}
 	return nil
 
+}
+
+// IsEnabled applicationOperator-specific enabled check for installation
+func (c applicationOperatorComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.ApplicationOperator
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }

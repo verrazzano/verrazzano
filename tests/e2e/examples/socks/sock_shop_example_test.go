@@ -1,8 +1,6 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// +build unstable_test
-
 package socks
 
 import (
@@ -10,6 +8,7 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"os"
 	"strconv"
@@ -28,7 +27,10 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 10 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
+	sockshopAppName      = "sockshop-appconfig"
+	sockshopNamespace    = "sockshop"
 )
 
 var sockShop SockShop
@@ -80,7 +82,7 @@ const registerTemp = `{
 var _ = Describe("Sock Shop Application", func() {
 	It("Verify application pods are running", func() {
 		// checks that all pods are up and running
-		Eventually(sockshopPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 	})
 
 	var hostname = ""
@@ -95,7 +97,7 @@ var _ = Describe("Sock Shop Application", func() {
 	sockShop.SetHostHeader(hostname)
 
 	It("SockShop can be accessed and user can be registered", func() {
-		Eventually(func() bool {
+		Eventually(func() (bool, error) {
 			return sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
 	})
@@ -252,14 +254,11 @@ var _ = AfterEach(func() {
 
 // undeploys the application, components, and namespace
 var _ = AfterSuite(func() {
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
-
 	if !skipUndeploy {
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
 		pkg.Log(pkg.Info, "Delete application")
+
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -269,10 +268,34 @@ var _ = AfterSuite(func() {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
+		Eventually(func() bool {
+			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName)
+			if err != nil && errors.IsNotFound(err) {
+				return true
+			}
+			if err != nil {
+				pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop appconfig: %v\n", err.Error()))
+			}
+			return false
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 		pkg.Log(pkg.Info, "Delete namespace")
 		Eventually(func() error {
-			return pkg.DeleteNamespace("sockshop")
+			return pkg.DeleteNamespace(sockshopNamespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+		pkg.Log(pkg.Info, "Wait for sockshop namespace to be deleted")
+		Eventually(func() bool {
+			_, err := pkg.GetNamespace(sockshopNamespace)
+			if err != nil && errors.IsNotFound(err) {
+				return true
+			}
+			if err != nil {
+				pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop namespace: %v\n", err.Error()))
+			}
+			return false
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 	}
 })
 
@@ -323,4 +346,10 @@ func getVariant() string {
 	}
 
 	return variant
+}
+
+// FailHandler to handle failures
+func FailHandler(message string, callerSkip ...int) {
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
+	Fail(message, callerSkip...)
 }

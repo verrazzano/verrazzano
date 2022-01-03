@@ -6,14 +6,15 @@ package istio
 import (
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"testing"
+
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	v1 "k8s.io/api/core/v1"
-	"os"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -23,8 +24,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
-	"go.uber.org/zap"
 	"io/ioutil"
+
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -33,6 +35,18 @@ import (
 
 // fakeRunner is used to test istio without actually running an OS exec command
 type fakeRunner struct {
+}
+
+const profilesRelativePath = "../../../../manifests/profiles"
+
+var crEnabled = installv1alpha1.Verrazzano{
+	Spec: installv1alpha1.VerrazzanoSpec{
+		Components: installv1alpha1.ComponentSpec{
+			Istio: &installv1alpha1.IstioComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
 }
 
 var crInstall = &installv1alpha1.Verrazzano{
@@ -49,7 +63,7 @@ var crInstall = &installv1alpha1.Verrazzano{
 	},
 }
 
-var comp = IstioComponent{}
+var comp = istioComponent{}
 
 const testBomFilePath = "../../testdata/test_bom.json"
 
@@ -69,7 +83,7 @@ func TestGetName(t *testing.T) {
 func TestUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := IstioComponent{
+	comp := istioComponent{
 		ValuesFile:               "test-values-file.yaml",
 		Revision:                 "1-1-1",
 		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
@@ -107,7 +121,7 @@ func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesF
 func TestPostUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
-	comp := IstioComponent{}
+	comp := istioComponent{}
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(fakeRunner{})
@@ -264,7 +278,59 @@ func TestIsReady(t *testing.T) {
 		},
 	},
 	)
-	var iComp IstioComponent
+	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, nil, false)
 	assert.True(t, iComp.IsReady(compContext))
+}
+
+// TestIsEnabledNilIstio tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Istio component is nil
+//  THEN true is returned
+func TestIsEnabledNilIstio(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Istio = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Istio component is nil
+//  THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &installv1alpha1.Verrazzano{}, false, profilesRelativePath)))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Istio component enabled is nil
+//  THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Istio.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Istio component is explicitly enabled
+//  THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Istio.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//  WHEN The Istio component is explicitly disabled
+//  THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.Istio.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }

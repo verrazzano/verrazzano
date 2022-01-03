@@ -37,6 +37,10 @@ pipeline {
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
+        choice (name: 'SELECT_IMAGE_REGISTRY',
+                description: 'Select an image registry',
+                // 1st choice is the default value
+                choices: ["OCIR", "Harbor"])
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
@@ -545,7 +549,8 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
+                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation),
+                                    string(name: 'SELECT_IMAGE_REGISTRY', value: params.SELECT_IMAGE_REGISTRY)
                                 ], wait: true
                         }
                     }
@@ -831,30 +836,34 @@ def getSuspectList(commitList, userMappings) {
     def suspectList = []
     for (int i = 0; i < commitList.size(); i++) {
         def id = commitList[i]
-        def gitAuthor = sh(
-            script: "git log --format='%ae' '$id^!'",
-            returnStdout: true
-        ).trim()
-        if (gitAuthor != null) {
-            def author = trimIfGithubNoreplyUser(gitAuthor)
-            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
-            if (userMappings.containsKey(author)) {
-                def slackUser = userMappings.get(author)
-                if (!suspectList.contains(slackUser)) {
-                    echo "Added ${slackUser} as suspect"
-                    retValue += " ${slackUser}"
-                    suspectList.add(slackUser)
+        try {
+            def gitAuthor = sh(
+                script: "git log --format='%ae' '$id^!'",
+                returnStdout: true
+            ).trim()
+            if (gitAuthor != null) {
+                def author = trimIfGithubNoreplyUser(gitAuthor)
+                echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                if (userMappings.containsKey(author)) {
+                    def slackUser = userMappings.get(author)
+                    if (!suspectList.contains(slackUser)) {
+                        echo "Added ${slackUser} as suspect"
+                        retValue += " ${slackUser}"
+                        suspectList.add(slackUser)
+                    }
+                } else {
+                    // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                    if (!suspectList.contains(author)) {
+                        echo "Added ${author} as suspect"
+                        retValue += " ${author}"
+                       suspectList.add(author)
+                    }
                 }
             } else {
-                // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                if (!suspectList.contains(author)) {
-                    echo "Added ${author} as suspect"
-                    retValue += " ${author}"
-                   suspectList.add(author)
-                }
+                echo "No author returned from git"
             }
-        } else {
-            echo "No author returned from git"
+        } catch (Exception e) {
+            echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
         }
     }
     echo "returning suspect list: ${retValue}"

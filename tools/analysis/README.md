@@ -1,5 +1,5 @@
 # Analysis Tooling Documentation
-Please see https://verrazzano.io/docs/troubleshooting/diagnostictools for documentation
+Please see https://verrazzano.io/latest/docs/troubleshooting/diagnostictools for documentation
 
 ## Build executable
 To build the analysis tool executable:

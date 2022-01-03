@@ -70,6 +70,16 @@ data:
 
     # Send to storage
     @include output.conf
+    {{- if .Values.fluentd.oci }}
+    {{- if .Values.fluentd.oci.systemLogId }}
+    @include oci-logging-system.conf
+    {{- if .Values.fluentd.oci.defaultAppLogId }}
+    @include oci-logging-default-app.conf
+    {{- end }}
+    {{- end }}
+    {{- else }}
+    @include es-output.conf
+    {{- end }}
 
   general.conf: |
     # Prevent Fluentd from handling records containing its own logs. Otherwise
@@ -323,10 +333,13 @@ data:
           cluster_name "#{ENV['CLUSTER_NAME']}"
        </record>
     </filter>
+
+  es-output.conf: |
     <match **>
       @type elasticsearch
       @id out_elasticsearch
       @log_level info
+      log_es_400_reason true
       logstash_format true
       logstash_prefix verrazzano-logstash
       target_index_key target_index
@@ -382,6 +395,41 @@ data:
         overflow_action drop_oldest_chunk
       </buffer>
     </match>
+
+{{- if .Values.fluentd.oci }}
+  oci-logging-system.conf: |
+    # Match all "system" namespaces so system log records are sent to a separate OCI Log object
+    <match kubernetes.**kube-** kubernetes.**verrazzano-system** kubernetes.**verrazzano-install** kubernetes.**cattle-** kubernetes.**rancher-** kubernetes.**fleet-** kubernetes.**ingress-nginx** kubernetes.**istio-system** kubernetes.**keycloak** kubernetes.**cert-manager**  kubernetes.**monitoring** systemd.** fluentd.monitor.metrics>
+      @type oci_logging
+      log_object_id {{ .Values.fluentd.oci.systemLogId }}
+      <buffer>
+        @type file
+        path /fluentd/log/oci-logging-system
+        disable_chunk_backup  true
+        chunk_limit_size  5MB
+        flush_interval  180s
+        total_limit_size  1GB
+        overflow_action  throw_exception
+        retry_type  exponential_backoff
+      </buffer>
+    </match>
+
+  oci-logging-default-app.conf: |
+    <match **>
+      @type oci_logging
+      log_object_id {{ .Values.fluentd.oci.defaultAppLogId }}
+      <buffer>
+        @type file
+        path /fluentd/log/oci-logging-default-app
+        disable_chunk_backup  true
+        chunk_limit_size  5MB
+        flush_interval  180s
+        total_limit_size  1GB
+        overflow_action  throw_exception
+        retry_type  exponential_backoff
+      </buffer>
+    </match>
+{{- end }}
 
   elasticsearch-template-verrazzano.json: |
     {
@@ -566,8 +614,8 @@ spec:
             - mountPath: /run/log/journal
               name: run-log-journal
               readOnly: true
-{{- if .Values.logging.extraVolumeMounts }}
-{{- range $i, $e := .Values.logging.extraVolumeMounts }}
+{{- if .Values.fluentd.extraVolumeMounts }}
+{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
             - mountPath: {{ $e.destination }}
               name: extra-volume-{{ $i }}
               readOnly: {{ $e.readOnly }}
@@ -605,8 +653,8 @@ spec:
             path: /run/log/journal
             type: ""
           name: run-log-journal
-{{- if .Values.logging.extraVolumeMounts }}
-{{- range $i, $e := .Values.logging.extraVolumeMounts }}
+{{- if .Values.fluentd.extraVolumeMounts }}
+{{- range $i, $e := .Values.fluentd.extraVolumeMounts }}
         - hostPath:
             path: {{ $e.source }}
             type: ""

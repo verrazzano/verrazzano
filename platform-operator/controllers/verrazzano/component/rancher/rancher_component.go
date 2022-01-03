@@ -6,6 +6,10 @@ package rancher
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -18,10 +22,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
-	"strconv"
 )
+
+const ComponentName = common.RancherName
 
 type rancherComponent struct {
 	helm.HelmComponent
@@ -39,6 +42,12 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: common.CattleSystem,
+					Name:      constants.RancherIngress,
+				},
+			},
 		},
 	}
 }
@@ -52,6 +61,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "hostname",
 		Value: rancherHostName,
+	})
+	// Always set useBundledChart=true
+	kvs = append(kvs, bom.KeyValue{
+		Key:   useBundledSystemChartKey,
+		Value: useBundledSystemChartValue,
 	})
 	kvs = appendRegistryOverrides(kvs)
 	return appendCAOverrides(kvs, ctx)
@@ -72,12 +86,8 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 		kvs = append(kvs, bom.KeyValue{
 			Key:   systemDefaultRegistryKey,
 			Value: rancherRegistry,
-		}, bom.KeyValue{
-			Key:   useBundledSystemChartKey,
-			Value: useBundledSystemChartValue,
 		})
 	}
-
 	return kvs
 }
 
@@ -127,10 +137,10 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 // and is not enabled by default on managed clusters
 func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Rancher
-	if comp != nil && comp.Enabled != nil {
-		return *comp.Enabled
+	if comp == nil || comp.Enabled == nil {
+		return true
 	}
-	return r.HelmComponent.IsEnabledFunc(ctx)
+	return *comp.Enabled
 }
 
 // PreInstall
@@ -175,12 +185,12 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	if err := patchRancherDeployment(c); err != nil {
 		return err
 	}
-	log.Infof("Pached Rancher deployment to support MKNOD")
+	log.Debugf("Patched Rancher deployment to support MKNOD")
 	// Annotate Rancher ingress for NGINX/TLS
 	if err := patchRancherIngress(c, ctx.EffectiveCR()); err != nil {
 		return err
 	}
-	log.Infof("Patched Rancher ingress")
+	log.Debugf("Patched Rancher ingress")
 
 	return nil
 }
@@ -238,5 +248,9 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	return rest.PutServerURL()
+	if err := rest.PutServerURL(); err != nil {
+		return err
+	}
+
+	return r.HelmComponent.PostInstall(ctx)
 }

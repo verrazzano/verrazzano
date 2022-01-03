@@ -4,13 +4,15 @@
 package kiali
 
 import (
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path/filepath"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type kialiComponent struct {
@@ -34,6 +36,12 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{nginx.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Name:      constants.KialiIngress,
+				},
+			},
 		},
 	}
 }
@@ -41,10 +49,10 @@ func NewComponent() spi.Component {
 // PostInstall Kiali-post-install processing, create or update the Kiali ingress
 func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali post-install")
-	if err := c.HelmComponent.PostInstall(ctx); err != nil {
+	if err := c.createOrUpdateKialiResources(ctx); err != nil {
 		return err
 	}
-	return c.createOrUpdateKialiResources(ctx)
+	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress
@@ -67,10 +75,10 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 // IsEnabled Kiali-specific enabled check for installation
 func (c kialiComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Kiali
-	if comp != nil && comp.Enabled != nil {
-		return *comp.Enabled
+	if comp == nil || comp.Enabled == nil {
+		return true
 	}
-	return c.HelmComponent.IsEnabledFunc(ctx)
+	return *comp.Enabled
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources

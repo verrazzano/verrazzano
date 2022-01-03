@@ -6,7 +6,9 @@ package installscript_test
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -47,6 +49,8 @@ func validateConsoleUrlsCluster(kubeconfig string) bool {
 		pkg.Log(pkg.Error, fmt.Sprintf("There is an error getting console URLs from ingress resources - %v", err))
 		return false
 	}
+	pkg.Log(pkg.Info, fmt.Sprintf("Expected URLs based on ingresses: %v", expectedConsoleUrls))
+	pkg.Log(pkg.Info, fmt.Sprintf("Actual URLs in Verrazzano resource: %v", consoleUrls))
 
 	return pkg.SlicesContainSameStrings(consoleUrls, expectedConsoleUrls)
 }
@@ -99,9 +103,49 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 		return expectedUrls, err
 	}
 
+	consoleURLExpected, err := isConsoleURLExpected(kubeConfig)
+	if err != nil {
+		return expectedUrls, err
+	}
+
 	for _, ingress := range ingresses.Items {
-		expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host))
+		ingressHost := ingress.Spec.Rules[0].Host
+		// If it's not the console ingress, or it is and the console is enabled, add it to the expected set of URLs
+		if !isConsoleIngressHost(ingressHost) || consoleURLExpected {
+			expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingressHost))
+		}
 	}
 
 	return expectedUrls, nil
+}
+
+// isConsoleIngressHost - Returns true if the given ingress host is the one for the VZ UI console
+func isConsoleIngressHost(ingressHost string) bool {
+	return strings.HasPrefix(ingressHost, "verrazzano.")
+}
+
+// isConsoleURLExpected - Returns true in VZ < 1.1.1. For VZ >= 1.1.1, returns false only if explicitly disabled
+// in the CR or when managed cluster profile is used
+func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
+	isAtleastVz111, err := pkg.IsVerrazzanoMinVersion("1.1.1")
+	if err != nil {
+		return false, err
+	}
+	// Pre 1.1.1, the console URL was always present irrespective of whether console is enabled
+	// This behavior changed in VZ 1.1.1
+	if !isAtleastVz111 {
+		return true, nil
+	}
+
+	// In 1.1.1 and later, the console URL will only be present in the VZ status instance info if the console is enabled
+	vz, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	// Return the value of the Console enabled flag if present
+	if vz != nil && vz.Spec.Components.Console != nil && vz.Spec.Components.Console.Enabled != nil {
+		return *vz.Spec.Components.Console.Enabled, nil
+	}
+	// otherwise, expect console to be enabled for all profiles but managed-cluster
+	return vz.Spec.Profile != vzapi.ManagedCluster, nil
 }

@@ -3,6 +3,8 @@
 package verrazzano
 
 import (
+	"path/filepath"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -12,8 +14,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 type verrazzanoComponent struct {
@@ -25,8 +27,8 @@ const vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 func NewComponent() spi.Component {
 	return verrazzanoComponent{
 		helm.HelmComponent{
-			ReleaseName:             componentName,
-			ChartDir:                filepath.Join(config.GetHelmChartsDir(), componentName),
+			ReleaseName:             ComponentName,
+			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
 			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
@@ -43,10 +45,10 @@ func NewComponent() spi.Component {
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
-		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	if err := loggingPreInstall(ctx); err != nil {
-		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	return nil
 }
@@ -80,6 +82,8 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
+	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
+	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -99,4 +103,53 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 		return err
 	}
 	return nil
+}
+
+// IsEnabled verrazzano-specific enabled check for installation
+func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.Verrazzano
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
+}
+
+// GetIngressNames - gets the names of the ingresses associated with this component
+func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	ingressNames := []types.NamespacedName{
+		{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.VzConsoleIngress,
+		},
+	}
+
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.ElasticsearchIngress,
+		})
+	}
+
+	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.GrafanaIngress,
+		})
+	}
+
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.KibanaIngress,
+		})
+	}
+
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.PrometheusIngress,
+		})
+	}
+
+	return ingressNames
 }
