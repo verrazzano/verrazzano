@@ -8,19 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-const (
-	promConfigmap = "vmi-system-prometheus-config"
-	dataKey       = "prometheus.yml"
 )
 
 // QueryMetricWithLabel queries a metric using a label from the Prometheus host, derived from the kubeconfig
@@ -170,7 +162,6 @@ func Jq(node interface{}, path ...string) interface{} {
 	return node
 }
 
-// DoesMetricsTemplateExist takes a metrics template name and checks if it exists
 func DoesMetricsTemplateExist(namespacedName types.NamespacedName) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -201,14 +192,4 @@ func DoesMetricsTemplateExist(namespacedName types.NamespacedName) bool {
 		}
 	}
 	return false
-}
-
-// IsAppInPromConfig checks to see if the Prom config data contains the passed in App name
-func IsAppInPromConfig(configAppName string) bool {
-	promConfig, err := GetConfigMap(promConfigmap, constants.VerrazzanoSystemNamespace)
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Prometheus configmap, error: %v", err))
-		return false
-	}
-	return strings.Contains(promConfig.Data[dataKey], configAppName)
 }
