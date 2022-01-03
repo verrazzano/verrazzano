@@ -212,7 +212,7 @@ pipeline {
                     git fetch origin tag ${params.VERSION_FOR_INSTALL} --no-tags
                     git checkout ${params.VERSION_FOR_INSTALL}
                     cp -R ${GO_REPO_PATH}/verrazzano/examples /tmp/examples
-                    git checkout -f ${params.GIT_COMMIT_FOR_UPGRADE}
+                    git checkout -f master
                     rm -rf ${GO_REPO_PATH}/verrazzano/examples
                     mv -f /tmp/examples ${GO_REPO_PATH}/verrazzano/examples
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
