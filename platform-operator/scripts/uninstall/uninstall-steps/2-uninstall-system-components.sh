@@ -15,7 +15,7 @@ set -o pipefail
 
 function delete_external_dns() {
   log "Deleting external-dns"
-  helm ls -A \
+  helm ls -n cert-manager \
     | awk '/external-dns/ {print $1}' \
     | xargsr helm uninstall -n cert-manager \
     || err_return $? "Could not delete external-dns from helm" || return $? # return on pipefail
@@ -29,7 +29,7 @@ function delete_external_dns() {
 function delete_nginx() {
   # uninstall ingress-nginx
   log "Deleting ingress-nginx"
-  helm ls -A \
+  helm ls -n ingress-nginx \
     | awk '/ingress-controller/ {print $1}' \
     | xargsr helm uninstall -n ingress-nginx \
     || err_return $? "Could not delete ingress-controller from helm" || return $? # return on pipefail
@@ -51,7 +51,7 @@ function delete_nginx() {
 function delete_cert_manager() {
   # uninstall cert manager deployment
   log "Deleting cert-manager"
-  helm ls -A \
+  helm ls -n cert-manager \
     | awk '/cert-manager/ {print $1}' \
     | xargsr helm uninstall -n cert-manager \
     || err_return $? "Could not delete cert-manager from helm" || return $? # return on pipefail

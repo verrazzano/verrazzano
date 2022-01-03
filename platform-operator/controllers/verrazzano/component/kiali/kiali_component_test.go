@@ -210,7 +210,7 @@ func TestKialiPostInstallUpdateResources(t *testing.T) {
 		},
 	}
 	ingress := &v1.Ingress{
-		ObjectMeta: metav1.ObjectMeta{Name: kialiSystemName, Namespace: constants.VerrazzanoSystemNamespace},
+		ObjectMeta: metav1.ObjectMeta{Name: constants.KialiIngress, Namespace: constants.VerrazzanoSystemNamespace},
 	}
 	authPol := &istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},

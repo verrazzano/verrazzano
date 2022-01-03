@@ -74,9 +74,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var workload vzapi.VerrazzanoHelidonWorkload
 	if err := r.Get(ctx, req.NamespacedName, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("VerrazzanoHelidonWorkload has been deleted", "name", req.NamespacedName)
+			log.Info("VerrazzanoHelidonWorkload has been deleted")
 		} else {
-			log.Error(err, "Failed to fetch VerrazzanoHelidonWorkload", "name", req.NamespacedName)
+			log.Error(err, "Failed to fetch VerrazzanoHelidonWorkload")
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}

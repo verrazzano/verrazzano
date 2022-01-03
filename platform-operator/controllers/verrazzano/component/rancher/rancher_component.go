@@ -24,6 +24,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const ComponentName = common.RancherName
+
 type rancherComponent struct {
 	helm.HelmComponent
 }
@@ -40,6 +42,12 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
+			IngressNames: []types.NamespacedName{
+				{
+					Namespace: common.CattleSystem,
+					Name:      constants.RancherIngress,
+				},
+			},
 		},
 	}
 }
@@ -240,5 +248,9 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	return rest.PutServerURL()
+	if err := rest.PutServerURL(); err != nil {
+		return err
+	}
+
+	return r.HelmComponent.PostInstall(ctx)
 }
