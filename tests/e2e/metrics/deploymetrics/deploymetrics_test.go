@@ -13,10 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-const (
-	testNamespace     = "deploymetrics"
-	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
-)
+const testNamespace string = "deploymetrics"
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 var waitTimeout = 10 * time.Minute
@@ -78,8 +75,12 @@ func undeployMetricsApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		return pkg.IsAppInPromConfig(promConfigJobName)
-	}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected App to be removed from Prometheus Config")
+		return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
+	}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Prometheus scraped metrics for App Component should have been deleted.")
+
+	Eventually(func() bool {
+		return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
+	}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Prometheus scraped metrics for App Config should have been deleted.")
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
@@ -111,14 +112,6 @@ var _ = Describe("Verify DeployMetrics Application", func() {
 		})
 	})
 
-	Context("Prometheus Config.", func() {
-		It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
-			Eventually(func() bool {
-				return pkg.IsAppInPromConfig(promConfigJobName)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
-		})
-	})
-
 	Context("Verify Prometheus scraped metrics.", func() {
 		It("Retrieve Prometheus scraped metrics for App Component", func() {
 			Eventually(func() bool {
@@ -131,4 +124,5 @@ var _ = Describe("Verify DeployMetrics Application", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
 		})
 	})
+
 })
