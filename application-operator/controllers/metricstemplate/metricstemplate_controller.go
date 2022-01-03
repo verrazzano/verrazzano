@@ -99,6 +99,9 @@ func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (
 	// TODO: Replace with more generic lookup
 	uns.SetGroupVersionKind(schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "Deployment"})
 	if err := r.Client.Get(context.TODO(), namespacedName, &uns); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, err
+		}
 		r.Log.Error(err, fmt.Sprintf("Could not get the requested resource: %s", uns.GetKind()))
 		return nil, err
 	}
