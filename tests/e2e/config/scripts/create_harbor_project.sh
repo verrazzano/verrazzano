@@ -6,6 +6,7 @@
 # If it does not exist, it proceeds to create one.
 
 set -u
+set -x
 
 # variables
 REST_API_BASE_URL=
@@ -41,13 +42,13 @@ function create_project() {
   # Check whether the project exists in Harbor
   echo "Check whether the project $PROJECT_NAME exists in Harbor: $fullProjectUrlExists"
 
-  response=$(curl --user $USERNAME:$PASSWORD -I $fullProjectUrlExists -H "accept: application/json" --silent -w "%{http_code}")
+  response=$(curl -v --user $USERNAME:$PASSWORD -I $fullProjectUrlExists -H "accept: application/json" --silent -w "%{http_code}")
 
   # if the curl command succeeded
   if [ "$response" -eq 404 ]; then
     echo "Harbor project $PROJECT_NAME does not exist. Proceeding to create it."
     payload="{\"project_name\":\"$PROJECT_NAME\",\"metadata\":{\"public\":\"$IS_PUBLIC\"}}"
-    response=$(curl --user $USERNAME:$PASSWORD -X POST $REST_API_BASE_URL/projects -H "accept: application/json" \
+    response=$(curl -v --user $USERNAME:$PASSWORD -X POST $REST_API_BASE_URL/projects -H "accept: application/json" \
                 -H "X-Resource-Name-In-Location: false" -H "Content-Type: application/json" \
                 --silent -w "%{http_code}" -d "$payload")
     if [ "$response" -eq 201 ]; then
