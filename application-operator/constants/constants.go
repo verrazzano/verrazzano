@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -99,3 +99,12 @@ const VerrazzanoUsernameData = "username"
 
 // VerrazzanoPasswordData - the field name in Verrazzano secret that contains the password
 const VerrazzanoPasswordData = "password"
+
+// MetricsWorkloadUIDLabel - the label for designating the workload UID in MetricsTemplate resources
+const MetricsWorkloadUIDLabel = "app.verrazzano.io/metrics-workload-uid"
+
+// MetricsTemplateUIDLabel - the label for designating the template UID in MetricsTemplate resources
+const MetricsTemplateUIDLabel = "app.verrazzano.io/metrics-template-uid"
+
+// MetricsPromConfigMapUIDLabel - the label for designating the Prometheus ConfigMap UID in MetricsTemplate resources
+const MetricsPromConfigMapUIDLabel = "app.verrazzano.io/metrics-prometheus-configmap-uid"
