@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"math/big"
 	"os"
 	"reflect"
@@ -25,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -51,6 +52,9 @@ const (
 	lastServerStartPolicyAnnotation       = "verrazzano-io/last-server-start-policy"
 	Never                                 = "NEVER"
 	IfNeeded                              = "IF_NEEDED"
+	webLogicDomainUIDLabel                = "weblogic.domainUID"
+	webLogicPluginConfigYamlKey           = "WebLogicPlugin.yaml"
+	WDTConfigMapNameSuffix                = "-wdt-config-map"
 )
 
 const defaultMonitoringExporterData = `
@@ -165,8 +169,18 @@ const defaultMonitoringExporterData = `
     "imagePullPolicy": "IfNotPresent"
   }
 `
+const defaultWDTConfigMapData = `
+  {
+    "resources": {
+      "WebAppContainer": {
+        "WeblogicPluginEnabled" : true
+      }
+    }
+  }
+`
 
 var metaAnnotationFields = []string{metadataField, "annotations"}
+var specDomainUID = []string{specField, "domainUID"}
 var specServerPodFields = []string{specField, "serverPod"}
 var specServerPodLabelsFields = append(specServerPodFields, "labels")
 var specServerPodContainersFields = append(specServerPodFields, "containers")
@@ -174,6 +188,7 @@ var specServerPodVolumesFields = append(specServerPodFields, "volumes")
 var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts")
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
+var specConfigurationWDTConfigMap = []string{specField, "configuration", "model", "configMap"}
 var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
 var specRestartVersionFields = []string{specField, "restartVersion"}
 var specServerStartPolicyFields = []string{specField, "serverStartPolicy"}
@@ -320,6 +335,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	// Set/Update the WDT config map with WeblogicPluginEnabled setting
+	if err = r.CreateOrUpdateWDTConfigMap(ctx, log, req.NamespacedName.Namespace, u, workload.ObjectMeta.Labels); err != nil {
+		return reconcile.Result{}, err
+	}
+
 	// make a copy of the WebLogic spec since u.Object will get overwritten in CreateOrUpdate
 	// if the WebLogic CR exists
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
@@ -363,9 +383,9 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	var workload vzapi.VerrazzanoWebLogicWorkload
 	if err := r.Get(ctx, name, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("VerrazzanoWebLogicWorkload has been deleted", "name", name)
+			r.Log.Info("VerrazzanoWebLogicWorkload has been deleted", "workload", name)
 		} else {
-			r.Log.Error(err, "Failed to fetch VerrazzanoWebLogicWorkload", "name", name)
+			r.Log.Error(err, "Failed to fetch VerrazzanoWebLogicWorkload", "workload", name)
 		}
 		return nil, err
 	}
@@ -654,6 +674,129 @@ func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, wl *vzapi.Ve
 	return nil
 }
 
+// CreateOrUpdateWDTConfigMap creates a default WDT config map with WeblogicPluginEnabled setting if the
+// WDT config map is not specified in the WebLogic spec. Otherwise it updates the specified WDT config map
+// with WeblogicPluginEnabled setting if not already done.
+func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log logr.Logger, namespaceName string,
+	u *unstructured.Unstructured, workloadLabels map[string]string) error {
+	// Get the specified WDT config map name in the WebLogic spec
+	configMapName, found, err := unstructured.NestedString(u.Object, specConfigurationWDTConfigMap...)
+	if err != nil {
+		log.Error(err, "unable to extract WDT configMap from WebLogic spec")
+		return err
+	}
+	if !found {
+		domainUID, domainUIDFound, err := unstructured.NestedString(u.Object, specDomainUID...)
+		if err != nil {
+			log.Error(err, "Unable to extract domainUID from the WebLogic spec")
+			return err
+		}
+		if !domainUIDFound {
+			log.Error(err, "Unable to find domainUID in WebLogic spec")
+			return errors.New("unable to find domainUID in WebLogic spec")
+		}
+		// Create a default WDT config map
+		err = r.createDefaultWDTConfigMap(ctx, log, namespaceName, domainUID, workloadLabels)
+		if err != nil {
+			return err
+		}
+		// Set WDT config map field in WebLogic spec
+		err = unstructured.SetNestedField(u.Object, getWDTConfigMapName(domainUID), specConfigurationWDTConfigMap...)
+		if err != nil {
+			log.Error(err, "Unable to set WDT config map in WebLogic spec")
+			return err
+		}
+	} else {
+		configMap, err := r.getConfigMap(ctx, u.GetNamespace(), configMapName)
+		if err != nil {
+			return err
+		}
+		if configMap == nil {
+			log.Error(err, "Unable to find the specified WDT config map")
+			return err
+		}
+		// Update WDT configMap configuration to add default WLS plugin configuration
+		v := configMap.Data[webLogicPluginConfigYamlKey]
+		if v == "" {
+			bytes, err := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
+			if err != nil {
+				return err
+			}
+			configMap.Data[webLogicPluginConfigYamlKey] = string(bytes)
+			err = r.Client.Update(ctx, configMap)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// createDefaultWDTConfigMap creates a default WDT config map with WeblogicPluginEnabled setting.
+func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log logr.Logger, namespaceName string,
+	domainName string, workloadLabels map[string]string) error {
+	configMapName := getWDTConfigMapName(domainName)
+	// Create a configMap resource that will contain WeblogicPluginEnabled setting
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: namespaceName,
+			Labels: map[string]string{
+				webLogicDomainUIDLabel: domainName,
+			},
+		},
+	}
+	// Create the config map if it does not already exist
+	configMapFound := &corev1.ConfigMap{}
+	log.Info(fmt.Sprintf("Checking if WDT ConfigMap %s:%s exists", namespaceName, configMapName))
+	err := r.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespaceName}, configMapFound)
+	if err != nil && k8serrors.IsNotFound(err) {
+		// set controller reference so the WDT config map gets deleted when the app config is deleted
+		appName, ok := workloadLabels[oam.LabelAppName]
+		if !ok {
+			return errors.New("OAM app name label missing from metadata, unable to create WDT config map")
+		}
+		appConfig := &v1alpha2.ApplicationConfiguration{}
+		err = r.Get(context.TODO(), types.NamespacedName{Namespace: namespaceName, Name: appName}, appConfig)
+		if err != nil {
+			return err
+		}
+		if err = controllerutil.SetControllerReference(appConfig, configMap, r.Scheme); err != nil {
+			log.Error(err, "Unable to set controller ref for WDT config map")
+			return err
+		}
+		bytes, err := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
+		if err != nil {
+			return err
+		}
+		configMap.Data = map[string]string{webLogicPluginConfigYamlKey: string(bytes)}
+		log.Info(fmt.Sprintf("Creating WDT ConfigMap %s:%s", namespaceName, configMapName))
+		err = r.Create(ctx, configMap)
+		if err != nil {
+			return err
+		}
+		return nil
+	} else if err != nil {
+		return err
+	}
+	log.Info(fmt.Sprintf("ConfigMap %s:%s already exists", namespaceName, configMapName))
+	return nil
+}
+
+// getConfigMap will get the ConfigMap for the given name
+func (r *Reconciler) getConfigMap(ctx context.Context, namespace string, configMapName string) (*corev1.ConfigMap, error) {
+	var wdtConfigMap = &corev1.ConfigMap{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: configMapName, Namespace: namespace}, wdtConfigMap)
+	if err != nil {
+		return nil, err
+	}
+	return wdtConfigMap, nil
+}
+
 // updateIstioEnabled sets the domain resource configuration.istio.enabled value based
 // on the namespace label istio-injection
 func updateIstioEnabled(labels map[string]string, u *unstructured.Unstructured) error {
@@ -931,4 +1074,9 @@ func startWebLogicDomain(log logr.Logger, domain *unstructured.Unstructured) err
 	}
 	unstructured.SetNestedField(domain.Object, startPolicy, specServerStartPolicyFields...)
 	return nil
+}
+
+// getWDTConfigMapName builds a WDT config map name given a domain name
+func getWDTConfigMapName(domainName string) string {
+	return fmt.Sprintf("%s%s", domainName, WDTConfigMapNameSuffix)
 }

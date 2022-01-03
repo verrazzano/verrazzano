@@ -10,17 +10,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/semver"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -32,15 +24,23 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
-// componentName is the name of the component
+// ComponentName is the name of the component
 
 const (
-	componentName           = "verrazzano"
+	ComponentName           = "verrazzano"
 	keycloakInClusterURL    = "keycloak-http.keycloak.svc.cluster.local"
 	esHelmValuePrefixFormat = "elasticSearch.%s"
 
@@ -48,6 +48,11 @@ const (
 	containerName = "es-master"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
+
+	tmpFilePrefix        = "verrazzano-overrides-"
+	tmpSuffix            = "yaml"
+	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
 var (
@@ -96,7 +101,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 
 	// Append the simple overrides
 	if err := appendVerrazzanoValues(ctx, &overrides); err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	// Append any VMI overrides to the override values object, and any installArgs overrides to the kvs list
 	vzkvs = appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, vzkvs)
@@ -105,13 +110,13 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	appendFluentdOverrides(effectiveCR, &overrides)
 	// append the security role overrides
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
@@ -123,26 +128,24 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	imageOverrides, err := bomFile.BuildImageOverrides("monitoring-init-images")
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
 }
 
-const tmpFilePrefix = "verrazzano-overrides-"
-
 func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues) (string, error) {
 	bytes, err := yaml.Marshal(overrides)
 	if err != nil {
 		return "", err
 	}
-	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.yaml", tmpFilePrefix))
+	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
 	if err != nil {
 		return "", err
 	}
@@ -168,7 +171,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
 		return ctrlerrors.RetryableError{
-			Source: componentName,
+			Source: ComponentName,
 			Cause:  err,
 		}
 	}
@@ -332,6 +335,14 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 					volumeMount{Source: vm.Source, Destination: dest, ReadOnly: readOnly})
 			}
 		}
+		// Overrides for OCI Logging integration
+		if fluentd.OCI != nil {
+			overrides.Fluentd.OCI = &ociLoggingSettings{
+				DefaultAppLogID: fluentd.OCI.DefaultAppLogID,
+				SystemLogID:     fluentd.OCI.SystemLogID,
+				APISecret:       fluentd.OCI.APISecret,
+			}
+		}
 	}
 }
 
@@ -428,11 +439,14 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespa
 }
 
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {
+	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
+		return err
+	}
 	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
 		return err
 	}
 	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
-		return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
 		return err
@@ -443,23 +457,39 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 			return err
 		}
 		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 	}
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 	}
 	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
-		// Create and/or label the Rancher system namespaces if necessary
-		if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
-		}
 		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
 			true, false); err != nil {
-			return ctrlerrors.RetryableError{Source: componentName, Cause: err}
+			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
+	}
+	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
+	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+	return nil
+}
+
+// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
+func LabelKubeSystemNamespace(client clipkg.Client) error {
+	const KubeSystemNamespace = "kube-system"
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
+		return nil
+	}); err != nil {
+		return err
 	}
 	return nil
 }
@@ -496,13 +526,13 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 			if err != nil {
 				if !errors.IsNotFound(err) {
 					return ctrlerrors.RetryableError{
-						Source: componentName,
+						Source: ComponentName,
 						Cause:  err,
 					}
 				}
 				vzLog.Errorf("Custom Elasticsearch secret %s not found in namespace %s",
 					esSecret, constants.VerrazzanoInstallNamespace)
-				return ctrlerrors.RetryableError{Source: componentName}
+				return ctrlerrors.RetryableError{Source: ComponentName}
 			}
 		}
 	}
@@ -526,19 +556,8 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 
 //cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
-	log := ctx.Log()
-	files, err := ioutil.ReadDir(os.TempDir())
-	if err != nil {
-		log.Errorf("Unable to read temp directory: %s", err.Error())
-	}
-	for _, file := range files {
-		if !file.IsDir() && strings.HasPrefix(file.Name(), tmpFilePrefix) && strings.HasSuffix(file.Name(), ".yaml") {
-			fullPath := filepath.Join(os.TempDir(), file.Name())
-			log.Debugf("Deleting temp file %s", fullPath)
-			if err := os.Remove(fullPath); err != nil {
-				log.Errorf("Error deleting temp file %s", fullPath)
-			}
-		}
+	if err := vzos.RemoveTempFiles(ctx.Log(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Error deleting temp files: %s", err.Error())
 	}
 }
 

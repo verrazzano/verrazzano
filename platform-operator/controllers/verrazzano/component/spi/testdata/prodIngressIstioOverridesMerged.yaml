@@ -6,7 +6,10 @@ spec:
   profile: "prod"
   environmentName: prodenv
   components:
+    applicationOperator:
+      enabled: true
     certManager:
+      enabled: true
       certificate:
         ca:
           secretName: "verrazzano-ca-certificate-secret"
@@ -27,6 +30,7 @@ spec:
     grafana:
       enabled: true
     ingress:
+      enabled: true
       type: LoadBalancer
       nginxInstallArgs:
         - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
@@ -52,6 +56,7 @@ spec:
           protocol: TCP
           targetPort: 0
     istio:
+      enabled: true
       istioInstallArgs:
         - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
           value: "10Mbps"
@@ -66,9 +71,13 @@ spec:
       enabled: true
     kibana:
       enabled: true
+    oam:
+      enabled: true
     prometheus:
       enabled: true
     rancher:
+      enabled: true
+    verrazzano:
       enabled: true
     weblogicOperator:
       enabled: true

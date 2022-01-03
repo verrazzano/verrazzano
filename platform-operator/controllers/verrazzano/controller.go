@@ -5,23 +5,21 @@ package verrazzano
 
 import (
 	"context"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/installjob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzinstance"
 
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -40,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"sigs.k8s.io/yaml"
 )
 
 // Reconciler reconciles a Verrazzano object
@@ -53,9 +50,6 @@ type Reconciler struct {
 
 // Name of finalizer
 const finalizerName = "install.verrazzano.io"
-
-// Key into ConfigMap data for stored install Spec, the data for which will be used for update/upgrade purposes
-const configDataKey = "spec"
 
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
@@ -122,35 +116,44 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{Requeue: true}, nil
 	}
 
+	spiContext, err := spi.NewContext(log, r, vz, r.DryRun)
+	if err != nil {
+		log.Errorf("Could not create component context: %v", err)
+		return newRequeueWithDelay(), err
+	}
+
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.Failed:
-		return r.FailedState(vz, log)
+		return r.FailedState(spiContext)
 	case installv1alpha1.Installing:
-		return r.InstallingState(vz, log)
+		return r.InstallingState(spiContext)
 	case installv1alpha1.Ready:
-		return r.ReadyState(vz, log)
+		return r.ReadyState(spiContext)
 	case installv1alpha1.Uninstalling:
-		return r.UninstallingState(vz, log)
+		return r.UninstallingState(spiContext)
 	case installv1alpha1.Upgrading:
-		return r.UpgradingState(vz, log)
+		return r.UpgradingState(spiContext)
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
 }
 
 // ReadyState processes the CR while in the ready state
-func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) ReadyState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	log := spiCtx.Log()
+	actualCR := spiCtx.ActualCR()
+
 	log.Debugf("enter ReadyState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
+	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, actualCR)
 	}
 
 	// Pre-populate the component status fields
-	result, err := r.initializeComponentStatus(log, vz)
+	result, err := r.initializeComponentStatus(log, actualCR)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
@@ -158,13 +161,13 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	// If Verrazzano is installed see if upgrade is needed
-	if isInstalled(vz.Status) {
+	if isInstalled(actualCR.Status) {
 		// If the version is specified and different than the current version of the installation
 		// then proceed with upgrade
-		if len(vz.Spec.Version) > 0 && vz.Spec.Version != vz.Status.Version {
-			return r.reconcileUpgrade(log, vz)
+		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
+			return r.reconcileUpgrade(log, actualCR)
 		}
-		if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+		if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 			return newRequeueWithDelay(), err
 		} else if shouldRequeue(result) {
 			return result, nil
@@ -173,25 +176,17 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 	}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
-	if vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
-		err := r.doesOCIDNSConfigSecretExist(vz)
+	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {
+		err := r.doesOCIDNSConfigSecretExist(actualCR)
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
-	}
-
-	if err := r.createConfigMap(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
 	}
 
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
 	if err := r.createVerrazzanoSystemNamespace(ctx, log); err != nil {
 		log.Errorf("Failed to create namespace %v: %v", vzconst.VerrazzanoSystemNamespace, err)
-		return newRequeueWithDelay(), err
-	}
-
-	if err := r.createInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -202,45 +197,56 @@ func (r *Reconciler) ReadyState(vz *installv1alpha1.Verrazzano, log *zap.Sugared
 		return newRequeueWithDelay(), err
 	}
 
-	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
-		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
-		return result, nil
-	}
-
-	// Create/update a configmap from spec for future comparison on update/upgrade
-	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
+	// Change the state back to ready if install complete otherwise requeue
+	done, err := r.checkInstallComplete(spiCtx)
+	if err != nil {
 		return newRequeueWithDelay(), err
 	}
+	if done {
+		return ctrl.Result{}, nil
+	}
 
-	return ctrl.Result{}, nil
+	// Delete leftover uninstall job if we find one.
+	err = r.cleanupUninstallJob(buildUninstallJobName(actualCR.Name), getInstallNamespace(), log)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
+	// Change the state to installing
+	err = r.setInstallingState(log, actualCR)
+	return newRequeueWithDelay(), err
 }
 
 // InstallingState processes the CR while in the installing state
-func (r *Reconciler) InstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) InstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	log := spiCtx.Log()
+	actualCR := spiCtx.ActualCR()
 	log.Debugf("enter InstallingState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
+	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, actualCR)
 	}
 
-	if result, err := r.reconcileComponents(ctx, log, vz); err != nil {
+	if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 		return newRequeueWithDelay(), err
 	} else if shouldRequeue(result) {
 		return result, nil
 	}
 
-	if err := r.checkInstallJob(ctx, log, vz, buildConfigMapName(vz.Name)); err != nil {
+	// Change the state back to ready if install complete otherwise requeue
+	done, err := r.checkInstallComplete(spiCtx)
+	if !done || err != nil {
 		return newRequeueWithDelay(), err
 	}
-
 	return ctrl.Result{}, nil
 }
 
 // UninstallingState processes the CR while in the uninstalling state
-func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) UninstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	vz := spiCtx.ActualCR()
+	log := spiCtx.Log()
 	log.Debugf("enter UninstallingState")
 	ctx := context.TODO()
 
@@ -253,7 +259,9 @@ func (r *Reconciler) UninstallingState(vz *installv1alpha1.Verrazzano, log *zap.
 }
 
 // UpgradingState processes the CR while in the upgrading state
-func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) UpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	vz := spiCtx.ActualCR()
+	log := spiCtx.Log()
 	log.Debugf("enter UpgradingState")
 
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
@@ -267,7 +275,9 @@ func (r *Reconciler) UpgradingState(vz *installv1alpha1.Verrazzano, log *zap.Sug
 }
 
 // FailedState only allows uninstall
-func (r *Reconciler) FailedState(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) FailedState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	vz := spiCtx.ActualCR()
+	log := spiCtx.Log()
 	log.Debugf("enter FailedState")
 	ctx := context.TODO()
 
@@ -315,7 +325,7 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 	for i := range imagePullSecrets {
 		imagePullSecrets[i] = strings.TrimSpace(imagePullSecrets[i])
 	}
-	serviceAccount := installjob.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(vz.Name), imagePullSecrets, vz.Labels)
+	serviceAccount := rbac.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(vz.Name), imagePullSecrets, vz.Labels)
 
 	// Check if the service account for running the scripts exist
 	serviceAccountFound := &corev1.ServiceAccount{}
@@ -355,7 +365,7 @@ func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredL
 //   " nodes is forbidden: User "xyz" cannot list resource "nodes" in API group "" at the cluster scope"
 func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new cluster role binding resource
-	binding := installjob.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), getInstallNamespace(), buildServiceAccountName(vz.Name))
+	binding := rbac.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), getInstallNamespace(), buildServiceAccountName(vz.Name))
 
 	// Check if the cluster role binding for running the install scripts exist
 	bindingFound := &rbacv1.ClusterRoleBinding{}
@@ -389,156 +399,21 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.Suga
 	return nil
 }
 
-// createConfigMap creates a required config map for installation
-func (r *Reconciler) createConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
-	// Create the configmap resource that will contain installation configuration options
-	configMap := installjob.NewConfigMap(getInstallNamespace(), buildConfigMapName(vz.Name), vz.Labels)
-
-	// Check if the ConfigMap exists for running the install
-	configMapFound := &corev1.ConfigMap{}
-	log.Debugf("Checking if install ConfigMap %s exist", configMap.Name)
-
-	err := r.Get(ctx, types.NamespacedName{Name: configMap.Name, Namespace: configMap.Namespace}, configMapFound)
-	if err != nil && errors.IsNotFound(err) {
-		vz = configFluentdExtraVolumeMounts(vz)
-		config, err := installjob.GetInstallConfig(vz)
-		if err != nil {
-			return err
-		}
-		jsonEncoding, err := json.MarshalIndent(config, "", "  ")
-		if err != nil {
-			return err
-		}
-		configMap.Data = map[string]string{"config.json": string(jsonEncoding)}
-
-		log.Debugf("Creating install ConfigMap %s", configMap.Name)
-		err = r.Create(ctx, configMap)
-		if err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// deleteConfigMap deletes the config map used for installation
-func (r *Reconciler) deleteConfigMap(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
-	cm := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      buildConfigMapName(vz.Name),
-		},
-	}
-	err := r.Delete(ctx, &cm, &client.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		log.Errorf("Failed deleting ConfigMap %s: %v", cm.Name, err)
-		return err
-	}
-	return nil
-}
-
-// deleteInstallJob Deletes the install job, which will also result in the install pod being deleted.
-func (r *Reconciler) deleteInstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
-	// Check if the job for running the install scripts exist
-	jobName := buildInstallJobName(vz.Name)
-	jobFound := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: getInstallNamespace(),
-			Name:      buildInstallJobName(vz.Name),
-		},
-	}
-	log.Debugf("Checking if install job %s exist", jobName)
-	err := r.Get(context.TODO(), types.NamespacedName{Name: jobName, Namespace: getInstallNamespace()}, jobFound)
+// checkInstallComplete checks to see if the install is complete
+func (r *Reconciler) checkInstallComplete(spiCtx spi.ComponentContext) (bool, error) {
+	log := spiCtx.Log()
+	actualCR := spiCtx.ActualCR()
+	ready, err := r.checkComponentReadyState(spiCtx)
 	if err != nil {
-		if !errors.IsNotFound(err) {
-			// Got an error other than not found
-			return err
-		}
-		// Job not found
-		return nil
+		return false, err
 	}
-	// Delete the Job in the foreground to ensure it's gone before continuing
-	propagationPolicy := metav1.DeletePropagationForeground
-	deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
-	log.Debugf("Install job %s in progress, deleting", jobName)
-	return r.Delete(context.TODO(), jobFound, deleteOptions)
-}
-
-// createInstallJob creates the installation job
-func (r *Reconciler) createInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
-	// Define a new install job resource
-	job := installjob.NewJob(
-		&installjob.JobConfig{
-			JobConfigCommon: k8s.JobConfigCommon{
-				JobName:            buildInstallJobName(vz.Name),
-				Namespace:          getInstallNamespace(),
-				Labels:             vz.Labels,
-				ServiceAccountName: buildServiceAccountName(vz.Name),
-				JobImage:           os.Getenv("VZ_INSTALL_IMAGE"),
-				DryRun:             r.DryRun,
-			},
-			ConfigMapName: configMapName,
-		})
-
-	// Check if the job for running the install scripts exist
-	jobFound := &batchv1.Job{}
-	log.Debugf("Checking if install job %s exist", buildInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
-	if err != nil && errors.IsNotFound(err) {
-		log.Debugf("Creating install job %s, dry-run=%v", buildInstallJobName(vz.Name), r.DryRun)
-		err = r.Create(ctx, job)
-		if err != nil {
-			return err
-		}
-
-		// Add our finalizer if not already added
-		if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
-			log.Debugf("Adding finalizer %s", finalizerName)
-			vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
-			if err := r.Update(ctx, vz); err != nil {
-				return err
-			}
-		}
-
-		// Delete leftover uninstall job if we find one.
-		err = r.cleanupUninstallJob(buildUninstallJobName(vz.Name), getInstallNamespace(), log)
-		if err != nil {
-			return err
-		}
-
-	} else if err != nil {
-		return err
+	if !ready {
+		return false, nil
 	}
-
-	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
-	if err != nil {
-		return err
-	}
-
-	vz.Status.Version = bomSemVer.ToString()
-	err = r.setInstallCondition(log, jobFound, vz)
-
-	return err
-}
-
-// checkInstallJob checks the installation job
-func (r *Reconciler) checkInstallJob(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, configMapName string) error {
-	// Check if the job for running the install scripts exist
-	jobFound := &batchv1.Job{}
-	log.Debugf("Checking if install job %s exist", buildInstallJobName(vz.Name))
-	err := r.Get(ctx, types.NamespacedName{Name: buildInstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-	// Update condition and status
-	err = r.setInstallCondition(log, jobFound, vz)
-	return err
+	// Set install complete IFF all subcomponent status' are "Ready"
+	message := "Verrazzano install completed successfully"
+	// Status update must be performed on the actual CR read from K8S
+	return true, r.updateStatus(log, actualCR, message, installv1alpha1.InstallComplete)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -621,11 +496,6 @@ func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alp
 	return nil
 }
 
-// buildInstallJobName returns the name of an install job based on Verrazzano resource name.
-func buildInstallJobName(name string) string {
-	return fmt.Sprintf("verrazzano-install-%s", name)
-}
-
 // buildUninstallJobName returns the name of an uninstall job based on Verrazzano resource name.
 func buildUninstallJobName(name string) string {
 	return fmt.Sprintf("verrazzano-uninstall-%s", name)
@@ -639,11 +509,6 @@ func buildServiceAccountName(name string) string {
 // buildClusterRoleBindingName returns the ClusgterRoleBinding name for jobs based on Verrazzano resource name.
 func buildClusterRoleBindingName(namespace string, name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-%s", namespace, name)
-}
-
-// buildConfigMapName returns the name of a config map for an install job based on Verrazzano resource name.
-func buildConfigMapName(name string) string {
-	return fmt.Sprintf("verrazzano-install-%s", name)
 }
 
 // buildInternalConfigMapName returns the name of the internal configmap associated with an install resource.
@@ -692,7 +557,7 @@ func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Ver
 	return nil
 }
 
-func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, componentName string, message string, conditionType installv1alpha1.ConditionType) error {
+func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -702,6 +567,10 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
+
+	componentName := compContext.GetComponent()
+	cr := compContext.ActualCR()
+	log := compContext.Log()
 
 	if cr.Status.Components == nil {
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
@@ -714,7 +583,7 @@ func (r *Reconciler) updateComponentStatus(log *zap.SugaredLogger, cr *installv1
 		cr.Status.Components[componentName] = componentStatus
 	}
 	if conditionType == installv1alpha1.InstallComplete {
-		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, cr)
+		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
 	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
 
@@ -759,51 +628,37 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	return installv1alpha1.Ready
 }
 
-// setInstallCondition sets the Verrazzano resource condition in status for install
-func (r *Reconciler) setInstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
-	// If the job has succeeded or failed add the appropriate condition
-	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
-		for _, condition := range vz.Status.Conditions {
-			if condition.Type == installv1alpha1.InstallComplete || condition.Type == installv1alpha1.InstallFailed {
-				return nil
-			}
-		}
-		var message string
-		var conditionType installv1alpha1.ConditionType
-		if job.Status.Succeeded == 1 {
-			message = "Verrazzano install completed successfully"
-			if checkComponentReadyState(vz) {
-				// Set install complete IFF all subcomponent status' are "Ready"
-				conditionType = installv1alpha1.InstallComplete
-				log.Info(message)
-				vz.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(r.Client, vz)
-			}
-		} else {
-			message = "Verrazzano install failed to complete"
-			conditionType = installv1alpha1.InstallFailed
-			log.Error(message)
-		}
-		return r.updateStatus(log, vz, message, conditionType)
+// setInstallStartedCondition
+func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+	// Set the version in the status.  This will be updated when the starting install condition is updated.
+	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
+	if err != nil {
+		return err
 	}
 
-	// Add the install started condition if not already added
-	for _, condition := range vz.Status.Conditions {
-		if condition.Type == installv1alpha1.InstallStarted {
-			return nil
-		}
-	}
-
+	vz.Status.Version = bomSemVer.ToString()
 	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
 }
 
-// checkComponentReadyState returns true if all component-level status' are "Ready"
-func checkComponentReadyState(vz *installv1alpha1.Verrazzano) bool {
-	for _, compStatus := range vz.Status.Components {
-		if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
-			return false
+// checkComponentReadyState returns true if all component-level status' are "Ready" for enabled components
+func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (bool, error) {
+	cr := context.ActualCR()
+	if unitTesting {
+		for _, compStatus := range cr.Status.Components {
+			if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+
+	// Return false if any enabled component is not ready
+	for _, comp := range registry.GetComponents() {
+		if comp.IsEnabled(context) && cr.Status.Components[comp.Name()].State != installv1alpha1.Ready {
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
@@ -890,73 +745,6 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 	}
 
 	return r.updateStatus(log, vz, "Verrazzano uninstall in progress", installv1alpha1.UninstallStarted)
-}
-
-// saveInstallSpec Saves the install spec in a configmap to use with upgrade/updates later on
-func (r *Reconciler) saveVerrazzanoSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (err error) {
-	installSpecBytes, err := yaml.Marshal(vz.Spec)
-	if err != nil {
-		return err
-	}
-	installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
-	installConfig, err := r.getInternalConfigMap(ctx, vz)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			return err
-		}
-		configMapName := buildInternalConfigMapName(vz.Name)
-		configData := make(map[string]string)
-		configData[configDataKey] = installSpec
-		// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
-		installConfig = &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      configMapName,
-				Namespace: getInstallNamespace(),
-				OwnerReferences: []metav1.OwnerReference{{
-					APIVersion: vz.APIVersion,
-					Kind:       vz.Kind,
-					Name:       vz.Name,
-					UID:        vz.UID,
-				}},
-			},
-			Data: configData,
-		}
-		err := r.Create(ctx, installConfig)
-		if err != nil {
-			log.Errorf("Unable to create installer config map %s: %v", configMapName, err)
-			return err
-		}
-	} else {
-		// Update the configmap if the data has changed
-		currentConfigData := installConfig.Data[configDataKey]
-		if currentConfigData != installSpec {
-			installConfig.Data[configDataKey] = installSpec
-			return r.Update(ctx, installConfig)
-		}
-	}
-	return nil
-}
-
-// getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
-func (r *Reconciler) getSavedInstallSpec(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
-	configMap, err := r.getInternalConfigMap(ctx, vz)
-	if err != nil {
-		log.Warnf("No saved configuration found for install spec for %s", vz.Name)
-		return nil, err
-	}
-	storedSpec := &installv1alpha1.VerrazzanoSpec{}
-	if specData, ok := configMap.Data[configDataKey]; ok {
-		decodeBytes, err := base64.StdEncoding.DecodeString(specData)
-		if err != nil {
-			log.Errorf("Error decoding saved install spec for %s", vz.Name)
-			return nil, err
-		}
-		if err := yaml.Unmarshal(decodeBytes, storedSpec); err != nil {
-			log.Errorf("Error unmarshalling saved install spec for %s", vz.Name)
-			return nil, err
-		}
-	}
-	return storedSpec, nil
 }
 
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
@@ -1099,18 +887,6 @@ func getIngressIP(c client.Client) (string, error) {
 	return "", fmt.Errorf("Unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
 }
 
-func configFluentdExtraVolumeMounts(vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
-	varLog := "/var/log/containers/"
-	var files []string
-	filepath.Walk(varLog, func(path string, info os.FileInfo, err error) error {
-		if info != nil {
-			files = append(files, readLink(path, info)...)
-		}
-		return nil
-	})
-	return addFluentdExtraVolumeMounts(files, vz)
-}
-
 func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano) *installv1alpha1.Verrazzano {
 	for _, extraMount := range dirsOutsideVarLog(files) {
 		if vz.Spec.Components.Fluentd == nil {
@@ -1216,11 +992,6 @@ func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verra
 func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Finalizer is present, so lets do the uninstall
 	if containsString(vz.ObjectMeta.Finalizers, finalizerName) {
-		// Delete the install job if it exists, cancelling any running install jobs before uninstalling
-		if err := r.deleteInstallJob(log, vz); err != nil {
-			log.Errorf("Failed creating the install job: %v", err)
-			return newRequeueWithDelay(), err
-		}
 		// Create the uninstall job if it doesn't exist
 		if err := r.createUninstallJob(log, vz); err != nil {
 			log.Errorf("Failed creating the uninstall job: %v", err)
@@ -1263,12 +1034,6 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 		return err
 	}
 
-	// Delete the install config map
-	err = r.deleteConfigMap(ctx, log, vz, getInstallNamespace())
-	if err != nil {
-		return err
-	}
-
 	// Delete the verrazzano-system namespace
 	err = r.deleteNamespace(ctx, log, vzconst.VerrazzanoSystemNamespace)
 	if err != nil {
@@ -1292,11 +1057,6 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz 
 		return err
 	}
 
-	// Delete the install config map
-	err = r.deleteConfigMap(ctx, log, vz, vzconst.DefaultNamespace)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -1367,6 +1127,15 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 	_, ok := initializedSet[vz.Name]
 	if ok {
 		return ctrl.Result{}, nil
+	}
+
+	// Add our finalizer if not already added
+	if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
+		log.Debugf("Adding finalizer %s", finalizerName)
+		vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
+		if err := r.Update(context.TODO(), vz); err != nil {
+			return newRequeueWithDelay(), err
+		}
 	}
 
 	// Cleanup old resources that might be left around when the install used to be done

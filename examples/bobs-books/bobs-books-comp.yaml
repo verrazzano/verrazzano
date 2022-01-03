@@ -187,6 +187,8 @@ spec:
             weblogic.resourceVersion: domain-v8
             weblogic.domainUID: bobbys-front-end
         spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
           domainUID: bobbys-front-end
           domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
           auxiliaryImageVolumes:
@@ -236,7 +238,7 @@ spec:
               app: bobbys-front-end
               version: v1
             auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:20211129200415-ae4e89e
+                - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211208104359-15ca14d 
                   volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
@@ -445,6 +447,8 @@ spec:
             weblogic.resourceVersion: domain-v8
             weblogic.domainUID: bobs-bookstore
         spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel

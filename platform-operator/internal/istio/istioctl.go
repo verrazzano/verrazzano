@@ -114,7 +114,7 @@ func runIstioctl(log *zap.SugaredLogger, cmdArgs []string, operationName string)
 		return stdout, stderr, err
 	}
 
-	log.Infof("istioctl %s succeeded: %s", operationName, stdout)
+	log.Debugf("istioctl %s succeeded: %s", operationName, stdout)
 
 	return stdout, stderr, nil
 }

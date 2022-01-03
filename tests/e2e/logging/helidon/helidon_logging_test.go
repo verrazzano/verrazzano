@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	longWaitTimeout      = 10 * time.Minute
+	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
@@ -38,7 +38,15 @@ var _ = BeforeSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	// undeploy the application here
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")

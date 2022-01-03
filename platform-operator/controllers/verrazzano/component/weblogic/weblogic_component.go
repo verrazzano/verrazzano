@@ -3,13 +3,14 @@
 package weblogic
 
 import (
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"path/filepath"
 )
 
 type weblogicComponent struct {
@@ -30,7 +31,15 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         IsWeblogicOperatorReady,
-			IsEnabledFunc:           isWeblogicEnabled,
 		},
 	}
+}
+
+// IsEnabled WebLogic-specific enabled check for installation
+func (c weblogicComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	comp := ctx.EffectiveCR().Spec.Components.WebLogicOperator
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }

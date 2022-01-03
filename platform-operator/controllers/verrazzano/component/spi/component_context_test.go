@@ -79,6 +79,12 @@ func TestContextProfilesMerge(t *testing.T) {
 			expectedYAML: devOCIDNSOverrideMerged,
 		},
 		{
+			name:         "TestDevProfileCertManagerNoCert",
+			description:  "Tests dev profile with Cert-Manager with no certificate",
+			actualCR:     devCertManagerNoCert,
+			expectedYAML: basicDevMerged,
+		},
+		{
 			name:         "TestDevProfileCertManagerOverride",
 			description:  "Tests dev profile with Cert-Manager overrides",
 			actualCR:     devCertManagerOverride,
