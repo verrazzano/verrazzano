@@ -476,7 +476,7 @@ func TestDeleteCertUsedByMultipleTraitsIsNotDeleted(t *testing.T) {
 			trait2.ObjectMeta = metav1.ObjectMeta{
 				Namespace:         "test-space",
 				Name:              "AnotherIngressTraitWithSameCert",
-				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				DeletionTimestamp: nil,
 				Finalizers:        []string{"ingresstrait.finalizers.verrazzano.io"},
 				Labels:            map[string]string{oam.LabelAppName: "myapp"}}
 
@@ -485,6 +485,115 @@ func TestDeleteCertUsedByMultipleTraitsIsNotDeleted(t *testing.T) {
 			return nil
 		})
 	// Ensure that no call to DeleteCertificate and DeleteSecret is made
+	// Expect a call to update the the ingress trait.
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.IngressTrait) error {
+		assert.Equal("test-space", obj.Namespace)
+		assert.Equal("test-trait-name", obj.Name)
+		assert.Len(obj.Finalizers, 0)
+		return nil
+	})
+
+	// Create and make the request
+	request := newRequest("test-space", "test-trait-name")
+	reconciler := newIngressTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(false, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestDeleteCertUsedByMultipleTraitsIsNotDeleted tests the Reconcile method for the following use case.
+// GIVEN a request to reconcile an ingress trait resource that is marked for deletion
+// WHEN the trait exists and the Application has other ingress traits that refer to the same TLS Certificate
+// THEN ensure that the cert and secret associated with the trait are not deleted
+func TestDeleteCertUsedByMultipleTraitsIsDeletedIfAllTraitsAreDeleted(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	// Expect a call to get the ingress trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
+			trait.TypeMeta = metav1.TypeMeta{
+				APIVersion: "oam.verrazzano.io/v1alpha1",
+				Kind:       "IngressTrait"}
+			trait.ObjectMeta = metav1.ObjectMeta{
+				Namespace:         name.Namespace,
+				Name:              name.Name,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				Finalizers:        []string{"ingresstrait.finalizers.verrazzano.io"},
+				Labels:            map[string]string{oam.LabelAppName: "myapp"}}
+			trait.Spec.Rules = []vzapi.IngressRule{{
+				Hosts: []string{"test-host"},
+				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
+			trait.Spec.TLS = vzapi.IngressSecurity{SecretName: "cert-secret"}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       "test-workload-name"}
+			return nil
+		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ingressList *vzapi.IngressTraitList, listOptions ...client.ListOption) error {
+			// IngressTrait that needs to be deleted.
+			trait1 := vzapi.IngressTrait{}
+			trait1.TypeMeta = metav1.TypeMeta{
+				APIVersion: "oam.verrazzano.io/v1alpha1",
+				Kind:       "IngressTrait"}
+			trait1.ObjectMeta = metav1.ObjectMeta{
+				Namespace:         "test-space",
+				Name:              "test-trait-name",
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				Finalizers:        []string{"ingresstrait.finalizers.verrazzano.io"},
+				Labels:            map[string]string{oam.LabelAppName: "myapp"}}
+			trait1.Spec.Rules = []vzapi.IngressRule{{
+				Hosts: []string{"test-host"},
+				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
+			trait1.Spec.TLS = vzapi.IngressSecurity{SecretName: "cert-secret"}
+			trait1.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       "test-workload-name"}
+			trait1.Status.Resources = []oamrt.TypedReference{
+				{
+					Name: "test-space-myapp-cert",
+					Kind: certificateKind,
+				},
+			}
+			// Create IngressTrait 'AnotherIngressTraitWithSameCert' by doing a deep copy
+			// of trait1 and just changing the name
+			trait2 := trait1.DeepCopy()
+			trait2.ObjectMeta = metav1.ObjectMeta{
+				Namespace:         "test-space",
+				Name:              "AnotherIngressTraitWithSameCert",
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				Finalizers:        []string{"ingresstrait.finalizers.verrazzano.io"},
+				Labels:            map[string]string{oam.LabelAppName: "myapp"}}
+
+			// Fill ingressList with 2 IngressTraits referencing the same cert and cert secret
+			ingressList.Items = []vzapi.IngressTrait{trait1, *trait2}
+			return nil
+		})
+	// Expect a call to delete the cert
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
+			assert.Equal("istio-system", cert.Namespace)
+			assert.Equal("test-space-myapp-cert", cert.Name)
+			return nil
+		})
+	// Expect a call to delete the secret
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, sec *k8score.Secret, opt *client.DeleteOptions) error {
+			assert.Equal("istio-system", sec.Namespace)
+			assert.Equal("test-space-myapp-cert-secret", sec.Name)
+			return nil
+		})
 	// Expect a call to update the the ingress trait.
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.IngressTrait) error {
 		assert.Equal("test-space", obj.Namespace)
