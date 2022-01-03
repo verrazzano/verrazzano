@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
@@ -262,11 +263,14 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 					if len(port.Protocol) > 0 {
 						protocol = port.Protocol
 					}
+					appProtocol := strings.ToLower(string(protocol))
+
 					servicePort := corev1.ServicePort{
 						Name:       name,
 						Port:       port.ContainerPort,
 						TargetPort: intstr.FromInt(int(port.ContainerPort)),
 						Protocol:   protocol,
+						AppProtocol: &appProtocol,
 					}
 					r.Log.V(1).Info("Appending port to service", "servicePort", servicePort)
 					s.Spec.Ports = append(s.Spec.Ports, servicePort)
