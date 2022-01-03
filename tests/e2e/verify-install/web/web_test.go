@@ -7,9 +7,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -99,14 +97,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-				// HTTP Server headers should never be returned.
-				for headerName, headerValues := range resp.Header {
-					Expect(strings.ToLower(headerName)).ToNot(Equal("server"), fmt.Sprintf("Unexpected Server header %v", headerValues))
-				}
+				// There should be no server header found and no errors should occur during the request
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "server", 0)
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -118,14 +112,11 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
 				// HTTP Access-Control-Allow-Origin header should never be returned.
-				for headerName, headerValues := range resp.Header {
-					Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
-				}
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(
+						httpClient, req, "access-control-allow-origin", 0)
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -138,14 +129,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				req.Header.Add("Origin", "*")
 				Expect(err).ShouldNot(HaveOccurred())
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-				// HTTP Access-Control-Allow-Origin header should never be returned.
-				for headerName, headerValues := range resp.Header {
-					Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
-				}
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(
+						httpClient, req, "access-control-allow-origin", 0)
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -158,14 +145,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				req.Header.Add("Origin", "null")
 				Expect(err).ShouldNot(HaveOccurred())
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-				// HTTP Access-Control-Allow-Origin header should never be returned.
-				for headerName, headerValues := range resp.Header {
-					Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
-				}
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(
+						httpClient, req, "access-control-allow-origin", 0)
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -191,11 +174,9 @@ var _ = Describe("Verrazzano Web UI", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Content-Length", "36")
 				req.Header.Add("Transfer-Encoding", "chunked")
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-				Expect(resp.StatusCode).To(Equal(400))
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 400)
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -208,11 +189,9 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("POST", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Origin", "https://invalid-origin")
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-				Expect(resp.StatusCode).To(Equal(403))
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 403)
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
 
@@ -225,17 +204,10 @@ var _ = Describe("Verrazzano Web UI", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Origin", "https://invalid-origin")
-				resp, err := httpClient.Do(req)
-				Expect(err).ShouldNot(HaveOccurred())
-				ioutil.ReadAll(resp.Body)
-				resp.Body.Close()
-				Expect(resp.StatusCode).To(Equal(200))
-				// HTTP Access-Control-Allow-Origin header should never be returned.
-				for headerName, headerValues := range resp.Header {
-					Expect(strings.ToLower(headerName)).ToNot(Equal("access-control-allow-origin"), fmt.Sprintf("Unexpected header %s:%v", headerName, headerValues))
-				}
+				Eventually(func() error {
+					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "access-control-allow-origin", 200)
+				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
 		})
-
 	})
 })

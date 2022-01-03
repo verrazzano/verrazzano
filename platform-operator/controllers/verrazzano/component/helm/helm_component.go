@@ -9,7 +9,10 @@ import (
 	"os"
 	"strings"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -63,10 +66,10 @@ type HelmComponent struct {
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
-	//SupportsOperatorInstall Indicates whether or not the component supports install via the operator
+	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
 	SupportsOperatorInstall bool
 
-	//WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
+	// WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
 	WaitForInstall bool
 
 	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
@@ -81,6 +84,7 @@ type HelmComponent struct {
 
 	// The minimum required Verrazzano version.
 	MinVerrazzanoVersion string
+	IngressNames         []types.NamespacedName
 }
 
 // Verify that HelmComponent implements Component
@@ -227,6 +231,15 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 			return err
 		}
 	}
+
+	// If the component has any ingresses associated, those should be present
+	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context)) {
+		return ctrlerrors.RetryableError{
+			Source:    h.ReleaseName,
+			Operation: "Check if Ingresses are present",
+		}
+	}
+
 	return nil
 }
 
@@ -414,6 +427,10 @@ func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 
 func (h HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
+}
+
+func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.NamespacedName {
+	return h.IngressNames
 }
 
 // GetInstallArgs returns the list of install args as Helm value pairs

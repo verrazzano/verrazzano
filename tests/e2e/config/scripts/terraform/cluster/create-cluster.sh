@@ -23,6 +23,8 @@ while true; do
       echo "Terraform apply tries exceeded.  Cluster creation has failed!"
       break
    fi
+   echo "Deleting Cluster Terraform and applying again"
+   $SCRIPT_DIR/delete-cluster.sh
    sleep 30
 done
 

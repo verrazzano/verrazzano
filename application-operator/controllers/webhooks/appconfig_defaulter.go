@@ -6,17 +6,11 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	v1beta12 "k8s.io/api/admission/v1beta1"
-	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -103,16 +97,6 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 
 // cleanupAppConfig cleans up the generated certificates and secrets associated with the given app config
 func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfiguration) (err error) {
-	err = a.cleanupCert(appConfig)
-	if err != nil {
-		return
-	}
-
-	err = a.cleanupSecret(appConfig)
-	if err != nil {
-		return
-	}
-
 	// Fixup Istio Authorization policies within a project
 	ap := &AuthorizationPolicy{
 		Client:      a.Client,
@@ -120,64 +104,4 @@ func (a *AppConfigWebhook) cleanupAppConfig(appConfig *oamv1.ApplicationConfigur
 		IstioClient: a.IstioClient,
 	}
 	return ap.cleanupAuthorizationPoliciesForProjects(appConfig.Namespace, appConfig.Name)
-}
-
-// cleanupCert cleans up the generated certificate for the given app config
-func (a *AppConfigWebhook) cleanupCert(appConfig *oamv1.ApplicationConfiguration) (err error) {
-	gatewayCertName := fmt.Sprintf("%s-%s-cert", appConfig.Namespace, appConfig.Name)
-	namespacedName := types.NamespacedName{Name: gatewayCertName, Namespace: constants.IstioSystemNamespace}
-	var cert *certapiv1alpha2.Certificate
-	cert, err = fetchCert(context.TODO(), a.Client, namespacedName)
-	if err != nil {
-		return err
-	}
-	if cert != nil {
-		err = a.Client.Delete(context.TODO(), cert, &client.DeleteOptions{})
-	}
-	return
-}
-
-// cleanupSecret cleans up the generated secret for the given app config
-func (a *AppConfigWebhook) cleanupSecret(appConfig *oamv1.ApplicationConfiguration) (err error) {
-	gatewaySecretName := fmt.Sprintf("%s-%s-cert-secret", appConfig.Namespace, appConfig.Name)
-	namespacedName := types.NamespacedName{Name: gatewaySecretName, Namespace: constants.IstioSystemNamespace}
-	var secret *corev1.Secret
-	secret, err = fetchSecret(context.TODO(), a.Client, namespacedName)
-	if err != nil {
-		return err
-	}
-	if secret != nil {
-		err = a.Client.Delete(context.TODO(), secret, &client.DeleteOptions{})
-	}
-	return
-}
-
-// fetchCert gets the cert for the given name; returns nil Certificate if not found
-func fetchCert(ctx context.Context, c client.Reader, name types.NamespacedName) (*certapiv1alpha2.Certificate, error) {
-	var cert certapiv1alpha2.Certificate
-	err := c.Get(ctx, name, &cert)
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			appConfDefLog.Info("cert does not exist", "cert", name)
-			return nil, nil
-		}
-		appConfDefLog.Info("failed to fetch cert", "cert", name)
-		return nil, err
-	}
-	return &cert, err
-}
-
-// fetchSecret gets the secret for the given name; returns nil Secret if not found
-func fetchSecret(ctx context.Context, c client.Reader, name types.NamespacedName) (*corev1.Secret, error) {
-	var secret corev1.Secret
-	err := c.Get(ctx, name, &secret)
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			appConfDefLog.Info("secret does not exist", "secret", name)
-			return nil, nil
-		}
-		appConfDefLog.Info("failed to fetch secret", "secret", name)
-		return nil, err
-	}
-	return &secret, err
 }

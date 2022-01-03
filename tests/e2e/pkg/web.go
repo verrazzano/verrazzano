@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -179,6 +180,35 @@ func CheckNoServerHeader(resp *HTTPResponse) bool {
 	}
 
 	return true
+}
+
+// CheckStatusAndResponseHeaderAbsent checks that the given header name is not present in the http response, and that the
+// response status code is as expected. If the statusCode is <= 0, the status code check is skipped. If
+// the badRespHeader is "", the response headers are not checked.
+func CheckStatusAndResponseHeaderAbsent(httpClient *retryablehttp.Client, req *retryablehttp.Request, badRespHeader string, statusCode int) error {
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if statusCode > 0 {
+		if resp.StatusCode != statusCode {
+			return fmt.Errorf("Expected status code %d but got %d", statusCode, resp.StatusCode)
+		}
+	}
+	if badRespHeader != "" {
+		// Check that the HTTP header we don't want is not present in the response.
+		badHeaderLower := strings.ToLower(badRespHeader)
+		for headerName, headerValues := range resp.Header {
+			if strings.ToLower(headerName) == badHeaderLower {
+				errMsg := fmt.Sprintf("Unexpected %s header %v", headerName, headerValues)
+				Log(Error, errMsg)
+				return fmt.Errorf(errMsg)
+			}
+		}
+	}
+	return nil
 }
 
 // GetSystemVmiHTTPClient returns a retryable HTTP client configured with the system vmi CA cert
