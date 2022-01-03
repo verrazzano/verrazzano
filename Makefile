@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 .DEFAULT_GOAL := help
@@ -99,7 +99,7 @@ copyright-check-year: copyright-test ## check copyright notices have correct cur
 
 .PHONY: copyright-check
 copyright-check: copyright-test  ## check copyright notices are correct
-	go run tools/copyright/copyright.go --verbose --enforce-current .
+	go run tools/copyright/copyright.go --verbose .
 
 .PHONY: copyright-check-local
 copyright-check-local: copyright-test  ## check copyright notices are correct in local working copy
