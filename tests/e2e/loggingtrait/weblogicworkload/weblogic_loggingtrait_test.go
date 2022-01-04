@@ -40,7 +40,7 @@ var _ = AfterEach(func() {
 })
 
 var _ = AfterSuite(func() {
-	if failed{
+	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName)
