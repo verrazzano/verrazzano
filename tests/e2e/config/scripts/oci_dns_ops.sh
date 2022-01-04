@@ -55,8 +55,14 @@ if [ "${DNS_SCOPE_INPUT:-}" ] ; then
 fi
 
 set -o pipefail
-ZONE_NAME="${SUBDOMAIN_NAME}.v8o.io"
-VIEW_NAME="${SUBDOMAIN_NAME}-view"
+if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
+  ZONE_NAME="${SUBDOMAIN_NAME}-private.v8o.io"
+  VIEW_NAME="${SUBDOMAIN_NAME}-private-view"
+else
+  ZONE_NAME="${SUBDOMAIN_NAME}.v8o.io"
+  VIEW_NAME="${SUBDOMAIN_NAME}-view"
+fi
+
 
 zone_ocid=""
 status_code=1
