@@ -111,6 +111,7 @@ pipeline {
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
+
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -456,6 +457,12 @@ pipeline {
                         expression {SKIP_ACCEPTANCE_TESTS == false};
                     }
                 }
+            }
+
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
             steps {
