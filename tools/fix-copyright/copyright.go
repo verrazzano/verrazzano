@@ -82,9 +82,12 @@ var (
 
 	verbose = false
 
-	excludePatterns   pattern = []*regexp.Regexp{}
-	includePatterns   pattern = []*regexp.Regexp{}
-	extensionFlagVal  string
+	excludePatterns  pattern = []*regexp.Regexp{}
+	includePatterns  pattern = []*regexp.Regexp{}
+	extensionFlagVal string
+
+	// useExistingHeader - use the create date from the existing header if it predates the Git status history.
+	// This was added because the location of some files was changed by recreating the file and preserving the existing copyright header.
 	useExistingHeader *bool
 )
 
@@ -386,6 +389,8 @@ func fixHeaders(args []string) error {
 				}
 			}
 
+			// Determine if existing years from header are to be trusted over the years derived from git log history.
+			// The need for this is when files were moved without the repo by recreating them.
 			if *useExistingHeader {
 				log.Printf("Using years from existing header, CreatedYear = %s, UpdatedYear = %s", createdYearFromHeader, updatedYearFromHeader)
 				params.CreatedYear = createdYearFromHeader
@@ -395,6 +400,9 @@ func fixHeaders(args []string) error {
 				}
 			} else if createdYearFromHeader != "" {
 				log.Printf("Created year in copyright header is %s, actual created year is %s\n", createdYearFromHeader, gfi.CreatedYear)
+			}
+			if createdYearFromHeader != "" {
+				params.CreatedYear = createdYearFromHeader
 			}
 
 			header, err := renderTemplate(t, params)
