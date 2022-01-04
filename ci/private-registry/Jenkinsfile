@@ -9,7 +9,7 @@ def agentLabel = "phxlarge"
 def ocirRegion = "phx"
 def imageRepoSubPath=""
 def baseImageRepo=""
-def dockerRunnerArgs="${RUNNER_DOCKER_ARGS} --add-host=ephemeral.harbor.v8o.io:127.0.0.1"
+def dockerRunnerArgs="${RUNNER_DOCKER_ARGS}"
 
 pipeline {
     options {
