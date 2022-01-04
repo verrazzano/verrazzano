@@ -17,7 +17,7 @@ GENERATED_CRDS_DIR=$SCRIPT_DIR/../helm_config/charts/verrazzano-platform-operato
 # cases correctly with the same set of options.
 
 # First put in the headers from the Git history
-go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go -useExistingHeader $GENERATED_CRDS_DIR
+go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go -useExistingUpdateYearFromHeader $GENERATED_CRDS_DIR
 
 # Then fix the updated year for files that were modified this year
 go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go $GENERATED_CRDS_DIR

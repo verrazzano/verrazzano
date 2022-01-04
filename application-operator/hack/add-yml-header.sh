@@ -11,4 +11,4 @@ set -o pipefail
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 YML_FILENAME=${SCRIPT_DIR}/../${1}
-go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go -useExistingHeader -extension .yaml ${YML_FILENAME}
+go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go -useExistingUpdateYearFromHeader -extension .yaml ${YML_FILENAME}
