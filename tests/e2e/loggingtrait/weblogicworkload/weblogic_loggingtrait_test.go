@@ -34,7 +34,15 @@ var _ = BeforeSuite(func() {
 	deployWebLogicApplication()
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = AfterSuite(func() {
+	if failed{
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName)
 })
 
