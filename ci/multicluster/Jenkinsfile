@@ -394,6 +394,7 @@ pipeline {
                         }
                         failure {
                             script {
+                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-dump")
                                 INSTALL_METRICS_PUSHED=metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
                             }
                         }
