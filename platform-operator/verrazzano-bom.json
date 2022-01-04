@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20211130230102-4f1415cb5",
+              "tag": "1.2.0-20211212162439-4f1415cb5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20211130230128-4f1415cb5",
+              "tag": "1.2.0-20211212162513-4f1415cb5",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20211130230102-4f1415cb5",
+              "tag": "1.2.0-20211212162439-4f1415cb5",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20211130230102-4f1415cb5",
+              "tag": "1.2.0-20211212162439-4f1415cb5",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.7.1-20211213123722-e50bdf23",
+              "tag": "v0.7.1-20211220163634-96309cf6",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -187,7 +187,7 @@
             },
             {
               "image": "node-exporter",
-              "tag": "1.0.0-20211125052853-e25ae11",
+              "tag": "1.0.0-20211213080828-e25ae11",
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
@@ -210,6 +210,20 @@
               "image": "prometheus",
               "tag": "v2.21.0-1",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
+            },
+            {
+              "registry": "phx.ocir.io",
+              "repository": "odx-sre/sauron",
+              "image": "opensearch-mirror",
+              "tag": "1.1.0-2",
+              "helmFullImageKey": "monitoringOperator.esImage"
+            },
+            {
+              "registry": "phx.ocir.io",
+              "repository": "odx-sre/sauron",
+              "image": "opensearch-dashboards-mirror",
+              "tag": "1.1.0-2",
+              "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
               "image": "configmap-reload",
