@@ -67,18 +67,9 @@ var _ = BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 })
 
-var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
-})
-
-var _ = AfterSuite(func() {
-	if failed {
-		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error dumping cluster %v", err))
-		}
-	}
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	// undeploy the application here
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
