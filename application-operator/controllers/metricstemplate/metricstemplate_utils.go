@@ -5,6 +5,7 @@ package metricstemplate
 
 import (
 	"fmt"
+
 	"github.com/Jeffail/gabs/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

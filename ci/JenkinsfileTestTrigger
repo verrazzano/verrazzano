@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
@@ -52,6 +52,10 @@ pipeline {
         string (name: 'EXCLUDED_TESTS',
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
+                trim: true)
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: 'master',
+                description: 'The branch to check out after cloning the console repository.',
                 trim: true)
     }
 
@@ -138,7 +142,8 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
                                 ], wait: true
                         }
                     }
@@ -171,7 +176,8 @@ pipeline {
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                    string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                 ], wait: true
                         }
                     }

@@ -70,7 +70,7 @@ spec:
         podSpec:
           containers:
             - name: robert-helidon-stock-application
-              image: "ghcr.io/verrazzano/example-roberts-helidon-stock-application:1.0.0-1-20211215184123-0a1b633"
+              image: container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application:1.0.0-1-20210728181814-eb1e622
               imagePullPolicy: IfNotPresent
               ports:
                 - name: http
@@ -150,7 +150,7 @@ spec:
         podSpec:
           containers:
             - name: bobbys-helidon-stock-application
-              image: "ghcr.io/verrazzano/example-bobbys-helidon-stock-application:1.0.0-1-20211215184123-0a1b633"
+              image: container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application:1.0.0-1-20210728181814-eb1e622
               imagePullPolicy: IfNotPresent
               ports:
                 - containerPort: 8080
@@ -238,8 +238,8 @@ spec:
               app: bobbys-front-end
               version: v1
             auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211208104359-15ca14d 
-                  volume: auxiliaryImageVolume1
+              - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20211208104359-15ca14d
+                volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -501,8 +501,8 @@ spec:
               app: bobs-orders-wls
               version: v1
             auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:20211129200415-ae4e89e
-                  volume: auxiliaryImageVolume1
+              - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:20211129200415-ae4e89e
+                volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
