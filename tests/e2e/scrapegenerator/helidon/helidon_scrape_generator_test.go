@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // +build metrics_template_test
@@ -28,7 +28,9 @@ var _ = BeforeSuite(func() {
 	scrapegenerator.DeployApplication(namespace, yamlPath)
 })
 
-var _ = AfterSuite(func() {
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	scrapegenerator.UndeployApplication(namespace, yamlPath)
 })
 
