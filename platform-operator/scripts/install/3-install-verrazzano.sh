@@ -251,6 +251,7 @@ function install_weblogic_operator {
   helm upgrade --install --wait ${chart_name} \
     ${CHARTS_DIR}/weblogic-operator \
     --namespace "${VERRAZZANO_NS}" \
+    --timeout 10m \
     -f $VZ_OVERRIDES_DIR/weblogic-values.yaml \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
