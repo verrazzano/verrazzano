@@ -226,9 +226,8 @@ func main() {
 				webhooks.ScrapeGeneratorLoadPath,
 				&webhook.Admission{
 					Handler: &webhooks.ScrapeGeneratorWebhook{
-						Client:        mgr.GetClient(),
-						KubeClient:    kubeClient,
-						DynamicClient: dynamicClient,
+						Client:     mgr.GetClient(),
+						KubeClient: kubeClient,
 					},
 				},
 			)

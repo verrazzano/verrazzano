@@ -4,13 +4,14 @@
 package metricstemplate
 
 import (
+	"os"
+	"testing"
+
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"testing"
 )
 
 const (
