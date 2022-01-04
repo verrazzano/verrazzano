@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
@@ -27,7 +26,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:          "cert-manager",
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:  imagePullSecretHelmKey,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,

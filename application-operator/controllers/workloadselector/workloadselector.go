@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package workloadselector
@@ -80,7 +80,6 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 	if objectSelector == nil || reflect.DeepEqual(objectSelector, metav1.LabelSelector{}) {
 		return true, nil
 	}
-
 	// Check if the workload resource labels match the object label selector
 	label, err := metav1.LabelSelectorAsSelector(objectSelector)
 	if err != nil {

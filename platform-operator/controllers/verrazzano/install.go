@@ -24,20 +24,17 @@ import (
 // 3. Loop through all components before returning, except for the case
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
-func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogger, cr *vzapi.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.ComponentContext) (ctrl.Result, error) {
+	log := spiCtx.Log()
+	cr := spiCtx.ActualCR()
 	log.Debugf("reconcileComponents for installation")
 
 	var requeue bool
 
-	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		compContext := newContext.For(compName).Operation(vzconst.InstallOperation)
+		compContext := spiCtx.For(compName).Operation(vzconst.InstallOperation)
 		log.Debugf("processing install for %s", compName)
 
 		if !comp.IsOperatorInstallSupported() {
@@ -66,7 +63,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 					comp.Name(), comp.GetMinVerrazzanoVersion())
 				continue
 			}
-			if err := r.updateComponentStatus(log, cr, comp.Name(), "PreInstall started", vzapi.PreInstall); err != nil {
+			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.PreInstall); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			requeue = true
@@ -89,7 +86,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 				requeue = true
 				continue
 			}
-			if err := r.updateComponentStatus(log, cr, comp.Name(), "Install started", vzapi.InstallStarted); err != nil {
+			if err := r.updateComponentStatus(compContext, "Install started", vzapi.InstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			// Install started requeue to check status
@@ -108,7 +105,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, log *zap.SugaredLogg
 					continue
 				}
 				log.Infof("Component %s has been successfully installed", comp.Name())
-				if err := r.updateComponentStatus(log, cr, comp.Name(), "Install complete", vzapi.InstallComplete); err != nil {
+				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 				// Don't requeue because of this component, it is done install

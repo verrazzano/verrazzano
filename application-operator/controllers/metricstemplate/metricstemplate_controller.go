@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstemplate
@@ -6,6 +6,7 @@ package metricstemplate
 import (
 	"context"
 	"fmt"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -46,24 +47,25 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "Deployment"); err != nil {
 		return err
 	}
-	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "ReplicaSet"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "StatefulSet"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "DaemonSet"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v7", "Domain"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v8", "Domain"); err != nil {
-		return err
-	}
-	if err := r.setupWithManagerForGVK(mgr, "coherence.oracle.com", "v1", "Coherence"); err != nil {
-		return err
-	}
+	// Disabling for now as Domain and Coherence cause problems when those CRDs don't exist.
+	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "ReplicaSet"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "StatefulSet"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "DaemonSet"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v7", "Domain"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v8", "Domain"); err != nil {
+	//	return err
+	//}
+	//if err := r.setupWithManagerForGVK(mgr, "coherence.oracle.com", "v1", "Coherence"); err != nil {
+	//	return err
+	//}
 	return nil
 }
 
@@ -99,6 +101,9 @@ func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (
 	// TODO: Replace with more generic lookup
 	uns.SetGroupVersionKind(schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "Deployment"})
 	if err := r.Client.Get(context.TODO(), namespacedName, &uns); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, err
+		}
 		r.Log.Error(err, fmt.Sprintf("Could not get the requested resource: %s", uns.GetKind()))
 		return nil, err
 	}

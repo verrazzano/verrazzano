@@ -1,16 +1,17 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstemplate
 
 import (
+	"os"
+	"testing"
+
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"testing"
 )
 
 const (

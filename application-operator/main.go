@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package main
@@ -135,23 +135,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		setupLog.Error(err, "unable to get kubeconfig")
+		os.Exit(1)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		setupLog.Error(err, "unable to get clientset")
+		os.Exit(1)
+	}
+
 	if enableWebhooks {
 		setupLog.Info("Setting up certificates for webhook")
 		caCert, err := certificates.SetupCertificates(certDir)
 		if err != nil {
 			setupLog.Error(err, "unable to setup certificates for webhook")
-			os.Exit(1)
-		}
-
-		config, err := ctrl.GetConfig()
-		if err != nil {
-			setupLog.Error(err, "unable to get kubeconfig")
-			os.Exit(1)
-		}
-
-		kubeClient, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			setupLog.Error(err, "unable to get clientset")
 			os.Exit(1)
 		}
 
@@ -398,13 +398,16 @@ func main() {
 		os.Exit(1)
 	}
 	// Register the metrics workload controller
-	if err = (&metricstemplate.Reconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("MetricsTemplate"),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MetricsTemplate")
-		os.Exit(1)
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
+	if err == nil {
+		if err = (&metricstemplate.Reconciler{
+			Client: mgr.GetClient(),
+			Log:    ctrl.Log.WithName("controllers").WithName("MetricsTemplate"),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "MetricsTemplate")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

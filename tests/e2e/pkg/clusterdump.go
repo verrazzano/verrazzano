@@ -1,13 +1,56 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo/v2"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"time"
 )
+
+//ClusterDumpWrapper creates cluster dumps if the test fails (spec or aftersuite)
+// A maximum of two cluster dumps will be generated:
+// - dump if any spec in the suite fails
+// - dump if the aftersuite fails
+type ClusterDumpWrapper struct {
+	failed bool
+}
+
+func NewClusterDumpWrapper() *ClusterDumpWrapper {
+	return &ClusterDumpWrapper{}
+}
+
+//AfterEach wraps ginkgo.AfterEach
+// usage: var _ = c.AfterEach(func() { ...after each logic... })
+func (c *ClusterDumpWrapper) AfterEach(body func()) bool {
+	return ginkgo.AfterEach(func() {
+		c.failed = c.failed || ginkgo.CurrentSpecReport().Failed()
+		body()
+	})
+}
+
+//AfterSuite wraps ginkgo.AfterSuite
+// usage: var _ = c.AfterSuite(func() { ...after suite logic... })
+func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
+	return ginkgo.AfterSuite(func() {
+		if c.failed {
+			ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
+		}
+
+		// ginkgo.Fail and gomega matchers panic if they fail. Recover is used to capture the panic and
+		// generate the cluster dump
+		defer func() {
+			if r := recover(); r != nil {
+				ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("aftersuite-%d", time.Now().Unix()))
+			}
+		}()
+		body()
+	})
+}
 
 // ExecuteClusterDump executes the cluster dump tool.
 // command - The fully qualified cluster dump executable.
@@ -33,15 +76,19 @@ func ExecuteClusterDump(command string, kubeconfig string, directory string) err
 	return nil
 }
 
+func ExecuteClusterDumpWithEnvVarSuffix(directorySuffix string) error {
+	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
+	directory := filepath.Join(os.Getenv("DUMP_DIRECTORY"), directorySuffix)
+	command := os.Getenv("DUMP_COMMAND")
+	return ExecuteClusterDump(command, kubeconfig, directory)
+}
+
 // ExecuteClusterDumpWithEnvVarConfig executes the cluster dump tool using config from environment variables.
 // DUMP_KUBECONFIG - The kube config file to use when executing the cluster dump tool.
 // DUMP_DIRECTORY - The directory to store the cluster dump within.
 // DUMP_COMMAND - The fully quallified cluster dump executable.
 func ExecuteClusterDumpWithEnvVarConfig() error {
-	kubeconfig := os.Getenv("DUMP_KUBECONFIG")
-	directory := os.Getenv("DUMP_DIRECTORY")
-	command := os.Getenv("DUMP_COMMAND")
-	return ExecuteClusterDump(command, kubeconfig, directory)
+	return ExecuteClusterDumpWithEnvVarSuffix("")
 }
 
 // DumpContainerLogs executes a "kubectl cp" command to copy a container's log directories to a local path on disk for examination.
