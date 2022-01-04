@@ -32,7 +32,15 @@ var _ = BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath)
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName)
 })
 

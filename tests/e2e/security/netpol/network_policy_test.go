@@ -73,6 +73,12 @@ var _ = AfterEach(func() {
 })
 
 var _ = AfterSuite(func() {
+	if failed {
+		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Error dumping cluster %v", err))
+		}
+	}
 	// undeploy the application here
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
@@ -81,13 +87,6 @@ var _ = AfterSuite(func() {
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-
-	if failed {
-		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error dumping cluster %v", err))
-		}
-	}
 })
 
 var _ = Describe("Test Network Policies", func() {

@@ -28,7 +28,15 @@ var _ = BeforeSuite(func() {
 	scrapegenerator.DeployApplication(namespace, yamlPath)
 })
 
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
 var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	scrapegenerator.UndeployApplication(namespace, yamlPath)
 })
 
