@@ -12,4 +12,12 @@ set -o pipefail
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 GENERATED_CRDS_DIR=$SCRIPT_DIR/../helm_config/charts/verrazzano-platform-operator/crds
 
+# The following two steps are required to handle the cases of running "make manifests" when there
+# are and are not api changes.  This is necessary because fix-copyright currently cannot handle both
+# cases correctly with the same set of options.
+
+# First put in the headers from the Git history
 go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go -useExistingHeader $GENERATED_CRDS_DIR
+
+# Then fix the updated year for files that were modified this year
+go run ${SCRIPT_DIR}/../../tools/fix-copyright/copyright.go $GENERATED_CRDS_DIR
