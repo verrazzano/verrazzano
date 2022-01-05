@@ -4,6 +4,8 @@
 package verrazzano_test
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"math/rand"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,6 +19,8 @@ const (
 	waitTimeout     = 3 * time.Minute
 	pollingInterval = 5 * time.Second
 )
+
+var metricsLogger, _ = metrics.NewMetricsLogger("verrazzano")
 
 var _ = framework.VzDescribe("Verrazzano", func() {
 
@@ -122,7 +126,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(11),
 				"there should be eleven rules")
 		})
@@ -159,7 +163,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(5),
 				"there should be five rules")
 		})
@@ -190,7 +194,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(6),
 				"there should be six rules")
 		})
@@ -222,7 +226,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(3),
 				"there should be three rules")
 		})
@@ -238,7 +242,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 	})
 
 	framework.VzDescribe("ClusterRoleBinding verrazzano-admin", func() {
-		framework.VzIt("has correct subjects and refs", func() {
+		framework.ItM(metricsLogger, "has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -266,7 +270,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 	})
 
 	framework.VzDescribe("ClusterRoleBinding verrazzano-admin-k8s", func() {
-		framework.VzIt("has correct subjects and refs", func() {
+		framework.ItM(metricsLogger, "has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -294,7 +298,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 	})
 
 	framework.VzDescribe("ClusterRoleBinding verrazzano-monitor", func() {
-		framework.VzIt("has correct subjects and refs", func() {
+		framework.ItM(metricsLogger, "has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -322,7 +326,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 	})
 
 	framework.VzDescribe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
-		framework.VzIt("has correct subjects and refs", func() {
+		framework.ItM(metricsLogger, "has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -349,4 +353,13 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 		})
 	})
 
+})
+
+var _ = framework.VzDescribe("Mark's second fake test", func() {
+	framework.ItM(metricsLogger, "randomly fails", func() {
+		rand.Seed(time.Now().UnixNano())
+		r := rand.Intn(4)
+		// fail if the random number was a 1
+		Expect(r).ToNot(Equal(1))
+	})
 })

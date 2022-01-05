@@ -1,14 +1,13 @@
 // Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// +build unstable_test
-
 package vmi_test
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -29,6 +28,8 @@ import (
 )
 
 const verrazzanoNamespace string = "verrazzano-system"
+
+var metricsLogger, _ = metrics.NewMetricsLogger("vmi")
 
 func vmiIngressURLs() (map[string]string, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -129,7 +130,7 @@ var _ = framework.VzDescribe("VMI", func() {
 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()
 	if isManagedClusterProfile {
-		framework.VzIt("Elasticsearch should NOT be present", func() {
+		framework.ItM(metricsLogger, "Elasticsearch should NOT be present", func() {
 			// Verify ES not present
 			Eventually(func() (bool, error) {
 				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
@@ -151,7 +152,7 @@ var _ = framework.VzDescribe("VMI", func() {
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 		})
 	} else {
-		framework.VzIt("Elasticsearch endpoint should be accessible", func() {
+		framework.ItM(metricsLogger, "Elasticsearch endpoint should be accessible", func() {
 			elasticPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
 			}
@@ -165,7 +166,7 @@ var _ = framework.VzDescribe("VMI", func() {
 			Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 		})
 
-		framework.VzIt("Elasticsearch verrazzano-system Index should be accessible", func() {
+		framework.ItM(metricsLogger, "Elasticsearch verrazzano-system Index should be accessible", func() {
 			indexName := "verrazzano-namespace-verrazzano-system"
 			pkg.Concurrently(
 				func() {
@@ -191,12 +192,12 @@ var _ = framework.VzDescribe("VMI", func() {
 			)
 		})
 
-		framework.VzIt("Elasticsearch health should be green", func() {
+		framework.ItM(metricsLogger, "Elasticsearch health should be green", func() {
 			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
 			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
 		})
 
-		framework.VzIt("Elasticsearch systemd journal Index should be accessible", func() {
+		framework.ItM(metricsLogger, "Elasticsearch systemd journal Index should be accessible", func() {
 			Eventually(func() bool {
 				return pkg.FindAnyLog("verrazzano-systemd-journal",
 					[]pkg.Match{
@@ -207,7 +208,7 @@ var _ = framework.VzDescribe("VMI", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 		})
 
-		framework.VzIt("Kibana endpoint should be accessible", func() {
+		framework.ItM(metricsLogger, "Kibana endpoint should be accessible", func() {
 			kibanaPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
 			}
@@ -216,16 +217,16 @@ var _ = framework.VzDescribe("VMI", func() {
 			assertOidcIngressByName("vmi-system-kibana")
 		})
 
-		framework.VzIt("Prometheus endpoint should be accessible", func() {
+		framework.ItM(metricsLogger, "Prometheus endpoint should be accessible", func() {
 			assertOidcIngressByName("vmi-system-prometheus")
 		})
 
-		framework.VzIt("Grafana endpoint should be accessible", func() {
+		framework.ItM(metricsLogger, "Grafana endpoint should be accessible", func() {
 			Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
 			assertOidcIngressByName("vmi-system-grafana")
 		})
 
-		framework.VzIt("Default dashboard should be installed in System Grafana for shared VMI", func() {
+		framework.ItM(metricsLogger, "Default dashboard should be installed in System Grafana for shared VMI", func() {
 			pkg.Concurrently(
 				func() { assertDashboard("Host%20Metrics") },
 				func() { assertDashboard("WebLogic%20Server%20Dashboard") },
@@ -249,7 +250,7 @@ var _ = framework.VzDescribe("VMI", func() {
 			)
 		})
 
-		framework.VzIt("Elasticsearch should be oss flavor", func() {
+		framework.ItM(metricsLogger, "Elasticsearch should be oss flavor", func() {
 			elastic.Connect()
 			Expect(elastic.EsVersion.BuildFlavor).To(Equal("oss"), "elasticsearch should be oss flavor")
 			findLibs, _, _ := pkg.Execute("vmi-system-es-master-0", "es-master", verrazzanoNamespace, []string{"find", ".", "-name", "*x*pack*"})
@@ -279,7 +280,7 @@ var _ = framework.VzDescribe("VMI", func() {
 		})
 	}
 
-	framework.VzIt("Verify the instance info endpoint URLs", func() {
+	framework.ItM(metricsLogger, "Verify the instance info endpoint URLs", func() {
 		if !isManagedClusterProfile {
 			assertInstanceInfoURLs()
 		}
@@ -296,7 +297,7 @@ var _ = framework.VzDescribe("VMI", func() {
 	}
 
 	if pkg.IsDevProfile() {
-		framework.VzIt("Check persistent volumes for dev profile", func() {
+		framework.ItM(metricsLogger, "Check persistent volumes for dev profile", func() {
 			expectedVolumes := 0
 			if override != nil {
 				expectedVolumes = 3
@@ -309,12 +310,12 @@ var _ = framework.VzDescribe("VMI", func() {
 			}
 		})
 	} else if isManagedClusterProfile {
-		framework.VzIt("Check persistent volumes for managed cluster profile", func() {
+		framework.ItM(metricsLogger, "Check persistent volumes for managed cluster profile", func() {
 			Expect(len(volumeClaims)).To(Equal(1))
 			assertPersistentVolume("vmi-system-prometheus", size)
 		})
 	} else if pkg.IsProdProfile() {
-		framework.VzIt("Check persistent volumes for prod cluster profile", func() {
+		framework.ItM(metricsLogger, "Check persistent volumes for prod cluster profile", func() {
 			Expect(len(volumeClaims)).To(Equal(7))
 			assertPersistentVolume("vmi-system-prometheus", size)
 			assertPersistentVolume("vmi-system-grafana", size)

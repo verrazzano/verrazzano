@@ -5,6 +5,7 @@ package kubernetes_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -19,6 +20,8 @@ import (
 const waitTimeout = 15 * time.Minute
 const pollingInterval = 30 * time.Second
 const timeout5Min = 5 * time.Minute
+
+var metricsLogger, _ = metrics.NewMetricsLogger("kubernetes")
 
 var expectedPodsCattleSystem = []string{
 	"rancher"}
@@ -48,14 +51,14 @@ var _ = framework.VzDescribe("Kubernetes Cluster",
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
 
-		framework.VzIt("has the expected number of nodes", func() {
+		framework.ItM(metricsLogger, "has the expected number of nodes", func() {
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
 			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
-		framework.VzIt("has the expected namespaces", func() {
+		framework.ItM(metricsLogger, "has the expected namespaces", func() {
 			var namespaces *v1.NamespaceList
 			Eventually(func() (*v1.NamespaceList, error) {
 				var err error
@@ -188,7 +191,7 @@ var _ = framework.VzDescribe("Kubernetes Cluster",
 			Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
-		framework.VzIt("Expected pods are running", func() {
+		framework.ItM(metricsLogger, "Expected pods are running", func() {
 			pkg.Concurrently(
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
