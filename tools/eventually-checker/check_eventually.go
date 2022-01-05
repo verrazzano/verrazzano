@@ -138,18 +138,22 @@ func analyze(files []*ast.File) {
 // getFuncDeclName constructs a function name of the form pkg.func_name or pkg.type.func_name if the
 // function is a method receiver
 func getFuncDeclName(pkg string, funcDecl *ast.FuncDecl) string {
-	funcName := pkg
+	baseFuncName := pkg
 
 	if funcDecl.Recv != nil {
 		// this function decl is a method receiver so include the type in the name
 		recType := funcDecl.Recv.List[0].Type
 		switch x := recType.(type) {
 		case *ast.StarExpr:
-			funcName = fmt.Sprintf("%s.%s", funcName, x.X)
+			// pointer receiver
+			baseFuncName = fmt.Sprintf("%s.%s", baseFuncName, x.X)
+		case *ast.Ident:
+			// value receiver
+			baseFuncName = fmt.Sprintf("%s.%s", baseFuncName, x)
 		}
 	}
 
-	return fmt.Sprintf("%s.%s", funcName, funcDecl.Name.Name)
+	return fmt.Sprintf("%s.%s", baseFuncName, funcDecl.Name.Name)
 }
 
 // inspectEventuallyAnonFunc finds all function calls in an anonymous function passed to Eventually

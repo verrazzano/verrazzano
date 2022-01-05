@@ -30,7 +30,14 @@ func main() {
 	It("Test 4", func() {
 		Eventually(func() error {
 			var ts internal.TestStruct
-			return ts.ReceiverThatCallsExpect()
+			return ts.PointerReceiverThatCallsExpect()
+		})
+	})
+
+	It("Test 5", func() {
+		Eventually(func() error {
+			var ts internal.TestStruct
+			return ts.ValueReceiverThatCallsExpect()
 		})
 	})
 }

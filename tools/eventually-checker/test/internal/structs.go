@@ -7,7 +7,12 @@ import . "github.com/onsi/gomega" //nolint
 type TestStruct struct {
 }
 
-func (t *TestStruct) ReceiverThatCallsExpect() error {
+func (t *TestStruct) PointerReceiverThatCallsExpect() error {
+	Expect(false).To(BeTrue())
+	return nil
+}
+
+func (t TestStruct) ValueReceiverThatCallsExpect() error {
 	Expect(false).To(BeTrue())
 	return nil
 }
