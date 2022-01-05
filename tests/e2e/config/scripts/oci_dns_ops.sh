@@ -24,7 +24,8 @@ SUBDOMAIN_NAME=""
 COMPARTMENT_OCID="${TF_VAR_compartment_id}"
 OPERATION="create"
 DNS_SCOPE="GLOBAL"
-
+# view id for phx (default)
+VCN_VIEW_ID="ocid1.dnsview.oc1.phx.amaaaaaao3yqxzya2aayydeuvzbz55ksihbim5lisdwu2mjluboxynj7zqtq"
 log () {
   echo "$(date '+[%Y-%m-%d %I:%M:%S %p]') : $1"
 }
@@ -71,18 +72,25 @@ if [ $OPERATION == "create" ]; then
   # exit
   sudo yum -y install patch >/dev/null 2>&1
   if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
-    env
-    log "Creating private dns view '${VIEW_NAME}' details in compartment '${COMPARTMENT_ID}'"
-    oci dns view create -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} --scope PRIVATE
-    if [ $? -ne 0 ];then
-        log "Error while creating dns view"
+    #env
+    #log "Creating private dns view '${VIEW_NAME}' details in compartment '${COMPARTMENT_ID}'"
+    #oci dns view create -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} --scope PRIVATE
+    #if [ $? -ne 0 ];then
+    #    log "Error while creating dns view"
+    #fi
+
+    #log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
+    #VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
+    #if [ $? -ne 0 ];then
+    #    log "Error while creating view '${VIEW_NAME}'"
+    #fi
+
+    if [ ${RUNNER_REGION} != "us-phoenix-1" ];then
+       log "Region is not us-phoenix-1"
+       VCN_VIEW_ID="ocid1.dnsview.oc1.uk-london-1.amaaaaaao3yqxzyad25abmv6eiivxg4n35ajthydc4lgo46f473rkkc3gfwq"
     fi
 
-    log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
-    VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
-    if [ $? -ne 0 ];then
-        log "Error while creating view '${VIEW_NAME}'"
-    fi	            
+    log "Using view id " ${VCN_VIEW_ID}
     zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
@@ -113,16 +121,16 @@ if [ $OPERATION == "create" ]; then
   
 elif [ $OPERATION == "delete" ]; then
   if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
-    log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
-    VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
-    if [ $? -ne 0 ];then
-        log "Error while creating view '${VIEW_NAME}'"
-    fi
+    #log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
+    #VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
+    #if [ $? -ne 0 ];then
+    #    log "Error while creating view '${VIEW_NAME}'"
+    #fi
 
-    oci dns view delete --view-id ${VCN_VIEW_ID} --force
-    if [ $? -ne 0 ];then
-        log "Error while creating view '${VIEW_NAME}'"
-    fi
+    #oci dns view delete --view-id ${VCN_VIEW_ID} --force
+    #if [ $? -ne 0 ];then
+    #    log "Error while creating view '${VIEW_NAME}'"
+    #fi
 
     oci dns zone delete --zone-name-or-id ${ZONE_NAME} --scope PRIVATE --force
     status_code=$?
