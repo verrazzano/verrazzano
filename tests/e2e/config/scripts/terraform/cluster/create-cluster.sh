@@ -39,13 +39,15 @@ echo "updating OKE private_workers_seclist to allow pub_lb_subnet access to work
 # because the OKE still could work if it didn't hit the rate limiting
 
 # find vcn id "${var.label_prefix}-${var.vcn_name}"
+echo "AAMITRA DEBUG : compartment-id " ${TF_VAR_compartment_id}
+echo "AAMITRA DEBUG : display-name " "${TF_VAR_label_prefix}-oke-vcn"
 VCN_ID=$(oci network vcn list \
   --compartment-id "${TF_VAR_compartment_id}" \
   --display-name "${TF_VAR_label_prefix}-oke-vcn" \
   | jq -r '.data[0].id')
 
 if [ -z "$VCN_ID" ]; then
-    echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-oke"
+    echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-oke-vcn"
     exit 0
 fi
 
