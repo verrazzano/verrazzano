@@ -204,27 +204,8 @@ var _ = Describe("Verify ToDo List example application.", func() {
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("[")))
 			Eventually(func() bool {
-				url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
-				resp, err := pkg.PutWithHostHeader(url, "application/json", host, nil)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("PUT failed with error: %v", err))
-					return false
-				}
-				if resp.StatusCode != http.StatusNoContent {
-					pkg.Log(pkg.Error, fmt.Sprintf("Put status code is: %d", resp.StatusCode))
-					return false
-				}
-				url = fmt.Sprintf("https://%s/todo/rest/items", host)
-				resp, err = pkg.GetWebPage(url, host)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("GET failed with error: %v", err))
-					return false
-				}
-				if resp.StatusCode == http.StatusOK && resp.Body != nil {
-					return true
-				}
-				pkg.Log(pkg.Error, fmt.Sprintf("Get status code is: %d", resp.StatusCode))
-				return false
+				return putGetTodoTask(host, task)
+
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 		})
 	})
@@ -418,3 +399,28 @@ var _ = Describe("Verify ToDo List example application.", func() {
 		})
 	})
 })
+
+// function to pair a put and get for a given task item
+func putGetTodoTask(host string, task string) bool {
+	url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
+	resp, err := pkg.PutWithHostHeader(url, "application/json", host, nil)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("PUT failed with error: %v", err))
+		return false
+	}
+	if resp.StatusCode != http.StatusNoContent {
+		pkg.Log(pkg.Error, fmt.Sprintf("Put status code is: %d", resp.StatusCode))
+		return false
+	}
+	url = fmt.Sprintf("https://%s/todo/rest/items", host)
+	resp, err = pkg.GetWebPage(url, host)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("GET failed with error: %v", err))
+		return false
+	}
+	if resp.StatusCode == http.StatusOK && resp.Body != nil {
+		return true
+	}
+	pkg.Log(pkg.Error, fmt.Sprintf("Get status code is: %d", resp.StatusCode))
+	return false
+}
