@@ -41,7 +41,7 @@ pipeline {
                         description: 'This is the wildcard DNS domain',
                         trim: true)
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: 'release-1.0',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
     }
