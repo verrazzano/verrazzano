@@ -173,7 +173,7 @@ func Emit(log *zap.SugaredLogger) {
 	if spec.State != types.SpecStateInvalid {
 		log = log.With(Status, spec.State)
 	}
-	t := spec.LeafNodeText
+	t := spec.FullText()
 
 	log.With(attempts, spec.NumAttempts).
 		With(test, t).
