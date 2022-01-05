@@ -110,7 +110,13 @@ deploy_harbor() {
 #  if [ $? -ne 0 ]; then
 #    exit 1
 #  fi
-  sleep 50
+  sleep 10
+  kubectl wait --namespace default \
+  --for=condition=ready pod \
+  --all \
+  --timeout=120s
+
+  kubectl get pods -A
 
   docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
   if [ $? -ne 0 ]; then
