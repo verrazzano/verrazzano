@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: clusters.verrazzano.io/v1alpha1
 kind: MultiClusterComponent
@@ -23,7 +23,7 @@ spec:
             podSpec:
               containers:
                 - name: hello-helidon-container
-                  image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:0.1.12-1-20210409130027-707ecc4"
+                  image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20211215184123-0a1b633"
                   ports:
                     - containerPort: 8080
                       name: http

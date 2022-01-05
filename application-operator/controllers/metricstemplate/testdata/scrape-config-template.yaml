@@ -1,0 +1,52 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+kubernetes_sd_configs:
+  - namespaces:
+      names:
+      - {{.workload.metadata.namespace}}
+    role: pod
+# Hardcoded Path
+metrics_path: /metrics
+relabel_configs:
+  - action: replace
+    replacement: local
+    source_labels: null
+    target_label: verrazzano_cluster
+  - action: keep
+    regex: {{.workload.spec.template.metadata.labels.app}}
+    source_labels:
+      - __meta_kubernetes_pod_label_app
+  - action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    # Hardcoded Port
+    replacement: $1:8080
+    source_labels:
+      - __address__
+    target_label: __address__
+  - action: replace
+    regex: (.*)
+    replacement: $1
+    source_labels:
+      - __meta_kubernetes_namespace
+    target_label: namespace
+  - action: labelmap
+    regex: __meta_kubernetes_pod_label_(.+)
+  - action: replace
+    source_labels:
+      - __meta_kubernetes_pod_name
+    target_label: pod_name
+  - action: labeldrop
+    regex: (controller_revision_hash)
+  - action: replace
+    regex: .*/(.*)$
+    replacement: $1
+    source_labels:
+      - name
+    target_label: webapp
+scheme: https
+tls_config:
+  ca_file: /etc/istio-certs/root-cert.pem
+  cert_file: /etc/istio-certs/cert-chain.pem
+  insecure_skip_verify: true
+  key_file: /etc/istio-certs/key.pem

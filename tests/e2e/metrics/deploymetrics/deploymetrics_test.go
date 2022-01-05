@@ -88,7 +88,13 @@ func undeployMetricsApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace(testNamespace)
+		ns, err := pkg.GetNamespace(testNamespace)
+		if err == nil {
+			finalizeErr := pkg.RemoveNamespaceFinalizers(ns)
+			if finalizeErr != nil {
+				return false
+			}
+		}
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 }

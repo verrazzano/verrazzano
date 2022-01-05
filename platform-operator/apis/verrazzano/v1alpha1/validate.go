@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -21,6 +23,33 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+type authenticationType string
+
+const (
+	// UserPrincipal is default auth type
+	userPrincipal authenticationType = "user_principal"
+	// InstancePrincipal is used for instance principle auth type
+	instancePrincipal authenticationType = "instance_principal"
+	// InstancePrincipalDelegationToken is used for instance principle delegation token auth type
+	InstancePrincipalDelegationToken authenticationType = "instance_principle_delegation_token"
+	// UnknownAuthenticationType is used for none meaningful auth type
+	UnknownAuthenticationType authenticationType = "unknown_auth_type"
+	ociSecretFileName                            = "oci.yaml"
+)
+
+// OCI Secret Auth
+type authData struct {
+	Region      string             `yaml:"region"`
+	Tenancy     string             `yaml:"tenancy"`
+	User        string             `yaml:"user"`
+	Key         string             `yaml:"key"`
+	Fingerprint string             `yaml:"fingerprint"`
+	AuthType    authenticationType `yaml:"authtype"`
+}
+type ociAuth struct {
+	auth authData `yaml:"auth"`
+}
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
 func GetCurrentBomVersion() (*semver.SemVersion, error) {
@@ -162,6 +191,17 @@ func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 				return fmt.Errorf("The secret \"%s\" must be created in the %s namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace)
 			}
 			return err
+		}
+
+		// validate auth_type
+		var authProp ociAuth
+		err = yaml.Unmarshal(secret.Data[ociSecretFileName], &authProp)
+		if err != nil {
+			zap.S().Errorf("yaml unmarshalling failed due to %v", err)
+			return err
+		}
+		if authProp.auth.AuthType != instancePrincipal && authProp.auth.AuthType != userPrincipal && authProp.auth.AuthType != "" {
+			return fmt.Errorf("The authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.auth.AuthType, userPrincipal, instancePrincipal)
 		}
 	}
 
