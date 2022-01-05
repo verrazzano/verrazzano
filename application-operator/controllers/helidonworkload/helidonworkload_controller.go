@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonworkload
@@ -7,14 +7,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
-	"strconv"
-
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	"reflect"
+	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -74,9 +74,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var workload vzapi.VerrazzanoHelidonWorkload
 	if err := r.Get(ctx, req.NamespacedName, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("VerrazzanoHelidonWorkload has been deleted", "name", req.NamespacedName)
+			log.Info("VerrazzanoHelidonWorkload has been deleted")
 		} else {
-			log.Error(err, "Failed to fetch VerrazzanoHelidonWorkload", "name", req.NamespacedName)
+			log.Error(err, "Failed to fetch VerrazzanoHelidonWorkload")
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
@@ -257,11 +257,12 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 				for _, port := range container.Ports {
 					// All ports within a ServiceSpec must have unique names.
 					// When considering the endpoints for a Service, this must match the 'name' field in the EndpointPort.
-					name := container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
+					name := strings.ToLower(string(corev1.ProtocolTCP)) + "-" + container.Name + "-" + strconv.FormatInt(int64(port.ContainerPort), 10)
 					protocol := corev1.ProtocolTCP
 					if len(port.Protocol) > 0 {
 						protocol = port.Protocol
 					}
+
 					servicePort := corev1.ServicePort{
 						Name:       name,
 						Port:       port.ContainerPort,

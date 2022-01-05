@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidonlogging
@@ -32,7 +32,9 @@ var _ = BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath)
 })
 
-var _ = AfterSuite(func() {
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName)
 })
 

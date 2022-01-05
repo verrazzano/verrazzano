@@ -4,9 +4,13 @@
 package keycloak
 
 import (
+	"testing"
+
 	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -14,7 +18,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var kcComponent = NewComponent()
@@ -71,7 +74,7 @@ func TestIsReady(t *testing.T) {
 	readyCert := &certmanager.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      getCertName(testVZ),
-			Namespace: ComponentName,
+			Namespace: ComponentNamespace,
 		},
 		Status: certmanager.CertificateStatus{
 			Conditions: []certmanager.CertificateCondition{
@@ -98,7 +101,7 @@ func TestIsReady(t *testing.T) {
 			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      getCertName(testVZ),
-					Namespace: ComponentName,
+					Namespace: ComponentNamespace,
 				},
 			}),
 			false,
@@ -108,7 +111,7 @@ func TestIsReady(t *testing.T) {
 			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      getCertName(testVZ),
-					Namespace: ComponentName,
+					Namespace: ComponentNamespace,
 				},
 				Status: certmanager.CertificateStatus{
 					Conditions: []certmanager.CertificateCondition{
@@ -129,7 +132,7 @@ func TestIsReady(t *testing.T) {
 			"should be ready when certificate status is ready and statefulset is ready",
 			fake.NewFakeClientWithScheme(scheme, readyCert, &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: ComponentName,
+					Namespace: ComponentNamespace,
 					Name:      ComponentName,
 				},
 				Status: appsv1.StatefulSetStatus{
@@ -152,7 +155,7 @@ func TestPreinstall(t *testing.T) {
 	vzSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "verrazzano",
-			Namespace: "verrazzano-system",
+			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 		Data: map[string][]byte{
 			"password": []byte("password"),
@@ -161,8 +164,8 @@ func TestPreinstall(t *testing.T) {
 
 	mysqlSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mysql",
-			Namespace: "keycloak",
+			Name:      mysql.ComponentName,
+			Namespace: ComponentNamespace,
 		},
 		Data: map[string][]byte{
 			"password": []byte("password"),

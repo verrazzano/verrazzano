@@ -18,9 +18,9 @@ This repository contains the following content:
 
   - [Examples](./examples) - manifest files for deploying example applications in a Verrazzano managed Kubernetes cluster.
 
-For instructions on using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/docs/).
+For instructions on using Verrazzano, see the [Verrazzano documentation](https://verrazzano.io/latest/docs/).
 
-For detailed installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/docs/setup/install/installation/).
+For detailed installation instructions, see the [Verrazzano Installation Guide](https://verrazzano.io/latest/docs/setup/install/installation/).
 
 If you want to build and install Verrazzano from this repository, follow the instructions in the [platform-operator](./platform-operator) directory.
 
