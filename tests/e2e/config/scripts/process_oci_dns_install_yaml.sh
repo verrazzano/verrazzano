@@ -7,7 +7,7 @@ INSTALL_CONFIG_TO_EDIT=$1
 CERT_MGR=${2:-"acme"}
 ACME_ENV=${3:-"staging"}
 DNS_SCOPE=${4:-"GLOBAL"}
-if [ "${DNS_SCOPE}" != "PRIVATE" ] || [ "${DNS_SCOPE}" != "GLOBAL" ]; then
+if [ "${DNS_SCOPE}" != "PRIVATE" ] && [ "${DNS_SCOPE}" != "GLOBAL" ]; then
   # setting scope to global even for invalid values. This should not happen in jenkins flow
   DNS_SCOPE="GLOBAL"
 fi
