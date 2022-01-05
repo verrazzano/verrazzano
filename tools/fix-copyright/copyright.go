@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package main
 
@@ -85,6 +85,9 @@ var (
 	excludePatterns  pattern = []*regexp.Regexp{}
 	includePatterns  pattern = []*regexp.Regexp{}
 	extensionFlagVal string
+
+	// useExistingUpdateYearFromHeader - use the update date from the existing header
+	useExistingUpdateYearFromHeader *bool
 )
 
 func shouldFilter(path string) bool {
@@ -240,18 +243,27 @@ func gitFileInfo(path string) (*GitFileInfo, error) {
 		}
 	}
 	log.Printf("git log %s: first date=%s : last date=%s\n", path, first, last)
-	ifirst, err := strconv.ParseInt(first, 10, 64)
-	if err != nil {
-		return nil, err
-	}
 	ilast, err := strconv.ParseInt(last, 10, 64)
 	if err != nil {
 		return nil, err
 	}
+	createdYear := strconv.Itoa(time.Unix(ilast, 0).UTC().Year())
+
+	updatedYear := currentYear
+	if gitStatus.WorkTreeStatus != Modified {
+		ifirst, err := strconv.ParseInt(first, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		updatedYear = strconv.Itoa(time.Unix(ifirst, 0).UTC().Year())
+	}
+
+	log.Printf("CreatedYear %s\n", createdYear)
+	log.Printf("UpdatedYear %s\n", updatedYear)
 	return &GitFileInfo{
 		FileName:    path,
-		CreatedYear: strconv.Itoa(time.Unix(ilast, 0).UTC().Year()),
-		UpdatedYear: strconv.Itoa(time.Unix(ifirst, 0).UTC().Year()),
+		CreatedYear: createdYear,
+		UpdatedYear: updatedYear,
 		GitStatus:   gitStatus,
 	}, nil
 }
@@ -266,7 +278,7 @@ func renderTemplate(t *template.Template, params TemplateParams) ([]byte, error)
 	return header.Bytes(), nil
 }
 
-func parseCreatedYearFromHeader(fileContents []byte) ([]byte, string) {
+func parseYearsFromHeader(fileContents []byte) ([]byte, string, string) {
 	lengthToSearch := 1024
 	if len(fileContents) < 1024 {
 		lengthToSearch = len(fileContents)
@@ -275,6 +287,7 @@ func parseCreatedYearFromHeader(fileContents []byte) ([]byte, string) {
 	log.Printf("firstbytes: %s", string(firstBytes))
 
 	createdYear := ""
+	updatedYear := ""
 	if copyrightUplRegex.Match(firstBytes) {
 		log.Printf("matched copyrightUplRegex")
 		match := copyrightUplRegex.FindSubmatch(firstBytes)
@@ -285,10 +298,11 @@ func parseCreatedYearFromHeader(fileContents []byte) ([]byte, string) {
 				paramsMap[name] = string(match[i])
 			}
 		}
-		log.Printf("regex params: %q", paramsMap)
+		log.Printf("extracted regex params from parsed header: %q", paramsMap)
 		createdYear = paramsMap["CreatedYear"]
+		updatedYear = paramsMap["UpdatedYear"]
 	}
-	return firstBytes, createdYear
+	return firstBytes, createdYear, updatedYear
 }
 
 func fixHeaders(args []string) error {
@@ -352,7 +366,7 @@ func fixHeaders(args []string) error {
 			}
 			var replacement []byte = []byte{}
 			// if file already contains header, use the created year from that copyright header
-			firstBytes, createdYearFromHeader := parseCreatedYearFromHeader(fileContents)
+			firstBytes, createdYearFromHeader, updatedYearFromHeader := parseYearsFromHeader(fileContents)
 			modifyExistingHeader := true
 			if createdYearFromHeader == "" {
 				modifyExistingHeader = false
@@ -370,12 +384,23 @@ func fixHeaders(args []string) error {
 					if err != nil {
 						return err
 					}
-					_, createdYearFromHeader = parseCreatedYearFromHeader(out)
+					_, createdYearFromHeader, updatedYearFromHeader = parseYearsFromHeader(out)
 				}
 			}
 
+			// Always trust the created year in the file header
 			if createdYearFromHeader != "" {
+				log.Printf("Using created year in copyright header %s, created year derived from Git is %s\n", createdYearFromHeader, gfi.CreatedYear)
 				params.CreatedYear = createdYearFromHeader
+			}
+
+			// Determine if updated year from header is to be trusted over the year derived from git log history.
+			if *useExistingUpdateYearFromHeader {
+				log.Printf("Using updated year from existing header, UpdatedYear = %s", updatedYearFromHeader)
+				params.UpdatedYear = createdYearFromHeader
+				if updatedYearFromHeader != "" {
+					params.UpdatedYear = updatedYearFromHeader
+				}
 			}
 
 			header, err := renderTemplate(t, params)
@@ -426,6 +451,7 @@ Options:
 func init() {
 	flag.Var(&includePatterns, "include", "comma separated include regexp file filters")
 	flag.Var(&excludePatterns, "exclude", "comma separated exclude regexp file filter")
+	useExistingUpdateYearFromHeader = flag.Bool("useExistingUpdateYearFromHeader", false, "use years from existing headers in SCM if they exist")
 }
 
 func main() {
