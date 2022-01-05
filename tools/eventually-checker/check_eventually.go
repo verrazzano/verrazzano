@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package main
 
@@ -107,7 +107,7 @@ func analyze(files []*ast.File) {
 			pkg := file.Name.Name
 			switch x := n.(type) {
 			case *ast.FuncDecl:
-				currentFuncDecl = fmt.Sprintf("%s.%s", pkg, x.Name.Name)
+				currentFuncDecl = getFuncDeclName(pkg, x)
 				funcEnd = x.End()
 			case *ast.CallExpr:
 				name, pos := getNameAndPosFromCallExpr(x, file.Name.Name)
@@ -133,6 +133,23 @@ func analyze(files []*ast.File) {
 			return true
 		})
 	}
+}
+
+// getFuncDeclName constructs a function name of the form pkg.func_name or pkg.type.func_name if the
+// function is a method receiver
+func getFuncDeclName(pkg string, funcDecl *ast.FuncDecl) string {
+	funcName := pkg
+
+	if funcDecl.Recv != nil {
+		// this function decl is a method receiver so include the type in the name
+		recType := funcDecl.Recv.List[0].Type
+		switch x := recType.(type) {
+		case *ast.StarExpr:
+			funcName = fmt.Sprintf("%s.%s", funcName, x.X)
+		}
+	}
+
+	return fmt.Sprintf("%s.%s", funcName, funcDecl.Name.Name)
 }
 
 // inspectEventuallyAnonFunc finds all function calls in an anonymous function passed to Eventually
@@ -168,8 +185,20 @@ func getNameAndPosFromCallExpr(expr *ast.CallExpr, pkgName string) (string, toke
 		var pkg string
 		var pos token.Pos
 		if ident, ok := x.X.(*ast.Ident); ok {
-			pkg = ident.Name + "."
-			pos = ident.NamePos
+			if ident.Obj != nil {
+				// call is a method receiver so find the type of the receiver
+				if valueSpec, ok := ident.Obj.Decl.(*ast.ValueSpec); ok {
+					if selExpr, ok := valueSpec.Type.(*ast.SelectorExpr); ok {
+						if ident, ok = selExpr.X.(*ast.Ident); ok {
+							pkg = ident.Name + "." + selExpr.Sel.Name + "."
+							pos = ident.NamePos
+						}
+					}
+				}
+			} else {
+				pkg = ident.Name + "."
+				pos = ident.NamePos
+			}
 		}
 		name := pkg + x.Sel.Name
 		return name, pos
