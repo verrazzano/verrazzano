@@ -94,7 +94,8 @@ var _ = framework.AfterEachM(metricsLogger, func() {})
 
 var _ = framework.VzDescribe("Mark's fake test", func() {
 	framework.ItM(metricsLogger, "This test randomly fails", func() {
-		r := rand.Intn(6)
+		rand.Seed(time.Now().UnixNano())
+		r := rand.Intn(4)
 		// fail if the random number was a 1
 		Expect(r).ToNot(Equal(1))
 	})
