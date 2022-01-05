@@ -5,20 +5,19 @@ package workloadselector
 
 import (
 	"context"
+	"reflect"
 	"strings"
 
-	"github.com/gertd/go-pluralize"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
 // WorkloadSelector type for accessing functions
 type WorkloadSelector struct {
-	KubeClient    kubernetes.Interface
-	DynamicClient dynamic.Interface
+	KubeClient kubernetes.Interface
 }
 
 // DoesWorkloadMatch returns a boolean indicating whether an unstructured resource matches any of the criteria for a match.
@@ -41,32 +40,25 @@ func (w *WorkloadSelector) DoesWorkloadMatch(workload *unstructured.Unstructured
 // doesNamespaceMatch returns a boolean indicating whether an unstructured resource matches the namespace selector
 func (w *WorkloadSelector) doesNamespaceMatch(workload *unstructured.Unstructured, namespaceSelector *metav1.LabelSelector) (bool, error) {
 	// If the namespace label selector is not specified then we don't need to check the namespace
-	labels, err := metav1.LabelSelectorAsSelector(namespaceSelector)
-	if err != nil {
-		return false, err
-	}
-	if labels.Empty() {
+	if namespaceSelector == nil || reflect.DeepEqual(namespaceSelector, metav1.LabelSelector{}) {
 		return true, nil
 	}
 
-	options := metav1.ListOptions{
-		LabelSelector: labels.String(),
-	}
-
-	// A list operation is required to use the namespace label selector.  Get all namespaces that
-	// match the label selector and then check if the workload resource namespace matches one of the
-	// returned namespaces.
-	namespaces, err := w.KubeClient.CoreV1().Namespaces().List(context.TODO(), options)
+	// Get the namespace object for the workload resource
+	namespace, err := w.KubeClient.CoreV1().Namespaces().Get(context.TODO(), workload.GetNamespace(), metav1.GetOptions{})
 	if err != nil {
 		return false, err
 	}
 
-	for _, namespace := range namespaces.Items {
-		// Namespace of workload resource must match
-		if workload.GetNamespace() == namespace.Name {
-			return true, nil
-		}
+	// Check if the namespace labels match the namespace label selector
+	label, err := metav1.LabelSelectorAsSelector(namespaceSelector)
+	if err != nil {
+		return false, err
 	}
+	if label.Matches(labels.Set(namespace.GetLabels())) {
+		return true, nil
+	}
+
 	return false, nil
 }
 
@@ -85,34 +77,16 @@ func (w *WorkloadSelector) doesObjectMatch(workload *unstructured.Unstructured, 
 	}
 
 	// If the object label selector is not specified then we don't need to check the resource for a match
-	labelSelector, err := metav1.LabelSelectorAsSelector(objectSelector)
-	if err != nil {
-		return false, err
-	}
-	if labelSelector.Empty() {
+	if objectSelector == nil || reflect.DeepEqual(objectSelector, metav1.LabelSelector{}) {
 		return true, nil
 	}
-
-	resource := schema.GroupVersionResource{
-		Group:    gv.Group,
-		Version:  gv.Version,
-		Resource: pluralize.NewClient().Plural(strings.ToLower(workload.GetKind())),
-	}
-
-	options := metav1.ListOptions{
-		LabelSelector: labelSelector.String(),
-	}
-
-	// Get the list of resources that match the object label selector
-	objects, err := w.DynamicClient.Resource(resource).Namespace(workload.GetNamespace()).List(context.TODO(), options)
+	// Check if the workload resource labels match the object label selector
+	label, err := metav1.LabelSelectorAsSelector(objectSelector)
 	if err != nil {
 		return false, err
 	}
-	// Name of a returned object must match the workload resource name to have a match
-	for _, object := range objects.Items {
-		if object.GetName() == workload.GetName() {
-			return true, nil
-		}
+	if label.Matches(labels.Set(workload.GetLabels())) {
+		return true, nil
 	}
 
 	return false, nil

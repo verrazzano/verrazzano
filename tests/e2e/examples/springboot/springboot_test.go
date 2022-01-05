@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package springboot
@@ -12,11 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
-
-const testNamespace string = "springboot"
 
 var expectedPodsSpringBootApp = []string{"springboot-workload"}
 var waitTimeout = 10 * time.Minute
@@ -28,7 +24,7 @@ var longPollingInterval = 20 * time.Second
 
 var _ = BeforeSuite(func() {
 	if !skipDeploy {
-		deploySpringBootApplication()
+		pkg.DeploySpringBootApplication()
 	}
 })
 
@@ -42,54 +38,9 @@ var _ = AfterSuite(func() {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {
-		undeploySpringBootApplication()
+		pkg.UndeploySpringBootApplication()
 	}
 })
-
-func deploySpringBootApplication() {
-	pkg.Log(pkg.Info, "Deploy Spring Boot Application")
-
-	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace(testNamespace, nsLabels)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-	pkg.Log(pkg.Info, "Create component resource")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Create application resource")
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/springboot-app/springboot-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create Spring Boot application resource")
-}
-
-func undeploySpringBootApplication() {
-	pkg.Log(pkg.Info, "Undeploy Spring Boot Application")
-	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/springboot-app/springboot-app.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/springboot-app/springboot-comp.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
-		return pkg.DeleteNamespace(testNamespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(testNamespace)
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-}
 
 var _ = Describe("Verify Spring Boot Application", func() {
 	// Verify springboot-workload pod is running
@@ -99,7 +50,7 @@ var _ = Describe("Verify Spring Boot Application", func() {
 	Context("Deployment.", func() {
 		It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(testNamespace, expectedPodsSpringBootApp)
+				return pkg.PodsRunning(pkg.SpringbootNamespace, expectedPodsSpringBootApp)
 			}, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -112,7 +63,7 @@ var _ = Describe("Verify Spring Boot Application", func() {
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(pkg.SpringbootNamespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
