@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -251,6 +251,7 @@ function install_weblogic_operator {
   helm upgrade --install --wait ${chart_name} \
     ${CHARTS_DIR}/weblogic-operator \
     --namespace "${VERRAZZANO_NS}" \
+    --timeout 10m \
     -f $VZ_OVERRIDES_DIR/weblogic-values.yaml \
     --set serviceAccount=weblogic-operator-sa \
     --set domainNamespaceSelectionStrategy=LabelSelector \
