@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/oracle/oci-go-sdk/v53/common"
+	"github.com/oracle/oci-go-sdk/v53/common/auth"
 	"github.com/oracle/oci-go-sdk/v53/loggingsearch"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -22,13 +23,16 @@ import (
 const (
 	compartmentIDEnvVar = "COMPARTMENT_ID"
 	logGroupIDEnvVar    = "LOG_GROUP_ID"
+	ociRegionEnvVar     = "OCI_CLI_REGION"
 
-	waitTimeout     = 15 * time.Minute
+	waitTimeout     = 10 * time.Minute
 	pollingInterval = 30 * time.Second
 )
 
 var compartmentID string
 var logGroupID string
+var region string
+var logSearchClient loggingsearch.LogSearchClient
 
 var failed = false
 var _ = AfterEach(func() {
@@ -38,8 +42,14 @@ var _ = AfterEach(func() {
 var _ = BeforeSuite(func() {
 	compartmentID = os.Getenv(compartmentIDEnvVar)
 	logGroupID = os.Getenv(logGroupIDEnvVar)
+	region = os.Getenv(ociRegionEnvVar)
 	Expect(compartmentID).ToNot(BeEmpty(), fmt.Sprintf("%s env var must be set", compartmentIDEnvVar))
 	Expect(logGroupID).ToNot(BeEmpty(), fmt.Sprintf("%s env var must be set", logGroupIDEnvVar))
+	// region is optional so don't Expect
+
+	var err error
+	logSearchClient, err = getLogSearchClient(region)
+	Expect(err).ShouldNot(HaveOccurred(), "Error configuring OCI SDK client")
 })
 
 var _ = AfterSuite(func() {
@@ -66,7 +76,7 @@ var _ = Describe("OCI Logging", func() {
 		// THEN I expect to find at least one record
 		It("the system log object has recent log records in the kube-system namespace", func() {
 			Eventually(func() (int, error) {
-				logs, err := getLogRecordsFromOCI(compartmentID, logGroupID, systemLogID, "kube-system")
+				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, systemLogID, "kube-system")
 				if err != nil {
 					return 0, err
 				}
@@ -79,7 +89,7 @@ var _ = Describe("OCI Logging", func() {
 		// THEN I expect to find at least one record
 		It("the system log object has recent log records in the verrazzano-system namespace", func() {
 			Eventually(func() (int, error) {
-				logs, err := getLogRecordsFromOCI(compartmentID, logGroupID, systemLogID, constants.VerrazzanoSystemNamespace)
+				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, systemLogID, constants.VerrazzanoSystemNamespace)
 				if err != nil {
 					return 0, err
 				}
@@ -91,7 +101,7 @@ var _ = Describe("OCI Logging", func() {
 		// WHEN I search for log records in the default app Log object
 		// THEN I expect to find no records
 		It("the app log object has no log records", func() {
-			logs, err := getLogRecordsFromOCI(compartmentID, logGroupID, defaultAppLogID, "")
+			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no app logs but found at least one")
 		})
@@ -105,7 +115,7 @@ var _ = Describe("OCI Logging", func() {
 			pkg.DeploySpringBootApplication()
 
 			Eventually(func() (int, error) {
-				logs, err := getLogRecordsFromOCI(compartmentID, logGroupID, defaultAppLogID, pkg.SpringbootNamespace)
+				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, pkg.SpringbootNamespace)
 				if err != nil {
 					return 0, err
 				}
@@ -133,17 +143,11 @@ func getLogIdentifiersFromVZCustomResource() (string, string, error) {
 	return vz.Spec.Components.Fluentd.OCI.SystemLogID, vz.Spec.Components.Fluentd.OCI.DefaultAppLogID, nil
 }
 
-// getLogRecordsFromOCI searches an OCI Log object for log records in the last 5 minutes. If the optional
+// getLogRecordsFromOCI searches an OCI Log object for log records in the last 15 minutes. If the optional
 // namespace is specified, only log records in the namespace are matched, otherwise search for all log records
 // in the Log object identified by the compartment id, log group id, and log id.
-func getLogRecordsFromOCI(compartmentID, logGroupID, logID, namespace string) (*loggingsearch.SearchLogsResponse, error) {
+func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, logGroupID, logID, namespace string) (*loggingsearch.SearchLogsResponse, error) {
 	pkg.Log(pkg.Info, "Checking for recent log records")
-
-	config := common.DefaultConfigProvider()
-	client, err := loggingsearch.NewLogSearchClientWithConfigurationProvider(config)
-	if err != nil {
-		return nil, err
-	}
 
 	var query string
 	if namespace == "" {
@@ -156,7 +160,7 @@ func getLogRecordsFromOCI(compartmentID, logGroupID, logID, namespace string) (*
 	}
 
 	now := time.Now()
-	past := now.Add(-time.Minute * 5)
+	past := now.Add(-time.Minute * 15)
 	search := loggingsearch.SearchLogsDetails{
 		TimeStart:   &common.SDKTime{Time: past},
 		TimeEnd:     &common.SDKTime{Time: now},
@@ -175,4 +179,27 @@ func getLogRecordsFromOCI(compartmentID, logGroupID, logID, namespace string) (*
 	}
 
 	return &logs, nil
+}
+
+// getLogSearchClient returns an OCI SDK client for searching logs. If a region is specified then
+// use an instance principal auth provider, otherwise use the default provider (auth config comes from
+// an OCI config file or environment variables). Instance principals are used when running in the
+// CI/CD pipelines while the default provider is suitable for running locally.
+func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
+	var provider common.ConfigurationProvider
+	var err error
+
+	if region != "" {
+		pkg.Log(pkg.Info, fmt.Sprintf("Using OCI SDK instance principal provider with region: %s", region))
+		provider, err = auth.InstancePrincipalConfigurationProviderForRegion(common.StringToRegion(region))
+	} else {
+		pkg.Log(pkg.Info, "Using OCI SDK default provider")
+		provider = common.DefaultConfigProvider()
+	}
+
+	if err != nil {
+		return loggingsearch.LogSearchClient{}, err
+	}
+
+	return loggingsearch.NewLogSearchClientWithConfigurationProvider(provider)
 }
