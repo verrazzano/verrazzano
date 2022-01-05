@@ -85,7 +85,7 @@ if [ $OPERATION == "create" ]; then
     #    log "Error while creating view '${VIEW_NAME}'"
     #fi
 
-    if [ ${RUNNER_REGION} != "us-phoenix-1" ];then
+    if [ ${TF_VAR_region} != "us-phoenix-1" ];then
        log "Region is not us-phoenix-1"
        VCN_VIEW_ID="ocid1.dnsview.oc1.uk-london-1.amaaaaaao3yqxzyad25abmv6eiivxg4n35ajthydc4lgo46f473rkkc3gfwq"
     fi
