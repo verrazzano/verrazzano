@@ -740,7 +740,6 @@ def qualityCheck() {
 
         echo "copyright scan"
         time make copyright-check
-        ./ci/scripts/check_if_clean_after_generate.sh
 
         echo "Third party license check"
     """
