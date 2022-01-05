@@ -169,10 +169,13 @@ start_installation() {
   ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}"
   ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
+  echo "Listing pods in kube-system namespace just before harbor ephemeral installation..."
+  kubectl get pods -n kube-system
+
   if [ $SETUP_HARBOR == true ]; then
     install_new_helm_version
-    deploy_contour
     deploy_certificates
+    deploy_contour
     deploy_harbor
     load_images
   fi
