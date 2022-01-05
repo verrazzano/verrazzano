@@ -82,6 +82,7 @@ var (
 		".jar",
 		".zip",
 		".gz",
+		".test",
 	}
 
 	// copyrightRegex is the regular expression for recognizing correctly formatted copyright statements
