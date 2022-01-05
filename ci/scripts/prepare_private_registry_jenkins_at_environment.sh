@@ -124,14 +124,6 @@ deploy_harbor() {
     echo "docker login to Harbor ephemeral failed"
   fi
 
-  echo "172:18.0.230 ${REGISTRY}" >> /etc/hosts
-  cat /etc/hosts
-
-  docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
-  if [ $? -ne 0 ]; then
-    echo "docker login to Harbor ephemeral failed"
-  fi
-
   docker pull nginx:1-alpine
   docker tag nginx:1-alpine ${REGISTRY}/library/nginx:1-test
   docker push ${REGISTRY}/library/nginx:1-test
