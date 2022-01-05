@@ -167,6 +167,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 const realBomFilePath = "testdata/verrazzano-bom.json"
 const testBomFilePath = "testdata/test_bom.json"
 const testBomSubcomponentOverridesPath = "testdata/test_bom_sc_overrides.json"
+const testBomImageOverridesPath = "testdata/test_bom_image_overrides.json"
 
 // TestFakeBom tests loading a fake bom json into a struct
 // GIVEN a json file
@@ -242,13 +243,24 @@ func TestBomSubcomponentOverrides(t *testing.T) {
 	assert.NoError(err)
 
 	assert.Equal("ghcr.io", bom.GetRegistry(), "Global registry not correct")
-	assert.Equal("myreg.io", bom.ResolveRegistry(nginxSubcomponent), "NGINX subcomponent registry not correct")
-	assert.Equal("myrepoprefix/testnginx", bom.ResolveRepo(nginxSubcomponent), "NGINX subcomponent repo not correct")
+	assert.Equal("myreg.io", bom.ResolveRegistry(nginxSubcomponent, BomImage{}), "NGINX subcomponent registry not correct")
+	assert.Equal("myrepoprefix/testnginx", bom.ResolveRepo(nginxSubcomponent, BomImage{}), "NGINX subcomponent repo not correct")
 
 	vpoSubcomponent, err := bom.GetSubcomponent("verrazzano-platform-operator")
 	assert.NotNil(t, vpoSubcomponent)
 	assert.NoError(err)
 
-	assert.Equal("ghcr.io", bom.ResolveRegistry(vpoSubcomponent), "VPO subcomponent registry not correct")
-	assert.Equal("verrazzano", bom.ResolveRepo(vpoSubcomponent), "VPO subcomponent repo not correct")
+	assert.Equal("ghcr.io", bom.ResolveRegistry(vpoSubcomponent, BomImage{}), "VPO subcomponent registry not correct")
+	assert.Equal("verrazzano", bom.ResolveRepo(vpoSubcomponent, BomImage{}), "VPO subcomponent repo not correct")
+}
+
+func TestBomImageOverrides(t *testing.T) {
+	bom, err := NewBom(testBomImageOverridesPath)
+	assert.NoError(t, err)
+	assert.Equal(t, "ghcr.io", bom.GetRegistry())
+	sc, err := bom.GetSubcomponent("verrazzano-platform-operator")
+	assert.NoError(t, err)
+	img := sc.Images[0]
+	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, img))
+	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, img))
 }

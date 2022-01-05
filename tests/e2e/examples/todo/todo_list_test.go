@@ -1,10 +1,9 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package todo
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -31,17 +30,9 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
-})
-
-var _ = AfterSuite(func() {
-	if failed {
-		// Dump todo domain pods
-		pkg.DumpContainerLogs("todo-list", "tododomain-adminserver", "weblogic-server", "/scratch/logs/todo-domain")
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	if !skipUndeploy {
 		undeployToDoListExample()
 	}
@@ -126,28 +117,17 @@ func undeployToDoListExample() {
 	// WHEN the app config secret generated to support secure gateways is fetched
 	// THEN the secret should have been cleaned up
 	pkg.Log(pkg.Info, "Waiting for secret containing certificate to be deleted")
-	var secret *v1.Secret
-	var err error
-	for i := 0; i < 30; i++ {
-		secret, err = pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+	Eventually(func() bool {
+		_, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
 		if err != nil && errors.IsNotFound(err) {
 			pkg.Log(pkg.Info, "Secret deleted")
-			return
+			return true
 		}
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get secret: %v", err))
 		}
-		time.Sleep(shortPollingInterval)
-	}
-
-	pkg.Log(pkg.Error, "Secret could not be deleted. Secret data:")
-	if secret != nil {
-		if b, err := json.Marshal(secret); err == nil {
-			pkg.Log(pkg.Info, string(b))
-		}
-	}
-	pkg.ExecuteClusterDumpWithEnvVarConfig()
-	Fail("Unable to delete secret")
+		return false
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "delete ingress trait secret")
 }
 
 var _ = Describe("Verify ToDo List example application.", func() {
