@@ -13,12 +13,17 @@ import (
 
 type AppV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	MetricsBindingsGetter
 	MetricsTemplatesGetter
 }
 
 // AppV1alpha1Client is used to interact with features provided by the app.verrazzano.io group.
 type AppV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *AppV1alpha1Client) MetricsBindings(namespace string) MetricsBindingInterface {
+	return newMetricsBindings(c, namespace)
 }
 
 func (c *AppV1alpha1Client) MetricsTemplates(namespace string) MetricsTemplateInterface {

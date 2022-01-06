@@ -7,6 +7,9 @@ SCRIPT_DIR="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # Create the MetricsTemplate CRD
 kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricstemplates.yaml
 
+# Create the MetricsBinding CRD
+kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricsbindings.yaml
+
 # Create the MetricsTemplate resource
 kubectl apply -f ${SCRIPT_DIR}/../resources/metrics-template-deployment.yaml
 

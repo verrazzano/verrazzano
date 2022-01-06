@@ -15,6 +15,10 @@ type FakeAppV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeAppV1alpha1) MetricsBindings(namespace string) v1alpha1.MetricsBindingInterface {
+	return &FakeMetricsBindings{c, namespace}
+}
+
 func (c *FakeAppV1alpha1) MetricsTemplates(namespace string) v1alpha1.MetricsTemplateInterface {
 	return &FakeMetricsTemplates{c, namespace}
 }
