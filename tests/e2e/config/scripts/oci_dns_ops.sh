@@ -6,6 +6,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+set -x 
+
 function usage {
     echo
     echo "usage: $0 [-o operation] [-c compartment_ocid] [-s subdomain_name] "
