@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -45,7 +45,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: 'release-1.0',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
     }
@@ -457,7 +457,8 @@ pipeline {
                     build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN)
+                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                         ], wait: true
                 }
             }
@@ -787,30 +788,34 @@ def getSuspectList(commitList, userMappings) {
     def suspectList = []
     for (int i = 0; i < commitList.size(); i++) {
         def id = commitList[i]
-        def gitAuthor = sh(
-            script: "git log --format='%ae' '$id^!'",
-            returnStdout: true
-        ).trim()
-        if (gitAuthor != null) {
-            def author = trimIfGithubNoreplyUser(gitAuthor)
-            echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
-            if (userMappings.containsKey(author)) {
-                def slackUser = userMappings.get(author)
-                if (!suspectList.contains(slackUser)) {
-                    echo "Added ${slackUser} as suspect"
-                    retValue += " ${slackUser}"
-                    suspectList.add(slackUser)
+        try {
+            def gitAuthor = sh(
+                script: "git log --format='%ae' '$id^!'",
+                returnStdout: true
+            ).trim()
+            if (gitAuthor != null) {
+                def author = trimIfGithubNoreplyUser(gitAuthor)
+                echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                if (userMappings.containsKey(author)) {
+                    def slackUser = userMappings.get(author)
+                    if (!suspectList.contains(slackUser)) {
+                        echo "Added ${slackUser} as suspect"
+                        retValue += " ${slackUser}"
+                        suspectList.add(slackUser)
+                    }
+                } else {
+                    // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                    if (!suspectList.contains(author)) {
+                        echo "Added ${author} as suspect"
+                        retValue += " ${author}"
+                       suspectList.add(author)
+                    }
                 }
             } else {
-                // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                if (!suspectList.contains(author)) {
-                    echo "Added ${author} as suspect"
-                    retValue += " ${author}"
-                   suspectList.add(author)
-                }
+                echo "No author returned from git"
             }
-        } else {
-            echo "No author returned from git"
+        } catch (Exception e) {
+            echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
         }
     }
     echo "returning suspect list: ${retValue}"
