@@ -128,7 +128,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(11),
 				"there should be eleven rules")
 		})
@@ -165,7 +165,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(5),
 				"there should be five rules")
 		})
@@ -196,7 +196,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(6),
 				"there should be six rules")
 		})
@@ -228,7 +228,7 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		framework.VzIt("has correct number of rules", func() {
+		framework.ItM(metricsLogger, "has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(3),
 				"there should be three rules")
 		})
