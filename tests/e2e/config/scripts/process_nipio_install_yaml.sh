@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 INSTALL_CONFIG_TO_EDIT=$1
@@ -13,4 +13,12 @@ if [ $INSTALL_PROFILE == "dev" ]; then
   yq -i eval ".spec.components.keycloak.mysql.mysqlInstallArgs.[0].value = \"false\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
 yq -i eval ".spec.components.dns.wildcard.domain = \"${DNS_WILDCARD_DOMAIN}\"" ${INSTALL_CONFIG_TO_EDIT}
+
+if [ -n "${SYSTEM_LOG_ID}" ]; then
+  yq -i eval ".spec.components.fluentd.oci.systemLogId = \"${SYSTEM_LOG_ID}\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.fluentd.oci.defaultAppLogId = \"${APP_LOG_ID}\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.elasticsearch.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.kibana.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
 cat ${INSTALL_CONFIG_TO_EDIT}
