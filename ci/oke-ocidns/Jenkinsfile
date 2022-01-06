@@ -319,7 +319,7 @@ pipeline {
                         }
             steps {
                 script {
-                    println("inside create-dns-zone runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
+                    println("inside create-dns-zone , tf var region is ${env.TF_VAR_REGION}")
                     dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
                 }
             }
