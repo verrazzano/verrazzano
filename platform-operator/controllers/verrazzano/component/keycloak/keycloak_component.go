@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package keycloak
 
@@ -6,7 +6,6 @@ import (
 	"context"
 	"path/filepath"
 
-	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -136,25 +135,19 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	// TLS cert from Cert Manager should be in Ready state
-	certName := getCertName(ctx.EffectiveCR())
-	certificate := &certmanager.Certificate{}
-	namespacedName := types.NamespacedName{Name: certName, Namespace: ComponentNamespace}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, certificate); err != nil {
+	secretName := getSecretName(ctx.EffectiveCR())
+	secret := &corev1.Secret{}
+	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
 		ctx.Log().Infof("Keycloak isReady: Failed to get Keycloak Certificate: %s", err)
 		return false
 	}
-	if certificate.Status.Conditions == nil {
-		ctx.Log().Infof("Keycloak IsReady: No Certificate Status conditions found")
-		return false
-	}
 
-	condition := certificate.Status.Conditions[0]
 	statefulsetName := []types.NamespacedName{
 		{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 	}
-	return condition.Type == "Ready" &&
-		status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
+	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
 }
