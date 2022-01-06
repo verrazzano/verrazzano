@@ -288,7 +288,7 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('install-failure-cluster-dump')
+                            dumpK8sCluster('pre-upgrade-tests-cluster-dump')
                         }
                     }
                 }
@@ -331,6 +331,13 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: "upgrade-test-operator.yaml", allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        if (fileExists(env.TESTS_EXECUTED_FILE)) {
+                            dumpK8sCluster('post-upgrade-vpo-failure-cluster-dump')
+                        }
+                    }
                 }
             }
         }
@@ -382,6 +389,13 @@ pipeline {
                 always {
                     dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
                     archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        if (fileExists(env.TESTS_EXECUTED_FILE)) {
+                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
+                        }
+                    }
                 }
             }
         }
