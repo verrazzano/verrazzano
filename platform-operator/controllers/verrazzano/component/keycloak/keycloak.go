@@ -555,8 +555,8 @@ func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	return dnsDomain, nil
 }
 
-// getCertName returns certificate name
-func getCertName(vz *vzapi.Verrazzano) string {
+// getSecretName returns expected TLS secret name
+func getSecretName(vz *vzapi.Verrazzano) string {
 	return fmt.Sprintf("%s-secret", getEnvironmentName(vz.Spec.EnvironmentName))
 }
 
