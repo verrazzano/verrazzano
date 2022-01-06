@@ -4,7 +4,6 @@
 package metrics
 
 import (
-	"encoding/json"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
 	"go.uber.org/zap"
@@ -21,27 +20,15 @@ const (
 	attempts = "attempts"
 	test     = "test"
 
-	metricsIndex     = "metrics"
-	testLogIndex     = "testlogs"
+	// index for metrics
+	metricsIndex = "metrics"
+	// index for logs
+	//testLogIndex     = "testlogs"
 	searchWriterKey  = "searchWriter"
 	timeFormatString = "2006.01.02"
 	searchURL        = "SEARCH_HTTP_ENDPOINT"
 	searchPW         = "SEARCH_PASSWORD"
 	searchUser       = "SEARCH_USERNAME"
-)
-
-type (
-	GinkgoLogFormatter struct {
-		uuid    string
-		writers []zapcore.WriteSyncer
-	}
-	GinkgoLogMessage struct {
-		SuiteUUID string `json:"suite_uuid"`
-		Data      string `json:"msg"`
-		Timestamp int64  `json:"timestamp"`
-		Test      string `json:"test,omitempty"`
-		Status    string `json:"status,omitempty"`
-	}
 )
 
 var logger = internalLogger()
@@ -99,32 +86,7 @@ func NewMetricsLogger(pkg string) (*zap.SugaredLogger, error) {
 	}
 
 	suiteUUID := uuid.NewUUID()
-
-	TeeWriters(string(suiteUUID))
 	return log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg), nil
-}
-
-func (g *GinkgoLogFormatter) Write(data []byte) (int, error) {
-	//spec := ginkgo.CurrentSpecReport()
-	msg := GinkgoLogMessage{
-		SuiteUUID: g.uuid,
-		Data:      string(data),
-		Timestamp: Millis(),
-		//Test:      spec.LeafNodeText,
-		//Status:    spec.State.String(),
-	}
-
-	msgData, err := json.Marshal(msg)
-	if err != nil {
-		return 0, err
-	}
-	for _, writer := range g.writers {
-		_, err := writer.Write(msgData)
-		if err != nil {
-			logger.Errorf("error when writing data for writer: %v", err)
-		}
-	}
-	return len(msgData), nil
 }
 
 func Millis() int64 {
@@ -147,25 +109,6 @@ func configureOutputs() ([]string, error) {
 	}
 
 	return outputs, nil
-}
-
-//TeeWriters adds any WriteSyncer implementations to the Ginkgo output tee
-func TeeWriters(suiteUUID string) {
-	ginkgo.GinkgoWriter.ClearTeeWriters()
-	var writers []zapcore.WriteSyncer
-	searchWriter, err := SearchWriterFromEnv(testLogIndex)
-	if err == nil {
-		logger.Debug("configured new SearchWriter")
-		writers = append(writers, searchWriter)
-	}
-
-	if len(writers) > 0 {
-		logFormatter := &GinkgoLogFormatter{
-			uuid:    suiteUUID,
-			writers: writers,
-		}
-		ginkgo.GinkgoWriter.TeeTo(logFormatter)
-	}
 }
 
 func Emit(log *zap.SugaredLogger) {
