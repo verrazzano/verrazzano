@@ -120,7 +120,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// add finalizer
 	if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{RequeueAfter: }, err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
