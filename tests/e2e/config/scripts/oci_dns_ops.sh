@@ -23,7 +23,7 @@ COMPARTMENT_OCID="${TF_VAR_compartment_id}"
 OPERATION="create"
 DNS_SCOPE="GLOBAL"
 # view id for phx (default)
-VCN_VIEW_ID="ocid1.dnsview.oc1.phx.amaaaaaao3yqxzya2aayydeuvzbz55ksihbim5lisdwu2mjluboxynj7zqtq"
+VCN_VIEW_ID="${VCN_VIEW_ID}"
 log () {
   echo "$(date '+[%Y-%m-%d %I:%M:%S %p]') : $1"
 }
@@ -72,10 +72,10 @@ if [ $OPERATION == "create" ]; then
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
 
 
-    if [ ${TF_VAR_region} != "us-phoenix-1" ];then
-       log "Region is not us-phoenix-1"
-       VCN_VIEW_ID="ocid1.dnsview.oc1.uk-london-1.amaaaaaao3yqxzyad25abmv6eiivxg4n35ajthydc4lgo46f473rkkc3gfwq"
-    fi
+#    if [ ${TF_VAR_region} != "us-phoenix-1" ];then
+#       log "Region is not us-phoenix-1"
+#       VCN_VIEW_ID="ocid1.dnsview.oc1.uk-london-1.amaaaaaao3yqxzyad25abmv6eiivxg4n35ajthydc4lgo46f473rkkc3gfwq"
+#    fi
 
     log "Using view id " ${VCN_VIEW_ID}
     zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
