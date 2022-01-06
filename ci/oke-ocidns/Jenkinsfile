@@ -326,13 +326,13 @@ pipeline {
                     println("inside create-dns-zone , tf var region is ${env.TF_VAR_REGION}")
                     switch(TF_VAR_region) {
                       case "uk-london-1":
-                         env.VCN_VIEW_ID = ${DNS_VIEW_FOR_PRIVATE_DNS_LHR}
+                         env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_LHR}"
                          break
                       default:
-                        env.VCN_VIEW_ID = ${DNS_VIEW_FOR_PRIVATE_DNS_PHX}
+                        env.VCN_VIEW_ID = "${DNS_VIEW_FOR_PRIVATE_DNS_PHX}"
                         break
                     }
-                    println("view id is ${VCN_VIEW_ID}")
+                    println("view id is ${env.VCN_VIEW_ID}")
                     //dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
                 }
             }
