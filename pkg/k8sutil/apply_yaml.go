@@ -76,6 +76,19 @@ func (y *YAMLApplier) ApplyFT(filePath string, args map[string]interface{}) erro
 	return y.doTemplatedFileAction(filePath, y.applyAction, args)
 }
 
+func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args map[string]interface{}) error {
+	config, err := GetKubeConfig()
+	if err != nil {
+		return err
+	}
+	client, err := crtpkg.New(config, crtpkg.Options{})
+	if err != nil {
+		return err
+	}
+	y.client = client
+	return y.ApplyFT(filePath, args)
+}
+
 //DeleteF deletes a file spec from Kubernetes
 func (y *YAMLApplier) DeleteF(filePath string) error {
 	return y.doFileAction(filePath, y.deleteAction)

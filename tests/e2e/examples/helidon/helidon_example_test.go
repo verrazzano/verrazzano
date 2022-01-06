@@ -19,11 +19,16 @@ import (
 )
 
 const (
+	name                 = "hello-helidon"
 	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
 )
+
+var namespace = pkg.GenerateNamespace(name)
+var namespaceMap = map[string]interface{}{"namespace": namespace}
+var yamlApplier k8sutil.YAMLApplier
 
 var _ = BeforeSuite(func() {
 	if !skipDeploy {
@@ -31,15 +36,15 @@ var _ = BeforeSuite(func() {
 			nsLabels := map[string]string{
 				"verrazzano-managed": "true",
 				"istio-injection":    "enabled"}
-			return pkg.CreateNamespace("hello-helidon", nsLabels)
+			return pkg.CreateNamespace(namespace, nsLabels)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+			return yamlApplier.ApplyFTDefaultConfig("examples/hello-helidon/hello-helidon-comp.yaml", namespaceMap)
+		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+			return yamlApplier.ApplyFTDefaultConfig("examples/hello-helidon/hello-helidon-app.yaml", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 	}
 })
@@ -64,7 +69,7 @@ var _ = AfterSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.DeleteNamespace("hello-helidon")
+			return pkg.DeleteNamespace(namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	}
 })
@@ -73,12 +78,6 @@ var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
-)
-
-const (
-	testNamespace      = "hello-helidon"
-	istioNamespace     = "istio-system"
-	ingressServiceName = "istio-ingressgateway"
 )
 
 var _ = Describe("Verify Hello Helidon OAM App.", func() {
@@ -100,7 +99,7 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -178,7 +177,7 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 })
 
 func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+	return pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
 }
 
 func appEndpointAccessible(url string, hostname string) bool {
