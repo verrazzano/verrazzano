@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -35,12 +35,7 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
         GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
-
-        OCI_CLI_AUTH="instance_principal"
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
-
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
     }
 
@@ -98,6 +93,15 @@ pipeline {
                 IGNORE_FAILURES = "false"
                 JIRA_USERNAME = credentials('jira-username')
                 JIRA_PASSWORD = credentials('jira-password')
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+                OCI_CLI_AUTH="api_key"
+                OCI_CLI_TENANCY = credentials('oci-tenancy')
+                OCI_CLI_USER = credentials('oci-user-ocid')
+                OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+                OCI_CLI_KEY_FILE = credentials('oci-api-key')
+                OCI_CLI_REGION = "us-phoenix-1"
+                OCI_REGION = "${env.OCI_CLI_REGION}"
             }
             steps {
                 script {
