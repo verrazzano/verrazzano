@@ -315,14 +315,14 @@ pipeline {
         stage("create-dns-zone") {
             when { expression { return params.TEST_ENV == 'ocidns_oke' } }
             //env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
-            def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
-            env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
             environment {
                             TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
 
                         }
             steps {
                 script {
+                    def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
+                    env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
                     println("inside create-dns-zone , tf var region is ${env.TF_VAR_REGION}")
                     switch(TF_VAR_region) {
                       case "uk-london-1":
