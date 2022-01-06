@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# added for debugging purpose
-set -x
 
 #
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
@@ -72,18 +70,7 @@ if [ $OPERATION == "create" ]; then
   # exit
   sudo yum -y install patch >/dev/null 2>&1
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
-    #env
-    #log "Creating private dns view '${VIEW_NAME}' details in compartment '${COMPARTMENT_ID}'"
-    #oci dns view create -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} --scope PRIVATE
-    #if [ $? -ne 0 ];then
-    #    log "Error while creating dns view"
-    #fi
 
-    #log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
-    #VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
-    #if [ $? -ne 0 ];then
-    #    log "Error while creating view '${VIEW_NAME}'"
-    #fi
 
     if [ ${TF_VAR_region} != "us-phoenix-1" ];then
        log "Region is not us-phoenix-1"
@@ -121,17 +108,6 @@ if [ $OPERATION == "create" ]; then
   
 elif [ $OPERATION == "delete" ]; then
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
-    #log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
-    #VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
-    #if [ $? -ne 0 ];then
-    #    log "Error while creating view '${VIEW_NAME}'"
-    #fi
-
-    #oci dns view delete --view-id ${VCN_VIEW_ID} --force
-    #if [ $? -ne 0 ];then
-    #    log "Error while creating view '${VIEW_NAME}'"
-    #fi
-
     oci dns zone delete --zone-name-or-id ${ZONE_NAME} --scope ${DNS_SCOPE} --force
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
