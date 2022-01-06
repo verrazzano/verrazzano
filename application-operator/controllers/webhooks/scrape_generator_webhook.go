@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -194,30 +195,23 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 		return err
 	}
 
+	// For at least deployments, the webhook is called multiple times.  The first time the UID is empty.
+	// A UID is needed for setting up the owner reference.  Return and do nothing if thd UID is empty.
+	if len(unst.GetUID()) == 0 {
+		return nil
+	}
+
 	metricsBinding := &vzapp.MetricsBinding{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "app.verrazzno.io/v1alpha1",
 			Kind:       "metricsBinding"},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: unst.GetNamespace(),
-			Name:      fmt.Sprintf("%s-%s", unst.GetName(), unst.GetKind()),
+			Name:      fmt.Sprintf("%s-%s", unst.GetName(), strings.ToLower(unst.GetKind())),
 		},
 	}
 	_, err = controllerutil.CreateOrUpdate(ctx, a.Client, metricsBinding, func() error {
-		metricsBinding.Spec.MetricsTemplate.Namespace = template.Namespace
-		metricsBinding.Spec.MetricsTemplate.Name = template.Name
-		var trueValue = true
-		metricsBinding.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion:         unst.GetAPIVersion(),
-				Kind:               unst.GetKind(),
-				Name:               unst.GetName(),
-				UID:                unst.GetUID(),
-				Controller:         &trueValue,
-				BlockOwnerDeletion: &trueValue,
-			},
-		}
-		return nil
+		return a.mutateMetricsBinding(metricsBinding, template, unst)
 	})
 
 	if err != nil {
@@ -226,6 +220,23 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 
 	return err
 
+}
+
+func (a *ScrapeGeneratorWebhook) mutateMetricsBinding(metricsBinding *vzapp.MetricsBinding, template *vzapp.MetricsTemplate, unst *unstructured.Unstructured) error {
+	metricsBinding.Spec.MetricsTemplate.Namespace = template.Namespace
+	metricsBinding.Spec.MetricsTemplate.Name = template.Name
+	metricsBinding.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         unst.GetAPIVersion(),
+			Kind:               unst.GetKind(),
+			Name:               unst.GetName(),
+			UID:                unst.GetUID(),
+			Controller:         pointer.BoolPtr(true),
+			BlockOwnerDeletion: pointer.BoolPtr(true),
+		},
+	}
+
+	return nil
 }
 
 // findMatchingTemplate returns a matching template for a given namespace
