@@ -6,7 +6,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-set -x 
+set -x
 
 function usage {
     echo
@@ -72,13 +72,6 @@ if [ $OPERATION == "create" ]; then
   # exit
   sudo yum -y install patch >/dev/null 2>&1
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
-
-
-#    if [ ${TF_VAR_region} != "us-phoenix-1" ];then
-#       log "Region is not us-phoenix-1"
-#       VCN_VIEW_ID="ocid1.dnsview.oc1.uk-london-1.amaaaaaao3yqxzyad25abmv6eiivxg4n35ajthydc4lgo46f473rkkc3gfwq"
-#    fi
-
     log "Using view id " ${VCN_VIEW_ID}
     zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
     status_code=$?
@@ -110,19 +103,21 @@ if [ $OPERATION == "create" ]; then
   
 elif [ $OPERATION == "delete" ]; then
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
-    oci dns zone delete --zone-name-or-id ${zone_ocid} --scope ${DNS_SCOPE} --force
+    DNS_ZONE_OCID=`(oci dns zone list --compartment-id ${COMPARTMENT_OCID} --scope PRIVATE --name ${ZONE_NAME} | jq -r '.data[].id')`
+    oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --scope ${DNS_SCOPE} --force
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
       log "DNS zone deletion failed on first try. Retrying once."
-      oci dns zone delete --zone-name-or-id ${zone_ocid} --scope ${DNS_SCOPE} --force
+      oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --scope ${DNS_SCOPE} --force
       status_code=$?
     fi
   else
-    oci dns zone delete --zone-name-or-id ${zone_ocid} --force
+    DNS_ZONE_OCID=`(oci dns zone list --compartment-id ${COMPARTMENT_OCID} --name ${ZONE_NAME} | jq -r '.data[].id')`
+    oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --force
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
       log "DNS zone deletion failed on first try. Retrying once."
-      oci dns zone delete --zone-name-or-id ${zone_ocid} --force
+      oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --force
       status_code=$?
     fi
   fi
