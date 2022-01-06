@@ -108,19 +108,19 @@ if [ $OPERATION == "create" ]; then
   
 elif [ $OPERATION == "delete" ]; then
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
-    oci dns zone delete --zone-name-or-id ${ZONE_NAME} --scope ${DNS_SCOPE} --force
+    oci dns zone delete --zone-name-or-id ${zone_ocid} --scope ${DNS_SCOPE} --force
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
       log "DNS zone deletion failed on first try. Retrying once."
-      oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
+      oci dns zone delete --zone-name-or-id ${zone_ocid} --scope ${DNS_SCOPE} --force
       status_code=$?
     fi
   else
-    oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
+    oci dns zone delete --zone-name-or-id ${zone_ocid} --force
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
       log "DNS zone deletion failed on first try. Retrying once."
-      oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
+      oci dns zone delete --zone-name-or-id ${zone_ocid} --force
       status_code=$?
     fi
   fi
