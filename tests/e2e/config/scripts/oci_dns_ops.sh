@@ -50,13 +50,13 @@ fi
 
 if [ "${DNS_SCOPE_INPUT:-}" ] ; then
   if [ ${DNS_SCOPE_INPUT} == "GLOBAL" ] || [ ${DNS_SCOPE_INPUT} == "PRIVATE" ]; then
-    DNS_SCOPE=${DNS_SCOPE_INPUT}
+     DNS_SCOPE=${DNS_SCOPE_INPUT}
      echo "DNS_SCOPE is " $DNS_SCOPE_INPUT
   fi
 fi
 
 set -o pipefail
-if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
+if [ ${DNS_SCOPE} == "PRIVATE" ];then
   ZONE_NAME="${SUBDOMAIN_NAME}-private.v8o.io"
   #VIEW_NAME="${SUBDOMAIN_NAME}-private-view"
 else
@@ -71,7 +71,7 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
-  if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
+  if [ ${DNS_SCOPE} == "PRIVATE" ];then
     #env
     #log "Creating private dns view '${VIEW_NAME}' details in compartment '${COMPARTMENT_ID}'"
     #oci dns view create -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} --scope PRIVATE
@@ -120,7 +120,7 @@ if [ $OPERATION == "create" ]; then
   fi 
   
 elif [ $OPERATION == "delete" ]; then
-  if [ ${DNS_SCOPE_INPUT} == "PRIVATE" ];then
+  if [ ${DNS_SCOPE} == "PRIVATE" ];then
     #log "Fetching view details in compartment '${COMPARTMENT_OCID}'"
     #VCN_VIEW_ID=$(oci dns view list -c ${COMPARTMENT_OCID} --display-name ${VIEW_NAME} | jq '.data[0].id' -r)
     #if [ $? -ne 0 ];then
@@ -132,14 +132,13 @@ elif [ $OPERATION == "delete" ]; then
     #    log "Error while creating view '${VIEW_NAME}'"
     #fi
 
-    oci dns zone delete --zone-name-or-id ${ZONE_NAME} --scope PRIVATE --force
+    oci dns zone delete --zone-name-or-id ${ZONE_NAME} --scope ${DNS_SCOPE} --force
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
       log "DNS zone deletion failed on first try. Retrying once."
       oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
       status_code=$?
     fi
-
   else
     oci dns zone delete --zone-name-or-id ${ZONE_NAME} --force
     status_code=$?
