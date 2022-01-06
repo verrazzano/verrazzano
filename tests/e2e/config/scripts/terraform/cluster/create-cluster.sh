@@ -4,8 +4,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-# added for debug
-set -x
 
 . ./init.sh
 
@@ -42,8 +40,6 @@ echo "updating OKE private_workers_seclist to allow pub_lb_subnet access to work
 # because the OKE still could work if it didn't hit the rate limiting
 
 # find vcn id "${var.label_prefix}-${var.vcn_name}"
-echo "AAMITRA DEBUG : compartment-id " ${TF_VAR_compartment_id}
-echo "AAMITRA DEBUG : display-name " "${TF_VAR_label_prefix}-oke-vcn"
 VCN_ID=$(oci network vcn list \
   --compartment-id "${TF_VAR_compartment_id}" \
   --display-name "${TF_VAR_label_prefix}-oke-vcn" \
