@@ -27,7 +27,7 @@ deploy_contour () {
 #    echo "Deployment of contour failed"
 #    exit 1
 #  fi
-  sleep 50
+  #sleep 50
 }
 
 install_new_helm_version() {
@@ -97,11 +97,10 @@ deploy_harbor() {
   ./helm --kubeconfig=${KUBECONFIG} install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
     --set expose.ingress.annotations.'kubernetes\.io/ingress\.class'=contour \
-    --set expose.ingress.annotations.'certmanager\.k8s\.io/cluster-issuer'=letsencrypt-prod \
     --set externalURL=https://${REGISTRY} \
     --set expose.tls.secretName=ephemeral-harbor-ingress-cert \
     --set notary.enabled=false \
-    --set notary.trivy=false \
+    --set trivy.enabled=false \
     --set persistence.enabled=false \
     --set harborAdminPassword=${PRIVATE_REGISTRY_PSW}
 
@@ -114,12 +113,15 @@ deploy_harbor() {
   kubectl wait --namespace default \
   --for=condition=ready pod \
   --all \
-  --timeout=120s
+  --timeout=300s
+
+  kubectl wait --namespace projectcontour \
+    --for=condition=ready pod \
+    --all \
+    --timeout=300s
 
   kubectl get pods -A
   kubectl get svc -A
-
-  cat /etc/hosts
 
   docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
   if [ $? -ne 0 ]; then
@@ -183,7 +185,7 @@ start_installation() {
 
   if [ $SETUP_HARBOR == true ]; then
     install_new_helm_version
-    deploy_certificates
+    #deploy_certificates
     deploy_contour
     deploy_harbor
     load_images
