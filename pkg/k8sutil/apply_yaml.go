@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"io"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -151,11 +150,7 @@ func (y *YAMLApplier) doFileAction(filePath string, f action) error {
 }
 
 //doTemplatedFileAction runs the action against a template file
-func (y *YAMLApplier) doTemplatedFileAction(dataFile string, f action, args map[string]interface{}) error {
-	filePath, err := pkg.FindTestDataFile(dataFile)
-	if err != nil {
-		return err
-	}
+func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args map[string]interface{}) error {
 	templateName := path.Base(filePath)
 	tmpl, err := template.New(templateName).
 		Option("missingkey=error"). // Treat any missing keys as errors
