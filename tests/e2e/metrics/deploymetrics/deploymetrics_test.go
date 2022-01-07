@@ -27,11 +27,13 @@ var _ = BeforeSuite(func() {
 	deployMetricsApplication()
 })
 
-
 var _ = AfterSuite(func() {
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
+	undeployMetricsApplication()
+})
+
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	undeployMetricsApplication()
 })
 
