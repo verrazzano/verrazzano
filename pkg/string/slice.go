@@ -1,4 +1,4 @@
-// Copyright (C) 2021, Oracle and/or its affiliates.
+// Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package string
@@ -53,3 +53,12 @@ func SliceToSet(list []string) map[string]bool {
 	}
 	return outSet
 }
+
+// SliceAddString Adds a string to a slice if it is not already present
+func SliceAddString(slice []string, s string) ([]string, bool) {
+	if !SliceContainsString(slice, s) {
+		return append(slice, s), true
+	}
+	return slice, false
+}
+
