@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -217,14 +216,15 @@ func (a *ScrapeGeneratorWebhook) mutateMetricsBinding(metricsBinding *vzapp.Metr
 	metricsBinding.Spec.MetricsTemplate.Name = template.Name
 	metricsBinding.Spec.PrometheusConfigMap.Namespace = template.Spec.PrometheusConfig.TargetConfigMap.Namespace
 	metricsBinding.Spec.PrometheusConfigMap.Name = template.Spec.PrometheusConfig.TargetConfigMap.Name
+	trueValue := true
 	metricsBinding.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         unst.GetAPIVersion(),
 			Kind:               unst.GetKind(),
 			Name:               unst.GetName(),
 			UID:                unst.GetUID(),
-			Controller:         pointer.BoolPtr(true),
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			Controller:         &trueValue,
+			BlockOwnerDeletion: &trueValue,
 		},
 	}
 
