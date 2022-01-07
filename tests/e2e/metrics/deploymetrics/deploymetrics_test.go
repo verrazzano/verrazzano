@@ -27,10 +27,6 @@ var _ = BeforeSuite(func() {
 	deployMetricsApplication()
 })
 
-var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
-})
 
 var _ = AfterSuite(func() {
 	if failed {
