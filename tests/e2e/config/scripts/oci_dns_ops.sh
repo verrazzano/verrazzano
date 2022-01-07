@@ -97,26 +97,14 @@ if [ $OPERATION == "create" ]; then
   fi 
   
 elif [ $OPERATION == "delete" ]; then
-  if [ ${DNS_SCOPE} == "PRIVATE" ];then
-    DNS_ZONE_OCID=`(oci dns zone list --compartment-id ${COMPARTMENT_OCID} --scope PRIVATE --name ${ZONE_NAME} | jq -r '.data[].id')`
+  DNS_ZONE_OCID=`(oci dns zone list --compartment-id ${COMPARTMENT_OCID} --scope ${DNS_SCOPE} --name ${ZONE_NAME} | jq -r '.data[].id')`
+  oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --scope ${DNS_SCOPE} --force
+  status_code=$?
+  if [ ${status_code} -ne 0 ]; then
+    log "DNS zone deletion failed on first try. Retrying once."
     oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --scope ${DNS_SCOPE} --force
     status_code=$?
-    if [ ${status_code} -ne 0 ]; then
-      log "DNS zone deletion failed on first try. Retrying once."
-      oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --scope ${DNS_SCOPE} --force
-      status_code=$?
-    fi
-  else
-    DNS_ZONE_OCID=`(oci dns zone list --compartment-id ${COMPARTMENT_OCID} --name ${ZONE_NAME} | jq -r '.data[].id')`
-    oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --force
-    status_code=$?
-    if [ ${status_code} -ne 0 ]; then
-      log "DNS zone deletion failed on first try. Retrying once."
-      oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --force
-      status_code=$?
-    fi
   fi
-
 else
   log "Unknown operation: ${OPERATION}"
   usage
