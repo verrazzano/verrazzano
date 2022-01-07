@@ -5,20 +5,18 @@ package metricstemplate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	k8scorev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scontroller "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,40 +31,9 @@ type Reconciler struct {
 	Scraper string
 }
 
-// setupWithManagerForGVK creates a controller for a specific GKV and adds it to the manager.
-func (r *Reconciler) setupWithManagerForGVK(mgr k8scontroller.Manager, group string, version string, kind string) error {
-	u := unstructured.Unstructured{}
-	u.SetGroupVersionKind(schema.GroupVersionKind{Group: group, Version: version, Kind: kind})
-	return k8scontroller.NewControllerManagedBy(mgr).For(&u).Complete(r)
-}
-
-// SetupWithManager creates controllers for each supported GKV and adds it to the manager
-// See https://book-v1.book.kubebuilder.io/beyond_basics/controller_watches.html for potentially better way to watch arbitrary resources
+// SetupWithManager creates controller for the MetricsBinding
 func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
-	//TODO: Need some way to lookup set of supported workload GVKs.
-	if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "Deployment"); err != nil {
-		return err
-	}
-	// Disabling for now as Domain and Coherence cause problems when those CRDs don't exist.
-	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "ReplicaSet"); err != nil {
-	//	return err
-	//}
-	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "StatefulSet"); err != nil {
-	//	return err
-	//}
-	//if err := r.setupWithManagerForGVK(mgr, "apps", "v1", "DaemonSet"); err != nil {
-	//	return err
-	//}
-	//if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v7", "Domain"); err != nil {
-	//	return err
-	//}
-	//if err := r.setupWithManagerForGVK(mgr, "weblogic.oracle", "v8", "Domain"); err != nil {
-	//	return err
-	//}
-	//if err := r.setupWithManagerForGVK(mgr, "coherence.oracle.com", "v1", "Coherence"); err != nil {
-	//	return err
-	//}
-	return nil
+	return k8scontroller.NewControllerManagedBy(mgr).For(&vzapi.MetricsBinding{}).Complete(r)
 }
 
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
@@ -75,64 +42,41 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	r.Log.V(1).Info("Reconcile metrics scrape config", "resource", req.NamespacedName)
 	ctx := context.Background()
 
-	// Fetch request resource into an Unstructured type
-	resource, err := r.getRequestedResource(req.NamespacedName)
-	if err != nil {
+	// Fetch requested resource into MetricsBinding
+	metricsBinding := vzapi.MetricsBinding{}
+	if err := r.Client.Get(context.TODO(), req.NamespacedName, &metricsBinding); err != nil {
 		return k8scontroller.Result{}, k8sclient.IgnoreNotFound(err)
 	}
 
-	// Check for label in resource
-	// If no label exists, do nothing
-	labels := resource.GetLabels()
-	resourceUID, keyExists := labels[constants.MetricsWorkloadUIDLabel]
-	if !keyExists || resourceUID != string(resource.GetUID()) {
-		return k8scontroller.Result{}, nil
+	if metricsBinding.GetDeletionTimestamp().IsZero() {
+		return r.reconcileTemplateCreateOrUpdate(ctx, &metricsBinding)
 	}
-
-	if resource.GetDeletionTimestamp().IsZero() {
-		return r.reconcileTemplateCreateOrUpdate(ctx, resource)
-	}
-	return r.reconcileTemplateDelete(ctx, resource)
-}
-
-// getRequestedResource returns an Unstructured value from the namespace and name given in the request
-func (r *Reconciler) getRequestedResource(namespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
-	uns := unstructured.Unstructured{}
-	// TODO: Replace with more generic lookup
-	uns.SetGroupVersionKind(schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "Deployment"})
-	if err := r.Client.Get(context.TODO(), namespacedName, &uns); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, err
-		}
-		r.Log.Error(err, fmt.Sprintf("Could not get the requested resource: %s", uns.GetKind()))
-		return nil, err
-	}
-	return &uns, nil
+	return r.reconcileTemplateDelete(ctx, &metricsBinding)
 }
 
 // reconcileTemplateDelete completes the reconcile process for an object that is being deleted
-func (r *Reconciler) reconcileTemplateDelete(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
-	r.Log.V(2).Info("Reconcile for deleted object", "resource", resource.GetName())
-	err := r.removeFinalizerIfRequired(ctx, resource)
+func (r *Reconciler) reconcileTemplateDelete(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
+	r.Log.V(2).Info("Reconcile for deleted object", "resource", metricsBinding.GetName())
+	err := r.removeFinalizerIfRequired(ctx, metricsBinding)
 	if err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
-	if err := r.mutatePrometheusScrapeConfig(ctx, resource, r.deleteScrapeConfig); err != nil {
+	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.deleteScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 	return k8scontroller.Result{}, nil
 }
 
 // reconcileTemplateCreateOrUpdate completes the reconcile process for an object that is being created or updated
-func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, resource *unstructured.Unstructured) (k8scontroller.Result, error) {
-	r.Log.V(2).Info("Reconcile for created or updated object", "resource", resource.GetName())
-	err := r.addFinalizerIfRequired(ctx, resource)
+func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
+	r.Log.V(2).Info("Reconcile for created or updated object", "resource", metricsBinding.GetName())
+	err := r.addFinalizerIfRequired(ctx, metricsBinding)
 	if err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
-	if err := r.mutatePrometheusScrapeConfig(ctx, resource, r.createOrUpdateScrapeConfig); err != nil {
+	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.createOrUpdateScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 	return k8scontroller.Result{}, nil
@@ -140,13 +84,13 @@ func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, resour
 
 // addFinalizerIfRequired adds the finalizer to the Template if required
 // The finalizer is only added if the Template is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, resource *unstructured.Unstructured) error {
-	if resource.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(resource.GetFinalizers(), finalizerName) {
-		resourceName := resource.GetName()
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, metricsBinding *vzapi.MetricsBinding) error {
+	if metricsBinding.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(metricsBinding.GetFinalizers(), finalizerName) {
+		resourceName := metricsBinding.GetName()
 		r.Log.V(2).Info("Adding finalizer from resource", "resource", resourceName)
-		resource.SetFinalizers(append(resource.GetFinalizers(), finalizerName))
-		if err := r.Update(ctx, resource); err != nil {
-			r.Log.Error(err, fmt.Sprintf("Could not update the finalizer for resource: %s/%s", resource.GetKind(), resource.GetName()))
+		metricsBinding.SetFinalizers(append(metricsBinding.GetFinalizers(), finalizerName))
+		if err := r.Update(ctx, metricsBinding); err != nil {
+			r.Log.Error(err, fmt.Sprintf("Could not update the finalizer for resource: %s/%s", metricsBinding.GetObjectKind(), metricsBinding.GetName()))
 			return err
 		}
 	}
@@ -155,13 +99,13 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, resource *unstr
 
 // removeFinalizerIfRequired removes the finalizer from the template if required
 // The finalizer is only removed if the template is being deleted and the finalizer had been added
-func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, resource *unstructured.Unstructured) error {
-	if !resource.GetDeletionTimestamp().IsZero() && vzstring.SliceContainsString(resource.GetFinalizers(), finalizerName) {
-		resourceName := resource.GetName()
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, metricsBinding *vzapi.MetricsBinding) error {
+	if !metricsBinding.GetDeletionTimestamp().IsZero() && vzstring.SliceContainsString(metricsBinding.GetFinalizers(), finalizerName) {
+		resourceName := metricsBinding.GetName()
 		r.Log.Info("Removing finalizer from resource", "resource", resourceName)
-		resource.SetFinalizers(vzstring.RemoveStringFromSlice(resource.GetFinalizers(), finalizerName))
-		if err := r.Update(ctx, resource); err != nil {
-			r.Log.Error(err, fmt.Sprintf("Could not update the finalizer for resource: %s/%s, ", resource.GetKind(), resource.GetName()))
+		metricsBinding.SetFinalizers(vzstring.RemoveStringFromSlice(metricsBinding.GetFinalizers(), finalizerName))
+		if err := r.Update(ctx, metricsBinding); err != nil {
+			r.Log.Error(err, fmt.Sprintf("Could not update the finalizer for resource: %s/%s, ", metricsBinding.GetObjectKind(), metricsBinding.GetName()))
 			return err
 		}
 	}
@@ -170,35 +114,17 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, resource *un
 
 // mutatePrometheusScrapeConfig takes the resource and a mutate function that determines the mutations of the scrape config
 // mutations are dependant upon the status of the deletion timestamp
-func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource *unstructured.Unstructured, mutateFn func(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error) error {
-	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", resource.GetName())
-	// Verify that the configmap label
-	labels := resource.GetLabels()
-	configmapUID, labelExists := labels[constants.MetricsPromConfigMapUIDLabel]
-	if !labelExists {
-		return nil
-	}
-
-	// Find ConfigMap by the Given UID and delete the scrape config
-	configMap := k8scorev1.ConfigMap{
-		TypeMeta: k8smetav1.TypeMeta{
-			Kind:       configMapKind,
-			APIVersion: configMapAPIVersion,
-		},
-	}
-	err := r.getResourceFromUID(ctx, &configMap, configmapUID)
-	if err != nil {
-		return err
-	}
+func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBinding *vzapi.MetricsBinding, mutateFn func(metricsBinding *vzapi.MetricsBinding) (*k8scorev1.ConfigMap, error)) error {
+	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", metricsBinding.GetName())
 
 	// Mutate the ConfigMap based on the given function
-	err = mutateFn(&configMap, types.NamespacedName{Name: resource.GetName(), Namespace: resource.GetNamespace()}, resource)
+	configMap, err := mutateFn(metricsBinding)
 	if err != nil {
 		return err
 	}
 
 	//Apply the updated configmap
-	err = r.Client.Update(ctx, &configMap)
+	err = r.Client.Update(ctx, configMap)
 	if err != nil {
 		r.Log.Error(err, fmt.Sprintf("Could not update the ConfigMap: %s", configMap.GetName()))
 		return err
@@ -207,24 +133,36 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, resource 
 }
 
 // Delete scrape config is a mutation function that deletes the scrape config data from the Prometheus ConfigMap
-func (r *Reconciler) deleteScrapeConfig(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
-	r.Log.V(2).Info("Scrape Config is being deleted from the Prometheus Config", "resource", resource.GetName())
+func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding) (*k8scorev1.ConfigMap, error) {
+	r.Log.V(2).Info("Scrape Config is being deleted from the Prometheus Config", "resource", metricsBinding.GetName())
+
+	// Get the ConfigMap from the MetricsTemplate
+	configMap, err := r.getPromConfigMap(metricsBinding)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	// Verify the Owner Reference exists
+	if len(metricsBinding.OwnerReferences) < 1 {
+		return nil, errors.New(fmt.Sprintf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName()))
 	}
 
 	// Delete scrape config with job name matching resource
 	scrapeConfigs := promConfig.Search(prometheusScrapeConfigsLabel).Children()
 	for index, scrapeConfig := range scrapeConfigs {
 		existingJobName := scrapeConfig.Search(prometheusJobNameLabel).Data()
-		createdJobName := createJobName(namespacedName, resource.GetUID())
+		createdJobName := createJobName(metricsBinding)
 		if existingJobName == createdJobName {
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
 				r.Log.Error(err, "Could remove array slice from Prometheus config")
-				return err
+				return nil, err
 			}
 		}
 	}
@@ -233,77 +171,87 @@ func (r *Reconciler) deleteScrapeConfig(configMap *k8scorev1.ConfigMap, namespac
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
 		r.Log.Error(err, "Could convert Prometheus config data to YAML")
-		return err
+		return nil, err
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
-	return nil
+	return configMap, nil
 }
 
 // createOrUpdateScrapeConfig is a mutation function that creates or updates the scrape config data within the given Prometheus ConfigMap
-func (r *Reconciler) createOrUpdateScrapeConfig(configMap *k8scorev1.ConfigMap, namespacedName types.NamespacedName, resource *unstructured.Unstructured) error {
-	r.Log.V(2).Info("Scrape Config is being created or update in the Prometheus config", "resource", resource.GetName())
+func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBinding) (*k8scorev1.ConfigMap, error) {
+	r.Log.V(2).Info("Scrape Config is being created or update in the Prometheus config", "resource", metricsBinding.GetName())
+
+	// Get the MetricsTemplate from the MetricsBinding
+	template, err := r.getMetricsTemplate(metricsBinding)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the ConfigMap from the MetricsTemplate
+	configMap, err := r.getPromConfigMap(metricsBinding)
+	if err != nil {
+		return nil, err
+	}
+
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// Get the metrics template from the UID
-	labels := resource.GetLabels()
-	metricsTemplateUID := labels[constants.MetricsTemplateUIDLabel]
-	metricsTemplate := vzapi.MetricsTemplate{
-		TypeMeta: k8smetav1.TypeMeta{
-			Kind:       metricsTemplateKind,
-			APIVersion: metricsTemplateAPIVersion,
-		},
+	// Get the OwnerReference object
+	if len(metricsBinding.OwnerReferences) < 1 {
+		return nil, errors.New(fmt.Sprintf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName()))
 	}
-	err = r.getResourceFromUID(context.Background(), &metricsTemplate, metricsTemplateUID)
+	workload := unstructured.Unstructured{}
+	workloadName := types.NamespacedName{Namespace: metricsBinding.GetNamespace(), Name: metricsBinding.OwnerReferences[0].Name}
+	err = r.Client.Get(context.Background(), workloadName, &workload)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Get the namespace for the template
-	resourceNamespace := k8scorev1.Namespace{}
-	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: resource.GetNamespace()}, &resourceNamespace)
+	workloadNamespace := k8scorev1.Namespace{}
+	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: template.GetNamespace()}, &workloadNamespace)
 	if err != nil {
-		r.Log.Error(err, fmt.Sprintf("Could not get the Namespace: %s", resourceNamespace.GetName()))
-		return err
+		r.Log.Error(err, fmt.Sprintf("Could not get the Namespace: %s", workloadNamespace.GetName()))
+		return nil, err
 	}
 
 	// Create Unstructured Namespace
-	resourceNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&resourceNamespace)
+	workloadNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&workloadNamespace)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	resourceNamespaceUnstructured := unstructured.Unstructured{Object: resourceNamespaceUnstructuredMap}
+	workloadNamespaceUnstructured := unstructured.Unstructured{Object: workloadNamespaceUnstructuredMap}
 
 	// Organize inputs for template processor
 	templateInputs := map[string]interface{}{
-		"workload":  resource.Object,
-		"namespace": resourceNamespaceUnstructured.Object,
+		"workload":  workload.Object,
+		"namespace": workloadNamespaceUnstructured.Object,
 	}
 
 	// Get scrape config from the template processor and process the template inputs
-	templateProcessor := vztemplate.NewProcessor(r.Client, metricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate)
+	templateProcessor := vztemplate.NewProcessor(r.Client, template.Spec.PrometheusConfig.ScrapeConfigTemplate)
 	scrapeConfigString, err := templateProcessor.Process(templateInputs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Prepend job name to the template
-	createdJobName := createJobName(namespacedName, resource.GetUID())
+	createdJobName := createJobName(metricsBinding)
 	scrapeConfigString = formatJobName(createdJobName) + scrapeConfigString
 
 	// Format scrape config into readable container
 	configYaml, err := yaml.YAMLToJSON([]byte(scrapeConfigString))
 	if err != nil {
 		r.Log.Error(err, "Could not convert scrape config YAML to JSON")
-		return err
+		return nil, err
 	}
 	newScrapeConfig, err := gabs.ParseJSON(configYaml)
 	if err != nil {
 		r.Log.Error(err, "Could not convert scrape config JSON to container")
-		return err
+		return nil, err
 	}
 
 	// Create or Update scrape config with job name matching resource
@@ -315,11 +263,11 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *k8scorev1.ConfigMap, 
 			// Remove and recreate scrape config
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			existingUpdated = true
 			break
@@ -328,41 +276,55 @@ func (r *Reconciler) createOrUpdateScrapeConfig(configMap *k8scorev1.ConfigMap, 
 	if !existingUpdated {
 		err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	// Repopulate the ConfigMap data
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
-		return err
+		return nil, err
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
-	return nil
+	return configMap, nil
 }
 
-// getResourceFromUID will return a Kubernetes resource given a template object and UID
-func (r *Reconciler) getResourceFromUID(ctx context.Context, resource k8sruntime.Object, objectUID string) error {
-	objects := unstructured.UnstructuredList{}
-	objectKind := resource.GetObjectKind()
-	gvk := objectKind.GroupVersionKind()
-	objects.SetAPIVersion(gvk.GroupVersion().String())
-	objects.SetKind(gvk.Kind + "List")
-	err := r.Client.List(ctx, &objects)
+// getMetricsTemplate returns the MetricsTemplate given in the MetricsBinding
+func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding) (*vzapi.MetricsTemplate, error) {
+	template := vzapi.MetricsTemplate{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       metricsTemplateKind,
+			APIVersion: metricsTemplateAPIVersion,
+		},
+	}
+
+	templateSpec := metricsBinding.Spec.MetricsTemplate
+	namespacedName := types.NamespacedName{Name: templateSpec.Name, Namespace: templateSpec.Namespace}
+	err := r.Client.Get(context.Background(), namespacedName, &template)
 	if err != nil {
-		return err
+		r.Log.Error(err, fmt.Sprintf("Could not get the MetricsTemplate: %s", templateSpec.Name))
+		return nil, err
 	}
-	for _, object := range objects.Items {
-		if string(object.GetUID()) == objectUID {
-			err := k8sruntime.DefaultUnstructuredConverter.FromUnstructured(object.UnstructuredContent(), resource)
-			if err != nil {
-				return err
-			}
-			return nil
-		}
+
+	return &template, nil
+}
+
+// getPromConfigMap returns the Prometheus ConfigMap given in the MetricsTemplate
+func (r *Reconciler) getPromConfigMap(metricsBinding *vzapi.MetricsBinding) (*k8scorev1.ConfigMap, error) {
+	configMap := k8scorev1.ConfigMap{
+		TypeMeta: k8smetav1.TypeMeta{
+			Kind:       configMapKind,
+			APIVersion: configMapAPIVersion,
+		},
 	}
-	return errors.NewNotFound(schema.GroupResource{
-		Group:    gvk.Group,
-		Resource: gvk.Kind,
-	}, objectUID)
+
+	targetConfigMap := metricsBinding.Spec.PrometheusConfigMap
+	namespacedName := types.NamespacedName{Name: targetConfigMap.Name, Namespace: targetConfigMap.Namespace}
+	err := r.Client.Get(context.Background(), namespacedName, &configMap)
+	if err != nil {
+		r.Log.Error(err, fmt.Sprintf("Could not get the MetricsTemplate: %s", targetConfigMap.Name))
+		return nil, err
+	}
+
+	return &configMap, nil
 }

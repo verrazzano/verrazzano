@@ -5,12 +5,12 @@ package metricstemplate
 
 import (
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 
 	"github.com/Jeffail/gabs/v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -28,9 +28,10 @@ const (
 	finalizerName = "metricstemplate.finalizers.verrazzano.io/finalizer"
 )
 
-// Creates a job name in the format <namespace>_<name>_<uid>
-func createJobName(namespacedName types.NamespacedName, resourceUID types.UID) string {
-	return fmt.Sprintf("%s_%s_%s", namespacedName.Namespace, namespacedName.Name, resourceUID)
+// Creates a job name in the format <namespace>_<name>_<kind>
+func createJobName(metricsbinding *vzapi.MetricsBinding) string {
+	reference := metricsbinding.OwnerReferences[0]
+	return fmt.Sprintf("%s_%s_%s", metricsbinding.Namespace, reference.Name, reference.Kind)
 }
 
 // returns a container of the Prometheus config data from the configmap

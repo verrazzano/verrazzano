@@ -117,4 +117,4 @@ scrape_configs:
   - source_labels:
     - __meta_kubernetes_service_label_app
     target_label: app
-- job_name: update-ns_update-deployment_updateUID
+- job_name: update-ns_update-deployment_Deployment
