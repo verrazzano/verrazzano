@@ -96,7 +96,16 @@ func (y *YAMLApplier) DeleteF(filePath string) error {
 }
 
 //DeleteFT deletes a file template spec (go text.template) to Kubernetes
-func (y *YAMLApplier) DeleteFT(filePath string, args map[string]interface{}) error {
+func (y *YAMLApplier) DeleteFTDefaultConfig(filePath string, args map[string]interface{}) error {
+	config, err := GetKubeConfig()
+	if err != nil {
+		return err
+	}
+	client, err := crtpkg.New(config, crtpkg.Options{})
+	if err != nil {
+		return err
+	}
+	y.client = client
 	return y.doTemplatedFileAction(filePath, y.deleteAction, args)
 }
 

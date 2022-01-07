@@ -433,7 +433,7 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 
 // generateNamespace takes a string and combines that with a UUID to generate a namespace
 func GenerateNamespace(name string) string {
-	return name + "-" + uuid.New().String()
+	return name + "-" + uuid.NewString()[:7]
 }
 
 // GetEffectiveKeyCloakPersistenceOverride returns the effective PVC override for Keycloak, if it exists

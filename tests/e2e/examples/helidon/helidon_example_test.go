@@ -40,11 +40,11 @@ var _ = BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return yamlApplier.ApplyFTDefaultConfig("examples/hello-helidon/hello-helidon-comp.yaml", namespaceMap)
+			return yamlApplier.ApplyFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-comp.yaml", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 		Eventually(func() error {
-			return yamlApplier.ApplyFTDefaultConfig("examples/hello-helidon/hello-helidon-app.yaml", namespaceMap)
+			return yamlApplier.ApplyFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-app.yaml", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 	}
 })
