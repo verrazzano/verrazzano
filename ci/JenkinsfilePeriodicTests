@@ -314,6 +314,23 @@ pipeline {
                         }
                     }
                 }
+                stage('OCI Private DNS tests') {
+                                    steps {
+                                        script {
+                                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                                parameters: [
+                                                    string(name: 'DNS_SCOPE', value: 'PRIVATE'),
+                                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                                ], wait: true
+                                        }
+                                    }
+                                }
                 /*stage('Multi Cluster with OCI DNS/ACME-Staging Tests') {
                     steps {
                         script {

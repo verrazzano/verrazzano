@@ -198,6 +198,7 @@ pipeline {
                         }
                     }
                 }
+                /*
                 stage('OCI Private DNS tests') {
                     steps {
                         script {
@@ -215,6 +216,7 @@ pipeline {
                         }
                     }
                 }
+                */
                 stage('Kind Acceptance Tests on 1.21') {
                     steps {
                         script {
