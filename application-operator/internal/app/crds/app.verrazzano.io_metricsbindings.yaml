@@ -40,13 +40,28 @@ spec:
               binding
             properties:
               metricsTemplate:
-                description: Identifies a namespace and name for a metrics template
+                description: Identifies a namespace and name for a metricsTemplate
+                  resource
                 properties:
                   name:
-                    description: Name of metrics template resource
+                    description: Name of a resource
                     type: string
                   namespace:
-                    description: Namespace of metrics template resource
+                    description: Namespace of a resource
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              prometheusConfigMap:
+                description: Identifies a namespace and name for a Prometheus configMap
+                  resource
+                properties:
+                  name:
+                    description: Name of a resource
+                    type: string
+                  namespace:
+                    description: Namespace of a resource
                     type: string
                 required:
                 - name
@@ -54,6 +69,7 @@ spec:
                 type: object
             required:
             - metricsTemplate
+            - prometheusConfigMap
             type: object
         required:
         - spec
