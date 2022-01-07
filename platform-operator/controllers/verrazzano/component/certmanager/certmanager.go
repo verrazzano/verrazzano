@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certmanager
@@ -203,30 +203,27 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) error {
 	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), crdDirectory)
 	// Exclude the input file, since it will be parsed into individual documents
-	excludedFiles := []string{crdInputFile}
 	// Input file containing CertManager CRDs
 	inputFile := filepath.Join(crdManifestDir, crdInputFile)
 	// Output file format
 	outputFile := filepath.Join(crdManifestDir, crdOutputFile)
 
 	// Write out CRD Manifests for CertManager
-	filesWritten, err := writeCRD(inputFile, outputFile, isOCIDNS(compContext.EffectiveCR()))
+	err := writeCRD(inputFile, outputFile, isOCIDNS(compContext.EffectiveCR()))
 	if err != nil {
 		return err
 	}
 
 	// Apply the CRD Manifest for CertManager
-	filesApplied, err := k8sutil.ApplyCRDYaml(compContext.Log(), compContext.Client(), crdManifestDir, excludedFiles)
-	if err != nil {
+	if err = k8sutil.NewYAMLApplier(compContext.Client()).ApplyF(outputFile); err != nil {
 		return err
 	}
-	compContext.Log().Debugf("applied CRD files for cert-manager: %v", filesApplied)
 
 	// Clean up the files written out. This may be different than the files applied
-	return cleanTempFiles(filesWritten)
+	return cleanTempFiles(outputFile)
 }
 
-func cleanTempFiles(tempFiles []string) error {
+func cleanTempFiles(tempFiles ...string) error {
 	for _, file := range tempFiles {
 		if err := os.Remove(file); err != nil {
 			return err
@@ -265,11 +262,10 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 
 //writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
 // reads the input CRD file line by line, adding OCI DNS snippets
-func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) ([]string, error) {
-	var filesWritten = make([]string, 0, 10)
+func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) error {
 	infile, err := os.Open(inFilePath)
 	if err != nil {
-		return filesWritten, err
+		return err
 	}
 	defer infile.Close()
 	buffer := bytes.Buffer{}
@@ -280,8 +276,7 @@ func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) ([]string, error) 
 		if buffer.Len() < 1 {
 			return nil
 		}
-		path := fmt.Sprintf("%s.%d", outFilePath, len(filesWritten))
-		outfile, err := os.Create(path)
+		outfile, err := os.Create(outFilePath)
 		if err != nil {
 			return err
 		}
@@ -291,7 +286,6 @@ func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) ([]string, error) 
 		if err := outfile.Close(); err != nil {
 			return err
 		}
-		filesWritten = append(filesWritten, path)
 		buffer.Reset()
 		return nil
 	}
@@ -303,28 +297,21 @@ func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) ([]string, error) 
 			// If at the end of the file, flush any buffered data
 			if err == io.EOF {
 				flushErr := flushBuffer()
-				return filesWritten, flushErr
+				return flushErr
 			}
-			return filesWritten, err
+			return err
 		}
 		lineStr := string(line)
-		// If we are at a YAML document delimiter, flush the current data to the file system
-		if lineStr == "---\n" {
-			if err := flushBuffer(); err != nil {
-				return filesWritten, err
+		// If the line specifies that the OCI DNS snippet should be written, write it
+		if useOCIDNS && strings.HasSuffix(lineStr, snippetSubstring) {
+			padding := strings.Repeat(" ", len(strings.TrimSuffix(lineStr, snippetSubstring)))
+			snippet := createSnippetWithPadding(padding)
+			if _, err := buffer.Write(snippet); err != nil {
+				return err
 			}
-		} else {
-			// If the line specifies that the OCI DNS snippet should be written, write it
-			if useOCIDNS && strings.HasSuffix(lineStr, snippetSubstring) {
-				padding := strings.Repeat(" ", len(strings.TrimSuffix(lineStr, snippetSubstring)))
-				snippet := createSnippetWithPadding(padding)
-				if _, err := buffer.Write(snippet); err != nil {
-					return filesWritten, err
-				}
-			}
-			if _, err := buffer.Write(line); err != nil {
-				return filesWritten, err
-			}
+		}
+		if _, err := buffer.Write(line); err != nil {
+			return err
 		}
 	}
 }

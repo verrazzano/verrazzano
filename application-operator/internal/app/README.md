@@ -17,7 +17,7 @@ Use the following steps to demonstrate the function of the metrics template scra
 
 - Deploy Verrazzano from master.
   
-- To install the MetricsTemplate CRD, The MetricsTemplate resource, and the scrape generator mutating webhook, run this script.
+- To install the MetricsTemplate CRD, MetricsBinding CRD, MetricsTemplate resource, and the scrape generator mutating webhook, run this script.
   - `./scripts/install-app-resources.sh`
   
 - Restart the application-operator pod to register the webhook. 

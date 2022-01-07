@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -553,6 +553,22 @@ pipeline {
     post {
         always {
             script {
+                if (SELECT_IMAGE_REGISTRY == "OCIR") {
+                    sh """
+                        echo "Current execution region: $ocirRegion"
+                        echo "OCIR Repository: ${OCIR_REGISTRY}"
+                        echo "Image repo subpath: ${imageRepoSubPath}"
+                        echo "Base image repo: ${baseImageRepo}"
+                        sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+                    """
+                } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
+                    sh """
+                        sh ${TEST_SCRIPTS_DIR}/delete_harbor_repositories.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l ${TARBALL_DIR} -i ${IMAGE_REPO_SUBPATH_SUFFIX}
+                    """
+                }
+            }
+
+            script {
                 if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                     dumpVerrazzanoSystemPods()
                     dumpCattleSystemPods()
@@ -575,22 +591,6 @@ pipeline {
                   exit 1
                 fi
             """
-
-            script {
-                if (SELECT_IMAGE_REGISTRY == "OCIR") {
-                    sh """
-                        echo "Current execution region: $ocirRegion"
-                        echo "OCIR Repository: ${OCIR_REGISTRY}"
-                        echo "Image repo subpath: ${imageRepoSubPath}"
-                        echo "Base image repo: ${baseImageRepo}"
-                        sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
-                    """
-                } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                    sh """
-                        sh ${TEST_SCRIPTS_DIR}/delete_harbor_repositories.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l ${TARBALL_DIR} -i ${IMAGE_REPO_SUBPATH_SUFFIX}
-                    """
-                }
-            }
         }
         cleanup {
             deleteDir()

@@ -98,8 +98,8 @@ copyright-check-year: copyright-test ## check copyright notices have correct cur
 	go run tools/copyright/copyright.go --enforce-current $(shell git log --since=01-01-${CURRENT_YEAR} --name-only --oneline --pretty="format:" | sort -u)
 
 .PHONY: copyright-check
-copyright-check: copyright-test  ## check copyright notices are correct
-	go run tools/copyright/copyright.go --verbose .
+copyright-check: copyright-test copyright-check-year  ## check copyright notices are correct
+	go run tools/copyright/copyright.go .
 
 .PHONY: copyright-check-local
 copyright-check-local: copyright-test  ## check copyright notices are correct in local working copy
