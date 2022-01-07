@@ -184,7 +184,7 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 	}
 
 	// For at least deployments, the webhook is called multiple times.  The first time the UID is empty.
-	// A UID is needed for setting up the owner reference.  Return and do nothing if thd UID is empty.
+	// A UID is needed for setting up the owner reference.  Return and do nothing if the UID is empty.
 	if len(unst.GetUID()) == 0 {
 		return nil
 	}
