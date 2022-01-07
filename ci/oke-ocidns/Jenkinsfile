@@ -120,7 +120,6 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        //OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
 
         TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
         CLUSTER_TYPE = getTestClusterType("${TEST_ENV}")
@@ -320,7 +319,6 @@ pipeline {
                         }
             steps {
                 script {
-                    //println("inside create-dns-zone , tf var region is ${env.TF_VAR_REGION}")
                      if (params.DNS_SCOPE == "PRIVATE") {
                         switch(TF_VAR_region) {
                            case "uk-london-1":
