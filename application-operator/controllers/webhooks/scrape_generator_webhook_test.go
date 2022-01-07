@@ -169,9 +169,7 @@ func TestHandleOwnerRefs(t *testing.T) {
 	assert.Nil(t, res.Patches, "expected no changes to workload resource")
 
 	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
+	v.validateNoMetricsBinding(t)
 }
 
 // TestHandleMetricsNone tests the handling of a workload resource with "app.verrazzano.io/metrics": "none"
@@ -200,9 +198,7 @@ func TestHandleMetricsNone(t *testing.T) {
 	assert.Nil(t, res.Patches, "expected no changes to workload resource")
 
 	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
+	v.validateNoMetricsBinding(t)
 }
 
 // TestHandleInvalidMetricsTemplate tests the handling of a workload resource with references a metrics template
@@ -281,18 +277,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 	assert.Empty(t, res.Patches)
 
 	// validate that metrics binding was created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
-	assert.Len(t, metricsBinding.OwnerReferences, 1)
-	assert.Equal(t, "apps/v1", metricsBinding.OwnerReferences[0].APIVersion)
-	assert.Equal(t, "Deployment", metricsBinding.OwnerReferences[0].Kind)
-	assert.Equal(t, "testDeployment", metricsBinding.OwnerReferences[0].Name)
-	assert.Equal(t, "11", string(metricsBinding.OwnerReferences[0].UID))
-	assert.True(t, *metricsBinding.OwnerReferences[0].BlockOwnerDeletion)
-	assert.True(t, *metricsBinding.OwnerReferences[0].Controller)
-	assert.Equal(t, "test", metricsBinding.Spec.MetricsTemplate.Namespace)
-	assert.Equal(t, "testTemplateWorkloadNamespace", metricsBinding.Spec.MetricsTemplate.Name)
+	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
 }
 
 // TestHandleMetricsTemplateSystemNamespace tests the handling of a workload resource which references a metrics
@@ -345,18 +330,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	assert.Empty(t, res.Patches)
 
 	// validate that metrics binding was created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
-	assert.Len(t, metricsBinding.OwnerReferences, 1)
-	assert.Equal(t, "apps/v1", metricsBinding.OwnerReferences[0].APIVersion)
-	assert.Equal(t, "Deployment", metricsBinding.OwnerReferences[0].Kind)
-	assert.Equal(t, "testDeployment", metricsBinding.OwnerReferences[0].Name)
-	assert.Equal(t, "11", string(metricsBinding.OwnerReferences[0].UID))
-	assert.True(t, *metricsBinding.OwnerReferences[0].BlockOwnerDeletion)
-	assert.True(t, *metricsBinding.OwnerReferences[0].Controller)
-	assert.Equal(t, "verrazzano-system", metricsBinding.Spec.MetricsTemplate.Namespace)
-	assert.Equal(t, "testTemplateSameNamespace", metricsBinding.Spec.MetricsTemplate.Name)
+	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSameNamespace")
 }
 
 // TestHandleMetricsTemplateConfigMapNotFound tests the handling of a workload resource which references a metrics
@@ -459,18 +433,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 	assert.True(t, res.Allowed)
 
 	// validate that metrics binding was created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
-	assert.Len(t, metricsBinding.OwnerReferences, 1)
-	assert.Equal(t, "apps/v1", metricsBinding.OwnerReferences[0].APIVersion)
-	assert.Equal(t, "Deployment", metricsBinding.OwnerReferences[0].Kind)
-	assert.Equal(t, "testDeployment", metricsBinding.OwnerReferences[0].Name)
-	assert.Equal(t, "11", string(metricsBinding.OwnerReferences[0].UID))
-	assert.True(t, *metricsBinding.OwnerReferences[0].BlockOwnerDeletion)
-	assert.True(t, *metricsBinding.OwnerReferences[0].Controller)
-	assert.Equal(t, "test", metricsBinding.Spec.MetricsTemplate.Namespace)
-	assert.Equal(t, "testTemplateWorkloadNamespace", metricsBinding.Spec.MetricsTemplate.Name)
+	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
 }
 
 // TestHandleMatchSystemNamespace tests the handling of a workload resource with no metrics template specified
@@ -529,18 +492,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 	assert.True(t, res.Allowed)
 
 	// validate that metrics binding was created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
-	assert.Len(t, metricsBinding.OwnerReferences, 1)
-	assert.Equal(t, "apps/v1", metricsBinding.OwnerReferences[0].APIVersion)
-	assert.Equal(t, "Deployment", metricsBinding.OwnerReferences[0].Kind)
-	assert.Equal(t, "testDeployment", metricsBinding.OwnerReferences[0].Name)
-	assert.Equal(t, "11", string(metricsBinding.OwnerReferences[0].UID))
-	assert.True(t, *metricsBinding.OwnerReferences[0].BlockOwnerDeletion)
-	assert.True(t, *metricsBinding.OwnerReferences[0].Controller)
-	assert.Equal(t, "verrazzano-system", metricsBinding.Spec.MetricsTemplate.Namespace)
-	assert.Equal(t, "testTemplateSystemNamespace", metricsBinding.Spec.MetricsTemplate.Name)
+	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSystemNamespace")
 }
 
 // TestHandleMatchNotFound tests the handling of a workload resource with no metrics template specified
@@ -600,9 +552,7 @@ func TestHandleMatchNotFound(t *testing.T) {
 	assert.Empty(t, res.Patches)
 
 	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
+	v.validateNoMetricsBinding(t)
 }
 
 // TestHandleWorkloadUIDNotFound tests the handling of a workload resource with no UID
@@ -659,9 +609,7 @@ func TestHandleWorkloadUIDNotFound(t *testing.T) {
 	assert.True(t, res.Allowed)
 
 	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
+	v.validateNoMetricsBinding(t)
 }
 
 // TestHandleMatchTemplateNoWorkloadSelector tests the handling of a workload resource with no metrics template specified
@@ -710,9 +658,7 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 	assert.Empty(t, res.Patches)
 
 	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
+	v.validateNoMetricsBinding(t)
 }
 
 // TestHandleNoConfigMap tests the handling of a workload resource that doesn't have a Prometheus target
@@ -756,9 +702,7 @@ func TestHandleNoConfigMap(t *testing.T) {
 	assert.Empty(t, res.Patches)
 
 	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
+	v.validateNoMetricsBinding(t)
 }
 
 func (v *ScrapeGeneratorWebhook) createNamespace(t *testing.T, name string, labels map[string]string) {
@@ -781,4 +725,27 @@ func (v *ScrapeGeneratorWebhook) createConfigMap(t *testing.T, namespace string,
 	}
 	_, err := v.KubeClient.CoreV1().ConfigMaps(namespace).Create(context.TODO(), cm, metav1.CreateOptions{})
 	assert.NoError(t, err, "unexpected error creating namespace")
+}
+
+func (v *ScrapeGeneratorWebhook) validateNoMetricsBinding(t *testing.T) {
+	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
+	metricsBinding := &vzapp.MetricsBinding{}
+	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
+}
+
+func (v *ScrapeGeneratorWebhook) validateMetricsBinding(t *testing.T, templateNamespace string, templateName string) {
+	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
+	metricsBinding := &vzapp.MetricsBinding{}
+	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
+	assert.Len(t, metricsBinding.OwnerReferences, 1)
+	assert.Equal(t, "apps/v1", metricsBinding.OwnerReferences[0].APIVersion)
+	assert.Equal(t, "Deployment", metricsBinding.OwnerReferences[0].Kind)
+	assert.Equal(t, "testDeployment", metricsBinding.OwnerReferences[0].Name)
+	assert.Equal(t, "11", string(metricsBinding.OwnerReferences[0].UID))
+	assert.True(t, *metricsBinding.OwnerReferences[0].BlockOwnerDeletion)
+	assert.True(t, *metricsBinding.OwnerReferences[0].Controller)
+	assert.Equal(t, templateNamespace, metricsBinding.Spec.MetricsTemplate.Namespace)
+	assert.Equal(t, templateName, metricsBinding.Spec.MetricsTemplate.Name)
+	assert.Equal(t, "test", metricsBinding.Spec.PrometheusConfigMap.Namespace)
+	assert.Equal(t, "testPromConfigMap", metricsBinding.Spec.PrometheusConfigMap.Name)
 }

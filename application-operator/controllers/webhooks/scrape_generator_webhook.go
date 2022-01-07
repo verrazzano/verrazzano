@@ -170,7 +170,7 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 	return nil, nil
 }
 
-// createOrUpdateMetricBinding creates/updates a metricBinding resource
+// createOrUpdateMetricBinding creates/updates a metricsBinding resource
 func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
@@ -211,9 +211,12 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 
 }
 
+// function called by controllerutil.createOrUpdate to mutate a metricsBinding resource
 func (a *ScrapeGeneratorWebhook) mutateMetricsBinding(metricsBinding *vzapp.MetricsBinding, template *vzapp.MetricsTemplate, unst *unstructured.Unstructured) error {
 	metricsBinding.Spec.MetricsTemplate.Namespace = template.Namespace
 	metricsBinding.Spec.MetricsTemplate.Name = template.Name
+	metricsBinding.Spec.PrometheusConfigMap.Namespace = template.Spec.PrometheusConfig.TargetConfigMap.Namespace
+	metricsBinding.Spec.PrometheusConfigMap.Name = template.Spec.PrometheusConfig.TargetConfigMap.Name
 	metricsBinding.OwnerReferences = []metav1.OwnerReference{
 		{
 			APIVersion:         unst.GetAPIVersion(),
