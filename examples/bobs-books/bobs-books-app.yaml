@@ -40,6 +40,7 @@ spec:
                     - path: "/bobbys-front-end"
                       pathType: Prefix
                   destination:
+                    host: bobbys-front-end-cluster-cluster-1
                     port: 8001
     - componentName: bobs-orders-wls
       traits:
@@ -54,6 +55,7 @@ spec:
                     - path: "/bobs-bookstore-order-manager/books"
                       pathType: Prefix
                   destination:
+                    host: bobs-bookstore-cluster-cluster-1
                     port: 8001
     - componentName: bobs-orders-configmap
     - componentName: bobs-mysql-deployment
