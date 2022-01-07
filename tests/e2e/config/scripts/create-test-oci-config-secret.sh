@@ -39,9 +39,9 @@ fi
 
 
 OUTPUT_FILE=$TMP_DIR/oci-config.yaml
-
+echo "OCI_DNS_AUTH value = " ${OCI_DNS_AUTH}
 # Generate the yaml file
-if [ "${OCI_DNS_AUTH}" != "instance_principal" ]; then
+if [ "${OCI_DNS_AUTH}" == "instance_principal" ]; then
   echo "auth:" > $OUTPUT_FILE
   echo "  authtype: instance_principal" >> $OUTPUT_FILE
 else
@@ -64,4 +64,5 @@ fi
 kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS --from-file=$OUTPUT_FILE
 
 ## debug
-kubectl get secrets -n $VERRAZZANO_INSTALL_NS $OCI_CONFIG_SECRET_NAME -o json | jq '.data."oci.yaml"' -r | base64 -d
+secret=`(kubectl get secrets -n $VERRAZZANO_INSTALL_NS $OCI_CONFIG_SECRET_NAME -o json | jq '.data."oci.yaml"' -r | base64 -d)`
+echo $secret
