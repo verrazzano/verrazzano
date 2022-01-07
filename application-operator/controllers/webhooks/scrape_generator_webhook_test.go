@@ -174,64 +174,6 @@ func TestHandleOwnerRefs(t *testing.T) {
 	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
 }
 
-// TestHandleNoNamespaceLabel tests the handling of a workload resource whose namespace is not labeled with
-// 	"verrazzano-managed": "true"
-// GIVEN a call to the webhook Handle function
-// WHEN the workload resource namespace is not labeled with "verrazzano-managed": "true"
-// THEN the Handle function should succeed and the metricsBinding is not created
-func TestHandleNoNamespaceLabel(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
-
-	// Test data
-	v.createNamespace(t, "test", nil)
-	testDeployment := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
-			Namespace: "test",
-		},
-	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
-
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
-	res := v.Handle(context.TODO(), req)
-	assert.True(t, res.Allowed)
-	assert.Nil(t, res.Patches, "expected no changes to workload resource")
-
-	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
-}
-
-// TestHandleNamespaceLabelFalse tests the handling of a workload resource whose namespace is labeled with
-// 	"verrazzano-managed": "false"
-// GIVEN a call to the webhook Handle function
-// WHEN the workload resource namespace is labeled with "verrazzano-managed": "false"
-// THEN the Handle function should succeed and the metricsBinding is not created
-func TestHandleNamespaceLabelFalse(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
-
-	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "false"})
-	testDeployment := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
-			Namespace: "test",
-		},
-	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
-
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
-	res := v.Handle(context.TODO(), req)
-	assert.True(t, res.Allowed)
-	assert.Nil(t, res.Patches, "expected no changes to workload resource")
-
-	// validate that metrics binding was not created as expected
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
-	metricsBinding := &vzapp.MetricsBinding{}
-	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
-}
-
 // TestHandleMetricsNone tests the handling of a workload resource with "app.verrazzano.io/metrics": "none"
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has  "app.verrazzano.io/metrics": "none"

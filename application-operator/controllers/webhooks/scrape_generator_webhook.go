@@ -77,17 +77,6 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	// Namespace of workload resource must be labeled with "verrazzano-managed": "true".
-	// If not labeled this way there is nothing to do.
-	namespace, err := a.KubeClient.CoreV1().Namespaces().Get(ctx, unst.GetNamespace(), metav1.GetOptions{})
-	if err != nil {
-		scrapeGeneratorLogger.Error(err, "error getting namespace of workload resource")
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-	if namespace.Labels[constants.LabelVerrazzanoManaged] != "true" {
-		return admission.Allowed(StatusReasonSuccess)
-	}
-
 	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if metricsTemplateAnnotation == "none" {
