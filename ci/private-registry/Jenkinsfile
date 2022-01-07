@@ -5,11 +5,11 @@ def DOCKER_IMAGE_TAG
 // Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
 // - at some point, we can either enable bucket replication or have the pipeline push it to more regions
 //def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def agentLabel = "phxlarge"
+def agentLabel = "largeexperimental"
 def ocirRegion = "phx"
 def imageRepoSubPath=""
 def baseImageRepo=""
-def dockerRunnerArgs="${RUNNER_DOCKER_ARGS} --add-host=ephemeral.harbor.v8o.io:172.18.0.230"
+def dockerRunnerArgs="${RUNNER_DOCKER_ARGS}"
 
 pipeline {
     options {
