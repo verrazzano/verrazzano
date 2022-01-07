@@ -40,11 +40,11 @@ var _ = BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return yamlApplier.ApplyFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-comp.yaml", namespaceMap)
+			return yamlApplier.ApplyFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-comp.template", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 		Eventually(func() error {
-			return yamlApplier.ApplyFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-app.yaml", namespaceMap)
+			return yamlApplier.ApplyFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-app.template", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 	}
 })
@@ -61,11 +61,11 @@ var _ = AfterSuite(func() {
 	if !skipUndeploy {
 		// undeploy the application here
 		Eventually(func() error {
-			return yamlApplier.DeleteFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-comp.yaml", namespaceMap)
+			return yamlApplier.DeleteFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-comp.template", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return yamlApplier.DeleteFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-app.yaml", namespaceMap)
+			return yamlApplier.DeleteFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-app.template", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
