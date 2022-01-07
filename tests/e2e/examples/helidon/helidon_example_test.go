@@ -61,11 +61,11 @@ var _ = AfterSuite(func() {
 	if !skipUndeploy {
 		// undeploy the application here
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
+			return yamlApplier.DeleteFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-comp.yaml", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
+			return yamlApplier.DeleteFTDefaultConfig("../../../../examples/hello-helidon/hello-helidon-app.yaml", namespaceMap)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
