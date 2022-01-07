@@ -123,6 +123,9 @@ deploy_harbor() {
   kubectl get pods -A
   kubectl get svc -A
 
+  echo "Docker daemon json"
+  cat /etc/docker/daemon.json
+
   docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
   if [ $? -ne 0 ]; then
     echo "docker login to Harbor ephemeral failed"
