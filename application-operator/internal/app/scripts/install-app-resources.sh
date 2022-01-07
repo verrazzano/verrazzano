@@ -26,10 +26,8 @@ metadata:
 webhooks:
   - name: verrazzano-application-scrape-generator.verrazzano.io
     namespaceSelector:
-      matchExpressions:
-        - key: verrazzano-managed
-          operator: In
-          values: ["true"]
+      matchLabels:
+        verrazzano-managed: "true"
     clientConfig:
       service:
         name: verrazzano-application-operator
