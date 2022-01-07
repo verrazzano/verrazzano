@@ -49,6 +49,7 @@ helm template \
     ${IMAGE_PULL_SECRET_ARG} \
     --set image=${DOCKER_IMAGE} \
     ${APP_OPERATOR_IMAGE_ARG} \
+    --set imagePullPolicy=Always \
     $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator
 
 exit $?
