@@ -6,7 +6,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-set -x
 
 function usage {
     echo
@@ -58,10 +57,8 @@ fi
 set -o pipefail
 if [ ${DNS_SCOPE} == "PRIVATE" ];then
   ZONE_NAME="${SUBDOMAIN_NAME}-private.v8o.io"
-  #VIEW_NAME="${SUBDOMAIN_NAME}-private-view"
 else
   ZONE_NAME="${SUBDOMAIN_NAME}.v8o.io"
-  #VIEW_NAME="${SUBDOMAIN_NAME}-view"
 fi
 
 
