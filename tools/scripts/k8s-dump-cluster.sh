@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -161,6 +161,11 @@ function dump_configmaps() {
         NAMESPACE=$(echo "$CSV_LINE" | cut -d, -f"1")
         CONFIGNAME=$(echo "$CSV_LINE" | cut -d, -f"2")
         if [ ! -z $NAMESPACE ] && [ ! -z $CONFIGNAME ] ; then
+          # The cluster-dump should create the directories for us, but just in case there is a situation where there is a namespace
+          # that is present which doesn't have one created, make sure we have the directory
+          if [ ! -d $CAPTURE_DIR/cluster-dump/$NAMESPACE ] ; then
+            mkdir $CAPTURE_DIR/cluster-dump/$NAMESPACE || true
+          fi
           kubectl --insecure-skip-tls-verify describe configmap $CONFIGNAME -n $NAMESPACE > $CAPTURE_DIR/cluster-dump/$NAMESPACE/$CONFIGNAME.configmap || true
         fi
       fi
