@@ -332,12 +332,12 @@ pipeline {
 
         stage("create-oci-config-secret") {
             when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-            if (params.OCI_DNS_AUTH == "instance_principal") {
-                env.OCI_CLI_AUTH="instance_principal"
-                env.OCI_DNS_AUTH="instance_principal"
-            }
             steps {
                 script {
+                    if (params.OCI_DNS_AUTH == "instance_principal") {
+                            env.OCI_CLI_AUTH="instance_principal"
+                            env.OCI_DNS_AUTH="instance_principal"
+                    }
                     sh """
                         ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
                     """
