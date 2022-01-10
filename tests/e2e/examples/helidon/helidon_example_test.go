@@ -27,7 +27,7 @@ const (
 )
 
 var namespace = pkg.GenerateNamespace(name)
-var namespaceMap = map[string]interface{}{"namespace": namespace}
+var namespaceMap = map[string]interface{}{"Namespace": namespace}
 var yamlApplier k8sutil.YAMLApplier
 
 var _ = BeforeSuite(func() {
