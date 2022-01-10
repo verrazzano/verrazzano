@@ -58,16 +58,17 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for deleted object", "resource", metricsBinding.GetName())
 
+	// Mutate the scrape config by deleting the entry
+	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.deleteScrapeConfig); err != nil {
+		return k8scontroller.Result{Requeue: true}, err
+	}
+
 	// For deletion, we have to remove the finalizer if it exists
 	err := r.removeFinalizerIfRequired(ctx, metricsBinding)
 	if err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
-	// Mutate the scrape config by deleting the entry
-	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.deleteScrapeConfig); err != nil {
-		return k8scontroller.Result{Requeue: true}, err
-	}
 	return k8scontroller.Result{}, nil
 }
 
