@@ -115,10 +115,8 @@ deploy_harbor() {
   --all \
   --timeout=300s
 
-  kubectl wait --namespace projectcontour \
-    --for=condition=ready pod \
-    --all \
-    --timeout=300s
+  echo "waiting for contour to show up"
+  sleep 150
 
   kubectl get pods -A
   kubectl get svc -A
