@@ -117,10 +117,19 @@ var _ = t.Describe("OCI Logging", func() {
 		// GIVEN a Verrazzano installation with no applications installed
 		// WHEN I search for log records in the default app Log object
 		// THEN I expect to find no records
-		t.It("the app log object has no log records", func() {
+		t.It("the default app log object has no log records", func() {
 			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no app logs but found at least one")
+			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no default app logs but found at least one")
+		})
+
+		// GIVEN a Verrazzano installation with no applications installed
+		// WHEN I search for log records in the namespace-specific app Log object
+		// THEN I expect to find no records
+		t.It("the namespace-specific app log object has no log records", func() {
+			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no namespace-specific app logs but found at least one")
 		})
 	})
 
@@ -128,7 +137,7 @@ var _ = t.Describe("OCI Logging", func() {
 		// GIVEN a Verrazzano installation with an application deployed
 		// WHEN I search for log records in the default app Log object using the application namespace
 		// THEN I expect to find at least one record
-		t.It("the app log object has recent log records", func() {
+		t.It("the default app log object has recent log records", func() {
 
 			start := time.Now()
 			pkg.DeploySpringBootApplication()
