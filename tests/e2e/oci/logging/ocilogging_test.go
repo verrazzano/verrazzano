@@ -6,10 +6,11 @@ package logging
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"os"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,6 +26,7 @@ import (
 const (
 	compartmentIDEnvVar = "COMPARTMENT_ID"
 	logGroupIDEnvVar    = "LOG_GROUP_ID"
+	nsLogIDEnvVar       = "NS_LOG_ID"
 	ociRegionEnvVar     = "OCI_CLI_REGION"
 
 	waitTimeout     = 10 * time.Minute
@@ -33,6 +35,7 @@ const (
 
 var compartmentID string
 var logGroupID string
+var nsLogID string
 var region string
 var logSearchClient loggingsearch.LogSearchClient
 
@@ -47,9 +50,11 @@ var _ = t.AfterEach(func() {
 var _ = t.BeforeSuite(func() {
 	compartmentID = os.Getenv(compartmentIDEnvVar)
 	logGroupID = os.Getenv(logGroupIDEnvVar)
+	nsLogID = os.Getenv(nsLogIDEnvVar)
 	region = os.Getenv(ociRegionEnvVar)
 	Expect(compartmentID).ToNot(BeEmpty(), fmt.Sprintf("%s env var must be set", compartmentIDEnvVar))
 	Expect(logGroupID).ToNot(BeEmpty(), fmt.Sprintf("%s env var must be set", logGroupIDEnvVar))
+	Expect(nsLogID).ToNot(BeEmpty(), fmt.Sprintf("%s env var must be set", nsLogIDEnvVar))
 	// region is optional so don't Expect
 
 	var err error
@@ -62,7 +67,10 @@ var _ = t.AfterSuite(func() {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	start := time.Now()
-	pkg.UndeploySpringBootApplication()
+	pkg.Concurrently(
+		pkg.UndeploySpringBootApplication,
+		pkg.UndeployHelloHelidonApplication,
+	)
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -128,6 +136,27 @@ var _ = t.Describe("OCI Logging", func() {
 
 			Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, pkg.SpringbootNamespace)
+				if err != nil {
+					return 0, err
+				}
+				return *logs.Summary.ResultCount, nil
+			}, waitTimeout, pollingInterval).Should(Not(BeZero()))
+		})
+	})
+
+	t.Context("after deploying an example application where the namespace overrides the default app OCI Log id", func() {
+		// GIVEN a Verrazzano installation
+		// WHEN I deploy an example application and annotate the namespace with an OCI Log id
+		// AND I search for log records in that log object
+		// THEN I expect to find at least one record
+		t.It("the namespace-specific app log object has recent log records", func() {
+
+			start := time.Now()
+			pkg.DeployHelloHelidonApplication(nsLogID)
+			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+
+			Eventually(func() (int, error) {
+				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, pkg.HelloHelidonNamespace)
 				if err != nil {
 					return 0, err
 				}
