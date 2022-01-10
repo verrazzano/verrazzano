@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -66,6 +66,22 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
 	return createOrUpdateResourceFromBytes(bytes, config)
+}
+
+// CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
+// This is intended to be equivalent to `kubectl apply`
+func CreateOrUpdateResourceFromBytes(data []byte) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return err
+	}
+
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
+	return createOrUpdateResourceFromBytes(data, config)
 }
 
 // createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
