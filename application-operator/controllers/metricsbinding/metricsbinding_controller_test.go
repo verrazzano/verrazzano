@@ -214,8 +214,9 @@ func TestUpdateScrapeConfig(t *testing.T) {
 
 	localMetricsBinding.OwnerReferences = []k8smeta.OwnerReference{
 		{
-			Kind: deploymentKind,
-			Name: testExistsDeploymentName,
+			Kind:       deploymentKind,
+			APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
+			Name:       testExistsDeploymentName,
 		},
 	}
 	localMetricsBinding.Namespace = testExistsDeploymentNamespace
@@ -274,8 +275,9 @@ func TestDeleteScrapeConfig(t *testing.T) {
 
 	localMetricsBinding.OwnerReferences = []k8smeta.OwnerReference{
 		{
-			Kind: deploymentKind,
-			Name: testExistsDeploymentName,
+			Kind:       deploymentKind,
+			APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
+			Name:       testExistsDeploymentName,
 		},
 	}
 	localMetricsBinding.Namespace = testExistsDeploymentNamespace

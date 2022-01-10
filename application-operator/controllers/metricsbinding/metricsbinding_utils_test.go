@@ -6,6 +6,7 @@ package metricsbinding
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -27,6 +28,8 @@ const (
 	testMetricsBindingNamespace   = "test-namespace"
 	testMetricsBindingName        = "test-binding-name"
 	deploymentKind                = "Deployment"
+	deploymentGroup               = "apps"
+	deploymentVersion             = "v1"
 )
 
 var metricsBinding = v1alpha1.MetricsBinding{
@@ -35,8 +38,9 @@ var metricsBinding = v1alpha1.MetricsBinding{
 		Name:      testMetricsBindingName,
 		OwnerReferences: []metav1.OwnerReference{
 			{
-				Name: testDeploymentName,
-				Kind: deploymentKind,
+				Name:       testDeploymentName,
+				APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
+				Kind:       deploymentKind,
 			},
 		},
 	},
@@ -85,7 +89,7 @@ var deployment = k8sapps.Deployment{
 // THEN verify the name is correctly given
 func TestCreateJobName(t *testing.T) {
 	assert := asserts.New(t)
-	assert.Equal(fmt.Sprintf("%s_%s_%s", testMetricsBindingNamespace, testDeploymentName, deploymentKind), createJobName(&metricsBinding))
+	assert.Equal(fmt.Sprintf("%s_%s_%s_%s_%s", testMetricsBindingNamespace, testDeploymentName, deploymentGroup, deploymentVersion, deploymentKind), createJobName(&metricsBinding))
 }
 
 // TestGetConfigData tests the data retrieval from a
