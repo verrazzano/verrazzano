@@ -19,6 +19,6 @@ func init() {
 }
 
 func TestSockShopApplication(t *testing.T) {
-	gomega.RegisterFailHandler(FailHandler)
+	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Sock Shop Suite")
 }

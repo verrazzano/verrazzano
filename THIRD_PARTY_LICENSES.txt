@@ -1028,6 +1028,7 @@ Copyright 2021 The logr Authors.
 -------- Dependency
 github.com/go-logr/zapr
 -------- Copyrights
+Copyright 2019 The logr Authors.
 Copyright 2018 Solly Ross
 
 -------- Dependency
@@ -2576,4 +2577,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 1a711ce15a208f608b015d5008f53011
+License file based on go.mod with md5 sum: 96bf3f340f07018bc32295c436446ac4
