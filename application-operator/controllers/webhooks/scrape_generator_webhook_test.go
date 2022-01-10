@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -274,7 +276,10 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Empty(t, res.Patches)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
@@ -327,7 +332,10 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Empty(t, res.Patches)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSameNamespace")
@@ -431,6 +439,10 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
@@ -490,6 +502,10 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSystemNamespace")
@@ -734,7 +750,7 @@ func (v *ScrapeGeneratorWebhook) validateNoMetricsBinding(t *testing.T) {
 }
 
 func (v *ScrapeGeneratorWebhook) validateMetricsBinding(t *testing.T, templateNamespace string, templateName string) {
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
+	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-apps-v1-deployment"}
 	metricsBinding := &vzapp.MetricsBinding{}
 	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
 	assert.Len(t, metricsBinding.OwnerReferences, 1)

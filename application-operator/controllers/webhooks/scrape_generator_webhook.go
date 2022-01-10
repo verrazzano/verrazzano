@@ -169,7 +169,8 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 	return nil, nil
 }
 
-// createOrUpdateMetricBinding creates/updates a metricsBinding resource
+// createOrUpdateMetricBinding creates/updates a metricsBinding resource and
+// adds the apps.verrazzano.io/metrics-scrape label to the workload resource
 func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
@@ -189,13 +190,17 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 		return nil
 	}
 
+	// Generate the metricBindings name
+	gv := unst.GroupVersionKind()
+	metricsBindingName := fmt.Sprintf("%s-%s-%s-%s", unst.GetName(), strings.ToLower(gv.Group), strings.ToLower(gv.Version), strings.ToLower(unst.GetKind()))
+
 	metricsBinding := &vzapp.MetricsBinding{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "app.verrazzno.io/v1alpha1",
 			Kind:       "metricsBinding"},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: unst.GetNamespace(),
-			Name:      fmt.Sprintf("%s-%s", unst.GetName(), strings.ToLower(unst.GetKind())),
+			Name:      metricsBindingName,
 		},
 	}
 	_, err = controllerutil.CreateOrUpdate(ctx, a.Client, metricsBinding, func() error {
@@ -204,10 +209,18 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 
 	if err != nil {
 		scrapeGeneratorLogger.Error(err, "error creating/updating metricsBinding resource")
+		return err
 	}
 
-	return err
+	// Add the app.verrazzano.io/metrics-scrape to identify the scrape target
+	labels := unst.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[constants.MetricsScrapeLabel] = metricsBindingName
+	unst.SetLabels(labels)
 
+	return nil
 }
 
 // function called by controllerutil.createOrUpdate to mutate a metricsBinding resource

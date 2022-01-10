@@ -108,3 +108,6 @@ const MetricsTemplateUIDLabel = "app.verrazzano.io/metrics-template-uid"
 
 // MetricsPromConfigMapUIDLabel - the label for designating the Prometheus ConfigMap UID in MetricsTemplate resources
 const MetricsPromConfigMapUIDLabel = "app.verrazzano.io/metrics-prometheus-configmap-uid"
+
+// MetricsScrapeLabel - the label for identifying a pods scrape target
+const MetricsScrapeLabel = "app.verrazzano.io.metrics-scrape"
