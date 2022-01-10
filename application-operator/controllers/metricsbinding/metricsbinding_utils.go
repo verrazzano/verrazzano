@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package metricstemplate
+package metricsbinding
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ const (
 	metricsTemplateKind       = "MetricsTemplate"
 	metricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
-	finalizerName = "metricstemplate.finalizers.verrazzano.io/finalizer"
+	finalizerName = "metricsbinding.finalizers.verrazzano.io/finalizer"
 )
 
 // Creates a job name in the format <namespace>_<name>_<kind>

@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package metricstemplate
+package metricsbinding
 
 import (
 	"context"
@@ -49,13 +49,13 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 
 	// Reconcile based on the status of the deletion timestamp
 	if metricsBinding.GetDeletionTimestamp().IsZero() {
-		return r.reconcileTemplateCreateOrUpdate(ctx, &metricsBinding)
+		return r.reconcileBindingCreateOrUpdate(ctx, &metricsBinding)
 	}
-	return r.reconcileTemplateDelete(ctx, &metricsBinding)
+	return r.reconcileBindingDelete(ctx, &metricsBinding)
 }
 
-// reconcileTemplateDelete completes the reconcile process for an object that is being deleted
-func (r *Reconciler) reconcileTemplateDelete(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
+// reconcileBindingDelete completes the reconcile process for an object that is being deleted
+func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for deleted object", "resource", metricsBinding.GetName())
 
 	// For deletion, we have to remove the finalizer if it exists
@@ -71,8 +71,8 @@ func (r *Reconciler) reconcileTemplateDelete(ctx context.Context, metricsBinding
 	return k8scontroller.Result{}, nil
 }
 
-// reconcileTemplateCreateOrUpdate completes the reconcile process for an object that is being created or updated
-func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
+// reconcileBindingCreateOrUpdate completes the reconcile process for an object that is being created or updated
+func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for created or updated object", "resource", metricsBinding.GetName())
 
 	// For creation, the finalizer must be added
@@ -88,8 +88,8 @@ func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, metric
 	return k8scontroller.Result{}, nil
 }
 
-// addFinalizerIfRequired adds the finalizer to the Template if required
-// The finalizer is only added if the Template is not being deleted and the finalizer has not previously been added
+// addFinalizerIfRequired adds the finalizer to the Binding if required
+// The finalizer is only added if the Binding is not being deleted and the finalizer has not previously been added
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, metricsBinding *vzapi.MetricsBinding) error {
 	if metricsBinding.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(metricsBinding.GetFinalizers(), finalizerName) {
 		resourceName := metricsBinding.GetName()
@@ -103,8 +103,8 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, metricsBinding 
 	return nil
 }
 
-// removeFinalizerIfRequired removes the finalizer from the template if required
-// The finalizer is only removed if the template is being deleted and the finalizer had been added
+// removeFinalizerIfRequired removes the finalizer from the Binding if required
+// The finalizer is only removed if the Binding is being deleted and the finalizer had been added
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, metricsBinding *vzapi.MetricsBinding) error {
 	if !metricsBinding.GetDeletionTimestamp().IsZero() && vzstring.SliceContainsString(metricsBinding.GetFinalizers(), finalizerName) {
 		resourceName := metricsBinding.GetName()
@@ -143,7 +143,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBi
 func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding) (*k8scorev1.ConfigMap, error) {
 	r.Log.V(2).Info("Scrape Config is being deleted from the Prometheus Config", "resource", metricsBinding.GetName())
 
-	// Get the ConfigMap from the MetricsTemplate
+	// Get the ConfigMap from the MetricsBinding
 	configMap, err := r.getPromConfigMap(metricsBinding)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding) (*
 		if existingJobName == createdJobName {
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
-				r.Log.Error(err, "Could remove array slice from Prometheus config")
+				r.Log.Error(err, "Could not remove array slice from Prometheus config")
 				return nil, err
 			}
 		}
@@ -177,7 +177,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding) (*
 	// Repopulate the configmap data
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
-		r.Log.Error(err, "Could convert Prometheus config data to YAML")
+		r.Log.Error(err, "Could not convert Prometheus config data to YAML")
 		return nil, err
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
@@ -194,7 +194,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 		return nil, err
 	}
 
-	// Get the ConfigMap from the MetricsTemplate
+	// Get the ConfigMap from the MetricsBinding
 	configMap, err := r.getPromConfigMap(metricsBinding)
 	if err != nil {
 		return nil, err
@@ -210,11 +210,13 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	if len(metricsBinding.OwnerReferences) < 1 {
 		return nil, fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
 	}
+
+	// We are assuming that the first Owner Reference entry is the only one
 	owner := metricsBinding.OwnerReferences[0]
 	workload := unstructured.Unstructured{}
 	workload.SetKind(owner.Kind)
 	workload.SetAPIVersion(owner.APIVersion)
-	workloadName := types.NamespacedName{Namespace: metricsBinding.GetNamespace(), Name: metricsBinding.OwnerReferences[0].Name}
+	workloadName := types.NamespacedName{Namespace: metricsBinding.GetNamespace(), Name: owner.Name}
 	err = r.Client.Get(context.Background(), workloadName, &workload)
 	if err != nil {
 		return nil, err
@@ -248,7 +250,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 		return nil, err
 	}
 
-	// Prepend job name to the template
+	// Prepend job name to the scrape config
 	createdJobName := createJobName(metricsBinding)
 	scrapeConfigString = formatJobName(createdJobName) + scrapeConfigString
 
@@ -319,7 +321,7 @@ func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding) (*
 	return &template, nil
 }
 
-// getPromConfigMap returns the Prometheus ConfigMap given in the MetricsTemplate
+// getPromConfigMap returns the Prometheus ConfigMap given in the MetricsBinding
 func (r *Reconciler) getPromConfigMap(metricsBinding *vzapi.MetricsBinding) (*k8scorev1.ConfigMap, error) {
 	configMap := k8scorev1.ConfigMap{
 		TypeMeta: k8smetav1.TypeMeta{

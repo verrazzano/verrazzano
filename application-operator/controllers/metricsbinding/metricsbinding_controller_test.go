@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package metricstemplate
+package metricsbinding
 
 import (
 	"context"
@@ -125,7 +125,7 @@ func TestAddFinalizer(t *testing.T) {
 }
 
 // TestRemoveFinalizer tests the removal of a finalizer on the requested resource
-// GIVEN a resource that is being deleted has the metricstemplate finalizer
+// GIVEN a resource that is being deleted has the metricsbinding finalizer
 // WHEN the function is called
 // THEN the finalizer should be removed
 func TestRemoveFinalizer(t *testing.T) {
@@ -323,11 +323,11 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 	assert.NoError(err, "Expected no error mutating the scrape config")
 }
 
-// TestReconcileTraitCreateOrUpdate tests the reconciliation for create or update
+// TestReconcileBindingCreateOrUpdate tests the reconciliation for create or update
 // GIVEN an object and a request
 // WHEN the reconciler processes the request
 // THEN verify the process returns no error
-func TestReconcileTraitCreateOrUpdate(t *testing.T) {
+func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 	assert := asserts.New(t)
 
 	mocker := gomock.NewController(t)
@@ -372,16 +372,16 @@ func TestReconcileTraitCreateOrUpdate(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(nil)
 
-	controllerResult, err := reconciler.reconcileTemplateCreateOrUpdate(context.TODO(), localMetricsBinding)
+	controllerResult, err := reconciler.reconcileBindingCreateOrUpdate(context.TODO(), localMetricsBinding)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})
 }
 
-// TestReconcileTemplateDelete tests the reconciliation for a deletion
+// TestReconcileBindingDelete tests the reconciliation for a deletion
 // GIVEN an object and a request
 // WHEN the reconciler processes the request
 // THEN verify the process returns no error
-func TestReconcileTemplateDelete(t *testing.T) {
+func TestReconcileBindingDelete(t *testing.T) {
 	assert := asserts.New(t)
 
 	mocker := gomock.NewController(t)
@@ -401,7 +401,7 @@ func TestReconcileTemplateDelete(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 
-	controllerResult, err := reconciler.reconcileTemplateDelete(context.TODO(), localMetricsBinding)
+	controllerResult, err := reconciler.reconcileBindingDelete(context.TODO(), localMetricsBinding)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})
 }
