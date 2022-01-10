@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package common
+package namespace
 
 import (
 	"context"
@@ -55,7 +55,7 @@ func TestAddAndRemoveNamespaceLogging(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
 
-	updated, err := AddNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
+	updated, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.NoError(err)
 	asserts.True(updated)
 
@@ -73,7 +73,7 @@ func TestAddAndRemoveNamespaceLogging(t *testing.T) {
 	// GIVEN a system Fluentd config map with namespace-specific logging config
 	// WHEN I remove the namespace-specific logging configuration
 	// THEN the config map gets updated in the cluster and the config map matches the state prior to adding the config
-	updated, err = RemoveNamespaceLogging(context.TODO(), client, testNamespace)
+	updated, err = removeNamespaceLogging(context.TODO(), client, testNamespace)
 	asserts.NoError(err)
 	asserts.True(updated)
 
@@ -93,7 +93,7 @@ func TestMissingFluentdConfigMap(t *testing.T) {
 	// WHEN I add namespace-specific logging configuration
 	// THEN an error is returned
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	_, err := AddNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
+	_, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), "must exist")
 }
@@ -112,11 +112,11 @@ func TestAddNamespaceLoggingAlreadyExists(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
 
-	updated, err := AddNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
+	updated, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.NoError(err)
 	asserts.True(updated)
 
-	updated, err = AddNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
+	updated, err = addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.NoError(err)
 	asserts.False(updated)
 }
@@ -135,7 +135,7 @@ func TestRemoveNamespaceLoggingDoesNotExist(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
 
-	updated, err := RemoveNamespaceLogging(context.TODO(), client, testNamespace)
+	updated, err := removeNamespaceLogging(context.TODO(), client, testNamespace)
 	asserts.NoError(err)
 	asserts.False(updated)
 }
@@ -153,13 +153,13 @@ func TestUpdateExistingLoggingConfig(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, cm)
 
-	updated, err := AddNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
+	updated, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.NoError(err)
 	asserts.True(updated)
 
 	// add logging config with an updated log id
 	updatedLogID := "ocid1.log.oc1.updated"
-	updated, err = AddNamespaceLogging(context.TODO(), client, testNamespace, updatedLogID)
+	updated, err = addNamespaceLogging(context.TODO(), client, testNamespace, updatedLogID)
 	asserts.NoError(err)
 	asserts.True(updated)
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package common
+package namespace
 
 import (
 	"bytes"
@@ -49,9 +49,9 @@ func init() {
 	loggingTemplate, _ = template.New("loggingConfig").Parse(loggingTemplateBody)
 }
 
-// AddNamespaceLogging updates the system Fluentd config map to include a match section that directs all logs for the given
+// addNamespaceLogging updates the system Fluentd config map to include a match section that directs all logs for the given
 // namespace to the given OCI Log object id. It returns true if the config map was updated.
-func AddNamespaceLogging(ctx context.Context, cli client.Client, namespace string, ociLogID string) (bool, error) {
+func addNamespaceLogging(ctx context.Context, cli client.Client, namespace string, ociLogID string) (bool, error) {
 	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: fluentdConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}}
 
 	opResult, err := controllerutil.CreateOrUpdate(ctx, cli, cm, func() error {
@@ -68,9 +68,9 @@ func AddNamespaceLogging(ctx context.Context, cli client.Client, namespace strin
 	return opResult != controllerutil.OperationResultNone, nil
 }
 
-// RemoveNamespaceLogging updates the system Fluentd config map, removing the namespace-specific logging configuration.
+// removeNamespaceLogging updates the system Fluentd config map, removing the namespace-specific logging configuration.
 // It returns true if the config map was updated.
-func RemoveNamespaceLogging(ctx context.Context, cli client.Client, namespace string) (bool, error) {
+func removeNamespaceLogging(ctx context.Context, cli client.Client, namespace string) (bool, error) {
 	cm := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: fluentdConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}}
 
 	opResult, err := controllerutil.CreateOrUpdate(ctx, cli, cm, func() error {
