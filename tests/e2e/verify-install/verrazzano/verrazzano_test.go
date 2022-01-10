@@ -5,7 +5,6 @@ package verrazzano_test
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"math/rand"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -353,15 +352,5 @@ var _ = framework.VzDescribe("Verrazzano", func() {
 			Expect(s.Name == "verrazzano-monitors").To(BeTrue(),
 				"the subject's name should be verrazzano-monitors")
 		})
-	})
-})
-
-var _ = framework.VzDescribe("Mark's second fake test", func() {
-	framework.ItM(metricsLogger, "randomly fails", func() {
-		rand.Seed(time.Now().UnixNano())
-		/* #nosec */
-		r := rand.Intn(4)
-		// fail if the random number was a 1
-		Expect(r).ToNot(Equal(1))
 	})
 })
