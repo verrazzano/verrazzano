@@ -103,6 +103,7 @@ deploy_harbor() {
     --set trivy.enabled=false \
     --set persistence.enabled=false \
     --set harborAdminPassword=${PRIVATE_REGISTRY_PSW}
+    -- set imagePullSecrets=${IMAGE_PULL_SECRET}
 
   # wait for harbor installation to complete
 #  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh "default" "ready" "pod" true
