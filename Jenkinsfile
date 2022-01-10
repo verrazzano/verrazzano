@@ -515,7 +515,8 @@ pipeline {
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                         ], wait: params.WAIT_FOR_TRIGGERED
                 }
             }
@@ -748,6 +749,7 @@ def qualityCheck() {
 
         echo "copyright scan"
         time make copyright-check
+        ./ci/scripts/check_if_clean_after_generate.sh
 
         echo "Third party license check"
     """

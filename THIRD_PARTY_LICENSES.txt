@@ -2649,4 +2649,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
+<<<<<<< HEAD
 License file based on go.mod with md5 sum: 921cdfbd731897226029ece177e32f27
+=======
+License file based on go.mod with md5 sum: 24207bb69f062fea25d02dab6a3846a8
+>>>>>>> master

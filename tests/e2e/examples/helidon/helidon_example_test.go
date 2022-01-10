@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -89,17 +88,6 @@ const (
 	istioNamespace     = "istio-system"
 	ingressServiceName = "istio-ingressgateway"
 )
-
-var _ = framework.AfterEachM(metricsLogger, func() {})
-
-var _ = framework.VzDescribe("Mark's fake test", func() {
-	framework.ItM(metricsLogger, "This test randomly fails", func() {
-		rand.Seed(time.Now().UnixNano())
-		r := rand.Intn(4)
-		// fail if the random number was a 1
-		Expect(r).ToNot(Equal(1))
-	})
-})
 
 var _ = framework.VzDescribe("Verify Hello Helidon OAM App.", func() {
 	// Verify hello-helidon-deployment pod is running
