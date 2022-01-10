@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -109,6 +109,7 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }
@@ -202,6 +203,12 @@ pipeline {
         }
 
         stage('Acceptance Tests') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -273,7 +280,7 @@ pipeline {
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
-               }
+                }
 
                 stage('Run Acceptance Tests Infra') {
                     environment {

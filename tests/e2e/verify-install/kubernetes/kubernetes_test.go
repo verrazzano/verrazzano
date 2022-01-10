@@ -1,15 +1,17 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kubernetes_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +20,8 @@ import (
 const waitTimeout = 15 * time.Minute
 const pollingInterval = 30 * time.Second
 const timeout5Min = 5 * time.Minute
+
+var metricsLogger, _ = metrics.NewMetricsLogger("kubernetes")
 
 var expectedPodsCattleSystem = []string{
 	"rancher"}
@@ -42,19 +46,19 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 //"vmi-system-prometheus",
 //"vmi-system-prometheus-gw"}
 
-var _ = Describe("Kubernetes Cluster",
+var _ = framework.VzDescribe("Kubernetes Cluster",
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
 
-		It("has the expected number of nodes", func() {
+		framework.ItM(metricsLogger, "has the expected number of nodes", func() {
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
 			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
-		It("has the expected namespaces", func() {
+		framework.ItM(metricsLogger, "has the expected namespaces", func() {
 			var namespaces *v1.NamespaceList
 			Eventually(func() (*v1.NamespaceList, error) {
 				var err error
@@ -187,7 +191,7 @@ var _ = Describe("Kubernetes Cluster",
 			Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
-		It("Expected pods are running", func() {
+		framework.ItM(metricsLogger, "Expected pods are running", func() {
 			pkg.Concurrently(
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
