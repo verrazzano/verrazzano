@@ -5,7 +5,6 @@ package metricstemplate
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/Jeffail/gabs/v2"
@@ -157,7 +156,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding) (*
 
 	// Verify the Owner Reference exists
 	if len(metricsBinding.OwnerReferences) < 1 {
-		return nil, errors.New(fmt.Sprintf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName()))
+		return nil, fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
 	}
 
 	// Delete scrape config with job name matching resource
@@ -208,9 +207,12 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 
 	// Get the OwnerReference object
 	if len(metricsBinding.OwnerReferences) < 1 {
-		return nil, errors.New(fmt.Sprintf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName()))
+		return nil, fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
 	}
+	owner := metricsBinding.OwnerReferences[0]
 	workload := unstructured.Unstructured{}
+	workload.SetKind(owner.Kind)
+	workload.SetAPIVersion(owner.APIVersion)
 	workloadName := types.NamespacedName{Namespace: metricsBinding.GetNamespace(), Name: metricsBinding.OwnerReferences[0].Name}
 	err = r.Client.Get(context.Background(), workloadName, &workload)
 	if err != nil {

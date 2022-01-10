@@ -26,13 +26,8 @@ metadata:
 webhooks:
   - name: verrazzano-application-scrape-generator.verrazzano.io
     namespaceSelector:
-      matchExpressions:
-        - key: kubernetes.io/metadata.name
-          operator: NotIn
-          values: ["kube-system", "verrazzano-mc"]
-        - key: verrazzano.io/namespace
-          operator: NotIn
-          values: ["verrazzano-system"]
+      matchLabels:
+        verrazzano-managed: "true"
     clientConfig:
       service:
         name: verrazzano-application-operator
