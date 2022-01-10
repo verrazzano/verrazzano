@@ -121,9 +121,6 @@ func VzDescribe(text string, body func()) bool {
 		if IncrementCounter(text, "number_of_runs") != nil {
 			return
 		}
-		if IncrementGokitCounter(text, "number_of_runs_gokitcounter") != nil {
-			return
-		}
 	})
 	return true
 }
