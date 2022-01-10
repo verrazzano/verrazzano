@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package appoper
@@ -88,7 +88,6 @@ func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace
 
 func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _ string) error {
 	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
-	filesApplied, err := k8sutil.ApplyCRDYaml(log, c, path, nil)
-	log.Debugf("applied CRD files for app operator: %v", filesApplied)
-	return err
+	yamlApplier := k8sutil.NewYAMLApplier(c)
+	return yamlApplier.ApplyD(path)
 }

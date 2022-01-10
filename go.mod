@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 module github.com/verrazzano/verrazzano
@@ -7,11 +7,8 @@ go 1.16
 
 require (
 	github.com/Jeffail/gabs/v2 v2.2.0
-	github.com/VividCortex/gohistogram v1.0.0 // indirect
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.2
-	github.com/fatih/color v1.12.0 // indirect
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/go-kit/kit v0.9.0
 	github.com/go-logr/logr v0.4.0

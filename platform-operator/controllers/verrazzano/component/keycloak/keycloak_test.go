@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -6,6 +6,7 @@ package keycloak
 import (
 	"errors"
 	"fmt"
+	networkv1 "k8s.io/api/networking/v1"
 	"os"
 	"os/exec"
 	"testing"
@@ -19,14 +20,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -704,4 +704,381 @@ func TestIsEnabledDevProfile(t *testing.T) {
 
 func getBoolPtr(b bool) *bool {
 	return &b
+}
+
+// TestClientExists tests that the function returns false/true whether client exists
+// GIVEN an array of keycloak Clients
+// WHEN I call clientExists
+// THEN return true/false whether the client exists in the array of clients
+func TestClientExists(t *testing.T) {
+	var tests = []struct {
+		name string
+		in   KeycloakClients
+		out  bool
+	}{
+		{"testEmptyClients",
+			KeycloakClients{},
+			false,
+		},
+		{"testClientNotFound",
+			KeycloakClients{
+				{
+					"973973",
+					"thisClient",
+				},
+				{
+					"973974",
+					"thatClient",
+				},
+			},
+			false,
+		},
+		{"testClientFound",
+			KeycloakClients{
+				{
+					"973973",
+					"thisClient",
+				},
+				{
+					"973974",
+					"thatClient",
+				},
+				{
+					"973974",
+					"someClient",
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.out, clientExists(tt.in, "someClient"))
+		})
+	}
+}
+
+// TestUserExists tests that the function returns false/true whether user exists
+// GIVEN an array of keycloak Users
+// WHEN I call userExists
+// THEN return true/false whether the user exists in the array of users
+func TestUserExists(t *testing.T) {
+	var tests = []struct {
+		name string
+		in   KeycloakUsers
+		out  bool
+	}{
+		{"testEmptyUsers",
+			KeycloakUsers{},
+			false,
+		},
+		{"testUserNotFound",
+			KeycloakUsers{
+				{
+					ID:       "955995",
+					Username: "thisUser",
+				},
+				{
+					ID:       "955996",
+					Username: "thatUser",
+				},
+			},
+			false,
+		},
+		{"testUserFound",
+			KeycloakUsers{
+				{
+					ID:       "955995",
+					Username: "thisUser",
+				},
+				{
+					ID:       "955996",
+					Username: "thatUser",
+				},
+				{
+					ID:       "955997",
+					Username: "someUser",
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.out, userExists(tt.in, "someUser"))
+		})
+	}
+}
+
+// TestRoleExists tests that the function returns false/true whether role exists
+// GIVEN an array of keycloak Roles
+// WHEN I call roleExists
+// THEN return true/false whether the role exists in the array of roles
+func TestRoleExists(t *testing.T) {
+	var tests = []struct {
+		name string
+		in   KeycloakRoles
+		out  bool
+	}{
+		{"testEmptyRoles",
+			KeycloakRoles{},
+			false,
+		},
+		{"testRoleNotFound",
+			KeycloakRoles{
+				{
+					ID:   "955995",
+					Name: "thisRole",
+				},
+				{
+					ID:   "955996",
+					Name: "thatRole",
+				},
+			},
+			false,
+		},
+		{"testRoleFound",
+			KeycloakRoles{
+				{
+					ID:   "955995",
+					Name: "thisRole",
+				},
+				{
+					ID:   "955996",
+					Name: "thatRole",
+				},
+				{
+					ID:   "955997",
+					Name: "someRole",
+				},
+			},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.out, roleExists(tt.in, "someRole"))
+		})
+	}
+}
+
+// TestGroupExists tests that the function returns false/true whether group exists
+// GIVEN an array of keycloak Groups
+// WHEN I call groupExists
+// THEN return true/false whether the group exists in the Keycloak Group structure
+func TestGroupExists(t *testing.T) {
+
+	var (
+		tests = []struct {
+			name string
+			in   KeycloakGroups
+			out  bool
+		}{
+			{"testEmptyGroups",
+				KeycloakGroups{},
+				false,
+			},
+			{"testGroupNotFound",
+				KeycloakGroups{
+					{
+						ID:        "955995",
+						Name:      "thisGroup",
+						SubGroups: nil,
+					},
+					{
+						ID:   "",
+						Name: "",
+						SubGroups: []SubGroup{
+							{
+								ID:   "333333",
+								Name: "subGroup1",
+							},
+							{
+								ID:   "444444",
+								Name: "subGroup2",
+							},
+						},
+					},
+				},
+				false,
+			},
+			{"testGroupFound",
+				KeycloakGroups{
+					{
+						ID:        "955995",
+						Name:      "foundGroup",
+						SubGroups: nil,
+					},
+					{
+						ID:   "",
+						Name: "",
+						SubGroups: []SubGroup{
+							{
+								ID:   "333333",
+								Name: "subGroup1",
+							},
+							{
+								ID:   "444444",
+								Name: "subGroup2",
+							},
+						},
+					},
+				},
+				true,
+			},
+			{"testSubGroupFound",
+				KeycloakGroups{
+					{
+						ID:        "955995",
+						Name:      "someGroup",
+						SubGroups: nil,
+					},
+					{
+						ID:   "",
+						Name: "",
+						SubGroups: []SubGroup{
+							{
+								ID:   "333333",
+								Name: "subGroup1",
+							},
+							{
+								ID:   "444444",
+								Name: "subGroup2",
+							},
+							{
+								ID:   "555555",
+								Name: "foundGroup",
+							},
+						},
+					},
+				},
+				true,
+			},
+		}
+	)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.out, groupExists(tt.in, "foundGroup"))
+		})
+	}
+}
+
+// TestGetGroupID tests that the function returns the correct groupID for the group name
+// GIVEN an array of keycloak Groups
+// WHEN I call getGroupID
+// THEN return the groupID for the GroupName passed in, empty string for not found
+func TestGetGroupID(t *testing.T) {
+
+	var (
+		tests = []struct {
+			name string
+			in   KeycloakGroups
+			out  string
+		}{
+			{"testEmptyGroups",
+				KeycloakGroups{},
+				"",
+			},
+			{"testGroupIDNotFound",
+				KeycloakGroups{
+					{
+						ID:        "955995",
+						Name:      "thisGroup",
+						SubGroups: nil,
+					},
+					{
+						ID:   "",
+						Name: "",
+						SubGroups: []SubGroup{
+							{
+								ID:   "333333",
+								Name: "subGroup1",
+							},
+							{
+								ID:   "444444",
+								Name: "subGroup2",
+							},
+						},
+					},
+				},
+				"",
+			},
+			{"testGroupIDFound",
+				KeycloakGroups{
+					{
+						ID:        "999999",
+						Name:      "foundGroup",
+						SubGroups: nil,
+					},
+					{
+						ID:   "",
+						Name: "",
+						SubGroups: []SubGroup{
+							{
+								ID:   "333333",
+								Name: "subGroup1",
+							},
+							{
+								ID:   "444444",
+								Name: "subGroup2",
+							},
+						},
+					},
+				},
+				"999999",
+			},
+			{"testSubGroupIDFound",
+				KeycloakGroups{
+					{
+						ID:        "955995",
+						Name:      "someGroup",
+						SubGroups: nil,
+					},
+					{
+						ID:   "",
+						Name: "",
+						SubGroups: []SubGroup{
+							{
+								ID:   "333333",
+								Name: "subGroup1",
+							},
+							{
+								ID:   "444444",
+								Name: "subGroup2",
+							},
+							{
+								ID:   "999999",
+								Name: "foundGroup",
+							},
+						},
+					},
+				},
+				"999999",
+			},
+		}
+	)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.out, getGroupID(tt.in, "foundGroup"))
+		})
+	}
+}
+
+func TestUpdateKeycloakIngress(t *testing.T) {
+	ingress := &networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
+	}
+	annotations := make(map[string]string)
+	annotations["cdd"] = "foo"
+	annotations["bar"] = "baz"
+	ingress.SetAnnotations(annotations)
+	c := fake.NewFakeClientWithScheme(k8scheme.Scheme, ingress, createTestNginxService())
+	ctx := spi.NewFakeContext(c, testVZ, false)
+	err := updateKeycloakIngress(ctx)
+	assert.NoError(t, err)
 }
