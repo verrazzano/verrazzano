@@ -4,11 +4,9 @@ package namespace
 
 import (
 	"context"
-	"time"
-
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	corev1 "k8s.io/api/core/v1"
@@ -44,7 +42,11 @@ func NewNamespaceController(mgr ctrl.Manager, logger logr.Logger) (*NamespaceCon
 func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
 	var err error
 	nc.controller, err = ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Namespace{}).Build(nc)
+		WithOptions(controller.Options{
+			RateLimiter: controllers.NewDefaultRateLimiter(),
+		}).
+		For(&corev1.Namespace{}).
+		Build(nc)
 	return err
 }
 
@@ -69,13 +71,13 @@ func (nc *NamespaceController) Reconcile(req reconcile.Request) (reconcile.Resul
 		// Finalizer is present, perform any required cleanup and remove the finalizer
 		if vzstring.SliceContainsString(ns.Finalizers, namespaceControllerFinalizer) {
 			if err := nc.reconcileNamespaceDelete(ctx, &ns); err != nil {
-				return vzctrl.NewRequeueWithDelay(10, 30, time.Second), err
+				return ctrl.Result{}, err
 			}
 			return nc.removeFinalizer(ctx, &ns)
 		}
 	}
 
-	return nc.reconcileNamespace(ctx, &ns)
+	return ctrl.Result{}, nc.reconcileNamespace(ctx, &ns)
 }
 
 // removeFinalizer - Remove the finalizer and update the namespace resource if the post-delete processing is successful
@@ -90,13 +92,13 @@ func (nc *NamespaceController) removeFinalizer(ctx context.Context, ns *corev1.N
 }
 
 // reconcileNamespace - Reconcile any namespace changes
-func (nc *NamespaceController) reconcileNamespace(ctx context.Context, ns *corev1.Namespace) (reconcile.Result, error) {
+func (nc *NamespaceController) reconcileNamespace(ctx context.Context, ns *corev1.Namespace) error {
 	if err := nc.reconcileOCILogging(ctx, ns); err != nil {
 		nc.log.Error(err, "Error occurred during OCI Logging reconciliation: %s")
-		return vzctrl.NewRequeueWithDelay(10, 30, time.Second), err
+		return err
 	}
 	nc.log.V(1).Info("Reconciled namespace %s successfully", ns.Name)
-	return reconcile.Result{}, nil
+	return nil
 }
 
 // reconcileNamespaceDelete - Reconcile any post-delete changes required

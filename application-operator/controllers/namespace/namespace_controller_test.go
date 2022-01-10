@@ -234,8 +234,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 
 	mocker.Finish()
 	asserts.Equal(expectedErr, err)
-	asserts.True(result.Requeue)
-	asserts.True(result.RequeueAfter > 0)
+	asserts.True(result.IsZero())
 }
 
 // Test_removeFinalizer tests the removeFinalizer method for the following use case
@@ -380,13 +379,11 @@ func Test_reconcileNamespaceErrorOnUpdate(t *testing.T) {
 			return expectedErr
 		})
 
-	result, err := nc.reconcileNamespace(context.TODO(), ns)
+	err = nc.reconcileNamespace(context.TODO(), ns)
 
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Equalf(expectedErr, err, "Did not get expected error: %v", err)
-	asserts.True(result.Requeue)
-	asserts.True(result.RequeueAfter > 0)
 }
 
 // Test_reconcileNamespace tests the reconcileNamespace method for the following use case
@@ -413,11 +410,10 @@ func Test_reconcileNamespace(t *testing.T) {
 		},
 	}
 
-	result, err := nc.reconcileNamespace(context.TODO(), ns)
+	err = nc.reconcileNamespace(context.TODO(), ns)
 
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(ctrl.Result{}, result)
 }
 
 // Test_reconcileNamespaceDelete tests the reconcileNamespaceDelete method for the following use case
