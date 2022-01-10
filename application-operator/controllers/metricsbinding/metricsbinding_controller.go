@@ -38,7 +38,7 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
 // No kubebuilder annotations are used as the application RBAC for the application operator is now manually managed.
 func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
-	r.Log.V(1).Info("Reconcile metrics scrape config", "resource", req.NamespacedName)
+	r.Log.Info("Reconcile metrics scrape config", "resource", req.NamespacedName)
 	ctx := context.Background()
 
 	// Fetch requested resource into MetricsBinding
@@ -109,7 +109,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, metricsBinding 
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, metricsBinding *vzapi.MetricsBinding) error {
 	if !metricsBinding.GetDeletionTimestamp().IsZero() && vzstring.SliceContainsString(metricsBinding.GetFinalizers(), finalizerName) {
 		resourceName := metricsBinding.GetName()
-		r.Log.Info("Removing finalizer from resource", "resource", resourceName)
+		r.Log.V(2).Info("Removing finalizer from resource", "resource", resourceName)
 		metricsBinding.SetFinalizers(vzstring.RemoveStringFromSlice(metricsBinding.GetFinalizers(), finalizerName))
 		if err := r.Update(ctx, metricsBinding); err != nil {
 			r.Log.Error(err, fmt.Sprintf("Could not update the finalizer for resource: %s/%s, ", metricsBinding.GetObjectKind(), metricsBinding.GetName()))
@@ -130,8 +130,8 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBi
 		return err
 	}
 
-	//Apply the updated configmap
-	r.Log.V(2).Info("Prometheus target ConfigMap is being altered", "resource", configMap.GetName())
+	// Apply the updated configmap
+	r.Log.Info("Prometheus target ConfigMap is being altered", "resource", configMap.GetName())
 	err = r.Client.Update(ctx, configMap)
 	if err != nil {
 		r.Log.Error(err, fmt.Sprintf("Could not update the ConfigMap: %s", configMap.GetName()))
