@@ -191,8 +191,7 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 	}
 
 	// Generate the metricBindings name
-	gv := unst.GroupVersionKind()
-	metricsBindingName := fmt.Sprintf("%s-%s-%s-%s", unst.GetName(), strings.ToLower(gv.Group), strings.ToLower(gv.Version), strings.ToLower(unst.GetKind()))
+	metricsBindingName := fmt.Sprintf("%s-%s-%s", unst.GetName(), strings.Replace(unst.GetAPIVersion(), "/", "-", 1), strings.ToLower(unst.GetKind()))
 
 	metricsBinding := &vzapp.MetricsBinding{
 		TypeMeta: metav1.TypeMeta{
