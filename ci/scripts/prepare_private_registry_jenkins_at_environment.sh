@@ -102,7 +102,7 @@ deploy_harbor() {
     --set notary.enabled=false \
     --set trivy.enabled=false \
     --set persistence.enabled=false \
-    --set harborAdminPassword=${PRIVATE_REGISTRY_PSW}
+    --set harborAdminPassword=${PRIVATE_REGISTRY_PSW} \
     --set imagePullSecrets=${IMAGE_PULL_SECRET}
 
   # wait for harbor installation to complete
