@@ -61,4 +61,3 @@ func SliceAddString(slice []string, s string) ([]string, bool) {
 	}
 	return slice, false
 }
-

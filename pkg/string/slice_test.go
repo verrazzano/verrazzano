@@ -195,4 +195,3 @@ func TestAddString(t *testing.T) {
 		asserts.Equal(test.expectedSlice, result)
 	}
 }
-
