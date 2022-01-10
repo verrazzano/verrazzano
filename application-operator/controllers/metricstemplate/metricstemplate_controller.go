@@ -81,7 +81,7 @@ func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, metric
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
-	// Mutate the scrape config my adding or updating the job
+	// Mutate the scrape config by adding or updating the job
 	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.createOrUpdateScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
@@ -130,6 +130,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBi
 	}
 
 	//Apply the updated configmap
+	r.Log.V(2).Info("Prometheus target ConfigMap is being altered", "resource", configMap.GetName())
 	err = r.Client.Update(ctx, configMap)
 	if err != nil {
 		r.Log.Error(err, fmt.Sprintf("Could not update the ConfigMap: %s", configMap.GetName()))
@@ -331,7 +332,7 @@ func (r *Reconciler) getPromConfigMap(metricsBinding *vzapi.MetricsBinding) (*k8
 	namespacedName := types.NamespacedName{Name: targetConfigMap.Name, Namespace: targetConfigMap.Namespace}
 	err := r.Client.Get(context.Background(), namespacedName, &configMap)
 	if err != nil {
-		r.Log.Error(err, fmt.Sprintf("Could not get the MetricsTemplate: %s", targetConfigMap.Name))
+		r.Log.Error(err, fmt.Sprintf("Could not get the Prometheus target ConfigMap: %s", targetConfigMap.Name))
 		return nil, err
 	}
 
