@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certmanager
@@ -105,13 +105,8 @@ func TestIsOCIDNS(t *testing.T) {
 func TestWriteCRD(t *testing.T) {
 	inputFile := "../../../../thirdparty/manifests/cert-manager/cert-manager.crds.yaml"
 	outputFile := "../../../../thirdparty/manifests/cert-manager/output.crd.yaml"
-	writtenFiles, err := writeCRD(inputFile, outputFile, true)
+	err := writeCRD(inputFile, outputFile, true)
 	assert.NoError(t, err)
-
-	expectedFiles := 6 // there should be six CRDs in the Cert Manager file
-	assert.NoError(t, err)
-	assert.Equal(t, expectedFiles, len(writtenFiles))
-	assert.NoError(t, cleanTempFiles(writtenFiles))
 }
 
 // TestCleanTempFiles tests cleaning up temp files
@@ -119,7 +114,7 @@ func TestWriteCRD(t *testing.T) {
 // WHEN a file is not found
 // THEN cleanTempFiles should return an error
 func TestCleanTempFiles(t *testing.T) {
-	assert.Error(t, cleanTempFiles([]string{"blahblah"}))
+	assert.Error(t, cleanTempFiles("blahblah"))
 }
 
 // TestIsCertManagerDisabled tests the IsCertManagerEnabled fn
