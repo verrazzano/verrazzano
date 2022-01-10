@@ -85,7 +85,7 @@ func (nc *NamespaceController) removeFinalizer(ctx context.Context, ns *corev1.N
 	nc.log.V(1).Info("Removing finalizer %s", namespaceControllerFinalizer)
 	ns.Finalizers = vzstring.RemoveStringFromSlice(ns.Finalizers, namespaceControllerFinalizer)
 	err := nc.Update(ctx, ns)
-	if err != nil && !k8serrors.IsConflict(err) {
+	if err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
