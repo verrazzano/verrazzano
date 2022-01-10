@@ -6,6 +6,7 @@ package metricsbinding
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"strings"
 
 	"github.com/Jeffail/gabs/v2"
 	v1 "k8s.io/api/core/v1"
@@ -31,7 +32,7 @@ const (
 // Creates a job name in the format <namespace>_<name>_<kind>
 func createJobName(metricsbinding *vzapi.MetricsBinding) string {
 	reference := metricsbinding.OwnerReferences[0]
-	return fmt.Sprintf("%s_%s_%s", metricsbinding.Namespace, reference.Name, reference.Kind)
+	return fmt.Sprintf("%s_%s_%s_%s", metricsbinding.Namespace, reference.Name, strings.Replace(reference.APIVersion, "/", "_", 1), reference.Kind)
 }
 
 // returns a container of the Prometheus config data from the configmap
