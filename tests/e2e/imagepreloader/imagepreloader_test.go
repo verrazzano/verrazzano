@@ -21,6 +21,8 @@ const testName string = "preloader-test"
 const bomPath string = "../../../platform-operator/verrazzano-bom.json"
 
 var bom v8obom.Bom
+var imageList map[string]string
+
 var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortWaitTimeout = 5 * time.Minute
@@ -36,6 +38,7 @@ var _ = BeforeSuite(func() {
 	var err error
 	bom, err = v8obom.NewBom(bomPath)
 	Expect(err).ToNot(HaveOccurred())
+	pkg.Log(pkg.Info, fmt.Sprintf("The Bom version is %s", bom.GetVersion()))
 })
 
 var _ = AfterSuite(func() {
@@ -55,6 +58,18 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{testName})
 			}, shortWaitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("%s failed to deploy", testName))
+		})
+	})
+	Context("Use ephemeral containers to inject images", func() {
+		It("create container list", func() {
+			var err error
+			imageList, err = createImageList(bom)
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("inject images into pod", func() {
+			for name, image := range imageList {
+				pkg.Log(pkg.Info, fmt.Sprintf("%s,%s", name, image))
+			}
 		})
 	})
 })
@@ -85,4 +100,17 @@ func deployDaemonSet() error {
 	}
 
 	return nil
+}
+
+// createImageList
+func createImageList(bom v8obom.Bom) (map[string]string, error) {
+	imageMap := map[string]string{}
+	for _, comp := range bom.GetComponents() {
+		for _, subComp := range comp.SubComponents {
+			for _, bomImage := range subComp.Images {
+				imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&subComp, bomImage), bom.ResolveRepo(&subComp, bomImage), bomImage.ImageName, bomImage.ImageTag)
+			}
+		}
+	}
+	return imageMap, nil
 }
