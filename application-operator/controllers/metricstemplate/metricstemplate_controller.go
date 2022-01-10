@@ -48,6 +48,7 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 		return k8scontroller.Result{}, k8sclient.IgnoreNotFound(err)
 	}
 
+	// Reconcile based on the status of the deletion timestamp
 	if metricsBinding.GetDeletionTimestamp().IsZero() {
 		return r.reconcileTemplateCreateOrUpdate(ctx, &metricsBinding)
 	}
@@ -57,11 +58,14 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 // reconcileTemplateDelete completes the reconcile process for an object that is being deleted
 func (r *Reconciler) reconcileTemplateDelete(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for deleted object", "resource", metricsBinding.GetName())
+
+	// For deletion, we have to remove the finalizer if it exists
 	err := r.removeFinalizerIfRequired(ctx, metricsBinding)
 	if err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
+	// Mutate the scrape config by deleting the entry
 	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.deleteScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
@@ -71,11 +75,14 @@ func (r *Reconciler) reconcileTemplateDelete(ctx context.Context, metricsBinding
 // reconcileTemplateCreateOrUpdate completes the reconcile process for an object that is being created or updated
 func (r *Reconciler) reconcileTemplateCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding) (k8scontroller.Result, error) {
 	r.Log.V(2).Info("Reconcile for created or updated object", "resource", metricsBinding.GetName())
+
+	// For creation, the finalizer must be added
 	err := r.addFinalizerIfRequired(ctx, metricsBinding)
 	if err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
 
+	// Mutate the scrape config my adding or updating the job
 	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.createOrUpdateScrapeConfig); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
