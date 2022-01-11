@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -37,7 +37,7 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 }
 
 // TestAppendRegistryOverrides verifies that registry overrides are added as appropriate
-// GIVEN a Verrzzano CR
+// GIVEN a Verrazzano CR
 //  WHEN AppendOverrides is called
 //  THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {

@@ -1,10 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package restapi_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"time"
 
@@ -14,14 +16,14 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = Describe("keycloak url test", func() {
+var _ = framework.VzDescribe("keycloak url test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	Context("Fetching the keycloak url using api and test ", func() {
-		It("Fetches keycloak url", func() {
+	framework.VzContext("Fetching the keycloak url using api and test ", func() {
+		framework.ItM(metricsLogger, "Fetches keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -47,14 +49,18 @@ var _ = Describe("keycloak url test", func() {
 				Expect(keycloakURL).NotTo(BeEmpty())
 				var httpResponse *pkg.HTTPResponse
 
+				start := time.Now()
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					var err error
 					httpResponse, err = pkg.GetWebPage(keycloakURL, "")
 					return httpResponse, err
 				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
+				metrics.Emit(metricsLogger.With("url_web_response_time", time.Since(start).Milliseconds()))
 
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 			}
 		})
 	})
 })
+
+var _ = framework.AfterEachM(metricsLogger, func() {})
