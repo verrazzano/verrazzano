@@ -95,27 +95,14 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 			imageList, err = createImageList(bom)
 			Expect(err).ToNot(HaveOccurred())
 		})
-		It("inject images into pod", func() {
+		It(fmt.Sprintf("inject images into the test pod %s", podName), func() {
 			// Get the kubeconfig location
 			kubeconfig, err := k8sutil.GetKubeConfigLocation()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeconfig).ToNot(HaveLen(0))
+			err = injectImages(kubeconfig, imageList)
+			Expect(err).ToNot(HaveOccurred())
 
-			// Loop through the image list and use ephemeral containers to inject each image into the test deployment.
-			// This will initiate the download of each image into the cluster (if not already present)
-			for name, image := range imageList {
-				cmd := exec.Command("kubectl", "debug", "--namespace", namespace, podName,
-					"--container", name, "--target", testName, "--image", image, "--image-pull-policy", "IfNotPresent",
-					"--", "pwd")
-				pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to inject image %s: %s", image, cmd.String()))
-				cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
-				cmd.Stdout = os.Stdout
-				cmd.Stderr = os.Stderr
-				err := cmd.Start()
-				Expect(err).ToNot(HaveOccurred())
-				err = cmd.Wait()
-				Expect(err).ToNot(HaveOccurred())
-			}
 		})
 	})
 })
@@ -148,7 +135,7 @@ func deployDaemonSet() error {
 	return nil
 }
 
-// createImageList
+// createImageList - create the list of container images to load into the cluster
 func createImageList(bom v8obom.Bom) (map[string]string, error) {
 	imageMap := map[string]string{}
 	for _, comp := range bom.GetComponents() {
@@ -162,4 +149,28 @@ func createImageList(bom v8obom.Bom) (map[string]string, error) {
 		}
 	}
 	return imageMap, nil
+}
+
+// injectImages - inject the container images into the test pod using ephemeral containers
+func injectImages(kubeconfig string, imageList map[string]string) error {
+	// Loop through the image list and use ephemeral containers to inject each image into the test deployment.
+	// This will initiate the download of each image into the cluster (if not already present)
+	for name, image := range imageList {
+		cmd := exec.Command("kubectl", "debug", "--namespace", namespace, podName,
+			"--container", name, "--target", testName, "--image", image, "--image-pull-policy", "IfNotPresent",
+			"--", "pwd")
+		pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to inject image %s: %s", image, cmd.String()))
+		cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Start()
+		if err != nil {
+			return err
+		}
+		err = cmd.Wait()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
