@@ -164,7 +164,7 @@ func (t *TestFramework) Fail(message string, callerSkip ...int) {
 
 // Context - wrapper function for Ginkgo Context
 func (t *TestFramework) Context(text string, args ...interface{}) bool {
-	return ginkgo.Context(text, args...)
+	return t.Describe(text, args...)
 }
 
 // When - wrapper function for Ginkgo When
