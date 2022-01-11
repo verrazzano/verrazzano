@@ -215,7 +215,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if trait, err = vznav.FetchTrait(ctx, r, r.Log, req.NamespacedName); err != nil || trait == nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
-	r.Log.Info("trait fetched", "finalizers", trait.Finalizers)
+	r.Log.Info("trait fetched", "trait", trait, "finalizers", trait.Finalizers)
 
 	if trait.DeletionTimestamp.IsZero() {
 		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, trait)
