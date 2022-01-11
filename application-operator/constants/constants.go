@@ -100,14 +100,5 @@ const VerrazzanoUsernameData = "username"
 // VerrazzanoPasswordData - the field name in Verrazzano secret that contains the password
 const VerrazzanoPasswordData = "password"
 
-// MetricsWorkloadUIDLabel - the label for designating the workload UID in MetricsTemplate resources
-const MetricsWorkloadUIDLabel = "app.verrazzano.io/metrics-workload-uid"
-
-// MetricsTemplateUIDLabel - the label for designating the template UID in MetricsTemplate resources
-const MetricsTemplateUIDLabel = "app.verrazzano.io/metrics-template-uid"
-
-// MetricsPromConfigMapUIDLabel - the label for designating the Prometheus ConfigMap UID in MetricsTemplate resources
-const MetricsPromConfigMapUIDLabel = "app.verrazzano.io/metrics-prometheus-configmap-uid"
-
 // MetricsScrapeLabel - the label for identifying a pods scrape target
-const MetricsScrapeLabel = "app.verrazzano.io.metrics-scrape"
+const MetricsScrapeLabel = "app.verrazzano.io/metrics-scrape"
