@@ -192,6 +192,7 @@ start_installation() {
     deploy_harbor
     load_images
 
+    kubectl create namespace verrazzano-install
     cd ${GO_REPO_PATH}/verrazzano
     # Create docker secret for platform operator image
     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
