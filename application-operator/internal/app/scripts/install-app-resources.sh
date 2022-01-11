@@ -10,7 +10,7 @@ kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricstemplates.yaml
 # Create the MetricsBinding CRD
 kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricsbindings.yaml
 
-# Create the MetricsTemplate resource
+# Create the MetricsTemplate resources
 kubectl apply -f ${SCRIPT_DIR}/../resources/templates/
 
 # Create the MutatingWebhookConfiguration object.  This object will eventually be
