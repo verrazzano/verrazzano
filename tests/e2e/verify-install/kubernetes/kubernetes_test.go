@@ -223,6 +223,8 @@ var _ = framework.VzDescribe("Kubernetes Cluster",
 		})
 	})
 
+var _ = framework.AfterEachM(metricsLogger, func() {})
+
 func nsListContains(list []v1.Namespace, target string) bool {
 	for i := range list {
 		if list[i].Name == target {
