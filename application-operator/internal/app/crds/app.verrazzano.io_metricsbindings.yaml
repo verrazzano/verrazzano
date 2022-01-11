@@ -67,9 +67,40 @@ spec:
                 - name
                 - namespace
                 type: object
+              workload:
+                description: Identifies the name, namespace, and gvk for a workload
+                properties:
+                  kind:
+                    description: GroupVersionKind unambiguously identifies a kind.  It
+                      doesn't anonymously include GroupVersion to avoid automatic
+                      coersion.  It doesn't use a GroupVersion to avoid custom marshalling
+                    properties:
+                      group:
+                        type: string
+                      kind:
+                        type: string
+                      version:
+                        type: string
+                    required:
+                    - group
+                    - kind
+                    - version
+                    type: object
+                  name:
+                    description: Name of a resource
+                    type: string
+                  namespace:
+                    description: Namespace of a resource
+                    type: string
+                required:
+                - kind
+                - name
+                - namespace
+                type: object
             required:
             - metricsTemplate
             - prometheusConfigMap
+            - workload
             type: object
         required:
         - spec

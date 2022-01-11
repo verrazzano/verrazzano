@@ -36,6 +36,9 @@ type MetricsBindingSpec struct {
 
 	// Identifies a namespace and name for a Prometheus configMap resource
 	PrometheusConfigMap NamespaceName `json:"prometheusConfigMap"`
+
+	// Identifies the name, namespace, and gvk for a workload
+	Workload Workload `json:"workload"`
 }
 
 // Identifies a namespace and name pair for a resource
@@ -45,4 +48,15 @@ type NamespaceName struct {
 
 	// Name of a resource
 	Name string `json:"name"`
+}
+
+type Workload struct {
+	// Namespace of a resource
+	Namespace string `json:"namespace"`
+
+	// Name of a resource
+	Name string `json:"name"`
+
+	Kind metav1.GroupVersionKind `json:"kind"`
+	// GroupVersionKind of a resource
 }
