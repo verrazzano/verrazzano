@@ -148,11 +148,14 @@ func deployDaemonSet() error {
 func createImageList(bom v8obom.Bom) (map[string]string, error) {
 	imageMap := map[string]string{}
 	for _, comp := range bom.GetComponents() {
-		for _, subComp := range comp.SubComponents {
+		for i, subComp := range comp.SubComponents {
 			for _, bomImage := range subComp.Images {
-				// Special case the platform-operator and application-operator, the images may not exist yet
-				if bomImage.ImageName != "VERRAZZANO_APPLICATION_OPERATOR_IMAGE" && bomImage.ImageName != "VERRAZZANO_PLATFORM_OPERATOR_IMAGE" {
-					imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&subComp, bomImage), bom.ResolveRepo(&subComp, bomImage), bomImage.ImageName, bomImage.ImageTag)
+				// Special case the platform-operator and application-operator, the images may not exist yet.
+				// Special case coherence-operator - unable to override entrypoint with a simple command
+				if bomImage.ImageName != "VERRAZZANO_APPLICATION_OPERATOR_IMAGE" &&
+					bomImage.ImageName != "VERRAZZANO_PLATFORM_OPERATOR_IMAGE" &&
+					bomImage.ImageName != "coherence-operator" {
+					imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&comp.SubComponents[i], bomImage), bom.ResolveRepo(&subComp, bomImage), bomImage.ImageName, bomImage.ImageTag)
 				}
 			}
 		}
@@ -165,21 +168,25 @@ func injectImages(kubeconfig string, imageList map[string]string) error {
 	// Loop through the image list and use ephemeral containers to inject each image into the test deployment.
 	// This will initiate the download of each image into the cluster (if not already present)
 	for name, image := range imageList {
-		cmd := exec.Command("kubectl", "debug", "--namespace", namespace, podName,
-			"--container", name, "--target", testName, "--image", image, "--image-pull-policy", "IfNotPresent",
-			"--", "pwd")
-		pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to inject image %s: %s", image, cmd.String()))
-		cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Start()
-		if err != nil {
-			return err
-		}
-		err = cmd.Wait()
-		if err != nil {
-			return err
-		}
+		// Use Eventually block because the kubectl commands can get a conflict error when executed so quickly in succession.
+		Eventually(func() error {
+			cmd := exec.Command("kubectl", "debug", "--namespace", namespace, podName,
+				"--container", name, "--target", testName, "--image", image, "--image-pull-policy", "IfNotPresent",
+				"--", "pwd")
+			pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to inject image %s: %s", image, cmd.String()))
+			cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err := cmd.Start()
+			if err != nil {
+				return err
+			}
+			err = cmd.Wait()
+			if err != nil {
+				return err
+			}
+			return nil
+		}, shortWaitTimeout, pollingInterval).ShouldNot(HaveOccurred(), fmt.Sprintf("failed to inject image %s", image))
 	}
 	return nil
 }
