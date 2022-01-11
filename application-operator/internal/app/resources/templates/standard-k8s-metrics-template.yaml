@@ -4,18 +4,18 @@
 apiVersion: app.verrazzano.io/v1alpha1
 kind: MetricsTemplate
 metadata:
-  name: test-metrics-template
+  name: standard-k8s-metrics-template
   namespace: verrazzano-system
 spec:
   workloadSelector:
-    apiGroups: ["apps"]
+    apiGroups: ["apps", ""]
     apiVersions: ["v1"]
-    resources: ["deployment"]
+    resources: ["deployment", "statefulset", "replicaset", "pod"]
   prometheusConfig:
     targetConfigMap:
       namespace: verrazzano-system
       name: vmi-system-prometheus-config
-    scrapeConfigTemplate: | 
+    scrapeConfigTemplate: |
       kubernetes_sd_configs:
         - namespaces:
             names:
@@ -29,9 +29,9 @@ spec:
           source_labels: null
           target_label: verrazzano_cluster
         - action: keep
-          regex: {{.workload.spec.template.metadata.labels.app}};8080
+          regex: true;8080
           source_labels:
-            - __meta_kubernetes_pod_label_app
+            - __meta_kubernetes_pod_label_app_verrazzano_io_metrics_scrape
             - __meta_kubernetes_pod_container_port_number
         - action: replace
           regex: ([^:]+)(?::\d+)?;(\d+)
@@ -61,8 +61,10 @@ spec:
             - name
           target_label: webapp
       scheme: https
+      {{ if eq ( index .namespace.metadata.labels "istio-injection" ) "enabled" }}
       tls_config:
         ca_file: /etc/istio-certs/root-cert.pem
         cert_file: /etc/istio-certs/cert-chain.pem
         insecure_skip_verify: true
         key_file: /etc/istio-certs/key.pem
+      {{ end }}

@@ -71,6 +71,8 @@ data:
     # Send to storage
     @include output.conf
     {{- if .Values.fluentd.oci }}
+    # Start namespace logging configs
+    # End namespace logging configs
     {{- if .Values.fluentd.oci.systemLogId }}
     @include oci-logging-system.conf
     {{- if .Values.fluentd.oci.defaultAppLogId }}

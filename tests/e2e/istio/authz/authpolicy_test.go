@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -43,9 +44,15 @@ var _ = BeforeSuite(func() {
 	deployNoIstioApplication()
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
-var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
-var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
+})
+
+var _ = AfterSuite(func() {
+	if failed {
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	undeployFooApplication()
 	undeployBarApplication()
 	undeployNoIstioApplication()

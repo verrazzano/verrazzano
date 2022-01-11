@@ -1,17 +1,20 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package metricstemplate
+package metricsbinding
 
 import (
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	k8sapps "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -20,12 +23,65 @@ const (
 	testDeploymentName            = "test-deployment"
 	testExistsDeploymentNamespace = "update-ns"
 	testExistsDeploymentName      = "update-deployment"
-
-	testCMUID               = "testCMUID"
-	testMTUID               = "testMTUID"
-	testDeploymentUID       = "testDeploymentUID"
-	testExistsDeploymentUID = "updateUID"
+	testMetricsTemplateNamespace  = "test-namespace"
+	testMetricsTemplateName       = "test-template-name"
+	testMetricsBindingNamespace   = "test-namespace"
+	testMetricsBindingName        = "test-binding-name"
+	deploymentKind                = "Deployment"
+	deploymentGroup               = "apps"
+	deploymentVersion             = "v1"
 )
+
+var metricsBinding = v1alpha1.MetricsBinding{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testMetricsBindingNamespace,
+		Name:      testMetricsBindingName,
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Name:       testDeploymentName,
+				APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
+				Kind:       deploymentKind,
+			},
+		},
+	},
+	Spec: v1alpha1.MetricsBindingSpec{
+		MetricsTemplate: v1alpha1.NamespaceName{
+			Namespace: testMetricsTemplateNamespace,
+			Name:      testMetricsTemplateName,
+		},
+		PrometheusConfigMap: v1alpha1.NamespaceName{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      testConfigMapName,
+		},
+	},
+}
+
+var metricsTemplate = v1alpha1.MetricsTemplate{
+	TypeMeta: metav1.TypeMeta{
+		Kind:       metricsTemplateKind,
+		APIVersion: metricsTemplateAPIVersion,
+	},
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testMetricsTemplateNamespace,
+		Name:      testMetricsTemplateName,
+	},
+}
+
+var deployment = k8sapps.Deployment{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace: testDeploymentNamespace,
+		Name:      testDeploymentName,
+	},
+	Spec: k8sapps.DeploymentSpec{
+		Template: v1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app": "hello-helidon",
+				},
+			},
+		},
+	},
+}
 
 // TestCreateJobName tests the job name creator
 // GIVEN a set of names
@@ -33,9 +89,7 @@ const (
 // THEN verify the name is correctly given
 func TestCreateJobName(t *testing.T) {
 	assert := asserts.New(t)
-	assert.Equal("__", createJobName(types.NamespacedName{Namespace: "", Name: ""}, ""))
-	assert.Equal("1_2_3", createJobName(types.NamespacedName{Namespace: "1", Name: "2"}, "3"))
-	assert.Equal("test-namespace_test-name_test-UID", createJobName(types.NamespacedName{Namespace: "test-namespace", Name: "test-name"}, "test-UID"))
+	assert.Equal(fmt.Sprintf("%s_%s_%s_%s_%s", testMetricsBindingNamespace, testDeploymentName, deploymentGroup, deploymentVersion, deploymentKind), createJobName(&metricsBinding))
 }
 
 // TestGetConfigData tests the data retrieval from a
