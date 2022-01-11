@@ -31,13 +31,18 @@ type MetricsBinding struct {
 
 // MetricsBindingSpec specifies the desired state of a metrics binding
 type MetricsBindingSpec struct {
-	MetricsTemplate Template `json:"metricsTemplate"`
+	// Identifies a namespace and name for a metricsTemplate resource
+	MetricsTemplate NamespaceName `json:"metricsTemplate"`
+
+	// Identifies a namespace and name for a Prometheus configMap resource
+	PrometheusConfigMap NamespaceName `json:"prometheusConfigMap"`
 }
 
-// Identifies a namespace and name for a metrics template
-type Template struct {
-	// Namespace of metrics template resource
+// Identifies a namespace and name pair for a resource
+type NamespaceName struct {
+	// Namespace of a resource
 	Namespace string `json:"namespace"`
-	// Name of metrics template resource
+
+	// Name of a resource
 	Name string `json:"name"`
 }

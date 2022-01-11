@@ -21,6 +21,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -75,17 +76,6 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 		return admission.Allowed(StatusReasonSuccess)
 	}
 
-	// Namespace of workload resource must be labeled with "verrazzano-managed": "true".
-	// If not labeled this way there is nothing to do.
-	namespace, err := a.KubeClient.CoreV1().Namespaces().Get(ctx, unst.GetNamespace(), metav1.GetOptions{})
-	if err != nil {
-		scrapeGeneratorLogger.Error(err, "error getting namespace of workload resource")
-		return admission.Errored(http.StatusInternalServerError, err)
-	}
-	if namespace.Labels[constants.LabelVerrazzanoManaged] != "true" {
-		return admission.Allowed(StatusReasonSuccess)
-	}
-
 	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if metricsTemplateAnnotation == "none" {
@@ -101,9 +91,9 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	}
 
 	// Workload resource specifies a valid metrics template.
-	// We use that metrics template and add the required labels.
+	// We use that metrics template and create/update a metrics binding resource.
 	if metricsTemplate != nil {
-		err = a.populateLabels(ctx, unst, metricsTemplate)
+		err = a.createOrUpdateMetricBinding(ctx, unst, metricsTemplate)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
@@ -129,9 +119,9 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 			metricsTemplate = template
 		}
 
-		// We found a matching metrics template so add the required labels.
+		// We found a matching metrics template. Create/update a metrics binding.
 		if found {
-			err = a.populateLabels(ctx, unst, metricsTemplate)
+			err = a.createOrUpdateMetricBinding(ctx, unst, metricsTemplate)
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
@@ -179,30 +169,64 @@ func (a *ScrapeGeneratorWebhook) processMetricsAnnotation(unst *unstructured.Uns
 	return nil, nil
 }
 
-// populateLabels adds metrics labels to the workload resource
-func (a *ScrapeGeneratorWebhook) populateLabels(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
-	// When the Prometheus target config map was not specified in the metrics template then we do not update
-	// the workload resource labels.
+// createOrUpdateMetricBinding creates/updates a metricsBinding resource
+func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
+	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
-		scrapeGeneratorLogger.Info("Prometheus target config map not specified - workload labels not updated", "Namespace", template.Namespace, "Name", template.Name)
+		scrapeGeneratorLogger.Info("Prometheus target config map not specified", "Namespace", template.Namespace, "Name", template.Name)
 		return nil
 	}
 
-	configMap, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
+	_, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
 	if err != nil {
-		scrapeGeneratorLogger.Error(err, "error getting Prometheus target config map")
+		scrapeGeneratorLogger.Error(err, "error getting Prometheus target config map", "Namespace", template.Namespace, "Name", template.Name)
 		return err
 	}
-	labels := unst.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
+
+	// For at least deployments, the webhook is called multiple times.  The first time the UID is empty.
+	// A UID is needed for setting up the owner reference.  Return and do nothing if the UID is empty.
+	if len(unst.GetUID()) == 0 {
+		return nil
 	}
 
-	labels[constants.MetricsWorkloadUIDLabel] = string(unst.GetUID())
-	labels[constants.MetricsTemplateUIDLabel] = string(template.UID)
-	labels[constants.MetricsPromConfigMapUIDLabel] = string(configMap.UID)
+	metricsBinding := &vzapp.MetricsBinding{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "app.verrazzno.io/v1alpha1",
+			Kind:       "metricsBinding"},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: unst.GetNamespace(),
+			Name:      fmt.Sprintf("%s-%s", unst.GetName(), strings.ToLower(unst.GetKind())),
+		},
+	}
+	_, err = controllerutil.CreateOrUpdate(ctx, a.Client, metricsBinding, func() error {
+		return a.mutateMetricsBinding(metricsBinding, template, unst)
+	})
 
-	unst.SetLabels(labels)
+	if err != nil {
+		scrapeGeneratorLogger.Error(err, "error creating/updating metricsBinding resource")
+	}
+
+	return err
+
+}
+
+// function called by controllerutil.createOrUpdate to mutate a metricsBinding resource
+func (a *ScrapeGeneratorWebhook) mutateMetricsBinding(metricsBinding *vzapp.MetricsBinding, template *vzapp.MetricsTemplate, unst *unstructured.Unstructured) error {
+	metricsBinding.Spec.MetricsTemplate.Namespace = template.Namespace
+	metricsBinding.Spec.MetricsTemplate.Name = template.Name
+	metricsBinding.Spec.PrometheusConfigMap.Namespace = template.Spec.PrometheusConfig.TargetConfigMap.Namespace
+	metricsBinding.Spec.PrometheusConfigMap.Name = template.Spec.PrometheusConfig.TargetConfigMap.Name
+	trueValue := true
+	metricsBinding.OwnerReferences = []metav1.OwnerReference{
+		{
+			APIVersion:         unst.GetAPIVersion(),
+			Kind:               unst.GetKind(),
+			Name:               unst.GetName(),
+			UID:                unst.GetUID(),
+			Controller:         &trueValue,
+			BlockOwnerDeletion: &trueValue,
+		},
+	}
 
 	return nil
 }
