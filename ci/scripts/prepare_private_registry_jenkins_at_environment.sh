@@ -191,12 +191,15 @@ start_installation() {
     deploy_contour
     deploy_harbor
     load_images
-
-    kubectl create namespace verrazzano-install
-    cd ${GO_REPO_PATH}/verrazzano
-    # Create docker secret for platform operator image
-    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
   fi
+
+  docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
+  if [ $? -ne 0 ]; then
+    echo "docker login again to Harbor ephemeral failed"
+  fi
+
+  echo "Get verrazzano container registry secret"
+  kubectl get secret ${IMAGE_PULL_SECRET} --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode | jq '.auths'
 
   cd ${GO_REPO_PATH}/verrazzano
   echo "Install Platform Operator"
