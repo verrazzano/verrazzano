@@ -49,7 +49,6 @@ fi
 if [ "${DNS_SCOPE_INPUT:-}" ] ; then
   if [ ${DNS_SCOPE_INPUT} == "GLOBAL" ] || [ ${DNS_SCOPE_INPUT} == "PRIVATE" ]; then
      DNS_SCOPE=${DNS_SCOPE_INPUT}
-     echo "DNS_SCOPE is " $DNS_SCOPE_INPUT
   fi
 fi
 
@@ -76,14 +75,14 @@ if [ $OPERATION == "create" ]; then
   fi
 
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
-    log "Using view id " ${VCN_VIEW_ID}
-    log "Fetching vcn id  '${TF_VAR_label_prefix}-oke-vcn'"
+    #log "Using view id " ${VCN_VIEW_ID}
+    #log "Fetching vcn id  '${TF_VAR_label_prefix}-oke-vcn'"
     VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
     if [ $? -ne 0 ];then
         log "Failed to fetch vcn '${TF_VAR_label_prefix}-oke-vcn'"
     fi
 
-    log "Updating vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
+    #log "Updating vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
     oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force
     if [ $? -ne 0 ];then

@@ -320,6 +320,7 @@ pipeline {
                         }
             steps {
                 script {
+                     println("DNS_SCOPE =  ${params.DNS_SCOPE}")
                      if (params.DNS_SCOPE == "PRIVATE") {
                         switch(TF_VAR_region) {
                            case "uk-london-1":
@@ -334,6 +335,7 @@ pipeline {
                     // VCN_VIEW_ID is used inside oci_dns_ops.sh to associate private zones to view
                     // this is only used when zone is PRIVATE
                     dns_zone_ocid = sh(script: "${WORKSPACE}/tests/e2e/config/scripts/oci_dns_ops.sh -o create -c ${TF_VAR_compartment_id} -s z${zoneId} -k ${params.DNS_SCOPE}", returnStdout: true)
+                    println("dns_zone_ocid is ${dns_zone_ocid}")
                 }
             }
         }
