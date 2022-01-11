@@ -196,8 +196,9 @@ func waitForImagesToLoad() error {
 	Eventually(func() bool {
 		// Get the pod
 		podsList, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"name": testName}}, namespace)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(podsList)).To(Equal(1))
+		if err != nil {
+			return false
+		}
 
 		// Loop through the ephemeral containers checking that they are all completed successfully
 		pod := podsList[0]
