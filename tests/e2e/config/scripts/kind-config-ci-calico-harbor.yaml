@@ -32,3 +32,7 @@ nodes:
 networking:
   disableDefaultCNI: true # disable kindnet
   podSubnet: 192.168.0.0/16 # set to Calico's default subnet
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."harbor-registry.172.18.0.230.nip.io"]
+      endpoint = ["http://harbor-registry.172.18.0.230.nip.io"]
