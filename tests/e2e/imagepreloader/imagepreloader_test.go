@@ -6,16 +6,20 @@ package imagepreloader
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"text/template"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v8obom "github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const namespace string = "image-preloader"
@@ -32,7 +36,7 @@ var shortWaitTimeout = 5 * time.Minute
 var shortPollingInterval = 10 * time.Second
 
 var _ = BeforeSuite(func() {
-	pkg.Log(pkg.Info, "Create namespace")
+	pkg.Log(pkg.Info, fmt.Sprintf("Create namespace %s", namespace))
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(namespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
@@ -45,10 +49,16 @@ var _ = BeforeSuite(func() {
 })
 
 var _ = AfterSuite(func() {
-	pkg.Log(pkg.Info, "Delete the namespace")
+	pkg.Log(pkg.Info, fmt.Sprintf("Delete the namespace %s", namespace))
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, fmt.Sprintf("Wait for the namespace %s to be terminated", namespace))
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 })
 
 var _ = Describe("Load Verrazzano Container Images", func() {
@@ -66,7 +76,7 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 			var podsList []corev1.Pod
 			Eventually(func() error {
 				var err error
-				podsList, err = pkg.GetPodsFromSelector(nil, namespace)
+				podsList, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"name": testName}}, namespace)
 				if err != nil && errors.IsNotFound(err) {
 					// Ignore pods not found
 					return nil
@@ -75,7 +85,7 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 			}, shortWaitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			Expect(podsList).ShouldNot(BeNil())
 			Expect(len(podsList)).To(Equal(1))
-			podName := podsList[0].Name
+			podName = podsList[0].Name
 			Expect(podName).ToNot(BeNil())
 		})
 	})
@@ -86,10 +96,25 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("inject images into pod", func() {
-			for name, image := range imageList {
-				// kubectl debug -n image-pull-test $(kubectl get pod -L image-pull-test -n image-pull-test -o jsonpath="{.items[0].metadata.name}") -c busybox-verrazzano-api --target=image-pull-test --image=busybox --image-pull-policy=IfNotPresent
-				pkg.Log(pkg.Info, fmt.Sprintf("%s,%s", name, image))
+			// Get the kubeconfig location
+			kubeconfig, err := k8sutil.GetKubeConfigLocation()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(kubeconfig).ToNot(HaveLen(0))
 
+			// Loop through the image list and use ephemeral containers to inject each image into the test deployment.
+			// This will initiate the download of each image into the cluster (if not already present)
+			for name, image := range imageList {
+				cmd := exec.Command("kubectl", "debug", "--namespace", namespace, podName,
+					"--container", name, "--target", testName, "--image", image, "--image-pull-policy", "IfNotPresent",
+					"--", "pwd")
+				pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to inject image %s: %s", image, cmd.String()))
+				cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stderr
+				err := cmd.Start()
+				Expect(err).ToNot(HaveOccurred())
+				err = cmd.Wait()
+				Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	})
@@ -129,7 +154,10 @@ func createImageList(bom v8obom.Bom) (map[string]string, error) {
 	for _, comp := range bom.GetComponents() {
 		for _, subComp := range comp.SubComponents {
 			for _, bomImage := range subComp.Images {
-				imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&subComp, bomImage), bom.ResolveRepo(&subComp, bomImage), bomImage.ImageName, bomImage.ImageTag)
+				// Special case the platform-operator and application-operator, the images may not exist yet
+				if bomImage.ImageName != "VERRAZZANO_APPLICATION_OPERATOR_IMAGE" && bomImage.ImageName != "VERRAZZANO_PLATFORM_OPERATOR_IMAGE" {
+					imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&subComp, bomImage), bom.ResolveRepo(&subComp, bomImage), bomImage.ImageName, bomImage.ImageTag)
+				}
 			}
 		}
 	}
