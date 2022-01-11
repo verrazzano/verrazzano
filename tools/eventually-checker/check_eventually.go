@@ -189,8 +189,8 @@ func getNameAndPosFromCallExpr(expr *ast.CallExpr, pkgName string) (string, toke
 		var pkg string
 		var pos token.Pos
 		if ident, ok := x.X.(*ast.Ident); ok {
+			pos = ident.NamePos
 			if ident.Obj != nil {
-				pos = ident.NamePos
 				// call is a method receiver so find the type of the receiver
 				if valueSpec, ok := ident.Obj.Decl.(*ast.ValueSpec); ok {
 					if selExpr, ok := valueSpec.Type.(*ast.SelectorExpr); ok {
