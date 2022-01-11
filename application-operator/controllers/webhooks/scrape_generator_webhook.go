@@ -26,12 +26,11 @@ import (
 )
 
 const (
-	MetricsAnnotation       = "app.verrazzano.io/metrics"
-	ScrapeGeneratorLoadPath = "/scrape-generator"
-	StatusReasonSuccess     = "success"
+	MetricsAnnotation           = "app.verrazzano.io/metrics"
+	ScrapeGeneratorWorkloadPath = "/scrape-generator-workload"
 )
 
-var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator")
+var scrapeGeneratorLogger = ctrl.Log.WithName("webhooks.scrape-generator-workload")
 
 // ScrapeGeneratorWebhook type for the mutating webhook
 type ScrapeGeneratorWebhook struct {
@@ -73,14 +72,14 @@ func (a *ScrapeGeneratorWebhook) handleWorkloadResource(ctx context.Context, req
 	// Do not handle any workload resources that have owner references.
 	// NOTE: this will be revisited.
 	if len(unst.GetOwnerReferences()) != 0 {
-		return admission.Allowed(StatusReasonSuccess)
+		return admission.Allowed(constants.StatusReasonSuccess)
 	}
 
 	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if metricsTemplateAnnotation == "none" {
 			scrapeGeneratorLogger.Info(fmt.Sprintf("%s is set to none - opting out of metrics", MetricsAnnotation))
-			return admission.Allowed(StatusReasonSuccess)
+			return admission.Allowed(constants.StatusReasonSuccess)
 		}
 	}
 
@@ -191,7 +190,7 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 	}
 
 	// Generate the metricBindings name
-	metricsBindingName := fmt.Sprintf("%s-%s-%s", unst.GetName(), strings.Replace(unst.GetAPIVersion(), "/", "-", 1), strings.ToLower(unst.GetKind()))
+	metricsBindingName := generateMetricsBindingName(unst.GetName(), unst.GetAPIVersion(), unst.GetKind())
 
 	metricsBinding := &vzapp.MetricsBinding{
 		TypeMeta: metav1.TypeMeta{
@@ -211,12 +210,12 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 		return err
 	}
 
-	// Add the app.verrazzano.io/metrics-scrape to identify the scrape target
+	// Add the app.verrazzano.io/metrics-binding to identify the scrape target
 	labels := unst.GetLabels()
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	labels[constants.MetricsScrapeLabel] = metricsBindingName
+	labels[constants.MetricsBindingLabel] = metricsBindingName
 	unst.SetLabels(labels)
 
 	return nil
@@ -282,4 +281,9 @@ func (a *ScrapeGeneratorWebhook) findMatchingTemplate(ctx context.Context, unst 
 	}
 
 	return nil, nil
+}
+
+// Generate the metricBindings name
+func generateMetricsBindingName(name string, apiVersion string, kind string) string {
+	return fmt.Sprintf("%s-%s-%s", name, strings.Replace(apiVersion, "/", "-", 1), strings.ToLower(kind))
 }

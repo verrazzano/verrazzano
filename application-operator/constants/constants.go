@@ -100,5 +100,7 @@ const VerrazzanoUsernameData = "username"
 // VerrazzanoPasswordData - the field name in Verrazzano secret that contains the password
 const VerrazzanoPasswordData = "password"
 
-// MetricsScrapeLabel - the label for identifying a pods scrape target
-const MetricsScrapeLabel = "app.verrazzano.io/metrics-scrape"
+// MetricsBindingLabel - the label for identifying a pods scrape target
+const MetricsBindingLabel = "app.verrazzano.io/metrics-binding"
+
+const StatusReasonSuccess = "success"

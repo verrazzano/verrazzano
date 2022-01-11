@@ -8,10 +8,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -279,7 +278,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsBindingLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
@@ -335,7 +334,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsBindingLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSameNamespace")
@@ -442,7 +441,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsBindingLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
@@ -505,7 +504,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsScrapeLabel)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsBindingLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSystemNamespace")
