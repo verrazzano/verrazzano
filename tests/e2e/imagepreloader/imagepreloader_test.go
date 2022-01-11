@@ -29,6 +29,7 @@ const bomPath string = "../../../platform-operator/verrazzano-bom.json"
 var bom v8obom.Bom
 var imageList map[string]string
 var podName string
+var kubeconfig string
 
 var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
@@ -57,7 +58,10 @@ var _ = AfterSuite(func() {
 	pkg.Log(pkg.Info, fmt.Sprintf("Wait for the namespace %s to be terminated", namespace))
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
-		return err != nil && errors.IsNotFound(err)
+		if err != nil {
+			return errors.IsNotFound(err)
+		}
+		return false
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 })
 
@@ -97,12 +101,17 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 		})
 		It(fmt.Sprintf("inject images into the test pod %s", podName), func() {
 			// Get the kubeconfig location
-			kubeconfig, err := k8sutil.GetKubeConfigLocation()
+			var err error
+			kubeconfig, err = k8sutil.GetKubeConfigLocation()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeconfig).ToNot(HaveLen(0))
 			err = injectImages(kubeconfig, imageList)
 			Expect(err).ToNot(HaveOccurred())
 
+		})
+		It(fmt.Sprintf("wait for all ephemeral containers in pod %s to complete", podName), func() {
+			err := waitForImagesToLoad()
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
@@ -172,5 +181,28 @@ func injectImages(kubeconfig string, imageList map[string]string) error {
 			return err
 		}
 	}
+	return nil
+}
+
+// waitForImagesToLoad - wait for the images in the ephemeral containers to load
+func waitForImagesToLoad() error {
+	Eventually(func() bool {
+		// Get the pod
+		podsList, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"name": testName}}, namespace)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(podsList)).To(Equal(1))
+
+		// Loop through the ephemeral containers checking that they are all completed successfully
+		pod := podsList[0]
+		allImagesLoaded := true
+		for _, container := range pod.Status.EphemeralContainerStatuses {
+			if container.State.Terminated == nil || container.State.Terminated.Reason != "Completed" {
+				allImagesLoaded = false
+				break
+			}
+		}
+		return allImagesLoaded
+	}, shortWaitTimeout, pollingInterval).Should(BeTrue(), "timed out waiting for images to load")
+
 	return nil
 }
