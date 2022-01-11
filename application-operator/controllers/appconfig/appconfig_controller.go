@@ -28,8 +28,8 @@ import (
 
 type Reconciler struct {
 	client.Client
-	Log     logr.Logger
-	Scheme  *runtime.Scheme
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 }
 
 const finalizerName = "appconfig.finalizers.verrazzano.io"
