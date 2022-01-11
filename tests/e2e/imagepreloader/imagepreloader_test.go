@@ -155,7 +155,7 @@ func createImageList(bom v8obom.Bom) (map[string]string, error) {
 				if bomImage.ImageName != "VERRAZZANO_APPLICATION_OPERATOR_IMAGE" &&
 					bomImage.ImageName != "VERRAZZANO_PLATFORM_OPERATOR_IMAGE" &&
 					bomImage.ImageName != "coherence-operator" {
-					imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&comp.SubComponents[i], bomImage), bom.ResolveRepo(&subComp, bomImage), bomImage.ImageName, bomImage.ImageTag)
+					imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&comp.SubComponents[i], bomImage), bom.ResolveRepo(&comp.SubComponents[i], bomImage), bomImage.ImageName, bomImage.ImageTag)
 				}
 			}
 		}
