@@ -191,6 +191,8 @@ start_installation() {
     deploy_contour
     deploy_harbor
     load_images
+    # Create docker secret for platform operator image
+    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
   fi
 
   cd ${GO_REPO_PATH}/verrazzano
@@ -205,8 +207,10 @@ start_installation() {
   # make sure ns exists
   ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
-  # Create docker secret for platform operator image
-  ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
+  if [ $SETUP_HARBOR == false ]; then
+    # Create docker secret for platform operator image
+    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
+  fi
 
   # Configure the custom resource to install Verrazzano on Kind
   ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
