@@ -264,7 +264,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 		return reconcile.Result{}, supported, err
 	}
 	if traitDefaults == nil || !supported {
-		return reconcile.Result{}, supported, nil
+		return reconcile.Result{Requeue: false}, supported, nil
 	}
 
 	var scraper *k8sapps.Deployment
