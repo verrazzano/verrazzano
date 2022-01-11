@@ -13,7 +13,9 @@ import (
 	. "github.com/onsi/gomega"
 	v8obom "github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const namespace string = "image-preloader"
@@ -22,6 +24,7 @@ const bomPath string = "../../../platform-operator/verrazzano-bom.json"
 
 var bom v8obom.Bom
 var imageList map[string]string
+var podName string
 
 var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
@@ -59,6 +62,22 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 				return pkg.PodsRunning(namespace, []string{testName})
 			}, shortWaitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("%s failed to deploy", testName))
 		})
+		It("get the pod name", func() {
+			var podsList []corev1.Pod
+			Eventually(func() error {
+				var err error
+				podsList, err = pkg.GetPodsFromSelector(nil, namespace)
+				if err != nil && errors.IsNotFound(err) {
+					// Ignore pods not found
+					return nil
+				}
+				return err
+			}, shortWaitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+			Expect(podsList).ShouldNot(BeNil())
+			Expect(len(podsList)).To(Equal(1))
+			podName := podsList[0].Name
+			Expect(podName).ToNot(BeNil())
+		})
 	})
 	Context("Use ephemeral containers to inject images", func() {
 		It("create container list", func() {
@@ -68,7 +87,9 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 		})
 		It("inject images into pod", func() {
 			for name, image := range imageList {
+				// kubectl debug -n image-pull-test $(kubectl get pod -L image-pull-test -n image-pull-test -o jsonpath="{.items[0].metadata.name}") -c busybox-verrazzano-api --target=image-pull-test --image=busybox --image-pull-policy=IfNotPresent
 				pkg.Log(pkg.Info, fmt.Sprintf("%s,%s", name, image))
+
 			}
 		})
 	})
