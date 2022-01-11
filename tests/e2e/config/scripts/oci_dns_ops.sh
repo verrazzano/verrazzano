@@ -4,6 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+set -x
 
 function usage {
     echo
@@ -66,15 +67,16 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
+  log "Creating zone " ${ZONE_NAME} "of scope " ${DNS_SCOPE}
+  zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+  status_code=$?
+  if [ ${status_code} -ne 0 ]; then
+    log "Failed creating private zone, attempting to fetch zone to see if it already exists"
+    oci dns zone get --zone-name-or-id ${ZONE_NAME}
+  fi
+
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
     log "Using view id " ${VCN_VIEW_ID}
-    zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
-    status_code=$?
-    if [ ${status_code} -ne 0 ]; then
-      log "Failed creating private zone, attempting to fetch zone to see if it already exists"
-      oci dns zone get --zone-name-or-id ${ZONE_NAME}
-    fi
-
     log "Fetching vcn id  '${TF_VAR_label_prefix}-oke-vcn'"
     VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
     if [ $? -ne 0 ];then
@@ -87,13 +89,6 @@ if [ $OPERATION == "create" ]; then
     if [ $? -ne 0 ];then
         log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     fi
-  else
-     zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
-     status_code=$?
-       if [ ${status_code} -ne 0 ]; then
-         log "Failed creating global zone, attempting to fetch zone to see if it already exists"
-         oci dns zone get --zone-name-or-id ${ZONE_NAME}
-       fi
   fi 
   
 elif [ $OPERATION == "delete" ]; then
