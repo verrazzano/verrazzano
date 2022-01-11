@@ -44,7 +44,7 @@ pipeline {
 
     parameters {
         // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region 
-        choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
+        choice (description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
