@@ -66,7 +66,7 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
-  log "Creating zone " ${ZONE_NAME} "of scope " ${DNS_SCOPE}
+  #log "Creating zone " ${ZONE_NAME} "of scope " ${DNS_SCOPE}
   zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
   status_code=$?
   if [ ${status_code} -ne 0 ]; then
@@ -107,7 +107,7 @@ fi
 if [ ${status_code} -eq 0 ]; then
   # OCI CLI query succeeded
   if [ $OPERATION == "create" ]; then
-    log $zone_ocid
+    echo $zone_ocid
   else
     exit 0
   fi
