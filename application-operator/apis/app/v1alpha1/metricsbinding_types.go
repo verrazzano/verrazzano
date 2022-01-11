@@ -57,6 +57,6 @@ type Workload struct {
 	// Name of a resource
 	Name string `json:"name"`
 
-	Kind metav1.GroupVersionKind `json:"kind"`
-	// GroupVersionKind of a resource
+	// TypeMeta of a resource
+	TypeMeta metav1.TypeMeta `json:"typeMeta"`
 }
