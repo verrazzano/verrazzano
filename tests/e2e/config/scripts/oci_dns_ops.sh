@@ -87,7 +87,7 @@ if [ $OPERATION == "create" ]; then
     zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} | jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
     status_code=$?
     if [ ${status_code} -ne 0 ]; then
-      log "Failed creating private zone, attempting to fetch zone to see if it already exists"
+      log "Failed creating public zone, attempting to fetch zone to see if it already exists"
       oci dns zone get --zone-name-or-id ${ZONE_NAME}
     fi
   fi
