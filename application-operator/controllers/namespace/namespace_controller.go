@@ -4,20 +4,24 @@ package namespace
 
 import (
 	"context"
+	"time"
+
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const namespaceControllerFinalizer = "namespaces.verrazzano.io"
+const namespaceControllerFinalizer = "verrazzano.io/namespace"
 
 const namespaceField = "namespace"
 
@@ -125,8 +129,9 @@ func (nc *NamespaceController) reconcileOCILogging(ctx context.Context, ns *core
 		}
 		if updated {
 			nc.log.Info("Updated logging configuration for namespace", namespaceField, ns.Name)
+			err = nc.restartFluentd(ctx)
 		}
-		return nil
+		return err
 	}
 	// If the annotation is not present, remove any existing logging configuration
 	return nc.removeOCILogging(ctx, ns)
@@ -140,7 +145,27 @@ func (nc *NamespaceController) removeOCILogging(ctx context.Context, ns *corev1.
 	}
 	if removed {
 		nc.log.Info("Removed logging configuration for namespace", namespaceField, ns.Name)
+		err = nc.restartFluentd(ctx)
 	}
+	return err
+}
+
+func (nc *NamespaceController) restartFluentd(ctx context.Context) error {
+	nc.log.Info("Restarting Fluentd")
+	daemonSet := &appsv1.DaemonSet{}
+	if err := nc.Client.Get(ctx, types.NamespacedName{Name: "fluentd", Namespace: constants.VerrazzanoSystemNamespace}, daemonSet); err != nil {
+		return err
+	}
+
+	if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+		daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+
+	if err := nc.Client.Update(ctx, daemonSet); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -148,20 +173,10 @@ func (nc *NamespaceController) removeOCILogging(ctx context.Context, ns *corev1.
 type addNamespaceLoggingFuncSig func(_ context.Context, _ client.Client, _ string, _ string) (bool, error)
 
 // addNamespaceLoggingFunc - Variable to allow replacing add namespace logging func for unit tests
-var addNamespaceLoggingFunc addNamespaceLoggingFuncSig = AddNamespaceLogging
-
-// AddNamespaceLogging - placeholder for logging update
-func AddNamespaceLogging(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
-	return true, nil
-}
+var addNamespaceLoggingFunc addNamespaceLoggingFuncSig = addNamespaceLogging
 
 // removeNamespaceLoggingFuncSig - Type for remove namespace logging function, for unit testing
 type removeNamespaceLoggingFuncSig func(_ context.Context, _ client.Client, _ string) (bool, error)
 
 // removeNamespaceLoggingFunc - Variable to allow replacing remove namespace logging func for unit tests
-var removeNamespaceLoggingFunc removeNamespaceLoggingFuncSig = RemoveNamespaceLogging
-
-// RemoveNamespaceLogging - placeholder for logging update
-func RemoveNamespaceLogging(_ context.Context, _ client.Client, _ string) (bool, error) {
-	return true, nil
-}
+var removeNamespaceLoggingFunc removeNamespaceLoggingFuncSig = removeNamespaceLogging

@@ -225,7 +225,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
 		return false, expectedErr
 	}
-	defer func() { removeNamespaceLoggingFunc = RemoveNamespaceLogging }()
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
@@ -466,7 +466,7 @@ func Test_reconcileOCILoggingRemoveOCILogging(t *testing.T) {
 		removeCalled = true
 		return true, nil
 	}
-	defer func() { removeNamespaceLoggingFunc = RemoveNamespaceLogging }()
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	// Expect a no calls to update the namespace
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
@@ -503,7 +503,7 @@ func Test_reconcileOCILoggingRemoveOCILoggingError(t *testing.T) {
 	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
 		return false, expectedErr
 	}
-	defer func() { removeNamespaceLoggingFunc = RemoveNamespaceLogging }()
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	err = nc.reconcileOCILogging(context.TODO(), ns)
 
@@ -554,7 +554,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 		addCalled = true
 		return addLoggingResult, nil
 	}
-	defer func() { addNamespaceLoggingFunc = AddNamespaceLogging }()
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	// Expect a call to update the namespace annotations that succeeds
 	mock.EXPECT().
@@ -601,7 +601,7 @@ func Test_reconcileOCILoggingFinalizerAlreadyAdded(t *testing.T) {
 		addCalled = true
 		return true, nil
 	}
-	defer func() { addNamespaceLoggingFunc = AddNamespaceLogging }()
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	// Expect no calls to update the namespace
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
@@ -643,7 +643,7 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
 		return false, expectedErr
 	}
-	defer func() { addNamespaceLoggingFunc = AddNamespaceLogging }()
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	// Expect a call to update the namespace annotations that succeeds
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
