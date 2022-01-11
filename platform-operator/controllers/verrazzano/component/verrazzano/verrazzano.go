@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"strings"
@@ -46,6 +47,7 @@ const (
 
 	workloadName  = "system-es-master"
 	containerName = "es-master"
+	ingressName   = "vmi-system-es-ingest"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
 
@@ -60,6 +62,12 @@ var (
 	execCommand   = exec.Command
 	writeFileFunc = ioutil.WriteFile
 )
+
+type httpFunc func(client http.Client, req *http.Request) (*http.Response, error)
+
+var httpDo httpFunc = func(client http.Client, req *http.Request) (*http.Response, error) {
+	return client.Do(req)
+}
 
 func resetWriteFileFunc() {
 	writeFileFunc = ioutil.WriteFile
@@ -561,6 +569,35 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 	}
 }
 
+func setupOSDataStreams(ctx spi.ComponentContext, namespace string) error {
+	cr := ctx.EffectiveCR()
+	log := ctx.Log()
+	if !vzconfig.IsElasticsearchEnabled(cr) {
+		log.Debug("Skipping DataStream setup, backend is disabled")
+		return nil
+	}
+	pods, err := waitForReadyESContainers(ctx, namespace)
+	if err != nil {
+		return err
+	}
+	pod := pods[0]
+	if err := createDataStreamTemplate(pod); err != nil {
+		return err
+	}
+	if err := createDataStream(pod); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createDataStreamTemplate(pod corev1.Pod) error {
+	return nil
+}
+
+func createDataStream(pod corev1.Pod) error {
+	return nil
+}
+
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
 func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
 	// Only apply this fix to clusters with Elasticsearch enabled.
@@ -585,16 +622,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 
 	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
-	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 15*time.Second, 5*time.Minute, containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
-	if err != nil {
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch pods: %s", err)
-		return err
-	}
-	if len(pods) == 0 {
-		err := fmt.Errorf("no pods found")
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Failed to find Elasticsearch pods: %s", err)
-		return err
-	}
+	pods, err := waitForReadyESContainers(ctx, namespace)
 	pod := pods[0]
 
 	// Find the Elasticsearch HTTP control container port.
@@ -634,6 +662,22 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 	ctx.Log().Info("Elasticsearch Post Upgrade: Completed successfully")
 	return nil
+}
+
+func waitForReadyESContainers(ctx spi.ComponentContext, namespace string) ([]corev1.Pod, error) {
+	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
+	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 15*time.Second, 5*time.Minute, containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
+	if err != nil {
+		ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch pods: %s", err)
+		return nil, err
+	}
+	if len(pods) == 0 {
+		err := fmt.Errorf("no pods found")
+		ctx.Log().Errorf("Elasticsearch Post Upgrade: Failed to find Elasticsearch pods: %s", err)
+		return nil, err
+	}
+
+	return pods, nil
 }
 
 func getNamedContainerPortOfContainer(pod corev1.Pod, containerName string, portName string) (int32, error) {
