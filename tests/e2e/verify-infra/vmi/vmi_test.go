@@ -328,6 +328,8 @@ var _ = framework.VzDescribe("VMI", func() {
 	}
 })
 
+var _ = framework.AfterEachM(metricsLogger, func() {})
+
 func assertPersistentVolume(key string, size string) {
 	Expect(volumeClaims).To(HaveKey(key))
 	pvc := volumeClaims[key]

@@ -218,3 +218,5 @@ var _ = framework.VzDescribe("Verrazzano Web UI", func() {
 		})
 	})
 })
+
+var _ = framework.AfterEachM(metricsLogger, func() {})
