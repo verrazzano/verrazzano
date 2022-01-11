@@ -2,9 +2,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: apps/v1
-kind: Deployment
+kind: ReplicaSet
 metadata:
-  name: hello-helidon-deployment
+  name: hello-helidon-replicaset
   namespace: hello-helidon-namespace
 spec:
   selector:
@@ -15,6 +15,7 @@ spec:
     metadata:
       labels:
         app: hello-helidon-application
+        app.verrazzano.io/metrics-scrape: "true"
     spec:
       containers:
       - name: hello-helidon-container

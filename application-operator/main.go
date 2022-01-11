@@ -402,10 +402,10 @@ func main() {
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("MetricsTemplate"),
+			Log:    ctrl.Log.WithName("controllers").WithName("MetricsBinding"),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MetricsTemplate")
+			setupLog.Error(err, "unable to create controller", "controller", "MetricsBinding")
 			os.Exit(1)
 		}
 	}

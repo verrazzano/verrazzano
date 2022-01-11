@@ -11,7 +11,7 @@ kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricstemplates.yaml
 kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricsbindings.yaml
 
 # Create the MetricsTemplate resource
-kubectl apply -f ${SCRIPT_DIR}/../resources/metrics-template-deployment.yaml
+kubectl apply -f ${SCRIPT_DIR}/../resources/templates/
 
 # Create the MutatingWebhookConfiguration object.  This object will eventually be
 # moved to platform-operator/helm_config/charts/verrazzano-application-operator/templates/verrazzano-application-operator.yaml
