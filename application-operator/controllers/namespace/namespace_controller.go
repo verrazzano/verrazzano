@@ -4,7 +4,6 @@ package namespace
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -63,7 +62,7 @@ func (nc *NamespaceController) Reconcile(req reconcile.Request) (reconcile.Resul
 		if k8serrors.IsNotFound(err) {
 			nc.log.V(1).Info("Namespace does not exist", namespaceField, req.Name)
 		} else {
-			nc.log.Error(err, fmt.Sprintf("Failed to fetch namespace", namespaceField, req.Name))
+			nc.log.Error(err, "Failed to fetch namespace", namespaceField, req.Name)
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
