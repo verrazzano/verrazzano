@@ -64,14 +64,15 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
-  zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
-  status_code=$?
-  if [ ${status_code} -ne 0 ]; then
-    log "Failed creating private zone, attempting to fetch zone to see if it already exists"
-    oci dns zone get --zone-name-or-id ${ZONE_NAME}
-  fi
 
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
+    zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+    status_code=$?
+    if [ ${status_code} -ne 0 ]; then
+      log "Failed creating private zone, attempting to fetch zone to see if it already exists"
+      oci dns zone get --zone-name-or-id ${ZONE_NAME}
+    fi
+
     VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
     if [ $? -ne 0 ];then
         log "Failed to fetch vcn '${TF_VAR_label_prefix}-oke-vcn'"
@@ -82,7 +83,14 @@ if [ $OPERATION == "create" ]; then
     if [ $? -ne 0 ];then
         log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     fi
-  fi 
+  else
+    zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} | jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
+    status_code=$?
+    if [ ${status_code} -ne 0 ]; then
+      log "Failed creating private zone, attempting to fetch zone to see if it already exists"
+      oci dns zone get --zone-name-or-id ${ZONE_NAME}
+    fi
+  fi
   
 elif [ $OPERATION == "delete" ]; then
   DNS_ZONE_OCID=`(oci dns zone list --compartment-id ${COMPARTMENT_OCID} --scope ${DNS_SCOPE} --name ${ZONE_NAME} | jq -r '.data[].id')`
