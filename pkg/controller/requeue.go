@@ -10,7 +10,12 @@ import (
 
 // Create a new Result that will cause a reconcile requeue after a short delay
 func NewRequeueWithDelay(min int, max int, units time.Duration) ctrl.Result {
+	return ctrl.Result{Requeue: true, RequeueAfter: CalculateDelay(min, max, units)}
+}
+
+//CalculateDelay - calculate a pseudo-random delay between min and max in the specified units
+func CalculateDelay(min int, max int, units time.Duration) time.Duration {
 	var seconds = rand.IntnRange(min, max)
 	delaySecs := time.Duration(seconds) * units
-	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
+	return delaySecs
 }

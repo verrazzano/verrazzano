@@ -4,6 +4,9 @@ package namespace
 
 import (
 	"context"
+	"fmt"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+
 	"time"
 
 	"github.com/go-logr/logr"
@@ -20,11 +23,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sync/atomic"
 )
 
 const namespaceControllerFinalizer = "verrazzano.io/namespace"
 
 const namespaceField = "namespace"
+
+const UNLOCKED = uint32(0)
+const LOCKED = uint32(1)
 
 // Reconciler reconciles a Verrazzano object
 type NamespaceController struct {
@@ -32,6 +39,7 @@ type NamespaceController struct {
 	scheme     *runtime.Scheme
 	controller controller.Controller
 	log        logr.Logger
+	lock       uint32
 }
 
 // NewNamespaceController - Creates and configures the namespace controller
@@ -39,13 +47,13 @@ func NewNamespaceController(mgr ctrl.Manager, logger logr.Logger) (*NamespaceCon
 	nc := &NamespaceController{
 		Client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
-		log:    logger,
+		log:    logger.WithValues("function", "controller"),
 	}
-	return nc, nc.setupWithManager(mgr)
-}
 
-// SetupWithManager creates a new controller and adds it to the manager
-func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
+	// Launch a periodic task to scan all namespaces; this is required for cases where the configmap
+	// may have been reset (e.g., post-upgrade)
+	go scannerFunc(nc, logger.WithValues("function", "scanner"), 30, time.Second)
+
 	var err error
 	nc.controller, err = ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
@@ -53,11 +61,19 @@ func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
 		}).
 		For(&corev1.Namespace{}).
 		Build(nc)
-	return err
+
+	return nc, err
 }
 
 // Reconcile - Watches for and manages namespace activity as it relates to Verrazzano platform services
 func (nc *NamespaceController) Reconcile(req reconcile.Request) (reconcile.Result, error) {
+	// Attempt to acquire the atomic lock before reconciling
+	if !nc.tryLock() {
+		nc.log.V(1).Info("Unable to acquire controller lock")
+		return vzctrl.NewRequeueWithDelay(5, 10, time.Second), nil
+	}
+	defer nc.unLock()
+
 	ctx := context.Background()
 	nc.log.Info("Reconciling namespace", namespaceField, req.Name)
 
@@ -83,7 +99,7 @@ func (nc *NamespaceController) Reconcile(req reconcile.Request) (reconcile.Resul
 		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, nc.reconcileNamespace(ctx, &ns)
+	return ctrl.Result{}, nc.reconcileNamespace(ctx, nc.log, &ns)
 }
 
 // removeFinalizer - Remove the finalizer and update the namespace resource if the post-delete processing is successful
@@ -98,12 +114,12 @@ func (nc *NamespaceController) removeFinalizer(ctx context.Context, ns *corev1.N
 }
 
 // reconcileNamespace - Reconcile any namespace changes
-func (nc *NamespaceController) reconcileNamespace(ctx context.Context, ns *corev1.Namespace) error {
-	if err := nc.reconcileOCILogging(ctx, ns); err != nil {
-		nc.log.Error(err, "Error occurred during OCI Logging reconciliation")
+func (nc *NamespaceController) reconcileNamespace(ctx context.Context, log logr.Logger, ns *corev1.Namespace) error {
+	if err := nc.reconcileOCILogging(ctx, log, ns); err != nil {
+		log.Error(err, "Error occurred during OCI Logging reconciliation")
 		return err
 	}
-	nc.log.V(1).Info("Reconciled namespace %s successfully", namespaceField, ns.Name)
+	log.V(1).Info("Reconciled namespace successfully", namespaceField, ns.Name)
 	return nil
 }
 
@@ -111,11 +127,11 @@ func (nc *NamespaceController) reconcileNamespace(ctx context.Context, ns *corev
 func (nc *NamespaceController) reconcileNamespaceDelete(ctx context.Context, ns *corev1.Namespace) error {
 	// Update the OCI Logging configuration to remove the namespace configuration
 	// If the annotation is not present, remove any existing logging configuration
-	return nc.removeOCILogging(ctx, ns)
+	return nc.removeOCILogging(ctx, nc.log, ns)
 }
 
 // reconcileOCILogging - Configure OCI logging based on the annotation if present
-func (nc *NamespaceController) reconcileOCILogging(ctx context.Context, ns *corev1.Namespace) error {
+func (nc *NamespaceController) reconcileOCILogging(ctx context.Context, log logr.Logger, ns *corev1.Namespace) error {
 	// If the annotation is present, add the finalizer if necessary and update the logging configuration
 	if loggingOCID, ok := ns.Annotations[constants.OCILoggingIDAnnotation]; ok {
 		var added bool
@@ -124,29 +140,29 @@ func (nc *NamespaceController) reconcileOCILogging(ctx context.Context, ns *core
 				return err
 			}
 		}
-		nc.log.V(1).Info("Updating logging configuration for namespace", namespaceField, ns.Name, "log-id", loggingOCID)
+		log.V(1).Info("Updating logging configuration for namespace", namespaceField, ns.Name, "log-id", loggingOCID)
 		updated, err := addNamespaceLoggingFunc(ctx, nc.Client, ns.Name, loggingOCID)
 		if err != nil {
 			return err
 		}
 		if updated {
-			nc.log.Info("Updated logging configuration for namespace", namespaceField, ns.Name)
+			log.Info("Updated logging configuration for namespace", namespaceField, ns.Name)
 			err = nc.restartFluentd(ctx)
 		}
 		return err
 	}
 	// If the annotation is not present, remove any existing logging configuration
-	return nc.removeOCILogging(ctx, ns)
+	return nc.removeOCILogging(ctx, log, ns)
 }
 
 // removeOCILogging - Remove OCI logging if the namespace is deleted
-func (nc *NamespaceController) removeOCILogging(ctx context.Context, ns *corev1.Namespace) error {
+func (nc *NamespaceController) removeOCILogging(ctx context.Context, log logr.Logger, ns *corev1.Namespace) error {
 	removed, err := removeNamespaceLoggingFunc(ctx, nc.Client, ns.Name)
 	if err != nil {
 		return err
 	}
 	if removed {
-		nc.log.Info("Removed logging configuration for namespace", namespaceField, ns.Name)
+		log.Info("Removed logging configuration for namespace", namespaceField, ns.Name)
 		err = nc.restartFluentd(ctx)
 	}
 	return err
@@ -172,6 +188,67 @@ func (nc *NamespaceController) restartFluentd(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (nc *NamespaceController) tryLock() bool {
+	return atomic.CompareAndSwapUint32(&nc.lock, UNLOCKED, LOCKED)
+}
+
+func (nc *NamespaceController) unLock() {
+	atomic.StoreUint32(&nc.lock, UNLOCKED)
+}
+
+func (nc *NamespaceController) scanNamespaces(ctx context.Context, log logr.Logger) (bool, error) {
+	// Attempt to acquire the atomic lock before scanning
+	if !nc.tryLock() {
+		log.V(1).Info("Unable to acquire controller lock")
+		return false, nil
+	}
+	defer nc.unLock()
+
+	log.V(1).Info("Examining all namespaces")
+	namespaceList := corev1.NamespaceList{}
+	if err := nc.List(ctx, &namespaceList); err != nil {
+		return false, err
+	}
+	for i := range namespaceList.Items {
+		if err := nc.reconcileNamespace(ctx, log, &namespaceList.Items[i]); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+}
+
+// scannerFuncSig - Func type for namespace scanner, for unit testing
+type scannerFuncSig func(nc *NamespaceController, log logr.Logger, period int, units time.Duration)
+
+// scannerFunc - Var to allow overriding the scanner function, for unit testing
+var scannerFunc scannerFuncSig = namespaceScanner
+
+// scanOnce - indicates to the namespaceScanner routine that we should only execute once, for unit testing
+var scanOnce = false
+
+// namespaceScanner - Goroutine that reconciles all namespaces periodically
+// - this will enable us to re-sync any changes (e.g., OCI Logging) that may need to be rebuilt post-upgrade, etc
+func namespaceScanner(nc *NamespaceController, log logr.Logger, period int, units time.Duration) {
+	periodDelay := time.Duration(period) * units
+	delay := periodDelay
+	for {
+		log.V(1).Info(fmt.Sprintf("Delay %v seconds", delay.Seconds()))
+		time.Sleep(delay)
+		if completed, err := nc.scanNamespaces(context.Background(), log); !completed {
+			// the scan didn't complete either due to an error or a failure to acquire the lock
+			if err != nil {
+				log.Error(err, "Error on periodic namespace scan")
+			}
+			delay = vzctrl.CalculateDelay(1, period, units)
+			continue
+		}
+		delay = periodDelay
+		if scanOnce {
+			break
+		}
+	}
 }
 
 // addNamespaceLoggingFuncSig - Type for add namespace logging  function, for unit testing

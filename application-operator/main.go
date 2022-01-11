@@ -333,8 +333,8 @@ func main() {
 		os.Exit(1)
 	}
 	// Setup the namespace reconciler
-	if _, err := namespace.NewNamespaceController(mgr, ctrl.Log.WithName("controllers").WithName("VerrazzanoNamespaceController")); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoNamespaceController")
+	if _, err := namespace.NewNamespaceController(mgr, ctrl.Log.WithName("controllers").WithName("NamespaceController")); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NamespaceController")
 		os.Exit(1)
 	}
 
