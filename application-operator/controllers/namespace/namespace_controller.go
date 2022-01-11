@@ -4,11 +4,11 @@ package namespace
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,6 +19,8 @@ import (
 )
 
 const namespaceControllerFinalizer = "namespaces.verrazzano.io"
+
+const namespaceField = "namespace"
 
 // Reconciler reconciles a Verrazzano object
 type NamespaceController struct {
@@ -53,16 +55,15 @@ func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
 // Reconcile - Watches for and manages namespace activity as it relates to Verrazzano platform services
 func (nc *NamespaceController) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	ctx := context.Background()
-	log := nc.log.WithName("resource").WithName(req.Name)
-	log.Info("Reconciling namespace %s", req.Name)
+	nc.log.Info("Reconciling namespace", namespaceField, req.Name)
 
 	// fetch the namespace
 	ns := corev1.Namespace{}
 	if err := nc.Client.Get(ctx, req.NamespacedName, &ns); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.V(1).Info("Namespace %s does not exist", req.Name)
+			nc.log.V(1).Info("Namespace does not exist", namespaceField, req.Name)
 		} else {
-			log.Error(err, "Failed to fetch namespace %s", req.Name)
+			nc.log.Error(err, fmt.Sprintf("Failed to fetch namespace", namespaceField, req.Name))
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
@@ -82,7 +83,7 @@ func (nc *NamespaceController) Reconcile(req reconcile.Request) (reconcile.Resul
 
 // removeFinalizer - Remove the finalizer and update the namespace resource if the post-delete processing is successful
 func (nc *NamespaceController) removeFinalizer(ctx context.Context, ns *corev1.Namespace) (reconcile.Result, error) {
-	nc.log.V(1).Info("Removing finalizer %s", namespaceControllerFinalizer)
+	nc.log.V(1).Info("Removing finalizer")
 	ns.Finalizers = vzstring.RemoveStringFromSlice(ns.Finalizers, namespaceControllerFinalizer)
 	err := nc.Update(ctx, ns)
 	if err != nil {
@@ -94,10 +95,10 @@ func (nc *NamespaceController) removeFinalizer(ctx context.Context, ns *corev1.N
 // reconcileNamespace - Reconcile any namespace changes
 func (nc *NamespaceController) reconcileNamespace(ctx context.Context, ns *corev1.Namespace) error {
 	if err := nc.reconcileOCILogging(ctx, ns); err != nil {
-		nc.log.Error(err, "Error occurred during OCI Logging reconciliation: %s")
+		nc.log.Error(err, "Error occurred during OCI Logging reconciliation")
 		return err
 	}
-	nc.log.V(1).Info("Reconciled namespace %s successfully", ns.Name)
+	nc.log.V(1).Info("Reconciled namespace %s successfully", namespaceField, ns.Name)
 	return nil
 }
 
@@ -118,13 +119,13 @@ func (nc *NamespaceController) reconcileOCILogging(ctx context.Context, ns *core
 				return err
 			}
 		}
-		nc.log.V(1).Info("Updating logging configuration for namespace %s, log ID: %s", ns.Name, loggingOCID)
+		nc.log.V(1).Info("Updating logging configuration for namespace", namespaceField, ns.Name, "log-id", loggingOCID)
 		updated, err := addNamespaceLoggingFunc(ctx, nc.Client, ns.Name, loggingOCID)
 		if err != nil {
 			return err
 		}
 		if updated {
-			nc.log.Info("Updated logging configuration for namespace %s", ns.Name)
+			nc.log.Info("Updated logging configuration for namespace", namespaceField, ns.Name)
 		}
 		return nil
 	}
@@ -139,7 +140,7 @@ func (nc *NamespaceController) removeOCILogging(ctx context.Context, ns *corev1.
 		return err
 	}
 	if removed {
-		nc.log.Info("Removed logging configuration for namespace %s", ns.Name)
+		nc.log.Info("Removed logging configuration for namespace", namespaceField, ns.Name)
 	}
 	return nil
 }
