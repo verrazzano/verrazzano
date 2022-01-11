@@ -5,12 +5,12 @@ package restapi_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
@@ -20,14 +20,14 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = framework.VzDescribe("rancher url test", func() {
+var _ = t.Describe("rancher url test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
 	Context("Fetching the rancher url using api and test ", func() {
-		framework.ItM(metricsLogger, "Fetches rancher url", func() {
+		t.It("Fetches rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -115,7 +115,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
-				metrics.Emit(metricsLogger.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
+				metrics.Emit(t.Metrics.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
 				state := ""
@@ -155,7 +155,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
-				metrics.Emit(metricsLogger.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
+				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(state).To(Equal("active"), "rancher local cluster not in active state")
 			}
@@ -163,4 +163,4 @@ var _ = framework.VzDescribe("rancher url test", func() {
 	})
 })
 
-var _ = framework.AfterEachM(metricsLogger, func() {})
+var _ = t.AfterEach(func() {})

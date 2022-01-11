@@ -66,10 +66,13 @@ func postRecord(hc *http.Client, basicAuth, uri string, reader io.Reader) error 
 		req.Header.Set("Authorization", fmt.Sprintf("basic %s", basicAuth))
 	}
 	resp, err := hc.Do(req)
+	if err != nil {
+		return err
+	}
 	if resp != nil && resp.StatusCode != http.StatusCreated {
 		logger.Errorf("error when posting record[%d: %s]", resp.StatusCode, resp.Status)
 	}
-	return err
+	return nil
 }
 
 //Write out the record to the search data store
