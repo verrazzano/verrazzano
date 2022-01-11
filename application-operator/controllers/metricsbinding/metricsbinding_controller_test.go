@@ -168,6 +168,12 @@ func TestCreateScrapeConfig(t *testing.T) {
 
 	localMetricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate = string(scrapeConfigTemplate)
 
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
+			workload.SetUID(testUIDName)
+			return nil
+		})
+
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
 			template.SetNamespace(metricsTemplate.Namespace)
@@ -177,12 +183,6 @@ func TestCreateScrapeConfig(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
 			cm.Data = configMap.Data
-			return nil
-		})
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
-			dep.SetLabels(deployment.GetLabels())
 			return nil
 		})
 
@@ -212,11 +212,12 @@ func TestUpdateScrapeConfig(t *testing.T) {
 	localMetricsBinding := metricsBinding.DeepCopy()
 	localMetricsTemplate := metricsTemplate.DeepCopy()
 
-	localMetricsBinding.OwnerReferences = []k8smeta.OwnerReference{
-		{
+	localMetricsBinding.Spec.Workload = vzapi.Workload{
+		Namespace: testExistsDeploymentNamespace,
+		Name:      testExistsDeploymentName,
+		TypeMeta: k8smeta.TypeMeta{
 			Kind:       deploymentKind,
-			APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
-			Name:       testExistsDeploymentName,
+			APIVersion: deploymentGroup + "/" + deploymentVersion,
 		},
 	}
 	localMetricsBinding.Namespace = testExistsDeploymentNamespace
@@ -244,6 +245,7 @@ func TestUpdateScrapeConfig(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testExistsDeploymentNamespace, Name: testExistsDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
 			dep.SetLabels(deployment.GetLabels())
+			dep.SetUID(testUIDName)
 			return nil
 		})
 
@@ -280,6 +282,14 @@ func TestDeleteScrapeConfig(t *testing.T) {
 			Name:       testExistsDeploymentName,
 		},
 	}
+	localMetricsBinding.Spec.Workload = vzapi.Workload{
+		Namespace: testExistsDeploymentNamespace,
+		Name:      testExistsDeploymentName,
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       deploymentKind,
+			APIVersion: deploymentGroup + "/" + deploymentVersion,
+		},
+	}
 	localMetricsBinding.Namespace = testExistsDeploymentNamespace
 
 	configMap, err := getConfigMapFromTestFile()
@@ -309,6 +319,21 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 	reconciler := newReconciler(mock)
 
 	localMetricsBinding := metricsBinding.DeepCopy()
+	localMetricsBinding.OwnerReferences = []k8smeta.OwnerReference{
+		{
+			Kind:       deploymentKind,
+			APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
+			Name:       testExistsDeploymentName,
+		},
+	}
+	localMetricsBinding.Spec.Workload = vzapi.Workload{
+		Namespace: testExistsDeploymentNamespace,
+		Name:      testExistsDeploymentName,
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       deploymentKind,
+			APIVersion: deploymentGroup + "/" + deploymentVersion,
+		},
+	}
 
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
@@ -362,6 +387,7 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
 			dep.SetLabels(deployment.GetLabels())
+			dep.SetUID(testUIDName)
 			return nil
 		})
 
@@ -391,6 +417,21 @@ func TestReconcileBindingDelete(t *testing.T) {
 	reconciler := newReconciler(mock)
 
 	localMetricsBinding := metricsBinding.DeepCopy()
+	localMetricsBinding.OwnerReferences = []k8smeta.OwnerReference{
+		{
+			Kind:       deploymentKind,
+			APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
+			Name:       testExistsDeploymentName,
+		},
+	}
+	localMetricsBinding.Spec.Workload = vzapi.Workload{
+		Namespace: testExistsDeploymentNamespace,
+		Name:      testExistsDeploymentName,
+		TypeMeta: k8smeta.TypeMeta{
+			Kind:       deploymentKind,
+			APIVersion: deploymentGroup + "/" + deploymentVersion,
+		},
+	}
 
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
@@ -455,6 +496,7 @@ func TestCreateDeployment(t *testing.T) {
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
 			dep.SetLabels(deployment.GetLabels())
+			dep.SetUID(testUIDName)
 			return nil
 		})
 

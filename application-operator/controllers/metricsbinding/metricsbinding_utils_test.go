@@ -6,7 +6,6 @@ package metricsbinding
 import (
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -30,19 +29,13 @@ const (
 	deploymentKind                = "Deployment"
 	deploymentGroup               = "apps"
 	deploymentVersion             = "v1"
+	testUIDName                   = "Test-UID"
 )
 
 var metricsBinding = v1alpha1.MetricsBinding{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testMetricsBindingNamespace,
 		Name:      testMetricsBindingName,
-		OwnerReferences: []metav1.OwnerReference{
-			{
-				Name:       testDeploymentName,
-				APIVersion: strings.Join([]string{deploymentGroup, deploymentVersion}, "/"),
-				Kind:       deploymentKind,
-			},
-		},
 	},
 	Spec: v1alpha1.MetricsBindingSpec{
 		MetricsTemplate: v1alpha1.NamespaceName{
@@ -52,6 +45,14 @@ var metricsBinding = v1alpha1.MetricsBinding{
 		PrometheusConfigMap: v1alpha1.NamespaceName{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      testConfigMapName,
+		},
+		Workload: v1alpha1.Workload{
+			Namespace: testDeploymentNamespace,
+			Name:      testDeploymentName,
+			TypeMeta: metav1.TypeMeta{
+				Kind:       deploymentKind,
+				APIVersion: deploymentGroup + "/" + deploymentVersion,
+			},
 		},
 	},
 }

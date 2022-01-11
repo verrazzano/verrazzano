@@ -207,21 +207,33 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 		return nil, err
 	}
 
-	// Get the OwnerReference object
-	if len(metricsBinding.OwnerReferences) < 1 {
-		return nil, fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
-	}
-
-	// We are assuming that the first Owner Reference entry is the only one
-	owner := metricsBinding.OwnerReferences[0]
-	workload := unstructured.Unstructured{}
-	workload.SetKind(owner.Kind)
-	workload.SetAPIVersion(owner.APIVersion)
+	// Retrieve the owner from the workload field of the MetricsBinding
+	owner := metricsBinding.Spec.Workload
+	workloadObject := unstructured.Unstructured{}
+	workloadObject.SetKind(owner.TypeMeta.Kind)
+	workloadObject.SetAPIVersion(owner.TypeMeta.APIVersion)
 	workloadName := types.NamespacedName{Namespace: metricsBinding.GetNamespace(), Name: owner.Name}
-	err = r.Client.Get(context.Background(), workloadName, &workload)
+	err = r.Client.Get(context.Background(), workloadName, &workloadObject)
 	if err != nil {
 		return nil, err
 	}
+
+	// Return error if UID is not found
+	if len(workloadObject.GetUID()) == 0 {
+		err = fmt.Errorf("Could not get UID from workload resource: %s, %s", workloadObject.GetKind(), workloadObject.GetName())
+		r.Log.Error(err, "UID for workload not found", "resource", workloadObject.GetName())
+		return nil, err
+	}
+
+	// Set the owner reference for the MetricsBinding so that it gets deleted with the workload
+	metricsBinding.SetOwnerReferences([]k8smetav1.OwnerReference{
+		{
+			Name:       owner.Name,
+			APIVersion: owner.TypeMeta.APIVersion,
+			Kind:       owner.TypeMeta.Kind,
+			UID:        workloadObject.GetUID(),
+		},
+	})
 
 	// Get the namespace for the template
 	workloadNamespace := k8scorev1.Namespace{}
@@ -240,7 +252,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 
 	// Organize inputs for template processor
 	templateInputs := map[string]interface{}{
-		"workload":  workload.Object,
+		"workload":  workloadObject.Object,
 		"namespace": workloadNamespaceUnstructured.Object,
 	}
 

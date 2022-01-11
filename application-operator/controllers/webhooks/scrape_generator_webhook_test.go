@@ -555,63 +555,6 @@ func TestHandleMatchNotFound(t *testing.T) {
 	v.validateNoMetricsBinding(t)
 }
 
-// TestHandleWorkloadUIDNotFound tests the handling of a workload resource with no UID
-// GIVEN a call to the webhook Handle function
-// WHEN the workload resource has no UID defined
-// THEN the Handle function should succeed and no metrics binding is created
-func TestHandleWorkloadUIDNotFound(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
-
-	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
-	v.createConfigMap(t, "test", "testPromConfigMap")
-	testDeployment := appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
-			Namespace: "test",
-		},
-	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
-	testTemplate := vzapp.MetricsTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test",
-			Name:      "testTemplateWorkloadNamespace",
-		},
-		Spec: vzapp.MetricsTemplateSpec{
-			WorkloadSelector: vzapp.WorkloadSelector{
-				APIGroups: []string{
-					"apps",
-				},
-				APIVersions: []string{
-					"v1",
-				},
-				Resources: []string{
-					"deployment",
-				},
-			},
-			PrometheusConfig: vzapp.PrometheusConfig{
-				TargetConfigMap: vzapp.TargetConfigMap{
-					Namespace: "test",
-					Name:      "testPromConfigMap",
-				},
-			},
-		},
-	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
-
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
-	res := v.Handle(context.TODO(), req)
-	assert.True(t, res.Allowed)
-
-	// validate that metrics binding was not created as expected
-	v.validateNoMetricsBinding(t)
-}
-
 // TestHandleMatchTemplateNoWorkloadSelector tests the handling of a workload resource with no metrics template specified
 //  and a metrics template that doesn't have a workload selector specified
 // GIVEN a call to the webhook Handle function
@@ -737,13 +680,9 @@ func (v *ScrapeGeneratorWebhook) validateMetricsBinding(t *testing.T, templateNa
 	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
 	metricsBinding := &vzapp.MetricsBinding{}
 	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
-	assert.Len(t, metricsBinding.OwnerReferences, 1)
-	assert.Equal(t, "apps/v1", metricsBinding.OwnerReferences[0].APIVersion)
-	assert.Equal(t, "Deployment", metricsBinding.OwnerReferences[0].Kind)
-	assert.Equal(t, "testDeployment", metricsBinding.OwnerReferences[0].Name)
-	assert.Equal(t, "11", string(metricsBinding.OwnerReferences[0].UID))
-	assert.True(t, *metricsBinding.OwnerReferences[0].BlockOwnerDeletion)
-	assert.True(t, *metricsBinding.OwnerReferences[0].Controller)
+	assert.Equal(t, "apps/v1", metricsBinding.Spec.Workload.TypeMeta.APIVersion)
+	assert.Equal(t, "Deployment", metricsBinding.Spec.Workload.TypeMeta.Kind)
+	assert.Equal(t, "testDeployment", metricsBinding.Spec.Workload.Name)
 	assert.Equal(t, templateNamespace, metricsBinding.Spec.MetricsTemplate.Namespace)
 	assert.Equal(t, templateName, metricsBinding.Spec.MetricsTemplate.Name)
 	assert.Equal(t, "test", metricsBinding.Spec.PrometheusConfigMap.Namespace)
