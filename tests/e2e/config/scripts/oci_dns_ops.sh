@@ -3,6 +3,7 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+set -x
 
 function usage {
     echo
@@ -75,14 +76,14 @@ if [ $OPERATION == "create" ]; then
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
     #log "Using view id " ${VCN_VIEW_ID}
     #log "Fetching vcn id  '${TF_VAR_label_prefix}-oke-vcn'"
-    VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
+    VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" > /dev/null | jq -r '.data[0].id')
     if [ $? -ne 0 ];then
         log "Failed to fetch vcn '${TF_VAR_label_prefix}-oke-vcn'"
     fi
 
     #log "Updating vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
-    oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force
+    oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force > /dev/null
     if [ $? -ne 0 ];then
         log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     fi
