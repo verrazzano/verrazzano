@@ -65,7 +65,6 @@ if [ $OPERATION == "create" ]; then
   # the installation will require the "patch" command, so will install it now.  If it's already installed yum should
   # exit
   sudo yum -y install patch >/dev/null 2>&1
-  #log "Creating zone " ${ZONE_NAME} "of scope " ${DNS_SCOPE}
   zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} --view-id ${VCN_VIEW_ID}| jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
   status_code=$?
   if [ ${status_code} -ne 0 ]; then
@@ -74,16 +73,13 @@ if [ $OPERATION == "create" ]; then
   fi
 
   if [ ${DNS_SCOPE} == "PRIVATE" ];then
-    #log "Using view id " ${VCN_VIEW_ID}
-    #log "Fetching vcn id  '${TF_VAR_label_prefix}-oke-vcn'"
-    VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" 2>/dev/null | jq -r '.data[0].id')
+    VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
     if [ $? -ne 0 ];then
         log "Failed to fetch vcn '${TF_VAR_label_prefix}-oke-vcn'"
     fi
 
-    #log "Updating vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
-    DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} 2>/dev/null | jq '.data["dns-resolver-id"]' -r)
-    oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force 2>/dev/null
+    DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
+    DNS_UPDATE=$(oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force)
     if [ $? -ne 0 ];then
         log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
     fi
