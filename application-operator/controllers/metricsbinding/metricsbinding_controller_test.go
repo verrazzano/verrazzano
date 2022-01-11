@@ -168,6 +168,8 @@ func TestCreateScrapeConfig(t *testing.T) {
 
 	localMetricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate = string(scrapeConfigTemplate)
 
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
+
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, workload *unstructured.Unstructured) error {
 			workload.SetUID(testUIDName)
@@ -229,6 +231,8 @@ func TestUpdateScrapeConfig(t *testing.T) {
 	assert.NoError(err, "Expected no error reading the scrape config test template")
 
 	localMetricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate = string(scrapeConfigTemplate)
+
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
@@ -365,6 +369,8 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
+
+	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 
 	mock.EXPECT().Update(gomock.Any(), localMetricsBinding).DoAndReturn(
 		func(ctx context.Context, binding *vzapi.MetricsBinding) error {

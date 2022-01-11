@@ -235,6 +235,13 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 		},
 	})
 
+	// Apply the updated MetricsBinding
+	err = r.Client.Update(context.TODO(), metricsBinding)
+	if err != nil {
+		r.Log.Error(err, fmt.Sprintf("Could not update the MetricsBinding: %s", metricsBinding.GetName()))
+		return nil, err
+	}
+
 	// Get the namespace for the template
 	workloadNamespace := k8scorev1.Namespace{}
 	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: template.GetNamespace()}, &workloadNamespace)
