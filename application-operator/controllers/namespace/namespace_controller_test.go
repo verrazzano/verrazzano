@@ -48,12 +48,12 @@ func newScheme() *runtime.Scheme {
 }
 
 // newTestController - test helper to boostrap a NamespaceController for test purposes
-func newTestController(c client.Client) (*NamespaceController, error) {
-	mgr := fakeManager{
+func newTestController(c client.Client) *NamespaceController {
+	return &NamespaceController{
 		Client: c,
 		scheme: testScheme,
+		log:    log.NullLogger{},
 	}
-	return NewNamespaceController(mgr, log.NullLogger{})
 }
 
 // TestReconcileNamespaceUpdate tests the Reconcile method for the following use case
@@ -92,8 +92,7 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 	}
 	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
@@ -138,8 +137,7 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedErr error) 
 	// Expect no call to update the namespace
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
@@ -189,8 +187,7 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
@@ -227,8 +224,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	// Expect no call to update the namespace
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	// Force a failure
 	expectedErr := fmt.Errorf("error updating OCI Logging")
@@ -270,8 +266,7 @@ func TestReconcileNamespaceDeletedNoFinalizer(t *testing.T) {
 			return nil
 		})
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
@@ -306,8 +301,7 @@ func Test_removeFinalizer(t *testing.T) {
 		},
 	}
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	result, err := nc.removeFinalizer(context.TODO(), ns)
 
@@ -340,8 +334,7 @@ func Test_removeFinalizerNotPresent(t *testing.T) {
 		},
 	}
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	result, err := nc.removeFinalizer(context.TODO(), ns)
 
@@ -360,8 +353,7 @@ func Test_removeFinalizerErrorOnUpdate(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -395,8 +387,7 @@ func Test_reconcileNamespaceErrorOnUpdate(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -417,7 +408,7 @@ func Test_reconcileNamespaceErrorOnUpdate(t *testing.T) {
 			return expectedErr
 		})
 
-	err = nc.reconcileNamespace(context.TODO(), ns)
+	err := nc.reconcileNamespace(context.TODO(), log.NullLogger{}, ns)
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -433,8 +424,7 @@ func Test_reconcileNamespace(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -451,7 +441,7 @@ func Test_reconcileNamespace(t *testing.T) {
 	}
 	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
-	err = nc.reconcileNamespace(context.TODO(), ns)
+	err := nc.reconcileNamespace(context.TODO(), log.NullLogger{}, ns)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -466,8 +456,7 @@ func Test_reconcileNamespace(t *testing.T) {
 func Test_reconcileNamespaceDelete(t *testing.T) {
 	asserts := assert.New(t)
 
-	nc, err := newTestController(fake.NewFakeClientWithScheme(testScheme))
-	asserts.NoErrorf(err, "Error creating test controller")
+	nc := newTestController(fake.NewFakeClientWithScheme(testScheme))
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "myns",
@@ -483,7 +472,7 @@ func Test_reconcileNamespaceDelete(t *testing.T) {
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
-	err = nc.reconcileNamespaceDelete(context.TODO(), ns)
+	err := nc.reconcileNamespaceDelete(context.TODO(), ns)
 	asserts.NoError(err)
 }
 
@@ -496,8 +485,7 @@ func Test_reconcileOCILoggingRemoveOCILogging(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -513,7 +501,7 @@ func Test_reconcileOCILoggingRemoveOCILogging(t *testing.T) {
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err := nc.reconcileOCILogging(context.TODO(), log.NullLogger{}, ns)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -529,8 +517,7 @@ func Test_reconcileOCILoggingRemoveOCILoggingError(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -545,7 +532,7 @@ func Test_reconcileOCILoggingRemoveOCILoggingError(t *testing.T) {
 	}
 	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err := nc.reconcileOCILogging(context.TODO(), log.NullLogger{}, ns)
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -574,8 +561,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -607,7 +593,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 		mockFluentdRestart(mock, asserts)
 	}
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err := nc.reconcileOCILogging(context.TODO(), log.NullLogger{}, ns)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -625,8 +611,7 @@ func Test_reconcileOCILoggingFinalizerAlreadyAdded(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -648,7 +633,7 @@ func Test_reconcileOCILoggingFinalizerAlreadyAdded(t *testing.T) {
 	// Expect no calls to update the namespace
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err := nc.reconcileOCILogging(context.TODO(), log.NullLogger{}, ns)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -666,8 +651,7 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	nc, err := newTestController(mock)
-	asserts.NoError(err)
+	nc := newTestController(mock)
 
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -688,13 +672,219 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	// Expect a call to update the namespace annotations that succeeds
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
 
-	err = nc.reconcileOCILogging(context.TODO(), ns)
+	err := nc.reconcileOCILogging(context.TODO(), log.NullLogger{}, ns)
 
 	mocker.Finish()
 	asserts.Error(err)
 	asserts.Equal(expectedErr, err)
 	asserts.Contains(ns.Finalizers, namespaceControllerFinalizer)
 	asserts.Len(ns.Finalizers, 2)
+}
+
+// Test_scanNamespaces tests the scanNamespaces method for the following use case
+// GIVEN a request to scanNamespaces
+// WHEN a valid list of Namespaces are returned
+// THEN true and no error are returned, and the controller lock is UNLOCKED
+func Test_scanNamespaces(t *testing.T) {
+	asserts := assert.New(t)
+
+	ns1 := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Annotations: map[string]string{
+				constants.OCILoggingIDAnnotation: "ocid1",
+			},
+		},
+	}
+	ns2 := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns2",
+			Annotations: map[string]string{
+				constants.OCILoggingIDAnnotation: "ocid2",
+			},
+		},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &ns1, &ns2,
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{Name: vzconst.FluentdDaemonSetName, Namespace: vzconst.VerrazzanoSystemNamespace},
+		},
+	)
+
+	nc := newTestController(fakeClient)
+
+	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
+		return true, nil
+	}
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
+	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
+		return false, nil
+	}
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
+
+	scanned, err := nc.scanNamespaces(context.TODO(), log.NullLogger{})
+	asserts.True(scanned)
+	asserts.NoError(err)
+}
+
+// Test_scanNamespacesFailure tests the scanNamespaces method for the following use case
+// GIVEN a request to scanNamespaces
+// WHEN an error occurs
+// THEN false and an error are returned, and the controller lock is UNLOCKED
+func Test_scanNamespacesFailure(t *testing.T) {
+	asserts := assert.New(t)
+
+	ns1 := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Annotations: map[string]string{
+				constants.OCILoggingIDAnnotation: "ocid1",
+			},
+		},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &ns1,
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{Name: vzconst.FluentdDaemonSetName, Namespace: vzconst.VerrazzanoSystemNamespace},
+		},
+	)
+
+	nc := newTestController(fakeClient)
+
+	expectedErr := fmt.Errorf("Unexpected error")
+	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
+		return false, expectedErr
+	}
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
+	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
+		return false, nil
+	}
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
+
+	scanned, err := nc.scanNamespaces(context.TODO(), log.NullLogger{})
+	asserts.False(scanned)
+	asserts.Error(err)
+	asserts.Equal(expectedErr, err)
+}
+
+// Test_namespaceScanner tests the namespaceScanner method for the following use case (mainly code coverage and simple validation)
+// GIVEN a request to namespaceScanner
+// WHEN no errors are encountered
+// THEN the happy path executes without an issue and the controller lock is UNLOCKED
+func Test_namespaceScanner(t *testing.T) {
+	asserts := assert.New(t)
+
+	ns1 := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Annotations: map[string]string{
+				constants.OCILoggingIDAnnotation: "ocid1",
+			},
+		},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &ns1,
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{Name: vzconst.FluentdDaemonSetName, Namespace: vzconst.VerrazzanoSystemNamespace},
+		},
+	)
+
+	addInvocations := 0
+	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
+		addInvocations++
+		return true, nil
+	}
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
+	removeInvocations := 0
+	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
+		return false, nil
+	}
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
+
+	scanOnce = true
+	defer func() { scanOnce = false }()
+
+	nc := newTestController(fakeClient)
+
+	namespaceScanner(nc, log.NullLogger{}, 10, time.Millisecond)
+	asserts.Equal(1, addInvocations, "unexpected number of calls to addNamespaceLogging")
+	asserts.Equal(0, removeInvocations, "unexpected call to removeNamespaceLogging")
+}
+
+// Test_namespaceScannerRerun tests the namespaceScanner method for the following use case
+// GIVEN a request to namespaceScanner
+// WHEN the initial call to scanNamespaces encounters an error
+// THEN the scanNamespaces() operation is executed again until successful
+func Test_namespaceScannerRerun(t *testing.T) {
+	asserts := assert.New(t)
+
+	ns1 := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns1",
+			Annotations: map[string]string{
+				constants.OCILoggingIDAnnotation: "ocid1",
+			},
+		},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, &ns1,
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{Name: vzconst.FluentdDaemonSetName, Namespace: vzconst.VerrazzanoSystemNamespace},
+		},
+	)
+
+	nc := newTestController(fakeClient)
+
+	addInvocations := 0
+	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (result bool, err error) {
+		result = true
+		invocationNum := addInvocations + 1
+		t.Logf("addNamespaceLoggingFunc invocation %v", invocationNum)
+		if addInvocations < 3 {
+			err = fmt.Errorf("Unexpected error %v", invocationNum)
+			result = false
+		}
+		addInvocations++
+		return result, err
+	}
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
+	removeInvocations := 0
+	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
+		return false, nil
+	}
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
+
+	scanOnce = true
+	defer func() { scanOnce = false }()
+
+	namespaceScanner(nc, log.NullLogger{}, 10, time.Millisecond)
+
+	asserts.Equal(4, addInvocations, "unexpected number of calls to addNamespaceLogging")
+	asserts.Equal(0, removeInvocations, "unexpected call to removeNamespaceLogging")
+}
+
+// TestNewNamespaceController tests the NewNamespaceController method for the following use case
+// GIVEN a request to Reconcile a NewNamespaceController resource
+// WHEN a valid manager and log are provided
+// THEN a NamespaceController is returned with no error
+func TestNewNamespaceController(t *testing.T) {
+	asserts := assert.New(t)
+
+	fakeClient := fake.NewFakeClientWithScheme(testScheme,
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: "ns1", Annotations: map[string]string{constants.OCILoggingIDAnnotation: "myocid"}},
+		},
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: "ns2", Annotations: map[string]string{constants.OCILoggingIDAnnotation: "myocid"}},
+		},
+	)
+
+	mgr := fakeManager{
+		Client: fakeClient,
+		scheme: testScheme,
+	}
+	scannerFunc = func(nc *NamespaceController, log logr.Logger, period int, units time.Duration) {}
+	defer func() { scannerFunc = namespaceScanner }()
+
+	nc, err := NewNamespaceController(mgr, log.NullLogger{})
+	asserts.NoError(err)
+	asserts.NotNil(nc)
 }
 
 // mockFluentdRestart - Mock expections for Fluentd daemonset restart
