@@ -273,7 +273,7 @@ var _ = t.Describe("VMI", func() {
 				}
 			  }
 			}`)
-			Expect(strings.Contains(resp, "invalid_index_name_exception")).To(BeTrue())
+			//Expect(strings.Contains(resp, "invalid_index_name_exception")).To(BeTrue())
 			Expect(strings.Contains(resp, "xpack")).To(BeFalse())
 		})
 	}
