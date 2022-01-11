@@ -9,6 +9,21 @@ import (
 	. "github.com/onsi/gomega"    //nolint
 )
 
+type testStruct struct {
+}
+
+func (t *testStruct) PointerReceiverThatCallsExpect() error {
+	Expect(false).To(BeTrue())
+	return nil
+}
+
+func (t testStruct) ValueReceiverThatCallsExpect() error {
+	Expect(false).To(BeTrue())
+	return nil
+}
+
+var ts testStruct
+
 func main() {
 	It("Test 1", func() {
 		Eventually(func() (bool, error) {
@@ -29,14 +44,12 @@ func main() {
 
 	It("Test 4", func() {
 		Eventually(func() error {
-			var ts internal.TestStruct
 			return ts.PointerReceiverThatCallsExpect()
 		})
 	})
 
 	It("Test 5", func() {
 		Eventually(func() error {
-			var ts internal.TestStruct
 			return ts.ValueReceiverThatCallsExpect()
 		})
 	})

@@ -46,22 +46,22 @@ func TestAnalyzePackages(t *testing.T) {
 			// expect this bad call from Eventually in main.go
 			assert.Len(val, 1)
 			eventuallyPos := fset.PositionFor(val[0], true).String()
-			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:14:3"))
-		} else if strings.HasSuffix(failedCallPos, "/main.go:46:2") {
-			// expect this bad call from Eventually in main.go
-			assert.Len(val, 1)
-			eventuallyPos := fset.PositionFor(val[0], true).String()
-			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:23:3"))
-		} else if strings.HasSuffix(failedCallPos, "/structs.go:11:2") {
-			// expect this bad call from Eventually in main.go
-			assert.Len(val, 1)
-			eventuallyPos := fset.PositionFor(val[0], true).String()
-			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:31:3"))
-		} else if strings.HasSuffix(failedCallPos, "/structs.go:16:2") {
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:29:3"))
+		} else if strings.HasSuffix(failedCallPos, "/main.go:59:2") {
 			// expect this bad call from Eventually in main.go
 			assert.Len(val, 1)
 			eventuallyPos := fset.PositionFor(val[0], true).String()
 			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:38:3"))
+		} else if strings.HasSuffix(failedCallPos, "/main.go:16:2") {
+			// expect this bad call from Eventually in main.go
+			assert.Len(val, 1)
+			eventuallyPos := fset.PositionFor(val[0], true).String()
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:46:3"))
+		} else if strings.HasSuffix(failedCallPos, "/main.go:21:2") {
+			// expect this bad call from Eventually in main.go
+			assert.Len(val, 1)
+			eventuallyPos := fset.PositionFor(val[0], true).String()
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:52:3"))
 		} else {
 			t.Errorf("Found unexpected Fail/Expect call at: %s", failedCallPos)
 		}
@@ -117,12 +117,12 @@ func TestDisplayResults(t *testing.T) {
 
 	var b bytes.Buffer
 	displayResults(results, fset, &b)
-	assert.Contains(b.String(), "main.go:46:2")
-	assert.Contains(b.String(), "main.go:23:3")
 	assert.Contains(b.String(), "helper.go:12:2")
-	assert.Contains(b.String(), "main.go:14:3")
-	assert.Contains(b.String(), "structs.go:11:2")
-	assert.Contains(b.String(), "main.go:31:3")
-	assert.Contains(b.String(), "structs.go:16:2")
+	assert.Contains(b.String(), "main.go:29:3")
+	assert.Contains(b.String(), "main.go:59:2")
 	assert.Contains(b.String(), "main.go:38:3")
+	assert.Contains(b.String(), "main.go:16:2")
+	assert.Contains(b.String(), "main.go:46:3")
+	assert.Contains(b.String(), "main.go:21:2")
+	assert.Contains(b.String(), "main.go:52:3")
 }

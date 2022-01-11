@@ -190,18 +190,21 @@ func getNameAndPosFromCallExpr(expr *ast.CallExpr, pkgName string) (string, toke
 		var pos token.Pos
 		if ident, ok := x.X.(*ast.Ident); ok {
 			if ident.Obj != nil {
+				pos = ident.NamePos
 				// call is a method receiver so find the type of the receiver
 				if valueSpec, ok := ident.Obj.Decl.(*ast.ValueSpec); ok {
 					if selExpr, ok := valueSpec.Type.(*ast.SelectorExpr); ok {
+						// type is not in the same package as the calling function
 						if ident, ok = selExpr.X.(*ast.Ident); ok {
 							pkg = ident.Name + "." + selExpr.Sel.Name + "."
-							pos = ident.NamePos
 						}
+					} else if id, ok := valueSpec.Type.(*ast.Ident); ok {
+						// type is in the same package as the caller
+						pkg = pkgName + "." + id.Name + "."
 					}
 				}
 			} else {
 				pkg = ident.Name + "."
-				pos = ident.NamePos
 			}
 		}
 		name := pkg + x.Sel.Name
