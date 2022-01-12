@@ -4,7 +4,6 @@
 package verrazzano_test
 
 import (
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -85,8 +84,8 @@ var _ = t.Describe("Verrazzano", func() {
 				return pkg.DoesCRDExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
-		Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
+		t.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
+		t.Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
 	)
 
 	t.DescribeTable("ClusterRole",
@@ -95,10 +94,10 @@ var _ = t.Describe("Verrazzano", func() {
 				return pkg.DoesClusterRoleExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		Entry("verrazzano-admin should exist", "verrazzano-admin"),
-		Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
-		Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
-		Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
+		t.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		t.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+		t.Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
+		t.Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
 	)
 
 	t.DescribeTable("ClusterRoleBinding",
@@ -107,8 +106,8 @@ var _ = t.Describe("Verrazzano", func() {
 				return pkg.DoesClusterRoleBindingExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		Entry("verrazzano-admin should exist", "verrazzano-admin"),
-		Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+		t.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		t.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
 	)
 
 	t.Describe("ClusterRole verrazzano-admin", func() {
@@ -134,17 +133,17 @@ var _ = t.Describe("Verrazzano", func() {
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzInstallReadRule should exist", vzInstallReadRule),
-			Entry("vzInstallWriteRule should exist", vzInstallWriteRule),
-			Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			Entry("vzSystemWriteRule should exist", vzSystemWriteRule),
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			t.Entry("vzInstallReadRule should exist", vzInstallReadRule),
+			t.Entry("vzInstallWriteRule should exist", vzInstallWriteRule),
+			t.Entry("vzSystemReadRule should exist", vzSystemReadRule),
+			t.Entry("vzSystemWriteRule should exist", vzSystemWriteRule),
+			t.Entry("vzAppReadRule should exist", vzAppReadRule),
+			t.Entry("vzAppWriteRule should exist", vzAppWriteRule),
+			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			t.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
+			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			t.Entry("vzIstioReadRule should exist", vzIstioReadRule),
 		)
 	})
 
@@ -171,11 +170,11 @@ var _ = t.Describe("Verrazzano", func() {
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			t.Entry("vzSystemReadRule should exist", vzSystemReadRule),
+			t.Entry("vzAppReadRule should exist", vzAppReadRule),
+			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			t.Entry("vzIstioReadRule should exist", vzIstioReadRule),
 		)
 	})
 
@@ -202,12 +201,12 @@ var _ = t.Describe("Verrazzano", func() {
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzCoherenceWriteRule should exist", vzCoherenceWriteRule),
+			t.Entry("vzAppReadRule should exist", vzAppReadRule),
+			t.Entry("vzAppWriteRule should exist", vzAppWriteRule),
+			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			t.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
+			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			t.Entry("vzCoherenceWriteRule should exist", vzCoherenceWriteRule),
 		)
 	})
 
@@ -234,9 +233,9 @@ var _ = t.Describe("Verrazzano", func() {
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			t.Entry("vzAppReadRule should exist", vzAppReadRule),
+			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
+			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
 		)
 	})
 

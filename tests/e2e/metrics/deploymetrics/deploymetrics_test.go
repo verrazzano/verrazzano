@@ -31,8 +31,8 @@ var _ = t.BeforeSuite(func() {
 })
 
 var clusterDump = pkg.NewClusterDumpWrapper()
-var _ = t.AfterEach(func() {})
-var _ = clusterDump.AfterSuite(func() { // Dump cluster if aftersuite fails
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	undeployMetricsApplication()
 })
 
