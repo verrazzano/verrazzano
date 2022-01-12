@@ -73,7 +73,7 @@ var _ = t.Describe("Load Verrazzano Container Images", func() {
 	start := time.Now()
 	t.Context("Deployment", func() {
 		t.It("deploy test pod", func() {
-			err := deployDaemonSet()
+			err := deployDaemonSet(testName, testNamespace)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		t.It("wait for the pod to be ready", func() {
@@ -129,11 +129,11 @@ var _ = t.Describe("Load Verrazzano Container Images", func() {
 })
 
 // deployDaemonSet - deploy the DaemonSet for this test
-func deployDaemonSet() error {
+func deployDaemonSet(name string, namespace string) error {
 	templateName := "imagepreloader-template.yaml"
 	params := map[string]string{
-		"test_name":      testName,
-		"test_namespace": testNamespace,
+		"test_name":      name,
+		"test_namespace": namespace,
 	}
 	testTemplate, err := template.New(templateName).ParseFiles(fmt.Sprintf("testdata/%s", templateName))
 	if err != nil {
