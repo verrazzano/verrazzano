@@ -1,16 +1,16 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package authz_test
+package authz
 
 import (
 	"bufio"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -38,24 +38,30 @@ var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("authz")
+
+var _ = t.BeforeSuite(func() {
+	start := time.Now()
 	deployFooApplication()
 	deployBarApplication()
 	deployNoIstioApplication()
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var failed = false
-var _ = AfterEach(func() {
+var _ = t.AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
-var _ = AfterSuite(func() {
+var _ = t.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
+	start := time.Now()
 	undeployFooApplication()
 	undeployBarApplication()
 	undeployNoIstioApplication()
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 func deployFooApplication() {
@@ -253,29 +259,29 @@ func undeployNoIstioApplication() {
 	}, waitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
-var _ = Describe("Verify AuthPolicy Applications", func() {
+var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
 
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
 
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
@@ -284,7 +290,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 
 	var fooHost = ""
 	var err error
-	It("Get foo host from gateway.", func() {
+	t.It("Get foo host from gateway.", func() {
 		Eventually(func() (string, error) {
 			fooHost, err = k8sutil.GetHostnameFromGateway(fooNamespace, "")
 			return fooHost, err
@@ -292,7 +298,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	})
 
 	var barHost = ""
-	It("Get bar host from gateway.", func() {
+	t.It("Get bar host from gateway.", func() {
 		Eventually(func() (string, error) {
 			barHost, err = k8sutil.GetHostnameFromGateway(barNamespace, "")
 			return barHost, err
@@ -300,7 +306,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	})
 
 	var noIstioHost = ""
-	It("Get noistio host from gateway.", func() {
+	t.It("Get noistio host from gateway.", func() {
 		Eventually(func() (string, error) {
 			noIstioHost, err = k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
 			return noIstioHost, err
@@ -311,7 +317,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// GIVEN authorization test app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	It("Verify welcome page of Foo Spring Boot FrontEnd is working.", func() {
+	t.It("Verify welcome page of Foo Spring Boot FrontEnd is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/", fooHost)
@@ -323,7 +329,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// GIVEN authorization test app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	It("Verify welcome page of Bar Spring Boot FrontEnd is working.", func() {
+	t.It("Verify welcome page of Bar Spring Boot FrontEnd is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/", barHost)
@@ -335,7 +341,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// GIVEN authorization test app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	It("Verify welcome page of NoIstio Spring Boot FrontEnd is working.", func() {
+	t.It("Verify welcome page of NoIstio Spring Boot FrontEnd is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/", noIstioHost)
@@ -348,7 +354,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
-	It("Verify Foo Frontend can call Foo Backend.", func() {
+	t.It("Verify Foo Frontend can call Foo Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", fooHost)
@@ -361,7 +367,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
-	It("Verify Bar Frontend can call Bar Backend.", func() {
+	t.It("Verify Bar Frontend can call Bar Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", barHost)
@@ -374,7 +380,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
-	It("Verify Foo Frontend canNOT call Bar Backend.", func() {
+	t.It("Verify Foo Frontend canNOT call Bar Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", fooHost)
@@ -387,7 +393,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
-	It("Verify Bar Frontend canNOT call Foo Backend.", func() {
+	t.It("Verify Bar Frontend canNOT call Foo Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", barHost)
@@ -400,7 +406,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
-	It("Verify Bar Frontend can call NoIstio Backend.", func() {
+	t.It("Verify Bar Frontend can call NoIstio Backend.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.noistio:8080/", barHost)
@@ -415,7 +421,7 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 	// the http code is returned in the response body and captured in content
 	// *** This call should fail for a 500 because Non-Istio can't call Istio when MTLS is STRICT
 	// If this should fail because the call succeeded, verify that peerauthentication exists in istio-system and is set to STRICT
-	It("Verify NoIstio Frontend canNOT call Bar Backend.", func() {
+	t.It("Verify NoIstio Frontend canNOT call Bar Backend.", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() bool {
@@ -449,29 +455,29 @@ var _ = Describe("Verify AuthPolicy Applications", func() {
 
 })
 
-var _ = Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
+var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
 
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
 
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
@@ -482,7 +488,7 @@ var _ = Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// GIVEN that springboot deployed to Istio namespace foo
 	// WHEN the Prometheus scrape targets are created
 	// THEN they should be created to use the https protocol
-	It("Verify that Istio scrape target authpolicy-appconf_default_foo_springboot-frontend is using https for scraping.", func() {
+	t.It("Verify that Istio scrape target authpolicy-appconf_default_foo_springboot-frontend is using https for scraping.", func() {
 		Eventually(func() bool {
 			var httpsFound bool = false
 
@@ -520,7 +526,7 @@ var _ = Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// GIVEN that springboot deployed to Istio namespace bar
 	// WHEN the Prometheus scrape targets are created
 	// THEN they should be created to use the https protocol
-	It("Verify that Istio scrape target authpolicy-appconf_default_bar_springboot-frontend is using https for scraping.", func() {
+	t.It("Verify that Istio scrape target authpolicy-appconf_default_bar_springboot-frontend is using https for scraping.", func() {
 		Eventually(func() bool {
 			var httpsFound bool = false
 
@@ -558,7 +564,7 @@ var _ = Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// GIVEN that springboot deployed to namespace noistio
 	// WHEN the Prometheus scrape targets are created
 	// THEN they should be created to use the http protocol
-	It("Verify that Istio scrape target authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping.", func() {
+	t.It("Verify that Istio scrape target authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping.", func() {
 		Eventually(func() bool {
 			var httpsNotFound bool = true
 
