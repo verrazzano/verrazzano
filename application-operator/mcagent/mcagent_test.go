@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -651,9 +650,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 
 			// Managed Cluster - expect call to get the fluentd daemonset.
 			mcMock.EXPECT().
-				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconstants.FluentdDaemonSetName}, gomock.Not(gomock.Nil())).
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
-					ds.Name = vzconstants.FluentdDaemonSetName
+					ds.Name = "fluentd"
 					ds.Namespace = constants.VerrazzanoSystemNamespace
 					ds.Spec = getTestDaemonSetSpec(dsClusterName, dsEsURL, dsSecretName)
 					return nil
@@ -662,9 +661,9 @@ func TestSyncer_configureLogging(t *testing.T) {
 			// we always call controllerutil.CreateOrUpdate in mcagent_test, which will do another get for fluentd
 			// daemonset. However, update will only be called if we changed the daemonset
 			mcMock.EXPECT().
-				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vzconstants.FluentdDaemonSetName}, gomock.Not(gomock.Nil())).
+				Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "fluentd"}, gomock.Not(gomock.Nil())).
 				DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
-					ds.Name = vzconstants.FluentdDaemonSetName
+					ds.Name = "fluentd"
 					ds.Namespace = constants.VerrazzanoSystemNamespace
 					ds.Spec = getTestDaemonSetSpec(dsClusterName, dsEsURL, dsSecretName)
 					return nil
