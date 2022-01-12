@@ -91,7 +91,6 @@ func isReady(compContext spi.ComponentContext) bool {
 // AppendOverrides builds the set of external-dns overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Append all helm overrides for external DNS
-	//dns := compContext.EffectiveCR().Spec.Components.DNS
 	nameTimeString := fmt.Sprintf("v8o-local-%s-%s", compContext.EffectiveCR().Spec.EnvironmentName, strconv.FormatInt(time.Now().Unix(), 10))
 	arguments := []bom.KeyValue{
 		{Key: "domainFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName},
@@ -103,8 +102,6 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		{Key: "extraVolumes[0].secret.secretName", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.OCIConfigSecret},
 		{Key: "extraVolumeMounts[0].name", Value: "config"},
 		{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"},
-		//{Key: "extraEnv[0].name", Value: dnsScopeKey},
-		//{Key: "extraEnv[0].value", Value: strings.ToLower(dns.OCI.DNSScope)},
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil

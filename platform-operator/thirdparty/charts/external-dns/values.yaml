@@ -34,7 +34,7 @@ image:
 
 ## allows filtering for GLOBAL and PRIVATE zones, defaults to GLOBAL.
 #  To target both (GLOBAL and PRIVATE zones), set it to empty string (`--oci-zone-scope ""`).
-ociDnsScope: GLOBAL
+ociDnsScope:
 
 ## K8s resources type to be observed for new DNS entries by ExternalDNS
 ##

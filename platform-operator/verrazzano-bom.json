@@ -79,13 +79,12 @@
       "name": "external-dns",
       "subcomponents": [
         {
-          "registry": "iad.ocir.io",
-          "repository": "odsbuilddev/aamitra/dev",
+          "repository": "verrazzano",
           "name": "external-dns",
           "images": [
             {
-              "image": "vz-external-dns",
-              "tag": "0.0.1",
+              "image": "external-dns-jenkins",
+              "tag": "20220111200927-fcb822d6",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
