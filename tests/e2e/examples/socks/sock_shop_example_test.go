@@ -8,6 +8,8 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"net/http"
 	"os"
@@ -36,8 +38,10 @@ const (
 var sockShop SockShop
 var username, password string
 
+var t = framework.NewTestFramework("socks")
+
 // creates the sockshop namespace and applies the components and application yaml
-var _ = BeforeSuite(func() {
+var _ = t.BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
@@ -46,6 +50,7 @@ var _ = BeforeSuite(func() {
 	GinkgoWriter.Write([]byte(fmt.Sprintf("*** Socks shop test is running against variant: %s\n", variant)))
 
 	if !skipDeploy {
+		start := time.Now()
 		// deploy the application here
 		Eventually(func() (*v1.Namespace, error) {
 			return pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"})
@@ -58,6 +63,7 @@ var _ = BeforeSuite(func() {
 		Eventually(func() error {
 			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
+		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
@@ -79,15 +85,17 @@ const registerTemp = `{
   "lastName":"coo"
 }`
 
-var _ = Describe("Sock Shop Application", func() {
-	It("Verify application pods are running", func() {
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Sock Shop Application", func() {
+	t.It("Verify application pods are running", func() {
 		// checks that all pods are up and running
 		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 	})
 
 	var hostname = ""
 	var err error
-	It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
 			hostname, err = k8sutil.GetHostnameFromGateway("sockshop", "")
 			return hostname, err
@@ -96,13 +104,13 @@ var _ = Describe("Sock Shop Application", func() {
 
 	sockShop.SetHostHeader(hostname)
 
-	It("SockShop can be accessed and user can be registered", func() {
+	t.It("SockShop can be accessed and user can be registered", func() {
 		Eventually(func() (bool, error) {
 			return sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
 	})
 
-	It("SockShop can log in with default user", func() {
+	t.It("SockShop can log in with default user", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() (*pkg.HTTPResponse, error) {
@@ -112,7 +120,7 @@ var _ = Describe("Sock Shop Application", func() {
 
 	})
 
-	It("SockShop can add item to cart", func() {
+	t.It("SockShop can add item to cart", func() {
 		// get the catalog
 		var response *pkg.HTTPResponse
 		Eventually(func() (*pkg.HTTPResponse, error) {
@@ -167,7 +175,7 @@ var _ = Describe("Sock Shop Application", func() {
 		sockShop.CheckCart(cartItems, catalogItems[2], 2)
 	})
 
-	It("SockShop can delete all cart items", func() {
+	t.It("SockShop can delete all cart items", func() {
 		var response *pkg.HTTPResponse
 		// get the cart
 		Eventually(func() (*pkg.HTTPResponse, error) {
@@ -199,7 +207,7 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	// INFO: Front-End will not allow for complete implementation of this test
-	It("SockShop can change address", func() {
+	t.It("SockShop can change address", func() {
 		var response *pkg.HTTPResponse
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			var err error
@@ -211,7 +219,7 @@ var _ = Describe("Sock Shop Application", func() {
 	})
 
 	// INFO: Front-End will not allow for complete implementation of this test
-	It("SockShop can change payment", func() {
+	t.It("SockShop can change payment", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.ChangePayment(hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(200))
@@ -221,7 +229,7 @@ var _ = Describe("Sock Shop Application", func() {
 		//TODO
 	})
 
-	It("Verify '/catalogue' UI endpoint is working.", func() {
+	t.It("Verify '/catalogue' UI endpoint is working.", func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/catalogue", hostname)
 			return pkg.GetWebPage(url, hostname)
@@ -230,7 +238,7 @@ var _ = Describe("Sock Shop Application", func() {
 
 	// this is marked pending until VZ-3760 is fixed
 	PDescribe("Verify Prometheus scraped metrics", func() {
-		It("Retrieve Prometheus scraped metrics", func() {
+		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
@@ -253,6 +261,7 @@ var _ = clusterDump.AfterEach(func() {})
 // undeploys the application, components, and namespace
 var _ = clusterDump.AfterSuite(func() {
 	if !skipUndeploy {
+		start := time.Now()
 		variant := getVariant()
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
 		pkg.Log(pkg.Info, "Delete application")
@@ -294,6 +303,7 @@ var _ = clusterDump.AfterSuite(func() {
 			}
 			return false
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
