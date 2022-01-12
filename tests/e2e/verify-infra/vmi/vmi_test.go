@@ -124,6 +124,8 @@ var _ = t.BeforeSuite(func() {
 	elastic = vmi.GetElastic("system")
 })
 
+var _ = t.AfterEach(func() {})
+
 var _ = t.Describe("VMI", func() {
 
 	isManagedClusterProfile := pkg.IsManagedClusterProfile()

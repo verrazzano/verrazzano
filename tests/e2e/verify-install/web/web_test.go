@@ -64,6 +64,8 @@ var _ = t.AfterSuite(func() {
 	pkg.Log(pkg.Debug, "executing after suite")
 })
 
+var _ = t.AfterEach(func() {})
+
 var _ = t.Describe("Verrazzano Web UI", func() {
 	t.When("the console UI is configured", func() {
 		t.It("can be accessed", func() {
