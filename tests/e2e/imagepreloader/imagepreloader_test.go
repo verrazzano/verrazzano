@@ -115,8 +115,9 @@ var _ = t.Describe("Load Verrazzano Container Images", func() {
 
 		})
 		t.It(fmt.Sprintf("wait for all ephemeral containers in pod %s to complete", podName), func() {
-			err := waitForImagesToLoad()
-			Expect(err).ToNot(HaveOccurred())
+			Eventually(func() bool {
+				return areImagesToLoaded()
+			}, shortWaitTimeout, pollingInterval).Should(BeTrue(), "timed out waiting for images to load")
 		})
 	})
 	metrics.Emit(t.Metrics.With("images_load_elapsed_time", time.Since(start).Milliseconds()))
@@ -197,26 +198,22 @@ func injectImages(kubeconfig string, imageList map[string]string) error {
 	return nil
 }
 
-// waitForImagesToLoad - wait for the images in the ephemeral containers to load
-func waitForImagesToLoad() error {
-	Eventually(func() bool {
-		// Get the pod
-		podsList, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"name": testName}}, namespace)
-		if err != nil {
-			return false
-		}
+// areImagesToLoaded - wait for the images in the ephemeral containers to load
+func areImagesToLoaded() bool {
+	// Get the pod
+	podsList, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"name": testName}}, namespace)
+	if err != nil {
+		return false
+	}
 
-		// Loop through the ephemeral containers checking that they are all completed successfully
-		pod := podsList[0]
-		allImagesLoaded := true
-		for _, container := range pod.Status.EphemeralContainerStatuses {
-			if container.State.Terminated == nil || container.State.Terminated.Reason != "Completed" {
-				allImagesLoaded = false
-				break
-			}
+	// Loop through the ephemeral containers checking that they are all completed successfully
+	pod := podsList[0]
+	allImagesLoaded := true
+	for _, container := range pod.Status.EphemeralContainerStatuses {
+		if container.State.Terminated == nil || container.State.Terminated.Reason != "Completed" {
+			allImagesLoaded = false
+			break
 		}
-		return allImagesLoaded
-	}, shortWaitTimeout, pollingInterval).Should(BeTrue(), "timed out waiting for images to load")
-
-	return nil
+	}
+	return allImagesLoaded
 }
