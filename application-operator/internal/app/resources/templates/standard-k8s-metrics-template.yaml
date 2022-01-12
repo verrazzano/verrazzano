@@ -29,9 +29,9 @@ spec:
           source_labels: null
           target_label: verrazzano_cluster
         - action: keep
-          regex: true;8080
+          regex: {{index .workload.metadata.labels "app.verrazzano.io/metrics-binding"}};8080
           source_labels:
-            - __meta_kubernetes_pod_label_app_verrazzano_io_metrics_scrape
+            - __meta_kubernetes_pod_label_app_verrazzano_io_metrics_binding
             - __meta_kubernetes_pod_container_port_number
         - action: replace
           regex: ([^:]+)(?::\d+)?;(\d+)

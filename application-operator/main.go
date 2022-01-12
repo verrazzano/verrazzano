@@ -224,11 +224,20 @@ func main() {
 		_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
 		if err == nil {
 			mgr.GetWebhookServer().Register(
-				webhooks.ScrapeGeneratorLoadPath,
+				webhooks.ScrapeGeneratorWorkloadPath,
 				&webhook.Admission{
 					Handler: &webhooks.ScrapeGeneratorWebhook{
 						Client:     mgr.GetClient(),
 						KubeClient: kubeClient,
+					},
+				},
+			)
+			mgr.GetWebhookServer().Register(
+				webhooks.ScrapeGeneratorPodPath,
+				&webhook.Admission{
+					Handler: &webhooks.ScrapeGeneratorPodWebhook{
+						Client:        mgr.GetClient(),
+						DynamicClient: dynamicClient,
 					},
 				},
 			)
