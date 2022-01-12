@@ -66,12 +66,18 @@ var _ = t.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-	start := time.Now()
 	pkg.Concurrently(
-		pkg.UndeploySpringBootApplication,
-		pkg.UndeployHelloHelidonApplication,
+		func() {
+			start := time.Now()
+			pkg.UndeploySpringBootApplication()
+			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+		},
+		func() {
+			start := time.Now()
+			pkg.UndeployHelloHelidonApplication()
+			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+		},
 	)
-	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var _ = t.AfterEach(func() {})
