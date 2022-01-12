@@ -17,7 +17,6 @@ import (
 )
 
 var expectedPodsSpringBootApp = []string{"springboot-workload"}
-var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
