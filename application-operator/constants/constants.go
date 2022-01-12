@@ -99,3 +99,6 @@ const VerrazzanoUsernameData = "username"
 
 // VerrazzanoPasswordData - the field name in Verrazzano secret that contains the password
 const VerrazzanoPasswordData = "password"
+
+// OCILoggingIDAnnotation Annotation name for a customized OCI log ID for all containers in a namespace
+const OCILoggingIDAnnotation = "verrazzano.io/oci-log-id"
