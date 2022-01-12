@@ -28,7 +28,6 @@ const (
 	ociSecretFileName         = "oci.yaml"
 	dnsGlobal                 = "GLOBAL" //default
 	dnsPrivate                = "PRIVATE"
-	dnsScopeKey               = "DNSScope"
 	imagePullSecretHelmKey    = "global.imagePullSecrets[0]"
 )
 
