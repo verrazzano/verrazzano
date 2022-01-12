@@ -49,8 +49,6 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-var _ = t.AfterEach(func() {})
-
 var _ = t.Describe("Verify Spring Boot Application", func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed

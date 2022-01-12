@@ -43,6 +43,8 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 //"vmi-system-prometheus",
 //"vmi-system-prometheus-gw"}
 
+var _ = t.AfterEach(func() {})
+
 var _ = t.Describe("Kubernetes Cluster",
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()

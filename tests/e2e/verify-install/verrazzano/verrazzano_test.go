@@ -19,6 +19,8 @@ const (
 
 var t = framework.NewTestFramework("verrazzano")
 
+var _ = t.AfterEach(func() {})
+
 var _ = t.Describe("Verrazzano", func() {
 
 	vzInstallReadRule := rbacv1.PolicyRule{

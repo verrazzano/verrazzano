@@ -1,10 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package loggingtrait
 
 import (
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -16,8 +18,9 @@ const (
 	shortPollingInterval = 10 * time.Second
 )
 
-func DeployApplication(namespace string, componentsPath string, applicationPath string) {
+func DeployApplication(namespace string, componentsPath string, applicationPath string, t *framework.TestFramework) {
 	pkg.Log(pkg.Info, "Deploy test application")
+	start := time.Now()
 	// Wait for namespace to finish deletion possibly from a prior run.
 	gomega.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
@@ -41,10 +44,12 @@ func DeployApplication(namespace string, componentsPath string, applicationPath 
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-func UndeployApplication(namespace string, componentsPath string, applicationPath string, configMapName string) {
+func UndeployApplication(namespace string, componentsPath string, applicationPath string, configMapName string, t *framework.TestFramework) {
 	pkg.Log(pkg.Info, "Delete application")
+	start := time.Now()
 	gomega.Eventually(func() error {
 		return pkg.DeleteResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
@@ -69,4 +74,5 @@ func UndeployApplication(namespace string, componentsPath string, applicationPat
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }

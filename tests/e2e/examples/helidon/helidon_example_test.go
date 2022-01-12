@@ -90,8 +90,6 @@ const (
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = t.AfterEach(func() {})
-
 var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
