@@ -88,62 +88,8 @@ func TestGetPromConfigMap(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	reconciler := newReconciler(mock)
 
-	localMetricsBinding := metricsBinding.DeepCopy()
-
-	configMap, err := getConfigMapFromTestFile()
-	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
-
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).DoAndReturn(
-		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
-			cm.Data = configMap.Data
-			return nil
-		})
-
-	template, err := reconciler.getPromConfigMap(localMetricsBinding)
-	assert.NoError(err, "Expected no error getting the MetricsTemplate from the MetricsBinding")
+	template := reconciler.getPromConfigMap(&metricsBinding)
 	assert.NotNil(template)
-}
-
-// TestAddFinalizer tests the addition of a finalizer to the requested resource
-// GIVEN a resource that is being created
-// WHEN the function is called
-// THEN the finalizer should be added
-func TestAddFinalizer(t *testing.T) {
-	assert := asserts.New(t)
-
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	reconciler := newReconciler(mock)
-
-	localMetricsBinding := metricsBinding.DeepCopy()
-
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
-
-	err := reconciler.addFinalizerIfRequired(context.TODO(), localMetricsBinding)
-	assert.Equal([]string{finalizerName}, localMetricsBinding.GetFinalizers())
-	assert.NoError(err, "Expected no error adding finalizer to the Deployment")
-}
-
-// TestRemoveFinalizer tests the removal of a finalizer on the requested resource
-// GIVEN a resource that is being deleted has the metricsbinding finalizer
-// WHEN the function is called
-// THEN the finalizer should be removed
-func TestRemoveFinalizer(t *testing.T) {
-	assert := asserts.New(t)
-
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	reconciler := newReconciler(mock)
-
-	localMetricsBinding := metricsBinding.DeepCopy()
-	localMetricsBinding.SetDeletionTimestamp(&k8smeta.Time{Time: time.Now()})
-	localMetricsBinding.SetFinalizers([]string{finalizerName})
-
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
-
-	err := reconciler.removeFinalizerIfRequired(context.TODO(), localMetricsBinding)
-	assert.Equal([]string{}, localMetricsBinding.GetFinalizers())
-	assert.NoError(err, "Expected no error adding finalizer to the Deployment")
 }
 
 // TestCreateScrapeConfig tests the creation of the scrape config job
@@ -195,7 +141,7 @@ func TestCreateScrapeConfig(t *testing.T) {
 			return nil
 		})
 
-	configMap, err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding)
+	err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding, configMap)
 	assert.NoError(err, "Expected no error creating the scrape config")
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
 }
@@ -215,8 +161,7 @@ func TestUpdateScrapeConfig(t *testing.T) {
 	localMetricsTemplate := metricsTemplate.DeepCopy()
 
 	localMetricsBinding.Spec.Workload = vzapi.Workload{
-		Namespace: testExistsDeploymentNamespace,
-		Name:      testExistsDeploymentName,
+		Name: testExistsDeploymentName,
 		TypeMeta: k8smeta.TypeMeta{
 			Kind:       deploymentKind,
 			APIVersion: deploymentGroup + "/" + deploymentVersion,
@@ -261,7 +206,7 @@ func TestUpdateScrapeConfig(t *testing.T) {
 		})
 
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
-	configMap, err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding)
+	err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding, configMap)
 	assert.NoError(err, "Expected no error updating the scrape config")
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
 }
@@ -287,8 +232,7 @@ func TestDeleteScrapeConfig(t *testing.T) {
 		},
 	}
 	localMetricsBinding.Spec.Workload = vzapi.Workload{
-		Namespace: testExistsDeploymentNamespace,
-		Name:      testExistsDeploymentName,
+		Name: testExistsDeploymentName,
 		TypeMeta: k8smeta.TypeMeta{
 			Kind:       deploymentKind,
 			APIVersion: deploymentGroup + "/" + deploymentVersion,
@@ -306,7 +250,7 @@ func TestDeleteScrapeConfig(t *testing.T) {
 		})
 
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
-	configMap, err = reconciler.deleteScrapeConfig(localMetricsBinding)
+	err = reconciler.deleteScrapeConfig(localMetricsBinding, configMap)
 	assert.NoError(err, "Expected no error deleting the scrape config")
 	assert.False(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
 }
@@ -331,8 +275,7 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 		},
 	}
 	localMetricsBinding.Spec.Workload = vzapi.Workload{
-		Namespace: testExistsDeploymentNamespace,
-		Name:      testExistsDeploymentName,
+		Name: testExistsDeploymentName,
 		TypeMeta: k8smeta.TypeMeta{
 			Kind:       deploymentKind,
 			APIVersion: deploymentGroup + "/" + deploymentVersion,
@@ -378,6 +321,12 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
+			binding = localMetricsBinding
+			return nil
+		})
+
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
 			template.SetNamespace(metricsTemplate.Namespace)
@@ -392,8 +341,12 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
-			dep.SetLabels(deployment.GetLabels())
 			dep.SetUID(testUIDName)
+			return nil
+		})
+
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
 			return nil
 		})
 
@@ -431,8 +384,7 @@ func TestReconcileBindingDelete(t *testing.T) {
 		},
 	}
 	localMetricsBinding.Spec.Workload = vzapi.Workload{
-		Namespace: testExistsDeploymentNamespace,
-		Name:      testExistsDeploymentName,
+		Name: testExistsDeploymentName,
 		TypeMeta: k8smeta.TypeMeta{
 			Kind:       deploymentKind,
 			APIVersion: deploymentGroup + "/" + deploymentVersion,
@@ -441,6 +393,12 @@ func TestReconcileBindingDelete(t *testing.T) {
 
 	configMap, err := getConfigMapFromTestFile()
 	assert.NoError(err, "Expected no error creating the ConfigMap from the test file")
+
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
+			binding = localMetricsBinding
+			return nil
+		})
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: constants.VerrazzanoSystemNamespace, Name: testConfigMapName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
@@ -487,6 +445,12 @@ func TestCreateDeployment(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
+			binding = localMetricsBinding
+			return nil
+		})
+
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
 			template.SetNamespace(metricsTemplate.Namespace)
@@ -501,8 +465,12 @@ func TestCreateDeployment(t *testing.T) {
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
-			dep.SetLabels(deployment.GetLabels())
 			dep.SetUID(testUIDName)
+			return nil
+		})
+
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testDeploymentNamespace, Name: testDeploymentName}), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, key client.ObjectKey, dep *unstructured.Unstructured) error {
 			return nil
 		})
 

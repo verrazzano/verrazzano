@@ -222,7 +222,6 @@ func (a *ScrapeGeneratorWebhook) mutateMetricsBinding(metricsBinding *vzapp.Metr
 	metricsBinding.Spec.PrometheusConfigMap.Namespace = template.Spec.PrometheusConfig.TargetConfigMap.Namespace
 	metricsBinding.Spec.PrometheusConfigMap.Name = template.Spec.PrometheusConfig.TargetConfigMap.Name
 	metricsBinding.Spec.Workload.Name = unst.GetName()
-	metricsBinding.Spec.Workload.Namespace = unst.GetNamespace()
 	metricsBinding.Spec.Workload.TypeMeta = metav1.TypeMeta{APIVersion: unst.GetAPIVersion(), Kind: unst.GetKind()}
 	return nil
 }

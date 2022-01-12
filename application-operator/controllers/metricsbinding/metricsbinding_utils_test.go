@@ -47,8 +47,7 @@ var metricsBinding = v1alpha1.MetricsBinding{
 			Name:      testConfigMapName,
 		},
 		Workload: v1alpha1.Workload{
-			Namespace: testDeploymentNamespace,
-			Name:      testDeploymentName,
+			Name: testDeploymentName,
 			TypeMeta: metav1.TypeMeta{
 				Kind:       deploymentKind,
 				APIVersion: deploymentGroup + "/" + deploymentVersion,

@@ -50,10 +50,8 @@ type NamespaceName struct {
 	Name string `json:"name"`
 }
 
+// Identifies the name and type of a workload
 type Workload struct {
-	// Namespace of a resource
-	Namespace string `json:"namespace"`
-
 	// Name of a resource
 	Name string `json:"name"`
 
