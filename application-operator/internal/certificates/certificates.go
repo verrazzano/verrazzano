@@ -197,7 +197,7 @@ func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert 
 	if err != nil {
 		return err
 	}
-	for i, _ := range webhook.Webhooks {
+	for i := range webhook.Webhooks {
 		webhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
 	}
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
