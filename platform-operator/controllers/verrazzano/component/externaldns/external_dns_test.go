@@ -112,7 +112,7 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz.Spec.Components.DNS.OCI = oci
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, externalDNSNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 10)
+	assert.Len(t, kvs, 9)
 }
 
 // TestExternalDNSPreInstallDryRun tests the PreInstall fn
