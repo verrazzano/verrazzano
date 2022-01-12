@@ -16,7 +16,7 @@ while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 30
   output=$(kubectl wait --for=condition=InstallComplete verrazzano/my-verrazzano --timeout=0 2>&1)
   retval_success=$?
   i=$((i+1))
-  kubectl get pod -A 
+  kubectl get pod -A
 done
 
 if [[ $retval_failed -eq 0 ]] || [[ $i -eq 30 ]] ; then
