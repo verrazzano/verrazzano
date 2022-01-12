@@ -3,7 +3,7 @@
 # Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-
+set -x
 SECONDS=0
 retval_success=1
 retval_failed=1
@@ -16,6 +16,7 @@ while [[ $retval_success -ne 0 ]] && [[ $retval_failed -ne 0 ]]  && [[ $i -lt 30
   output=$(kubectl wait --for=condition=InstallComplete verrazzano/my-verrazzano --timeout=0 2>&1)
   retval_success=$?
   i=$((i+1))
+  kubectl get pod -A 
 done
 
 if [[ $retval_failed -eq 0 ]] || [[ $i -eq 30 ]] ; then
