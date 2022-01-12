@@ -68,7 +68,7 @@ spec:
                 - namespace
                 type: object
               workload:
-                description: Identifies the name, namespace, and gvk for a workload
+                description: Identifies the name, and type for a workload
                 properties:
                   name:
                     description: Name of a resource

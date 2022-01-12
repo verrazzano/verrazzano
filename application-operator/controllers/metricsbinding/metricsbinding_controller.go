@@ -6,7 +6,6 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/Jeffail/gabs/v2"
 	"github.com/go-logr/logr"
@@ -19,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8scontroller "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
 )
 
