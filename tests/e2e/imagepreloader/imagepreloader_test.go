@@ -115,7 +115,7 @@ var _ = t.Describe("Load Verrazzano Container Images", func() {
 			for name, image := range imageList {
 				// Use Eventually block because the kubectl commands can get a conflict error when executed so quickly in succession.
 				Eventually(func() error {
-					return injectImage(kubeconfig, name, image)
+					return injectImage(kubeconfig, testNamespace, name, image, testName)
 				}, shortWaitTimeout, pollingInterval).ShouldNot(HaveOccurred(), fmt.Sprintf("failed to inject image %s", image))
 			}
 		})
@@ -176,11 +176,11 @@ func createImageList(bom v8obom.Bom) (map[string]string, error) {
 }
 
 // injectImage - inject a container image into the test pod using ephemeral containers
-func injectImage(kubeconfig string, name string, image string) error {
-	cmd := exec.Command("kubectl", "debug", "--namespace", testNamespace, podName,
-		"--container", name, "--target", testName, "--image", image, "--image-pull-policy", "IfNotPresent",
+func injectImage(kubeconfig string, namespace string, containerName string, imageName string, targetName string) error {
+	cmd := exec.Command("kubectl", "debug", "--namespace", namespace, podName,
+		"--container", containerName, "--target", targetName, "--image", imageName, "--image-pull-policy", "IfNotPresent",
 		"--", "pwd")
-	pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to inject image %s: %s", image, cmd.String()))
+	pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to inject image %s: %s", imageName, cmd.String()))
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeconfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

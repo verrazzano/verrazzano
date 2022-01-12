@@ -12,23 +12,3 @@ nodes:
           extraArgs:
             "service-account-issuer": "kubernetes.default.svc"
             "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
-            "feature-gates": "EphemeralContainers=true"
-        scheduler:
-          extraArgs:
-            "feature-gates": "EphemeralContainers=true"
-        controllerManager:
-          extraArgs:
-            "feature-gates": "EphemeralContainers=true"
-      - |
-        kind: InitConfiguration
-        nodeRegistration:
-          kubeletExtraArgs:
-            "feature-gates": "EphemeralContainers=true"
-      - |
-        kind: KubeletConfiguration
-        featureGates:
-          EphemeralContainers: true
-      - |
-        kind: KubeProxyConfiguration
-        featureGates:
-          EphemeralContainers: true
