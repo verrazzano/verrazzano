@@ -110,7 +110,7 @@ func addNamespaceLoggingToConfigMap(configMap *corev1.ConfigMap, namespace strin
 	if fluentdConfig, ok := configMap.Data[fluentdConfigKey]; ok {
 		includeLine := fmt.Sprintf("@include %s", nsConfigKey)
 		if !strings.Contains(fluentdConfig, includeLine) {
-			replace := fmt.Sprintf("%s\n%s", startNamespaceConfigsMarker, includeLine)
+			replace := fmt.Sprintf("%s\n  %s", startNamespaceConfigsMarker, includeLine)
 			fluentdConfig = strings.Replace(fluentdConfig, startNamespaceConfigsMarker, replace, 1)
 			configMap.Data[fluentdConfigKey] = fluentdConfig
 		}
@@ -130,7 +130,7 @@ func removeNamespaceLoggingFromConfigMap(configMap *corev1.ConfigMap, namespace 
 	if fluentdConfig, ok := configMap.Data[fluentdConfigKey]; ok {
 		includeLine := fmt.Sprintf("@include %s", nsConfigKey)
 		if strings.Contains(fluentdConfig, includeLine) {
-			toRemove := fmt.Sprintf("%s\n", includeLine)
+			toRemove := fmt.Sprintf("%s\n  ", includeLine)
 			fluentdConfig = strings.Replace(fluentdConfig, toRemove, "", 1)
 			configMap.Data[fluentdConfigKey] = fluentdConfig
 		}
