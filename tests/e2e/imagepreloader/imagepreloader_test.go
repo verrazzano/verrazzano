@@ -15,6 +15,8 @@ import (
 	. "github.com/onsi/gomega"
 	v8obom "github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -36,7 +38,9 @@ var pollingInterval = 30 * time.Second
 var shortWaitTimeout = 5 * time.Minute
 var shortPollingInterval = 10 * time.Second
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("imagepreloader")
+
+var _ = t.BeforeSuite(func() {
 	pkg.Log(pkg.Info, fmt.Sprintf("Create namespace %s", namespace))
 	Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(namespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
@@ -49,7 +53,7 @@ var _ = BeforeSuite(func() {
 	pkg.Log(pkg.Info, fmt.Sprintf("The Bom version is %s", bom.GetVersion()))
 })
 
-var _ = AfterSuite(func() {
+var _ = t.AfterSuite(func() {
 	pkg.Log(pkg.Info, fmt.Sprintf("Delete the namespace %s", namespace))
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
@@ -65,18 +69,19 @@ var _ = AfterSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 })
 
-var _ = Describe("Load Verrazzano Container Images", func() {
-	Context("Deployment", func() {
-		It("deploy test pod", func() {
+var _ = t.Describe("Load Verrazzano Container Images", func() {
+	start := time.Now()
+	t.Context("Deployment", func() {
+		t.It("deploy test pod", func() {
 			err := deployDaemonSet()
 			Expect(err).ToNot(HaveOccurred())
 		})
-		It("wait for the pod to be ready", func() {
+		t.It("wait for the pod to be ready", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{testName})
 			}, shortWaitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("%s failed to deploy", testName))
 		})
-		It("get the pod name", func() {
+		t.It("get the pod name", func() {
 			var podsList []corev1.Pod
 			Eventually(func() error {
 				var err error
@@ -93,13 +98,13 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 			Expect(podName).ToNot(BeNil())
 		})
 	})
-	Context("Use ephemeral containers to inject images", func() {
+	t.Context("Use ephemeral containers to inject images", func() {
 		It("create container list", func() {
 			var err error
 			imageList, err = createImageList(bom)
 			Expect(err).ToNot(HaveOccurred())
 		})
-		It(fmt.Sprintf("inject images into the test pod %s", podName), func() {
+		t.It(fmt.Sprintf("inject images into the test pod %s", podName), func() {
 			// Get the kubeconfig location
 			var err error
 			kubeconfig, err = k8sutil.GetKubeConfigLocation()
@@ -109,11 +114,12 @@ var _ = Describe("Load Verrazzano Container Images", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 		})
-		It(fmt.Sprintf("wait for all ephemeral containers in pod %s to complete", podName), func() {
+		t.It(fmt.Sprintf("wait for all ephemeral containers in pod %s to complete", podName), func() {
 			err := waitForImagesToLoad()
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
+	metrics.Emit(t.Metrics.With("images_load_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 // deployDaemonSet - deploy the DaemonSet for this test
