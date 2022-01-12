@@ -234,7 +234,9 @@ pipeline {
                 stage('????') {
                     parallel {
                         stage('Preload Images') {
-                            runGinkgo('imagepreloader')
+                            steps {
+                                runGinkgo('imagepreloader')
+                            }
                         }
                         stages {
                             stage('Install Verrazzano') {
