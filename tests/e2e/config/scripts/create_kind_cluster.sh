@@ -83,6 +83,7 @@ create_kind_cluster() {
   echo "Listing permissions for /dev/null"
   ls -l /dev/null
   echo "Using ${KIND_CONFIG_FILE}"
+  cat ${KIND_CONFIG_FILE}
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
