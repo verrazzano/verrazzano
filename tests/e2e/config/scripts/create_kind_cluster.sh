@@ -4,6 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+set -x
+
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 CLUSTER_NAME=$1
 PLATFORM_OPERATOR_DIR=$2
