@@ -4,7 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-set -ex
+set -e
 
 TMP_DIR=$(mktemp -d)
 trap 'rc=$?; rm -rf ${TMP_DIR} || true' EXIT
@@ -62,7 +62,3 @@ if ! kubectl get namespace ${VERRAZZANO_INSTALL_NS} ; then
   exit 1
 fi
 kubectl create secret generic $OCI_CONFIG_SECRET_NAME -n $VERRAZZANO_INSTALL_NS --from-file=$OUTPUT_FILE
-
-## debug
-secret=`(kubectl get secrets -n $VERRAZZANO_INSTALL_NS $OCI_CONFIG_SECRET_NAME -o json | jq '.data."oci.yaml"' -r | base64 -d)`
-echo $secret
