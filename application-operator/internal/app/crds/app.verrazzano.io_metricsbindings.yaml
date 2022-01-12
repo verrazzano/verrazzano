@@ -73,9 +73,6 @@ spec:
                   name:
                     description: Name of a resource
                     type: string
-                  namespace:
-                    description: Namespace of a resource
-                    type: string
                   typeMeta:
                     description: TypeMeta of a resource
                     properties:
@@ -94,7 +91,6 @@ spec:
                     type: object
                 required:
                 - name
-                - namespace
                 - typeMeta
                 type: object
             required:
