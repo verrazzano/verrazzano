@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -272,7 +272,7 @@ func (s *Syncer) updateDeployment(name string) {
 
 // reconfigure Fluentd by restarting Fluentd DaemonSet if ManagedClusterName has been changed
 func (s *Syncer) configureLogging() {
-	loggingName := types.NamespacedName{Name: "fluentd", Namespace: constants.VerrazzanoSystemNamespace}
+	loggingName := types.NamespacedName{Name: vzconstants.FluentdDaemonSetName, Namespace: constants.VerrazzanoSystemNamespace}
 	daemonSet := appsv1.DaemonSet{}
 	err := s.LocalClient.Get(context.TODO(), loggingName, &daemonSet)
 	if err != nil {
