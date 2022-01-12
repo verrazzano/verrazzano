@@ -43,14 +43,14 @@ var ociGlobalScope = &vzapi.OCI{
 	DNSZoneCompartmentOCID: "compartmentID",
 	DNSZoneOCID:            "zoneID",
 	DNSZoneName:            "zone.name.io",
-	DNSScope:               "Global",
+	DNSScope:               "GLOBAL",
 }
 var ociPrivateScope = &vzapi.OCI{
 	OCIConfigSecret:        "oci",
 	DNSZoneCompartmentOCID: "compartmentID",
 	DNSZoneOCID:            "zoneID",
 	DNSZoneName:            "zone.name.io",
-	DNSScope:               "Private",
+	DNSScope:               "PRIVATE",
 }
 
 var ociInvalidScope = &vzapi.OCI{
