@@ -28,8 +28,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/helidonworkload"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/loggingtrait"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstemplate"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/metricsbinding"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/namespace"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/wlsworkload"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
@@ -223,11 +224,20 @@ func main() {
 		_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
 		if err == nil {
 			mgr.GetWebhookServer().Register(
-				webhooks.ScrapeGeneratorLoadPath,
+				webhooks.ScrapeGeneratorWorkloadPath,
 				&webhook.Admission{
 					Handler: &webhooks.ScrapeGeneratorWebhook{
 						Client:     mgr.GetClient(),
 						KubeClient: kubeClient,
+					},
+				},
+			)
+			mgr.GetWebhookServer().Register(
+				webhooks.ScrapeGeneratorPodPath,
+				&webhook.Admission{
+					Handler: &webhooks.ScrapeGeneratorPodWebhook{
+						Client:        mgr.GetClient(),
+						DynamicClient: dynamicClient,
 					},
 				},
 			)
@@ -322,6 +332,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoHelidonWorkload")
 		os.Exit(1)
 	}
+	// Setup the namespace reconciler
+	if _, err := namespace.NewNamespaceController(mgr, ctrl.Log.WithName("controllers").WithName("VerrazzanoNamespaceController")); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoNamespaceController")
+		os.Exit(1)
+	}
 
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
 	agentChannel := make(chan clusters.StatusUpdateMessage, constants.StatusUpdateChannelBufferSize)
@@ -400,12 +415,12 @@ func main() {
 	// Register the metrics workload controller
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
 	if err == nil {
-		if err = (&metricstemplate.Reconciler{
+		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("MetricsTemplate"),
+			Log:    ctrl.Log.WithName("controllers").WithName("MetricsBinding"),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MetricsTemplate")
+			setupLog.Error(err, "unable to create controller", "controller", "MetricsBinding")
 			os.Exit(1)
 		}
 	}

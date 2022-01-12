@@ -4,9 +4,10 @@
 package deploymetrics
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
@@ -26,7 +27,9 @@ var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 10 * time.Minute
 var longPollingInterval = 20 * time.Second
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("deploymetrics")
+
+var _ = t.BeforeSuite(func() {
 	deployMetricsApplication()
 })
 
@@ -40,6 +43,7 @@ func deployMetricsApplication() {
 	pkg.Log(pkg.Info, "Deploy DeployMetrics Application")
 
 	pkg.Log(pkg.Info, "Create namespace")
+	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -56,12 +60,14 @@ func deployMetricsApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
 func undeployMetricsApplication() {
 	pkg.Log(pkg.Info, "Undeploy DeployMetrics Application")
 
 	pkg.Log(pkg.Info, "Delete application")
+	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -90,36 +96,37 @@ func undeployMetricsApplication() {
 		}
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = Describe("Verify DeployMetrics Application", func() {
+var _ = t.Describe("Verify DeployMetrics Application", func() {
 	// Verify deploymetrics-workload pod is running
 	// GIVEN deploymetrics app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	Context("Prometheus Config.", func() {
-		It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
+	t.Context("Prometheus Config.", func() {
+		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
 			Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
 		})
 	})
 
-	Context("Verify Prometheus scraped metrics.", func() {
-		It("Retrieve Prometheus scraped metrics for App Component", func() {
+	t.Context("Verify Prometheus scraped metrics.", func() {
+		t.It("Retrieve Prometheus scraped metrics for App Component", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
-		It("Retrieve Prometheus scraped metrics for App Config", func() {
+		t.It("Retrieve Prometheus scraped metrics for App Config", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")

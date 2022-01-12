@@ -1,8 +1,9 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+
 
 . ./init.sh
 
@@ -45,7 +46,7 @@ VCN_ID=$(oci network vcn list \
   | jq -r '.data[0].id')
 
 if [ -z "$VCN_ID" ]; then
-    echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-oke"
+    echo "Failed to get the id for OKE cluster vcn ${TF_VAR_label_prefix}-oke-vcn"
     exit 0
 fi
 

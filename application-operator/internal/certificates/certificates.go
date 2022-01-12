@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificates
@@ -197,7 +197,9 @@ func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert 
 	if err != nil {
 		return err
 	}
-	webhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+	for i := range webhook.Webhooks {
+		webhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
+	}
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
 	if err != nil {
 		return err

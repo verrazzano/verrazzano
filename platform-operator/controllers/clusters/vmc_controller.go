@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -63,14 +64,14 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 
 	if !vmc.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Finalizer is present, so lets do the cluster deletion
-		if containsString(vmc.ObjectMeta.Finalizers, finalizerName) {
+		if vzstring.SliceContainsString(vmc.ObjectMeta.Finalizers, finalizerName) {
 			if err := r.reconcileManagedClusterDelete(ctx, vmc); err != nil {
 				return reconcile.Result{}, err
 			}
 
 			// Remove the finalizer and update the Verrazzano resource if the deletion has finished.
 			log.Infof("Removing finalizer %s", finalizerName)
-			vmc.ObjectMeta.Finalizers = removeString(vmc.ObjectMeta.Finalizers, finalizerName)
+			vmc.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vmc.ObjectMeta.Finalizers, finalizerName)
 			err := r.Update(ctx, vmc)
 			if err != nil && !errors.IsConflict(err) {
 				return reconcile.Result{}, err
@@ -80,7 +81,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	}
 
 	// Add our finalizer if not already added
-	if !containsString(vmc.ObjectMeta.Finalizers, finalizerName) {
+	if !vzstring.SliceContainsString(vmc.ObjectMeta.Finalizers, finalizerName) {
 		log.Infof("Adding finalizer %s", finalizerName)
 		vmc.ObjectMeta.Finalizers = append(vmc.ObjectMeta.Finalizers, finalizerName)
 		if err := r.Update(ctx, vmc); err != nil {
@@ -304,25 +305,4 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	}
 	r.log.Debugf("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	return r.Status().Update(ctx, vmc)
-}
-
-// containsString checks for a string in a slice of strings
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-// removeString removes a string from a slice of strings
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
 }

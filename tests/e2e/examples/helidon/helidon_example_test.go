@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helidon
@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
@@ -25,8 +28,11 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("helidon")
+
+var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
+		start := time.Now()
 		Eventually(func() (*v1.Namespace, error) {
 			nsLabels := map[string]string{
 				"verrazzano-managed": "true",
@@ -41,19 +47,21 @@ var _ = BeforeSuite(func() {
 		Eventually(func() error {
 			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
 var failed = false
-var _ = AfterEach(func() {
+var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = AfterSuite(func() {
+var _ = t.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {
+		start := time.Now()
 		// undeploy the application here
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
@@ -66,6 +74,7 @@ var _ = AfterSuite(func() {
 		Eventually(func() error {
 			return pkg.DeleteNamespace("hello-helidon")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
@@ -81,13 +90,13 @@ const (
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = Describe("Verify Hello Helidon OAM App.", func() {
+var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Describe("Verify hello-helidon-deployment pod is running.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Describe("Verify hello-helidon-deployment pod is running.", func() {
+		t.It("waiting for expected pods must be running", func() {
 			Eventually(helloHelidonPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -98,7 +107,7 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	// GIVEN the Istio gateway for the hello-helidon namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 			return host, err
@@ -109,8 +118,8 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	Describe("Verify Hello Helidon app is working.", func() {
-		It("Access /greet App Url.", func() {
+	t.Describe("Verify Hello Helidon app is working.", func() {
+		t.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
 				return appEndpointAccessible(url, host)
@@ -122,8 +131,8 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	Describe("Verify Prometheus scraped metrics", func() {
-		It("Retrieve Prometheus scraped metrics", func() {
+	t.Describe("Verify Prometheus scraped metrics", func() {
+		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
@@ -144,13 +153,13 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 		})
 	})
 
-	Context("Logging.", func() {
+	t.Context("Logging.", func() {
 		indexName := "verrazzano-namespace-hello-helidon"
 
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
@@ -159,7 +168,7 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Elasticsearch log record exists", func() {
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",

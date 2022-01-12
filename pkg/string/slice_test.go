@@ -1,4 +1,4 @@
-// Copyright (C) 2021, Oracle and/or its affiliates.
+// Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package string
@@ -150,4 +150,48 @@ func TestEmptyOrNilSliceToSet(t *testing.T) {
 	// THEN verify the set is empty
 	set = SliceToSet(nil)
 	assert.Len(set, 0, "Nil slice should result in empty set")
+}
+
+// TestAddString tests the SliceAddString func for the following use case
+// GIVEN a request to SliceAddString with an input slice of strings
+// WHEN string is added to the input slice
+// THEN a new slice is returned with the input string is appended to the end of it
+func TestAddString(t *testing.T) {
+	tests := []struct {
+		name          string
+		description   string
+		inputSlice    []string
+		stringToAdd   string
+		added         bool
+		expectedSlice []string
+	}{
+		{
+			name:          "AddToEmptySlice",
+			inputSlice:    []string{},
+			stringToAdd:   "astring",
+			added:         true,
+			expectedSlice: []string{"astring"},
+		},
+		{
+			name:          "AddToNonEmptySlice",
+			inputSlice:    []string{"foo", "bar"},
+			stringToAdd:   "astring",
+			added:         true,
+			expectedSlice: []string{"foo", "bar", "astring"},
+		},
+		{
+			name:          "StringAlreadyExistsInSlice",
+			inputSlice:    []string{"foo", "astring", "bar"},
+			stringToAdd:   "astring",
+			added:         false,
+			expectedSlice: []string{"foo", "astring", "bar"},
+		},
+	}
+	for _, test := range tests {
+		asserts := asserts.New(t)
+		t.Log(test.name)
+		result, added := SliceAddString(test.inputSlice, test.stringToAdd)
+		asserts.Equal(test.added, added)
+		asserts.Equal(test.expectedSlice, result)
+	}
 }
