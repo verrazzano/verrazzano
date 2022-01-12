@@ -5,6 +5,8 @@ package helidonconfig
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -21,8 +23,11 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("helidonconfig")
+
+var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
+		start := time.Now()
 		Eventually(func() (*v1.Namespace, error) {
 			nsLabels := map[string]string{
 				"verrazzano-managed": "true",
@@ -37,19 +42,21 @@ var _ = BeforeSuite(func() {
 		Eventually(func() error {
 			return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
+		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
 var failed = false
-var _ = AfterEach(func() {
+var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = AfterSuite(func() {
+var _ = t.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {
+		start := time.Now()
 		// undeploy the application here
 		Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
@@ -62,6 +69,7 @@ var _ = AfterSuite(func() {
 		Eventually(func() error {
 			return pkg.DeleteNamespace("helidon-config")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
@@ -77,13 +85,15 @@ const (
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = Describe("Verify Helidon Config OAM App.", func() {
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Verify Helidon Config OAM App.", func() {
 	// Verify helidon-config-deployment pod is running
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Describe("Verify helidon-config-deployment pod is running.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Describe("Verify helidon-config-deployment pod is running.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(helidonConfigPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -94,7 +104,7 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 	// GIVEN the Istio gateway for the helidon-config namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 			return host, err
@@ -105,8 +115,8 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	Describe("Verify Helidon Config app is working.", func() {
-		It("Access /config App Url.", func() {
+	t.Describe("Verify Helidon Config app is working.", func() {
+		t.It("Access /config App Url.", func() {
 			url := fmt.Sprintf("https://%s/config", host)
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			Expect(err).ShouldNot(HaveOccurred())
@@ -120,8 +130,8 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	Describe("Verify Prometheus scraped metrics", func() {
-		It("Retrieve Prometheus scraped metrics", func() {
+	t.Describe("Verify Prometheus scraped metrics", func() {
+		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
@@ -136,12 +146,12 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 		})
 	})
 
-	Context("Logging.", func() {
+	t.Context("Logging.", func() {
 		indexName := "verrazzano-namespace-helidon-config"
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for helidon config")
@@ -150,7 +160,7 @@ var _ = Describe("Verify Helidon Config OAM App.", func() {
 		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Elasticsearch log record exists", func() {
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "helidon-config-component",
