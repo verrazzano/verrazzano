@@ -76,6 +76,9 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1) {
 		return false
 	}
+	if _, ok := isOpenSearchReady(ctx, c.ChartNamespace); !ok {
+		return false
+	}
 	return isVerrazzanoSecretReady(ctx)
 }
 
@@ -98,7 +101,10 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	cleanTempFiles(ctx)
-	return c.updateElasticsearchResources(ctx)
+	if err := c.updateElasticsearchResources(ctx); err != nil {
+		return err
+	}
+	return setupDataStreams(ctx, c.ChartNamespace)
 }
 
 // updateElasticsearchResources updates elasticsearch resources

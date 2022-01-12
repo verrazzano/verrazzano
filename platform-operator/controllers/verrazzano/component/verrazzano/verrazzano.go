@@ -9,8 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io/fs"
 	"io/ioutil"
-	"k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
 	"os"
 	"os/exec"
 	"strings"
@@ -611,6 +609,17 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 	}
 }
 
+func isOpenSearchReady(ctx spi.ComponentContext, namespace string) ([]corev1.Pod, bool) {
+	pods, err := getPodsWithReadyContainer(ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
+	if err != nil {
+		return nil, false
+	}
+	if len(pods) < 1 {
+		return nil, false
+	}
+	return pods, true
+}
+
 func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 	cr := ctx.EffectiveCR()
 	log := ctx.Log()
@@ -618,12 +627,9 @@ func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 		log.Debug("Skipping DataStream setup, backend is disabled")
 		return nil
 	}
-	pods, err := getPodsWithReadyContainer(ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
-	if err != nil {
-		return err
-	}
-	if pods == nil {
-		return fmt.Errorf("no running %s container found", containerName)
+	pods, ok := isOpenSearchReady(ctx, namespace)
+	if !ok {
+		return fmt.Errorf("cannot create data stream, %s container is not ready yet", containerName)
 	}
 	pod := pods[0]
 
@@ -631,28 +637,21 @@ func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 	if err != nil {
 		return err
 	}
-	if err := createDataStreamTemplate(cfg, cli, pod); err != nil {
+
+	doESPut := func(cmd string) error {
+		command := []string{
+			"bash",
+			"-c",
+			"curl -X PUT -H 'Content-Type: application/json' localhost:9200/" + cmd,
+		}
+		_, _, err := k8sutil.ExecPod(cli, cfg, &pod, containerName, command)
 		return err
 	}
-	return createDataStream(cfg, cli, pod)
-}
+	if err := doESPut(fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)); err != nil {
+		return err
+	}
+	return doESPut("_data_stream/verrazzano-data-stream")
 
-func createDataStreamTemplate(cfg *restclient.Config, cli kubernetes.Interface, pod corev1.Pod) error {
-	_, _, err := k8sutil.ExecPod(cli, cfg, &pod, containerName, []string{
-		"bash",
-		"-c",
-		fmt.Sprintf("curl -X PUT -H 'Content-Type: application/json' localhost:9200/_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload),
-	})
-	return err
-}
-
-func createDataStream(cfg *restclient.Config, cli kubernetes.Interface, pod corev1.Pod) error {
-	_, _, err := k8sutil.ExecPod(cli, cfg, &pod, containerName, []string{
-		"bash",
-		"-c",
-		"curl -X PUT localhost:9200/_data_stream/verrazzano-data-stream",
-	})
-	return err
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
