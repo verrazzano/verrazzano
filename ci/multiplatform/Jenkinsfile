@@ -105,6 +105,9 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "${params.TEST_ENV == 'ocidns_oke' ? 'b' + env.BUILD_NUMBER : 'default'}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
+
+        // used to emit metrics
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
     }
 
     stages {
@@ -341,6 +344,12 @@ pipeline {
                 }
 
                 stage('Run Acceptance Tests') {
+                    environment {
+                        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+                    }
+
                     parallel {
                         stage('verify-install') {
                             steps {
