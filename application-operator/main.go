@@ -224,11 +224,20 @@ func main() {
 		_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
 		if err == nil {
 			mgr.GetWebhookServer().Register(
-				webhooks.ScrapeGeneratorLoadPath,
+				webhooks.ScrapeGeneratorWorkloadPath,
 				&webhook.Admission{
 					Handler: &webhooks.ScrapeGeneratorWebhook{
 						Client:     mgr.GetClient(),
 						KubeClient: kubeClient,
+					},
+				},
+			)
+			mgr.GetWebhookServer().Register(
+				webhooks.ScrapeGeneratorPodPath,
+				&webhook.Admission{
+					Handler: &webhooks.ScrapeGeneratorPodWebhook{
+						Client:        mgr.GetClient(),
+						DynamicClient: dynamicClient,
 					},
 				},
 			)
@@ -408,10 +417,10 @@ func main() {
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
-			Log:    ctrl.Log.WithName("controllers").WithName("MetricsTemplate"),
+			Log:    ctrl.Log.WithName("controllers").WithName("MetricsBinding"),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MetricsTemplate")
+			setupLog.Error(err, "unable to create controller", "controller", "MetricsBinding")
 			os.Exit(1)
 		}
 	}

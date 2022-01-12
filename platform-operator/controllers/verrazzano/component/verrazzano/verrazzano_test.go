@@ -109,7 +109,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	daemonSet := appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
-			Name:      "fluentd",
+			Name:      globalconst.FluentdDaemonSetName,
 		},
 		Spec: appsv1.DaemonSetSpec{
 			Template: corev1.PodTemplateSpec{
@@ -191,7 +191,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	assert.NoError(err)
 
 	// env variables should be fixed up to use Value instead of ValueFrom
-	fluentdNamespacedName := types.NamespacedName{Name: "fluentd", Namespace: defNs}
+	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: defNs}
 	updatedDaemonSet := appsv1.DaemonSet{}
 	err = client.Get(context.TODO(), fluentdNamespacedName, &updatedDaemonSet)
 	assert.NoError(err)

@@ -10,8 +10,8 @@ kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricstemplates.yaml
 # Create the MetricsBinding CRD
 kubectl apply -f ${SCRIPT_DIR}/../crds/app.verrazzano.io_metricsbindings.yaml
 
-# Create the MetricsTemplate resource
-kubectl apply -f ${SCRIPT_DIR}/../resources/metrics-template-deployment.yaml
+# Create the MetricsTemplate resources
+kubectl apply -f ${SCRIPT_DIR}/../resources/templates/
 
 # Create the MutatingWebhookConfiguration object.  This object will eventually be
 # moved to platform-operator/helm_config/charts/verrazzano-application-operator/templates/verrazzano-application-operator.yaml
@@ -24,7 +24,7 @@ metadata:
   labels:
     app: verrazzano-application-operator
 webhooks:
-  - name: verrazzano-application-scrape-generator.verrazzano.io
+  - name: verrazzano-application-scrape-workload-generator.verrazzano.io
     namespaceSelector:
       matchLabels:
         verrazzano-managed: "true"
@@ -32,12 +32,34 @@ webhooks:
       service:
         name: verrazzano-application-operator
         namespace: verrazzano-system
-        path: "/scrape-generator"
+        path: "/scrape-generator-workload"
     rules:
       - operations: ["CREATE","UPDATE"]
         apiGroups: ["*"]
         apiVersions: ["*"]
         resources: ["deployments","coherences","domains","pods","replicasets","statefulsets"]
+        scope: "Namespaced"
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
+  - name: verrazzano-application-scrape-pod-generator.verrazzano.io
+    namespaceSelector:
+      matchLabels:
+        verrazzano-managed: "true"
+    clientConfig:
+      service:
+        name: verrazzano-application-operator
+        namespace: verrazzano-system
+        path: "/scrape-generator-pod"
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
         scope: "Namespaced"
     sideEffects: None
     failurePolicy: Fail
