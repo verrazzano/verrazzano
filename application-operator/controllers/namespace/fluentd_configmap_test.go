@@ -23,23 +23,23 @@ const (
 )
 
 const fluentdConfig = `|
-# Common config
-@include general.conf
+  # Common config
+  @include general.conf
 
-# Input sources
-@include systemd-input.conf
-@include kubernetes-input.conf
+  # Input sources
+  @include systemd-input.conf
+  @include kubernetes-input.conf
 
-# Parsing/Filtering
-@include systemd-filter.conf
-@include kubernetes-filter.conf
+  # Parsing/Filtering
+  @include systemd-filter.conf
+  @include kubernetes-filter.conf
 
-# Send to storage
-@include output.conf
-# Start namespace logging configs
-# End namespace logging configs
-@include oci-logging-system.conf
-@include oci-logging-default-app.conf
+  # Send to storage
+  @include output.conf
+  # Start namespace logging configs
+  # End namespace logging configs
+  @include oci-logging-system.conf
+  @include oci-logging-default-app.conf
 `
 
 // TestAddAndRemoveNamespaceLogging tests adding and removing namespace logging config to the Fluentd config map.
@@ -65,7 +65,7 @@ func TestAddAndRemoveNamespaceLogging(t *testing.T) {
 	asserts.NoError(err)
 
 	nsConfigKey := fmt.Sprintf(nsConfigKeyTemplate, testNamespace)
-	includeSection := fmt.Sprintf("%s\n@include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
+	includeSection := fmt.Sprintf("%s\n  @include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
 	asserts.Contains(cm.Data[fluentdConfigKey], includeSection)
 	asserts.Contains(cm.Data, nsConfigKey)
 	asserts.Contains(cm.Data[nsConfigKey], testLogID)
@@ -169,7 +169,7 @@ func TestUpdateExistingLoggingConfig(t *testing.T) {
 	asserts.NoError(err)
 
 	nsConfigKey := fmt.Sprintf(nsConfigKeyTemplate, testNamespace)
-	includeSection := fmt.Sprintf("%s\n@include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
+	includeSection := fmt.Sprintf("%s\n  @include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
 	asserts.Contains(cm.Data[fluentdConfigKey], includeSection)
 	asserts.Contains(cm.Data, nsConfigKey)
 	asserts.Contains(cm.Data[nsConfigKey], updatedLogID)
