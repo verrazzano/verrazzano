@@ -337,9 +337,87 @@ data:
     </filter>
 
   es-output.conf: |
+    <match systemd>
+      @type elasticsearch_data_stream
+      @id out_systemd
+      @log_level info
+      log_es_400_reason true
+
+      data_stream_name verrazzano-system
+      data_stream_template_name verrazzano-data-stream
+
+      time_precision 9
+
+      # Prevent reloading connections to Elasticsearch
+      reload_connections false
+      reconnect_on_error true
+      reload_on_failure true
+      slow_flush_log_threshold 120s
+
+      hosts "#{ENV['ELASTICSEARCH_URL']}"
+      ca_file "#{ENV['CA_FILE']}"
+      # ssl_version TLSv1_2
+      user "#{ENV['ELASTICSEARCH_USER']}"
+      password "#{ENV['ELASTICSEARCH_PASSWORD']}"
+
+      bulk_message_request_threshold 16M
+      request_timeout 2147483648
+      <buffer>
+        @type file
+        path /fluentd/log/system-buffer
+        flush_thread_count 8
+        flush_interval 5s
+        retry_forever
+        retry_max_interval 10
+        # Cap buffer memory usage to 16MiB/chunk * 10 chunks = 160 MiB
+        chunk_limit_size 16M
+        queue_limit_length 10
+        chunk_full_threshold 0.9
+        overflow_action drop_oldest_chunk
+      </buffer>
+    </match>
+    <match kubernetes.**>
+      @type elasticsearch_data_stream
+      @id out_os_k8s
+      @log_level info
+      log_es_400_reason true
+
+      data_stream_name verrazzano-pods
+      data_stream_template_name verrazzano-data-stream
+
+      time_precision 9
+
+      # Prevent reloading connections to Elasticsearch
+      reload_connections false
+      reconnect_on_error true
+      reload_on_failure true
+      slow_flush_log_threshold 120s
+
+      hosts "#{ENV['ELASTICSEARCH_URL']}"
+      ca_file "#{ENV['CA_FILE']}"
+      # ssl_version TLSv1_2
+      user "#{ENV['ELASTICSEARCH_USER']}"
+      password "#{ENV['ELASTICSEARCH_PASSWORD']}"
+
+      bulk_message_request_threshold 16M
+      request_timeout 2147483648
+      <buffer>
+        @type file
+        path /fluentd/log/pods-buffer
+        flush_thread_count 8
+        flush_interval 5s
+        retry_forever
+        retry_max_interval 10
+        # Cap buffer memory usage to 16MiB/chunk * 10 chunks = 160 MiB
+        chunk_limit_size 16M
+        queue_limit_length 10
+        chunk_full_threshold 0.9
+        overflow_action drop_oldest_chunk
+      </buffer>
+    </match>
     <match **>
       @type elasticsearch_data_stream
-      @id out_elasticsearch
+      @id out_all
       @log_level info
       log_es_400_reason true
 
@@ -364,7 +442,7 @@ data:
       request_timeout 2147483648
       <buffer>
         @type file
-        path /fluentd/log/elastic-buffer
+        path /fluentd/log/output-buffer
         flush_thread_count 8
         flush_interval 5s
         retry_forever

@@ -650,6 +650,12 @@ func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 	if err := doESPut(fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)); err != nil {
 		return err
 	}
+	if err := doESPut("_data_stream/verrazzano-pods"); err != nil {
+		return err
+	}
+	if err := doESPut("_data_stream/verrazzano-system"); err != nil {
+		return err
+	}
 	return doESPut("_data_stream/verrazzano-data-stream")
 
 }
