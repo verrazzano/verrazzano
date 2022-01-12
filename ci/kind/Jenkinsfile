@@ -290,8 +290,8 @@ pipeline {
                                             }
                                         }
                                     }
-
                                 }
+                            }
 
                             stage('Verify Install') {
                                 environment {
