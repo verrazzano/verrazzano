@@ -363,7 +363,6 @@ pipeline {
             steps {
                 script {
                     if (params.OCI_DNS_AUTH == "instance_principal") {
-                            env.OCI_CLI_AUTH="instance_principal"
                             env.OCI_DNS_AUTH="instance_principal"
                     }
                     sh """
