@@ -212,15 +212,17 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "opensearch",
-              "tag": "1.2.3-20220111230151-1209521748a",
+              "registry": "phx.ocir.io",
+              "repository": "odx-sre/sauron",
+              "image": "opensearch-mirror",
+              "tag": "1.1.0-2",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "registry": "phx.ocir.io",
               "repository": "odx-sre/sauron",
-              "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220112182217-340710f231",
+              "image": "opensearch-dashboards-mirror",
+              "tag": "1.1.0-2",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
