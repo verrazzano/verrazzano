@@ -97,13 +97,13 @@ deploy_harbor() {
   ./helm --kubeconfig=${KUBECONFIG} install ephemeral-harbor harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
     --set expose.ingress.annotations.'kubernetes\.io/ingress\.class'=contour \
-    --set externalURL=https://${REGISTRY} \
+    --set externalURL=http://${REGISTRY} \
     --set expose.tls.secretName=ephemeral-harbor-ingress-cert \
     --set notary.enabled=false \
+    --set expose.tls.enabled=false \
     --set trivy.enabled=false \
     --set persistence.enabled=false \
-    --set harborAdminPassword=${PRIVATE_REGISTRY_PSW} \
-    --set 'imagePullSecrets[0].name=${IMAGE_PULL_SECRET}'
+    --set harborAdminPassword=${PRIVATE_REGISTRY_PSW}
 
   # wait for harbor installation to complete
 #  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh "default" "ready" "pod" true
@@ -213,10 +213,8 @@ start_installation() {
   # make sure ns exists
   ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
-  if [ $SETUP_HARBOR == false ]; then
-    # Create docker secret for platform operator image
-    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
-  fi
+  # Create docker secret for platform operator image
+  ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
 
   # Configure the custom resource to install Verrazzano on Kind
   ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
