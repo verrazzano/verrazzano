@@ -241,8 +241,8 @@
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
-              "image": "console",
-              "tag": "1.2.0-20211216213817-33fe6ee",
+              "image": "console-jenkins",
+              "tag": "1.2.0-20220107001212-8dd20a1",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },

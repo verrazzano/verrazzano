@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package register_test
@@ -6,6 +6,7 @@ package register_test
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"time"
 
@@ -35,13 +36,19 @@ var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var vmiEsIngressURL = getVmiEsIngressURL()
 var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 
-var _ = Describe("Multi Cluster Verify Register", func() {
-	Context("Admin Cluster", func() {
-		BeforeEach(func() {
+var t = framework.NewTestFramework("register_test")
+
+var _ = t.AfterSuite(func() {})
+var _ = t.BeforeSuite(func() {})
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Multi Cluster Verify Register", func() {
+	t.Context("Admin Cluster", func() {
+		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		It("admin cluster create VerrazzanoProject", func() {
+		t.It("admin cluster create VerrazzanoProject", func() {
 			// create a project
 			Eventually(func() error {
 				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
@@ -52,7 +59,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		It("admin cluster has the expected VerrazzanoManagedCluster", func() {
+		t.It("admin cluster has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
 			Eventually(func() (*vmcClient.Clientset, error) {
 				var err error
@@ -68,7 +75,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
-		It("admin cluster has the expected ServiceAccounts", func() {
+		t.It("admin cluster has the expected ServiceAccounts", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
@@ -78,7 +85,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
+		t.It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
 			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
 			if err != nil {
 				Fail(err.Error())
@@ -92,7 +99,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			}
 		})
 
-		It("admin cluster has a ClusterRoleBinding for a managed cluster", func() {
+		t.It("admin cluster has a ClusterRoleBinding for a managed cluster", func() {
 			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
 			if err != nil {
 				Fail(err.Error())
@@ -106,7 +113,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			}
 		})
 
-		It("admin cluster has the expected secrets", func() {
+		t.It("admin cluster has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName)
@@ -129,7 +136,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		It("admin cluster has the expected system logs from admin and managed cluster", func() {
+		t.It("admin cluster has the expected system logs from admin and managed cluster", func() {
 			verrazzanoIndex := "verrazzano-namespace-verrazzano-system"
 			systemdIndex := "verrazzano-systemd-journal"
 			pkg.Concurrently(
@@ -178,7 +185,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		It("admin cluster has the expected metrics from managed cluster", func() {
+		t.It("admin cluster has the expected metrics from managed cluster", func() {
 			clusterNameMetricsLabel := getClusterNameMetricLabel()
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
@@ -186,7 +193,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
 
-		It("admin cluster Fluentd should point to the correct ES", func() {
+		t.It("admin cluster Fluentd should point to the correct ES", func() {
 			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
@@ -199,12 +206,12 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 		})
 	})
 
-	Context("Managed Cluster", func() {
-		BeforeEach(func() {
+	t.Context("Managed Cluster", func() {
+		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		It("managed cluster has the expected secrets", func() {
+		t.It("managed cluster has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -220,19 +227,19 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		It("managed cluster has the expected VerrazzanoProject", func() {
+		t.It("managed cluster has the expected VerrazzanoProject", func() {
 			Eventually(func() (bool, error) {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		It("managed cluster has the expected namespace", func() {
+		t.It("managed cluster has the expected namespace", func() {
 			Eventually(func() bool {
 				return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find namespace")
 		})
 
-		It("managed cluster has the expected RoleBindings", func() {
+		t.It("managed cluster has the expected RoleBindings", func() {
 			namespace := fmt.Sprintf("ns-%s", managedClusterName)
 			pkg.Concurrently(
 				func() {
@@ -258,7 +265,7 @@ var _ = Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		It("managed cluster Fluentd should point to the correct ES", func() {
+		t.It("managed cluster Fluentd should point to the correct ES", func() {
 			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")

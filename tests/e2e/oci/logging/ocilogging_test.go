@@ -6,6 +6,8 @@ package logging
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"os"
 	"time"
 
@@ -35,11 +37,14 @@ var region string
 var logSearchClient loggingsearch.LogSearchClient
 
 var failed = false
-var _ = AfterEach(func() {
+
+var t = framework.NewTestFramework("logging")
+
+var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = BeforeSuite(func() {
+var _ = t.BeforeSuite(func() {
 	compartmentID = os.Getenv(compartmentIDEnvVar)
 	logGroupID = os.Getenv(logGroupIDEnvVar)
 	region = os.Getenv(ociRegionEnvVar)
@@ -52,17 +57,21 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred(), "Error configuring OCI SDK client")
 })
 
-var _ = AfterSuite(func() {
+var _ = t.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
+	start := time.Now()
 	pkg.UndeploySpringBootApplication()
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = Describe("OCI Logging", func() {
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("OCI Logging", func() {
 	var systemLogID, defaultAppLogID string
 
-	BeforeEach(func() {
+	t.BeforeEach(func() {
 		var err error
 		systemLogID, defaultAppLogID, err = getLogIdentifiersFromVZCustomResource()
 		Expect(err).ShouldNot(HaveOccurred())
@@ -70,11 +79,11 @@ var _ = Describe("OCI Logging", func() {
 		Expect(defaultAppLogID).ToNot(BeEmpty())
 	})
 
-	Context("initially", func() {
+	t.Context("initially", func() {
 		// GIVEN a Verrazzano installation
 		// WHEN I search for log records in the kube-system namespace
 		// THEN I expect to find at least one record
-		It("the system log object has recent log records in the kube-system namespace", func() {
+		t.It("the system log object has recent log records in the kube-system namespace", func() {
 			Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, systemLogID, "kube-system")
 				if err != nil {
@@ -87,7 +96,7 @@ var _ = Describe("OCI Logging", func() {
 		// GIVEN a Verrazzano installation
 		// WHEN I search for log records in the verrazzano-system namespace
 		// THEN I expect to find at least one record
-		It("the system log object has recent log records in the verrazzano-system namespace", func() {
+		t.It("the system log object has recent log records in the verrazzano-system namespace", func() {
 			Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, systemLogID, constants.VerrazzanoSystemNamespace)
 				if err != nil {
@@ -100,19 +109,22 @@ var _ = Describe("OCI Logging", func() {
 		// GIVEN a Verrazzano installation with no applications installed
 		// WHEN I search for log records in the default app Log object
 		// THEN I expect to find no records
-		It("the app log object has no log records", func() {
+		t.It("the app log object has no log records", func() {
 			logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(*logs.Summary.ResultCount).To(BeZero(), "Expected no app logs but found at least one")
 		})
 	})
 
-	Context("after deploying an example application", func() {
+	t.Context("after deploying an example application", func() {
 		// GIVEN a Verrazzano installation with an application deployed
 		// WHEN I search for log records in the default app Log object using the application namespace
 		// THEN I expect to find at least one record
-		It("the app log object has recent log records", func() {
+		t.It("the app log object has recent log records", func() {
+
+			start := time.Now()
 			pkg.DeploySpringBootApplication()
+			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 			Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, pkg.SpringbootNamespace)

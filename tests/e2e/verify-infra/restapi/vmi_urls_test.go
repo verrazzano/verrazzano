@@ -6,7 +6,6 @@ package restapi_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"net/http"
 	"strings"
 	"time"
@@ -18,20 +17,20 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = framework.VzDescribe("VMI urls test", func() {
+var _ = t.Describe("VMI urls test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	framework.VzContext("Fetching the system vmi using api and test urls", func() {
+	t.Context("Fetching the system vmi using api and test urls", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		var isEsEnabled = false
 		var isKibanaEnabled = false
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
-		framework.ItM(metricsLogger, "Fetches VMI", func() {
+		t.It("Fetches VMI", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -70,7 +69,7 @@ var _ = framework.VzDescribe("VMI urls test", func() {
 			}
 		})
 
-		framework.ItM(metricsLogger, "Accesses VMI endpoints", func() {
+		t.It("Accesses VMI endpoints", func() {
 			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -124,7 +123,7 @@ var _ = framework.VzDescribe("VMI urls test", func() {
 	})
 })
 
-var _ = framework.AfterEachM(metricsLogger, func() {})
+var _ = t.AfterEach(func() {})
 
 func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress, err := api.GetIngress("verrazzano-system", ingressName)

@@ -4,14 +4,14 @@
 package restapi_test
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 )
 
-var metricsLogger, _ = metrics.NewMetricsLogger("restapi_test")
+var t = framework.NewTestFramework("restapi_test")
 
 func TestRestApi(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)

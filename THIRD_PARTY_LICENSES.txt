@@ -2,12 +2,14 @@ github.com/verrazzano/verrazzano
 -------- Copyrights
 Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
 Copyright (c) 2020, 2022, Oracle and/or its affiliates.
-Copyright (C) 2020, 2021, Oracle and/or its affiliates.
-Copyright (c) 2021, Oracle and/or its affiliates.
+Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
 Copyright The Helm Authors.
@@ -229,7 +231,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 -------- Dependency
 github.com/hashicorp/golang-lru
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependencies Summary
 github.com/hashicorp/golang-lru
@@ -603,12 +604,10 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 -------- Dependency
 github.com/hashicorp/go-cleanhttp
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 github.com/hashicorp/go-retryablehttp
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependencies Summary
 github.com/hashicorp/go-cleanhttp
@@ -1191,12 +1190,10 @@ Copyright 2012 Matt T. Proud (matt.proud@gmail.com)
 -------- Dependency
 github.com/modern-go/concurrent
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 github.com/modern-go/reflect2
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 github.com/prometheus/client_golang
@@ -1310,7 +1307,6 @@ Copyright 2016 French Ben. All rights reserved.
 -------- Dependency
 gomodules.xyz/jsonpatch/v2
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 google.golang.org/genproto
@@ -2577,4 +2573,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 96bf3f340f07018bc32295c436446ac4
+License file based on go.mod with md5 sum: 597f08d3b2961b0003b5d500ce1aecf5

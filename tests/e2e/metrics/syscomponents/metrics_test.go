@@ -1,10 +1,11 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package syscomponents
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"strings"
 	"time"
@@ -80,7 +81,9 @@ var excludePodsIstio = []string{
 	"istiod",
 }
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("syscomponents")
+
+var _ = t.BeforeSuite(func() {
 	present := false
 	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
@@ -104,10 +107,14 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var _ = Describe("Prometheus Metrics", func() {
+var _ = t.AfterSuite(func() {})
+
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Prometheus Metrics", func() {
 	// Query Prometheus for the sample metrics from the default scraping jobs
-	var _ = Describe("for the system components", func() {
-		It("Verify sample NGINX metrics can be queried from Prometheus", func() {
+	var _ = t.Describe("for the system components", func() {
+		t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					controllerNamespace: ingressNginxNamespace,
@@ -117,13 +124,13 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
+		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				return metricsContainLabels(containerStartTimeSeconds, map[string]string{})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
+		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					job: nodeExporter,
@@ -132,7 +139,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample mesh metrics can be queried from Prometheus", func() {
+		t.It("Verify sample mesh metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					namespace: verrazzanoSystemNamespace,
@@ -141,7 +148,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample istiod metrics can be queried from Prometheus", func() {
+		t.It("Verify sample istiod metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					app: istiod,
@@ -151,7 +158,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify sample metrics can be queried from Prometheus", func() {
+		t.It("Verify sample metrics can be queried from Prometheus", func() {
 			Eventually(func() bool {
 				kv := map[string]string{
 					job: prometheus,
@@ -160,7 +167,7 @@ var _ = Describe("Prometheus Metrics", func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
-		It("Verify envoy stats", func() {
+		t.It("Verify envoy stats", func() {
 			Eventually(func() bool {
 				return verifyEnvoyStats(envoyStatsRecentLookups)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
