@@ -236,7 +236,6 @@ pipeline {
             when { expression { return params.TEST_ENV != 'kind' } }
             environment {
                 TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-                OCI_CLI_AUTH="instance_principal"
             }
             steps {
                 script {
