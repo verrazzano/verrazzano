@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -79,6 +80,7 @@ func (nc *NamespaceController) Reconcile(req reconcile.Request) (reconcile.Resul
 			}
 			return nc.removeFinalizer(ctx, &ns)
 		}
+		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nc.reconcileNamespace(ctx, &ns)
@@ -150,17 +152,20 @@ func (nc *NamespaceController) removeOCILogging(ctx context.Context, ns *corev1.
 	return err
 }
 
+// restartFluentd - restarts the Fluentd pods by adding an annotation to the Fluentd daemonset.
 func (nc *NamespaceController) restartFluentd(ctx context.Context) error {
 	nc.log.Info("Restarting Fluentd")
 	daemonSet := &appsv1.DaemonSet{}
-	if err := nc.Client.Get(ctx, types.NamespacedName{Name: "fluentd", Namespace: constants.VerrazzanoSystemNamespace}, daemonSet); err != nil {
+	dsName := types.NamespacedName{Name: vzconst.FluentdDaemonSetName, Namespace: constants.VerrazzanoSystemNamespace}
+
+	if err := nc.Client.Get(ctx, dsName, daemonSet); err != nil {
 		return err
 	}
 
 	if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 		daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
-	daemonSet.Spec.Template.ObjectMeta.Annotations["verrazzano.io/restartedAt"] = time.Now().Format(time.RFC3339)
+	daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 
 	if err := nc.Client.Update(ctx, daemonSet); err != nil {
 		return err
