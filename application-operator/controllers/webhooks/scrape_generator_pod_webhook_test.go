@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// newScrapeGeneratorPodWebhook creates a new ScrapeGeneratorWebhook
+// newScrapeGeneratorPodWebhook creates a new ScrapeGeneratorPodWebhook
 func newScrapeGeneratorPodWebhook() ScrapeGeneratorPodWebhook {
 	scheme := newScheme()
 	scheme.AddKnownTypes(schema.GroupVersion{
@@ -114,7 +114,7 @@ func TestOwnerReferenceNoLabel(t *testing.T) {
 
 // TestMultipleOwnerReferenceNoLabel tests the handling of a Pod resource
 // GIVEN a call to the webhook Handle function
-// WHEN the pod resource has multiple owner reference and both owner references
+// WHEN the pod resource has nested owner reference and all owner references
 //   are missing the app.verrazzano.io/metrics-binding label
 // THEN the Handle function should succeed and the pod is not mutated
 func TestMultipleOwnerReferenceNoLabel(t *testing.T) {
@@ -226,7 +226,7 @@ func TestOwnerReferenceLabel(t *testing.T) {
 
 // TestMultipleOwnerReferenceLabel tests the handling of a Pod resource
 // GIVEN a call to the webhook Handle function
-// WHEN the pod resource has mutiple owner references and the 2nd owner reference
+// WHEN the pod resource has nested owner references and the 2nd owner reference
 //   contains the app.verrazzano.io/metrics-binding label
 // THEN the Handle function should succeed and the pod is mutated
 func TestMultipleOwnerReferenceLabel(t *testing.T) {

@@ -63,8 +63,6 @@ func (a *ScrapeGeneratorPodWebhook) handlePodResource(req admission.Request) adm
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
 
-	scrapeGeneratorPodLogger.Info(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsBindingLabel, value), "name", pod.GenerateName)
-
 	// Set the app.verrazzano.io/metrics-binding label to the value found in the owner references
 	if len(value) != 0 {
 		labels := pod.GetLabels()
@@ -73,6 +71,7 @@ func (a *ScrapeGeneratorPodWebhook) handlePodResource(req admission.Request) adm
 		}
 		labels[constants.MetricsBindingLabel] = value
 		pod.SetLabels(labels)
+		scrapeGeneratorPodLogger.Info(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsBindingLabel, value), "name", pod.GenerateName)
 	}
 
 	marshaledPodResource, err := json.Marshal(pod)
@@ -83,8 +82,8 @@ func (a *ScrapeGeneratorPodWebhook) handlePodResource(req admission.Request) adm
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPodResource)
 }
 
-// findMetricsBindingLabel traverses a nested array of owner references and returns the value of
-// the app.verrazzano.io/metrics-binding label if found in an owner reference
+// findMetricsBindingLabel traverses a nested array of owner references and returns the first value of
+// an app.verrazzano.io/metrics-binding label if found in an owner reference
 // resource
 func (a *ScrapeGeneratorPodWebhook) findMetricsBindingLabel(namespace string, ownerRefs []metav1.OwnerReference) (string, error) {
 	for _, ownerRef := range ownerRefs {
