@@ -1,12 +1,12 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package oam
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -22,17 +22,21 @@ const (
 	verrazzanoSystemNS = "verrazzano-system"
 )
 
-var _ = Describe("Verify OAM Infra.", func() {
-	Describe("Verify verrazzano-application-operator pod is running.", func() {
-		It("and waiting for expected pods must be running", func() {
+var t = framework.NewTestFramework("oam")
+
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Verify OAM Infra.", func() {
+	t.Describe("Verify verrazzano-application-operator pod is running.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() (bool, error) {
 				return applicationOperatorPodRunning()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	Describe("Verify oam-kubernetes-runtime pod is running.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Describe("Verify oam-kubernetes-runtime pod is running.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() (bool, error) {
 				return kubernetesRuntimePodRunning()
 			}, waitTimeout, pollingInterval).Should(BeTrue())

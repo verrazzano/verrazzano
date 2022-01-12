@@ -24,8 +24,12 @@ const (
 	yamlPath             = "testdata/scrapegenerator/helidon/helidon-scrape-generator.yaml"
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("helidonscrapegenerator")
+
+var _ = t.BeforeSuite(func() {
+	start := time.Now()
 	scrapegenerator.DeployApplication(namespace, yamlPath)
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var clusterDump = pkg.NewClusterDumpWrapper()
@@ -34,17 +38,19 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	scrapegenerator.UndeployApplication(namespace, yamlPath)
 })
 
-var _ = Describe("Verify application.", func() {
-	Context("Deployment.", func() {
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Verify application.", func() {
+	t.Context("Deployment.", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the Helidon pod should exist
-		It("Verify 'hello-helidon-scrape' pod is running", func() {
+		t.It("Verify 'hello-helidon-scrape' pod is running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{applicationPodPrefix})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
-		It("Verify metrics template exists", func() {
+		t.It("Verify metrics template exists", func() {
 			Eventually(func() bool {
 				return pkg.DoesMetricsTemplateExist(types.NamespacedName{Name: metricsTemplateName, Namespace: namespace})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -54,8 +60,8 @@ var _ = Describe("Verify application.", func() {
 	// GIVEN the Helidon app is deployed and the pods are running
 	// WHEN the Prometheus metrics in the app namespace are scraped
 	// THEN the Helidon application metrics should exist
-	Context("Verify Prometheus scraped metrics.", func() {
-		It("Retrieve Prometheus scraped metrics for Helidon Pod", func() {
+	t.Context("Verify Prometheus scraped metrics.", func() {
+		t.It("Retrieve Prometheus scraped metrics for Helidon Pod", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon-scrape-application")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")

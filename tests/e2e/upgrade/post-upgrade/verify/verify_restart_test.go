@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verify
@@ -7,6 +7,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"time"
@@ -21,7 +22,13 @@ const (
 	envoyImage      = "proxyv2:1.10"
 )
 
-var _ = Describe("verify platform pods post-upgrade", func() {
+var t = framework.NewTestFramework("verify")
+
+var _ = t.BeforeSuite(func() {})
+var _ = t.AfterSuite(func() {})
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("verify platform pods post-upgrade", func() {
 
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
 	MinimumVerrazzanoIt := func(description string, f interface{}) {
@@ -31,7 +38,7 @@ var _ = Describe("verify platform pods post-upgrade", func() {
 		}
 		// Only run tests if Verrazzano is not at least version 1.1.0
 		if supported {
-			It(description, f)
+			t.It(description, f)
 		} else {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.1.0", description))
 		}
@@ -92,14 +99,14 @@ var _ = Describe("verify platform pods post-upgrade", func() {
 	})
 })
 
-var _ = Describe("verify application pods post-upgrade", func() {
+var _ = t.Describe("verify application pods post-upgrade", func() {
 	const (
 		bobsBooksNamespace    = "bobs-books"
 		helloHelidonNamespace = "hello-helidon"
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	DescribeTable("Pods should contain Envoy sidecar 1.10.4",
+	t.DescribeTable("Pods should contain Envoy sidecar 1.10.4",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -113,9 +120,9 @@ var _ = Describe("verify application pods post-upgrade", func() {
 				pkg.Log(pkg.Info, fmt.Sprintf("Skipping test since namespace %s doesn't exist", namespace))
 			}
 		},
-		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", helloHelidonNamespace), helloHelidonNamespace, twoMinutes),
-		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", springbootNamespace), springbootNamespace, twoMinutes),
-		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, fiveMinutes),
-		Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, fiveMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", helloHelidonNamespace), helloHelidonNamespace, twoMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", springbootNamespace), springbootNamespace, twoMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, fiveMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, fiveMinutes),
 	)
 })

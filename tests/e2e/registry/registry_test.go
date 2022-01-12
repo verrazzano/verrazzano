@@ -1,15 +1,15 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package registry
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -45,9 +45,15 @@ var listOfNamespaces = []string{
 	"verrazzano-system",
 }
 
-var _ = Describe("Private Registry Verification",
+var t = framework.NewTestFramework("helidon")
+
+var _ = t.BeforeSuite(func() {})
+var _ = t.AfterSuite(func() {})
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Private Registry Verification",
 	func() {
-		It("All the pods in the cluster have the expected registry URLs",
+		t.It("All the pods in the cluster have the expected registry URLs",
 			func() {
 				var pod corev1.Pod
 				imagePrefix := "ghcr.io"
