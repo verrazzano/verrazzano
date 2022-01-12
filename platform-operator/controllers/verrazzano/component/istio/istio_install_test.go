@@ -6,8 +6,15 @@ package istio
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os/exec"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -16,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"go.uber.org/zap"
-	"io/ioutil"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -24,11 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"testing"
-	"time"
 )
 
 // fakeIstioInstalledRunner is used to test if Istio is installed
@@ -324,7 +326,7 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			deploy.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -332,7 +334,7 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
 			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			ss.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -340,7 +342,7 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
 			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			ds.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -396,7 +398,7 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			deploy.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -404,7 +406,7 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
 			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			ss.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -412,7 +414,7 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
 			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			ds.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
