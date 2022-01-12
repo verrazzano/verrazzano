@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -85,7 +86,7 @@ func TestAddAndRemoveNamespaceLogging(t *testing.T) {
 	asserts.NotContains(cm.Data, nsConfigKey)
 }
 
-// TestMissingFluentdConfigMap tests the case where the system Fluentd config map is not found.
+// TestMissingFluentdConfigMap tests the cases where the system Fluentd config map is not found.
 func TestMissingFluentdConfigMap(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -96,6 +97,17 @@ func TestMissingFluentdConfigMap(t *testing.T) {
 	_, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), "must exist")
+
+	// GIVEN there is no system Fluentd config map
+	// WHEN I attempt to remove namespace-specific logging configuration
+	// THEN no error is returned and the config map has not been created
+	updated, err := removeNamespaceLogging(context.TODO(), client, testNamespace)
+	asserts.NoError(err)
+	asserts.False(updated)
+
+	cm := &corev1.ConfigMap{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: fluentdConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, cm)
+	asserts.True(errors.IsNotFound(err))
 }
 
 // TestAddNamespaceLoggingAlreadyExists tests the case where we add logging config and it already exists in the config map.
