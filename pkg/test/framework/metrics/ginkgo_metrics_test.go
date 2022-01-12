@@ -5,24 +5,26 @@ package metrics_test
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo/v2"
+
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 )
 
-var _ = Describe("Logger", func() {
-	// Setup the Suite
-	m, _ := metrics.NewMetricsLogger("metrics")
-	_ = framework.AfterEachM(m, func() {})
+var t = framework.NewTestFramework("metrics_test")
 
-	framework.ItM(m, "Should do a thing", func() {
+var _ = t.Describe("Logger", func() {
+	// Setup the Suite
+
+	_ = t.AfterEach(func() {})
+
+	t.It("Should do a thing", func() {
 		fmt.Println("Ran a test!")
 		// Emits a metric with key(foo), value(bar)
-		metrics.Emit(m.With("foo", "bar"))
+		metrics.Emit(t.Metrics.With("foo", "bar"))
 
 	})
 
-	framework.ItM(m, "Should do another thing", func() {
+	t.It("Should do another thing", func() {
 		fmt.Println("Second test!")
 
 	})

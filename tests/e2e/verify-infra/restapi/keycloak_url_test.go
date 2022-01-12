@@ -5,31 +5,29 @@ package restapi_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = framework.VzDescribe("keycloak url test", func() {
+var _ = t.Describe("keycloak url test", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	framework.VzContext("Fetching the keycloak url using api and test ", func() {
-		framework.ItM(metricsLogger, "Fetches keycloak url", func() {
+	t.Context("Fetching the keycloak url using api and test ", func() {
+		t.It("Fetches keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					Fail(err.Error())
+					t.Fail(err.Error())
 				}
 
 				Eventually(func() error {
@@ -55,7 +53,7 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 					httpResponse, err = pkg.GetWebPage(keycloakURL, "")
 					return httpResponse, err
 				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
-				metrics.Emit(metricsLogger.With("url_web_response_time", time.Since(start).Milliseconds()))
+				metrics.Emit(t.Metrics.With("url_web_response_time", time.Since(start).Milliseconds()))
 
 				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
 			}
@@ -63,4 +61,4 @@ var _ = framework.VzDescribe("keycloak url test", func() {
 	})
 })
 
-var _ = framework.AfterEachM(metricsLogger, func() {})
+var _ = t.AfterEach(func() {})
