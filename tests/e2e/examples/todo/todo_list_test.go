@@ -138,6 +138,8 @@ func undeployToDoListExample() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
+var _ = t.AfterEach(func() {})
+
 var _ = t.Describe("Verify ToDo List example application.", func() {
 
 	t.Context("Deployment.", func() {
