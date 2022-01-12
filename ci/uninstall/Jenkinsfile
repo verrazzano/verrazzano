@@ -115,11 +115,18 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "magicdns_oke"
         K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
     }
 
     stages {
+        environment {
+            SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+            SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+            SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+        }
+
         stage('Clean workspace and checkout') {
             steps {
                 sh """
