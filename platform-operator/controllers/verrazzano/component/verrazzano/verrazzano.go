@@ -6,9 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io/fs"
 	"io/ioutil"
-	"net/http"
+	"k8s.io/client-go/kubernetes"
+	restclient "k8s.io/client-go/rest"
 	"os"
 	"os/exec"
 	"strings"
@@ -57,17 +59,57 @@ const (
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
+const indexTemplatePayload = `{
+    "index_patterns":"verrazzano-*",
+    "version":60001,
+    "priority": 100,
+    "data_stream": {},
+    "template": {
+        "settings":{
+            "index.refresh_interval":"5s",
+            "index.mapping.total_fields.limit":"2000",
+            "number_of_shards":5,
+            "index.number_of_replicas":0,
+            "index.auto_expand_replicas":"0-1"
+        },
+        "mappings":{
+            "dynamic_templates":[
+            {
+                "message_field":{
+                "path_match":"message",
+                "match_mapping_type":"string",
+                "mapping":{
+                    "type":"text",
+                    "norms":false
+                }
+                }
+            },
+            {
+                "string_fields":{
+                "match":"*",
+                "match_mapping_type":"string",
+                "mapping":{
+                    "type":"text",
+                    "norms":false,
+                    "fields":{
+                    "keyword":{
+                        "type":"keyword",
+                        "ignore_above":256
+                    }
+                    }
+                }
+                }
+            }
+            ]
+        }
+    }
+}`
+
 var (
 	// For Unit test purposes
 	execCommand   = exec.Command
 	writeFileFunc = ioutil.WriteFile
 )
-
-type httpFunc func(client http.Client, req *http.Request) (*http.Response, error)
-
-var httpDo httpFunc = func(client http.Client, req *http.Request) (*http.Response, error) {
-	return client.Do(req)
-}
 
 func resetWriteFileFunc() {
 	writeFileFunc = ioutil.WriteFile
@@ -569,33 +611,48 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 	}
 }
 
-func setupOSDataStreams(ctx spi.ComponentContext, namespace string) error {
+func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 	cr := ctx.EffectiveCR()
 	log := ctx.Log()
 	if !vzconfig.IsElasticsearchEnabled(cr) {
 		log.Debug("Skipping DataStream setup, backend is disabled")
 		return nil
 	}
-	pods, err := waitForReadyESContainers(ctx, namespace)
+	pods, err := getPodsWithReadyContainer(ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
 	if err != nil {
 		return err
 	}
+	if pods == nil {
+		return fmt.Errorf("no running %s container found", containerName)
+	}
 	pod := pods[0]
-	if err := createDataStreamTemplate(pod); err != nil {
+
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
 		return err
 	}
-	if err := createDataStream(pod); err != nil {
+	if err := createDataStreamTemplate(cfg, cli, pod); err != nil {
 		return err
 	}
-	return nil
+	return createDataStream(cfg, cli, pod)
 }
 
-func createDataStreamTemplate(pod corev1.Pod) error {
-	return nil
+func createDataStreamTemplate(cfg *restclient.Config, cli kubernetes.Interface, pod corev1.Pod) error {
+	_, _, err := k8sutil.ExecPod(cli, cfg, &pod, containerName, []string{
+		"bash",
+		"-c",
+		fmt.Sprintf("curl -X PUT -H 'Content-Type: application/json' localhost:9200/_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload),
+	})
+	return err
 }
 
-func createDataStream(pod corev1.Pod) error {
-	return nil
+func createDataStream(cfg *restclient.Config, cli kubernetes.Interface, pod corev1.Pod) error {
+	_, _, err := k8sutil.ExecPod(cli, cfg, &pod, containerName, []string{
+		"bash",
+		"-c",
+		"curl -X PUT localhost:9200/_data_stream/verrazzano-data-stream",
+	})
+	return err
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
