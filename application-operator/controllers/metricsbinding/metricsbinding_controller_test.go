@@ -323,7 +323,6 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
-			binding = localMetricsBinding
 			return nil
 		})
 
@@ -396,7 +395,6 @@ func TestReconcileBindingDelete(t *testing.T) {
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
-			binding = localMetricsBinding
 			return nil
 		})
 
@@ -447,7 +445,6 @@ func TestCreateDeployment(t *testing.T) {
 
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsBindingNamespace, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
-			binding = localMetricsBinding
 			return nil
 		})
 
