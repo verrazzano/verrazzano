@@ -44,7 +44,7 @@ const (
 	vzSysRealm         = "verrazzano-system"
 	vzUsersGroup       = "verrazzano-users"
 	vzAdminGroup       = "verrazzano-admins"
-	vzMonitorGroup     = "verrazzano-project-monitors"
+	vzMonitorGroup     = "verrazzano-monitors"
 	vzSystemGroup      = "verrazzano-system-users"
 	vzAPIAccessRole    = "vz_api_access"
 	vzConsoleUsersRole = "console_users"
@@ -330,7 +330,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Project Monitors Group
-	monitorGroupID, err := createVerrazzanoProjectMonitorsGroup(ctx, userGroupID)
+	monitorGroupID, err := createVerrazzanoMonitorsGroup(ctx, userGroupID)
 	if err != nil {
 		return err
 	}
@@ -346,24 +346,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 	// Create Verrazzano API Access Role
 	err = createVerrazzanoRole(ctx, cfg, cli, vzAPIAccessRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Console Users Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzConsoleUsersRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Admin Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzAdminRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Viewer Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzViewerRole)
 	if err != nil {
 		return err
 	}
@@ -637,7 +619,7 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 	return arr[1], nil
 }
 
-func createVerrazzanoProjectMonitorsGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
+func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
 	keycloakGroups, err := getKeycloakGroups(ctx)
 	if err == nil && groupExists(keycloakGroups, vzMonitorGroup) {
 		// Group already exists
