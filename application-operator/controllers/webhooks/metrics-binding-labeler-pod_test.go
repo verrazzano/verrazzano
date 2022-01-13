@@ -190,7 +190,7 @@ func TestOwnerReferenceLabel(t *testing.T) {
 		Version:  "v1",
 		Resource: "replicasets",
 	}
-	u.SetLabels(map[string]string{constants.MetricsBindingLabel: "testValue"})
+	u.SetLabels(map[string]string{constants.MetricsWorkloadLabel: "testValue"})
 	_, err := a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating replica set")
 
@@ -221,7 +221,7 @@ func TestOwnerReferenceLabel(t *testing.T) {
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsBindingLabel)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 }
 
 // TestMultipleOwnerReferenceLabel tests the handling of a Pod resource
@@ -239,7 +239,7 @@ func TestMultipleOwnerReferenceLabel(t *testing.T) {
 		Version:  "v1",
 		Resource: "deployments",
 	}
-	u.SetLabels(map[string]string{constants.MetricsBindingLabel: "testValue"})
+	u.SetLabels(map[string]string{constants.MetricsWorkloadLabel: "testValue"})
 	_, err := a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating deployment")
 
@@ -288,5 +288,5 @@ func TestMultipleOwnerReferenceLabel(t *testing.T) {
 	assert.Len(t, res.Patches, 1)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsBindingLabel)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 }

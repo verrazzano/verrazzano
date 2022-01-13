@@ -39,7 +39,7 @@ type LabelerPodWebhook struct {
 
 // Handle is the handler for the mutating webhook
 func (a *LabelerPodWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	labelerPodLogger.Info("metrics-binding-labeler-pod webhook called", "namespace", req.Namespace)
+	labelerPodLogger.Info("metrics-binding-labeler-pod webhook called", "namespace", req.Namespace, "name", req.Name)
 	return a.handlePodResource(req)
 }
 
@@ -83,7 +83,7 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request) admission.R
 	}
 	labels[constants.MetricsWorkloadLabel] = workloadLabel
 	pod.SetLabels(labels)
-	labelerPodLogger.Info(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsWorkloadLabel, workloadLabel), "name", pod.GenerateName)
+	labelerPodLogger.Info(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsWorkloadLabel, workloadLabel), "namespace", req.Namespace, "name", req.Name)
 
 	marshaledPodResource, err := json.Marshal(pod)
 	if err != nil {
