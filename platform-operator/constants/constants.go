@@ -122,9 +122,6 @@ const VerrazzanoVersion1_0_0 = "1.0.0"
 // Verrazzano version string for 1.1.0
 const VerrazzanoVersion1_1_0 = "1.1.0"
 
-// VerrazzanoRestartAnnotation is the annotation used to restart platform workloads
-const VerrazzanoRestartAnnotation = "verrazzano.io/restartedAt"
-
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
 
