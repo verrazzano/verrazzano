@@ -23,7 +23,7 @@ const (
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func DeployHelloHelidonApplication(ociLogId string) {
+func DeployHelloHelidonApplication(ociLogID string) {
 	Log(Info, "Deploy Hello Helidon Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", HelloHelidonNamespace))
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -32,9 +32,9 @@ func DeployHelloHelidonApplication(ociLogId string) {
 			"istio-injection":    "enabled"}
 
 		var annotations map[string]string
-		if len(ociLogId) > 0 {
+		if len(ociLogID) > 0 {
 			annotations = make(map[string]string)
-			annotations["verrazzano.io/oci-log-id"] = ociLogId
+			annotations["verrazzano.io/oci-log-id"] = ociLogID
 		}
 
 		return CreateNamespaceWithAnnotations(HelloHelidonNamespace, nsLabels, annotations)
