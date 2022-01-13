@@ -23,3 +23,23 @@ We truncate at 63 chars because some Kubernetes name fields are limited to this 
 {{- define "configurationSnippet" -}}
   {{- tpl (.Values.ingress.configurationSnippet) . | nindent 6 -}}
 {{- end -}}
+
+{{/*
+Generate the labels.
+*/}}
+{{- define "rancher.labels" -}}
+app: {{ template "rancher.fullname" . }}
+chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+heritage: {{ .Release.Service }}
+release: {{ .Release.Name }}
+{{- end }}
+
+{{- define "system_default_registry" -}}
+{{- if .Values.systemDefaultRegistry -}}
+  {{- if hasSuffix "/" .Values.systemDefaultRegistry -}}
+    {{- printf "%s" .Values.systemDefaultRegistry -}}
+  {{- else -}}
+    {{- printf "%s/" .Values.systemDefaultRegistry -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
