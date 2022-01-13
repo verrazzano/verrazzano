@@ -183,13 +183,6 @@ func (a *ScrapeGeneratorWebhook) createOrUpdateMetricBinding(ctx context.Context
 		return err
 	}
 
-	// For at least deployments, the webhook is called multiple times.  The first time the UID is empty.
-	// A UID is needed for setting up the owner reference.  Return and do nothing if the UID is empty.
-	if len(unst.GetUID()) == 0 {
-		scrapeGeneratorLogger.Info("No UID found for the resource", "Namespace", unst.GetNamespace(), "Name", unst.GetName())
-		return nil
-	}
-
 	// Generate the metricBindings name
 	metricsBindingName := generateMetricsBindingName(unst.GetName(), unst.GetAPIVersion(), unst.GetKind())
 
@@ -228,18 +221,8 @@ func (a *ScrapeGeneratorWebhook) mutateMetricsBinding(metricsBinding *vzapp.Metr
 	metricsBinding.Spec.MetricsTemplate.Name = template.Name
 	metricsBinding.Spec.PrometheusConfigMap.Namespace = template.Spec.PrometheusConfig.TargetConfigMap.Namespace
 	metricsBinding.Spec.PrometheusConfigMap.Name = template.Spec.PrometheusConfig.TargetConfigMap.Name
-	trueValue := true
-	metricsBinding.OwnerReferences = []metav1.OwnerReference{
-		{
-			APIVersion:         unst.GetAPIVersion(),
-			Kind:               unst.GetKind(),
-			Name:               unst.GetName(),
-			UID:                unst.GetUID(),
-			Controller:         &trueValue,
-			BlockOwnerDeletion: &trueValue,
-		},
-	}
-
+	metricsBinding.Spec.Workload.Name = unst.GetName()
+	metricsBinding.Spec.Workload.TypeMeta = metav1.TypeMeta{APIVersion: unst.GetAPIVersion(), Kind: unst.GetKind()}
 	return nil
 }
 
