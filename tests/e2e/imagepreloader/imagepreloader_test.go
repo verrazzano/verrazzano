@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// imageState - information about each docker image being loaded
 type imageState struct {
 	name   string
 	loaded bool
@@ -195,6 +196,7 @@ func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
 
 // injectImage - inject a container image into the test pod using ephemeral containers
 func injectImage(kubeconfig string, namespace string, containerName string, imageName string, targetName string) error {
+	// Override the entrypoint of each image injected to run the "pwd" command.  The container will complete after the command runs.
 	cmd := exec.Command("kubectl", "debug", "--namespace", namespace, podName,
 		"--container", containerName, "--target", targetName, "--image", imageName, "--image-pull-policy", "IfNotPresent",
 		"--", "pwd")
