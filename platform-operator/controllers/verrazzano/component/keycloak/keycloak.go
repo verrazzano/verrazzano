@@ -93,14 +93,17 @@ const pkceTmpl = `
         "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
         "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
         "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
+        "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+        "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
+        "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
       ],
       "webOrigins": [
         "https://verrazzano.{{.DNSSubDomain}}",
         "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
         "https://prometheus.vmi.system.{{.DNSSubDomain}}",
         "https://grafana.vmi.system.{{.DNSSubDomain}}",
-        "https://kibana.vmi.system.{{.DNSSubDomain}}"
+        "https://kibana.vmi.system.{{.DNSSubDomain}}",
+		"https://kiali.vmi.system.{{.DNSSubDomain}}"
       ],
       "notBefore": 0,
       "bearerOnly": false,
