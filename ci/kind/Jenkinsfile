@@ -231,14 +231,14 @@ pipeline {
                     }
                 }
 
-                stage('????') {
+                stage('Prepare to Run Tests') {
                     parallel {
                         stage('Preload Images') {
                             steps {
                                 runGinkgo('imagepreloader')
                             }
                         }
-                        stage('foo') {
+                        stage('Install') {
                             stages {
                                 stage('Install Verrazzano') {
                                     environment {
