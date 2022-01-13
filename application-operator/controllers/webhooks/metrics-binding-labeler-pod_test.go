@@ -23,8 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// newScrapeGeneratorPodWebhook creates a new ScrapeGeneratorPodWebhook
-func newScrapeGeneratorPodWebhook() ScrapeGeneratorPodWebhook {
+// newLabelerPodWebhook creates a new LabelerPodWebhook
+func newLabelerPodWebhook() LabelerPodWebhook {
 	scheme := newScheme()
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
@@ -32,7 +32,7 @@ func newScrapeGeneratorPodWebhook() ScrapeGeneratorPodWebhook {
 	vzapp.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewFakeClientWithScheme(scheme)
-	v := ScrapeGeneratorPodWebhook{
+	v := LabelerPodWebhook{
 		Client:        cli,
 		DynamicClient: fake.NewSimpleDynamicClient(runtime.NewScheme()),
 	}
@@ -45,7 +45,7 @@ func newScrapeGeneratorPodWebhook() ScrapeGeneratorPodWebhook {
 // WHEN the pod resource has no owner references
 // THEN the Handle function should succeed and the pod is not mutated
 func TestNoOwnerReferences(t *testing.T) {
-	a := newScrapeGeneratorPodWebhook()
+	a := newLabelerPodWebhook()
 
 	// Test data
 	pod := corev1.Pod{
@@ -73,7 +73,7 @@ func TestNoOwnerReferences(t *testing.T) {
 //   is missing the app.verrazzano.io/metrics-binding label
 // THEN the Handle function should succeed and the pod is not mutated
 func TestOwnerReferenceNoLabel(t *testing.T) {
-	a := newScrapeGeneratorPodWebhook()
+	a := newLabelerPodWebhook()
 
 	// Create a replica set with no owner reference
 	u := newUnstructured("apps/v1", "ReplicaSet", "test-replicaSet")
@@ -118,7 +118,7 @@ func TestOwnerReferenceNoLabel(t *testing.T) {
 //   are missing the app.verrazzano.io/metrics-binding label
 // THEN the Handle function should succeed and the pod is not mutated
 func TestMultipleOwnerReferenceNoLabel(t *testing.T) {
-	a := newScrapeGeneratorPodWebhook()
+	a := newLabelerPodWebhook()
 
 	// Create a deployment with no owner reference
 	u := newUnstructured("apps/v1", "Deployment", "test-deployment")
@@ -181,7 +181,7 @@ func TestMultipleOwnerReferenceNoLabel(t *testing.T) {
 //   contains the app.verrazzano.io/metrics-binding label
 // THEN the Handle function should succeed and the pod is mutated
 func TestOwnerReferenceLabel(t *testing.T) {
-	a := newScrapeGeneratorPodWebhook()
+	a := newLabelerPodWebhook()
 
 	// Create a replica set with no owner reference
 	u := newUnstructured("apps/v1", "ReplicaSet", "test-replicaSet")
@@ -230,7 +230,7 @@ func TestOwnerReferenceLabel(t *testing.T) {
 //   contains the app.verrazzano.io/metrics-binding label
 // THEN the Handle function should succeed and the pod is mutated
 func TestMultipleOwnerReferenceLabel(t *testing.T) {
-	a := newScrapeGeneratorPodWebhook()
+	a := newLabelerPodWebhook()
 
 	// Create a deployment with no owner reference
 	u := newUnstructured("apps/v1", "Deployment", "test-deployment")
