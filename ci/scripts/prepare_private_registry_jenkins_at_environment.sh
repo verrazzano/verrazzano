@@ -21,13 +21,6 @@ deploy_contour () {
   local namespace="projectcontour"
   kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
   kubectl patch daemonsets -n ${namespace} envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
-  # wait for contour to complete
-#  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh ${namespace} "ready" "pod" false "app.kubernetes.io/component=controller"
-#  if [ $? -ne 0 ]; then
-#    echo "Deployment of contour failed"
-#    exit 1
-#  fi
-  #sleep 50
 }
 
 install_new_helm_version() {
@@ -70,12 +63,6 @@ deploy_certificates() {
         #http01: {}
 EOF
 
-  # wait for cert-manager to complete
-#  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh ${namespace} "ready" "pod" true
-#  if [ $? -ne 0 ]; then
-#    echo "Deployment of certificates failed"
-#    exit 1
-#  fi
   sleep 50
 }
 
@@ -105,12 +92,8 @@ deploy_harbor() {
     --set persistence.enabled=false \
     --set harborAdminPassword=${PRIVATE_REGISTRY_PSW}
 
-  # wait for harbor installation to complete
-#  ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/wait-for-k8s-resource.sh "default" "ready" "pod" true
-#  if [ $? -ne 0 ]; then
-#    exit 1
-#  fi
   sleep 10
+
   kubectl wait --namespace default \
   --for=condition=ready pod \
   --all \
