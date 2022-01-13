@@ -47,7 +47,6 @@ const (
 
 	workloadName  = "system-es-master"
 	containerName = "es-master"
-	ingressName   = "vmi-system-es-ingest"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
 
@@ -632,13 +631,11 @@ func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 		return fmt.Errorf("cannot create data stream, %s container is not ready yet", containerName)
 	}
 	pod := pods[0]
-
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
 	}
-
-	doESPut := func(cmd string) error {
+	doPUT := func(cmd string) error {
 		command := []string{
 			"bash",
 			"-c",
@@ -647,17 +644,27 @@ func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 		_, _, err := k8sutil.ExecPod(cli, cfg, &pod, containerName, command)
 		return err
 	}
-	if err := doESPut(fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)); err != nil {
-		return err
+	var putCommands = []string{
+		// this is the data stream template used by all managed data streams
+		fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload),
+		// these are the verrazzano data streams
+		"_data_stream/verrazzano-pods",
+		"_data_stream/verrazzano-system",
+		"_data_stream/verrazzano-data-stream",
 	}
-	if err := doESPut("_data_stream/verrazzano-pods"); err != nil {
-		return err
+	// Sequentially apply data stream configuration to OpenSearch
+	for _, cmd := range putCommands {
+		if err := doPUT(cmd); err != nil {
+			return err
+		}
 	}
-	if err := doESPut("_data_stream/verrazzano-system"); err != nil {
-		return err
-	}
-	return doESPut("_data_stream/verrazzano-data-stream")
 
+	// Restart any fluentd pods that may have entered a backoff state
+	return restartFD(ctx.Client(), namespace)
+}
+
+func restartFD(client clipkg.Client, namespace string) error {
+	return client.DeleteAllOf(context.TODO(), &corev1.Pod{}, clipkg.InNamespace(namespace), clipkg.MatchingLabels{"app": "fluentd"})
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
@@ -685,6 +692,9 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 
 	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
 	pods, err := waitForReadyESContainers(ctx, namespace)
+	if err != nil {
+		return err
+	}
 	pod := pods[0]
 
 	// Find the Elasticsearch HTTP control container port.

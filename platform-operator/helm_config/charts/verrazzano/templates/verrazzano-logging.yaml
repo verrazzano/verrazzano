@@ -338,7 +338,7 @@ data:
 
   es-output.conf: |
     <match systemd>
-      @type elasticsearch_data_stream
+      @type opensearch_data_stream
       @id out_systemd
       @log_level info
       log_es_400_reason true
@@ -377,7 +377,7 @@ data:
       </buffer>
     </match>
     <match kubernetes.**>
-      @type elasticsearch_data_stream
+      @type opensearch_data_stream
       @id out_os_k8s
       @log_level info
       log_es_400_reason true
@@ -416,7 +416,7 @@ data:
       </buffer>
     </match>
     <match **>
-      @type elasticsearch_data_stream
+      @type opensearch_data_stream
       @id out_all
       @log_level info
       log_es_400_reason true
