@@ -179,10 +179,8 @@ func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
 		for i, subComp := range comp.SubComponents {
 			for _, bomImage := range subComp.Images {
 				// Special case the platform-operator and application-operator, the images may not exist yet.
-				// Special case coherence-operator - unable to override entrypoint with a simple command
 				if bomImage.ImageName != "VERRAZZANO_APPLICATION_OPERATOR_IMAGE" &&
-					bomImage.ImageName != "VERRAZZANO_PLATFORM_OPERATOR_IMAGE" &&
-					bomImage.ImageName != "coherence-operator" {
+					bomImage.ImageName != "VERRAZZANO_PLATFORM_OPERATOR_IMAGE" {
 					imageMap[bomImage.ImageName] = &imageState{
 						name:   fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&comp.SubComponents[i], bomImage), bom.ResolveRepo(&comp.SubComponents[i], bomImage), bomImage.ImageName, bomImage.ImageTag),
 						loaded: false,
@@ -231,6 +229,10 @@ func allImagesLoaded(name string, namespace string) bool {
 		if !imageList[container.Name].loaded {
 			if (container.State.Terminated != nil && container.State.Terminated.Reason == "Completed") ||
 				(container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Reason == "Completed") {
+				imageList[container.Name].loaded = true
+			} else if container.Name == "coherence-operator" && container.LastTerminationState.Terminated != nil &&
+				container.LastTerminationState.Terminated.Reason == "StartError" {
+				// Special case coherence-operator - unable to override entrypoint because the image does not contain an OS
 				imageList[container.Name].loaded = true
 			} else {
 				pkg.Log(pkg.Info, fmt.Sprintf("Image %s not loaded yet", container.Image))
