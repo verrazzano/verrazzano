@@ -39,6 +39,10 @@ var shortWaitTimeout = 5 * time.Minute
 var shortPollingInterval = 10 * time.Second
 
 var t = framework.NewTestFramework("imagepreloader")
+var failed = false
+var _ = t.AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
 
 var _ = t.BeforeSuite(func() {
 	pkg.Log(pkg.Info, fmt.Sprintf("Create namespace %s", testNamespace))
@@ -54,6 +58,12 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
+	if failed {
+		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed to dump cluster with error: %v", err))
+		}
+	}
 	pkg.Log(pkg.Info, fmt.Sprintf("Delete the namespace %s", testNamespace))
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)

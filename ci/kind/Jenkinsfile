@@ -234,6 +234,9 @@ pipeline {
                 stage('Prepare to Run Tests') {
                     parallel {
                         stage('Preload Images') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/imagepreloader"
+                            }
                             steps {
                                 runGinkgo('imagepreloader')
                             }
