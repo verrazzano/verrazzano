@@ -144,7 +144,7 @@ var _ = Describe("Verify Hello Helidon OAM App.", func() {
 	})
 
 	Context("Logging.", func() {
-		indexName := "verrazzano-namespace-hello-helidon"
+		indexName := "verrazzano-namespace-" + namespace
 
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
