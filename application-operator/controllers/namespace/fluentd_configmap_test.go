@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -23,23 +24,23 @@ const (
 )
 
 const fluentdConfig = `|
-  # Common config
-  @include general.conf
+# Common config
+@include general.conf
 
-  # Input sources
-  @include systemd-input.conf
-  @include kubernetes-input.conf
+# Input sources
+@include systemd-input.conf
+@include kubernetes-input.conf
 
-  # Parsing/Filtering
-  @include systemd-filter.conf
-  @include kubernetes-filter.conf
+# Parsing/Filtering
+@include systemd-filter.conf
+@include kubernetes-filter.conf
 
-  # Send to storage
-  @include output.conf
-  # Start namespace logging configs
-  # End namespace logging configs
-  @include oci-logging-system.conf
-  @include oci-logging-default-app.conf
+# Send to storage
+@include output.conf
+# Start namespace logging configs
+# End namespace logging configs
+@include oci-logging-system.conf
+@include oci-logging-default-app.conf
 `
 
 // TestAddAndRemoveNamespaceLogging tests adding and removing namespace logging config to the Fluentd config map.
@@ -65,7 +66,7 @@ func TestAddAndRemoveNamespaceLogging(t *testing.T) {
 	asserts.NoError(err)
 
 	nsConfigKey := fmt.Sprintf(nsConfigKeyTemplate, testNamespace)
-	includeSection := fmt.Sprintf("%s\n  @include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
+	includeSection := fmt.Sprintf("%s\n@include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
 	asserts.Contains(cm.Data[fluentdConfigKey], includeSection)
 	asserts.Contains(cm.Data, nsConfigKey)
 	asserts.Contains(cm.Data[nsConfigKey], testLogID)
@@ -85,7 +86,7 @@ func TestAddAndRemoveNamespaceLogging(t *testing.T) {
 	asserts.NotContains(cm.Data, nsConfigKey)
 }
 
-// TestMissingFluentdConfigMap tests the case where the system Fluentd config map is not found.
+// TestMissingFluentdConfigMap tests the cases where the system Fluentd config map is not found.
 func TestMissingFluentdConfigMap(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -96,6 +97,17 @@ func TestMissingFluentdConfigMap(t *testing.T) {
 	_, err := addNamespaceLogging(context.TODO(), client, testNamespace, testLogID)
 	asserts.Error(err)
 	asserts.Contains(err.Error(), "must exist")
+
+	// GIVEN there is no system Fluentd config map
+	// WHEN I attempt to remove namespace-specific logging configuration
+	// THEN no error is returned and the config map has not been created
+	updated, err := removeNamespaceLogging(context.TODO(), client, testNamespace)
+	asserts.NoError(err)
+	asserts.False(updated)
+
+	cm := &corev1.ConfigMap{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: fluentdConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, cm)
+	asserts.True(errors.IsNotFound(err))
 }
 
 // TestAddNamespaceLoggingAlreadyExists tests the case where we add logging config and it already exists in the config map.
@@ -169,7 +181,7 @@ func TestUpdateExistingLoggingConfig(t *testing.T) {
 	asserts.NoError(err)
 
 	nsConfigKey := fmt.Sprintf(nsConfigKeyTemplate, testNamespace)
-	includeSection := fmt.Sprintf("%s\n  @include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
+	includeSection := fmt.Sprintf("%s\n@include oci-logging-ns-unit-test-ns.conf\n", startNamespaceConfigsMarker)
 	asserts.Contains(cm.Data[fluentdConfigKey], includeSection)
 	asserts.Contains(cm.Data, nsConfigKey)
 	asserts.Contains(cm.Data[nsConfigKey], updatedLogID)

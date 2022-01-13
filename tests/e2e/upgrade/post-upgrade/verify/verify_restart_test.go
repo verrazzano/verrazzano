@@ -5,12 +5,14 @@ package verify
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 )
 
 const (
@@ -49,7 +51,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// THEN verify that the have the verrazzano.io/restartedAt annotations
 	MinimumVerrazzanoIt("Verify pods in verrazzano-system restarted post upgrade", func() {
 		Eventually(func() bool {
-			return pkg.PodsHaveAnnotation(constants.VerrazzanoSystemNamespace, constants.VerrazzanoRestartAnnotation)
+			return pkg.PodsHaveAnnotation(constants.VerrazzanoSystemNamespace, vzconst.VerrazzanoRestartAnnotation)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in verrazzano-system")
 	})
 
@@ -58,7 +60,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// THEN verify that the have the verrazzano.io/restartedAt annotations
 	MinimumVerrazzanoIt("Verify pods in ingress-nginx restarted post upgrade", func() {
 		Eventually(func() bool {
-			return pkg.PodsHaveAnnotation(constants.IngressNginxNamespace, constants.VerrazzanoRestartAnnotation)
+			return pkg.PodsHaveAnnotation(constants.IngressNginxNamespace, vzconst.VerrazzanoRestartAnnotation)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in ingress-nginx")
 	})
 
@@ -67,7 +69,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// THEN verify that the have the verrazzano.io/restartedAt annotations
 	MinimumVerrazzanoIt("Verify pods in keycloak restarted post upgrade", func() {
 		Eventually(func() bool {
-			return pkg.PodsHaveAnnotation(constants.KeycloakNamespace, constants.VerrazzanoRestartAnnotation)
+			return pkg.PodsHaveAnnotation(constants.KeycloakNamespace, vzconst.VerrazzanoRestartAnnotation)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in keycloak")
 	})
 

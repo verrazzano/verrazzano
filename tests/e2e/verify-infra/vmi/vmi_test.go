@@ -250,9 +250,8 @@ var _ = t.Describe("VMI", func() {
 			)
 		})
 
-		t.It("Elasticsearch should be oss flavor", func() {
+		t.It("xpack plugin should not be bundled", func() {
 			elastic.Connect()
-			Expect(elastic.EsVersion.BuildFlavor).To(Equal("oss"), "elasticsearch should be oss flavor")
 			findLibs, _, _ := pkg.Execute("vmi-system-es-master-0", "es-master", verrazzanoNamespace, []string{"find", ".", "-name", "*x*pack*"})
 			Expect(strings.TrimSpace(findLibs)).To(Equal(""))
 			resp, _ := pkg.PostElasticsearch("_security/api_key", `{

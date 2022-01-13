@@ -411,7 +411,7 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 // template for the fluentd daemonset expects a Value.
 func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespace string) error {
 	// Get the fluentd daemonset resource
-	fluentdNamespacedName := types.NamespacedName{Name: "fluentd", Namespace: namespace}
+	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: namespace}
 	daemonSet := appsv1.DaemonSet{}
 	err := client.Get(context.TODO(), fluentdNamespacedName, &daemonSet)
 	if errors.IsNotFound(err) {
