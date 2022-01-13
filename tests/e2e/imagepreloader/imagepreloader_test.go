@@ -83,6 +83,11 @@ var _ = t.AfterSuite(func() {
 		}
 		return false
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	// Show the summary of images preloaded
+	for _, image := range imageList {
+		pkg.Log(pkg.Info, fmt.Sprintf("Image: %s, Loaded: %t", image.name, image.loaded))
+	}
 })
 
 var _ = t.Describe("Load Verrazzano Container Images", func() {
