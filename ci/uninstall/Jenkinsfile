@@ -121,12 +121,6 @@ pipeline {
     }
 
     stages {
-        environment {
-            SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-            SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-            SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-        }
-
         stage('Clean workspace and checkout') {
             steps {
                 sh """
@@ -331,6 +325,9 @@ pipeline {
         stage('Run Test') {
             environment {
                 TEST_ENV = "OKE"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
             parallel {
                 stage('verify-install') {
@@ -478,6 +475,9 @@ pipeline {
         stage('Rerun Test') {
             environment {
                 TEST_ENV = "OKE"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
             parallel {
                 stage('verify-install') {

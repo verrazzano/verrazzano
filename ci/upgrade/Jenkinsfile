@@ -109,12 +109,6 @@ pipeline {
     }
 
     stages {
-        environment {
-            SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-            SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-            SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-        }
-
         stage('Clean Workspace and Checkout') {
             steps {
                 sh """
@@ -243,7 +237,11 @@ pipeline {
         stage('Pre-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
+
             parallel {
                 stage('verify-install') {
                     steps {
@@ -531,6 +529,9 @@ pipeline {
         stage('Post-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
             parallel {
                 stage('verify-install') {
