@@ -4,6 +4,10 @@ package verrazzano
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,6 +35,26 @@ var crEnabled = vzapi.Verrazzano{
 			},
 		},
 	},
+}
+
+func readyOpenSearchPods() *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod",
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+			Labels: map[string]string{
+				"app": workloadName,
+			},
+		},
+		Status: corev1.PodStatus{
+			ContainerStatuses: []corev1.ContainerStatus{
+				{
+					Name:  containerName,
+					Ready: true,
+				},
+			},
+		},
+	}
 }
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
@@ -129,8 +153,13 @@ func TestIsReady(t *testing.T) {
 				UnavailableReplicas: 0,
 			},
 		},
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-			Namespace: globalconst.VerrazzanoSystemNamespace}},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "verrazzano",
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+			},
+		},
+		readyOpenSearchPods(),
 	)
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 	assert.True(t, NewComponent().IsReady(ctx))
@@ -279,7 +308,12 @@ func TestPreInstall(t *testing.T) {
 //  WHEN I call PostInstall
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
+	client := fake.NewFakeClientWithScheme(testScheme, readyOpenSearchPods())
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 	vzComp := NewComponent()
 
@@ -304,7 +338,12 @@ func TestPostInstall(t *testing.T) {
 //  WHEN I call PostUpgrade
 //  THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewFakeClientWithScheme(testScheme, readyOpenSearchPods())
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Version: "v1.2.0"},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"}}, false)
 	err := NewComponent().PostUpgrade(ctx)

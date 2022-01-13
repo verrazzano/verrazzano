@@ -76,8 +76,11 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1) {
 		return false
 	}
-	if _, ok := isOpenSearchReady(ctx, c.ChartNamespace); !ok {
-		return false
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		// If opensearch is enabled, we should wait for it to be ready
+		if _, ok := isOpenSearchReady(ctx, c.ChartNamespace); !ok {
+			return false
+		}
 	}
 	return isVerrazzanoSecretReady(ctx)
 }
