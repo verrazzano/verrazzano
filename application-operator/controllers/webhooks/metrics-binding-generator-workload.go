@@ -169,7 +169,7 @@ func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.U
 }
 
 // createOrUpdateMetricBinding creates/updates a metricsBinding resource and
-// adds the apps.verrazzano.io/metrics-scrape label to the workload resource
+// adds the apps.verrazzano.io/workload label to the workload resource
 func (a *GeneratorWorkloadWebhook) createOrUpdateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate) error {
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
@@ -210,6 +210,14 @@ func (a *GeneratorWorkloadWebhook) createOrUpdateMetricBinding(ctx context.Conte
 		generatorWorkloadLogger.Error(err, "error creating/updating metricsBinding resource")
 		return err
 	}
+
+	// Set the app.verrazzano.io/workload to identify the Prometheus config scrape target
+	labels := unst.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[constants.MetricsWorkloadLabel] = metricsBindingName
+	unst.SetLabels(labels)
 
 	return nil
 }

@@ -59,20 +59,28 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request) admission.R
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 
-	// Get the workload resource for the given pod
-	unstList, err := a.getWorkloadResource(nil, req.Namespace, pod.OwnerReferences)
-	if err != nil {
-		return admission.Errored(http.StatusInternalServerError, err)
+	var workloadLabel string
+	// Get the workload resource for the given pod if there are owner references
+	if len(pod.OwnerReferences) != 0 {
+		workloads, err := a.getWorkloadResource(nil, req.Namespace, pod.OwnerReferences)
+		if err != nil {
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+		if len(workloads) > 1 {
+			err = fmt.Errorf("multiple workload resources found for %s, Verrazzano metrics cannot be enabled", pod.Name)
+			labelerPodLogger.Error(err, "error identifying workload resource")
+			return admission.Errored(http.StatusInternalServerError, err)
+		}
+		workloadLabel = generateMetricsBindingName(workloads[0].GetName(), workloads[0].GetAPIVersion(), workloads[0].GetKind())
+	} else {
+		workloadLabel = generateMetricsBindingName(pod.Name, pod.APIVersion, pod.Kind)
 	}
 
-	// TODO: error if we have more than one workload resource
-
-	// Set the app.verrazzano.io/workload label which will be referenced in the Prometheus configuration
+	// Set the app.verrazzano.io/workload to identify the Prometheus config scrape target
 	labels := pod.GetLabels()
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	workloadLabel := generateMetricsBindingName(unstList[0].GetName(), unstList[0].GetAPIVersion(), unstList[0].GetKind())
 	labels[constants.MetricsWorkloadLabel] = workloadLabel
 	pod.SetLabels(labels)
 	labelerPodLogger.Info(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsWorkloadLabel, workloadLabel), "name", pod.GenerateName)
