@@ -14,7 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-const testNamespace string = "deploymetrics"
+const (
+	testNamespace     = "deploymetrics"
+	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+)
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 var waitTimeout = 10 * time.Minute
@@ -75,12 +78,8 @@ func undeployMetricsApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
-	}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Prometheus scraped metrics for App Component should have been deleted.")
-
-	Eventually(func() bool {
-		return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
-	}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Prometheus scraped metrics for App Config should have been deleted.")
+		return pkg.IsAppInPromConfig(promConfigJobName)
+	}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected App to be removed from Prometheus Config")
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
@@ -110,6 +109,14 @@ var _ = t.Describe("Verify DeployMetrics Application", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
+	t.Context("Prometheus Config.", func() {
+		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
+			Eventually(func() bool {
+				return pkg.IsAppInPromConfig(promConfigJobName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
 		})
 	})
 
