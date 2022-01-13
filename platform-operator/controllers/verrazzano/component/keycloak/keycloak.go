@@ -98,7 +98,7 @@ const pkceTmpl = `
       "webOrigins": [
         "https://verrazzano.{{.DNSSubDomain}}",
         "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
-        "https://prometheus.vmi.system.{{.DNSSubDomain}},
+        "https://prometheus.vmi.system.{{.DNSSubDomain}}",
         "https://grafana.vmi.system.{{.DNSSubDomain}}",
         "https://kibana.vmi.system.{{.DNSSubDomain}}"
       ],
@@ -1016,7 +1016,7 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 	}
 
 	// Create verrazzano-pkce client
-	vzPkceCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END\n" +
+	vzPkceCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
 		b.String() +
 		"END"
 
@@ -1037,7 +1037,7 @@ func createVerrazzanoPgClient(ctx spi.ComponentContext, cfg *restclient.Config, 
 	}
 
 	kcPod := keycloakPod()
-	vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END\n" +
+	vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
 		pgClient +
 		"END"
 	ctx.Log().Infof("createVerrazzanoPgClient: Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
