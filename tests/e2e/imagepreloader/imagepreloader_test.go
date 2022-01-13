@@ -218,7 +218,8 @@ func areImagesToLoaded(name string, namespace string) bool {
 	pod := podsList[0]
 	allImagesLoaded := true
 	for _, container := range pod.Status.EphemeralContainerStatuses {
-		if container.State.Terminated == nil || container.State.Terminated.Reason != "Completed" {
+		if (container.State.Terminated == nil || container.State.Terminated.Reason != "Completed") ||
+			(container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Reason != "Completed") {
 			allImagesLoaded = false
 			pkg.Log(pkg.Info, fmt.Sprintf("Image %s not loaded yet", container.Image))
 		}
