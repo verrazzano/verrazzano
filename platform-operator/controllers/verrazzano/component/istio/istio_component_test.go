@@ -18,6 +18,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -171,7 +172,7 @@ func getMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
 			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			deploy.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -179,7 +180,7 @@ func getMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
 			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			ss.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 
@@ -187,7 +188,7 @@ func getMock(t *testing.T) *mocks.MockClient {
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
 			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
+			ds.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = "some time"
 			return nil
 		}).AnyTimes()
 

@@ -215,6 +215,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if trait, err = vznav.FetchTrait(ctx, r, r.Log, req.NamespacedName); err != nil || trait == nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
+	r.Log.Info("trait fetched", "trait", trait, "finalizers", trait.Finalizers)
 
 	if trait.DeletionTimestamp.IsZero() {
 		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, trait)
@@ -264,7 +265,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 		return reconcile.Result{}, supported, err
 	}
 	if traitDefaults == nil || !supported {
-		return reconcile.Result{}, supported, nil
+		return reconcile.Result{Requeue: false}, supported, nil
 	}
 
 	var scraper *k8sapps.Deployment

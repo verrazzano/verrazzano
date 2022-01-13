@@ -12,7 +12,9 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -77,12 +79,14 @@ func removeNamespaceLogging(ctx context.Context, cli client.Client, namespace st
 		// if the config map exists, remove the namespace logging config
 		if !cm.ObjectMeta.CreationTimestamp.IsZero() {
 			removeNamespaceLoggingFromConfigMap(cm, namespace)
+			return nil
 		}
-		return nil
+		// return an error here, otherwise the configmap will get created and we don't want that
+		return k8serrors.NewNotFound(schema.ParseGroupResource("ConfigMap"), fluentdConfigMapName)
 	})
 
 	if err != nil {
-		return false, err
+		return false, client.IgnoreNotFound(err)
 	}
 
 	return opResult != controllerutil.OperationResultNone, nil
@@ -110,7 +114,7 @@ func addNamespaceLoggingToConfigMap(configMap *corev1.ConfigMap, namespace strin
 	if fluentdConfig, ok := configMap.Data[fluentdConfigKey]; ok {
 		includeLine := fmt.Sprintf("@include %s", nsConfigKey)
 		if !strings.Contains(fluentdConfig, includeLine) {
-			replace := fmt.Sprintf("%s\n  %s", startNamespaceConfigsMarker, includeLine)
+			replace := fmt.Sprintf("%s\n%s", startNamespaceConfigsMarker, includeLine)
 			fluentdConfig = strings.Replace(fluentdConfig, startNamespaceConfigsMarker, replace, 1)
 			configMap.Data[fluentdConfigKey] = fluentdConfig
 		}
@@ -130,7 +134,7 @@ func removeNamespaceLoggingFromConfigMap(configMap *corev1.ConfigMap, namespace 
 	if fluentdConfig, ok := configMap.Data[fluentdConfigKey]; ok {
 		includeLine := fmt.Sprintf("@include %s", nsConfigKey)
 		if strings.Contains(fluentdConfig, includeLine) {
-			toRemove := fmt.Sprintf("%s\n  ", includeLine)
+			toRemove := fmt.Sprintf("%s\n", includeLine)
 			fluentdConfig = strings.Replace(fluentdConfig, toRemove, "", 1)
 			configMap.Data[fluentdConfigKey] = fluentdConfig
 		}
