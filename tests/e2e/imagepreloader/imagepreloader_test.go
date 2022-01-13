@@ -6,6 +6,7 @@ package imagepreloader
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"text/template"
@@ -33,6 +34,18 @@ type imageState struct {
 const testNamespace string = "image-preloader"
 const testName string = "preloader-test"
 const bomPath string = "../../../platform-operator/verrazzano-bom.json"
+
+// The examples images are not contained with a BOM.  For now extract the
+// image names from the example files.
+// appMap - information about the image name of each application and where to find it
+type appMap struct {
+	imageName   string
+	exampleFile string
+}
+
+var applicationMap = map[string]appMap{
+	"example-roberts-coherence": {"container-registry.oracle.com/verrazzano/example-roberts-coherence", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+}
 
 var bom v8obom.Bom
 var imageList map[string]*imageState
@@ -180,6 +193,8 @@ func deployDaemonSet(name string, namespace string) error {
 // createImageList - create the list of container images to load into the cluster
 func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
 	imageMap := map[string]*imageState{}
+
+	// Process all the images from the BOM
 	for _, comp := range bom.GetComponents() {
 		for i, subComp := range comp.SubComponents {
 			for _, bomImage := range subComp.Images {
@@ -194,6 +209,14 @@ func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
 			}
 		}
 	}
+
+	// TODO: Extract the application images from the sample files
+	for _, app := range applicationMap {
+		// Read the file into a string
+		_, err := readFileToString(app.exampleFile)
+		Expect(err).ToNot(HaveOccurred())
+	}
+
 	return imageMap, nil
 }
 
@@ -258,4 +281,13 @@ func allImagesLoaded(name string, namespace string) bool {
 		pkg.Log(pkg.Info, "All images are loaded")
 	}
 	return allImagesLoaded
+}
+
+// readFileToString - read the contents of a file into a string
+func readFileToString(filename string) (string, error) {
+	content, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
 }
