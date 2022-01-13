@@ -24,12 +24,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type imageState struct {
+	name   string
+	loaded bool
+}
+
 const testNamespace string = "image-preloader"
 const testName string = "preloader-test"
 const bomPath string = "../../../platform-operator/verrazzano-bom.json"
 
 var bom v8obom.Bom
-var imageList map[string]string
+var imageList map[string]*imageState
 var podName string
 var kubeconfig string
 
@@ -125,13 +130,13 @@ var _ = t.Describe("Load Verrazzano Container Images", func() {
 			for name, image := range imageList {
 				// Use Eventually block because the kubectl commands can get a conflict error when executed so quickly in succession.
 				Eventually(func() error {
-					return injectImage(kubeconfig, testNamespace, name, image, testName)
-				}, shortWaitTimeout, pollingInterval).ShouldNot(HaveOccurred(), fmt.Sprintf("failed to inject image %s", image))
+					return injectImage(kubeconfig, testNamespace, name, image.name, testName)
+				}, shortWaitTimeout, pollingInterval).ShouldNot(HaveOccurred(), fmt.Sprintf("failed to inject image %s", image.name))
 			}
 		})
 		t.It(fmt.Sprintf("wait for all ephemeral containers in pod %s to complete", podName), func() {
 			Eventually(func() bool {
-				return areImagesToLoaded(testName, testNamespace)
+				return allImagesLoaded(testName, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "timed out waiting for images to load")
 		})
 	})
@@ -167,8 +172,8 @@ func deployDaemonSet(name string, namespace string) error {
 }
 
 // createImageList - create the list of container images to load into the cluster
-func createImageList(bom v8obom.Bom) (map[string]string, error) {
-	imageMap := map[string]string{}
+func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
+	imageMap := map[string]*imageState{}
 	for _, comp := range bom.GetComponents() {
 		for i, subComp := range comp.SubComponents {
 			for _, bomImage := range subComp.Images {
@@ -177,7 +182,10 @@ func createImageList(bom v8obom.Bom) (map[string]string, error) {
 				if bomImage.ImageName != "VERRAZZANO_APPLICATION_OPERATOR_IMAGE" &&
 					bomImage.ImageName != "VERRAZZANO_PLATFORM_OPERATOR_IMAGE" &&
 					bomImage.ImageName != "coherence-operator" {
-					imageMap[bomImage.ImageName] = fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&comp.SubComponents[i], bomImage), bom.ResolveRepo(&comp.SubComponents[i], bomImage), bomImage.ImageName, bomImage.ImageTag)
+					imageMap[bomImage.ImageName] = &imageState{
+						name:   fmt.Sprintf("%s/%s/%s:%s", bom.ResolveRegistry(&comp.SubComponents[i], bomImage), bom.ResolveRepo(&comp.SubComponents[i], bomImage), bomImage.ImageName, bomImage.ImageTag),
+						loaded: false,
+					}
 				}
 			}
 		}
@@ -205,8 +213,8 @@ func injectImage(kubeconfig string, namespace string, containerName string, imag
 	return nil
 }
 
-// areImagesToLoaded - wait for the images in the ephemeral containers to load
-func areImagesToLoaded(name string, namespace string) bool {
+// allImagesLoaded - check if all the images in the ephemeral containers have loaded
+func allImagesLoaded(name string, namespace string) bool {
 	// Get the pod
 	podsList, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"name": name}}, namespace)
 	if err != nil {
@@ -216,14 +224,27 @@ func areImagesToLoaded(name string, namespace string) bool {
 	// Loop through the ephemeral containers checking that they are all completed successfully
 	pkg.Log(pkg.Info, "Checking if all images are loaded")
 	pod := podsList[0]
-	allImagesLoaded := true
 	for _, container := range pod.Status.EphemeralContainerStatuses {
-		if (container.State.Terminated == nil || container.State.Terminated.Reason != "Completed") ||
-			(container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Reason != "Completed") {
-			allImagesLoaded = false
-			pkg.Log(pkg.Info, fmt.Sprintf("Image %s not loaded yet", container.Image))
+		// Skip if already marked as loaded
+		if !imageList[container.Name].loaded {
+			if (container.State.Terminated != nil && container.State.Terminated.Reason == "Completed") ||
+				(container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Reason == "Completed") {
+				imageList[container.Name].loaded = true
+			} else {
+				pkg.Log(pkg.Info, fmt.Sprintf("Image %s not loaded yet", container.Image))
+			}
 		}
 	}
+
+	// Determine if all images are loaded
+	allImagesLoaded := true
+	for _, image := range imageList {
+		if !image.loaded {
+			allImagesLoaded = false
+			break
+		}
+	}
+
 	if allImagesLoaded {
 		pkg.Log(pkg.Info, "All images are loaded")
 	}
