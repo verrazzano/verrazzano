@@ -210,7 +210,8 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                    ci/scripts/prepare_jenkins_at_environment_step1.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                    ci/scripts/prepare_jenkins_at_environment_step2.sh ${params.WILDCARD_DNS_DOMAIN}
                 """
             }
             post {

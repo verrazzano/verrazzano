@@ -1,0 +1,66 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{.test_name}}
+  namespace: {{.test_namespace}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{.test_name}}
+  namespace: {{.test_namespace}}
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{.test_name}}
+  namespace: {{.test_namespace}}
+subjects:
+  - kind: ServiceAccount
+    name: {{.test_name}}
+    apiGroup: ""
+roleRef:
+  kind: Role
+  name: {{.test_name}}
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{.test_name}}
+  namespace: {{.test_namespace}}
+  labels:
+    k8s-app: {{.test_name}}
+spec:
+  selector:
+    matchLabels:
+      name: {{.test_name}}
+  template:
+    metadata:
+      labels:
+        name: {{.test_name}}
+    spec:
+      containers:
+        - name: {{.test_name}}
+          image: ghcr.io/oracle/oraclelinux:8-slim
+          command: ["sleep"]
+          args: ["infinity"]
+          resources:
+            limits:
+              memory: 200Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
+      terminationGracePeriodSeconds: 30

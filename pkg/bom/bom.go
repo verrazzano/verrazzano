@@ -145,7 +145,7 @@ func (b *Bom) init(jsonBom string) error {
 	}
 
 	// Build a map of subcomponents
-	for _, comp := range b.bomDoc.Components {
+	for _, comp := range b.GetComponents() {
 		for i, sub := range comp.SubComponents {
 			b.subComponentMap[sub.Name] = &comp.SubComponents[i]
 		}
@@ -161,6 +161,11 @@ func (b *Bom) GetRegistry() string {
 // GetVersion gets the BOM product version
 func (b *Bom) GetVersion() string {
 	return b.bomDoc.Version
+}
+
+// GetComponents gets the list of all components
+func (b *Bom) GetComponents() []BomComponent {
+	return b.bomDoc.Components
 }
 
 // GetSubcomponent gets the bom subcomponent

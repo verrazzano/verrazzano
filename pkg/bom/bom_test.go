@@ -178,7 +178,7 @@ func TestFakeBom(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
-	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
+	assert.Len(bom.GetComponents(), 14, "incorrect number of Bom components")
 
 	validateImages(assert, &bom, true)
 }
@@ -192,7 +192,7 @@ func TestRealBom(t *testing.T) {
 	bom, err := NewBom(realBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
-	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
+	assert.Len(bom.GetComponents(), 14, "incorrect number of Bom components")
 
 	// Ignore the values in the real bom file since some will change every build
 	validateImages(assert, &bom, false)
@@ -202,7 +202,7 @@ func TestRealBom(t *testing.T) {
 // Optionall check the image Value.
 func validateImages(assert *assert.Assertions, bom *Bom, checkImageVal bool) {
 	// Validate each component
-	for _, comp := range bom.bomDoc.Components {
+	for _, comp := range bom.GetComponents() {
 		for _, sub := range comp.SubComponents {
 			// Get the expected Key:Value pair overrides for this subcomponent
 			expectedSub := testSubcomponetHelmKeyValues[sub.Name]
