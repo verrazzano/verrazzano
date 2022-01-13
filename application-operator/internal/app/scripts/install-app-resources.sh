@@ -19,12 +19,12 @@ kubectl apply -f - <<-EOF
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: verrazzano-application-scrape-generator
+  name: verrazzano-application-metrics-binding
   namespace: verrazzano-system
   labels:
     app: verrazzano-application-operator
 webhooks:
-  - name: verrazzano-application-scrape-workload-generator.verrazzano.io
+  - name: metrics-binding-generator-workload.verrazzano.io
     namespaceSelector:
       matchLabels:
         verrazzano-managed: "true"
@@ -32,7 +32,7 @@ webhooks:
       service:
         name: verrazzano-application-operator
         namespace: verrazzano-system
-        path: "/scrape-generator-workload"
+        path: "/metrics-binding-generator-workload"
     rules:
       - operations: ["CREATE","UPDATE"]
         apiGroups: ["*"]
@@ -46,7 +46,7 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
-  - name: verrazzano-application-scrape-pod-generator.verrazzano.io
+  - name: metrics-binding-labeler-pod.verrazzano.io
     namespaceSelector:
       matchLabels:
         verrazzano-managed: "true"
@@ -54,7 +54,7 @@ webhooks:
       service:
         name: verrazzano-application-operator
         namespace: verrazzano-system
-        path: "/scrape-generator-pod"
+        path: "/metrics-binding-labeler-pod"
     rules:
       - operations: ["CREATE"]
         apiGroups: [""]
