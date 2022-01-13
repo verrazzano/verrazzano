@@ -91,16 +91,21 @@ fi
 #create the yaml file
 SECTION_PROPS=$(read_config $OCI_CONFIG_FILE $SECTION *)
 eval $SECTION_PROPS
-echo "auth:" > $OUTPUT_FILE
-echo "  region: $region" >> $OUTPUT_FILE
-echo "  tenancy: $tenancy" >> $OUTPUT_FILE
-echo "  user: $user" >> $OUTPUT_FILE
-echo "  key: |" >> $OUTPUT_FILE
-cat $key_file | sed 's/^/    /' >> $OUTPUT_FILE
-echo "  fingerprint: $fingerprint" >> $OUTPUT_FILE
-echo "  authtype: ${OCI_AUTH_TYPE}" >> $OUTPUT_FILE
-if [[ ! -z "$pass_phrase" ]]; then
-  echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
+if [ ${OCI_AUTH_TYPE} == "instance_principal" ] ; then
+  echo "auth:" > $OUTPUT_FILE
+  echo "  authtype: instance_principal" >> $OUTPUT_FILE
+else
+  echo "auth:" > $OUTPUT_FILE
+  echo "  region: $region" >> $OUTPUT_FILE
+  echo "  tenancy: $tenancy" >> $OUTPUT_FILE
+  echo "  user: $user" >> $OUTPUT_FILE
+  echo "  key: |" >> $OUTPUT_FILE
+  cat $key_file | sed 's/^/    /' >> $OUTPUT_FILE
+  echo "  fingerprint: $fingerprint" >> $OUTPUT_FILE
+  echo "  authtype: ${OCI_AUTH_TYPE}" >> $OUTPUT_FILE
+  if [[ ! -z "$pass_phrase" ]]; then
+    echo "  passphrase: $pass_phrase" >> $OUTPUT_FILE
+  fi
 fi
 
 # create the secret in verrazzano-install namespace
