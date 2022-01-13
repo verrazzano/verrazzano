@@ -96,7 +96,6 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request) admission.R
 // getWorkloadResource traverses a nested array of owner references and returns a list of resources
 // that have no owner references.  Most likely, the list will have only one resource
 func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstructured, namespace string, ownerRefs []metav1.OwnerReference) ([]*unstructured.Unstructured, error) {
-	labelerPodLogger.Info(fmt.Sprintf("1. ownreferences count: %d", len(ownerRefs)))
 	for _, ownerRef := range ownerRefs {
 		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
 		resource := schema.GroupVersionResource{
@@ -114,7 +113,6 @@ func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstru
 		if len(unst.GetOwnerReferences()) == 0 {
 			resources = append(resources, unst)
 		} else {
-			labelerPodLogger.Info(fmt.Sprintf("2. ownreferences count: %d", len(ownerRefs)))
 			resources, err = a.getWorkloadResource(resources, namespace, unst.GetOwnerReferences())
 			if err != nil {
 				return nil, err

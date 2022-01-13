@@ -40,8 +40,8 @@ func newGeneratorWorkloadWebhook() GeneratorWorkloadWebhook {
 	return v
 }
 
-// newScrapeGeneratorRequest creates a new admissionRequest with the provided operation and object.
-func newScrapeGeneratorRequest(op admissionv1beta1.Operation, kind string, obj interface{}) admission.Request {
+// newGeneratorWorkloadRequest creates a new admissionRequest with the provided operation and object.
+func newGeneratorWorkloadRequest(op admissionv1beta1.Operation, kind string, obj interface{}) admission.Request {
 	raw := runtime.RawExtension{}
 	bytes, _ := json.Marshal(obj)
 	raw.Raw = bytes
@@ -71,7 +71,7 @@ func TestHandlePod(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testPod))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Pod", testPod)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Pod", testPod)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -93,7 +93,7 @@ func TestHandleDeployment(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -115,7 +115,7 @@ func TestHandleReplicaSet(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testReplicaSet))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -137,7 +137,7 @@ func TestHandleStatefulSet(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testStatefulSet))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "StatefulSet", testStatefulSet)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "StatefulSet", testStatefulSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -164,7 +164,7 @@ func TestHandleOwnerRefs(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Nil(t, res.Patches, "expected no changes to workload resource")
@@ -193,7 +193,7 @@ func TestHandleMetricsNone(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Nil(t, res.Patches, "expected no changes to workload resource")
@@ -223,7 +223,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
 	assert.Equal(t, "metricstemplates.app.verrazzano.io \"badTemplate\" not found", res.Result.Message)
@@ -272,7 +272,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Len(t, res.Patches, 1)
@@ -328,7 +328,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Len(t, res.Patches, 1)
@@ -378,7 +378,7 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
 	assert.Equal(t, "configmaps \"testPromConfigMap\" not found", res.Result.Message)
@@ -435,7 +435,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Len(t, res.Patches, 1)
@@ -498,7 +498,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Len(t, res.Patches, 1)
@@ -561,7 +561,7 @@ func TestHandleMatchNotFound(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
@@ -610,7 +610,7 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
@@ -654,7 +654,7 @@ func TestHandleNoConfigMap(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)

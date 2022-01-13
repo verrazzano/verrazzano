@@ -43,7 +43,7 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 // TestNoOwnerReferences tests the handling of a Pod resource
 // GIVEN a call to the webhook Handle function
 // WHEN the pod resource has no owner references
-// THEN the Handle function should succeed and the pod is not mutated
+// THEN the Handle function should succeed and the pod is mutated
 func TestNoOwnerReferences(t *testing.T) {
 	a := newLabelerPodWebhook()
 
@@ -64,123 +64,17 @@ func TestNoOwnerReferences(t *testing.T) {
 	res := a.Handle(context.TODO(), req)
 
 	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 0)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 }
 
-// TestOwnerReferenceNoLabel tests the handling of a Pod resource
+// TestOwnerReference tests the handling of a Pod resource
 // GIVEN a call to the webhook Handle function
-// WHEN the pod resource has one owner reference and that owner reference
-//   is missing the app.verrazzano.io/metrics-binding label
-// THEN the Handle function should succeed and the pod is not mutated
-func TestOwnerReferenceNoLabel(t *testing.T) {
-	a := newLabelerPodWebhook()
-
-	// Create a replica set with no owner reference
-	u := newUnstructured("apps/v1", "ReplicaSet", "test-replicaSet")
-	resource := schema.GroupVersionResource{
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "replicasets",
-	}
-	_, err := a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
-	assert.NoError(t, err, "Unexpected error creating replica set")
-
-	// Create the pod with an owner reference
-	pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "default",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Name:       "test-replicaSet",
-					Kind:       "ReplicaSet",
-					APIVersion: "apps/v1",
-				},
-			},
-		},
-	}
-	assert.NoError(t, a.Client.Create(context.TODO(), &pod))
-
-	req := admission.Request{}
-	req.Namespace = "default"
-	marshaledPod, err := json.Marshal(pod)
-	assert.NoError(t, err, "Unexpected error marshaling pod")
-	req.Object = runtime.RawExtension{Raw: marshaledPod}
-	res := a.Handle(context.TODO(), req)
-
-	assert.True(t, res.Allowed)
-	assert.Empty(t, res.Patches)
-}
-
-// TestMultipleOwnerReferenceNoLabel tests the handling of a Pod resource
-// GIVEN a call to the webhook Handle function
-// WHEN the pod resource has nested owner reference and all owner references
-//   are missing the app.verrazzano.io/metrics-binding label
-// THEN the Handle function should succeed and the pod is not mutated
-func TestMultipleOwnerReferenceNoLabel(t *testing.T) {
-	a := newLabelerPodWebhook()
-
-	// Create a deployment with no owner reference
-	u := newUnstructured("apps/v1", "Deployment", "test-deployment")
-	resource := schema.GroupVersionResource{
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "deployments",
-	}
-	_, err := a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
-	assert.NoError(t, err, "Unexpected error creating deployment")
-
-	// Create a replica set with an owner reference
-	u = newUnstructured("apps/v1", "ReplicaSet", "test-replicaSet")
-	ownerReferences := []metav1.OwnerReference{
-		{
-			Name:       "test-deployment",
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-	}
-	u.SetOwnerReferences(ownerReferences)
-	resource = schema.GroupVersionResource{
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "replicasets",
-	}
-	_, err = a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
-	assert.NoError(t, err, "Unexpected error creating replica set")
-
-	// Create the pod with an owner reference
-	pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "default",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Name:       "test-replicaSet",
-					Kind:       "ReplicaSet",
-					APIVersion: "apps/v1",
-				},
-			},
-		},
-	}
-	assert.NoError(t, a.Client.Create(context.TODO(), &pod))
-
-	req := admission.Request{}
-	req.Namespace = "default"
-	marshaledPod, err := json.Marshal(pod)
-	assert.NoError(t, err, "Unexpected error marshaling pod")
-	req.Object = runtime.RawExtension{Raw: marshaledPod}
-	res := a.Handle(context.TODO(), req)
-
-	assert.True(t, res.Allowed)
-	assert.Empty(t, res.Patches)
-}
-
-// TestOwnerReferenceLabel tests the handling of a Pod resource
-// GIVEN a call to the webhook Handle function
-// WHEN the pod resource has one owner reference and that owner reference
-//   contains the app.verrazzano.io/metrics-binding label
+// WHEN the pod resource has one owner reference
 // THEN the Handle function should succeed and the pod is mutated
-func TestOwnerReferenceLabel(t *testing.T) {
+func TestOwnerReference(t *testing.T) {
 	a := newLabelerPodWebhook()
 
 	// Create a replica set with no owner reference
@@ -224,12 +118,12 @@ func TestOwnerReferenceLabel(t *testing.T) {
 	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 }
 
-// TestMultipleOwnerReferenceLabel tests the handling of a Pod resource
+// TestMultipleOwnerReference tests the handling of a Pod resource
 // GIVEN a call to the webhook Handle function
 // WHEN the pod resource has nested owner references and the 2nd owner reference
-//   contains the app.verrazzano.io/metrics-binding label
+//   is the workload resource
 // THEN the Handle function should succeed and the pod is mutated
-func TestMultipleOwnerReferenceLabel(t *testing.T) {
+func TestMultipleOwnerReference(t *testing.T) {
 	a := newLabelerPodWebhook()
 
 	// Create a deployment with no owner reference
@@ -289,4 +183,84 @@ func TestMultipleOwnerReferenceLabel(t *testing.T) {
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+}
+
+// TestMultipleOwnerReferenceAndWorkloadResources tests the handling of a Pod resource
+// GIVEN a call to the webhook Handle function
+// WHEN the pod resource has nested owner references and two owner references are found to be
+//   a workload resource
+// THEN the Handle function should fail and return an error
+func TestMultipleOwnerReferenceAndWorkloadResources(t *testing.T) {
+	a := newLabelerPodWebhook()
+
+	// Create a deployment with no owner reference
+	u := newUnstructured("apps/v1", "Deployment", "test-deployment")
+	resource := schema.GroupVersionResource{
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "deployments",
+	}
+	u.SetLabels(map[string]string{constants.MetricsWorkloadLabel: "testValue"})
+	_, err := a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating deployment")
+
+	// Create another deployment with no owner reference
+	u = newUnstructured("apps/v1", "Deployment", "test-deployment2")
+	resource = schema.GroupVersionResource{
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "deployments",
+	}
+	u.SetLabels(map[string]string{constants.MetricsWorkloadLabel: "testValue"})
+	_, err = a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating deployment")
+
+	// Create a replica set with two owner references
+	u = newUnstructured("apps/v1", "ReplicaSet", "test-replicaSet")
+	resource = schema.GroupVersionResource{
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "replicasets",
+	}
+	ownerReferences := []metav1.OwnerReference{
+		{
+			Name:       "test-deployment",
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		{
+			Name:       "test-deployment2",
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+	}
+	u.SetOwnerReferences(ownerReferences)
+	_, err = a.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
+	assert.NoError(t, err, "Unexpected error creating replica set")
+
+	// Create the pod with an owner reference
+	pod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Name:       "test-replicaSet",
+					Kind:       "ReplicaSet",
+					APIVersion: "apps/v1",
+				},
+			},
+		},
+	}
+	assert.NoError(t, a.Client.Create(context.TODO(), &pod))
+
+	req := admission.Request{}
+	req.Namespace = "default"
+	marshaledPod, err := json.Marshal(pod)
+	assert.NoError(t, err, "Unexpected error marshaling pod")
+	req.Object = runtime.RawExtension{Raw: marshaledPod}
+	res := a.Handle(context.TODO(), req)
+
+	assert.False(t, res.Allowed)
+	assert.Equal(t, "multiple workload resources found for test, Verrazzano metrics cannot be enabled", res.Result.Message)
 }
