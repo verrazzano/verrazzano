@@ -40,9 +40,9 @@ Use the following steps to demonstrate the function of the metrics template scra
 - The endpoint `https://<pod-url>:8080/metrics` should successfully communicate metrics to Prometheus.
     
 ## Acceptance Tests
-The acceptance tests for this feature are not runnable from Jenkins as this time and must be run locally.
+The acceptance tests for this feature are not runnable from Jenkins at this time and must be run locally.
 To run the accceptance tests:
 
 1. Run steps 1--3 from the Demo Instructions above
 2. cd ../../../tests/e2e
-3. ginkgo -v --no-color scrapegenerator/...
+3. ginkgo -v --no-color metricsbinding/...

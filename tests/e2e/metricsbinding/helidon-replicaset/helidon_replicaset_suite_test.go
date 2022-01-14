@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package scrapestatefulsetworkload
+package replicasetworkload
 
 import (
 	"testing"
@@ -10,8 +10,8 @@ import (
 	"github.com/onsi/gomega"
 )
 
-// TestHelidonStatefulSetWorkload tests a helidon statefulset workload for Prometheus metric scraping
-func TestHelidonStatefulSetWorkload(t *testing.T) {
+// TestHelidonReplicaSetWorkload tests a helidon replicaset workload for Prometheus metric scraping
+func TestHelidonReplicaSetWorkload(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Helidon StatefulSet Workload Test Suite")
+	ginkgo.RunSpecs(t, "Helidon ReplicaSet Workload Test Suite")
 }
