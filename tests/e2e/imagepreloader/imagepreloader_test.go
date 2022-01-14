@@ -222,10 +222,10 @@ func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
 
 	// Extract the example images from the example files
 	for _, app := range exampleImages {
-		imageUrl, err := getExampleImageURL(app)
+		imageURL, err := getExampleImageURL(app)
 		Expect(err).ToNot(HaveOccurred())
 		imageMap[app.containerName] = &imageState{
-			name:   imageUrl,
+			name:   imageURL,
 			loaded: false,
 		}
 	}
