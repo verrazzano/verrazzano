@@ -5,14 +5,13 @@ package namespace
 import (
 	"context"
 	"fmt"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -210,7 +209,7 @@ func namespaceScanner(nc *NamespaceController, log logr.Logger, period int, unit
 		log.V(1).Info(fmt.Sprintf("Delay %v seconds", delay.Seconds()))
 		time.Sleep(delay)
 		if completed, err := nc.scanNamespaces(context.Background(), log); !completed {
-			// the scan didn't complete either due to an error or a failure to acquire the lock
+			// the scan didn't complete due to an error
 			if err != nil {
 				log.Error(err, "Error on periodic namespace scan")
 			}

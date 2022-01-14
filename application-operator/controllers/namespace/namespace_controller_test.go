@@ -684,7 +684,7 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 // Test_scanNamespaces tests the scanNamespaces method for the following use case
 // GIVEN a request to scanNamespaces
 // WHEN a valid list of Namespaces are returned
-// THEN true and no error are returned, and the controller lock is UNLOCKED
+// THEN true and no error are returned
 func Test_scanNamespaces(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -729,7 +729,7 @@ func Test_scanNamespaces(t *testing.T) {
 // Test_scanNamespacesFailure tests the scanNamespaces method for the following use case
 // GIVEN a request to scanNamespaces
 // WHEN an error occurs
-// THEN false and an error are returned, and the controller lock is UNLOCKED
+// THEN false and an error are returned
 func Test_scanNamespacesFailure(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -768,7 +768,7 @@ func Test_scanNamespacesFailure(t *testing.T) {
 // Test_namespaceScanner tests the namespaceScanner method for the following use case (mainly code coverage and simple validation)
 // GIVEN a request to namespaceScanner
 // WHEN no errors are encountered
-// THEN the happy path executes without an issue and the controller lock is UNLOCKED
+// THEN the happy path executes without an issue
 func Test_namespaceScanner(t *testing.T) {
 	asserts := assert.New(t)
 
