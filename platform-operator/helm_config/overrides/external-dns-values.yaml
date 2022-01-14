@@ -6,7 +6,7 @@
 # the bill of materials file (verrazzano-bom.json).
 
 interval: "24h"
-logLevel: info
+logLevel: debug
 registry: "txt"
 policy: sync
 provider: oci
