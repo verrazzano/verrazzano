@@ -49,12 +49,18 @@ var exampleImages = []exampleApp{
 	{"example-roberts-helidon-stock-application", "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application", "../../../examples/bobs-books/bobs-books-comp.yaml"},
 	{"example-bobbys-coherence", "container-registry.oracle.com/verrazzano/example-bobbys-coherence", "../../../examples/bobs-books/bobs-books-comp.yaml"},
 	{"example-bobbys-helidon-stock-application", "container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application", "../../../examples/bobs-books/bobs-books-comp.yaml"},
-	{"weblogic", "container-registry.oracle.com/middleware/weblogic", "../../../examples/bobs-books/bobs-books-comp.yaml"},
-	{"example-bobbys-front-end", "container-registry.oracle.com/verrazzano/example-bobbys-front-end", "../../../examples/bobs-books/bobs-books-comp.yaml"},
-	{"example-bobs-books-order-manager", "container-registry.oracle.com/verrazzano/example-bobs-books-order-manager", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	//{"weblogic", "container-registry.oracle.com/middleware/weblogic", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	//{"example-bobbys-front-end", "container-registry.oracle.com/verrazzano/example-bobbys-front-end", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	//{"example-bobs-books-order-manager", "container-registry.oracle.com/verrazzano/example-bobs-books-order-manager", "../../../examples/bobs-books/bobs-books-comp.yaml"},
 	{"example-helidon-greet-app-v1", "ghcr.io/verrazzano/example-helidon-greet-app-v1", "../../../examples/hello-helidon/hello-helidon-comp.yaml"},
 	{"example-springboot", "ghcr.io/verrazzano/example-springboot", "../../../examples/springboot-app/springboot-comp.yaml"},
 	{"example-todo", "container-registry.oracle.com/verrazzano/example-todo", "../../../examples/todo-list/todo-list-components.yaml"},
+	{"coherence-helidon-sockshop-carts", "ghcr.io/oracle/coherence-helidon-sockshop-carts", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
+	{"coherence-helidon-sockshop-catalog", "ghcr.io/oracle/coherence-helidon-sockshop-catalog", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
+	{"coherence-helidon-sockshop-orders", "ghcr.io/oracle/coherence-helidon-sockshop-orders", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
+	{"coherence-helidon-sockshop-payment", "ghcr.io/oracle/coherence-helidon-sockshop-payment", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
+	{"coherence-helidon-sockshop-shipping", "ghcr.io/oracle/coherence-helidon-sockshop-shipping", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
+	{"coherence-helidon-sockshop-users", "ghcr.io/oracle/coherence-helidon-sockshop-users", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
 }
 
 var bom v8obom.Bom
@@ -63,6 +69,7 @@ var podName string
 var kubeconfig string
 
 var waitTimeout = 10 * time.Minute
+var longWaitTimeout = 15 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortWaitTimeout = 5 * time.Minute
 var shortPollingInterval = 10 * time.Second
@@ -166,7 +173,7 @@ var _ = t.Describe("Load Verrazzano Container Images", func() {
 		t.It(fmt.Sprintf("wait for all ephemeral containers in pod %s to complete", podName), func() {
 			Eventually(func() bool {
 				return allImagesLoaded(testName, testNamespace)
-			}, waitTimeout, pollingInterval).Should(BeTrue(), "timed out waiting for images to load")
+			}, longWaitTimeout, pollingInterval).Should(BeTrue(), "timed out waiting for images to load")
 		})
 	})
 	metrics.Emit(t.Metrics.With("images_load_elapsed_time", time.Since(start).Milliseconds()))
