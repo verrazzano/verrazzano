@@ -28,7 +28,7 @@ import (
 	"time"
 )
 
-// TestReconcilerSetupWithManager test the creation of the metrics trait reconciler.
+// TestReconcilerSetupWithManager test the creation of the metrics binding reconciler.
 // GIVEN a controller implementation
 // WHEN the controller is created
 // THEN verify no error is returned
@@ -88,7 +88,7 @@ func TestGetPromConfigMap(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	reconciler := newReconciler(mock)
 
-	template := reconciler.getPromConfigMap(&metricsBinding)
+	template := reconciler.getPromConfigMapTemplate(&metricsBinding)
 	assert.NotNil(template)
 }
 

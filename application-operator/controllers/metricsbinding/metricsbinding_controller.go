@@ -132,7 +132,7 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding) 
 func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBinding *vzapi.MetricsBinding, mutateFn func(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap) error) error {
 	r.Log.V(2).Info("Mutating the Prometheus Scrape Config", "resource", metricsBinding.GetName())
 
-	var configMap = r.getPromConfigMap(metricsBinding) // Apply the updated configmap
+	var configMap = r.getPromConfigMapTemplate(metricsBinding) // Apply the updated configmap
 	r.Log.Info("Prometheus target ConfigMap is being altered", "resource", configMap.GetName())
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, configMap, func() error {
 		return mutateFn(metricsBinding, configMap)
@@ -304,7 +304,7 @@ func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding) (*
 }
 
 // getPromConfigMap returns the Prometheus ConfigMap given in the MetricsBinding
-func (r *Reconciler) getPromConfigMap(metricsBinding *vzapi.MetricsBinding) *k8scorev1.ConfigMap {
+func (r *Reconciler) getPromConfigMapTemplate(metricsBinding *vzapi.MetricsBinding) *k8scorev1.ConfigMap {
 	targetConfigMap := metricsBinding.Spec.PrometheusConfigMap
 	return &k8scorev1.ConfigMap{
 		TypeMeta: k8smetav1.TypeMeta{
