@@ -16,7 +16,6 @@ import (
 const (
 	testWorkload1 = "testWorkload1"
 	testWorkload2 = "testWorkload2"
-	testCMName    = "test-CM-Name"
 )
 
 var testMWC = admissionv1.MutatingWebhookConfiguration{
@@ -42,7 +41,7 @@ var testMWC = admissionv1.MutatingWebhookConfiguration{
 
 var testConfigMap = corev1.ConfigMap{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      testCMName,
+		Name:      ConfigMapName,
 		Namespace: constants.VerrazzanoSystemNamespace,
 	},
 	Data: map[string]string{

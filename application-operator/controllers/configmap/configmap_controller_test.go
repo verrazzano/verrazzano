@@ -150,7 +150,7 @@ func TestReconcile(t *testing.T) {
 	expectConfigMap(mock, localCM)
 	expectMWC(mock, localMWC)
 
-	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testCMName}})
+	_, err := reconciler.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: ConfigMapName}})
 	assert.NoError(err, "Expected no error reconciling the create or update of the ConfigMap")
 	assert.Equal(append(defaultResourceList, strings.ToLower(testWorkload1), strings.ToLower(testWorkload2)), localMWC.Webhooks[0].Rules[0].Resources)
 }
@@ -182,7 +182,7 @@ func newReconciler(c client.Client) Reconciler {
 
 // expectConfigMap creates the mock calls for controllerutil.CreateOrUpdate for the ConfigMap
 func expectConfigMap(mock *mocks.MockClient, configMap *k8score.ConfigMap) {
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testCMName}, gomock.Not(gomock.Nil())).DoAndReturn(
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: ConfigMapName}, gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
 			cm.Data = configMap.Data
 			return nil
@@ -210,7 +210,7 @@ func expectReconcileGet(mock *mocks.MockClient, configuration *admissionv1.Mutat
 			mwc.Webhooks = configuration.Webhooks
 			return nil
 		})
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: testCMName}, gomock.Not(gomock.Nil())).DoAndReturn(
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: ConfigMapName}, gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, cm *k8score.ConfigMap) error {
 			cm.ObjectMeta = configMap.ObjectMeta
 			cm.Data = configMap.Data

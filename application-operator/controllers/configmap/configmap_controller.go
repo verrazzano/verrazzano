@@ -40,6 +40,11 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		return reconcile.Result{}, k8sclient.IgnoreNotFound(err)
 	}
 
+	// Do nothing if it is the wrong ConfigMap
+	if configMap.GetName() != ConfigMapName || configMap.GetNamespace() != constants.VerrazzanoSystemNamespace {
+		return reconcile.Result{}, nil
+	}
+
 	// fetch the Webhook
 	mwc := admissionv1.MutatingWebhookConfiguration{}
 	mwcName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: mutatingWebhookConfigName}

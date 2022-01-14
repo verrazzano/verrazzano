@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	ConfigMapName             = "metrics-workload-resources"
 	mutatingWebhookConfigName = "verrazzano-application-metrics-binding"
 	WebhookName               = "verrazzano-application-scrape-workload-generator.verrazzano.io"
 	finalizerName             = "configmap.finalizers.verrazzano.io/finalizer"
