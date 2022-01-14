@@ -288,11 +288,8 @@ func allImagesLoaded(name string, namespace string) bool {
 		// Skip if already marked as loaded
 		if !imageList[container.Name].loaded {
 			if (container.State.Terminated != nil && container.State.Terminated.Reason == "Completed") ||
-				(container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Reason == "Completed") {
-				imageList[container.Name].loaded = true
-			} else if container.Name == "coherence-operator" && container.LastTerminationState.Terminated != nil &&
-				container.LastTerminationState.Terminated.Reason == "StartError" {
-				// Special case coherence-operator - unable to override entrypoint because the image does not contain an OS
+				(container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Reason == "Completed") ||
+				(container.LastTerminationState.Terminated != nil && container.LastTerminationState.Terminated.Reason == "StartError") {
 				imageList[container.Name].loaded = true
 			} else {
 				pkg.Log(pkg.Info, fmt.Sprintf("Image %s not loaded yet", container.Image))
