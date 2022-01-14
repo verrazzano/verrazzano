@@ -100,8 +100,8 @@ const VerrazzanoUsernameData = "username"
 // VerrazzanoPasswordData - the field name in Verrazzano secret that contains the password
 const VerrazzanoPasswordData = "password"
 
-// MetricsBindingLabel - the label for identifying a pods scrape target
-const MetricsBindingLabel = "app.verrazzano.io/metrics-binding"
+// MetricsWorkloadLabel - the label for identifying a pods scrape target
+const MetricsWorkloadLabel = "app.verrazzano.io/workload"
 
 // Webhook success status
 const StatusReasonSuccess = "success"
