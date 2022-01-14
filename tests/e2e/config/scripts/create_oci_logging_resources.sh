@@ -51,5 +51,14 @@ fi
 
 APP_LOG_ID=$(echo ${LOG_RESPONSE} | jq -r '.data.resources[].identifier')
 
+# Create an OCI Log for a specific namespace
+LOG_RESPONSE=$(oci logging log create --log-group-id ${LOG_GROUP_ID} --display-name "ns-log-${SUFFIX}" --log-type CUSTOM --wait-for-state SUCCEEDED)
+if [ $? -ne 0 ]; then
+    echo Failed creating OCI Log for namespace logs
+    exit 1
+fi
+
+NS_LOG_ID=$(echo ${LOG_RESPONSE} | jq -r '.data.resources[].identifier')
+
 # Output results in json
-echo "{\"logGroupId\":\"${LOG_GROUP_ID}\",\"systemLogId\":\"${SYSTEM_LOG_ID}\",\"appLogId\":\"${APP_LOG_ID}\",\"suffix\":\"${SUFFIX}\"}"
+echo "{\"logGroupId\":\"${LOG_GROUP_ID}\",\"systemLogId\":\"${SYSTEM_LOG_ID}\",\"appLogId\":\"${APP_LOG_ID}\",\"nsLogId\":\"${NS_LOG_ID}\",\"suffix\":\"${SUFFIX}\"}"

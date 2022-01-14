@@ -48,7 +48,7 @@ var listOfNamespaces = []string{
 	"verrazzano-system",
 }
 
-var t = framework.NewTestFramework("helidon")
+var t = framework.NewTestFramework("registry")
 
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})
@@ -78,6 +78,7 @@ var _ = t.Describe("Private Registry Verification",
 						pod = pods.Items[j]
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
 						for k := range pod.Spec.Containers {
+<<<<<<< HEAD
 							if imageRegistrySelection == harborEphemeral && !strings.HasPrefix(pod.Spec.Containers[k].Image, goHarborImagePrefix) {
 								// Assertion only when the image registry selection is ephemeral harbor and excluding the images originating from harbor installation
 								Expect(strings.HasPrefix(pod.Spec.Containers[k].Image, imagePrefix)).To(BeTrue(),
@@ -90,8 +91,25 @@ var _ = t.Describe("Private Registry Verification",
 						for k := range pod.Spec.InitContainers {
 							Expect(strings.HasPrefix(pod.Spec.InitContainers[k].Image, imagePrefix)).To(BeTrue(),
 								fmt.Sprintf("FAIL: The image for the pod %s in initContainers, doesn't starts with expected registry URL prefix %s, image name %s", pod.Name, imagePrefix, pod.Spec.InitContainers[k].Image))
+							assertImageRegistryURLOfPod(pod.Name, pod.Spec.Containers[k].Image, imagePrefix, "containers")
+						}
+						for k := range pod.Spec.InitContainers {
+							assertImageRegistryURLOfPod(pod.Name, pod.Spec.InitContainers[k].Image, imagePrefix, "initContainers")
 						}
 					}
 				}
 			})
 	})
+
+func assertImageRegistryURLOfPod(podName string, image string, imagePrefix string, containersStr string) {
+	if imageRegistrySelection == harborEphemeral {
+		if !strings.HasPrefix(image, goHarborImagePrefix) {
+			// Assertion only when the image registry selection is ephemeral harbor and excluding the images originating from harbor installation
+			Expect(strings.HasPrefix(image, imagePrefix)).To(BeTrue(),
+				fmt.Sprintf("FAIL: The image for the pod %s in %s, doesn't starts with expected registry URL prefix %s, image name %s", podName, containersStr, imagePrefix, image))
+		}
+	} else {
+		Expect(strings.HasPrefix(image, imagePrefix)).To(BeTrue(),
+			fmt.Sprintf("FAIL: The image for the pod %s in %s, doesn't starts with expected registry URL prefix %s, image name %s", podName, containersStr, imagePrefix, image))
+	}
+}

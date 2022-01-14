@@ -43,7 +43,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Pull Key
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName, mysql.ComponentName},
+			Dependencies:            []string{istio.ComponentName},
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendKeycloakOverrides,
 			IngressNames: []types.NamespacedName{

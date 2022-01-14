@@ -8,6 +8,9 @@ import "time"
 // RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
+// VerrazzanoRestartAnnotation is the annotation used to restart platform workloads
+const VerrazzanoRestartAnnotation = "verrazzano.io/restartedAt"
+
 // LifecycleActionAnnotation - the annotation perform lifecycle actions on a workload
 const LifecycleActionAnnotation = "verrazzano.io/lifecycle-action"
 
@@ -88,3 +91,6 @@ const VMCAgentPollingTimeInterval = 60 * time.Second
 
 // MaxTimesVMCAgentPollingTime - The constant used to set max polling time for vmc agent to determine VMC state
 const MaxTimesVMCAgentPollingTime = 3
+
+// FluentdDaemonSetName - The name of the Fluentd DaemonSet
+const FluentdDaemonSetName = "fluentd"

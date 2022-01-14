@@ -14,7 +14,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -62,13 +64,11 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
-	// Expect a call to update the namespace
+	// Expect a call to get the namespace
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 			ns.Name = "myns"
 			ns.Annotations = map[string]string{
 				constants.OCILoggingIDAnnotation: "myocid",
@@ -83,6 +83,14 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return nil
 		})
+
+	// Expect calls to restart Fluentd
+	mockFluentdRestart(mock, asserts)
+
+	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
+		return true, nil
+	}
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -119,13 +127,11 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedErr error) 
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
-	// Expect a call to update the namespace
+	// Expect a call to get the namespace
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 			return returnErr
 		})
 
@@ -153,13 +159,11 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
-	// Expect a call to update the namespace
+	// Expect a call to get the namespace
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 			ns.Name = "myns"
 			ns.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			ns.Annotations = map[string]string{
@@ -169,6 +173,9 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 			return nil
 		})
 
+	// Expect calls to restart Fluentd
+	mockFluentdRestart(mock, asserts)
+
 	// Expect a call to update the namespace that succeeds
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
@@ -176,6 +183,11 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 			asserts.NotContainsf(ns.Finalizers, namespaceControllerFinalizer, "Finalizer not removed: ", ns.Finalizers)
 			return nil
 		})
+
+	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
+		return true, nil
+	}
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -198,13 +210,11 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
-	// Expect a call to update the namespace
+	// Expect a call to get the namespace
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
 			ns.Name = "myns"
 			ns.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			ns.Annotations = map[string]string{
@@ -225,7 +235,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
 		return false, expectedErr
 	}
-	defer func() { removeNamespaceLoggingFunc = RemoveNamespaceLogging }()
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
@@ -237,6 +247,42 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	asserts.True(result.IsZero())
 }
 
+// TestReconcileNamespaceDeletedNoFinalizer tests the Reconcile method for the following use case
+// GIVEN a request to Reconcile a Namespace resource
+// WHEN the namespace DeletionTimestamp has been set (namespace is in the process of being deleted)
+// AND our finalizer doesn't exist (for example, we removed it on a previous reconcile)
+// THEN we do not update the namespace or attempt to remove any logging config
+func TestReconcileNamespaceDeletedNoFinalizer(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Expect a call to get the namespace
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			ns.Name = "myns"
+			ns.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			ns.Annotations = map[string]string{
+				constants.OCILoggingIDAnnotation: "myocid",
+			}
+			ns.Finalizers = []string{"someFinalizer"}
+			return nil
+		})
+
+	nc, err := newTestController(mock)
+	asserts.NoError(err)
+
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: "myns"},
+	}
+	result, err := nc.Reconcile(req)
+
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(ctrl.Result{}, result)
+}
+
 // Test_removeFinalizer tests the removeFinalizer method for the following use case
 // GIVEN a request to removeFinalizer for a Namespace resource
 // WHEN the namespace has the NamespaceController finalizer present
@@ -245,8 +291,6 @@ func Test_removeFinalizer(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	// Expect a call to update the namespace that succeeds
 	mock.EXPECT().
@@ -281,8 +325,6 @@ func Test_removeFinalizerNotPresent(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	// Expect a call to update the namespace that succeeds
 	mock.EXPECT().
@@ -317,8 +359,6 @@ func Test_removeFinalizerErrorOnUpdate(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -354,8 +394,6 @@ func Test_reconcileNamespaceErrorOnUpdate(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -394,8 +432,6 @@ func Test_reconcileNamespace(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -409,6 +445,11 @@ func Test_reconcileNamespace(t *testing.T) {
 			Finalizers: []string{"anotherFinalizer", namespaceControllerFinalizer},
 		},
 	}
+
+	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
+		return false, nil
+	}
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	err = nc.reconcileNamespace(context.TODO(), ns)
 
@@ -436,20 +477,24 @@ func Test_reconcileNamespaceDelete(t *testing.T) {
 			Finalizers: []string{"anotherFinalizer", namespaceControllerFinalizer},
 		},
 	}
+
+	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
+		return false, nil
+	}
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
+
 	err = nc.reconcileNamespaceDelete(context.TODO(), ns)
 	asserts.NoError(err)
 }
 
 // Test_reconcileOCILoggingRemoveOCILogging tests the reconcileOCILogging method for the following use case
 // GIVEN a request to reconcileOCILogging for a Namespace resource
-// WHEN the namespace is configured for OCI Logging
+// WHEN the namespace is not configured for OCI Logging
 // THEN no error is returned
 func Test_reconcileOCILoggingRemoveOCILogging(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -464,12 +509,9 @@ func Test_reconcileOCILoggingRemoveOCILogging(t *testing.T) {
 	removeCalled := false
 	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
 		removeCalled = true
-		return true, nil
+		return false, nil
 	}
-	defer func() { removeNamespaceLoggingFunc = RemoveNamespaceLogging }()
-
-	// Expect a no calls to update the namespace
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	err = nc.reconcileOCILogging(context.TODO(), ns)
 
@@ -480,14 +522,12 @@ func Test_reconcileOCILoggingRemoveOCILogging(t *testing.T) {
 
 // Test_reconcileOCILoggingRemoveOCILoggingError tests the reconcileOCILogging method for the following use case
 // GIVEN a request to reconcileOCILogging for a Namespace resource
-// WHEN the namespace is configured for OCI Logging
-// THEN no error is returned
+// WHEN the namespace is not configured for OCI Logging and we fail removing the OCI Logging config from the configmap
+// THEN an error is returned
 func Test_reconcileOCILoggingRemoveOCILoggingError(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -503,7 +543,7 @@ func Test_reconcileOCILoggingRemoveOCILoggingError(t *testing.T) {
 	removeNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string) (bool, error) {
 		return false, expectedErr
 	}
-	defer func() { removeNamespaceLoggingFunc = RemoveNamespaceLogging }()
+	defer func() { removeNamespaceLoggingFunc = removeNamespaceLogging }()
 
 	err = nc.reconcileOCILogging(context.TODO(), ns)
 
@@ -533,8 +573,6 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -554,7 +592,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 		addCalled = true
 		return addLoggingResult, nil
 	}
-	defer func() { addNamespaceLoggingFunc = AddNamespaceLogging }()
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	// Expect a call to update the namespace annotations that succeeds
 	mock.EXPECT().
@@ -562,6 +600,12 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.UpdateOption) error {
 			return nil
 		})
+
+	// if the result from adding logging returns true (meaning the Fluentd configmap was updated), then
+	// mock expections for restarting Fluentd
+	if addLoggingResult {
+		mockFluentdRestart(mock, asserts)
+	}
 
 	err = nc.reconcileOCILogging(context.TODO(), ns)
 
@@ -580,8 +624,6 @@ func Test_reconcileOCILoggingFinalizerAlreadyAdded(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -599,9 +641,9 @@ func Test_reconcileOCILoggingFinalizerAlreadyAdded(t *testing.T) {
 	addCalled := false
 	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
 		addCalled = true
-		return true, nil
+		return false, nil
 	}
-	defer func() { addNamespaceLoggingFunc = AddNamespaceLogging }()
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	// Expect no calls to update the namespace
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
@@ -623,8 +665,6 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
@@ -643,7 +683,7 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	addNamespaceLoggingFunc = func(_ context.Context, _ client.Client, _ string, _ string) (bool, error) {
 		return false, expectedErr
 	}
-	defer func() { addNamespaceLoggingFunc = AddNamespaceLogging }()
+	defer func() { addNamespaceLoggingFunc = addNamespaceLogging }()
 
 	// Expect a call to update the namespace annotations that succeeds
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
@@ -655,6 +695,22 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	asserts.Equal(expectedErr, err)
 	asserts.Contains(ns.Finalizers, namespaceControllerFinalizer)
 	asserts.Len(ns.Finalizers, 2)
+}
+
+// mockFluentdRestart - Mock expections for Fluentd daemonset restart
+func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
+	// Expect a call to get the Fleuntd Daemonset and another to update it with a restart time annotation
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ds *appsv1.DaemonSet) error {
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet, opts ...client.UpdateOption) error {
+			asserts.Contains(ds.Spec.Template.ObjectMeta.Annotations, vzconst.VerrazzanoRestartAnnotation)
+			return nil
+		})
 }
 
 // Fake manager for unit testing
