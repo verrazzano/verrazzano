@@ -88,6 +88,25 @@ func TestUpdateMutatingWebhookConfiguration(t *testing.T) {
 	assert.Equal(append(defaultResourceList, strings.ToLower(testWorkload1), strings.ToLower(testWorkload2)), localMWC.Webhooks[0].Rules[0].Resources)
 }
 
+// TestUpdateMutatingWebhookConfigurationNoRules tests updating the workload resources to the ConfigMap values with no rules
+// GIVEN the ConfigMap is being updated
+// WHEN the function is called with the webhook and the ConfigMap with no rules in the webhook
+// THEN the call should exit
+func TestUpdateMutatingWebhookConfigurationNoRules(t *testing.T) {
+	assert := asserts.New(t)
+
+	scheme := newScheme()
+	vzapi.AddToScheme(scheme)
+	client := fake.NewFakeClientWithScheme(scheme)
+	reconciler := newReconciler(client)
+
+	localMWC := testMWC.DeepCopy()
+	localMWC.Webhooks[0].Rules = nil
+
+	reconciler.updateMutatingWebhookConfiguration(&testConfigMap, localMWC)
+	assert.Equal(append(defaultResourceList, strings.ToLower(testWorkload1), strings.ToLower(testWorkload2)), localMWC.Webhooks[0].Rules[0].Resources)
+}
+
 // TestReconcileConfigMapCreateOrUpdate tests the reconciling of a ConfigMap when creating or updating
 // GIVEN the ConfigMap is being updated
 // WHEN the function is called with the webhook and the ConfigMap

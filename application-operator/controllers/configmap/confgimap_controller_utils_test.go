@@ -58,6 +58,7 @@ func TestGetWorkloadWebhook(t *testing.T) {
 
 	webhook := getWorkloadWebhook(&testMWC)
 	assert.Equal(testMWC.Webhooks[0], *webhook)
+	assert.Equal(&testMWC.Webhooks[0], webhook)
 }
 
 // TestFormatWorkloadResources tests the formatting of the workload list

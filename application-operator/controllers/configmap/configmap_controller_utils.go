@@ -20,9 +20,9 @@ var defaultResourceList = []string{"deployment", "statefulset", "replicaset", "p
 
 // getWorkloadWebhook returns the webhook for the Workload Resource
 func getWorkloadWebhook(mwc *admissionv1.MutatingWebhookConfiguration) *admissionv1.MutatingWebhook {
-	for _, webhook := range mwc.Webhooks {
+	for i, webhook := range mwc.Webhooks {
 		if webhook.Name == WebhookName {
-			return &webhook
+			return &mwc.Webhooks[i]
 		}
 	}
 	return nil

@@ -114,9 +114,13 @@ func (r *Reconciler) updateMutatingWebhookConfiguration(configMap *corev1.Config
 
 	newWorkloadData := configMap.Data[resourceIdentifier]
 	webhook := getWorkloadWebhook(mwc)
-	if webhook == nil || len(webhook.Rules) < 1 {
+	if webhook == nil {
 		return
 	}
+	if len(webhook.Rules) < 1 {
+		r.resetMutatingWebhookConfiguration(mwc)
+	}
+
 	webhookWorkloads := webhook.Rules[0].Resources
 
 	// Format the new Workload resources
@@ -129,5 +133,8 @@ func (r *Reconciler) updateMutatingWebhookConfiguration(configMap *corev1.Config
 func (r *Reconciler) resetMutatingWebhookConfiguration(mwc *admissionv1.MutatingWebhookConfiguration) {
 	// Reset the webhook to the default resource list
 	webhook := getWorkloadWebhook(mwc)
+	if len(webhook.Rules) < 1 {
+		webhook.Rules = []admissionv1.RuleWithOperations{{}}
+	}
 	webhook.Rules[0].Resources = defaultResourceList
 }
