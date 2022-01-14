@@ -52,6 +52,9 @@ var exampleImages = []exampleApp{
 	{"weblogic", "container-registry.oracle.com/middleware/weblogic", "../../../examples/bobs-books/bobs-books-comp.yaml"},
 	{"example-bobbys-front-end", "container-registry.oracle.com/verrazzano/example-bobbys-front-end", "../../../examples/bobs-books/bobs-books-comp.yaml"},
 	{"example-bobs-books-order-manager", "container-registry.oracle.com/verrazzano/example-bobs-books-order-manager", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	{"example-helidon-greet-app-v1", "ghcr.io/verrazzano/example-helidon-greet-app-v1", "../../../examples/hello-helidon/hello-helidon-comp.yaml"},
+	{"example-springboot", "ghcr.io/verrazzano/example-springboot", "../../../examples/springboot-app/springboot-comp.yaml"},
+	{"example-todo", "container-registry.oracle.com/verrazzano/example-todo", "../../../examples/todo-list/todo-list-components.yaml"},
 }
 
 var bom v8obom.Bom
@@ -219,7 +222,7 @@ func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
 
 	// Extract the example images from the example files
 	for _, app := range exampleImages {
-		imageUrl, err := getExampleImageUrl(app)
+		imageUrl, err := getExampleImageURL(app)
 		Expect(err).ToNot(HaveOccurred())
 		imageMap[app.containerName] = &imageState{
 			name:   imageUrl,
@@ -293,7 +296,8 @@ func allImagesLoaded(name string, namespace string) bool {
 	return allImagesLoaded
 }
 
-func getExampleImageUrl(app exampleApp) (string, error) {
+// getExampleImageURL - parse the full container image url from the file content
+func getExampleImageURL(app exampleApp) (string, error) {
 	// Get the content of the file containing the image name
 	content, err := readFileToString(app.exampleFile)
 	if err != nil {
