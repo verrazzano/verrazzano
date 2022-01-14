@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"text/template"
 	"time"
 
@@ -35,16 +36,22 @@ const testNamespace string = "image-preloader"
 const testName string = "preloader-test"
 const bomPath string = "../../../platform-operator/verrazzano-bom.json"
 
-// The examples images are not contained with a BOM.  For now extract the
-// image names from the example files.
-// appMap - information about the image name of each application and where to find it
-type appMap struct {
-	imageName   string
-	exampleFile string
+// The examples images are not contained with a BOM.  For now extract the image names from the example files.
+// exampleApp - information about the image name of each application and where to find it
+type exampleApp struct {
+	containerName string
+	imageName     string
+	exampleFile   string
 }
 
-var applicationMap = map[string]appMap{
-	"example-roberts-coherence": {"container-registry.oracle.com/verrazzano/example-roberts-coherence", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+var exampleImages = []exampleApp{
+	{"example-roberts-coherence", "container-registry.oracle.com/verrazzano/example-roberts-coherence", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	{"example-roberts-helidon-stock-application", "container-registry.oracle.com/verrazzano/example-roberts-helidon-stock-application", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	{"example-bobbys-coherence", "container-registry.oracle.com/verrazzano/example-bobbys-coherence", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	{"example-bobbys-helidon-stock-application", "container-registry.oracle.com/verrazzano/example-bobbys-helidon-stock-application", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	{"weblogic", "container-registry.oracle.com/middleware/weblogic", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	{"example-bobbys-front-end", "container-registry.oracle.com/verrazzano/example-bobbys-front-end", "../../../examples/bobs-books/bobs-books-comp.yaml"},
+	{"example-bobs-books-order-manager", "container-registry.oracle.com/verrazzano/example-bobs-books-order-manager", "../../../examples/bobs-books/bobs-books-comp.yaml"},
 }
 
 var bom v8obom.Bom
@@ -210,11 +217,14 @@ func createImageList(bom v8obom.Bom) (map[string]*imageState, error) {
 		}
 	}
 
-	// TODO: Extract the application images from the sample files
-	for _, app := range applicationMap {
-		// Read the file into a string
-		_, err := readFileToString(app.exampleFile)
+	// Extract the example images from the example files
+	for _, app := range exampleImages {
+		imageUrl, err := getExampleImageUrl(app)
 		Expect(err).ToNot(HaveOccurred())
+		imageMap[app.containerName] = &imageState{
+			name:   imageUrl,
+			loaded: false,
+		}
 	}
 
 	return imageMap, nil
@@ -281,6 +291,19 @@ func allImagesLoaded(name string, namespace string) bool {
 		pkg.Log(pkg.Info, "All images are loaded")
 	}
 	return allImagesLoaded
+}
+
+func getExampleImageUrl(app exampleApp) (string, error) {
+	// Get the content of the file containing the image name
+	content, err := readFileToString(app.exampleFile)
+	if err != nil {
+		return "", err
+	}
+	// Parse the full image path from the content of the file
+	re := regexp.MustCompile(fmt.Sprintf("%s:[a-zA-Z-0-9._]+", app.imageName))
+	imageName := re.FindString(content)
+	Expect(imageName).ToNot(BeEmpty())
+	return imageName, nil
 }
 
 // readFileToString - read the contents of a file into a string
