@@ -103,6 +103,7 @@ pipeline {
 
         // used to emit metrics
          PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }
@@ -236,7 +237,11 @@ pipeline {
         stage('Pre-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
+
             parallel {
                 stage('verify-install') {
                     steps {
@@ -524,6 +529,9 @@ pipeline {
         stage('Post-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
             parallel {
                 stage('verify-install') {

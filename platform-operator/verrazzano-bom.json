@@ -286,7 +286,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20211202184000-00643c8",
+              "tag": "v0.3.0-20220111205344-e057ce8",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
