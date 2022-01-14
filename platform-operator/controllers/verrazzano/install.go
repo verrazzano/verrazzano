@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -50,7 +51,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			log.Debugf("component %s is ready", compName)
 			if err := comp.Reconcile(spiCtx); err != nil {
-				return ctrl.Result{Requeue: true}, err
+				return newRequeueWithDelay(), err
 			}
 			continue
 		case vzapi.Disabled:
@@ -108,7 +109,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				}
 				log.Infof("Component %s has been successfully installed", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
-					return newRequeueWithDelay(), err
+					return ctrl.Result{Requeue: true}, err
 				}
 				// Don't requeue because of this component, it is done install
 				continue
