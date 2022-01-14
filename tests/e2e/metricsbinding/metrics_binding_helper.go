@@ -6,7 +6,7 @@ package metricsbinding
 import (
 	"time"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -20,43 +20,43 @@ const (
 func DeployApplication(namespace string, yamlPath string) {
 	pkg.Log(pkg.Info, "Deploy test application")
 	// Wait for namespace to finish deletion possibly from a prior run.
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
+	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
 		return pkg.CreateNamespace(namespace, nsLabels)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
 	pkg.Log(pkg.Info, "Create helidon resources")
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile(yamlPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
 
 func UndeployApplication(namespace string, yamlPath string, promConfigJobName string) {
 	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return pkg.DeleteResourceFromFile(yamlPath)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Remove application from Prometheus Config")
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		return pkg.IsAppInPromConfig(promConfigJobName)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), "Expected application to be removed from Prometheus config")
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeFalse(), "Expected application to be removed from Prometheus config")
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
+	gomega.Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
