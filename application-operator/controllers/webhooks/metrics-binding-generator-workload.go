@@ -42,15 +42,7 @@ type GeneratorWorkloadWebhook struct {
 // Handle - handler for the mutating webhook
 func (a *GeneratorWorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	generatorWorkloadLogger.Info(fmt.Sprintf("group: %s, version: %s, kind: %s, namespace: %s, name: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace, req.Name))
-
-	// Check the type of resource in the admission request
-	switch strings.ToLower(req.Kind.Kind) {
-	case "pod", "deployment", "replicaset", "statefulset", "domain", "coherence":
-		return a.handleWorkloadResource(ctx, req)
-	default:
-		generatorWorkloadLogger.Info(fmt.Sprintf("unsupported kind %s", req.Kind.Kind))
-		return admission.Allowed("not implemented yet")
-	}
+	return a.handleWorkloadResource(ctx, req)
 }
 
 // InjectDecoder injects the decoder.
