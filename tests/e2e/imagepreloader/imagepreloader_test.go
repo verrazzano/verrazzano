@@ -61,6 +61,18 @@ var exampleImages = []exampleApp{
 	{"coherence-helidon-sockshop-payment", "ghcr.io/oracle/coherence-helidon-sockshop-payment", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
 	{"coherence-helidon-sockshop-shipping", "ghcr.io/oracle/coherence-helidon-sockshop-shipping", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
 	{"coherence-helidon-sockshop-users", "ghcr.io/oracle/coherence-helidon-sockshop-users", "../../../examples/sock-shop/helidon/sock-shop-comp.yaml"},
+	{"coherence-micronaut-sockshop-carts", "ghcr.io/oracle/coherence-micronaut-sockshop-carts", "../../../examples/sock-shop/micronaut/sock-shop-comp.yaml"},
+	{"coherence-micronaut-sockshop-catalog", "ghcr.io/oracle/coherence-micronaut-sockshop-catalog", "../../../examples/sock-shop/micronaut/sock-shop-comp.yaml"},
+	{"coherence-micronaut-sockshop-orders", "ghcr.io/oracle/coherence-micronaut-sockshop-orders", "../../../examples/sock-shop/micronaut/sock-shop-comp.yaml"},
+	{"coherence-micronaut-sockshop-payment", "ghcr.io/oracle/coherence-micronaut-sockshop-payment", "../../../examples/sock-shop/micronaut/sock-shop-comp.yaml"},
+	{"coherence-micronaut-sockshop-shipping", "ghcr.io/oracle/coherence-micronaut-sockshop-shipping", "../../../examples/sock-shop/micronaut/sock-shop-comp.yaml"},
+	{"coherence-micronaut-sockshop-users", "ghcr.io/oracle/coherence-micronaut-sockshop-users", "../../../examples/sock-shop/micronaut/sock-shop-comp.yaml"},
+	{"coherence-spring-sockshop-carts", "ghcr.io/oracle/coherence-spring-sockshop-carts", "../../../examples/sock-shop/spring/sock-shop-comp.yaml"},
+	{"coherence-spring-sockshop-catalog", "ghcr.io/oracle/coherence-spring-sockshop-catalog", "../../../examples/sock-shop/spring/sock-shop-comp.yaml"},
+	{"coherence-spring-sockshop-orders", "ghcr.io/oracle/coherence-spring-sockshop-orders", "../../../examples/sock-shop/spring/sock-shop-comp.yaml"},
+	{"coherence-spring-sockshop-payment", "ghcr.io/oracle/coherence-spring-sockshop-payment", "../../../examples/sock-shop/spring/sock-shop-comp.yaml"},
+	{"coherence-spring-sockshop-shipping", "ghcr.io/oracle/coherence-spring-sockshop-shipping", "../../../examples/sock-shop/spring/sock-shop-comp.yaml"},
+	{"coherence-spring-sockshop-users", "ghcr.io/oracle/coherence-spring-sockshop-users", "../../../examples/sock-shop/spring/sock-shop-comp.yaml"},
 }
 
 var bom v8obom.Bom
