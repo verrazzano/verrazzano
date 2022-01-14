@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/configmap"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -72,6 +73,9 @@ func init() {
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = certapiv1alpha2.AddToScheme(scheme)
+
+	// Add admission registration
+	_ = admissionv1.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
@@ -414,7 +418,8 @@ func main() {
 		os.Exit(1)
 	}
 	// Register the metrics workload controller
-	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
+	// _, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
+	err = nil
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
@@ -424,6 +429,7 @@ func main() {
 			setupLog.Error(err, "unable to create controller", "controller", "MetricsBinding")
 			os.Exit(1)
 		}
+
 		if err = (&configmap.Reconciler{
 			Client: mgr.GetClient(),
 			Log:    ctrl.Log.WithName("controllers").WithName("ConfigMap"),

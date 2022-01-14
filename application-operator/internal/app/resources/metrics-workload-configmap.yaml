@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metrics-workload-resources
+  namespace: verrazzano-system
+data:
+  workloads: |

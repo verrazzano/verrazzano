@@ -32,7 +32,6 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 // Reconcile manages the ConfigMap for the metrics binding webhook
 func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) {
 	ctx := context.Background()
-	r.Log.Info("Reconciling ConfigMap", "resource", req.Name)
 
 	// fetch the ConfigMap
 	configMap := corev1.ConfigMap{}
@@ -45,9 +44,11 @@ func (r *Reconciler) Reconcile(req reconcile.Request) (reconcile.Result, error) 
 		return reconcile.Result{}, nil
 	}
 
+	r.Log.Info("Reconciling ConfigMap", "resource", req.Name)
+
 	// fetch the Webhook
 	mwc := admissionv1.MutatingWebhookConfiguration{}
-	mwcName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: mutatingWebhookConfigName}
+	mwcName := types.NamespacedName{Name: mutatingWebhookConfigName}
 	if err := r.Client.Get(ctx, mwcName, &mwc); err != nil {
 		return reconcile.Result{}, k8sclient.IgnoreNotFound(err)
 	}
@@ -110,8 +111,12 @@ func (r *Reconciler) reconcileConfigMapDelete(ctx context.Context, configMap *co
 // updateMutatingWebhookConfiguration updates the workload resources allowed by the webhook
 func (r *Reconciler) updateMutatingWebhookConfiguration(configMap *corev1.ConfigMap, mwc *admissionv1.MutatingWebhookConfiguration) {
 	// Get the data from the ConfigMap and from the Webhook
+
 	newWorkloadData := configMap.Data[resourceIdentifier]
 	webhook := getWorkloadWebhook(mwc)
+	if webhook == nil || len(webhook.Rules) < 1 {
+		return
+	}
 	webhookWorkloads := webhook.Rules[0].Resources
 
 	// Format the new Workload resources

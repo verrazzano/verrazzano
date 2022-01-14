@@ -11,12 +11,12 @@ import (
 const (
 	ConfigMapName             = "metrics-workload-resources"
 	mutatingWebhookConfigName = "verrazzano-application-metrics-binding"
-	WebhookName               = "verrazzano-application-scrape-workload-generator.verrazzano.io"
+	WebhookName               = "metrics-binding-generator-workload.verrazzano.io"
 	finalizerName             = "configmap.finalizers.verrazzano.io/finalizer"
 	resourceIdentifier        = "workloads"
 )
 
-var defaultResourceList = []string{"deployment", "statefulset", "replicaset", "pod"}
+var defaultResourceList = []string{"deployment", "statefulset", "replicaset", "pod", "domains", "coherences"}
 
 // getWorkloadWebhook returns the webhook for the Workload Resource
 func getWorkloadWebhook(mwc *admissionv1.MutatingWebhookConfiguration) *admissionv1.MutatingWebhook {

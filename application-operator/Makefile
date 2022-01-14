@@ -77,7 +77,7 @@ disable-operator:
 	kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter || true
 	kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter || true
 	kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject || true
-	kubectl delete mutatingwebhookconfigurations verrazzano-application-scrape-generator || true
+	kubectl delete mutatingwebhookconfigurations verrazzano-application-metrics-binding || true
 	kubectl scale deployment verrazzano-application-operator --replicas=0 -n verrazzano-system
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
