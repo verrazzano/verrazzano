@@ -5,13 +5,11 @@ package verrazzano
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"strconv"
 
 	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -106,24 +104,6 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 		return false
 	}
 	return st.Conditions[l-1].Type == conditionType
-}
-
-// Get the number of times an upgrade failed for the specified
-// generation, meaning the last time the CR spec was modified by the user
-// This is needed as a circuit-breaker for upgrade and other operations where
-// limit the retries on a given generation of the CR.
-func upgradeFailureCount(st installv1alpha1.VerrazzanoStatus, generation int64) int {
-	var c int
-	for _, cond := range st.Conditions {
-		// Look for an upgrade failed condition where the message contains the CR generation that
-		// is currently being processed, then increment the count. If the generation is not found then
-		// the condition is from a previous user upgrade request and we can ignore it.
-		if cond.Type == installv1alpha1.UpgradeFailed &&
-			strings.Contains(cond.Message, fmtGeneration(generation)) {
-			c++
-		}
-	}
-	return c
 }
 
 func fmtGeneration(gen int64) string {
