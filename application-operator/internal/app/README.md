@@ -31,7 +31,7 @@ Use the following steps to demonstrate the function of the metrics template scra
     - `kubectl apply -f resources/workloads/hello-helidon-deployment.yaml`
 
 6. Once the Deployment and Service are running, check the Prometheus targets for this title.
-    - `hello-helidon-namespace_hello-helidon-deployment_apps-v1-Deployment`
+    - `hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment`
   
 ### Demo Details
   
