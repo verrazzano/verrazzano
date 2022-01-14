@@ -195,6 +195,7 @@ pipeline {
                     env.LOG_GROUP_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.logGroupId'", returnStdout: true).trim()
                     env.SYSTEM_LOG_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.systemLogId'", returnStdout: true).trim()
                     env.APP_LOG_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.appLogId'", returnStdout: true).trim()
+                    env.NS_LOG_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.nsLogId'", returnStdout: true).trim()
                 }
             }
         }
@@ -342,7 +343,7 @@ pipeline {
     post {
         always {
             sh '''
-                ${WORKSPACE}/tests/e2e/config/scripts/delete_oci_logging_resources.sh "${LOG_GROUP_ID}" "${SYSTEM_LOG_ID}" "${APP_LOG_ID}" || true
+                ${WORKSPACE}/tests/e2e/config/scripts/delete_oci_logging_resources.sh "${LOG_GROUP_ID}" "${SYSTEM_LOG_ID}" "${APP_LOG_ID}" "${NS_LOG_ID}" || true
             '''
 
             script {

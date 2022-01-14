@@ -1,19 +1,23 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package deploymetrics
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-const testNamespace string = "deploymetrics"
+const (
+	testNamespace     = "deploymetrics"
+	promConfigJobName = "deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment"
+)
 
 var expectedPodsDeploymetricsApp = []string{"deploymetrics-workload"}
 var waitTimeout = 10 * time.Minute
@@ -23,19 +27,15 @@ var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 10 * time.Minute
 var longPollingInterval = 20 * time.Second
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("deploymetrics")
+
+var _ = t.BeforeSuite(func() {
 	deployMetricsApplication()
 })
 
-var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
-})
-
-var _ = AfterSuite(func() {
-	if failed {
-		pkg.ExecuteClusterDumpWithEnvVarConfig()
-	}
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	undeployMetricsApplication()
 })
 
@@ -43,6 +43,7 @@ func deployMetricsApplication() {
 	pkg.Log(pkg.Info, "Deploy DeployMetrics Application")
 
 	pkg.Log(pkg.Info, "Create namespace")
+	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -59,12 +60,14 @@ func deployMetricsApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
 func undeployMetricsApplication() {
 	pkg.Log(pkg.Info, "Undeploy DeployMetrics Application")
 
 	pkg.Log(pkg.Info, "Delete application")
+	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -75,12 +78,8 @@ func undeployMetricsApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
-	}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Prometheus scraped metrics for App Component should have been deleted.")
-
-	Eventually(func() bool {
-		return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
-	}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Prometheus scraped metrics for App Config should have been deleted.")
+		return pkg.IsAppInPromConfig(promConfigJobName)
+	}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected App to be removed from Prometheus Config")
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
@@ -97,28 +96,37 @@ func undeployMetricsApplication() {
 		}
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = Describe("Verify DeployMetrics Application", func() {
+var _ = t.Describe("Verify DeployMetrics Application", func() {
 	// Verify deploymetrics-workload pod is running
 	// GIVEN deploymetrics app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Context("Deployment.", func() {
-		It("and waiting for expected pods must be running", func() {
+	t.Context("Deployment.", func() {
+		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	Context("Verify Prometheus scraped metrics.", func() {
-		It("Retrieve Prometheus scraped metrics for App Component", func() {
+	t.Context("Prometheus Config.", func() {
+		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
+			Eventually(func() bool {
+				return pkg.IsAppInPromConfig(promConfigJobName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
+		})
+	})
+
+	t.Context("Verify Prometheus scraped metrics.", func() {
+		t.It("Retrieve Prometheus scraped metrics for App Component", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
-		It("Retrieve Prometheus scraped metrics for App Config", func() {
+		t.It("Retrieve Prometheus scraped metrics for App Config", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")

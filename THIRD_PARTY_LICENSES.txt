@@ -1,10 +1,15 @@
 github.com/verrazzano/verrazzano
 -------- Copyrights
 Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
+Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+Copyright (c) 2022, Oracle and/or its affiliates.
+Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
-Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
 Copyright The Helm Authors.
@@ -2568,4 +2573,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 24207bb69f062fea25d02dab6a3846a8
+License file based on go.mod with md5 sum: 597f08d3b2961b0003b5d500ce1aecf5

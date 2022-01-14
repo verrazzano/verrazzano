@@ -492,6 +492,10 @@ func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespac
 
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
+	return CreateNamespaceWithAnnotations(name, labels, nil)
+}
+
+func CreateNamespaceWithAnnotations(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {
 	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
 		existingNamespace, err := GetNamespace(name)
 		if err != nil {
@@ -514,8 +518,9 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name:        name,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 	}
 	ns, err := clientset.CoreV1().Namespaces().Create(context.TODO(), namespace, metav1.CreateOptions{})

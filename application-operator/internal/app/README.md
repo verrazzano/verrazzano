@@ -17,7 +17,7 @@ Use the following steps to demonstrate the function of the metrics template scra
 
 - Deploy Verrazzano from master.
   
-- To install the MetricsTemplate CRD, The MetricsTemplate resource, and the scrape generator mutating webhook, run this script.
+- To install the MetricsTemplate CRD, MetricsBinding CRD, MetricsTemplate resource, and the scrape generator mutating webhook, run this script.
   - `./scripts/install-app-resources.sh`
   
 - Restart the application-operator pod to register the webhook. 
@@ -29,10 +29,10 @@ Use the following steps to demonstrate the function of the metrics template scra
   - `kubectl label namespace hello-helidon-namespace verrazzano-managed=true istio-injection=enabled`
   
 - Apply the example Deployment and Service to trigger the Metrics Template Webhook and Controller.
-  - `kubectl apply -f resources/hello-helidon-test-deployment.yaml`
+  - `kubectl apply -f resources/workloads/hello-helidon-deployment.yaml`
 
 - Once the Deployment and Service are running, check the Prometheus targets for this title.
-  - `hello-helidon-namespace_hello-helidon-deployment_<deploument-UID>`
+  - `hello-helidon-namespace_hello-helidon-deployment_<resource-kind>`
   
 ### Demo Details
   

@@ -44,12 +44,9 @@ const (
 	vzSysRealm         = "verrazzano-system"
 	vzUsersGroup       = "verrazzano-users"
 	vzAdminGroup       = "verrazzano-admins"
-	vzMonitorGroup     = "verrazzano-project-monitors"
+	vzMonitorGroup     = "verrazzano-monitors"
 	vzSystemGroup      = "verrazzano-system-users"
 	vzAPIAccessRole    = "vz_api_access"
-	vzConsoleUsersRole = "console_users"
-	vzAdminRole        = "Admin"
-	vzViewerRole       = "Viewer"
 	vzUserName         = "verrazzano"
 	vzInternalPromUser = "verrazzano-prom-internal"
 	vzInternalEsUser   = "verrazzano-es-internal"
@@ -330,7 +327,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Project Monitors Group
-	monitorGroupID, err := createVerrazzanoProjectMonitorsGroup(ctx, userGroupID)
+	monitorGroupID, err := createVerrazzanoMonitorsGroup(ctx, userGroupID)
 	if err != nil {
 		return err
 	}
@@ -346,24 +343,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 	// Create Verrazzano API Access Role
 	err = createVerrazzanoRole(ctx, cfg, cli, vzAPIAccessRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Console Users Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzConsoleUsersRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Admin Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzAdminRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Viewer Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzViewerRole)
 	if err != nil {
 		return err
 	}
@@ -637,7 +616,7 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 	return arr[1], nil
 }
 
-func createVerrazzanoProjectMonitorsGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
+func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
 	keycloakGroups, err := getKeycloakGroups(ctx)
 	if err == nil && groupExists(keycloakGroups, vzMonitorGroup) {
 		// Group already exists
@@ -717,36 +696,6 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 		return err
 	}
 	ctx.Log().Debug("grantRolesToGroups: Granted Access Role to User Group")
-
-	// Granting console_users role to verrazzano users group
-	grantConsoleRoleToVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzConsoleUsersRole
-	ctx.Log().Debugf("grantRolesToGroups: Grant Console Role to Vz Users Cmd = %s", grantConsoleRoleToVzUserGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantConsoleRoleToVzUserGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("grantRolesToGroups: Error granting console users role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("grantRolesToGroups: Granted Console Role to User Group")
-
-	// Granting admin role to verrazzano admin group
-	grantAdminRoleToVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + adminGroupID + " --rolename " + vzAdminRole
-	ctx.Log().Debugf("grantRolesToGroups: Grant Admin Role to Vz Admin Cmd = %s", grantAdminRoleToVzAdminGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantAdminRoleToVzAdminGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("grantRolesToGroups: Error granting admin role to Verrazzano admin group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("grantRolesToGroups: Granted Admin Role to Admin Group")
-
-	// Granting viewer role to verrazzano monitor group
-	grantViewerRoleToVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + monitorGroupID + " --rolename " + vzViewerRole
-	ctx.Log().Debugf("grantRolesToGroups: Grant Viewer Role to Monitor Group Cmd = %s", grantViewerRoleToVzMonitorGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantViewerRoleToVzMonitorGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("grantRolesToGroups: Error granting viewer role to Verrazzano monitoring group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("grantRolesToGroups: Granted Viewer Role to monitor Group")
 
 	return nil
 }
