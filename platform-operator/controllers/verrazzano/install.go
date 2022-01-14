@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+	"time"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -109,7 +110,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				}
 				log.Infof("Component %s has been successfully installed", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
-					return ctrl.Result{Requeue: true}, err
+					return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 15}, err
 				}
 				// Don't requeue because of this component, it is done install
 				continue
