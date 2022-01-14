@@ -137,12 +137,6 @@ pipeline {
     }
 
     stages {
-        environment {
-            SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-            SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-            SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-        }
-
         stage('Initialize') {
             steps {
                 script {
@@ -326,6 +320,12 @@ pipeline {
         }
 
         stage('Verify Install') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
@@ -339,6 +339,10 @@ pipeline {
         stage('OCI Logging tests') {
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oci-logging"
+
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
             steps {
                 script {
