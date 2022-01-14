@@ -78,7 +78,6 @@ var _ = t.Describe("Private Registry Verification",
 						pod = pods.Items[j]
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
 						for k := range pod.Spec.Containers {
-<<<<<<< HEAD
 							if imageRegistrySelection == harborEphemeral && !strings.HasPrefix(pod.Spec.Containers[k].Image, goHarborImagePrefix) {
 								// Assertion only when the image registry selection is ephemeral harbor and excluding the images originating from harbor installation
 								Expect(strings.HasPrefix(pod.Spec.Containers[k].Image, imagePrefix)).To(BeTrue(),
