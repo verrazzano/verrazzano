@@ -174,7 +174,7 @@ pipeline {
                         script {
                             build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'OCI_DNS_AUTH', value: 'instance_principal')
+                                    string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
