@@ -111,7 +111,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				}
 				compLog.Oncef("Component %s successfully installed", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
-					return newRequeueWithDelay(), err
+					return ctrl.Result{Requeue: true}, err
 				}
 				// Don't requeue because of this component, it is done install
 				continue
