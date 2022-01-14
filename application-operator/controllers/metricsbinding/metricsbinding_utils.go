@@ -31,8 +31,8 @@ const (
 
 // Creates a job name in the format <namespace>_<name>_<kind>
 func createJobName(metricsbinding *vzapi.MetricsBinding) string {
-	reference := metricsbinding.OwnerReferences[0]
-	return fmt.Sprintf("%s_%s_%s_%s", metricsbinding.Namespace, reference.Name, strings.Replace(reference.APIVersion, "/", "_", 1), reference.Kind)
+	reference := metricsbinding.Spec.Workload
+	return fmt.Sprintf("%s_%s_%s_%s", metricsbinding.Namespace, reference.Name, strings.Replace(reference.TypeMeta.APIVersion, "/", "_", 1), reference.TypeMeta.Kind)
 }
 
 // returns a container of the Prometheus config data from the configmap

@@ -50,6 +50,9 @@ pipeline {
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+        choice (description: 'Use instance principal for oci dns tests', name: 'OCI_DNS_AUTH',
+                // 1st choice is the default value
+                choices: [ "user_principal", "instance_principal" ])
         choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
             // 1st choice is the default value
             choices: [ "GLOBAL","PRIVATE" ])
@@ -171,6 +174,7 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
     }
@@ -359,6 +363,9 @@ pipeline {
             when { expression { return params.TEST_ENV == 'ocidns_oke' } }
             steps {
                 script {
+                    if (params.OCI_DNS_AUTH == "instance_principal") {
+                            env.OCI_DNS_AUTH="instance_principal"
+                    }
                     sh """
                         ${WORKSPACE}/tests/e2e/config/scripts/create-test-oci-config-secret.sh
                     """
@@ -440,6 +447,11 @@ pipeline {
         }
 
         stage('acceptance-tests-1') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
             parallel {
                 // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
                 //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
@@ -466,6 +478,11 @@ pipeline {
         }
 
         stage('acceptance-tests-2') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
             parallel {
                 stage('verify-install') {
                     steps {
