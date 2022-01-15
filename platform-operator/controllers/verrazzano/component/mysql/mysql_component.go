@@ -35,18 +35,22 @@ type mysqlComponent struct {
 }
 
 // Verify that mysqlComponent implements Component
-var _ spi.Component = mysqlComponent{}
+var _ spi.Component = &mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
-	return mysqlComponent{
+	return &mysqlComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:     appendMySQLOverrides,
@@ -56,7 +60,7 @@ func NewComponent() spi.Component {
 }
 
 // IsReady calls MySQL isMySQLReady function
-func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
+func (c *mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
 		return isMySQLReady(context)
 	}
@@ -65,7 +69,7 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
-func (c mysqlComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c *mysqlComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -74,17 +78,17 @@ func (c mysqlComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // PreInstall calls MySQL preInstall function
-func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx, c.ChartNamespace)
 }
 
 // PostInstall calls MySQL postInstall function
-func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
@@ -113,7 +117,7 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	return nil
 }
 
-func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+func (c *mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
 		return vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
 	}

@@ -9,6 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/registry"
+	v1 "k8s.io/api/networking/v1"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -131,6 +134,22 @@ func TestUpgradeNoVersion(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.IngressList) error {
+			return nil
+		})
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			//asserts.Len(verrazzano.Status.Conditions, 1)
+			return nil
+		}).AnyTimes()
+
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -162,6 +181,18 @@ func TestUpgradeNoVersion(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			&fakeComponent{
+				isInstalledFunc: func(_ spi.ComponentContext) (bool, error) {
+					return true, nil
+				},
+			},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -191,6 +222,12 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.IngressList) error {
+			return nil
+		})
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	keycloakEnabled := false
@@ -240,6 +277,16 @@ func TestUpgradeSameVersion(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			//asserts.Len(verrazzano.Status.Conditions, 1)
+			return nil
+		}).AnyTimes()
+
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -270,6 +317,17 @@ func TestUpgradeSameVersion(t *testing.T) {
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			&fakeComponent{
+				isInstalledFunc: func(_ spi.ComponentContext) (bool, error) {
+					return true, nil
+				},
+			},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -664,7 +722,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{},
+			&fakeComponent{},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
@@ -857,7 +915,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{},
+			&fakeComponent{},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
@@ -947,7 +1005,7 @@ func TestUpgradeHelmError(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{
+			&fakeComponent{
 				upgradeFunc: func(ctx spi.ComponentContext) error {
 					return fmt.Errorf("Error running upgrade")
 				},
@@ -1056,7 +1114,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{
+			&fakeComponent{
 				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
 					return false, fmt.Errorf("Error running isInstalled")
 				},
@@ -2299,4 +2357,8 @@ func initFakeClient() (kubernetes.Interface, error) {
 	}
 	clientSet := gofake.NewSimpleClientset(dep, pod)
 	return clientSet, nil
+}
+
+func newFakeContext(c client.Client, reconciler Reconciler) spi.ComponentContext {
+	return spi.NewFakeContextWithRegistry(c, &vzapi.Verrazzano{}, reconciler.Registry, false)
 }

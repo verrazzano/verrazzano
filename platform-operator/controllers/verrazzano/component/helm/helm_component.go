@@ -11,7 +11,6 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -25,6 +24,10 @@ import (
 
 // HelmComponent struct needed to implement a component
 type HelmComponent struct {
+
+	// Default impl
+	spi.ComponentInfoImpl
+
 	// ReleaseName is the helm chart release name
 	ReleaseName string
 
@@ -64,17 +67,11 @@ type HelmComponent struct {
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
-	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
-	SupportsOperatorInstall bool
-
 	// WaitForInstall Indicates if the operator should wait for helm operationsto complete (synchronous behavior)
 	WaitForInstall bool
 
 	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
 	ImagePullSecretKeyname string
-
-	// Dependencies is a list of Dependencies for this component, by component/release name
-	Dependencies []string
 
 	// SkipUpgrade when true will skip upgrading this component in the upgrade loop
 	// This is for the istio helm components
@@ -91,7 +88,7 @@ type HelmComponent struct {
 }
 
 // Verify that HelmComponent implements Component
-var _ spi.Component = HelmComponent{}
+//var _ spi.Component = &HelmComponent{}
 
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
 type preInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string) error
@@ -159,7 +156,7 @@ func (h HelmComponent) GetMinVerrazzanoVersion() string {
 }
 
 // IsInstalled Indicates whether or not the component is installed
-func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
+func (h *HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	if context.IsDryRun() {
 		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
 		return true, nil
@@ -168,8 +165,8 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	return installed, nil
 }
 
-// IsReady Indicates whether a component is available and ready
-func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
+// IsReady Indicates whether or not a component is available and ready
+func (h *HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if context.IsDryRun() {
 		context.Log().Debugf("IsReady() dry run for %s", h.ReleaseName)
 		return true
@@ -197,7 +194,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (h *HelmComponent) IsEnabled(_ *vzapi.Verrazzano) bool {
 	return true
 }
 
@@ -212,7 +209,7 @@ func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazza
 }
 
 // Install installs the component using Helm
-func (h HelmComponent) Install(context spi.ComponentContext) error {
+func (h *HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Resolve the namespace
 	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
@@ -235,7 +232,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	return err
 }
 
-func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
+func (h *HelmComponent) PreInstall(context spi.ComponentContext) error {
 	if h.PreInstallFunc != nil {
 		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace), h.ChartDir)
 		if err != nil {
@@ -245,7 +242,7 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
+func (h *HelmComponent) PostInstall(context spi.ComponentContext) error {
 	if h.PostInstallFunc != nil {
 		if err := h.PostInstallFunc(context, h.ReleaseName, h.resolveNamespace(context.EffectiveCR().Namespace)); err != nil {
 			return err
@@ -276,7 +273,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 // that is included in the operator image, while retaining any helm Value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
-func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
+func (h *HelmComponent) Upgrade(context spi.ComponentContext) error {
 	if h.SkipUpgrade {
 		context.Log().Infof("Upgrade disabled for %s", h.ReleaseName)
 		return nil
@@ -340,21 +337,17 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (h HelmComponent) PreUpgrade(_ spi.ComponentContext) error {
+func (h *HelmComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) PostUpgrade(_ spi.ComponentContext) error {
-	return nil
-}
-
-func (h HelmComponent) Reconcile(_ spi.ComponentContext) error {
+func (h *HelmComponent) PostUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
 // buildCustomHelmOverrides Builds the helm overrides for a release, including image and file, and custom overrides
 // - returns an error and a HelmOverride struct with the field populated
-func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) (helm.HelmOverrides, error) {
+func (h *HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, namespace string, additionalValues ...bom.KeyValue) (helm.HelmOverrides, error) {
 	// Optionally create a second override file.  This will contain both image setOverrides and any additional
 	// setOverrides required by a component.
 	// Get image setOverrides unless opt out
@@ -425,7 +418,7 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 //
 // The need for this stems from an issue with the Verrazzano component and the fact
 // that component charts underneath VZ component need to have the ns overridden
-func (h HelmComponent) resolveNamespace(ns string) string {
+func (h *HelmComponent) resolveNamespace(ns string) string {
 	namespace := ns
 	if h.ResolveNamespaceFunc != nil {
 		namespace = h.ResolveNamespaceFunc(namespace)
@@ -456,12 +449,12 @@ func getImageOverrides(subcomponentName string) ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-func (h HelmComponent) GetSkipUpgrade() bool {
+func (h *HelmComponent) GetSkipUpgrade() bool {
 	return h.SkipUpgrade
 }
 
-func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.NamespacedName {
-	return h.IngressNames
+func (h *HelmComponent) GetIngressNames(context spi.ComponentContext) []types.NamespacedName {
+	return h.ComponentInfoImpl.GetIngressNames(context)
 }
 
 // GetInstallArgs returns the list of install args as Helm value pairs

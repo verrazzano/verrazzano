@@ -36,14 +36,18 @@ type applicationOperatorComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return applicationOperatorComponent{
-		helm.HelmComponent{
+	return &applicationOperatorComponent{
+		HelmComponent: helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				Dependencies:            []string{oam.ComponentName, istio.ComponentName},
+				SupportsOperatorInstall: true,
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
@@ -73,7 +77,7 @@ func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error
 }
 
 // PostUpgrade processing for the application-operator
-func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("application-operator post-upgrade")
 
 	var clientCtx = context.TODO()

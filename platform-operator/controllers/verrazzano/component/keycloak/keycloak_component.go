@@ -41,7 +41,7 @@ type KeycloakComponent struct {
 }
 
 // Verify that KeycloakComponent implements Component
-var _ spi.Component = KeycloakComponent{}
+var _ spi.Component = &KeycloakComponent{}
 
 var certificates = []types.NamespacedName{
 	{Namespace: ComponentNamespace, Name: keycloakCertificateName},
@@ -49,8 +49,19 @@ var certificates = []types.NamespacedName{
 
 // NewComponent returns a new Keycloak component
 func NewComponent() spi.Component {
-	return KeycloakComponent{
+	return &KeycloakComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				Dependencies:            []string{istio.ComponentName},
+				SupportsOperatorInstall: true,
+				IngressNames: []types.NamespacedName{
+					{
+						Namespace: ComponentNamespace,
+						Name:      constants.KeycloakIngress,
+					},
+				},
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
@@ -74,7 +85,7 @@ func NewComponent() spi.Component {
 
 // Reconcile - the only condition currently being handled by this function is to restore
 // the Keycloak configuration when the MySQL pod gets restarted and ephemeral storage is being used.
-func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+func (c *KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	// If the Keycloak component is ready, confirm the configuration is working.
 	// If ephemeral storage is being used, the Keycloak configuration will be rebuilt if needed.
 	if isKeycloakReady(ctx) {
@@ -84,7 +95,7 @@ func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	return fmt.Errorf("Component %s not ready yet to check configuration", ComponentName)
 }
 
-func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret. return error which will cause requeue
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -125,7 +136,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	// Create secret for the verrazzano-prom-internal user
 	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-prom-internal", "verrazzano-prom-internal")
 	if err != nil {
@@ -155,7 +166,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
-func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
@@ -164,7 +175,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // IsEnabled Keycloak-specific enabled check for installation
-func (c KeycloakComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c *KeycloakComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -173,7 +184,7 @@ func (c KeycloakComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // IsReady component check
-func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isKeycloakReady(ctx)
 	}
@@ -181,7 +192,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -193,9 +204,13 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	return nil
 }
 
-func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+func (c *KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
 		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
 	}
 	return nil
+}
+
+func (c *KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

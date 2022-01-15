@@ -17,6 +17,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/registry"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
@@ -160,9 +161,10 @@ func main() {
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		DryRun: config.DryRun,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		DryRun:   config.DryRun,
+		Registry: registry.VzComponentRegistry{},
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")

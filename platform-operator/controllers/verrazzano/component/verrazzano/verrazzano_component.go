@@ -50,8 +50,13 @@ type verrazzanoComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return verrazzanoComponent{
+	return &verrazzanoComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
@@ -60,15 +65,13 @@ func NewComponent() spi.Component {
 			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 		},
 	}
 }
 
 // PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
-func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := setupSharedVMIResources(ctx); err != nil {
 		return err
 	}
@@ -83,7 +86,7 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // Install Verrazzano component install processing
-func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
@@ -91,7 +94,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 }
 
 // PreUpgrade Verrazzano component pre-upgrade processing
-func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
 }
 
@@ -104,7 +107,7 @@ func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 }
 
 // IsReady component check
-func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isVerrazzanoReady(ctx)
 	}
@@ -112,7 +115,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // PostInstall - post-install, clean up temp files
-func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	// populate the ingress and certificate names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
@@ -121,7 +124,7 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 }
 
 // PostUpgrade Verrazzano-post-upgrade processing
-func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
@@ -133,7 +136,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // updateElasticsearchResources updates elasticsearch resources
-func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
 	if err := fixupElasticSearchReplicaCount(ctx, resolveVerrazzanoNamespace(c.ChartNamespace)); err != nil {
 		return err
 	}
@@ -141,7 +144,7 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 }
 
 // IsEnabled verrazzano-specific enabled check for installation
-func (c verrazzanoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c *verrazzanoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Verrazzano
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -150,7 +153,7 @@ func (c verrazzanoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := c.checkEnabled(old, new); err != nil {
 		return err

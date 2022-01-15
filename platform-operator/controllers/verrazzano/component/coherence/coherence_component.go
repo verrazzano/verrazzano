@@ -28,14 +28,17 @@ type coherenceComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return coherenceComponent{
+	return &coherenceComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
 			Dependencies:            []string{},

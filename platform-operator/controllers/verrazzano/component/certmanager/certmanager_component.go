@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -36,18 +37,21 @@ type certManagerComponent struct {
 }
 
 // Verify that certManagerComponent implements Component
-var _ spi.Component = certManagerComponent{}
+var _ spi.Component = &certManagerComponent{}
 
 // NewComponent returns a new CertManager component
 func NewComponent() spi.Component {
-	return certManagerComponent{
+	return &certManagerComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
@@ -140,4 +144,8 @@ func (c certManagerComponent) getCertificateSettings(vz *vzapi.Verrazzano) vzapi
 		certSettings = vz.Spec.Components.CertManager.Certificate
 	}
 	return certSettings
+}
+
+func (c *certManagerComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

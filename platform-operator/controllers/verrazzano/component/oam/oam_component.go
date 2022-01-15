@@ -30,14 +30,17 @@ type oamComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return oamComponent{
+	return &oamComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			Dependencies:            []string{},
@@ -46,7 +49,7 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled OAM-specific enabled check for installation
-func (c oamComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c *oamComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.OAM
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -55,7 +58,7 @@ func (c oamComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // IsReady component check
-func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *oamComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isOAMReady(ctx)
 	}
@@ -63,7 +66,7 @@ func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -72,6 +75,6 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 }
 
 // PreUpgrade OAM-pre-upgrade processing
-func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c *oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
 }

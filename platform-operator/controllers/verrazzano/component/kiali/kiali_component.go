@@ -33,7 +33,7 @@ type kialiComponent struct {
 	helm.HelmComponent
 }
 
-var _ spi.Component = kialiComponent{}
+var _ spi.Component = &kialiComponent{}
 
 const kialiOverridesFile = "kiali-server-values.yaml"
 
@@ -42,32 +42,37 @@ var certificates = []types.NamespacedName{
 }
 
 func NewComponent() spi.Component {
-	return kialiComponent{
+	return &kialiComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{nginx.ComponentName},
+				MinVersion:              constants.VerrazzanoVersion1_1_0,
+				IngressNames: []types.NamespacedName{
+					{
+						Namespace: ComponentNamespace,
+						Name:      constants.KialiIngress,
+					},
+				},
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
 			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
 			Certificates:            certificates,
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: ComponentNamespace,
-					Name:      constants.KialiIngress,
-				},
-			},
 		},
 	}
 }
 
 // PostInstall Kiali-post-install processing, create or update the Kiali ingress
-func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali post-install")
 	if err := c.createOrUpdateKialiResources(ctx); err != nil {
 		return err
@@ -82,7 +87,7 @@ func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress
-func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali post-upgrade")
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
@@ -91,7 +96,7 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // IsReady Kiali-specific ready-check
-func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
+func (c *kialiComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
 		return isKialiReady(context)
 	}
@@ -99,7 +104,7 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Kiali-specific enabled check for installation
-func (c kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c *kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Kiali
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -108,7 +113,7 @@ func (c kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources
-func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
+func (c *kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
 	if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
 		return err
 	}
@@ -119,7 +124,7 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)

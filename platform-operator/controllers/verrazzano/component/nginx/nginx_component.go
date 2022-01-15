@@ -36,18 +36,22 @@ type nginxComponent struct {
 }
 
 // Verify that nginxComponent implements Component
-var _ spi.Component = nginxComponent{}
+var _ spi.Component = &nginxComponent{}
 
 // NewComponent returns a new Nginx component
 func NewComponent() spi.Component {
-	return nginxComponent{
+	return &nginxComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
 			PreInstallFunc:          PreInstall,
@@ -59,7 +63,7 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled nginx-specific enabled check for installation
-func (c nginxComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (c *nginxComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Ingress
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -68,7 +72,7 @@ func (c nginxComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // IsReady component check
-func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isNginxReady(ctx)
 	}

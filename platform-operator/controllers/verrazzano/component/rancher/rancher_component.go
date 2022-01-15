@@ -4,7 +4,6 @@
 package rancher
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -42,25 +42,29 @@ var certificates = []types.NamespacedName{
 }
 
 func NewComponent() spi.Component {
-	return rancherComponent{
+	return &rancherComponent{
 		HelmComponent: helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
+				SupportsOperatorInstall: true,
+				IngressNames: []types.NamespacedName{
+					{
+						Namespace: common.CattleSystem,
+						Name:      constants.RancherIngress,
+					},
+				},
+			},
 			ReleaseName:             common.RancherName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			Certificates:            certificates,
 			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: ComponentNamespace,
-					Name:      constants.RancherIngress,
-				},
-			},
 		},
 	}
 }
@@ -148,7 +152,7 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
-func (r rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+func (r *rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	comp := effectiveCR.Spec.Components.Rancher
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -157,7 +161,7 @@ func (r rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (r *rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -171,7 +175,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 - Copy TLS certificates for Rancher if using the default Verrazzano CA
 - Create additional LetsEncrypt TLS certificates for Rancher if using LE
 */
-func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
+func (r *rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
 	c := ctx.Client()
 	log := ctx.Log()
@@ -196,7 +200,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 - Patch Rancher deployment with MKNOD capability
 - Patch Rancher ingress with NGINX/TLS annotations
 */
-func (r rancherComponent) Install(ctx spi.ComponentContext) error {
+func (r *rancherComponent) Install(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
@@ -218,7 +222,7 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 }
 
 // IsReady component check
-func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
+func (r *rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
 		return isRancherReady(ctx)
 	}
@@ -232,7 +236,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 - Retrieve the Rancher hostname
 - Set the Rancher server URL using the admin password and the hostname
 */
-func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
+func (r *rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	vz := ctx.EffectiveCR()
 	log := ctx.Log()

@@ -31,19 +31,22 @@ type weblogicComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return weblogicComponent{
+	return &weblogicComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
 			PreInstallFunc:          WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
-			Dependencies:            []string{istio.ComponentName},
 		},
 	}
 }
@@ -58,7 +61,7 @@ func (c weblogicComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
@@ -67,9 +70,13 @@ func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 }
 
 // IsReady component check
-func (c weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isWeblogicOperatorReady(ctx)
 	}
 	return false
+}
+
+func (c *weblogicComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

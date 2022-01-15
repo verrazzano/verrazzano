@@ -32,6 +32,8 @@ type ComponentContext interface {
 	GetOperation() string
 	// GetComponent returns the component object in the context
 	GetComponent() string
+	// GetComponentRegistry returns the current registry of components for this context
+	GetComponentRegistry() ComponentRegistry
 }
 
 // ComponentInfo interface defines common information and metadata about components
@@ -59,6 +61,10 @@ type ComponentInstaller interface {
 	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
 	// - scaffolding while we move components from the scripts to the operator
 	IsOperatorInstallSupported() bool
+}
+
+// ComponentInstaller interface defines installs operations for components that support it
+type ComponentInstaller interface {
 	// IsInstalled Indicates whether or not the component is installed
 	IsInstalled(context ComponentContext) (bool, error)
 	// PreInstall allows components to perform any pre-processing required prior to initial install
@@ -97,5 +103,16 @@ type Component interface {
 	ComponentUpgrader
 	ComponentValidator
 
+	// IsReady Indicates whether or not a component is available and ready
+	IsReady(context ComponentContext) bool
+
+	// IsEnabled Indicates whether or a component is enabled for installation
+	IsEnabled(context ComponentContext) bool
+
 	Reconcile(ctx ComponentContext) error
+}
+
+type ComponentRegistry interface {
+	GetComponents() []Component
+	FindComponent(releaseName string) (bool, Component)
 }
