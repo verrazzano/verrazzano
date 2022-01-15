@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
@@ -20,6 +19,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 )
+
+type VzComponentRegistry struct{}
+
+var _ spi.ComponentRegistry = VzComponentRegistry{}
 
 type GetCompoentsFnType func() []spi.Component
 
@@ -40,7 +43,7 @@ func ResetGetComponentsFn() {
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 // The components will be processed in the order items in the array
-func GetComponents() []spi.Component {
+func (r VzComponentRegistry) GetComponents() []spi.Component {
 	return getComponentsFn()
 }
 
@@ -66,66 +69,11 @@ func getComponents() []spi.Component {
 	return componentsRegistry
 }
 
-func FindComponent(releaseName string) (bool, spi.Component) {
-	for _, comp := range GetComponents() {
+func (r VzComponentRegistry) FindComponent(releaseName string) (bool, spi.Component) {
+	for _, comp := range r.GetComponents() {
 		if comp.Name() == releaseName {
 			return true, comp
 		}
 	}
-	return false, &helm.HelmComponent{}
-}
-
-// ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available
-func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
-	log := context.Log()
-	trace, err := checkDependencies(c, context, make(map[string]bool), make(map[string]bool))
-	if err != nil {
-		log.Error(err.Error())
-		return false
-	}
-	if len(trace) == 0 {
-		log.Debugf("No dependencies declared for %s", c.Name())
-		return true
-	}
-	log.Debugf("Trace results for %s: %v", c.Name(), trace)
-	for _, value := range trace {
-		if !value {
-			return false
-		}
-	}
-	return true
-}
-
-// checkDependencies Check the ready state of any dependencies and check for cycles
-func checkDependencies(c spi.Component, context spi.ComponentContext, visited map[string]bool, stateMap map[string]bool) (map[string]bool, error) {
-	compName := c.Name()
-	log := context.Log()
-	log.Debugf("Checking %s dependencies", compName)
-	if _, wasVisited := visited[compName]; wasVisited {
-		return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
-	}
-	visited[compName] = true
-	for _, dependencyName := range c.GetDependencies() {
-		if compName == dependencyName {
-			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
-		}
-		if _, ok := stateMap[dependencyName]; ok {
-			// dependency already checked
-			log.Debugf("Dependency %s already checked", dependencyName)
-			continue
-		}
-		found, dependency := FindComponent(dependencyName)
-		if !found {
-			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
-		}
-		if trace, err := checkDependencies(dependency, context, visited, stateMap); err != nil {
-			return trace, err
-		}
-		if !dependency.IsReady(context) {
-			stateMap[dependencyName] = false // dependency is not ready
-			continue
-		}
-		stateMap[dependencyName] = true // dependency is ready
-	}
-	return stateMap, nil
+	return false, nil
 }

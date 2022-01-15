@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/registry"
+	v1 "k8s.io/api/networking/v1"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -16,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -80,6 +81,22 @@ func TestUpgradeNoVersion(t *testing.T) {
 			return nil
 		})
 
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.IngressList) error {
+			return nil
+		})
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			//asserts.Len(verrazzano.Status.Conditions, 1)
+			return nil
+		}).AnyTimes()
+
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -111,6 +128,17 @@ func TestUpgradeNoVersion(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			&fakeComponent{
+				isInstalledFunc: func(_ spi.ComponentContext) (bool, error) {
+					return true, nil
+				},
+			},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -142,6 +170,12 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.IngressList) error {
+			return nil
+		})
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -167,6 +201,16 @@ func TestUpgradeSameVersion(t *testing.T) {
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
 			return nil
 		})
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			//asserts.Len(verrazzano.Status.Conditions, 1)
+			return nil
+		}).AnyTimes()
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -198,6 +242,17 @@ func TestUpgradeSameVersion(t *testing.T) {
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			&fakeComponent{
+				isInstalledFunc: func(_ spi.ComponentContext) (bool, error) {
+					return true, nil
+				},
+			},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
@@ -490,7 +545,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{},
+			&fakeComponent{},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
@@ -579,7 +634,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{},
+			&fakeComponent{},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
@@ -669,7 +724,7 @@ func TestUpgradeHelmError(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{
+			&fakeComponent{
 				upgradeFunc: func(ctx spi.ComponentContext) error {
 					return fmt.Errorf("Error running upgrade")
 				},
@@ -779,7 +834,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{
+			&fakeComponent{
 				isInstalledFunc: func(ctx spi.ComponentContext) (bool, error) {
 					return false, fmt.Errorf("Error running isInstalled")
 				},
@@ -807,7 +862,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz, newFakeContext(mock, reconciler))
 
 	// Validate the results
 	mocker.Finish()
@@ -889,7 +944,7 @@ func TestUpgradeComponent(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz, newFakeContext(mock, reconciler))
 
 	// Validate the results
 	mocker.Finish()
@@ -980,7 +1035,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz, newFakeContext(mock, reconciler))
 
 	// Validate the results
 	mocker.Finish()
@@ -1204,4 +1259,8 @@ func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 
 func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte(""), []byte("failure"), errors.New("Helm Error")
+}
+
+func newFakeContext(c client.Client, reconciler Reconciler) spi.ComponentContext {
+	return spi.NewFakeContextWithRegistry(c, &vzapi.Verrazzano{}, reconciler.Registry, false)
 }

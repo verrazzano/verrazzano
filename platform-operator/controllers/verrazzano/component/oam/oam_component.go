@@ -17,13 +17,16 @@ type oamComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return oamComponent{
+	return &oamComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ReadyStatusFunc:         IsOAMReady,
@@ -32,10 +35,14 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled OAM-specific enabled check for installation
-func (c oamComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *oamComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.OAM
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+func (c *oamComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

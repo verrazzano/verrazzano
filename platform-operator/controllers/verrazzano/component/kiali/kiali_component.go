@@ -19,35 +19,38 @@ type kialiComponent struct {
 	helm.HelmComponent
 }
 
-var _ spi.Component = kialiComponent{}
+var _ spi.Component = &kialiComponent{}
 
 const kialiOverridesFile = "kiali-server-values.yaml"
 
 func NewComponent() spi.Component {
-	return kialiComponent{
+	return &kialiComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{nginx.ComponentName},
+				MinVersion:              constants.VerrazzanoVersion1_1_0,
+				IngressNames: []types.NamespacedName{
+					{
+						Namespace: constants.VerrazzanoSystemNamespace,
+						Name:      constants.KialiIngress,
+					},
+				},
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
-			Dependencies:            []string{nginx.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
-			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: constants.VerrazzanoSystemNamespace,
-					Name:      constants.KialiIngress,
-				},
-			},
 		},
 	}
 }
 
 // PostInstall Kiali-post-install processing, create or update the Kiali ingress
-func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali post-install")
 	if err := c.createOrUpdateKialiResources(ctx); err != nil {
 		return err
@@ -56,7 +59,7 @@ func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress
-func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali post-upgrade")
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
@@ -65,7 +68,7 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // IsReady Kiali-specific ready-check
-func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
+func (c *kialiComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
 		return isKialiReady(context, c.ReleaseName, c.ChartNamespace)
 	}
@@ -73,7 +76,7 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Kiali-specific enabled check for installation
-func (c kialiComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *kialiComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Kiali
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -82,7 +85,7 @@ func (c kialiComponent) IsEnabled(ctx spi.ComponentContext) bool {
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources
-func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
+func (c *kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
 	if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
 		return err
 	}
@@ -90,4 +93,8 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 		return err
 	}
 	return nil
+}
+
+func (c *kialiComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

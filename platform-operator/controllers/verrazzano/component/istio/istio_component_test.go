@@ -63,7 +63,7 @@ var crInstall = &installv1alpha1.Verrazzano{
 	},
 }
 
-var comp = istioComponent{}
+var comp = NewComponent()
 
 const testBomFilePath = "../../testdata/test_bom.json"
 

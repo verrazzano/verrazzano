@@ -17,13 +17,16 @@ type coherenceComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return coherenceComponent{
+	return &coherenceComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
 			ReadyStatusFunc:         IsCoherenceOperatorReady,
@@ -32,10 +35,14 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled Coherence-specific enabled check for installation
-func (c coherenceComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *coherenceComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.CoherenceOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+func (c *coherenceComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

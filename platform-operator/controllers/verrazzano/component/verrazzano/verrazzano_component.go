@@ -25,8 +25,13 @@ type verrazzanoComponent struct {
 const vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
 func NewComponent() spi.Component {
-	return verrazzanoComponent{
+	return &verrazzanoComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
@@ -34,15 +39,17 @@ func NewComponent() spi.Component {
 			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
-			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
 		},
 	}
 }
 
+func (c *verrazzanoComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
+}
+
 // PostInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
-func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
@@ -54,13 +61,13 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // PreUpgrade Verrazzano component pre-upgrade processing
-func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(),
 		c.ReleaseName, resolveVerrazzanoNamespace(c.ChartNamespace), c.ChartDir)
 }
 
 // IsReady Verrazzano component ready-check
-func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if !c.HelmComponent.IsReady(ctx) {
 		return false
 	}
@@ -81,7 +88,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // PostInstall - post-install, clean up temp files
-func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
@@ -89,7 +96,7 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 }
 
 // PostUpgrade Verrazzano-post-upgrade processing
-func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
@@ -99,7 +106,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // updateElasticsearchResources updates elasticsearch resources
-func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
+func (c *verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
 	if err := fixupElasticSearchReplicaCount(ctx, resolveVerrazzanoNamespace(c.ChartNamespace)); err != nil {
 		return err
 	}
@@ -107,7 +114,7 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 }
 
 // IsEnabled verrazzano-specific enabled check for installation
-func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Verrazzano
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -116,7 +123,7 @@ func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
-func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (c *verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	ingressNames := []types.NamespacedName{
 		{
 			Namespace: constants.VerrazzanoSystemNamespace,

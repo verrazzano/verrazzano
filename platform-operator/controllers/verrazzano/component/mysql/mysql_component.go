@@ -23,34 +23,37 @@ type mysqlComponent struct {
 }
 
 // Verify that mysqlComponent implements Component
-var _ spi.Component = mysqlComponent{}
+var _ spi.Component = &mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
-	return mysqlComponent{
+	return &mysqlComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          vzconst.KeycloakNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:     appendMySQLOverrides,
-			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         isReady,
 		},
 	}
 }
 
 // IsReady calls MySQL isReady function
-func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
+func (c *mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	return isReady(context, c.ReleaseName, c.ChartNamespace)
 }
 
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
-func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -59,11 +62,15 @@ func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
 }
 
 // PreInstall calls MySQL preInstall function
-func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx, c.ChartNamespace)
 }
 
 // PostInstall calls MySQL postInstall function
-func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
+}
+
+func (c *mysqlComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

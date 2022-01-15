@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/registry"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -119,7 +120,8 @@ func TestGetInstanceInfo(t *testing.T) {
 		},
 	}
 
-	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, vz, false))
+	fakeContext := spi.NewFakeContextWithRegistry(mock, vz, registry.VzComponentRegistry{}, false)
+	instanceInfo := GetInstanceInfo(fakeContext)
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
@@ -190,7 +192,8 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 			return nil
 		})
 
-	instanceInfo := GetInstanceInfo(spi.NewFakeContext(mock, &v1alpha1.Verrazzano{}, false))
+	fakeContext := spi.NewFakeContextWithRegistry(mock, &v1alpha1.Verrazzano{}, registry.VzComponentRegistry{}, false)
+	instanceInfo := GetInstanceInfo(fakeContext)
 	mocker.Finish()
 	assert.NotNil(t, instanceInfo)
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)

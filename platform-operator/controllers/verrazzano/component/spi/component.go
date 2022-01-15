@@ -32,6 +32,8 @@ type ComponentContext interface {
 	GetOperation() string
 	// GetComponent returns the component object in the context
 	GetComponent() string
+	// GetComponentRegistry returns the current registry of components for this context
+	GetComponentRegistry() ComponentRegistry
 }
 
 // ComponentInfo interface defines common information and metadata about components
@@ -40,21 +42,17 @@ type ComponentInfo interface {
 	Name() string
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
-	// IsReady Indicates whether or not a component is available and ready
-	IsReady(context ComponentContext) bool
-	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(context ComponentContext) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component
 	GetIngressNames(context ComponentContext) []types.NamespacedName
+	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorInstallSupported() bool
 }
 
 // ComponentInstaller interface defines installs operations for components that support it
 type ComponentInstaller interface {
-	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-	// - scaffolding while we move components from the scripts to the operator
-	IsOperatorInstallSupported() bool
 	// IsInstalled Indicates whether or not the component is installed
 	IsInstalled(context ComponentContext) (bool, error)
 	// PreInstall allows components to perform any pre-processing required prior to initial install
@@ -84,5 +82,16 @@ type Component interface {
 	ComponentInstaller
 	ComponentUpgrader
 
+	// IsReady Indicates whether or not a component is available and ready
+	IsReady(context ComponentContext) bool
+
+	// IsEnabled Indicates whether or a component is enabled for installation
+	IsEnabled(context ComponentContext) bool
+
 	Reconcile(ctx ComponentContext) error
+}
+
+type ComponentRegistry interface {
+	GetComponents() []Component
+	FindComponent(releaseName string) (bool, Component)
 }

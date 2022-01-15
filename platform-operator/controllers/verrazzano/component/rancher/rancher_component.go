@@ -4,14 +4,7 @@
 package rancher
 
 import (
-	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -22,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 const ComponentName = common.RancherName
@@ -31,111 +25,37 @@ type rancherComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return rancherComponent{
+	return &rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
+				SupportsOperatorInstall: true,
+				IngressNames: []types.NamespacedName{
+					{
+						Namespace: common.CattleSystem,
+						Name:      constants.RancherIngress,
+					},
+				},
+			},
 			ReleaseName:             common.RancherName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
 			ChartNamespace:          "cattle-system",
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: common.CattleSystem,
-					Name:      constants.RancherIngress,
-				},
-			},
 		},
 	}
 }
 
-//AppendOverrides set the Rancher overrides for Helm
-func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		return kvs, err
-	}
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "hostname",
-		Value: rancherHostName,
-	})
-	// Always set useBundledChart=true
-	kvs = append(kvs, bom.KeyValue{
-		Key:   useBundledSystemChartKey,
-		Value: useBundledSystemChartValue,
-	})
-	kvs = appendRegistryOverrides(kvs)
-	return appendCAOverrides(kvs, ctx)
-}
-
-//appendRegistryOverrides appends overrides if a custom registry is being used
-func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
-	// If using external registry, add registry overrides to Rancher
-	registry := os.Getenv(constants.RegistryOverrideEnvVar)
-	if registry != "" {
-		imageRepo := os.Getenv(constants.ImageRepoOverrideEnvVar)
-		var rancherRegistry string
-		if imageRepo == "" {
-			rancherRegistry = registry
-		} else {
-			rancherRegistry = fmt.Sprintf("%s/%s", registry, imageRepo)
-		}
-		kvs = append(kvs, bom.KeyValue{
-			Key:   systemDefaultRegistryKey,
-			Value: rancherRegistry,
-		})
-	}
-	return kvs
-}
-
-//appendCAOverrides sets overrides for CA Issuers, ACME or CA.
-func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
-	cm := ctx.EffectiveCR().Spec.Components.CertManager
-	if cm == nil {
-		return kvs, errors.New("certManager component not found in effective cr")
-	}
-
-	// Configure CA Issuer KVs
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
-		kvs = append(kvs,
-			bom.KeyValue{
-				Key:   letsEncryptIngressClassKey,
-				Value: common.RancherName,
-			}, bom.KeyValue{
-				Key:   letsEncryptEmailKey,
-				Value: cm.Certificate.Acme.EmailAddress,
-			}, bom.KeyValue{
-				Key:   letsEncryptEnvironmentKey,
-				Value: cm.Certificate.Acme.Environment,
-			}, bom.KeyValue{
-				Key:   ingressTLSSourceKey,
-				Value: letsEncryptTLSSource,
-			}, bom.KeyValue{
-				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(cm.Certificate.Acme)),
-			})
-	} else { // Certificate issuer type is CA
-		kvs = append(kvs, bom.KeyValue{
-			Key:   ingressTLSSourceKey,
-			Value: caTLSSource,
-		})
-		if isUsingDefaultCACertificate(cm) {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   privateCAKey,
-				Value: privateCAValue,
-			})
-		}
-	}
-
-	return kvs, nil
+func (r *rancherComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, r)
 }
 
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
-func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (r *rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Rancher
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -149,7 +69,7 @@ func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
 - Copy TLS certificates for Rancher if using the default Verrazzano CA
 - Create additional LetsEncrypt TLS certificates for Rancher if using LE
 */
-func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
+func (r *rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
 	c := ctx.Client()
 	log := ctx.Log()
@@ -174,7 +94,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 - Patch Rancher deployment with MKNOD capability
 - Patch Rancher ingress with NGINX/TLS annotations
 */
-func (r rancherComponent) Install(ctx spi.ComponentContext) error {
+func (r *rancherComponent) Install(ctx spi.ComponentContext) error {
 	if err := r.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
@@ -200,7 +120,7 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 in the body of this function
 - Wait for at least one Rancher pod to be Ready in Kubernetes
 */
-func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
+func (r *rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
 		log := ctx.Log()
 		c := ctx.Client()
@@ -224,7 +144,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 - Retrieve the Rancher hostname
 - Set the Rancher server URL using the admin password and the hostname
 */
-func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
+func (r *rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	vz := ctx.EffectiveCR()
 	log := ctx.Log()

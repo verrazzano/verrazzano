@@ -51,6 +51,9 @@ const HelmScrtType = "helm.sh/release.v1"
 
 // istioComponent represents an Istio component
 type istioComponent struct {
+	// Basic Component fields and functionality
+	spi.ComponentInfoImpl
+
 	// ValuesFile contains the path to the IstioOperator CR values file
 	ValuesFile string
 
@@ -63,6 +66,8 @@ type istioComponent struct {
 	// Internal monitor object for peforming `istioctl` operations in the background
 	monitor installMonitor
 }
+
+var _ spi.Component = &istioComponent{}
 
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
@@ -102,30 +107,25 @@ func SetDefaultHelmUninstallFunction() {
 }
 
 func NewComponent() spi.Component {
-	return istioComponent{
+	return &istioComponent{
+		ComponentInfoImpl:        spi.ComponentInfoImpl{ComponentName: ComponentName},
 		ValuesFile:               filepath.Join(config.GetHelmOverridesDir(), "istio-cr.yaml"),
 		InjectedSystemNamespaces: config.GetInjectedSystemNamespaces(),
 		monitor:                  &installMonitorType{},
 	}
 }
 
+func (i *istioComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, i)
+}
+
 // IsEnabled istio-specific enabled check for installation
-func (i istioComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (i *istioComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Istio
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
-}
-
-// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
-func (i istioComponent) GetMinVerrazzanoVersion() string {
-	return constants.VerrazzanoVersion1_0_0
-}
-
-// Name returns the component name
-func (i istioComponent) Name() string {
-	return ComponentName
 }
 
 func (i istioComponent) Upgrade(context spi.ComponentContext) error {
@@ -177,7 +177,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (i istioComponent) IsReady(context spi.ComponentContext) bool {
+func (i *istioComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: IstiodDeployment, Namespace: IstioNamespace},
 	}
@@ -185,17 +185,12 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
-// GetDependencies returns the dependencies of this component
-func (i istioComponent) GetDependencies() []string {
-	return []string{}
-}
-
-func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
+func (i *istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
 	return StopDomainsUsingOldEnvoy(context.Log(), context.Client())
 }
 
-func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
+func (i *istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	err := deleteIstioCoreDNS(context)
 	if err != nil {
 		return err
@@ -224,13 +219,9 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
-func (i istioComponent) Reconcile(_ spi.ComponentContext) error {
-	return nil
-}
-
 // GetIngressNames returns the list of ingress names associated with the component
-func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
-	return []types.NamespacedName{}
+func (i *istioComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	return i.ComponentInfoImpl.GetIngressNames(ctx)
 }
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets

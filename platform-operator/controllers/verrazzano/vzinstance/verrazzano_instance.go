@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"go.uber.org/zap"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -56,7 +55,7 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 }
 
 func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.ComponentContext, componentName string, ingressName string) *string {
-	found, comp := registry.FindComponent(componentName)
+	found, comp := compContext.GetComponentRegistry().FindComponent(componentName)
 	if !found {
 		zap.S().Debugf("No component %s found", componentName)
 		return nil

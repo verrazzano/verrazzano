@@ -4,10 +4,10 @@
 package nginx
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -22,33 +22,40 @@ type nginxComponent struct {
 }
 
 // Verify that nginxComponent implements Component
-var _ spi.Component = nginxComponent{}
+var _ spi.Component = &nginxComponent{}
 
 // NewComponent returns a new Nginx component
 func NewComponent() spi.Component {
-	return nginxComponent{
+	return &nginxComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), ValuesFileOverride),
 			PreInstallFunc:          PreInstall,
 			AppendOverridesFunc:     AppendOverrides,
 			PostInstallFunc:         PostInstall,
-			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         IsReady,
 		},
 	}
 }
 
 // IsEnabled nginx-specific enabled check for installation
-func (c nginxComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *nginxComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Ingress
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+func (c *nginxComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

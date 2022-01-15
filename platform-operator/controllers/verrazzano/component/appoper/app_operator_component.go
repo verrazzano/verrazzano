@@ -25,24 +25,27 @@ type applicationOperatorComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return applicationOperatorComponent{
-		helm.HelmComponent{
+	return &applicationOperatorComponent{
+		HelmComponent: helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				Dependencies:            []string{oam.ComponentName, istio.ComponentName},
+				SupportsOperatorInstall: true,
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			ReadyStatusFunc:         IsApplicationOperatorReady,
-			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
 			PreUpgradeFunc:          ApplyCRDYaml,
 		},
 	}
 }
 
 // PostUpgrade processing for the application-operator
-func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("application-operator post-upgrade")
 
 	var clientCtx = context.TODO()
@@ -77,10 +80,14 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 }
 
 // IsEnabled applicationOperator-specific enabled check for installation
-func (c applicationOperatorComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *applicationOperatorComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.ApplicationOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+func (c *applicationOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

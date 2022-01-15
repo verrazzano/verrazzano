@@ -36,32 +36,35 @@ type KeycloakComponent struct {
 }
 
 // Verify that KeycloakComponent implements Component
-var _ spi.Component = KeycloakComponent{}
+var _ spi.Component = &KeycloakComponent{}
 
 // NewComponent returns a new Keycloak component
 func NewComponent() spi.Component {
-	return KeycloakComponent{
+	return &KeycloakComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				Dependencies:            []string{istio.ComponentName},
+				SupportsOperatorInstall: true,
+				IngressNames: []types.NamespacedName{
+					{
+						Namespace: ComponentNamespace,
+						Name:      constants.KeycloakIngress,
+					},
+				},
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Pull Key
-			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName},
-			SupportsOperatorInstall: true,
-			AppendOverridesFunc:     AppendKeycloakOverrides,
-			IngressNames: []types.NamespacedName{
-				{
-					Namespace: ComponentNamespace,
-					Name:      constants.KeycloakIngress,
-				},
-			},
+			ValuesFile:          filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
+			AppendOverridesFunc: AppendKeycloakOverrides,
 		},
 	}
 }
 
-func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret. return error which will cause reque
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -102,7 +105,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	// Create secret for the verrazzano-prom-internal user
 	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-prom-internal", "verrazzano-prom-internal")
 	if err != nil {
@@ -132,7 +135,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
-func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
@@ -140,7 +143,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // IsEnabled Keycloak-specific enabled check for installation
-func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -148,7 +151,7 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return *comp.Enabled
 }
 
-func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
+func (c *KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	// TLS cert from Cert Manager should be in Ready state
 	secretName := getSecretName(ctx.EffectiveCR())
 	secret := &corev1.Secret{}
@@ -166,4 +169,8 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
+}
+
+func (c *KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }

@@ -18,28 +18,35 @@ type weblogicComponent struct {
 }
 
 func NewComponent() spi.Component {
-	return weblogicComponent{
+	return &weblogicComponent{
 		helm.HelmComponent{
+			ComponentInfoImpl: spi.ComponentInfoImpl{
+				ComponentName:           ComponentName,
+				SupportsOperatorInstall: true,
+				Dependencies:            []string{istio.ComponentName},
+			},
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          constants.VerrazzanoSystemNamespace,
 			IgnoreNamespaceOverride: true,
-			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
 			PreInstallFunc:          WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
-			Dependencies:            []string{istio.ComponentName},
 			ReadyStatusFunc:         IsWeblogicOperatorReady,
 		},
 	}
 }
 
 // IsEnabled WebLogic-specific enabled check for installation
-func (c weblogicComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (c *weblogicComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.WebLogicOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+func (c *weblogicComponent) Reconcile(ctx spi.ComponentContext) error {
+	return spi.Reconcile(ctx, c)
 }
