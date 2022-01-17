@@ -108,7 +108,7 @@ func deployWebLogicApplication() {
 
 var _ = t.Describe("Test WebLogic loggingtrait application", func() {
 
-	t.Context("Deployment.", func() {
+	t.Context("deployment.", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
@@ -119,7 +119,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", func() {
 		})
 	})
 
-	t.Context("for LoggingTrait", func() {
+	t.Context("for LoggingTrait.", func() {
 		// GIVEN the app is deployed and the pods are running
 		// WHEN the app pod is inspected
 		// THEN the container for the logging trait should exist

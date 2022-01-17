@@ -31,10 +31,10 @@ var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
 
 // This test checks that the Verrazzano install resource has the expected console URLs.
-var _ = t.Describe("Verify Verrazzano install scripts,", func() {
+var _ = t.Describe("Verify Verrazzano install scripts.", func() {
 
-	t.Context("the expected Console URLs in the installed Verrazzano resource", func() {
-		t.It("are there in the installed Verrazzano resource", func() {
+	t.Context("Check", func() {
+		t.It("the expected Console URLs are there in the installed Verrazzano resource", func() {
 			// Validation for passed in cluster
 			Eventually(func() bool {
 				return validateConsoleUrlsCluster(kubeConfigFromEnv)

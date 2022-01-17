@@ -109,8 +109,8 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Keycloak configuration,", func() {
-	var _ = t.Context("verify", func() {
+var _ = t.Describe("Test Keycloak configuration.", func() {
+	var _ = t.Context("Verify", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		t.It("master realm password policy", func() {
 			if !isManagedClusterProfile {

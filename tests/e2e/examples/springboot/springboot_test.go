@@ -54,7 +54,7 @@ var _ = t.Describe("Spring Boot test", func() {
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Context("application Deployment", func() {
+	t.Context("app deployment", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(pkg.SpringbootNamespace, expectedPodsSpringBootApp)
@@ -93,7 +93,7 @@ var _ = t.Describe("Spring Boot test", func() {
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
 	})
 
-	t.Context("Logging.", func() {
+	t.Context("for Logging.", func() {
 		indexName := "verrazzano-namespace-springboot"
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
@@ -117,7 +117,7 @@ var _ = t.Describe("Spring Boot test", func() {
 		})
 	})
 
-	t.Context("Verify Prometheus scraped metrics.", func() {
+	t.Context("for metrics.", func() {
 		t.It("Retrieve Prometheus scraped metrics for App Component", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")

@@ -27,16 +27,16 @@ var t = framework.NewTestFramework("oam")
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Verify OAM Infra", func() {
-	t.Describe("verrazzano-application-operator pod is running.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Describe("verrazzano-application-operator pod", func() {
+		t.It("is must be running", func() {
 			Eventually(func() (bool, error) {
 				return applicationOperatorPodRunning()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
-	t.Describe("oam-kubernetes-runtime pod is running.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Describe("oam-kubernetes-runtime pod", func() {
+		t.It("is running", func() {
 			Eventually(func() (bool, error) {
 				return kubernetesRuntimePodRunning()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
