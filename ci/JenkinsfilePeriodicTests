@@ -432,7 +432,8 @@ pipeline {
                             dir ("${WORKSPACE}") {
                                 copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
                                         selector: specific("${built.number}"));
-                                currentBuild.displayName = readFile file: "release_status.out"
+                                def releaseStatus = readFile file: "release_status.out"
+                                currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
                             }
                         }
                     }

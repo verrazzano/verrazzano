@@ -115,16 +115,17 @@ pipeline {
                             echo "Passed pre-release checks for ${VERRAZZANO_DEV_VERSION}, promoting this to the latest releasable candidate"
                             echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
                             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-$VERRAZZANO_DEV_VERSION-releasable-candidate-commit.txt --file $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
-                            echo "${env.BUILD_NUMBER} : RELEASE CANDIDATE" > release_status.out
+                            echo "RELEASE CANDIDATE" > release_status.out
                         else
                             echo "Failed pre-release checks for ${VERRAZZANO_DEV_VERSION}"
-                            echo "${env.BUILD_NUMBER} : NOT RELEASABLE" > release_status.out
-                            #echo "${env.BUILD_NUMBER} : SOMEWHAT RELEASABLE" > release_status.out
+                            echo "NOT RELEASABLE" > release_status.out
+                            #echo "SOMEWHAT RELEASABLE" > release_status.out
                         fi
                         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/current-dev-version.txt --file $WORKSPACE/.verrazzano_development_version
                         set -e
                     """
-                    currentBuild.displayName = readFile file: "release_status.out"
+                    def releaseStatus = readFile file: "release_status.out"
+                    currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
                     if (currentBuild.displayName.contains("NOT RELEASABLE")) {
                         currentBuild.result = "FAILED"
                     }
