@@ -1,17 +1,9 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def DOCKER_IMAGE_TAG
-def releaseBuild
-def RELEASE_JOB_NAME
-def RELEASE_BRANCH_COMMIT
-def IS_PATCH_RELEASE = false
-def IMAGES_TO_PUBLISH_JOB_NAME
-def IMAGES_TO_PUBLISH_BUILD
-def PERIODIC_JOB_BUILD_NUMBER
-def PERIODIC_JOB_PROJECT_NAME = 'verrazzano-periodic-triggered-tests'
 def LAST_RELEASABLE_COMMIT
 def VERRAZZANO_DEV_VERSION
+def IMAGES_TO_PUBLISH_OBJECT_STORE_FILE
 
 pipeline {
     options {
@@ -77,15 +69,6 @@ pipeline {
                         """
                         def props = readProperties file: "last_releasable_candidate_commit.txt"
                         LAST_RELEASABLE_COMMIT = props['git-commit']
-
-                        /*def commitId
-                        copyArtifacts(projectName: "verrazzano-prerelease-check/${cleanBranchName}", selector: lastSuccessful())
-                        sh "cat release_status.out"
-                        if (fileExists("upstream_periodic_test_build_number.out")) {
-                            PERIODIC_JOB_BUILD_NUMBER = readFile file: "upstream_periodic_test_build_number.out"
-                        }
-                        commitId = readFile file: "git_commit.out"
-                        println("periodic job build number to use is ${PERIODIC_JOB_BUILD_NUMBER} and commit hash is ${commitId}")*/
                         if (!LAST_RELEASABLE_COMMIT) {
                             println("ERROR: No releasable commit found for dev version ${VERRAZZANO_DEV_VERSION}")
                             sh "exit 1"
@@ -100,7 +83,7 @@ pipeline {
             steps {
                 build job: "verrazzano-release-pipeline-stage-1/${CLEAN_BRANCH_NAME}",
                         parameters: [
-                                string(name: 'GIT_COMMIT_TO_USE', value: LAST_RELEASABLE_COMMIT),
+                                string(name: 'COMMIT_TO_USE', value: LAST_RELEASABLE_COMMIT),
                                 booleanParam(name: 'TEST_RUN', value: true),
                                 string(name: 'TARGET_VERSION', value: VERRAZZANO_DEV_VERSION),
                                 string(name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', value: IMAGES_TO_PUBLISH_OBJECT_STORE_FILE)
