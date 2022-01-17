@@ -92,7 +92,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	t.Describe("Ingress.", func() {
+	t.Describe("for Ingress.", func() {
 		t.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
@@ -105,7 +105,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	t.Describe("Metrics.", func() {
+	t.Describe("for Metrics.", func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {

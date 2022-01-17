@@ -90,8 +90,8 @@ var _ = t.Describe("Helidon Config OAM App test", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Describe("helidon-config-deployment pod is running.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Describe("helidon-config-deployment pod", func() {
+		t.It("is running", func() {
 			Eventually(helidonConfigPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})

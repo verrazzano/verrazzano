@@ -54,8 +54,8 @@ var _ = t.Describe("Spring Boot test", func() {
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Context("app deployment", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Context("expected pods", func() {
+		t.It("are running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(pkg.SpringbootNamespace, expectedPodsSpringBootApp)
 			}, longWaitTimeout, pollingInterval).Should(BeTrue())
