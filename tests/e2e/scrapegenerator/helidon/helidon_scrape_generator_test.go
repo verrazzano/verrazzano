@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/scrapegenerator"
 )
@@ -40,17 +39,17 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verify application.", func() {
-	t.Context("Deployment.", func() {
+var _ = t.Describe("Verify", func() {
+	t.Context("app deployment", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the Helidon pod should exist
-		t.It("Verify 'hello-helidon-scrape' pod is running", func() {
+		t.It("'hello-helidon-scrape' pod is running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{applicationPodPrefix})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
-		t.It("Verify metrics template exists", func() {
+		t.It("metrics template exists", func() {
 			Eventually(func() bool {
 				return pkg.DoesMetricsTemplateExist(types.NamespacedName{Name: metricsTemplateName, Namespace: namespace})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -60,8 +59,8 @@ var _ = t.Describe("Verify application.", func() {
 	// GIVEN the Helidon app is deployed and the pods are running
 	// WHEN the Prometheus metrics in the app namespace are scraped
 	// THEN the Helidon application metrics should exist
-	t.Context("Verify Prometheus scraped metrics.", func() {
-		t.It("Retrieve Prometheus scraped metrics for Helidon Pod", func() {
+	t.Context("Retrieve", func() {
+		t.It("Prometheus scraped metrics for Helidon Pod", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon-scrape-application")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")

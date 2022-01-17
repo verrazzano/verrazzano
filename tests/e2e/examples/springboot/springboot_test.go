@@ -49,12 +49,12 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-var _ = t.Describe("Verify Spring Boot Application", func() {
+var _ = t.Describe("Spring Boot test", func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Context("Deployment.", func() {
+	t.Context("application Deployment", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(pkg.SpringbootNamespace, expectedPodsSpringBootApp)
