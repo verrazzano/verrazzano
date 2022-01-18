@@ -183,6 +183,17 @@ spec:
                           - name
                           type: object
                         type: array
+                      lifecycleManagement:
+                        description: LifecycleManagement allows for configuration
+                          of the search index lifecycle policy
+                        properties:
+                          minAge:
+                            description: Min index age for ISM Policy
+                            type: string
+                          minSize:
+                            description: Min index size for ISM Policy
+                            type: string
+                        type: object
                     type: object
                   fluentd:
                     description: Fluentd configuration

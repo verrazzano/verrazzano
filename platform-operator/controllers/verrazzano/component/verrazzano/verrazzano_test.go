@@ -1195,6 +1195,39 @@ func Test_waitForPodsWithReadyContainer(t *testing.T) {
 	assert.Len(pods, 0, "Expected to find no pods with a ready container")
 }
 
+func Test_formatISMPayload(t *testing.T) {
+	age := "12d"
+	size := "2m"
+
+	var tests = []struct {
+		name        string
+		lcm         vzapi.LifecycleManagement
+		containsStr string
+	}{
+		{
+			"Should format with default values",
+			vzapi.LifecycleManagement{},
+			defaultMinIndexAge,
+		},
+		{
+			"Should format with custom values",
+			vzapi.LifecycleManagement{
+				MinAge:  &age,
+				MinSize: &size,
+			},
+			age,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			payload, err := formatISMPayload(tt.lcm)
+			assert.NoError(t, err)
+			assert.Contains(t, payload, tt.containsStr)
+		})
+	}
+}
+
 // newFakeRuntimeScheme creates a new fake scheme
 func newFakeRuntimeScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()

@@ -4,14 +4,19 @@
 package verrazzano
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io/fs"
 	"io/ioutil"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"os"
 	"os/exec"
 	"strings"
+	"text/template"
 	"time"
 
 	"go.uber.org/zap"
@@ -49,6 +54,7 @@ const (
 	containerName = "es-master"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
+	notFound      = 404
 
 	tmpFilePrefix        = "verrazzano-overrides-"
 	tmpSuffix            = "yaml"
@@ -101,6 +107,66 @@ const indexTemplatePayload = `{
         }
     }
 }`
+
+const (
+	minSize            = "min_size"
+	defaultMinSize     = "1gb"
+	minIndexAge        = "min_index_age"
+	defaultMinIndexAge = "7d"
+)
+
+const ismPayloadTemplate = `{
+    "policy": {
+        "policy_id": "ingest_delete",
+        "description": "Default Verrazzano policy which deletes documents after fixed time or size",
+        "schema_version": 12,
+        "error_notification": null,
+        "default_state": "ingest",
+        "states": [
+            {
+                "name": "ingest",
+                "actions": [
+                    {
+                        "rollover": {
+                            "min_size": "{{ .min_size }}",
+                            "min_doc_count": 1,
+                            "min_index_age": "{{ .min_index_age }}"
+                        }
+                    }
+                ],
+                "transitions": [
+                    {
+                        "state_name": "delete",
+                        "conditions": {
+                            "min_index_age": "{{ .min_index_age }}"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "delete",
+                "actions": [
+                    {
+                        "delete": {}
+                    }
+                ],
+                "transitions": []
+            }
+        ],
+        "ism_template": {
+          "index_patterns": [
+            "verrazzano-*"
+          ],
+          "priority": 1
+        }
+    }
+}`
+
+type ISMPolicy struct {
+	PrimaryTerm    int `json:"_primary_term"`
+	SequenceNumber int `json:"_seq_no"`
+	Status         int `json:"status"`
+}
 
 var (
 	// For Unit test purposes
@@ -619,7 +685,21 @@ func isOpenSearchReady(ctx spi.ComponentContext, namespace string) ([]corev1.Pod
 	return pods, true
 }
 
-func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
+func makeBashCommand(command string) []string {
+	return []string{
+		"bash",
+		"-c",
+		command,
+	}
+}
+
+func doPUT(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, cmd string) error {
+	command := "curl -X PUT -H 'Content-Type: application/json' localhost:9200/" + cmd
+	_, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, makeBashCommand(command))
+	return err
+}
+
+var SetupDataStreams = func(ctx spi.ComponentContext, namespace string) error {
 	cr := ctx.EffectiveCR()
 	log := ctx.Log()
 	if !vzconfig.IsElasticsearchEnabled(cr) {
@@ -630,20 +710,55 @@ func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 	if !ok {
 		return fmt.Errorf("cannot create data stream, %s container is not ready yet", containerName)
 	}
-	pod := pods[0]
+	pod := &pods[0]
+	return doSetupViaOpenSearchAPI(ctx, pod)
+}
+
+func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
 	}
-	doPUT := func(cmd string) error {
-		command := []string{
-			"bash",
-			"-c",
-			"curl -X PUT -H 'Content-Type: application/json' localhost:9200/" + cmd,
-		}
-		_, _, err := k8sutil.ExecPod(cli, cfg, &pod, containerName, command)
+
+	getCommand := makeBashCommand("curl localhost:9200/_plugins/_ism/policies/verrazzano-policy")
+	getResponse, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, getCommand)
+	if err != nil {
 		return err
 	}
+
+	policy := &ISMPolicy{}
+	if err := json.Unmarshal([]byte(getResponse), policy); err != nil {
+		return err
+	}
+
+	var lcm = vzapi.LifecycleManagement{}
+	cr := ctx.EffectiveCR()
+	if cr.Spec.Components.Elasticsearch != nil {
+		lcm = cr.Spec.Components.Elasticsearch.LifecycleManagement
+	}
+
+	payload, err := formatISMPayload(lcm)
+	if err != nil {
+		return err
+	}
+	if policy.Status == notFound {
+		putISMCommand := fmt.Sprintf("_plugins/_ism/policies/verrazzano-policy -d '%s'", payload)
+		if err := doPUT(cfg, cli, pod, putISMCommand); err != nil {
+			return err
+		}
+	} else {
+		post := fmt.Sprintf("curl -X PUT 'localhost:9200/_plugins/_ism/policies/verrazzano-policy?if_seq_no=%d&if_primary_term=%d' -H 'Content-Type: application/json' -d '%s'",
+			policy.SequenceNumber,
+			policy.PrimaryTerm,
+			payload,
+		)
+		postCommand := makeBashCommand(post)
+		_, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, postCommand)
+		if err != nil {
+			return err
+		}
+	}
+
 	var putCommands = []string{
 		// this is the data stream template used by all managed data streams
 		fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload),
@@ -654,13 +769,35 @@ func setupDataStreams(ctx spi.ComponentContext, namespace string) error {
 	}
 	// Sequentially apply data stream configuration to OpenSearch
 	for _, cmd := range putCommands {
-		if err := doPUT(cmd); err != nil {
+		if err := doPUT(cfg, cli, pod, cmd); err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
-	// Restart any fluentd pods that may have entered a backoff state
-	return restartFD(ctx.Client(), namespace)
+func formatISMPayload(lcm vzapi.LifecycleManagement) (string, error) {
+	tmpl, err := template.New("lifecycleManagement").
+		Option("missingkey=error").
+		Parse(ismPayloadTemplate)
+	if err != nil {
+		return "", err
+	}
+	values := make(map[string]string)
+	putOrDefault := func(value *string, key, defaultValue string) {
+		if value == nil {
+			values[key] = defaultValue
+		} else {
+			values[key] = *value
+		}
+	}
+	putOrDefault(lcm.MinSize, minSize, defaultMinSize)
+	putOrDefault(lcm.MinAge, minIndexAge, defaultMinIndexAge)
+	buffer := &bytes.Buffer{}
+	if err := tmpl.Execute(buffer, values); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
 }
 
 func restartFD(client clipkg.Client, namespace string) error {

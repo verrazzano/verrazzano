@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -55,6 +56,9 @@ func TestUpgradeNoVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+	verrazzano.SetupDataStreams = func(_ spi.ComponentContext, _ string) error {
+		return nil
+	}
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -140,6 +144,9 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+	verrazzano.SetupDataStreams = func(_ spi.ComponentContext, _ string) error {
+		return nil
+	}
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

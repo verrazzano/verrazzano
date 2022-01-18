@@ -329,6 +329,8 @@ type ElasticsearchComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	ESInstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	// +optional
+	LifecycleManagement LifecycleManagement `json:"lifecycleManagement,omitempty"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
@@ -506,6 +508,16 @@ type InstallArgs struct {
 	// +optional
 	// +patchStrategy=replace
 	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
+}
+
+//LifecycleManagement allows for configuration of the search index lifecycle policy
+type LifecycleManagement struct {
+	// Min index age for ISM Policy
+	// +optional
+	MinAge *string `json:"minAge"`
+	// Min index size for ISM Policy
+	// +optional
+	MinSize *string `json:"minSize"`
 }
 
 // VolumeMount defines a hostPath type Volume mount

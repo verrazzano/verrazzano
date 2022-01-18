@@ -90,11 +90,17 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
-	if err := setupDataStreams(ctx, c.ChartNamespace); err != nil {
+	if err := SetupDataStreams(ctx, c.ChartNamespace); err != nil {
 		return err
 	}
-
+	if err := restartFD(ctx.Client(), c.ChartNamespace); err != nil {
+		return err
+	}
 	return c.HelmComponent.PostInstall(ctx)
+}
+
+func (c verrazzanoComponent) Reconcile(ctx spi.ComponentContext) error {
+	return SetupDataStreams(ctx, c.ChartNamespace)
 }
 
 // PostUpgrade Verrazzano-post-upgrade processing
@@ -107,7 +113,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.updateElasticsearchResources(ctx); err != nil {
 		return err
 	}
-	return setupDataStreams(ctx, c.ChartNamespace)
+	return restartFD(ctx.Client(), c.ChartNamespace)
 }
 
 // updateElasticsearchResources updates elasticsearch resources
@@ -115,7 +121,7 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 	if err := fixupElasticSearchReplicaCount(ctx, resolveVerrazzanoNamespace(c.ChartNamespace)); err != nil {
 		return err
 	}
-	return setupDataStreams(ctx, c.ChartNamespace)
+	return SetupDataStreams(ctx, c.ChartNamespace)
 }
 
 // IsEnabled verrazzano-specific enabled check for installation

@@ -309,6 +309,7 @@ func TestPreInstall(t *testing.T) {
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodSTDOUT = `{"status": 404}`
 	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
@@ -340,6 +341,7 @@ func TestPostInstall(t *testing.T) {
 func TestPostUpgrade(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme, readyOpenSearchPods())
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutilfake.PodSTDOUT = `{"status": 404}`
 	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
