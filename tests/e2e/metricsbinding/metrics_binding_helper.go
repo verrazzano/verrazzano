@@ -1,14 +1,15 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package scrapegenerator
+package metricsbinding
 
 import (
+	"time"
+
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 )
 
 const (
@@ -38,11 +39,16 @@ func DeployApplication(namespace string, yamlPath string) {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
 
-func UndeployApplication(namespace string, yamlPath string) {
+func UndeployApplication(namespace string, yamlPath string, promConfigJobName string) {
 	pkg.Log(pkg.Info, "Delete application")
 	gomega.Eventually(func() error {
 		return pkg.DeleteResourceFromFile(yamlPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	pkg.Log(pkg.Info, "Remove application from Prometheus Config")
+	gomega.Eventually(func() bool {
+		return pkg.IsAppInPromConfig(promConfigJobName)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeFalse(), "Expected application to be removed from Prometheus config")
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	gomega.Eventually(func() error {
