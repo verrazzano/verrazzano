@@ -48,7 +48,7 @@ func getNamespace(client objectstorage.ObjectStorageClient) string {
 	return *r.Value
 }
 
-func ensureBucketExists(client objectstorage.ObjectStorageClient, namespace string, name string, compartmentOCID string) error {
+func createBucketInternal(client objectstorage.ObjectStorageClient, namespace string, name string, compartmentOCID string) error {
 	req := objectstorage.GetBucketRequest{
 		NamespaceName: &namespace,
 		BucketName:    &name,
@@ -185,7 +185,7 @@ func main() {
 	}
 
 	// Create bucket if it doesn't exist and command line argument create-bucket is set to true
-	err := ensureBucketExists(objectStorageClient, nameSpace, bucketName, compartmentID)
+	err := createBucketInternal(objectStorageClient, nameSpace, bucketName, compartmentID)
 	if err != nil {
 		os.Exit(1)
 	}
