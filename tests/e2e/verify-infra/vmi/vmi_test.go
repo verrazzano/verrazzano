@@ -96,27 +96,27 @@ var _ = t.BeforeSuite(func() {
 	httpClient, err = pkg.GetSystemVmiHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 
-	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
+	t.Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
 		return vzCRD, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() (map[string]string, error) {
+	t.Eventually(func() (map[string]string, error) {
 		ingressURLs, err = vmiIngressURLs()
 		return ingressURLs, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeEmpty())
 
-	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+	t.Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		volumeClaims, err = pkg.GetPersistentVolumes(verrazzanoNamespace)
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
+	t.Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vmiCRD, err = verrazzanoMonitoringInstanceCRD()
 		return vmiCRD, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() (*pkg.UsernamePassword, error) {
+	t.Eventually(func() (*pkg.UsernamePassword, error) {
 		creds, err = pkg.GetSystemVMICredentials()
 		return creds, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
@@ -132,7 +132,7 @@ var _ = t.Describe("VMI", func() {
 	if isManagedClusterProfile {
 		t.It("Elasticsearch should NOT be present", func() {
 			// Verify ES not present
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(elasticTLSSecret()).To(BeTrue())
@@ -140,13 +140,13 @@ var _ = t.Describe("VMI", func() {
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-es-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Kibana not present
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Grafana not present
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-grafana"})
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-grafana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
@@ -156,21 +156,21 @@ var _ = t.Describe("VMI", func() {
 			elasticPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
 			}
-			Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
-			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
-			//Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
-			Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
+			t.Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
+			t.Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
+			//t.Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
+			t.Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
 			Expect(ingressURLs).To(HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
 			assertOidcIngressByName("vmi-system-es-ingest")
-			Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
-			Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
+			t.Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
+			t.Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 		})
 
 		t.It("Elasticsearch verrazzano-system Index should be accessible", func() {
 			indexName := "verrazzano-namespace-verrazzano-system"
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(indexName,
 							time.Now().Add(-24*time.Hour), map[string]string{
 								"kubernetes.container_name": "verrazzano-monitoring-operator",
@@ -180,7 +180,7 @@ var _ = t.Describe("VMI", func() {
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(indexName,
 							time.Now().Add(-24*time.Hour), map[string]string{
 								"kubernetes.container_name": "verrazzano-application-operator",
@@ -193,12 +193,12 @@ var _ = t.Describe("VMI", func() {
 		})
 
 		t.It("Elasticsearch health should be green", func() {
-			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
-			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
+			t.Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
+			t.Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
 		})
 
 		t.It("Elasticsearch systemd journal Index should be accessible", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.FindAnyLog("verrazzano-systemd-journal",
 					[]pkg.Match{
 						{Key: "tag", Value: "systemd"},
@@ -212,7 +212,7 @@ var _ = t.Describe("VMI", func() {
 			kibanaPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
 			}
-			Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "kibana pods did not all show up")
+			t.Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "kibana pods did not all show up")
 			Expect(ingressURLs).To(HaveKey("vmi-system-kibana"), "Ingress vmi-system-kibana not found")
 			assertOidcIngressByName("vmi-system-kibana")
 		})
@@ -345,17 +345,17 @@ func assertOidcIngress(url string) {
 	Expect(err).ToNot(HaveOccurred())
 	pkg.Concurrently(
 		func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.AssertOauthURLAccessibleAndUnauthorized(unauthHTTPClient, url)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 		func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.AssertURLAccessibleAndAuthorized(httpClient, url, creds)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
 		func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.AssertBearerAuthorized(httpClient, url)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
@@ -434,7 +434,7 @@ func assertDashboard(url string) {
 		}
 		return true
 	}
-	Eventually(searchDashboard, waitTimeout, pollingInterval).Should(BeTrue())
+	t.Eventually(searchDashboard, waitTimeout, pollingInterval).Should(BeTrue())
 }
 
 func assertInstanceInfoURLs() {

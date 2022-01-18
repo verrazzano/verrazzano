@@ -36,7 +36,7 @@ var _ = t.Describe("rancher", func() {
 
 				var rancherURL string
 
-				Eventually(func() error {
+				t.Eventually(func() error {
 					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						return err
@@ -52,7 +52,7 @@ var _ = t.Describe("rancher", func() {
 
 				Expect(rancherURL).NotTo(BeEmpty())
 				var httpClient *retryablehttp.Client
-				Eventually(func() error {
+				t.Eventually(func() error {
 					httpClient, err = pkg.GetRancherHTTPClient(kubeconfigPath)
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error getting HTTP client: %v", err))
@@ -62,7 +62,7 @@ var _ = t.Describe("rancher", func() {
 				}, waitTimeout, pollingInterval).Should(BeNil())
 				var httpResponse *pkg.HTTPResponse
 
-				Eventually(func() (*pkg.HTTPResponse, error) {
+				t.Eventually(func() (*pkg.HTTPResponse, error) {
 					httpResponse, err = pkg.GetWebPageWithClient(httpClient, rancherURL, "")
 					return httpResponse, err
 				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
@@ -71,7 +71,7 @@ var _ = t.Describe("rancher", func() {
 
 				var token string
 				start := time.Now()
-				Eventually(func() error {
+				t.Eventually(func() error {
 					var err error
 					secret, err := pkg.GetSecret("cattle-system", "rancher-admin-secret")
 					if err != nil {
@@ -118,7 +118,7 @@ var _ = t.Describe("rancher", func() {
 
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
 				start = time.Now()
-				Eventually(func() (string, error) {
+				t.Eventually(func() (string, error) {
 					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), nil)
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error creating rancher clusters api request: %v", err))

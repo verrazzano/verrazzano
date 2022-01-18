@@ -39,12 +39,12 @@ var _ = t.BeforeSuite(func() {
 		return
 	}
 
-	Eventually(func() (*kubernetes.Clientset, error) {
+	t.Eventually(func() (*kubernetes.Clientset, error) {
 		var err error
 		clientset, err = k8sutil.GetKubernetesClientset()
 		return clientset, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-	Eventually(func() (*networkingv1.Ingress, error) {
+	t.Eventually(func() (*networkingv1.Ingress, error) {
 		var err error
 		ingress, err = clientset.NetworkingV1().Ingresses("verrazzano-system").Get(context.TODO(), "verrazzano-ingress", v1.GetOptions{})
 		return ingress, err
@@ -70,7 +70,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 	t.When("when configured,", func() {
 		t.It("can be accessed", func() {
 			if !isManagedClusterProfile {
-				Eventually(func() (*pkg.HTTPResponse, error) {
+				t.Eventually(func() (*pkg.HTTPResponse, error) {
 					return pkg.GetWebPage(serverURL, "")
 				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
 			}
@@ -79,7 +79,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 		t.It("has the correct SSL certificate", func() {
 			if !isManagedClusterProfile {
 				var certs []*x509.Certificate
-				Eventually(func() ([]*x509.Certificate, error) {
+				t.Eventually(func() ([]*x509.Certificate, error) {
 					var err error
 					certs, err = pkg.GetCertificates(serverURL)
 					return certs, err
@@ -106,7 +106,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				// There should be no server header found and no errors should occur during the request
-				Eventually(func() error {
+				t.Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "server", 0)
 				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
@@ -121,7 +121,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				// HTTP Access-Control-Allow-Origin header should never be returned.
-				Eventually(func() error {
+				t.Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(
 						httpClient, req, "access-control-allow-origin", 0)
 				}, waitTimeout, pollingInterval).Should(BeNil())
@@ -137,7 +137,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				req.Header.Add("Origin", "*")
 				Expect(err).ShouldNot(HaveOccurred())
-				Eventually(func() error {
+				t.Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(
 						httpClient, req, "access-control-allow-origin", 0)
 				}, waitTimeout, pollingInterval).Should(BeNil())
@@ -153,7 +153,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				req.Header.Add("Origin", "null")
 				Expect(err).ShouldNot(HaveOccurred())
-				Eventually(func() error {
+				t.Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(
 						httpClient, req, "access-control-allow-origin", 0)
 				}, waitTimeout, pollingInterval).Should(BeNil())
@@ -162,7 +162,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 
 		t.It("can be logged out", func() {
 			if !isManagedClusterProfile && isTestSupported {
-				Eventually(func() (*pkg.HTTPResponse, error) {
+				t.Eventually(func() (*pkg.HTTPResponse, error) {
 					return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
 				}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK)))
 			}
@@ -182,7 +182,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Content-Length", "36")
 				req.Header.Add("Transfer-Encoding", "chunked")
-				Eventually(func() error {
+				t.Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 400)
 				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
@@ -197,7 +197,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 				req, err := retryablehttp.NewRequest("POST", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Origin", "https://invalid-origin")
-				Eventually(func() error {
+				t.Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "", 403)
 				}, waitTimeout, pollingInterval).Should(BeNil())
 			}
@@ -212,7 +212,7 @@ var _ = t.Describe("Verrazzano Web UI,", func() {
 				req, err := retryablehttp.NewRequest("GET", serverURL, nil)
 				Expect(err).ShouldNot(HaveOccurred())
 				req.Header.Add("Origin", "https://invalid-origin")
-				Eventually(func() error {
+				t.Eventually(func() error {
 					return pkg.CheckStatusAndResponseHeaderAbsent(httpClient, req, "access-control-allow-origin", 200)
 				}, waitTimeout, pollingInterval).Should(BeNil())
 			}

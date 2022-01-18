@@ -36,7 +36,7 @@ var _ = t.Describe("Verify Verrazzano install scripts.", func() {
 	t.Context("Check", func() {
 		t.It("the expected Console URLs are there in the installed Verrazzano resource", func() {
 			// Validation for passed in cluster
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return validateConsoleUrlsCluster(kubeConfigFromEnv)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})

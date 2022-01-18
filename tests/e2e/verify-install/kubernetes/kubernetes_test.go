@@ -51,7 +51,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 		isProdProfile := pkg.IsProdProfile()
 
 		t.It("the expected number of nodes exist", func() {
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
 			}, timeout5Min, pollingInterval).Should(BeTrue())
@@ -59,7 +59,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 
 		t.It("the expected namespaces exist", func() {
 			var namespaces *v1.NamespaceList
-			Eventually(func() (*v1.NamespaceList, error) {
+			t.Eventually(func() (*v1.NamespaceList, error) {
 				var err error
 				namespaces, err = pkg.ListNamespaces(metav1.ListOptions{})
 				return namespaces, err
@@ -96,7 +96,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 
 		t.DescribeTable("Verrazzano components are deployed,",
 			func(name string, expected bool) {
-				Eventually(func() (bool, error) {
+				t.Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -112,7 +112,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 
 		t.DescribeTable("cert-manager components are deployed,",
 			func(name string, expected bool) {
-				Eventually(func() (bool, error) {
+				t.Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "cert-manager")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -122,7 +122,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 
 		t.DescribeTable("ingress components are deployed,",
 			func(name string, expected bool) {
-				Eventually(func() (bool, error) {
+				t.Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "ingress-nginx")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -131,7 +131,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 
 		t.DescribeTable("keycloak components are not deployed,",
 			func(name string, expected bool) {
-				Eventually(func() (bool, error) {
+				t.Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "keycloak")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -141,7 +141,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 		if isManagedClusterProfile {
 			t.DescribeTable("rancher components are not deployed,",
 				func(name string, expected bool) {
-					Eventually(func() (bool, error) {
+					t.Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
@@ -150,7 +150,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 		} else {
 			t.DescribeTable("rancher components are deployed,",
 				func(name string, expected bool) {
-					Eventually(func() (bool, error) {
+					t.Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
@@ -160,7 +160,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 
 		t.DescribeTable("VMI components are deployed,",
 			func(name string, expected bool) {
-				Eventually(func() (bool, error) {
+				t.Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
@@ -177,7 +177,7 @@ var _ = t.Describe("In the Kubernetes Cluster",
 		// Test components that may not exist for older versions
 		t.DescribeTable("VMI components that don't exist in older versions are deployed,",
 			func(name string, expected bool) {
-				Eventually(func() (bool, error) {
+				t.Eventually(func() (bool, error) {
 					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
 					if !ok {
 						// skip test
@@ -196,26 +196,26 @@ var _ = t.Describe("In the Kubernetes Cluster",
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
 					// cluster is registered)
 					if !isManagedClusterProfile {
-						Eventually(func() bool { return pkg.PodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
+						t.Eventually(func() bool { return pkg.PodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}
 				},
 				func() {
 					if !isManagedClusterProfile {
-						Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
+						t.Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}
 				},
 				func() {
-					Eventually(func() bool { return pkg.PodsRunning("cert-manager", expectedPodsCertManager) }, waitTimeout, pollingInterval).
+					t.Eventually(func() bool { return pkg.PodsRunning("cert-manager", expectedPodsCertManager) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
+					t.Eventually(func() bool { return pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
+					t.Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 			)

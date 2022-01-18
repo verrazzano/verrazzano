@@ -68,27 +68,27 @@ func deployFooApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in foo namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(fooNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -98,27 +98,27 @@ func deployBarApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in bar namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(barNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -128,27 +128,27 @@ func deployNoIstioApplication() {
 	pkg.Log(pkg.Info, "Deploy Auth Policy Application in NoIstio namespace")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		return pkg.CreateNamespace(noIstioNamespace, map[string]string{"verrazzano-managed": "true"})
 	}, waitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create AuthPolicy App resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Sleep Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Backend Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create Frontend Component")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -157,33 +157,33 @@ func deployNoIstioApplication() {
 func undeployFooApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in foo namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() (bool, error) {
+	t.Eventually(func() (bool, error) {
 		return pkg.PodsNotRunning(fooNamespace, expectedPodsFoo)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace(fooNamespace)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		_, err := pkg.GetNamespace(fooNamespace)
 		return err != nil && errors.IsNotFound(err)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue())
@@ -192,33 +192,33 @@ func undeployFooApplication() {
 func undeployBarApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in bar namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() (bool, error) {
+	t.Eventually(func() (bool, error) {
 		return pkg.PodsNotRunning(barNamespace, expectedPodsBar)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace(barNamespace)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		_, err := pkg.GetNamespace(barNamespace)
 		return err != nil && errors.IsNotFound(err)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue())
@@ -227,33 +227,33 @@ func undeployBarApplication() {
 func undeployNoIstioApplication() {
 	pkg.Log(pkg.Info, "Undeploy Auth Policy Application in noistio namespace")
 	pkg.Log(pkg.Info, "Delete application")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() (bool, error) {
+	t.Eventually(func() (bool, error) {
 		return pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace(noIstioNamespace)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		_, err := pkg.GetNamespace(noIstioNamespace)
 		return err != nil && errors.IsNotFound(err)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue())
@@ -266,7 +266,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
@@ -274,7 +274,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
@@ -282,7 +282,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
@@ -291,7 +291,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	var fooHost = ""
 	var err error
 	t.It("Get foo host from gateway.", func() {
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			fooHost, err = k8sutil.GetHostnameFromGateway(fooNamespace, "")
 			return fooHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", fooNamespace))
@@ -299,7 +299,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 
 	var barHost = ""
 	t.It("Get bar host from gateway.", func() {
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			barHost, err = k8sutil.GetHostnameFromGateway(barNamespace, "")
 			return barHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", barNamespace))
@@ -307,7 +307,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 
 	var noIstioHost = ""
 	t.It("Get noistio host from gateway.", func() {
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			noIstioHost, err = k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
 			return noIstioHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", noIstioNamespace))
@@ -318,7 +318,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	t.It("Verify welcome page of Foo Spring Boot FrontEnd is working.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/", fooHost)
 			return pkg.GetWebPage(url, fooHost)
@@ -330,7 +330,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	t.It("Verify welcome page of Bar Spring Boot FrontEnd is working.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/", barHost)
 			return pkg.GetWebPage(url, barHost)
@@ -342,7 +342,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	t.It("Verify welcome page of NoIstio Spring Boot FrontEnd is working.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/", noIstioHost)
 			return pkg.GetWebPage(url, noIstioHost)
@@ -355,7 +355,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Foo Frontend can call Foo Backend.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", fooHost)
 			return pkg.GetWebPage(url, fooHost)
@@ -368,7 +368,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Bar Frontend can call Bar Backend.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", barHost)
 			return pkg.GetWebPage(url, barHost)
@@ -381,7 +381,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Foo Frontend canNOT call Bar Backend.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", fooHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", fooHost)
 			return pkg.GetWebPage(url, fooHost)
@@ -394,7 +394,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Bar Frontend canNOT call Foo Backend.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.foo:8080/", barHost)
 			return pkg.GetWebPage(url, barHost)
@@ -407,7 +407,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	// THEN the frontend should be able to successfully call the backend and get a 200 on that invocation
 	// the http code is returned in the response body and captured in content
 	t.It("Verify Bar Frontend can call NoIstio Backend.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", barHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.noistio:8080/", barHost)
 			return pkg.GetWebPage(url, barHost)
@@ -424,7 +424,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 	t.It("Verify NoIstio Frontend canNOT call Bar Backend.", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).ShouldNot(HaveOccurred())
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			pkg.Log(pkg.Info, fmt.Sprintf("Ingress: %s", noIstioHost))
 			url := fmt.Sprintf("https://%s/externalCall?inurl=http://springboot-backend-workload.bar:8080/", noIstioHost)
 			client, err := pkg.GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
@@ -445,7 +445,7 @@ var _ = t.Describe("Verify AuthPolicy Applications", func() {
 
 			resp, err := client.Do(req)
 			if err != nil {
-				// could be a transient network error so log it and let the Eventually retry
+				// could be a transient network error so log it and let the t.Eventually retry
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to do http request: %v", err))
 				return false
 			}
@@ -462,7 +462,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
@@ -470,7 +470,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
@@ -478,7 +478,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
@@ -489,7 +489,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// WHEN the Prometheus scrape targets are created
 	// THEN they should be created to use the https protocol
 	t.It("Verify that Istio scrape target authpolicy-appconf_default_foo_springboot-frontend is using https for scraping.", func() {
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			var httpsFound bool = false
 
 			configMap, err := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
@@ -527,7 +527,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// WHEN the Prometheus scrape targets are created
 	// THEN they should be created to use the https protocol
 	t.It("Verify that Istio scrape target authpolicy-appconf_default_bar_springboot-frontend is using https for scraping.", func() {
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			var httpsFound bool = false
 
 			configMap, err := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)
@@ -565,7 +565,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	// WHEN the Prometheus scrape targets are created
 	// THEN they should be created to use the http protocol
 	t.It("Verify that Istio scrape target authpolicy-appconf_default_noistio_springboot-frontend is using http for scraping.", func() {
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			var httpsNotFound bool = true
 
 			configMap, err := pkg.GetConfigMap(vmiPromConfigName, verrazzanoNamespace)

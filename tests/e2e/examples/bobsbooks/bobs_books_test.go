@@ -64,7 +64,7 @@ func deployBobsBooksExample() {
 
 	start := time.Now()
 	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
@@ -72,34 +72,34 @@ func deployBobsBooksExample() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Bobbys front end WebLogic credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Bobs Bookstore WebLogic credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}
 		return pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials", m, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	pkg.Log(pkg.Info, "Create application resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create component resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -109,21 +109,21 @@ func undeployBobsBooksExample() {
 	pkg.Log(pkg.Info, "Undeploy BobsBooks example")
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace("bobs-books")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		_, err := pkg.GetNamespace("bobs-books")
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
@@ -132,7 +132,7 @@ func undeployBobsBooksExample() {
 
 var _ = t.Describe("Bobs Books test", func() {
 	t.It("application deployment.", func() {
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			expectedPods := []string{
 				"bobbys-front-end-adminserver",
 				"bobs-bookstore-adminserver",
@@ -155,7 +155,7 @@ var _ = t.Describe("Bobs Books test", func() {
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", func() {
 		start := time.Now()
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway("bobs-books", "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
@@ -167,7 +167,7 @@ var _ = t.Describe("Bobs Books test", func() {
 		// WHEN the roberts-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		t.It("Verify roberts-books UI endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
@@ -177,7 +177,7 @@ var _ = t.Describe("Bobs Books test", func() {
 		// WHEN the bobbys-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		t.It("Verify bobbys-books UI endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
@@ -187,7 +187,7 @@ var _ = t.Describe("Bobs Books test", func() {
 		// WHEN the bobbys-books UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		t.It("Verify bobbys-books UI endpoint without trailing slash is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
@@ -197,13 +197,13 @@ var _ = t.Describe("Bobs Books test", func() {
 		// WHEN the bobs-orders UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		t.It("Verify bobs-orders UI endpoint for orders is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 		t.It("Verify bobs-orders UI endpoint for books is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/books", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
@@ -217,52 +217,52 @@ var _ = t.Describe("Bobs Books test", func() {
 		t.It("Retrieve application Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "bobbys-helidon-stock-application")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "robert-helidon")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "bobby-helidon")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "robert-helidon")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobbys-front-end")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobbys-front-end")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "bobbys-coherence")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "roberts-coherence")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
@@ -275,32 +275,32 @@ var _ = t.Describe("Bobs Books test", func() {
 		t.It("Retrieve Istio Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-helidon-stock-application")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "robert-helidon")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobbys-front-end")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "bobs-orders-wls")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobbys-front-end-adminserver")
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", "bobs-bookstore-adminserver")
 					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
@@ -313,7 +313,7 @@ var _ = t.Describe("Bobs Books test", func() {
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogIndexFound(bobsIndexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+bobsIndexName)
 		})
@@ -323,7 +323,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobbys-front-end-adminserver stdout is found
 			func() {
 				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
@@ -338,7 +338,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobbys-front-end-adminserver log file is found
 			func() {
 				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
@@ -353,7 +353,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobbys-front-end-managed-server stdout is found
 			func() {
 				t.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobbys-front-end",
 							"kubernetes.labels.weblogic_serverName": "managed-server1",
@@ -369,7 +369,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -386,7 +386,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -403,7 +403,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
 			func() {
 				t.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -422,7 +422,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
 				t.It("Verify recent pattern-matched managed-server log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -439,7 +439,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
 				t.It("Verify recent pattern-matched managed-server log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -468,7 +468,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobs-bookstore-adminserver stdout is found
 			func() {
 				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
@@ -483,7 +483,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobs-bookstore-adminserver log file is found
 			func() {
 				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
@@ -498,7 +498,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobs-bookstore-managed-server stdout is found
 			func() {
 				t.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(bobsIndexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "bobs-bookstore",
 							"kubernetes.labels.weblogic_serverName": "managed-server1",
@@ -513,7 +513,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobs-bookstore-managed-server log file is found
 			func() {
 				t.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(bobsIndexName,
 							[]pkg.Match{
 								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
@@ -535,7 +535,7 @@ var _ = t.Describe("Bobs Books test", func() {
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
 		})
@@ -545,7 +545,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of roberts-coherence-0 stdout is found
 			func() {
 				t.It("Verify recent roberts-coherence-0 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.coherenceCluster":                "roberts-coherence",
 							"kubernetes.labels.app_oam_dev\\/component.keyword": "robert-coh",
@@ -560,7 +560,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of roberts-coherence-0 log file is found
 			func() {
 				t.It("Verify recent roberts-coherence-0 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.app_oam_dev/component", Value: "robert-coh"},
@@ -578,7 +578,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of roberts-coherence-1 stdout is found
 			func() {
 				t.It("Verify recent roberts-coherence-1 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
@@ -596,7 +596,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of roberts-coherence-1 log file is found
 			func() {
 				t.It("Verify recent roberts-coherence-1 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.coherenceCluster", Value: "roberts-coherence"},
@@ -612,7 +612,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			// THEN verify that a recent log record of bobbys-coherence log file is found
 			func() {
 				t.It("Verify recent roberts-coherence-1 log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
 								{Key: "kubernetes.labels.app_oam_dev/component", Value: "bobby-coh"},

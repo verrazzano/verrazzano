@@ -56,7 +56,7 @@ var _ = t.Describe("Spring Boot test", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Context("expected pods", func() {
 		t.It("are running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(pkg.SpringbootNamespace, expectedPodsSpringBootApp)
 			}, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -69,7 +69,7 @@ var _ = t.Describe("Spring Boot test", func() {
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", func() {
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(pkg.SpringbootNamespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
@@ -80,14 +80,14 @@ var _ = t.Describe("Spring Boot test", func() {
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
 	t.It("Verify welcome page of Spring Boot application is working.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/", host)
 			return pkg.GetWebPage(url, host)
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
 	})
 
 	t.It("Verify Verrazzano facts endpoint is working.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/facts", host)
 			return pkg.GetWebPage(url, host)
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
@@ -96,18 +96,18 @@ var _ = t.Describe("Spring Boot test", func() {
 	t.Context("for Logging.", func() {
 		indexName := "verrazzano-namespace-springboot"
 		t.It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 		})
 		t.It("Verify recent Elasticsearch log record exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",
 					"kubernetes.container_name":                 "springboot-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record.")
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",
 					"kubernetes.labels.app_oam_dev\\/name":      "springboot-appconf",
@@ -119,12 +119,12 @@ var _ = t.Describe("Spring Boot test", func() {
 
 	t.Context("for metrics.", func() {
 		t.It("Retrieve Prometheus scraped metrics for App Component", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
 		t.It("Retrieve Prometheus scraped metrics for App Config", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "springboot-component")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
 		})

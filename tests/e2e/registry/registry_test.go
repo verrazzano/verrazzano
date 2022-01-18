@@ -65,7 +65,7 @@ var _ = t.Describe("Private Registry Verification",
 				}
 				for i, ns := range listOfNamespaces {
 					var pods *corev1.PodList
-					Eventually(func() (*corev1.PodList, error) {
+					t.Eventually(func() (*corev1.PodList, error) {
 						var err error
 						pods, err = pkg.ListPods(ns, metav1.ListOptions{})
 						return pods, err

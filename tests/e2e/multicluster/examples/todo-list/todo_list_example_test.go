@@ -54,31 +54,31 @@ var _ = t.BeforeSuite(func() {
 
 	// deploy the VerrazzanoProject
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return DeployTodoListProject(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		return TodoListNamespaceExists(adminKubeconfig, testNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
 	// create Docker repository secret
-	Eventually(func() (*m1.Secret, error) {
+	t.Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateDockerSecretInCluster(testNamespace, "tododomain-repo-credentials", regServ, regUser, regPass, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create WebLogic credentials secret
-	Eventually(func() (*m1.Secret, error) {
+	t.Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateCredentialsSecretInCluster(testNamespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create database credentials secret
-	Eventually(func() (*m1.Secret, error) {
+	t.Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateCredentialsSecretInCluster(testNamespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"}, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return DeployTodoListApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -90,7 +90,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifyMCResources(adminKubeconfig, true, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -109,7 +109,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
 		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifyMCResources(managedKubeconfig, false, true, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -117,7 +117,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifyTodoListInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
@@ -139,12 +139,12 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		for i := 3; i <= clusterCount; i++ {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
 			It("Does not have multi cluster resources", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return VerifyMCResources(kubeconfig, false, false, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 			It("Does not have application placed", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return VerifyTodoListInCluster(kubeconfig, false, false, testProjectName, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
@@ -156,7 +156,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		// WHEN the servers in the WebLogic domain is ready
 		// THEN the domain.servers.status.health.overallHeath fields should be ok
 		t.It("Verify 'todo-domain' overall health is ok", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				domain, err := weblogic.GetDomainInCluster(testNamespace, "todo-domain", managedKubeconfig)
 				if err != nil {
 					return false
@@ -178,7 +178,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
 		t.It("Get host from gateway.", func() {
-			Eventually(func() (string, error) {
+			t.Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGatewayInCluster(testNamespace, "", managedKubeconfig)
 				return host, err
 			}, waitTimeout, pollingInterval).Should(Not(BeEmpty()))
@@ -189,7 +189,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		// WHEN the UI is accessed
 		// THEN the expected returned page should contain an expected value.
 		t.It("Verify '/todo' UI endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/", host)
 				return pkg.GetWebPageInCluster(url, host, managedKubeconfig)
 			}, waitTimeout, pollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Derek")))
@@ -203,7 +203,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		t.It("Verify Elasticsearch index exists on admin cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for todo-list")
 		})
@@ -213,7 +213,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 
 		t.It("Verify scrape_duration_seconds metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = clusterName
@@ -223,7 +223,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 
 		t.It("Verify DNE scrape_duration_seconds metrics does not exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = "DNE"
@@ -233,7 +233,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 
 		t.It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = clusterName
@@ -244,31 +244,31 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 
 	t.Context("Delete resources", func() {
 		t.It("on admin cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return cleanUp(adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Verify deletion on admin cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifyTodoListDeleteOnAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Verify automatic deletion on managed cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifyTodoListDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Delete test namespace on managed cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Delete test namespace on admin cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})

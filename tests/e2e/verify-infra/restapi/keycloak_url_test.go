@@ -30,7 +30,7 @@ var _ = t.Describe("keycloak", func() {
 					t.Fail(err.Error())
 				}
 
-				Eventually(func() error {
+				t.Eventually(func() error {
 					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						return err
@@ -48,7 +48,7 @@ var _ = t.Describe("keycloak", func() {
 				var httpResponse *pkg.HTTPResponse
 
 				start := time.Now()
-				Eventually(func() (*pkg.HTTPResponse, error) {
+				t.Eventually(func() (*pkg.HTTPResponse, error) {
 					var err error
 					httpResponse, err = pkg.GetWebPage(keycloakURL, "")
 					return httpResponse, err

@@ -52,15 +52,15 @@ var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
 		// deploy the application here
-		Eventually(func() (*v1.Namespace, error) {
+		t.Eventually(func() (*v1.Namespace, error) {
 			return pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"})
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-		Eventually(func() error {
+		t.Eventually(func() error {
 			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-		Eventually(func() error {
+		t.Eventually(func() error {
 			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -90,13 +90,13 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Sock Shop test", func() {
 	t.It("application deployment.", func() {
 		// checks that all pods are up and running
-		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
+		t.Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 	})
 
 	var hostname = ""
 	var err error
 	t.It("Get host from gateway.", func() {
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			hostname, err = k8sutil.GetHostnameFromGateway("sockshop", "")
 			return hostname, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
@@ -105,7 +105,7 @@ var _ = t.Describe("Sock Shop test", func() {
 	sockShop.SetHostHeader(hostname)
 
 	t.It("SockShop can be accessed and user can be registered", func() {
-		Eventually(func() (bool, error) {
+		t.Eventually(func() (bool, error) {
 			return sockShop.RegisterUser(fmt.Sprintf(registerTemp, username, password), hostname)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Failed to register SockShop User")
 	})
@@ -113,7 +113,7 @@ var _ = t.Describe("Sock Shop test", func() {
 	t.It("SockShop can log in with default user", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).ShouldNot(HaveOccurred())
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%v/login", hostname)
 			return pkg.GetWebPageWithBasicAuth(url, hostname, username, password, kubeconfigPath)
 		}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
@@ -123,7 +123,7 @@ var _ = t.Describe("Sock Shop test", func() {
 	t.It("SockShop can add item to cart", func() {
 		// get the catalog
 		var response *pkg.HTTPResponse
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			var err error
 			response, err = sockShop.GetCatalogItems(hostname)
 			return response, err
@@ -134,32 +134,32 @@ var _ = t.Describe("Sock Shop test", func() {
 		Expect(catalogItems).ShouldNot(BeEmpty(), "Catalog should not be empty")
 
 		// add items to the cart from the catalog
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.AddToCart(catalogItems[0], hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
 
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.AddToCart(catalogItems[0], hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
 
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.AddToCart(catalogItems[0], hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
 
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.AddToCart(catalogItems[1], hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
 
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.AddToCart(catalogItems[2], hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
 
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.AddToCart(catalogItems[2], hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(201))
 
 		// get the cart
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			var err error
 			response, err = sockShop.GetCartItems(hostname)
 			return response, err
@@ -178,7 +178,7 @@ var _ = t.Describe("Sock Shop test", func() {
 	t.It("SockShop can delete all cart items", func() {
 		var response *pkg.HTTPResponse
 		// get the cart
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			var err error
 			response, err = sockShop.GetCartItems(hostname)
 			return response, err
@@ -190,13 +190,13 @@ var _ = t.Describe("Sock Shop test", func() {
 
 		// delete each item
 		for _, item := range cartItems {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				return sockShop.DeleteCartItem(item, hostname)
 			}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(202))
 		}
 
 		// get the cart again - this time the cart should be empty
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			var err error
 			response, err = sockShop.GetCartItems(hostname)
 			return response, err
@@ -209,7 +209,7 @@ var _ = t.Describe("Sock Shop test", func() {
 	// INFO: Front-End will not allow for complete implementation of this test
 	t.It("SockShop can change address", func() {
 		var response *pkg.HTTPResponse
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			var err error
 			response, err = sockShop.ChangeAddress(username, hostname)
 			return response, err
@@ -220,7 +220,7 @@ var _ = t.Describe("Sock Shop test", func() {
 
 	// INFO: Front-End will not allow for complete implementation of this test
 	t.It("SockShop can change payment", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			return sockShop.ChangePayment(hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(pkg.HasStatus(200))
 	})
@@ -230,7 +230,7 @@ var _ = t.Describe("Sock Shop test", func() {
 	})
 
 	t.It("Verify '/catalogue' UI endpoint is working.", func() {
-		Eventually(func() (*pkg.HTTPResponse, error) {
+		t.Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/catalogue", hostname)
 			return pkg.GetWebPage(url, hostname)
 		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
@@ -241,13 +241,13 @@ var _ = t.Describe("Sock Shop test", func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 			)
 		})
@@ -266,17 +266,17 @@ var _ = clusterDump.AfterSuite(func() {
 		pkg.Log(pkg.Info, "Undeploy Sock Shop application")
 		pkg.Log(pkg.Info, "Delete application")
 
-		Eventually(func() error {
+		t.Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
-		Eventually(func() error {
+		t.Eventually(func() error {
 			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName)
 			if err != nil && errors.IsNotFound(err) {
 				return true
@@ -288,12 +288,12 @@ var _ = clusterDump.AfterSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 		pkg.Log(pkg.Info, "Delete namespace")
-		Eventually(func() error {
+		t.Eventually(func() error {
 			return pkg.DeleteNamespace(sockshopNamespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for sockshop namespace to be deleted")
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			_, err := pkg.GetNamespace(sockshopNamespace)
 			if err != nil && errors.IsNotFound(err) {
 				return true

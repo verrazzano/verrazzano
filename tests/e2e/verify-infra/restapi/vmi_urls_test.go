@@ -38,7 +38,7 @@ var _ = t.Describe("VMI", func() {
 					Fail(err.Error())
 				}
 
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						return false
@@ -74,14 +74,14 @@ var _ = t.Describe("VMI", func() {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
-				Eventually(func() (*pkg.APIEndpoint, error) {
+				t.Eventually(func() (*pkg.APIEndpoint, error) {
 					var err error
 					api, err = pkg.GetAPIEndpoint(kubeconfigPath)
 					return api, err
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 				var vmiCredentials *pkg.UsernamePassword
-				Eventually(func() (*pkg.UsernamePassword, error) {
+				t.Eventually(func() (*pkg.UsernamePassword, error) {
 					var err error
 					vmiCredentials, err = pkg.GetSystemVMICredentials()
 					return vmiCredentials, err
@@ -89,32 +89,32 @@ var _ = t.Describe("VMI", func() {
 
 				// Test VMI endpoints
 				var sysVmiHTTPClient *retryablehttp.Client
-				Eventually(func() (*retryablehttp.Client, error) {
+				t.Eventually(func() (*retryablehttp.Client, error) {
 					var err error
 					sysVmiHTTPClient, err = pkg.GetSystemVmiHTTPClient()
 					return sysVmiHTTPClient, err
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Unable to get system VMI HTTP client")
 
 				if isEsEnabled {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access ElasticSearch VMI url")
 				}
 
 				if isKibanaEnabled {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Kibana VMI url")
 				}
 
 				if isPrometheusEnabled {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-prometheus", "https://prometheus.vmi.system")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Prometheus VMI url")
 				}
 
 				if isGrafanaEnabled {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return verifySystemVMIComponent(api, sysVmiHTTPClient, vmiCredentials, "vmi-system-grafana", "https://grafana.vmi.system")
 					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Garafana VMI url")
 				}

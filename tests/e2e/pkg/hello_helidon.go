@@ -26,7 +26,7 @@ const (
 func DeployHelloHelidonApplication(ociLogID string) {
 	Log(Info, "Deploy Hello Helidon Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", HelloHelidonNamespace))
-	gomega.Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
@@ -41,12 +41,12 @@ func DeployHelloHelidonApplication(ociLogID string) {
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.BeNil())
 
 	Log(Info, "Create Hello Helidon component resource")
-	gomega.Eventually(func() error {
+	t.Eventually(func() error {
 		return CreateOrUpdateResourceFromFile(helidonComponentYaml)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	Log(Info, "Create Hello Helidon application resource")
-	gomega.Eventually(func() error {
+	t.Eventually(func() error {
 		return CreateOrUpdateResourceFromFile(helidonAppYaml)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 }
@@ -56,17 +56,17 @@ func UndeployHelloHelidonApplication() {
 	Log(Info, "Undeploy Hello Helidon Application")
 	if exists, _ := DoesNamespaceExist(HelloHelidonNamespace); exists {
 		Log(Info, "Delete Hello Helidon application")
-		gomega.Eventually(func() error {
+		t.Eventually(func() error {
 			return DeleteResourceFromFile(helidonAppYaml)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, "Delete Hello Helidon components")
-		gomega.Eventually(func() error {
+		t.Eventually(func() error {
 			return DeleteResourceFromFile(helidonComponentYaml)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, fmt.Sprintf("Delete namespace %s", HelloHelidonNamespace))
-		gomega.Eventually(func() error {
+		t.Eventually(func() error {
 			return DeleteNamespace(HelloHelidonNamespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred())
 	}

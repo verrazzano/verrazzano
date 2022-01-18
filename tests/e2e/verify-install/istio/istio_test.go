@@ -27,7 +27,7 @@ var _ = t.Describe("Istio", func() {
 
 	t.DescribeTable("namespace",
 		func(name string) {
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return pkg.DoesNamespaceExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
@@ -51,7 +51,7 @@ var _ = t.Describe("Istio", func() {
 			}
 
 			var deployments *appsv1.DeploymentList
-			Eventually(func() (*appsv1.DeploymentList, error) {
+			t.Eventually(func() (*appsv1.DeploymentList, error) {
 				var err error
 				deployments, err = pkg.ListDeployments(namespace)
 				return deployments, err

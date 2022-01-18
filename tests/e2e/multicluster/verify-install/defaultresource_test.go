@@ -31,7 +31,7 @@ var _ = t.BeforeSuite(func() {})
 var _ = t.AfterEach(func() {})
 
 var _ = t.AfterSuite(func() {
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return listPodsInKubeSystem()
 	}, waitTimeout, pollingInterval).Should(BeNil())
 })
@@ -51,7 +51,7 @@ var _ = t.Describe("Multi Cluster Install Validation",
 
 		t.Context("Expected pods are running.", func() {
 			t.It("and waiting for expected pods must be running", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return pkg.PodsRunning("kube-system", expectedPodsKubeSystem)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})

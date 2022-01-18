@@ -38,7 +38,7 @@ var _ = t.Describe("Multi Cluster Verify API", func() {
 		})
 
 		t.It("Get and Validate Verrazzano resource for admin cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				api, err := pkg.GetAPIEndpoint(adminKubeconfig)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error fetching api: %v", err))
@@ -50,7 +50,7 @@ var _ = t.Describe("Multi Cluster Verify API", func() {
 		})
 
 		t.It("Get and Validate Verrazzano resource for managed cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				api, err := pkg.GetAPIEndpoint(adminKubeconfig)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error fetching api: %v", err))

@@ -49,7 +49,7 @@ var _ = t.Describe("Test helidon loggingtrait application", func() {
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
 		t.It("Verify 'hello-helidon-deployment' pod is running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{applicationPodName})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
@@ -60,7 +60,7 @@ var _ = t.Describe("Test helidon loggingtrait application", func() {
 		// WHEN the app pod is inspected
 		// THEN the container for the logging trait should exist
 		t.It("Verify that 'logging-stdout' container exists in the 'hello-helidon-deployment' pod", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				containerExists, err := pkg.DoesLoggingSidecarExist(kubeConfig, types.NamespacedName{Name: applicationPodName, Namespace: namespace}, "logging-stdout")
 				return containerExists && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
@@ -70,7 +70,7 @@ var _ = t.Describe("Test helidon loggingtrait application", func() {
 		// WHEN the configmaps in the app namespace are retrieved
 		// THEN the configmap for the logging trait should exist
 		t.It("Verify that 'logging-stdout-hello-helidon-deployment-deployment' ConfigMap exists in the 'hello-helidon-logging' namespace", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())

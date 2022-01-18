@@ -80,7 +80,7 @@ var _ = t.Describe("In Verrazzano", func() {
 
 	t.DescribeTable("CRD for",
 		func(name string) {
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return pkg.DoesCRDExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
@@ -90,7 +90,7 @@ var _ = t.Describe("In Verrazzano", func() {
 
 	t.DescribeTable("ClusterRole",
 		func(name string) {
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return pkg.DoesClusterRoleExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
@@ -102,7 +102,7 @@ var _ = t.Describe("In Verrazzano", func() {
 
 	t.DescribeTable("ClusterRoleBinding",
 		func(name string) {
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return pkg.DoesClusterRoleBindingExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
@@ -115,7 +115,7 @@ var _ = t.Describe("In Verrazzano", func() {
 
 		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
-			Eventually(func() (*rbacv1.ClusterRole, error) {
+			t.Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
 				cr, err = pkg.GetClusterRole("verrazzano-admin")
 				return cr, err
@@ -152,7 +152,7 @@ var _ = t.Describe("In Verrazzano", func() {
 
 		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
-			Eventually(func() (*rbacv1.ClusterRole, error) {
+			t.Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
 				cr, err = pkg.GetClusterRole("verrazzano-monitor")
 				return cr, err
@@ -183,7 +183,7 @@ var _ = t.Describe("In Verrazzano", func() {
 
 		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
-			Eventually(func() (*rbacv1.ClusterRole, error) {
+			t.Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
 				cr, err = pkg.GetClusterRole("verrazzano-project-admin")
 				return cr, err
@@ -215,7 +215,7 @@ var _ = t.Describe("In Verrazzano", func() {
 
 		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
-			Eventually(func() (*rbacv1.ClusterRole, error) {
+			t.Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
 				cr, err = pkg.GetClusterRole("verrazzano-project-monitor")
 				return cr, err
@@ -242,7 +242,7 @@ var _ = t.Describe("In Verrazzano", func() {
 	t.Describe("ClusterRoleBinding verrazzano-admin", func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
-			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+			t.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
 				crb, err = pkg.GetClusterRoleBinding("verrazzano-admin")
 				return crb, err
@@ -270,7 +270,7 @@ var _ = t.Describe("In Verrazzano", func() {
 	t.Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
-			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+			t.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
 				crb, err = pkg.GetClusterRoleBinding("verrazzano-admin-k8s")
 				return crb, err
@@ -298,7 +298,7 @@ var _ = t.Describe("In Verrazzano", func() {
 	t.Describe("ClusterRoleBinding verrazzano-monitor", func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
-			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+			t.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
 				crb, err = pkg.GetClusterRoleBinding("verrazzano-monitor")
 				return crb, err
@@ -326,7 +326,7 @@ var _ = t.Describe("In Verrazzano", func() {
 	t.Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
-			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
+			t.Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
 				crb, err = pkg.GetClusterRoleBinding("verrazzano-monitor-k8s")
 				return crb, err

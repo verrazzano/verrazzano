@@ -100,7 +100,7 @@ var volumeClaims map[string]*corev1.PersistentVolumeClaim
 var t = framework.NewTestFramework("keycloak")
 
 var _ = t.BeforeSuite(func() {
-	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
+	t.Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
 		volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
 		return volumeClaims, err
@@ -117,7 +117,7 @@ var _ = t.Describe("Test Keycloak configuration.", func() {
 				// GIVEN the password policy setup for the master realm during installation
 				// WHEN valid and invalid password changes are attempted
 				// THEN verify valid passwords are accepted and invalid passwords are rejected.
-				Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(BeTrue())
+				t.Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(BeTrue())
 			}
 		})
 		t.It("verrazzano-system realm password policy", func() {
@@ -125,7 +125,7 @@ var _ = t.Describe("Test Keycloak configuration.", func() {
 				// GIVEN the password policy setup for the verrazzano-system realm during installation
 				// WHEN valid and invalid password changes are attempted
 				// THEN verify valid passwords are accepted and invalid passwords are rejected.
-				Eventually(verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(BeTrue())
+				t.Eventually(verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(BeTrue())
 			}
 		})
 	})
@@ -156,7 +156,7 @@ var _ = t.Describe("Verify", func() {
 		} else if pkg.IsManagedClusterProfile() {
 			t.It("Managed Cluster install profile and verify namespace keycloak doesn't exist", func() {
 				// There is no keycloak namespace in a managed cluster install
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					_, err := pkg.GetNamespace(keycloakNamespace)
 					return err != nil && errors.IsNotFound(err)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -179,7 +179,7 @@ var _ = t.Describe("Verify Keycloak", func() {
 				if !isManagedClusterProfile {
 					// GIVEN installation/upgrade of Keycloak has happened
 					// THEN verify that the correct redirect and weborigins URIs are created for verrazzano
-					Eventually(verifyKeycloakClientURIs, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(verifyKeycloakClientURIs, waitTimeout, pollingInterval).Should(BeTrue())
 				}
 			})
 	})

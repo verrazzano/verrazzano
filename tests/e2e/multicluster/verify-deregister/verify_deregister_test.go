@@ -36,11 +36,11 @@ var _ = t.Describe("Multi Cluster Verify Deregister", func() {
 
 		t.It("admin cluster Fluentd should point to the correct ES", func() {
 			if pkg.UseExternalElasticsearch() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
@@ -53,13 +53,13 @@ var _ = t.Describe("Multi Cluster Verify Deregister", func() {
 		})
 
 		t.It("should not have verrazzano-cluster-registration secret", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return missingSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected secret verrazzano-cluster-registration gone in managed cluster")
 		})
 
 		t.It("Fluentd should point to the correct ES", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in managed cluster fluentd Daemonset setting")
 		})

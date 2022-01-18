@@ -29,7 +29,7 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Verify OAM Infra", func() {
 	t.Describe("verrazzano-application-operator pod", func() {
 		t.It("is must be running", func() {
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return applicationOperatorPodRunning()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -37,7 +37,7 @@ var _ = t.Describe("Verify OAM Infra", func() {
 
 	t.Describe("oam-kubernetes-runtime pod", func() {
 		t.It("is running", func() {
-			Eventually(func() (bool, error) {
+			t.Eventually(func() (bool, error) {
 				return kubernetesRuntimePodRunning()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})

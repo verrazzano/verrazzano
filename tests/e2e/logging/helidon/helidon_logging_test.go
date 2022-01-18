@@ -27,18 +27,18 @@ var t = framework.NewTestFramework("helidon")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
 		return pkg.CreateNamespace("helidon-logging", nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -55,15 +55,15 @@ var _ = t.AfterSuite(func() {
 	}
 	// undeploy the application here
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace("helidon-logging")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -86,7 +86,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Describe("hello-helidon-workload pod", func() {
 		t.It("is running", func() {
-			Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			t.Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -97,7 +97,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", func() {
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
@@ -111,7 +111,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		t.It("Access /greet App Url.", func() {
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/greet", host)
 				return pkg.GetWebPageWithBasicAuth(url, host, "", "", kubeconfigPath)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Hello World")))
@@ -124,7 +124,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index for Logging exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello-helidon-container")
 		})
@@ -134,7 +134,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 				// WHEN the log records are retrieved from the Elasticsearch index for hello-helidon-container
 				// THEN verify that at least one recent log record is found
 				t.It("Verify recent Elasticsearch log record exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
 							"kubernetes.container_name":            "hello-helidon-container"})
@@ -146,7 +146,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 				// WHEN the log records are retrieved from the Elasticsearch index for other-container
 				// THEN verify that at least one recent log record is found
 				t.It("Verify recent Elasticsearch log record of other-container exists", func() {
-					Eventually(func() bool {
+					t.Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
 							"kubernetes.container_name":            "other-container"})

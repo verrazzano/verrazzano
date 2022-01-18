@@ -115,7 +115,7 @@ var _ = t.Describe("Prometheus Metrics", func() {
 	// Query Prometheus for the sample metrics from the default scraping jobs
 	var _ = t.Describe("for the system components", func() {
 		t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				kv := map[string]string{
 					controllerNamespace: ingressNginxNamespace,
 					appK8SIOInstance:    ingressController,
@@ -125,13 +125,13 @@ var _ = t.Describe("Prometheus Metrics", func() {
 		})
 
 		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return metricsContainLabels(containerStartTimeSeconds, map[string]string{})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 
 		t.It("Verify sample Node Exporter metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				kv := map[string]string{
 					job: nodeExporter,
 				}
@@ -140,7 +140,7 @@ var _ = t.Describe("Prometheus Metrics", func() {
 		})
 
 		t.It("Verify sample mesh metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				kv := map[string]string{
 					namespace: verrazzanoSystemNamespace,
 				}
@@ -149,7 +149,7 @@ var _ = t.Describe("Prometheus Metrics", func() {
 		})
 
 		t.It("Verify sample istiod metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				kv := map[string]string{
 					app: istiod,
 					job: pilot,
@@ -159,7 +159,7 @@ var _ = t.Describe("Prometheus Metrics", func() {
 		})
 
 		t.It("Verify sample metrics can be queried from Prometheus", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				kv := map[string]string{
 					job: prometheus,
 				}
@@ -168,7 +168,7 @@ var _ = t.Describe("Prometheus Metrics", func() {
 		})
 
 		t.It("Verify envoy stats", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return verifyEnvoyStats(envoyStatsRecentLookups)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})

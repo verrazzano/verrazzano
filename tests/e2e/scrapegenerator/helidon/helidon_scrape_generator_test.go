@@ -45,12 +45,12 @@ var _ = t.Describe("Verify", func() {
 		// WHEN the running pods are checked
 		// THEN the Helidon pod should exist
 		t.It("'hello-helidon-scrape' pod is running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{applicationPodPrefix})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 		t.It("metrics template exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.DoesMetricsTemplateExist(types.NamespacedName{Name: metricsTemplateName, Namespace: namespace})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
@@ -61,7 +61,7 @@ var _ = t.Describe("Verify", func() {
 	// THEN the Helidon application metrics should exist
 	t.Context("Retrieve", func() {
 		t.It("Prometheus scraped metrics for Helidon Pod", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "hello-helidon-scrape-application")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 		})

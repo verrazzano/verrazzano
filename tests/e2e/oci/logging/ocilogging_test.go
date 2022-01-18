@@ -98,7 +98,7 @@ var _ = t.Describe("OCI Logging", func() {
 		// WHEN I search for log records in the kube-system namespace
 		// THEN I expect to find at least one record
 		t.It("the system log object has recent log records in the kube-system namespace", func() {
-			Eventually(func() (int, error) {
+			t.Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, systemLogID, "kube-system")
 				if err != nil {
 					return 0, err
@@ -111,7 +111,7 @@ var _ = t.Describe("OCI Logging", func() {
 		// WHEN I search for log records in the verrazzano-system namespace
 		// THEN I expect to find at least one record
 		t.It("the system log object has recent log records in the verrazzano-system namespace", func() {
-			Eventually(func() (int, error) {
+			t.Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, systemLogID, constants.VerrazzanoSystemNamespace)
 				if err != nil {
 					return 0, err
@@ -149,7 +149,7 @@ var _ = t.Describe("OCI Logging", func() {
 			pkg.DeploySpringBootApplication()
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
-			Eventually(func() (int, error) {
+			t.Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, pkg.SpringbootNamespace)
 				if err != nil {
 					return 0, err
@@ -170,7 +170,7 @@ var _ = t.Describe("OCI Logging", func() {
 			pkg.DeployHelloHelidonApplication(nsLogID)
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
-			Eventually(func() (int, error) {
+			t.Eventually(func() (int, error) {
 				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, pkg.HelloHelidonNamespace)
 				if err != nil {
 					return 0, err

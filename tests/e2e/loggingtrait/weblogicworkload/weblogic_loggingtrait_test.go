@@ -60,14 +60,14 @@ func deployWebLogicApplication() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	// Wait for namespace to finish deletion possibly from a prior run.
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	start := time.Now()
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
@@ -75,32 +75,32 @@ func deployWebLogicApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create encryption credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create component resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -113,7 +113,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", func() {
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
 		t.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
@@ -124,7 +124,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", func() {
 		// WHEN the app pod is inspected
 		// THEN the container for the logging trait should exist
 		t.It("Verify that 'logging-stdout' container exists in the 'tododomain-adminserver' pod", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				containerExists, err := pkg.DoesLoggingSidecarExist(kubeConfig, types.NamespacedName{Name: applicationPodName, Namespace: namespace}, "logging-stdout")
 				return containerExists && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
@@ -134,7 +134,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", func() {
 		// WHEN the configmaps in the app namespace are retrieved
 		// THEN the configmap for the logging trait should exist
 		t.It("Verify that 'logging-stdout-tododomain-domain' ConfigMap exists in the 'weblogic-logging-trait' namespace", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				configMap, err := pkg.GetConfigMap(configMapName, namespace)
 				return (configMap != nil) && (err == nil)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())

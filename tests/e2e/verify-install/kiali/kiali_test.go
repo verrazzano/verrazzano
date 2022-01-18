@@ -60,7 +60,7 @@ var _ = t.Describe("Kiali", func() {
 
 	t.Context("after successful installation", func() {
 		WhenKialiInstalledIt("should have a monitoring crd", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				exists, err := pkg.DoesCRDExist("monitoringdashboards.monitoring.kiali.io")
 				if err != nil {
 					return false
@@ -73,7 +73,7 @@ var _ = t.Describe("Kiali", func() {
 			kialiPodsRunning := func() bool {
 				return pkg.PodsRunning(systemNamespace, []string{kiali})
 			}
-			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			t.Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.Context("should", func() {
@@ -93,14 +93,14 @@ var _ = t.Describe("Kiali", func() {
 				Expect(len(rules)).To(Equal(1))
 				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system"))
 				kialiHost = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
-				Eventually(func() (*pkg.UsernamePassword, error) {
+				t.Eventually(func() (*pkg.UsernamePassword, error) {
 					creds, ingError = pkg.GetSystemVMICredentials()
 					return creds, ingError
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			})
 
 			WhenKialiInstalledIt("not allow unauthenticated logins", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
 					if err != nil {
 						return false
@@ -110,13 +110,13 @@ var _ = t.Describe("Kiali", func() {
 			})
 
 			WhenKialiInstalledIt("allow basic authentication", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return pkg.AssertURLAccessibleAndAuthorized(httpClient, kialiHost, creds)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
 			WhenKialiInstalledIt("allow bearer authentication", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return pkg.AssertBearerAuthorized(httpClient, kialiHost)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})

@@ -42,16 +42,16 @@ var _ = t.AfterEach(func() {
 var _ = t.BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return examples.DeployHelloHelidonProject(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		return examples.HelidonNamespaceExists(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -63,7 +63,7 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", fun
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return examples.VerifyMCResources(adminKubeconfig, true, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -82,7 +82,7 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", fun
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
 		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return examples.VerifyMCResources(managedKubeconfig, false, true, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -90,7 +90,7 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", fun
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -98,31 +98,31 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", fun
 
 	t.Context("Delete resources", func() {
 		t.It("Delete project on admin cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return deleteProject(adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Delete test namespace on managed cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Verify deletion on managed cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedInManagedCluster(managedKubeconfig, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Delete test namespace on admin cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Verify deletion on admin cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return examples.VerifyHelloHelidonDeletedAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})

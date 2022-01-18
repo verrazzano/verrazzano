@@ -44,7 +44,7 @@ func deployMetricsApplication() {
 
 	pkg.Log(pkg.Info, "Create namespace")
 	start := time.Now()
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
@@ -52,12 +52,12 @@ func deployMetricsApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create component resource")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resource")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -68,25 +68,25 @@ func undeployMetricsApplication() {
 
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		return pkg.IsAppInPromConfig(promConfigJobName)
 	}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected App to be removed from Prometheus Config")
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		ns, err := pkg.GetNamespace(testNamespace)
 		if err == nil {
 			finalizeErr := pkg.RemoveNamespaceFinalizers(ns)
@@ -106,7 +106,7 @@ var _ = t.Describe("DeployMetrics Application test", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Context("app deployment", func() {
 		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -114,7 +114,7 @@ var _ = t.Describe("DeployMetrics Application test", func() {
 
 	t.Context("for Prometheus Config.", func() {
 		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find App in Prometheus Config")
 		})
@@ -122,12 +122,12 @@ var _ = t.Describe("DeployMetrics Application test", func() {
 
 	t.Context("Retrieve Prometheus scraped metrics for", func() {
 		t.It("App Component", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
 		t.It("App Config", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")
 		})

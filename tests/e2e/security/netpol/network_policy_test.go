@@ -61,12 +61,12 @@ var t = framework.NewTestFramework("netpol")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	Eventually(func() (*corev1.Namespace, error) {
+	t.Eventually(func() (*corev1.Namespace, error) {
 		nsLabels := map[string]string{}
 		return pkg.CreateNamespace(testNamespace, nsLabels)
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -77,11 +77,11 @@ var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	// undeploy the application here
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -94,7 +94,7 @@ var _ = t.Describe("Test Network Policies", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Describe("Verify test pod is running", func() {
 		t.It("and waiting for expected pod must be running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -454,7 +454,7 @@ func testAccessPodsOptional(fromSelector metav1.LabelSelector, fromNamespace str
 func doAccessCheck(c accessCheckConfig) error {
 	// get the FROM pod
 	var pods []corev1.Pod
-	Eventually(func() error {
+	t.Eventually(func() error {
 		var err error
 		pods, err = pkg.GetPodsFromSelector(&c.fromSelector, c.fromNamespace)
 		if err != nil && errors.IsNotFound(err) && c.ignorePodsNotFound {
@@ -473,7 +473,7 @@ func doAccessCheck(c accessCheckConfig) error {
 	fromPod := pods[0]
 
 	// get the TO pod
-	Eventually(func() error {
+	t.Eventually(func() error {
 		var err error
 		pods, err = pkg.GetPodsFromSelector(&c.toSelector, c.toNamespace)
 		if err != nil && errors.IsNotFound(err) && c.ignorePodsNotFound {
@@ -491,7 +491,7 @@ func doAccessCheck(c accessCheckConfig) error {
 	toPod := pods[0]
 
 	if c.expectAccess {
-		Eventually(func() bool {
+		t.Eventually(func() bool {
 			return attemptConnection(&fromPod, &toPod, c.port, 10)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Should be able to access pod %s from pod %s on port %d", toPod.Name, fromPod.Name, c.port))
 	} else {

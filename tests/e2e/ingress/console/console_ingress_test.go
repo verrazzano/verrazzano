@@ -54,13 +54,13 @@ func deployApplication() {
 
 	start := time.Now()
 	// Wait for namespace to finish deletion possibly from a prior run.
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
-	Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
@@ -68,32 +68,32 @@ func deployApplication() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Docker repository secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create database credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create encryption credentials secret")
-	Eventually(func() (*v1.Secret, error) {
+	t.Eventually(func() (*v1.Secret, error) {
 		return pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create component resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/components.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -102,21 +102,21 @@ func deployApplication() {
 func undeployApplication() {
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete namespace")
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
@@ -130,7 +130,7 @@ var _ = t.Describe("console-ingress app test", func() {
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
 		t.It("Verify 'cidomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
@@ -144,7 +144,7 @@ var _ = t.Describe("console-ingress app test", func() {
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
 		t.It("Get host from gateway.", func() {
-			Eventually(func() (string, error) {
+			t.Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 				return host, err
 			}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
@@ -155,7 +155,7 @@ var _ = t.Describe("console-ingress app test", func() {
 		// WHEN the console endpoint is accessed
 		// THEN the expected results should be returned
 		t.It("Verify '/console' endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/console/login/LoginForm.jsp", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Oracle WebLogic Server Administration Console")))
@@ -166,7 +166,7 @@ var _ = t.Describe("console-ingress app test", func() {
 		// WHEN the REST endpoint is accessed
 		// THEN the expected results should be returned
 		t.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
-			Eventually(func() (*pkg.HTTPResponse, error) {
+			t.Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
 				return pkg.GetWebPage(url, host)
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("["), pkg.BodyContains("]")))

@@ -46,16 +46,16 @@ var _ = t.AfterEach(func() {
 var _ = t.BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	start := time.Now()
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return DeploySockShopProject(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
-	Eventually(func() bool {
+	t.Eventually(func() bool {
 		return SockShopNamespaceExists(adminKubeconfig, testNamespace)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 
-	Eventually(func() error {
+	t.Eventually(func() error {
 		return DeploySockShopApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -67,7 +67,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the admin cluster
 		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifyMCResources(adminKubeconfig, true, false, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -86,7 +86,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect that the multi-cluster resources have been created on the managed cluster
 		t.It("Has multi cluster resources", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifyMCResources(managedKubeconfig, false, true, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -94,7 +94,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		// WHEN the multi-cluster example application has been created on admin cluster and placed in managed cluster
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifySockShopInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -116,12 +116,12 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		for i := 3; i <= clusterCount; i++ {
 			kubeconfig := kubeconfigDir + "/" + fmt.Sprintf("%d", i) + "/kube_config"
 			t.It("Does not have multi cluster resources", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return VerifyMCResources(kubeconfig, false, false, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 			t.It("Does not have application placed", func() {
-				Eventually(func() bool {
+				t.Eventually(func() bool {
 					return VerifySockShopInCluster(kubeconfig, false, false, testProjectName, testNamespace)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
@@ -135,7 +135,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		t.It("Verify Elasticsearch index exists on admin cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for sock-shop")
 		})
@@ -149,7 +149,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 
 		t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
 				m[clusterNameMetricsLabel] = clusterName
@@ -159,7 +159,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 
 		t.It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
 				m[clusterNameMetricsLabel] = "DNE"
@@ -169,7 +169,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 
 		t.It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				m := make(map[string]string)
 				m["cluster"] = testCluster
 				m[clusterNameMetricsLabel] = clusterName
@@ -179,7 +179,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 
 		t.It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
 				m[clusterNameMetricsLabel] = clusterName
@@ -190,31 +190,31 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 
 	t.Context("Delete resources", func() {
 		t.It("on admin cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return cleanUp(adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Verify deletion on admin cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifySockShopDeleteOnAdminCluster(adminKubeconfig, false, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Verify automatic deletion on managed cluster", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return VerifySockShopDeleteOnManagedCluster(managedKubeconfig, testNamespace, testProjectName)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("Delete test namespace on managed cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(testNamespace, managedKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})
 
 		t.It("Delete test namespace on admin cluster", func() {
-			Eventually(func() error {
+			t.Eventually(func() error {
 				return pkg.DeleteNamespaceInCluster(testNamespace, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 		})

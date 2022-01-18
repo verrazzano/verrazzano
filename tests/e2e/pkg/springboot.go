@@ -26,7 +26,7 @@ const (
 func DeploySpringBootApplication() {
 	Log(Info, "Deploy Spring Boot Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", SpringbootNamespace))
-	gomega.Eventually(func() (*v1.Namespace, error) {
+	t.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
@@ -34,12 +34,12 @@ func DeploySpringBootApplication() {
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.BeNil())
 
 	Log(Info, "Create Spring Boot component resource")
-	gomega.Eventually(func() error {
+	t.Eventually(func() error {
 		return CreateOrUpdateResourceFromFile(springbootComponentYaml)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	Log(Info, "Create Spring Boot application resource")
-	gomega.Eventually(func() error {
+	t.Eventually(func() error {
 		return CreateOrUpdateResourceFromFile(springbootAppYaml)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
@@ -49,21 +49,21 @@ func UndeploySpringBootApplication() {
 	Log(Info, "Undeploy Spring Boot Application")
 	if exists, _ := DoesNamespaceExist(SpringbootNamespace); exists {
 		Log(Info, "Delete Spring Boot application")
-		gomega.Eventually(func() error {
+		t.Eventually(func() error {
 			return DeleteResourceFromFile(springbootAppYaml)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, "Delete Spring Boot components")
-		gomega.Eventually(func() error {
+		t.Eventually(func() error {
 			return DeleteResourceFromFile(springbootComponentYaml)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, fmt.Sprintf("Delete namespace %s", SpringbootNamespace))
-		gomega.Eventually(func() error {
+		t.Eventually(func() error {
 			return DeleteNamespace(SpringbootNamespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-		gomega.Eventually(func() bool {
+		t.Eventually(func() bool {
 			_, err := GetNamespace(SpringbootNamespace)
 			return err != nil && errors.IsNotFound(err)
 		}, springbootWaitTimeout, springbootPollingInterval).Should(gomega.BeTrue())

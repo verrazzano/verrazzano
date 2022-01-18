@@ -5,6 +5,7 @@ package framework
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
 	"reflect"
 	"time"
 
@@ -309,4 +310,10 @@ func VzWhen(text string, body func()) bool {
 	pkg.Log(pkg.Debug, "VzWhen wrapper")
 	ginkgo.When(text, body)
 	return true
+}
+
+// Eventually - wrapper function for gomega Eventually
+func (t *TestFramework) Eventually(body interface{}, args ...interface{}) gomega.AsyncAssertion {
+	pkg.Log(pkg.Debug, "Eventually wrapper")
+	return gomega.Eventually(body, args...)
 }
