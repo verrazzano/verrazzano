@@ -123,9 +123,10 @@ pipeline {
 
         HARBOR_STANDALONE_REGISTRY_CREDS = credentials('harbor-standalone-registry-account')
         HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL = "https://${HARBOR_STANDALONE_REGISTRY}${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
-
         HARBOR_EPHEMERAL_REGISTRY="${V8O_HARBOR_PRIVATE_REGISTRY}"
         HARBOR_EPHEMERAL_ADMIN_PASSWORD="admin"
+        // used to emit metrics
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
     }
 
     stages {
@@ -332,6 +333,12 @@ pipeline {
             }
         }
         stage('Acceptance Tests') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
+
             stages {
                 stage('Prepare AT environment') {
                     environment {

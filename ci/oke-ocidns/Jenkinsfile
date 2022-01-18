@@ -174,6 +174,7 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
         K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
     }
@@ -446,6 +447,11 @@ pipeline {
         }
 
         stage('acceptance-tests-1') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
             parallel {
                 // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
                 //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
@@ -472,6 +478,11 @@ pipeline {
         }
 
         stage('acceptance-tests-2') {
+            environment {
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
             parallel {
                 stage('verify-install') {
                     steps {

@@ -71,6 +71,9 @@ pipeline {
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+        // used to emit metrics
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
     }
 
     stages {
@@ -177,6 +180,10 @@ pipeline {
                         TEST_ENV = "KIND"
                         PROJECT_ADMIN_ROLE = "verrazzano-project-admin"
                         TEST_ROLE = "verrazzano-test-role"
+
+                        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
                     }
                     stages {
                         stage ('Create test role') {
