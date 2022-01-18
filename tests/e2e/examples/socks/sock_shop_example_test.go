@@ -87,8 +87,8 @@ const registerTemp = `{
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Sock Shop Application", func() {
-	t.It("Verify application pods are running", func() {
+var _ = t.Describe("Sock Shop test", func() {
+	t.It("application deployment.", func() {
 		// checks that all pods are up and running
 		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 	})

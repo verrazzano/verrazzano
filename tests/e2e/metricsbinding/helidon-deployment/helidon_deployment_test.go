@@ -38,8 +38,8 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verify application.", func() {
-	t.Context("Deployment.", func() {
+var _ = t.Describe("Verify", func() {
+	t.Context("app deployment", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the Helidon pod should exist
