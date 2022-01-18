@@ -609,7 +609,7 @@ pipeline {
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             sh """
                 export USER_NAME=${JENKINS_READ_USR}
-                export USER_NAME=${PASSWORD}
+                export PASSWORD=${JENKINS_READ_PSW}
                 go run ${GO_REPO_PATH}/verrazzano/package/test/framework/upload_result/file_uploader.go --file-url="${BUILD_URL}artifact/*zip*/archive.zip" --bucket-name="${OCI_OS_ARTIFACT_BUCKET}" --create-bucket="true" --object-name="${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip"
             """
         }
