@@ -48,6 +48,8 @@ func getNamespace(client objectstorage.ObjectStorageClient) string {
 	return *r.Value
 }
 
+// createBucketInternal creates the bucket, if it doesn't exist. Creation of the bucket depends on the command line argument
+// create-bucket set to true.
 func createBucketInternal(client objectstorage.ObjectStorageClient, namespace string, name string, compartmentOCID string) error {
 	req := objectstorage.GetBucketRequest{
 		NamespaceName: &namespace,
@@ -109,8 +111,7 @@ func uploadObject(c objectstorage.ObjectStorageClient, namespace, bucket, object
 
 // getObjectStorageClient returns an OCI SDK client for ObjectStorage. If a region is specified then use an instance
 // principal auth provider, otherwise use the default provider (auth config comes from
-// an OCI config file or environment variables). Instance principals are used when running in the
-// CI/CD pipelines while the default provider is suitable for running locally.
+// an OCI config file or environment variables).
 func getObjectStorageClient(region string) (objectstorage.ObjectStorageClient, error) {
 	var provider common.ConfigurationProvider
 	var err error
@@ -129,7 +130,7 @@ func getObjectStorageClient(region string) (objectstorage.ObjectStorageClient, e
 	return objectstorage.NewObjectStorageClientWithConfigurationProvider(provider)
 }
 
-// downloadArtifact downloads the file at the artifactURL to local file system
+// downloadArtifact downloads the file at the artifactURL to local file system.
 func downloadArtifact(artifactURL, localFile string) error {
 	client := http.Client{Timeout: 30 * time.Minute}
 	req, err := http.NewRequest(http.MethodGet, artifactURL, http.NoBody)
