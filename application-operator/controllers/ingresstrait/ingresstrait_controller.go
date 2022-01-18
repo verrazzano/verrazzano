@@ -23,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -58,7 +57,6 @@ const (
 	wlProxySSLHeaderVal       = "true"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
-	finalizerName             = "ingresstrait.finalizers.verrazzano.io"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
@@ -100,27 +98,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if trait, err = r.fetchTrait(ctx, nsn); err != nil {
 		return reconcile.Result{}, err
 	}
-	if trait == nil {
-		r.Log.Info("FetchTrait returned nil ", "trait", nsn)
+	// If the trait no longer exists or is being deleted then return success.
+	if trait == nil || isTraitBeingDeleted(trait) {
 		return reconcile.Result{}, nil
-	}
-
-	// If the trait no longer exists or is being deleted then cleanup the associated cert and secret resources
-	if isTraitBeingDeleted(trait) {
-		r.Log.Info("Trait is being deleted", "trait", nsn)
-		if err = r.cleanup(trait); err != nil {
-			return reconcile.Result{}, err
-		}
-		// resource cleanup has succeeded, remove the finalizer
-		if err = r.removeFinalizerIfRequired(ctx, trait); err != nil {
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{}, nil
-	}
-
-	// add finalizer
-	if err = r.addFinalizerIfRequired(ctx, trait); err != nil {
-		return reconcile.Result{}, err
 	}
 
 	// Create or update the child resources of the trait and collect the outcomes.
@@ -172,103 +152,6 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		}
 	}
 	return &status, ctrl.Result{}, nil
-}
-
-// addFinalizerIfRequired adds the finalizer to the trait if required
-// The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
-	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
-		r.Log.V(1).Info("Adding finalizer for trait", "trait", traitName)
-		trait.Finalizers = append(trait.Finalizers, finalizerName)
-		if err := r.Update(ctx, trait); err != nil {
-			r.Log.Error(err, "failed to add finalizer to trait", "trait", traitName)
-			return err
-		}
-	}
-	return nil
-}
-
-// removeFinalizerIfRequired removes the finalizer from the trait if required
-// The finalizer is only removed if the trait is being deleted and the finalizer had been added
-func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.IngressTrait) error {
-	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
-		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
-		r.Log.Info("Removing finalizer from trait", "trait", traitName)
-		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
-		if err := r.Update(ctx, trait); err != nil {
-			r.Log.Error(err, "failed to remove finalizer to trait", "trait", traitName)
-			return err
-		}
-	}
-	return nil
-}
-
-// cleanupAppConfig cleans up the generated certificates and secrets associated with the given app config
-func (r *Reconciler) cleanup(trait *vzapi.IngressTrait) (err error) {
-	certName, err := buildCertificateNameFromAppName(trait)
-	if err != nil {
-		r.Log.Error(err, "Error building certificate name", "trait", trait.Name)
-		return err
-	}
-	err = r.cleanupCert(certName)
-	if err != nil {
-		return
-	}
-	err = r.cleanupSecret(certName)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// cleanupCert deletes up the generated certificate for the given app config
-func (r *Reconciler) cleanupCert(certName string) (err error) {
-	nsn := types.NamespacedName{Name: certName, Namespace: constants.IstioSystemNamespace}
-	cert := &certapiv1alpha2.Certificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: nsn.Namespace,
-			Name:      nsn.Name,
-		},
-	}
-	// Delete the cert, ignore not found
-	r.Log.Info("Deleting cert", "cert", nsn)
-	err = r.Delete(context.TODO(), cert, &client.DeleteOptions{})
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			r.Log.Info("NotFound deleting cert", "cert", nsn)
-			return nil
-		}
-		r.Log.Error(err, "Error deleting the cert", "cert", nsn)
-		return err
-	}
-	r.Log.Info("Ingress trait certificate deleted", "cert", nsn)
-	return nil
-}
-
-// cleanupSecret deletes up the generated secret for the given app config
-func (r *Reconciler) cleanupSecret(certName string) (err error) {
-	secretName := fmt.Sprintf("%s-secret", certName)
-	nsn := types.NamespacedName{Name: secretName, Namespace: constants.IstioSystemNamespace}
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: nsn.Namespace,
-			Name:      nsn.Name,
-		},
-	}
-	// Delete the secret, ignore not found
-	r.Log.Info("Deleting secret", "secret", nsn)
-	err = r.Delete(context.TODO(), secret, &client.DeleteOptions{})
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			r.Log.Info("NotFound deleting secret", "secret", nsn)
-			return nil
-		}
-		r.Log.Error(err, "Error deleting the secret", "secret", nsn)
-		return err
-	}
-	r.Log.Info("Ingress trait secret deleted", "cert", nsn)
-	return nil
 }
 
 // getGatewayName will generate a gateway name from the namespace and application name of the provided trait. Returns
@@ -431,7 +314,14 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}
 	}
 
-	certName, err = buildCertificateNameFromAppName(trait)
+	appName, ok := trait.Labels[oam.LabelAppName]
+	if !ok {
+		err = fmt.Errorf("failed to obtain app name from ingress trait")
+		status.Errors = append(status.Errors, err)
+		status.Results = append(status.Results, controllerutil.OperationResultNone)
+		return ""
+	}
+	certName, err = buildCertificateNameFromAppName(types.NamespacedName{Namespace: trait.Namespace, Name: appName})
 	if err != nil {
 		r.Log.Error(err, "failed to create certificate name from ingress trait")
 		status.Errors = append(status.Errors, err)
@@ -497,16 +387,6 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 		}
 	}
 	return secretName
-}
-
-// buildCertificateNameFromAppName will attempt to retrieve the app name associated with the ingress trait
-// and construct a cert name.  Will generate an error if the app name is missing.
-func buildCertificateNameFromAppName(trait *vzapi.IngressTrait) (string, error) {
-	appName, ok := trait.Labels[oam.LabelAppName]
-	if !ok {
-		return "", errors.New("OAM app name label missing from metadata, unable to generate certificate name")
-	}
-	return fmt.Sprintf("%s-%s-cert", trait.Namespace, appName), nil
 }
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.

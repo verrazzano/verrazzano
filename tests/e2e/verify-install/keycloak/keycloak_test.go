@@ -1,18 +1,18 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package keycloak_test
+package keycloak
 
 import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -97,7 +97,9 @@ type Client struct {
 
 var volumeClaims map[string]*corev1.PersistentVolumeClaim
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("keycloak")
+
+var _ = t.BeforeSuite(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
 		volumeClaims, err = pkg.GetPersistentVolumes(keycloakNamespace)
@@ -105,10 +107,12 @@ var _ = BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
 
-var _ = Describe("Verify Keycloak configuration", func() {
-	var _ = Context("Verify password policies", func() {
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Test Keycloak configuration.", func() {
+	var _ = t.Context("Verify", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
-		It("Verify master realm password policy", func() {
+		t.It("master realm password policy", func() {
 			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the master realm during installation
 				// WHEN valid and invalid password changes are attempted
@@ -116,7 +120,7 @@ var _ = Describe("Verify Keycloak configuration", func() {
 				Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(BeTrue())
 			}
 		})
-		It("Verify verrazzano-system realm password policy", func() {
+		t.It("verrazzano-system realm password policy", func() {
 			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the verrazzano-system realm during installation
 				// WHEN valid and invalid password changes are attempted
@@ -127,8 +131,8 @@ var _ = Describe("Verify Keycloak configuration", func() {
 	})
 })
 
-var _ = Describe("Verify MySQL Persistent Volumes based on install profile", func() {
-	var _ = Context("Verify Persistent volumes allocated per install profile", func() {
+var _ = t.Describe("Verify", func() {
+	var _ = t.Context("MySQL Persistent Volumes in namespace keycloak based on", func() {
 
 		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
@@ -142,7 +146,7 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 			if override != nil {
 				expectedKeyCloakPVCs = 1
 			}
-			It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
+			t.It("Dev install profile", func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
 				if expectedKeyCloakPVCs > 0 {
@@ -150,7 +154,7 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 				}
 			})
 		} else if pkg.IsManagedClusterProfile() {
-			It("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
+			t.It("Managed Cluster install profile and verify namespace keycloak doesn't exist", func() {
 				// There is no keycloak namespace in a managed cluster install
 				Eventually(func() bool {
 					_, err := pkg.GetNamespace(keycloakNamespace)
@@ -158,7 +162,7 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		} else if pkg.IsProdProfile() {
-			It("Verify persistent volumes in namespace keycloak based on Prod install profile", func() {
+			t.It("Prod install profile", func() {
 				// 50 GB Persistent Volume create for MySQL in a prod install
 				Expect(len(volumeClaims)).To(Equal(1))
 				assertPersistentVolume("mysql", size)
@@ -167,8 +171,8 @@ var _ = Describe("Verify MySQL Persistent Volumes based on install profile", fun
 	})
 })
 
-var _ = Describe("Verify Keycloak URIs", func() {
-	var _ = Context("Verify redirect and weborigins URIs", func() {
+var _ = t.Describe("Verify Keycloak", func() {
+	var _ = t.Context("redirect and weborigins URIs", func() {
 		pkg.MinVersionSpec("Verify redirect and weborigins URIs", "1.1.0",
 			func() {
 				isManagedClusterProfile := pkg.IsManagedClusterProfile()
@@ -192,23 +196,23 @@ func verifyKeycloakMasterRealmPasswordPolicyIsCorrect() bool {
 func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 	kc, err := pkg.NewKeycloakAdminRESTClient()
 	if err != nil {
-		fmt.Printf("Failed to create Keycloak REST client: %v\n", err)
+		t.Logs.Error(fmt.Printf("Failed to create Keycloak REST client: %v\n", err))
 		return false
 	}
 
 	var realmData map[string]interface{}
 	realmData, err = kc.GetRealm(realm)
 	if err != nil {
-		fmt.Printf("Failed to get realm %s\n", realm)
+		t.Logs.Error(fmt.Printf("Failed to get realm %s\n", realm))
 		return false
 	}
 	if realmData["passwordPolicy"] == nil {
-		fmt.Printf("Failed to find password policy for realm: %s\n", realm)
+		t.Logs.Error(fmt.Printf("Failed to find password policy for realm: %s\n", realm))
 		return false
 	}
 	policy := realmData["passwordPolicy"].(string)
 	if len(policy) == 0 || !strings.Contains(policy, "length") {
-		fmt.Printf("Failed to find password policy for realm: %s\n", realm)
+		t.Logs.Error(fmt.Printf("Failed to find password policy for realm: %s\n", realm))
 		return false
 	}
 
@@ -219,25 +223,25 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 	validPassword := fmt.Sprintf("test-password-12-!@-AB-%s", salt)
 	userURL, err := kc.CreateUser(realm, userName, firstName, lastName, validPassword)
 	if err != nil {
-		fmt.Printf("Failed to create user %s/%s: %v\n", realm, userName, err)
+		t.Logs.Error(fmt.Printf("Failed to create user %s/%s: %v\n", realm, userName, err))
 		return false
 	}
 	userID := path.Base(userURL)
 	defer func() {
 		err = kc.DeleteUser(realm, userID)
 		if err == nil {
-			fmt.Printf("Failed to delete user %s/%s: %v\n", realm, userID, err)
+			t.Logs.Info(fmt.Printf("Failed to delete user %s/%s: %v\n", realm, userID, err))
 		}
 	}()
 	err = kc.SetPassword(realm, userID, "invalid")
 	if err == nil {
-		fmt.Printf("Should not have been able to set password for %s/%s\n", realm, userID)
+		t.Logs.Error(fmt.Printf("Should not have been able to set password for %s/%s\n", realm, userID))
 		return false
 	}
 	newValidPassword := fmt.Sprintf("test-new-password-12-!@-AB-%s", salt)
 	err = kc.SetPassword(realm, userID, newValidPassword)
 	if err != nil {
-		fmt.Printf("Failed to set password for %s/%s: %v\n", realm, userID, err)
+		t.Logs.Error(fmt.Printf("Failed to set password for %s/%s: %v\n", realm, userID, err))
 		return false
 	}
 	return true
@@ -250,13 +254,13 @@ func verifyKeycloakClientURIs() bool {
 	// Get the Keycloak admin password
 	secret, err := pkg.GetSecret("keycloak", "keycloak-http")
 	if err != nil {
-		fmt.Printf("Failed to get KeyCloak secret: %s\n", err)
+		t.Logs.Error(fmt.Printf("Failed to get KeyCloak secret: %s\n", err))
 		return false
 	}
 	pw := secret.Data["password"]
 	keycloakpw := string(pw)
 	if keycloakpw == "" {
-		fmt.Print("Invalid Keycloak password. Empty String returned")
+		t.Logs.Error(fmt.Print("Invalid Keycloak password. Empty String returned"))
 		return false
 	}
 
@@ -265,7 +269,7 @@ func verifyKeycloakClientURIs() bool {
 		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
 	_, err = cmd.Output()
 	if err != nil {
-		fmt.Printf("Error logging into Keycloak: %s\n", err)
+		t.Logs.Error(fmt.Printf("Error logging into Keycloak: %s\n", err))
 		return false
 	}
 
@@ -273,11 +277,11 @@ func verifyKeycloakClientURIs() bool {
 	cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
-		fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err)
+		t.Logs.Error(fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err))
 		return false
 	}
 	if len(string(out)) == 0 {
-		fmt.Print("Error retrieving Clients JSON from Keycloak, zero length, zero length\n")
+		t.Logs.Error(fmt.Print("Error retrieving Clients JSON from Keycloak, zero length, zero length\n"))
 		return false
 	}
 	json.Unmarshal([]byte(out), &keycloakClients)
@@ -287,11 +291,11 @@ func verifyKeycloakClientURIs() bool {
 	for _, client := range keycloakClients {
 		if client.ClientID == "verrazzano-pkce" {
 			id = client.ID
-			fmt.Printf("Keycloak Clients ID found = %s\n", id)
+			t.Logs.Info(fmt.Printf("Keycloak Clients ID found = %s\n", id))
 		}
 	}
 	if id == "" {
-		fmt.Print("Error retrieving ID for Keycloak user, zero length\n")
+		t.Logs.Error(fmt.Print("Error retrieving ID for Keycloak user, zero length\n"))
 		return false
 	}
 
@@ -300,101 +304,101 @@ func verifyKeycloakClientURIs() bool {
 	cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", client, "-r", "verrazzano-system")
 	out, err = cmd.Output()
 	if err != nil {
-		fmt.Printf("Error retrieving clientID JSON: %s\n", err)
+		t.Logs.Error(fmt.Printf("Error retrieving clientID JSON: %s\n", err))
 		return false
 	}
 	if len(string(out)) == 0 {
-		fmt.Print("Error retrieving Client JSON from Keycloak, zero length, zero length\n")
+		t.Logs.Error(fmt.Print("Error retrieving Client JSON from Keycloak, zero length, zero length\n"))
 		return false
 	}
 	json.Unmarshal([]byte(out), &keycloakClient)
 
 	// Verify Correct number of RedirectURIs
 	if len(keycloakClient.RedirectUris) != 12 {
-		fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verify Correct number of WebOrigins
 	if len(keycloakClient.WebOrigins) != 6 {
-		fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins)
+		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}
 
 	// Verify Num URIs per product endpoint
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		fmt.Printf("Error retrieving Kubeconfig Path: %s\n", err)
+		t.Logs.Error(fmt.Printf("Error retrieving Kubeconfig Path: %s\n", err))
 		return false
 	}
 	env, err := pkg.GetEnvName(kubeconfigPath)
 	if err != nil {
-		fmt.Printf("Error retrieving Verrazzano Env: %s\n", err)
+		t.Logs.Error(fmt.Printf("Error retrieving Verrazzano Env: %s\n", err))
 		return false
 	}
 	// Kiali
 	if !verifyURIs(keycloakClient.RedirectUris, "kiali.vmi.system."+env, 2) {
-		fmt.Printf("Expected 2 Kiali redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 2 Kiali redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "kiali.vmi.system."+env, 1) {
-		fmt.Printf("Expected 1 Kiali weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 1 Kiali weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Prometheus
 	if !verifyURIs(keycloakClient.RedirectUris, "prometheus.vmi.system."+env, 2) {
-		fmt.Printf("Expected 2 Prometheus redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 2 Prometheus redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "prometheus.vmi.system."+env, 1) {
-		fmt.Printf("Expected 1 Prometheus weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 1 Prometheus weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Grafana
 	if !verifyURIs(keycloakClient.RedirectUris, "grafana.vmi.system."+env, 2) {
-		fmt.Printf("Expected 2 Grafana redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 2 Grafana redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "grafana.vmi.system."+env, 1) {
-		fmt.Printf("Expected 1 Grafana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 1 Grafana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Elasticsearch
 	if !verifyURIs(keycloakClient.RedirectUris, "elasticsearch.vmi.system."+env, 2) {
-		fmt.Printf("Expected 2 Elasticsearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 2 Elasticsearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "elasticsearch.vmi.system."+env, 1) {
-		fmt.Printf("Expected 1 Elasticsearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 1 Elasticsearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Kibana
 	if !verifyURIs(keycloakClient.RedirectUris, "kibana.vmi.system."+env, 2) {
-		fmt.Printf("Expected 2 Kibana redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 2 Kibana redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "kibana.vmi.system."+env, 1) {
-		fmt.Printf("Expected 1 Kibana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 1 Kibana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verrazzano
 	if !verifyURIs(keycloakClient.RedirectUris, "verrazzano."+env, 2) {
-		fmt.Printf("Expected 2 Verrazzano redirect URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 2 Verrazzano redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "verrazzano."+env, 1) {
-		fmt.Printf("Expected 1 Verrazzano weborigin URIs. Found %+v\n", keycloakClient.RedirectUris)
+		t.Logs.Error(fmt.Printf("Expected 1 Verrazzano weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 

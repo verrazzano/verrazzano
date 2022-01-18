@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package web_test
@@ -10,15 +10,15 @@ import (
 	"net/http"
 	"time"
 
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -26,10 +26,12 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
+var t = framework.NewTestFramework("web")
+
 var serverURL string
 var isManagedClusterProfile bool
 var isTestSupported bool
-var _ = BeforeSuite(func() {
+var _ = t.BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
 	isManagedClusterProfile = pkg.IsManagedClusterProfile()
@@ -58,9 +60,15 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var _ = Describe("Verrazzano Web UI", func() {
-	When("the console UI is configured", func() {
-		It("can be accessed", func() {
+var _ = t.AfterSuite(func() {
+	pkg.Log(pkg.Debug, "executing after suite")
+})
+
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Verrazzano Web UI,", func() {
+	t.When("when configured,", func() {
+		t.It("can be accessed", func() {
 			if !isManagedClusterProfile {
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					return pkg.GetWebPage(serverURL, "")
@@ -68,7 +76,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("has the correct SSL certificate", func() {
+		t.It("has the correct SSL certificate", func() {
 			if !isManagedClusterProfile {
 				var certs []*x509.Certificate
 				Eventually(func() ([]*x509.Certificate, error) {
@@ -89,7 +97,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("should return no Server header", func() {
+		t.It("should return no Server header", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
@@ -104,7 +112,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided", func() {
+		t.It("should not return CORS Access-Control-Allow-Origin header when no Origin header is provided", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
@@ -120,7 +128,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided", func() {
+		t.It("should not return CORS Access-Control-Allow-Origin header when Origin: * is provided", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
@@ -136,7 +144,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided", func() {
+		t.It("should not return CORS Access-Control-Allow-Origin header when Origin: null is provided", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
@@ -152,7 +160,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("can be logged out", func() {
+		t.It("can be logged out", func() {
 			if !isManagedClusterProfile && isTestSupported {
 				Eventually(func() (*pkg.HTTPResponse, error) {
 					return pkg.GetWebPage(fmt.Sprintf("%s%s", serverURL, "_logout"), "")
@@ -160,7 +168,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("should not allow malformed requests", func() {
+		t.It("should not allow malformed requests", func() {
 			if !isManagedClusterProfile && isTestSupported {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
@@ -180,7 +188,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("should not allow state changing requests without valid origin header", func() {
+		t.It("should not allow state changing requests without valid origin header", func() {
 			if !isManagedClusterProfile && isTestSupported {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())
@@ -195,7 +203,7 @@ var _ = Describe("Verrazzano Web UI", func() {
 			}
 		})
 
-		It("should allow non state changing requests without valid origin header but not populate Access-Control-Allow-Origin header", func() {
+		t.It("should allow non state changing requests without valid origin header but not populate Access-Control-Allow-Origin header", func() {
 			if !isManagedClusterProfile && isTestSupported {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				Expect(err).ShouldNot(HaveOccurred())

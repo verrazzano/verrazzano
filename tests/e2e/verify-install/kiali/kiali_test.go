@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package kiali
@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,7 +31,9 @@ var (
 	kialiErr   error
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("kiali")
+
+var _ = t.BeforeSuite(func() {
 	client, kialiErr = k8sutil.GetKubernetesClientset()
 	Expect(kialiErr).ToNot(HaveOccurred())
 	httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
@@ -45,15 +48,17 @@ func WhenKialiInstalledIt(description string, f interface{}) {
 	}
 	// Kiali only installed when VZ > 1.1.0 and not a managed cluster
 	if supported && !pkg.IsManagedClusterProfile() {
-		It(description, f)
+		t.It(description, f)
 	} else {
 		pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Kiali is not supported", description))
 	}
 }
 
-var _ = Describe("Kiali", func() {
+var _ = t.AfterEach(func() {})
 
-	Context("Successful Install", func() {
+var _ = t.Describe("Kiali", func() {
+
+	t.Context("after successful installation", func() {
 		WhenKialiInstalledIt("should have a monitoring crd", func() {
 			Eventually(func() bool {
 				exists, err := pkg.DoesCRDExist("monitoringdashboards.monitoring.kiali.io")
@@ -64,14 +69,14 @@ var _ = Describe("Kiali", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		WhenKialiInstalledIt("has a running pod", func() {
+		WhenKialiInstalledIt("should have a running pod", func() {
 			kialiPodsRunning := func() bool {
 				return pkg.PodsRunning(systemNamespace, []string{kiali})
 			}
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		Context("Ingress", func() {
+		t.Context("should", func() {
 			var (
 				ingress   *networking.Ingress
 				kialiHost string
@@ -94,7 +99,7 @@ var _ = Describe("Kiali", func() {
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			})
 
-			WhenKialiInstalledIt("should not allow unauthenticated logins", func() {
+			WhenKialiInstalledIt("not allow unauthenticated logins", func() {
 				Eventually(func() bool {
 					unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
 					if err != nil {
@@ -104,13 +109,13 @@ var _ = Describe("Kiali", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
-			WhenKialiInstalledIt("should allow basic authentication", func() {
+			WhenKialiInstalledIt("allow basic authentication", func() {
 				Eventually(func() bool {
 					return pkg.AssertURLAccessibleAndAuthorized(httpClient, kialiHost, creds)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
-			WhenKialiInstalledIt("should allow bearer authentication", func() {
+			WhenKialiInstalledIt("allow bearer authentication", func() {
 				Eventually(func() bool {
 					return pkg.AssertBearerAuthorized(httpClient, kialiHost)
 				}, waitTimeout, pollingInterval).Should(BeTrue())

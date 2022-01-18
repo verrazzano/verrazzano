@@ -1,15 +1,14 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano_test
 
 import (
-	"time"
-
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"time"
 )
 
 const (
@@ -17,7 +16,11 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-var _ = Describe("Verrazzano", func() {
+var t = framework.NewTestFramework("verrazzano")
+
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("In Verrazzano", func() {
 
 	vzInstallReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
@@ -75,42 +78,42 @@ var _ = Describe("Verrazzano", func() {
 		Resources: []string{"*", "*/status"},
 	}
 
-	DescribeTable("CRD for",
+	t.DescribeTable("CRD for",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesCRDExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
-		Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
+		t.Entry("verrazzanos should exist in cluster", "verrazzanos.install.verrazzano.io"),
+		t.Entry("verrazzanomanagedclusters should exist in cluster", "verrazzanomanagedclusters.clusters.verrazzano.io"),
 	)
 
-	DescribeTable("ClusterRole",
+	t.DescribeTable("ClusterRole",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesClusterRoleExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		Entry("verrazzano-admin should exist", "verrazzano-admin"),
-		Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
-		Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
-		Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
+		t.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		t.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+		t.Entry("verrazzano-project-admin should exist", "verrazzano-project-admin"),
+		t.Entry("verrazzano-project-monitor should exist", "verrazzano-project-monitor"),
 	)
 
-	DescribeTable("ClusterRoleBinding",
+	t.DescribeTable("ClusterRoleBinding",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesClusterRoleBindingExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		Entry("verrazzano-admin should exist", "verrazzano-admin"),
-		Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
+		t.Entry("verrazzano-admin should exist", "verrazzano-admin"),
+		t.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
 	)
 
-	Describe("ClusterRole verrazzano-admin", func() {
+	t.Describe("ClusterRole verrazzano-admin", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -121,33 +124,33 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		t.It("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(11),
 				"there should be eleven rules")
 		})
 
-		DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzInstallReadRule should exist", vzInstallReadRule),
-			Entry("vzInstallWriteRule should exist", vzInstallWriteRule),
-			Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			Entry("vzSystemWriteRule should exist", vzSystemWriteRule),
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			t.Entry("vzInstallReadRule", vzInstallReadRule),
+			t.Entry("vzInstallWriteRule", vzInstallWriteRule),
+			t.Entry("vzSystemReadRule", vzSystemReadRule),
+			t.Entry("vzSystemWriteRule", vzSystemWriteRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzAppWriteRule", vzAppWriteRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzWebLogicWriteRule", vzWebLogicWriteRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzIstioReadRule", vzIstioReadRule),
 		)
 	})
 
-	Describe("ClusterRole verrazzano-monitor", func() {
+	t.Describe("ClusterRole verrazzano-monitor", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -158,27 +161,27 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		t.It("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(5),
 				"there should be five rules")
 		})
 
-		DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			t.Entry("vzSystemReadRule", vzSystemReadRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzIstioReadRule", vzIstioReadRule),
 		)
 	})
 
-	Describe("ClusterRole verrazzano-project-admin", func() {
+	t.Describe("ClusterRole verrazzano-project-admin", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -189,28 +192,28 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		t.It("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(6),
 				"there should be six rules")
 		})
 
-		DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			Entry("vzCoherenceWriteRule should exist", vzCoherenceWriteRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzAppWriteRule", vzAppWriteRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzWebLogicWriteRule", vzWebLogicWriteRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzCoherenceWriteRule", vzCoherenceWriteRule),
 		)
 	})
 
-	Describe("ClusterRole verrazzano-project-monitor", func() {
+	t.Describe("ClusterRole verrazzano-project-monitor", func() {
 		var rules []rbacv1.PolicyRule
 
-		BeforeEach(func() {
+		t.BeforeEach(func() {
 			var cr *rbacv1.ClusterRole
 			Eventually(func() (*rbacv1.ClusterRole, error) {
 				var err error
@@ -221,23 +224,23 @@ var _ = Describe("Verrazzano", func() {
 			rules = cr.Rules
 		})
 
-		It("has correct number of rules", func() {
+		t.It("has correct number of rules", func() {
 			Expect(len(rules)).To(Equal(3),
 				"there should be three rules")
 		})
 
-		DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			Entry("vzAppReadRule should exist", vzAppReadRule),
-			Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
 		)
 	})
 
-	Describe("ClusterRoleBinding verrazzano-admin", func() {
-		It("has correct subjects and refs", func() {
+	t.Describe("ClusterRoleBinding verrazzano-admin", func() {
+		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -264,8 +267,8 @@ var _ = Describe("Verrazzano", func() {
 		})
 	})
 
-	Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
-		It("has correct subjects and refs", func() {
+	t.Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
+		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -292,8 +295,8 @@ var _ = Describe("Verrazzano", func() {
 		})
 	})
 
-	Describe("ClusterRoleBinding verrazzano-monitor", func() {
-		It("has correct subjects and refs", func() {
+	t.Describe("ClusterRoleBinding verrazzano-monitor", func() {
+		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -320,8 +323,8 @@ var _ = Describe("Verrazzano", func() {
 		})
 	})
 
-	Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
-		It("has correct subjects and refs", func() {
+	t.Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
+		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
 				var err error
@@ -347,5 +350,4 @@ var _ = Describe("Verrazzano", func() {
 				"the subject's name should be verrazzano-monitors")
 		})
 	})
-
 })

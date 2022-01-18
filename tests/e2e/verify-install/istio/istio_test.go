@@ -1,13 +1,13 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package istio_test
+package istio
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	appsv1 "k8s.io/api/apps/v1"
@@ -18,19 +18,23 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-var _ = Describe("Istio", func() {
+var t = framework.NewTestFramework("istio")
+
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Istio", func() {
 	const istioNamespace = "istio-system"
 
-	DescribeTable("namespace",
+	t.DescribeTable("namespace",
 		func(name string) {
 			Eventually(func() (bool, error) {
 				return pkg.DoesNamespaceExist(name)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		},
-		Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
+		t.Entry(fmt.Sprintf("%s namespace should exist", istioNamespace), istioNamespace),
 	)
 
-	DescribeTable("deployments",
+	t.DescribeTable("deployments",
 		func(namespace string) {
 			expectedDeployments := []string{
 				"istio-egressgateway",
@@ -55,6 +59,6 @@ var _ = Describe("Istio", func() {
 
 			Expect(deployments).Should(WithTransform(deploymentNames, ContainElements(expectedDeployments)))
 		},
-		Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
+		t.Entry(fmt.Sprintf("%s namespace should contain expected list of deployments", istioNamespace), istioNamespace),
 	)
 })

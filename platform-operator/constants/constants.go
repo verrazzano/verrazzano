@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -121,9 +121,6 @@ const VerrazzanoVersion1_0_0 = "1.0.0"
 
 // Verrazzano version string for 1.1.0
 const VerrazzanoVersion1_1_0 = "1.1.0"
-
-// VerrazzanoRestartAnnotation is the annotation used to restart platform workloads
-const VerrazzanoRestartAnnotation = "verrazzano.io/restartedAt"
 
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"

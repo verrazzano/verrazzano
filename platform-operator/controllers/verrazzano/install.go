@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano
@@ -50,6 +50,9 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 		case vzapi.Ready:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			log.Debugf("component %s is ready", compName)
+			if err := comp.Reconcile(spiCtx); err != nil {
+				return newRequeueWithDelay(), err
+			}
 			continue
 		case vzapi.Disabled:
 			if !comp.IsEnabled(compContext) {

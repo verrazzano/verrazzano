@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sutil
@@ -8,26 +8,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.uber.org/zap"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/remotecommand"
-	"os"
-	"path/filepath"
-	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/yaml"
-
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
+	"os"
+	"path/filepath"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 // EnvVarKubeConfig Name of Environment Variable for KUBECONFIG
@@ -175,63 +169,6 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 	// keep retrying and eventually we should get a gateway with a host
 	fmt.Printf("Could not find host in application ingress gateways in namespace: %s\n", namespace)
 	return "", nil
-}
-
-//ApplyCRDYaml persists the CRD YAML files in a given directory
-func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, path string, excludedFileNames []string) ([]string, error) {
-	var err error
-
-	isExcludedFile := func(name string) bool {
-		for _, fileName := range excludedFileNames {
-			if name == fileName {
-				return true
-			}
-		}
-		return false
-	}
-
-	filesApplied := []string{}
-	files, err := os.ReadDir(path)
-	if err != nil {
-		log.Error(err, "Unable to list files in directory")
-		return filesApplied, err
-	}
-	for _, file := range files {
-		if isExcludedFile(file.Name()) {
-			continue
-		}
-		u := &unstructured.Unstructured{Object: map[string]interface{}{}}
-		yamlBytes, err := os.ReadFile(path + "/" + file.Name())
-		if err != nil {
-			log.Error(err, "Unable to read file")
-			return filesApplied, err
-		}
-		// Note that we can only unmarshal one document at a time, any remaining bytes are lost after the '---'.
-		// If you have multiple documents in a file, you must separate that file into multiple files,
-		// one for each document.
-		err = yaml.Unmarshal(yamlBytes, u)
-		if err != nil {
-			log.Error(err, "Unable to unmarshal yaml")
-			return filesApplied, err
-		}
-		if u.GetKind() == "CustomResourceDefinition" {
-			specCopy, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
-			if err != nil {
-				log.Error(err, "Unable to make a copy of the spec")
-				return filesApplied, err
-			}
-
-			_, err = controllerutil.CreateOrUpdate(context.TODO(), c, u, func() error {
-				return unstructured.SetNestedField(u.Object, specCopy, "spec")
-			})
-			if err != nil {
-				log.Error(err, "Unable persist object to kubernetes")
-				return filesApplied, err
-			}
-			filesApplied = append(filesApplied, file.Name())
-		}
-	}
-	return filesApplied, nil
 }
 
 // NewPodExecutor is to be overridden during unit tests

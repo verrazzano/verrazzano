@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -313,11 +313,15 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
+func (h HelmComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) PostUpgrade(context spi.ComponentContext) error {
+func (h HelmComponent) PostUpgrade(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (h HelmComponent) Reconcile(_ spi.ComponentContext) error {
 	return nil
 }
 

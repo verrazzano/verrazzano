@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package registry
@@ -463,6 +463,10 @@ func (f fakeComponent) Upgrade(_ spi.ComponentContext) error {
 }
 
 func (f fakeComponent) PostUpgrade(_ spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) Reconcile(_ spi.ComponentContext) error {
 	return nil
 }
 

@@ -6,11 +6,12 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -56,7 +57,10 @@ var (
 	shortPollingInterval = 10 * time.Second
 )
 
-var _ = BeforeSuite(func() {
+var t = framework.NewTestFramework("netpol")
+
+var _ = t.BeforeSuite(func() {
+	start := time.Now()
 	Eventually(func() (*corev1.Namespace, error) {
 		nsLabels := map[string]string{}
 		return pkg.CreateNamespace(testNamespace, nsLabels)
@@ -65,12 +69,14 @@ var _ = BeforeSuite(func() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	// undeploy the application here
+	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -78,15 +84,16 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = Describe("Test Network Policies", func() {
+var _ = t.Describe("Test Network Policies", func() {
 	// Verify test pod is running
 	// GIVEN netpol-test is deployed
 	// WHEN the pod is created
 	// THEN the expected pod must be running in the test namespace
-	Describe("Verify test pod is running.", func() {
-		It("and waiting for expected pod must be running", func() {
+	t.Describe("Verify test pod is running", func() {
+		t.It("and waiting for expected pod must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
@@ -96,7 +103,7 @@ var _ = Describe("Test Network Policies", func() {
 	// GIVEN a Verrazzano deployment
 	// WHEN access is attempted between pods within the ingress rules of the Verrazzano network policies
 	// THEN the attempted access should succeed
-	It("Test NetworkPolicy Rules", func() {
+	t.It("Test NetworkPolicy Rules", func() {
 		pkg.Concurrently(
 			func() {
 				pkg.Log(pkg.Info, "Test rancher ingress rules")
@@ -300,7 +307,7 @@ var _ = Describe("Test Network Policies", func() {
 	// GIVEN a Verrazzano deployment
 	// WHEN access is attempted between pods that violate the rules of the Verrazzano network policies
 	// THEN the attempted access should fail
-	It("Negative Test NetworkPolicy Rules", func() {
+	t.It("Negative Test NetworkPolicy Rules", func() {
 		pkg.Concurrently(
 			func() {
 				pkg.Log(pkg.Info, "Negative test rancher ingress rules")

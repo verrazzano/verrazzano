@@ -103,6 +103,7 @@ pipeline {
 
         // used to emit metrics
          PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }
@@ -236,7 +237,11 @@ pipeline {
         stage('Pre-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
+
             parallel {
                 stage('verify-install') {
                     steps {
@@ -288,7 +293,7 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('install-failure-cluster-dump')
+                            dumpK8sCluster('pre-upgrade-tests-cluster-dump')
                         }
                     }
                 }
@@ -331,6 +336,13 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: "upgrade-test-operator.yaml", allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        if (fileExists(env.TESTS_EXECUTED_FILE)) {
+                            dumpK8sCluster('post-upgrade-vpo-failure-cluster-dump')
+                        }
+                    }
                 }
             }
         }
@@ -382,6 +394,13 @@ pipeline {
                 always {
                     dumpVerrazzanoPlatformOperatorLogs("after-upgrade")
                     archiveArtifacts artifacts: "verrazzano-upgrade-cr.yaml", allowEmptyArchive: true
+                }
+                failure {
+                    script {
+                        if (fileExists(env.TESTS_EXECUTED_FILE)) {
+                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
+                        }
+                    }
                 }
             }
         }
@@ -510,6 +529,9 @@ pipeline {
         stage('Post-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
             parallel {
                 stage('verify-install') {
