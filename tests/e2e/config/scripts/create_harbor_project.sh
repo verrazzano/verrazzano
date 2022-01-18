@@ -6,7 +6,6 @@
 # If it does not exist, it proceeds to create one.
 
 set -u
-set -x
 
 # variables
 REST_API_BASE_URL=

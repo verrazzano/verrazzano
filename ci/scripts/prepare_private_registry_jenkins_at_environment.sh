@@ -8,19 +8,19 @@
 
 set -o pipefail
 
-set -xv
+set -v
 
 INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"nip.io"}
 BASE_IMAGE_REPO=${3:-""}   # primarily used for Harbor ephemeral
+PROJECTCONTOUR_NAMESPACE="projectcontour"
 
 BOM_FILE=${TARBALL_DIR}/verrazzano-bom.json
 CHART_LOCATION=${TARBALL_DIR}/charts
 
 deploy_contour () {
-  local namespace="projectcontour"
   kubectl apply -f https://projectcontour.io/quickstart/contour.yaml
-  kubectl patch daemonsets -n ${namespace} envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
+  kubectl patch daemonsets -n ${PROJECTCONTOUR_NAMESPACE} envoy -p '{"spec":{"template":{"spec":{"nodeSelector":{"ingress-ready":"true"},"tolerations":[{"key":"node-role.kubernetes.io/master","operator":"Equal","effect":"NoSchedule"}]}}}}'
 }
 
 install_new_helm_version() {
@@ -39,37 +39,10 @@ install_new_helm_version() {
   fi
 }
 
-deploy_certificates() {
-  local namespace="cert-manager"
-  cd ${WORKSPACE}/linux-amd64
-  ./helm --kubeconfig=${KUBECONFIG} repo add jetstack https://charts.jetstack.io
-  ./helm --kubeconfig=${KUBECONFIG} repo update
-  kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.6.1/cert-manager.crds.yaml
-  ./helm --kubeconfig=${KUBECONFIG} install cert-manager jetstack/cert-manager --namespace ${cert-manager} --create-namespace --version v1.6.1
-  kubectl apply -f - <<EOF
-    apiVersion: cert-manager.io/v1
-    kind: ClusterIssuer
-    metadata:
-      # This issuer has low thresholds for rate limits,
-      # so only use once bugs have been worked out for ingress stanzas
-      name: letsencrypt-prod
-    spec:
-      acme:
-        server: https://acme-v02.api.letsencrypt.org/directory
-        email: dev@abc.com
-        privateKeySecretRef:
-          name: letsencrypt-prod
-        # Enable the HTTP-01 challenge provider
-        #http01: {}
-EOF
-
-  sleep 50
-}
-
 load_images() {
   # Run the image-helper to load the images into the Harbor registry
   cd ${TARBALL_DIR}
-  ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_EPHEMERAL_REGISTRY} -l . -r ${BASE_IMAGE_REPO}
+  ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${V8O_HARBOR_PRIVATE_REGISTRY} -l . -r ${BASE_IMAGE_REPO}
   if [ $? -ne 0 ]; then
     echo "Loading images into Harbor failed"
     exit 1
@@ -100,22 +73,15 @@ deploy_harbor() {
   --timeout=300s
 
   echo "waiting for contour to show up"
-  sleep 150
-
-  kubectl get pods -A
-  kubectl get svc -A
-
-  echo "Docker daemon json"
-  cat /etc/docker/daemon.json
+  kubectl wait --namespace ${PROJECTCONTOUR_NAMESPACE} \
+    --for=condition=ready pod \
+    --all \
+    --timeout=150s
 
   docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
   if [ $? -ne 0 ]; then
     echo "docker login to Harbor ephemeral failed"
   fi
-
-  docker pull nginx:1-alpine
-  docker tag nginx:1-alpine ${REGISTRY}/library/nginx:1-test
-  docker push ${REGISTRY}/library/nginx:1-test
 
   cd ${TEST_SCRIPTS_DIR}
   # Create the Harbor project if it does not exist
@@ -131,7 +97,7 @@ start_installation() {
     [ -z "${KIND_KUBERNETES_CLUSTER_VERSION}" ] || [ -z "${KUBECONFIG}" ] ||
     [ -z "${IMAGE_PULL_SECRET}" ] || [ -z "${PRIVATE_REPO}" ] || [ -z "${REGISTRY}" ] || [ -z "${PRIVATE_REGISTRY_USR}" ] ||
     [ -z "${PRIVATE_REGISTRY_PSW}" ] || [ -z "${VZ_ENVIRONMENT_NAME}" ] || [ -z "${INSTALL_PROFILE}" ] ||
-    [ -z "${TESTS_EXECUTED_FILE}" ] || [ -z "${INSTALL_CONFIG_FILE_KIND}" ] || [ -z "${TEST_SCRIPTS_DIR}" ] || [ -z "${SETUP_HARBOR}" ]; then
+    [ -z "${TESTS_EXECUTED_FILE}" ] || [ -z "${INSTALL_CONFIG_FILE_KIND}" ] || [ -z "${TEST_SCRIPTS_DIR}" ] || [ -z "${V8O_HARBOR_PRIVATE_REGISTRY}" ] || [ -z "${SETUP_HARBOR}" ]; then
     echo "This script must only be called from Jenkins and requires a number of environment variables are set"
     exit 1
   fi
@@ -140,7 +106,7 @@ start_installation() {
   echo "tests will execute" > ${TESTS_EXECUTED_FILE}
   echo "Create Kind cluster"
   cd ${TEST_SCRIPTS_DIR}
-  ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO $SETUP_HARBOR
+  ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true $INSTALL_CALICO $SETUP_HARBOR $REGISTRY
 
   if [ $INSTALL_CALICO == true ]; then
       echo "Install Calico"
@@ -165,12 +131,8 @@ start_installation() {
   ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}"
   ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-  echo "Listing pods in kube-system namespace just before harbor ephemeral installation..."
-  kubectl get pods -A
-
   if [ $SETUP_HARBOR == true ]; then
     install_new_helm_version
-    #deploy_certificates
     deploy_contour
     deploy_harbor
     load_images

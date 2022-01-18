@@ -4,8 +4,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
-set -x
-
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 CLUSTER_NAME=$1
 PLATFORM_OPERATOR_DIR=$2
@@ -16,7 +14,8 @@ CONNECT_JENKINS_RUNNER_TO_NETWORK=${6:-true}
 KIND_AT_CACHE=${7:-false}
 SETUP_CALICO=${8:-false}
 SETUP_HARBOR=${9:-false}
-KIND_AT_CACHE_NAME=${10:-"NONE"}
+HARBOR_REGISTRY_HOST=${10}
+KIND_AT_CACHE_NAME=${11:-"NONE"}
 KIND_IMAGE=""
 CALICO_SUFFIX=""
 KIND_CONFIG_FILE=""
@@ -83,8 +82,10 @@ create_kind_cluster() {
   echo "Listing permissions for /dev/null"
   ls -l /dev/null
   echo "Using ${KIND_CONFIG_FILE}"
-  cat ${KIND_CONFIG_FILE}
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
+  if [ ${SETUP_HARBOR} == true ]; then
+    sed -i "s/HARBOR_REGISTRY_HOST/${HARBOR_REGISTRY_HOST}/g" ${KIND_CONFIG_FILE}
+  fi
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
   sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}

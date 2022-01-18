@@ -9,7 +9,6 @@ def agentLabel = "largeexperimental"
 def ocirRegion = "phx"
 def imageRepoSubPath=""
 def baseImageRepo=""
-def dockerRunnerArgs="${RUNNER_DOCKER_ARGS}"
 
 pipeline {
     options {
@@ -19,7 +18,7 @@ pipeline {
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
-            args "${dockerRunnerArgs}"
+            args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
@@ -42,7 +41,7 @@ pipeline {
         choice (name: 'SELECT_IMAGE_REGISTRY',
                 description: 'Select an image registry',
                 // 1st choice is the default value
-                choices: ["OCIR", "Harbor", "Harbor ephemeral"])
+                choices: ["OCIR", "Harbor"])
         string (name: 'ZIPFILE_LOCATION',
                         defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
                         description: 'The bucket location to use for the Zip file download',
@@ -121,9 +120,7 @@ pipeline {
         IMAGE_REPO_SUBPATH_PREFIX="verrazzano-private-registry"
         IMAGE_REPO_SUBPATH_SUFFIX="${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
 
-        HARBOR_STANDALONE_REGISTRY_CREDS = credentials('harbor-standalone-registry-account')
-        HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL = "https://${HARBOR_STANDALONE_REGISTRY}${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
-        HARBOR_EPHEMERAL_REGISTRY="${V8O_HARBOR_PRIVATE_REGISTRY}"
+        HARBOR_EPHEMERAL_ADMIN_USR="admin"
         HARBOR_EPHEMERAL_ADMIN_PASSWORD="admin"
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -133,16 +130,9 @@ pipeline {
         stage('Initialize workspace and checkout') {
             steps {
                 script {
-                    sh """
-                    printenv
-                    """
                     if (SELECT_IMAGE_REGISTRY == "OCIR") {
                         echo "Current execution region: $ocirRegion"
                         echo "OCIR Repository: ${OCIR_REGISTRY}"
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        echo "Harbor registry: ${HARBOR_STANDALONE_REGISTRY}"
-                        echo "Harbor registry REST API Subpath: ${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
-                        echo "Harbor registry REST API full URL: ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL}"
                     }
                 }
 
@@ -174,9 +164,6 @@ pipeline {
                     if (SELECT_IMAGE_REGISTRY == "OCIR") {
                         baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
                     } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        // In case of Harbor, base image repo should be same as image repo sub path
-                        baseImageRepo=imageRepoSubPath
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
                         // In case of Harbor, base image repo should be same as image repo sub path
                         baseImageRepo=imageRepoSubPath
                     }
@@ -238,22 +225,6 @@ pipeline {
                                 """
                             }
                         }
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        try {
-                            sh """
-                                echo "${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}" | docker login -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} ${HARBOR_STANDALONE_REGISTRY} --password-stdin
-                            """
-                        } catch(error) {
-                            echo "Harbor standalone instance docker login at ${HARBOR_STANDALONE_REGISTRY} failed, retrying after sleep"
-                            retry(4) {
-                                sleep(30)
-                                sh """
-                                echo "${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}" | docker login -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} ${HARBOR_STANDALONE_REGISTRY} --password-stdin
-                                """
-                            }
-                        }
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
-                        //TODO - docker login will likely need to be done later
                     }
                 }
                 sh """
@@ -318,16 +289,6 @@ pipeline {
                             cd ${TARBALL_DIR}
                             ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${OCIR_REGISTRY} -l . -r ${baseImageRepo}
                         """
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        sh """
-                            # Create the Harbor project if it does not exist
-                            sh ${TEST_SCRIPTS_DIR}/create_harbor_project.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
-                            # Run the image-helper to load the images into the Harbor registry
-                            cd ${TARBALL_DIR}
-                            ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_STANDALONE_REGISTRY} -l . -r ${baseImageRepo}
-                        """
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
-                        //TODO - upload image will need to be done later
                     }
                 }
             }
@@ -350,14 +311,13 @@ pipeline {
                             env.REGISTRY=getPrivateRegistry()
                             env.PRIVATE_REGISTRY_USR=getPrivateRegistryUser()
                             env.PRIVATE_REGISTRY_PSW=getPrivateRegistryPassword()
-                            if (SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
+                            if (SELECT_IMAGE_REGISTRY == "Harbor") {
                                 env.SETUP_HARBOR=true
                             } else {
                                 env.SETUP_HARBOR=false
                             }
                         }
                         sh """
-                            printenv
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${baseImageRepo}
                         """
@@ -588,10 +548,6 @@ pipeline {
                         echo "Base image repo: ${baseImageRepo}"
                         sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
                     """
-                } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                    sh """
-                        sh ${TEST_SCRIPTS_DIR}/delete_harbor_repositories.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l ${TARBALL_DIR} -i ${IMAGE_REPO_SUBPATH_SUFFIX}
-                    """
                 }
             }
 
@@ -618,22 +574,6 @@ pipeline {
                   exit 1
                 fi
             """
-
-            script {
-                if (SELECT_IMAGE_REGISTRY == "OCIR") {
-                    sh """
-                        echo "Current execution region: $ocirRegion"
-                        echo "OCIR Repository: ${OCIR_REGISTRY}"
-                        echo "Image repo subpath: ${imageRepoSubPath}"
-                        echo "Base image repo: ${baseImageRepo}"
-                        sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
-                    """
-                } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                    sh """
-                        sh ${TEST_SCRIPTS_DIR}/delete_harbor_repositories.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l ${TARBALL_DIR} -i ${IMAGE_REPO_SUBPATH_SUFFIX}
-                    """
-                }
-            }
         }
         cleanup {
             deleteDir()
@@ -645,9 +585,7 @@ def getPrivateRegistry() {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return env.OCIR_REGISTRY
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_STANDALONE_REGISTRY
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
-        return env.HARBOR_EPHEMERAL_REGISTRY
+        return env.V8O_HARBOR_PRIVATE_REGISTRY
     }
     return ""
 }
@@ -656,10 +594,7 @@ def getPrivateRegistryUser() {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return env.OCIR_CREDS_USR
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_STANDALONE_REGISTRY_CREDS_USR
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
-        // the default "admin" user in Harbor
-        return "admin"
+        return env.HARBOR_EPHEMERAL_ADMIN_USR
     }
     return ""
 }
@@ -668,8 +603,6 @@ def getPrivateRegistryPassword() {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return env.OCIR_CREDS_PSW
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_STANDALONE_REGISTRY_CREDS_PSW
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor ephemeral") {
         return env.HARBOR_EPHEMERAL_ADMIN_PASSWORD
     }
     return ""

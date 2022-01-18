@@ -40,7 +40,7 @@ pipeline {
         choice (name: 'SELECT_IMAGE_REGISTRY',
                 description: 'Select an image registry',
                 // 1st choice is the default value
-                choices: ["OCIR", "Harbor", "Harbor ephemeral"])
+                choices: ["OCIR", "Harbor"])
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
