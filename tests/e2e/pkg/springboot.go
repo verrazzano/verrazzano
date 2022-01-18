@@ -4,6 +4,7 @@
 package pkg
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -24,7 +25,7 @@ const (
 // DeploySpringBootApplication deploys the Springboot example application.
 func DeploySpringBootApplication() {
 	Log(Info, "Deploy Spring Boot Application")
-	Log(Info, "Create namespace")
+	Log(Info, fmt.Sprintf("Create namespace %s", SpringbootNamespace))
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -32,12 +33,12 @@ func DeploySpringBootApplication() {
 		return CreateNamespace(SpringbootNamespace, nsLabels)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.BeNil())
 
-	Log(Info, "Create component resource")
+	Log(Info, "Create Spring Boot component resource")
 	gomega.Eventually(func() error {
 		return CreateOrUpdateResourceFromFile(springbootComponentYaml)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	Log(Info, "Create application resource")
+	Log(Info, "Create Spring Boot application resource")
 	gomega.Eventually(func() error {
 		return CreateOrUpdateResourceFromFile(springbootAppYaml)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
@@ -46,23 +47,25 @@ func DeploySpringBootApplication() {
 // UndeploySpringBootApplication undeploys the Springboot example application.
 func UndeploySpringBootApplication() {
 	Log(Info, "Undeploy Spring Boot Application")
-	Log(Info, "Delete application")
-	gomega.Eventually(func() error {
-		return DeleteResourceFromFile(springbootAppYaml)
-	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
+	if exists, _ := DoesNamespaceExist(SpringbootNamespace); exists {
+		Log(Info, "Delete Spring Boot application")
+		gomega.Eventually(func() error {
+			return DeleteResourceFromFile(springbootAppYaml)
+		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	Log(Info, "Delete components")
-	gomega.Eventually(func() error {
-		return DeleteResourceFromFile(springbootComponentYaml)
-	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
+		Log(Info, "Delete Spring Boot components")
+		gomega.Eventually(func() error {
+			return DeleteResourceFromFile(springbootComponentYaml)
+		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	Log(Info, "Delete namespace")
-	gomega.Eventually(func() error {
-		return DeleteNamespace(SpringbootNamespace)
-	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
+		Log(Info, fmt.Sprintf("Delete namespace %s", SpringbootNamespace))
+		gomega.Eventually(func() error {
+			return DeleteNamespace(SpringbootNamespace)
+		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	gomega.Eventually(func() bool {
-		_, err := GetNamespace(SpringbootNamespace)
-		return err != nil && errors.IsNotFound(err)
-	}, springbootWaitTimeout, springbootPollingInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() bool {
+			_, err := GetNamespace(SpringbootNamespace)
+			return err != nil && errors.IsNotFound(err)
+		}, springbootWaitTimeout, springbootPollingInterval).Should(gomega.BeTrue())
+	}
 }

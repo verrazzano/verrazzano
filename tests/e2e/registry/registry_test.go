@@ -45,7 +45,7 @@ var listOfNamespaces = []string{
 	"verrazzano-system",
 }
 
-var t = framework.NewTestFramework("helidon")
+var t = framework.NewTestFramework("registry")
 
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})

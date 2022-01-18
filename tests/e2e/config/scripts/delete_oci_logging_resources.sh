@@ -10,18 +10,19 @@ Deletes OCI Logging Log Group and Log resources.
 
 Usage:
 
-    $0 <log_group_id> <system_log_id> <app_log_id>
+    $0 <log_group_id> <system_log_id> <app_log_id> <namespace_log_id>
 """
 exit 1
 }
 
-if [[ -z "$1" || "$1" == "-h" || "$#" -ne 3 ]]; then
+if [[ -z "$1" || "$1" == "-h" || "$#" -ne 4 ]]; then
     usage
 fi
 
 LOG_GROUP_ID=$1
 SYSTEM_LOG_ID=$2
 APP_LOG_ID=$3
+NS_LOG_ID=$4
 
 # Make a best-effort to delete all of the resources (don't exit on failure)
 
@@ -34,6 +35,11 @@ fi
 oci logging log delete --log-group-id ${LOG_GROUP_ID} --log-id ${APP_LOG_ID} --force --wait-for-state SUCCEEDED
 if [ $? -ne 0 ]; then
     echo Failed deleting OCI Log for app logs
+fi
+
+oci logging log delete --log-group-id ${LOG_GROUP_ID} --log-id ${NS_LOG_ID} --force --wait-for-state SUCCEEDED
+if [ $? -ne 0 ]; then
+    echo Failed deleting OCI Log for namespace logs
 fi
 
 # Delete the Log Group

@@ -44,12 +44,9 @@ const (
 	vzSysRealm         = "verrazzano-system"
 	vzUsersGroup       = "verrazzano-users"
 	vzAdminGroup       = "verrazzano-admins"
-	vzMonitorGroup     = "verrazzano-project-monitors"
+	vzMonitorGroup     = "verrazzano-monitors"
 	vzSystemGroup      = "verrazzano-system-users"
 	vzAPIAccessRole    = "vz_api_access"
-	vzConsoleUsersRole = "console_users"
-	vzAdminRole        = "Admin"
-	vzViewerRole       = "Viewer"
 	vzUserName         = "verrazzano"
 	vzInternalPromUser = "verrazzano-prom-internal"
 	vzInternalEsUser   = "verrazzano-es-internal"
@@ -74,6 +71,206 @@ const kcInitContainerValueTemplate = `
           mountPath: /theme
         - name: cacerts
           mountPath: /cacerts
+`
+
+const pkceTmpl = `
+{
+      "clientId" : "verrazzano-pkce",
+      "enabled": true,
+      "surrogateAuthRequired": false,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "https://verrazzano.{{.DNSSubDomain}}/*",
+        "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
+        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+        "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
+        "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+        "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
+        "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+        "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+        "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+        "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
+        "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback"
+      ],
+      "webOrigins": [
+        "https://verrazzano.{{.DNSSubDomain}}",
+        "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+        "https://prometheus.vmi.system.{{.DNSSubDomain}}",
+        "https://grafana.vmi.system.{{.DNSSubDomain}}",
+        "https://kibana.vmi.system.{{.DNSSubDomain}}",
+		"https://kiali.vmi.system.{{.DNSSubDomain}}"
+      ],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "publicClient": true,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "saml.assertion.signature": "false",
+        "saml.multivalued.roles": "false",
+        "saml.force.post.binding": "false",
+        "saml.encrypt": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "exclude.session.state.from.auth.response": "false",
+        "saml_force_name_id_format": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "pkce.code.challenge.method": "S256",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+          {
+            "name": "groupmember",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-group-membership-mapper",
+            "consentRequired": false,
+            "config": {
+              "full.path": "false",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "groups",
+              "userinfo.token.claim": "true"
+            }
+          },
+          {
+            "name": "realm roles",
+            "protocol": "openid-connect",
+            "protocolMapper": "oidc-usermodel-realm-role-mapper",
+            "consentRequired": false,
+            "config": {
+              "multivalued": "true",
+              "user.attribute": "foo",
+              "id.token.claim": "true",
+              "access.token.claim": "true",
+              "claim.name": "realm_access.roles",
+              "jsonType.label": "String"
+            }
+          }
+        ],
+      "defaultClientScopes": [
+        "web-origins",
+        "role_list",
+        "roles",
+        "profile",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
+
+const pgClient = `
+{
+      "clientId" : "verrazzano-pg",
+      "enabled" : true,
+      "rootUrl" : "",
+      "adminUrl" : "",
+      "surrogateAuthRequired" : false,
+      "directAccessGrantsEnabled" : "true",
+      "clientAuthenticatorType" : "client-secret",
+      "secret" : "de05ccdc-67df-47f3-81f6-37e61d195aba",
+      "redirectUris" : [ ],
+      "webOrigins" : [ "+" ],
+      "notBefore" : 0,
+      "bearerOnly" : false,
+      "consentRequired" : false,
+      "standardFlowEnabled" : false,
+      "implicitFlowEnabled" : false,
+      "directAccessGrantsEnabled" : true,
+      "serviceAccountsEnabled" : false,
+      "publicClient" : true,
+      "frontchannelLogout" : false,
+      "protocol" : "openid-connect",
+      "attributes" : { },
+      "authenticationFlowBindingOverrides" : { },
+      "fullScopeAllowed" : true,
+      "nodeReRegistrationTimeout" : -1,
+      "protocolMappers" : [ {
+        "name" : "groups",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-group-membership-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "multivalued" : "true",
+          "userinfo.token.claim" : "false",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "groups",
+          "jsonType.label" : "String"
+        }
+      }, {
+        "name": "realm roles",
+        "protocol": "openid-connect",
+        "protocolMapper": "oidc-usermodel-realm-role-mapper",
+        "consentRequired": false,
+        "config": {
+          "multivalued": "true",
+          "user.attribute": "foo",
+          "id.token.claim": "true",
+          "access.token.claim": "true",
+          "claim.name": "realm_access.roles",
+          "jsonType.label": "String"
+        }
+      }, {
+        "name" : "Client ID",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientId",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientId",
+          "jsonType.label" : "String"
+        }
+      }, {
+        "name" : "Client IP Address",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientAddress",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientAddress",
+          "jsonType.label" : "String"
+        }
+      }, {
+        "name" : "Client Host",
+        "protocol" : "openid-connect",
+        "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+        "consentRequired" : false,
+        "config" : {
+          "user.session.note" : "clientHost",
+          "userinfo.token.claim" : "true",
+          "id.token.claim" : "true",
+          "access.token.claim" : "true",
+          "claim.name" : "clientHost",
+          "jsonType.label" : "String"
+        }
+      } ],
+      "defaultClientScopes" : [ "web-origins", "role_list", "roles", "profile", "email" ],
+      "optionalClientScopes" : [ "address", "phone", "offline_access", "microprofile-jwt" ]
+}
 `
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -126,6 +323,10 @@ type KeycloakUsers []struct {
 		Impersonate           bool `json:"impersonate"`
 		Manage                bool `json:"manage"`
 	} `json:"access"`
+}
+
+type templateData struct {
+	DNSSubDomain string
 }
 
 // Unit testing support
@@ -330,7 +531,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create Verrazzano Project Monitors Group
-	monitorGroupID, err := createVerrazzanoProjectMonitorsGroup(ctx, userGroupID)
+	monitorGroupID, err := createVerrazzanoMonitorsGroup(ctx, userGroupID)
 	if err != nil {
 		return err
 	}
@@ -346,24 +547,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 	// Create Verrazzano API Access Role
 	err = createVerrazzanoRole(ctx, cfg, cli, vzAPIAccessRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Console Users Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzConsoleUsersRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Admin Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzAdminRole)
-	if err != nil {
-		return err
-	}
-
-	// Create Verrazzano Viewer Role
-	err = createVerrazzanoRole(ctx, cfg, cli, vzViewerRole)
 	if err != nil {
 		return err
 	}
@@ -637,7 +820,7 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 	return arr[1], nil
 }
 
-func createVerrazzanoProjectMonitorsGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
+func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string) (string, error) {
 	keycloakGroups, err := getKeycloakGroups(ctx)
 	if err == nil && groupExists(keycloakGroups, vzMonitorGroup) {
 		// Group already exists
@@ -718,36 +901,6 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	}
 	ctx.Log().Debug("grantRolesToGroups: Granted Access Role to User Group")
 
-	// Granting console_users role to verrazzano users group
-	grantConsoleRoleToVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzConsoleUsersRole
-	ctx.Log().Debugf("grantRolesToGroups: Grant Console Role to Vz Users Cmd = %s", grantConsoleRoleToVzUserGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantConsoleRoleToVzUserGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("grantRolesToGroups: Error granting console users role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("grantRolesToGroups: Granted Console Role to User Group")
-
-	// Granting admin role to verrazzano admin group
-	grantAdminRoleToVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + adminGroupID + " --rolename " + vzAdminRole
-	ctx.Log().Debugf("grantRolesToGroups: Grant Admin Role to Vz Admin Cmd = %s", grantAdminRoleToVzAdminGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantAdminRoleToVzAdminGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("grantRolesToGroups: Error granting admin role to Verrazzano admin group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("grantRolesToGroups: Granted Admin Role to Admin Group")
-
-	// Granting viewer role to verrazzano monitor group
-	grantViewerRoleToVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + monitorGroupID + " --rolename " + vzViewerRole
-	ctx.Log().Debugf("grantRolesToGroups: Grant Viewer Role to Monitor Group Cmd = %s", grantViewerRoleToVzMonitorGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantViewerRoleToVzMonitorGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("grantRolesToGroups: Error granting viewer role to Verrazzano monitoring group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("grantRolesToGroups: Granted Viewer Role to monitor Group")
-
 	return nil
 }
 
@@ -785,6 +938,8 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 }
 
 func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
+	data := templateData{}
+
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err == nil && clientExists(keycloakClients, "verrazzano-pkce") {
 		return nil
@@ -798,117 +953,32 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		return err
 	}
 	ctx.Log().Infof("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
+	data.DNSSubDomain = dnsSubDomain
+
+	// use template to get populate template with data
+	var b bytes.Buffer
+	t, err := template.New("verrazzanoPkceClient").Parse(pkceTmpl)
+	if err != nil {
+		return err
+	}
+
+	err = t.Execute(&b, &data)
+	if err != nil {
+		return err
+	}
 
 	// Create verrazzano-pkce client
-	vzPkceCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END\n" +
-		"{\n      " +
-		"\"clientId\" : \"verrazzano-pkce\",\n     " +
-		"\"enabled\": true,\n      \"surrogateAuthRequired\": false,\n      " +
-		"\"alwaysDisplayInConsole\": false,\n      " +
-		"\"clientAuthenticatorType\": \"client-secret\",\n" +
-		"      \"redirectUris\": [\n" +
-		"        \"https://verrazzano." + dnsSubDomain + "/*\",\n" +
-		"        \"https://verrazzano." + dnsSubDomain + "/verrazzano/authcallback\",\n" +
-		"        \"https://elasticsearch.vmi.system." + dnsSubDomain + "/*\",\n" +
-		"        \"https://elasticsearch.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
-		"        \"https://prometheus.vmi.system." + dnsSubDomain + "/*\",\n" +
-		"        \"https://prometheus.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
-		"        \"https://grafana.vmi.system." + dnsSubDomain + "/*\",\n" +
-		"        \"https://grafana.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
-		"        \"https://kibana.vmi.system." + dnsSubDomain + "/*\",\n" +
-		"        \"https://kibana.vmi.system." + dnsSubDomain + "/_authentication_callback\",\n" +
-		"        \"https://kiali.vmi.system." + dnsSubDomain + "/*\",\n" +
-		"        \"https://kiali.vmi.system." + dnsSubDomain + "/_authentication_callback\"\n" +
-		"      ],\n" +
-		"      \"webOrigins\": [\n" +
-		"        \"https://verrazzano." + dnsSubDomain + "\",\n" +
-		"        \"https://elasticsearch.vmi.system." + dnsSubDomain + "\",\n" +
-		"        \"https://prometheus.vmi.system." + dnsSubDomain + "\",\n" +
-		"        \"https://grafana.vmi.system." + dnsSubDomain + "\",\n" +
-		"        \"https://kibana.vmi.system." + dnsSubDomain + "\",\n" +
-		"        \"https://kiali.vmi.system." + dnsSubDomain + "\"\n" +
-		"      ],\n" +
-		"      \"notBefore\": 0,\n" +
-		"      \"bearerOnly\": false,\n" +
-		"      \"consentRequired\": false,\n" +
-		"      \"standardFlowEnabled\": true,\n" +
-		"      \"implicitFlowEnabled\": false,\n" +
-		"      \"directAccessGrantsEnabled\": false,\n" +
-		"      \"serviceAccountsEnabled\": false,\n" +
-		"      \"publicClient\": true,\n" +
-		"      \"frontchannelLogout\": false,\n" +
-		"      \"protocol\": \"openid-connect\",\n" +
-		"      \"attributes\": {\n" +
-		"        \"saml.assertion.signature\": \"false\",\n" +
-		"        \"saml.multivalued.roles\": \"false\",\n" +
-		"        \"saml.force.post.binding\": \"false\",\n" +
-		"        \"saml.encrypt\": \"false\",\n" +
-		"        \"saml.server.signature\": \"false\",\n" +
-		"        \"saml.server.signature.keyinfo.ext\": \"false\",\n" +
-		"        \"exclude.session.state.from.auth.response\": \"false\",\n" +
-		"        \"saml_force_name_id_format\": \"false\",\n" +
-		"        \"saml.client.signature\": \"false\",\n" +
-		"        \"tls.client.certificate.bound.access.tokens\": \"false\",\n" +
-		"        \"saml.authnstatement\": \"false\",\n" +
-		"        \"display.on.consent.screen\": \"false\",\n" +
-		"        \"pkce.code.challenge.method\": \"S256\",\n" +
-		"        \"saml.onetimeuse.condition\": \"false\"\n" +
-		"      },\n" +
-		"      \"authenticationFlowBindingOverrides\": {},\n" +
-		"      \"fullScopeAllowed\": true,\n" +
-		"      \"nodeReRegistrationTimeout\": -1,\n" +
-		"      \"protocolMappers\": [\n" +
-		"          {\n" +
-		"            \"name\": \"groupmember\",\n" +
-		"            \"protocol\": \"openid-connect\",\n" +
-		"            \"protocolMapper\": \"oidc-group-membership-mapper\",\n" +
-		"            \"consentRequired\": false,\n" +
-		"            \"config\": {\n" +
-		"              \"full.path\": \"false\",\n" +
-		"              \"id.token.claim\": \"true\",\n" +
-		"              \"access.token.claim\": \"true\",\n" +
-		"              \"claim.name\": \"groups\",\n" +
-		"              \"userinfo.token.claim\": \"true\"\n" +
-		"            }\n" +
-		"          },\n" +
-		"          {\n" +
-		"            \"name\": \"realm roles\",\n" +
-		"            \"protocol\": \"openid-connect\",\n" +
-		"            \"protocolMapper\": \"oidc-usermodel-realm-role-mapper\",\n" +
-		"            \"consentRequired\": false,\n" +
-		"            \"config\": {\n" +
-		"              \"multivalued\": \"true\",\n" +
-		"              \"user.attribute\": \"foo\",\n" +
-		"              \"id.token.claim\": \"true\",\n" +
-		"              \"access.token.claim\": \"true\",\n" +
-		"              \"claim.name\": \"realm_access.roles\",\n" +
-		"              \"jsonType.label\": \"String\"\n" +
-		"            }\n" +
-		"          }\n" +
-		"        ],\n" +
-		"      \"defaultClientScopes\": [\n" +
-		"        \"web-origins\",\n" +
-		"        \"role_list\",\n" +
-		"        \"roles\",\n" +
-		"        \"profile\",\n" +
-		"        \"email\"\n" +
-		"      ],\n" +
-		"      \"optionalClientScopes\": [\n" +
-		"        \"address\",\n" +
-		"        \"phone\",\n" +
-		"        \"offline_access\",\n" +
-		"        \"microprofile-jwt\"\n" +
-		"      ]\n" +
-		"}\n" +
+	vzPkceCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
+		b.String() +
 		"END"
 
-	ctx.Log().Debugf("createVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
+	ctx.Log().Infof("createVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPkceCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("createVerrazzanoPkceClient: Error creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("createVerrazzanoPkceClient: Created verrazzano-pkce client")
+	ctx.Log().Info("createVerrazzanoPkceClient: Created verrazzano-pkce client")
 	return nil
 }
 
@@ -919,109 +989,16 @@ func createVerrazzanoPgClient(ctx spi.ComponentContext, cfg *restclient.Config, 
 	}
 
 	kcPod := keycloakPod()
-	vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END\n" +
-		"{\n" +
-		"      \"clientId\" : \"verrazzano-pg\",\n" +
-		"      \"enabled\" : true,\n" +
-		"      \"rootUrl\" : \"\",\n" +
-		"      \"adminUrl\" : \"\",\n" +
-		"      \"surrogateAuthRequired\" : false,\n" +
-		"      \"directAccessGrantsEnabled\" : \"true\",\n" +
-		"      \"clientAuthenticatorType\" : \"client-secret\",\n" +
-		"      \"secret\" : \"de05ccdc-67df-47f3-81f6-37e61d195aba\",\n" +
-		"      \"redirectUris\" : [ ],\n" +
-		"      \"webOrigins\" : [ \"+\" ],\n" +
-		"      \"notBefore\" : 0,\n" +
-		"      \"bearerOnly\" : false,\n" +
-		"      \"consentRequired\" : false,\n" +
-		"      \"standardFlowEnabled\" : false,\n" +
-		"      \"implicitFlowEnabled\" : false,\n" +
-		"      \"directAccessGrantsEnabled\" : true,\n" +
-		"      \"serviceAccountsEnabled\" : false,\n" +
-		"      \"publicClient\" : true,\n" +
-		"      \"frontchannelLogout\" : false,\n" +
-		"      \"protocol\" : \"openid-connect\",\n" +
-		"      \"attributes\" : { },\n" +
-		"      \"authenticationFlowBindingOverrides\" : { },\n" +
-		"      \"fullScopeAllowed\" : true,\n" +
-		"      \"nodeReRegistrationTimeout\" : -1,\n" +
-		"      \"protocolMappers\" : [ {\n" +
-		"        \"name\" : \"groups\",\n" +
-		"        \"protocol\" : \"openid-connect\",\n" +
-		"        \"protocolMapper\" : \"oidc-group-membership-mapper\",\n" +
-		"        \"consentRequired\" : false,\n" +
-		"        \"config\" : {\n" +
-		"          \"multivalued\" : \"true\",\n" +
-		"          \"userinfo.token.claim\" : \"false\",\n" +
-		"          \"id.token.claim\" : \"true\",\n" +
-		"          \"access.token.claim\" : \"true\",\n" +
-		"          \"claim.name\" : \"groups\",\n" +
-		"          \"jsonType.label\" : \"String\"\n" +
-		"        }\n" +
-		"      }, {\n" +
-		"        \"name\": \"realm roles\",\n" +
-		"        \"protocol\": \"openid-connect\",\n" +
-		"        \"protocolMapper\": \"oidc-usermodel-realm-role-mapper\",\n" +
-		"        \"consentRequired\": false,\n" +
-		"        \"config\": {\n" +
-		"          \"multivalued\": \"true\",\n" +
-		"          \"user.attribute\": \"foo\",\n" +
-		"          \"id.token.claim\": \"true\",\n" +
-		"          \"access.token.claim\": \"true\",\n" +
-		"          \"claim.name\": \"realm_access.roles\",\n" +
-		"          \"jsonType.label\": \"String\"\n" +
-		"        }\n" +
-		"      }, {\n" +
-		"        \"name\" : \"Client ID\",\n" +
-		"        \"protocol\" : \"openid-connect\",\n" +
-		"        \"protocolMapper\" : \"oidc-usersessionmodel-note-mapper\",\n" +
-		"        \"consentRequired\" : false,\n" +
-		"        \"config\" : {\n" +
-		"          \"user.session.note\" : \"clientId\",\n" +
-		"          \"userinfo.token.claim\" : \"true\",\n" +
-		"          \"id.token.claim\" : \"true\",\n" +
-		"          \"access.token.claim\" : \"true\",\n" +
-		"          \"claim.name\" : \"clientId\",\n" +
-		"          \"jsonType.label\" : \"String\"\n" +
-		"        }\n" +
-		"      }, {\n" +
-		"        \"name\" : \"Client IP Address\",\n" +
-		"        \"protocol\" : \"openid-connect\",\n" +
-		"        \"protocolMapper\" : \"oidc-usersessionmodel-note-mapper\",\n" +
-		"        \"consentRequired\" : false,\n" +
-		"        \"config\" : {\n" +
-		"          \"user.session.note\" : \"clientAddress\",\n" +
-		"          \"userinfo.token.claim\" : \"true\",\n" +
-		"          \"id.token.claim\" : \"true\",\n" +
-		"          \"access.token.claim\" : \"true\",\n" +
-		"          \"claim.name\" : \"clientAddress\",\n" +
-		"          \"jsonType.label\" : \"String\"\n" +
-		"        }\n" +
-		"      }, {\n" +
-		"        \"name\" : \"Client Host\",\n" +
-		"        \"protocol\" : \"openid-connect\",\n" +
-		"        \"protocolMapper\" : \"oidc-usersessionmodel-note-mapper\",\n" +
-		"        \"consentRequired\" : false,\n" +
-		"        \"config\" : {\n" +
-		"          \"user.session.note\" : \"clientHost\",\n" +
-		"          \"userinfo.token.claim\" : \"true\",\n" +
-		"          \"id.token.claim\" : \"true\",\n" +
-		"          \"access.token.claim\" : \"true\",\n" +
-		"          \"claim.name\" : \"clientHost\",\n" +
-		"          \"jsonType.label\" : \"String\"\n" +
-		"        }\n" +
-		"      } ],\n" +
-		"      \"defaultClientScopes\" : [ \"web-origins\", \"role_list\", \"roles\", \"profile\", \"email\" ],\n" +
-		"      \"optionalClientScopes\" : [ \"address\", \"phone\", \"offline_access\", \"microprofile-jwt\" ]\n" +
-		"}\n" +
+	vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
+		pgClient +
 		"END"
-	ctx.Log().Debugf("createVerrazzanoPgClient: Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
+	ctx.Log().Infof("createVerrazzanoPgClient: Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPgCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("createVerrazzanoPgClient: Error creating verrazzano-pg client: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("createVerrazzanoPgClient: Created verrazzano-pg client")
+	ctx.Log().Info("createVerrazzanoPgClient: Created verrazzano-pg client")
 	return nil
 }
 

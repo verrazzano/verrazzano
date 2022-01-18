@@ -19,14 +19,14 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("rancher url test", func() {
+var _ = t.Describe("rancher", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	t.Context("Fetching the rancher url using api and test ", func() {
-		t.It("Fetches rancher url", func() {
+	t.Context("url test to", func() {
+		t.It("Fetch rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -117,13 +117,12 @@ var _ = t.Describe("rancher url test", func() {
 				metrics.Emit(t.Metrics.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
-				state := ""
 				start = time.Now()
-				Eventually(func() error {
+				Eventually(func() (string, error) {
 					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), nil)
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error creating rancher clusters api request: %v", err))
-						return err
+						return "", err
 					}
 
 					req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
@@ -131,12 +130,12 @@ var _ = t.Describe("rancher url test", func() {
 					response, err := httpClient.Do(req)
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error invoking rancher clusters api request: %v", err))
-						return err
+						return "", err
 					}
 
 					err = httputil.ValidateResponseCode(response, http.StatusOK)
 					if err != nil {
-						return err
+						return "", err
 					}
 
 					defer response.Body.Close()
@@ -144,19 +143,12 @@ var _ = t.Describe("rancher url test", func() {
 					// extract the response body
 					body, err := ioutil.ReadAll(response.Body)
 					if err != nil {
-						return err
+						return "", err
 					}
 
-					state, err = httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "state", "unable to find state in Rancher clusters response")
-					if err != nil {
-						return err
-					}
-
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
+					return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "state", "unable to find state in Rancher clusters response")
+				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
-
-				Expect(state).To(Equal("active"), "rancher local cluster not in active state")
 			}
 		})
 	})

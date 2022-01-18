@@ -18,7 +18,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -33,20 +32,7 @@ var t = framework.NewTestFramework("helidon")
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		Eventually(func() (*v1.Namespace, error) {
-			nsLabels := map[string]string{
-				"verrazzano-managed": "true",
-				"istio-injection":    "enabled"}
-			return pkg.CreateNamespace("hello-helidon", nsLabels)
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
-
-		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
+		pkg.DeployHelloHelidonApplication("")
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -62,18 +48,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		// undeploy the application here
-		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-app.yaml")
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/hello-helidon/hello-helidon-comp.yaml")
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
-		Eventually(func() error {
-			return pkg.DeleteNamespace("hello-helidon")
-		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+		pkg.UndeployHelloHelidonApplication()
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -85,17 +60,16 @@ var (
 )
 
 const (
-	testNamespace      = "hello-helidon"
 	istioNamespace     = "istio-system"
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
+var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Describe("Verify hello-helidon-deployment pod is running.", func() {
+	t.Describe("hello-helidon-deployment pod is running.", func() {
 		t.It("waiting for expected pods must be running", func() {
 			Eventually(helloHelidonPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
@@ -109,7 +83,7 @@ var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(pkg.HelloHelidonNamespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -118,7 +92,7 @@ var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	t.Describe("Verify Hello Helidon app is working.", func() {
+	t.Describe("for Ingress.", func() {
 		t.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			Eventually(func() bool {
@@ -131,7 +105,7 @@ var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	t.Describe("Verify Prometheus scraped metrics", func() {
+	t.Describe("for Metrics.", func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
@@ -187,7 +161,7 @@ var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 })
 
 func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+	return pkg.PodsRunning(pkg.HelloHelidonNamespace, expectedPodsHelloHelidon)
 }
 
 func appEndpointAccessible(url string, hostname string) bool {

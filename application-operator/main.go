@@ -221,29 +221,29 @@ func main() {
 		)
 
 		// Register the mutating webhook for plain old kubernetes objects workloads when the object exists
-		_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
+		_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
 		if err == nil {
 			mgr.GetWebhookServer().Register(
-				webhooks.ScrapeGeneratorWorkloadPath,
+				webhooks.MetricsBindingGeneratorWorkloadPath,
 				&webhook.Admission{
-					Handler: &webhooks.ScrapeGeneratorWebhook{
+					Handler: &webhooks.GeneratorWorkloadWebhook{
 						Client:     mgr.GetClient(),
 						KubeClient: kubeClient,
 					},
 				},
 			)
 			mgr.GetWebhookServer().Register(
-				webhooks.ScrapeGeneratorPodPath,
+				webhooks.MetricsBindingLabelerPodPath,
 				&webhook.Admission{
-					Handler: &webhooks.ScrapeGeneratorPodWebhook{
+					Handler: &webhooks.LabelerPodWebhook{
 						Client:        mgr.GetClient(),
 						DynamicClient: dynamicClient,
 					},
 				},
 			)
-			err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.ScrapeGeneratorWebhookName)
+			err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.MetricsBindingWebhookName)
 			if err != nil {
-				setupLog.Error(err, fmt.Sprintf("unable to update %s mutating webhook configuration", certificates.ScrapeGeneratorWebhookName))
+				setupLog.Error(err, fmt.Sprintf("unable to update %s mutating webhook configuration", certificates.MetricsBindingWebhookName))
 				os.Exit(1)
 			}
 		}
@@ -413,7 +413,7 @@ func main() {
 		os.Exit(1)
 	}
 	// Register the metrics workload controller
-	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.ScrapeGeneratorWebhookName, metav1.GetOptions{})
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),

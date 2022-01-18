@@ -272,7 +272,7 @@ func (s *Syncer) updateDeployment(name string) {
 
 // reconfigure Fluentd by restarting Fluentd DaemonSet if ManagedClusterName has been changed
 func (s *Syncer) configureLogging() {
-	loggingName := types.NamespacedName{Name: "fluentd", Namespace: constants.VerrazzanoSystemNamespace}
+	loggingName := types.NamespacedName{Name: vzconstants.FluentdDaemonSetName, Namespace: constants.VerrazzanoSystemNamespace}
 	daemonSet := appsv1.DaemonSet{}
 	err := s.LocalClient.Get(context.TODO(), loggingName, &daemonSet)
 	if err != nil {
