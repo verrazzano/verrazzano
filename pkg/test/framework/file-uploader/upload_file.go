@@ -248,7 +248,7 @@ func init() {
 }
 
 func printUsage() {
-	usageString := "Usage: go run file_uploader.go --file-url=<URL of the artifact to be uploaded to Object Storage>" +
+	usageString := "Usage: go run upload_file.go --file-url=<URL of the artifact to be uploaded to Object Storage>" +
 		" --object-name=<name of the object in the Object Storage, if different than the actual file name>" +
 		" --namespace=<Object Storage namespace used for the request> " +
 		" --bucket-name=<name of the bucket - container for storing objects in a compartment within an Object Storage namespace>" +
