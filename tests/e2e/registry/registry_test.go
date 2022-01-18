@@ -19,7 +19,7 @@ import (
 const (
 	waitTimeout         = 2 * time.Minute
 	pollingInterval     = 10 * time.Second
-	harborEphemeral     = "Harbor ephemeral"
+	harborImageRegistry = "Harbor"
 	goHarborImagePrefix = "goharbor"
 )
 
@@ -89,7 +89,7 @@ var _ = t.Describe("Private Registry Verification",
 	})
 
 func assertImageRegistryURLOfPod(podName string, image string, imagePrefix string, containersStr string) {
-	if imageRegistrySelection == harborEphemeral {
+	if imageRegistrySelection == harborImageRegistry {
 		if !strings.HasPrefix(image, goHarborImagePrefix) {
 			// Assertion only when the image registry selection is ephemeral harbor and excluding the images originating from harbor installation
 			Expect(strings.HasPrefix(image, imagePrefix)).To(BeTrue(),

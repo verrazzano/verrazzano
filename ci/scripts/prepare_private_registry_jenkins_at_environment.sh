@@ -16,7 +16,7 @@ BASE_IMAGE_REPO=${3:-""}   # primarily used for Harbor ephemeral
 PROJECTCONTOUR_NAMESPACE="projectcontour"
 HELM_VERSION="3.7.2"
 HELM_ZIP="helm-v${HELM_VERSION}-linux-amd64.tar.gz"
-
+HARBOR_RELEASE="ephemeral-harbor"
 BOM_FILE=${TARBALL_DIR}/verrazzano-bom.json
 CHART_LOCATION=${TARBALL_DIR}/charts
 
@@ -55,7 +55,7 @@ deploy_harbor() {
   # Install harbor via new version of helm
   ./helm --kubeconfig=${KUBECONFIG} repo add harbor https://helm.goharbor.io
   ./helm --kubeconfig=${KUBECONFIG} repo update
-  ./helm --kubeconfig=${KUBECONFIG} install ephemeral-harbor harbor/harbor \
+  ./helm --kubeconfig=${KUBECONFIG} install ${HARBOR_RELEASE} harbor/harbor \
     --set expose.ingress.hosts.core=${REGISTRY} \
     --set expose.ingress.annotations.'kubernetes\.io/ingress\.class'=contour \
     --set externalURL=http://${REGISTRY} \
@@ -73,7 +73,7 @@ deploy_harbor() {
   --all \
   --timeout=300s
 
-  echo "waiting for contour to show up"
+  echo "Wait for contour pods to be up and running"
   kubectl wait --namespace ${PROJECTCONTOUR_NAMESPACE} \
     --for=condition=ready pod \
     --all \
@@ -137,11 +137,6 @@ start_installation() {
     deploy_contour
     deploy_harbor
     load_images
-  fi
-
-  docker login ${REGISTRY} -u ${PRIVATE_REGISTRY_USR} -p ${PRIVATE_REGISTRY_PSW}
-  if [ $? -ne 0 ]; then
-    echo "docker login again to Harbor ephemeral failed"
   fi
 
   echo "Get verrazzano container registry secret"
