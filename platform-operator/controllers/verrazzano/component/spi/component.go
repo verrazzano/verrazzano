@@ -83,4 +83,6 @@ type Component interface {
 	ComponentInfo
 	ComponentInstaller
 	ComponentUpgrader
+
+	Reconcile(ctx ComponentContext) error
 }
