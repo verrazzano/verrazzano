@@ -84,7 +84,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("Multi-cluster verify todo-list", func() {
+var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -151,11 +151,11 @@ var _ = t.Describe("Multi-cluster verify todo-list", func() {
 		}
 	})
 
-	t.Context("Verify WebLogic app componenets", func() {
+	t.Context("for WebLogic components", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the servers in the WebLogic domain is ready
 		// THEN the domain.servers.status.health.overallHeath fields should be ok
-		t.It("Verify WebLogic 'todo-domain' overall health is ok", func() {
+		t.It("Verify 'todo-domain' overall health is ok", func() {
 			Eventually(func() bool {
 				domain, err := weblogic.GetDomainInCluster(testNamespace, "todo-domain", managedKubeconfig)
 				if err != nil {
@@ -170,7 +170,7 @@ var _ = t.Describe("Multi-cluster verify todo-list", func() {
 		})
 	})
 
-	t.Context("Ingress.", func() {
+	t.Context("for Ingress", func() {
 		var host = ""
 		var err error
 		// Get the host from the Istio gateway resource.
@@ -196,7 +196,7 @@ var _ = t.Describe("Multi-cluster verify todo-list", func() {
 		})
 	})
 
-	t.Context("Logging", func() {
+	t.Context("for Logging", func() {
 		indexName := "verrazzano-namespace-mc-todo-list"
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -209,7 +209,7 @@ var _ = t.Describe("Multi-cluster verify todo-list", func() {
 		})
 	})
 
-	t.Context("Prometheus Metrics", func() {
+	t.Context("for Prometheus Metrics", func() {
 
 		t.It("Verify scrape_duration_seconds metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
@@ -243,7 +243,7 @@ var _ = t.Describe("Multi-cluster verify todo-list", func() {
 	})
 
 	t.Context("Delete resources", func() {
-		t.It("Delete resources on admin cluster", func() {
+		t.It("on admin cluster", func() {
 			Eventually(func() error {
 				return cleanUp(adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())

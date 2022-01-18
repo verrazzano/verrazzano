@@ -99,12 +99,12 @@ func undeployMetricsApplication() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = t.Describe("Verify DeployMetrics Application", func() {
+var _ = t.Describe("DeployMetrics Application test", func() {
 	// Verify deploymetrics-workload pod is running
 	// GIVEN deploymetrics app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Context("Deployment.", func() {
+	t.Context("app deployment", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
@@ -112,7 +112,7 @@ var _ = t.Describe("Verify DeployMetrics Application", func() {
 		})
 	})
 
-	t.Context("Prometheus Config.", func() {
+	t.Context("for Prometheus Config.", func() {
 		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
 			Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
@@ -120,13 +120,13 @@ var _ = t.Describe("Verify DeployMetrics Application", func() {
 		})
 	})
 
-	t.Context("Verify Prometheus scraped metrics.", func() {
-		t.It("Retrieve Prometheus scraped metrics for App Component", func() {
+	t.Context("Retrieve Prometheus scraped metrics for", func() {
+		t.It("App Component", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Component.")
 		})
-		t.It("Retrieve Prometheus scraped metrics for App Config", func() {
+		t.It("App Config", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("tomcat_sessions_created_sessions_total", "app_oam_dev_component", "deploymetrics-deployment")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for App Config.")

@@ -92,7 +92,7 @@ var _ = t.Describe("Test Network Policies", func() {
 	// GIVEN netpol-test is deployed
 	// WHEN the pod is created
 	// THEN the expected pod must be running in the test namespace
-	t.Describe("Verify test pod is running.", func() {
+	t.Describe("Verify test pod is running", func() {
 		t.It("and waiting for expected pod must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPods)
