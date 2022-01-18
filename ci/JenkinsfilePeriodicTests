@@ -129,7 +129,6 @@ pipeline {
             }
         }
 
-        /*
         stage ('Periodic Test Suites') {
             when {
                 allOf {
@@ -162,11 +161,10 @@ pipeline {
                                 ], wait: true
                         }
                     }
-                }*/
+                }
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            println("OCI DNS Deva using git commit ${env.GIT_COMMIT}")
                             def builtOCIDNS = build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -180,7 +178,6 @@ pipeline {
                         }
                     }
                 }
-               /*
                 stage('OCI DNS tests with instance principal') {
                     steps {
                         script {
@@ -198,7 +195,7 @@ pipeline {
                         }
                     }
                }
-                stage('OCI Private DNS tests') {
+               stage('OCI Private DNS tests') {
                     steps {
                         script {
                             build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
@@ -215,7 +212,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
@@ -364,7 +360,6 @@ pipeline {
             }
         }
 
-         */
         stage("Private Registry") {
             when {
                 allOf {
@@ -372,7 +367,6 @@ pipeline {
                 }
             }
             stages {
-                /*
                 stage("Upload Periodic Run Artifacts") {
                     steps {
                         sh """
@@ -420,7 +414,6 @@ pipeline {
                     }
                 }
 
-                 */
                 stage('Release Candidate Validation Checks') {
                     steps {
                         script {
