@@ -14,6 +14,8 @@ INSTALL_CALICO=${1:-false}
 WILDCARD_DNS_DOMAIN=${2:-"nip.io"}
 BASE_IMAGE_REPO=${3:-""}   # primarily used for Harbor ephemeral
 PROJECTCONTOUR_NAMESPACE="projectcontour"
+HELM_VERSION="3.7.2"
+HELM_ZIP="helm-v${HELM_VERSION}-linux-amd64.tar.gz"
 
 BOM_FILE=${TARBALL_DIR}/verrazzano-bom.json
 CHART_LOCATION=${TARBALL_DIR}/charts
@@ -26,14 +28,13 @@ deploy_contour () {
 install_new_helm_version() {
   cd ${WORKSPACE}
   # Downloading newer version of helm in order to prevent harbor installation issues
-  helm_zip="helm-v3.7.2-linux-amd64.tar.gz"
-  echo "Downloading helm 3.7.2 via command: curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}"
-  curl -fsSL -o ${helm_zip} https://get.helm.sh/${helm_zip}
+  echo "Downloading helm ${HELM_VERSION} via command: curl -fsSL -o ${HELM_ZIP} https://get.helm.sh/${HELM_ZIP}"
+  curl -fsSL -o ${HELM_ZIP} https://get.helm.sh/${HELM_ZIP}
   if [ $? -ne 0 ]; then
-    echo "Error downloading helm 3.7.2"
+    echo "Error downloading helm ${HELM_VERSION}"
     exit 1
   fi
-  tar -zxvf ${helm_zip}
+  tar -zxvf ${HELM_ZIP}
   if [ $? -ne 0 ]; then
     exit 1
   fi
