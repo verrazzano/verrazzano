@@ -223,7 +223,7 @@ func expectMWC(mock *mocks.MockClient, configuration *admissionv1.MutatingWebhoo
 
 // expectReconcileGet creates the mocks for the retrieval of the ConfigMap and the MutatingWebhookConfiguration
 func expectReconcileGet(mock *mocks.MockClient, configuration *admissionv1.MutatingWebhookConfiguration, configMap *k8score.ConfigMap) {
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: mutatingWebhookConfigName}, gomock.Not(gomock.Nil())).DoAndReturn(
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Name: mutatingWebhookConfigName}, gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, mwc *admissionv1.MutatingWebhookConfiguration) error {
 			mwc.ObjectMeta = configuration.ObjectMeta
 			mwc.Webhooks = configuration.Webhooks
