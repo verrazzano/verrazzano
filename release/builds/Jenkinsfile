@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -24,6 +24,7 @@ pipeline {
     }
 
     parameters {
+        string (description: 'The location of an existing candidate images file to use. This is provided by automation in the normal flow. The default NONE indicates a full build/test is required', name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', defaultValue: 'NONE', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         string (description: 'The target version (major.minor.patch format, e.g. 1.0.1)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
@@ -130,6 +131,12 @@ pipeline {
         }
 
         stage('Trigger release build') {
+            // REVIEW: The current iteration, we are releasing candidates from release-* branches which exist
+            // this can be extended in the future to allow release from master which would create the branch and then use an existing
+            // candidate from master, but for now we aren't adding that complexity and keeping this simple on (not crossing branches yet)
+            when {
+                expression { return params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE == 'NONE' }
+            }
             stages {
                 stage('Release Only: Create branch') {
                     // if this is not a patch there is a need to either create a release branch or verify it exists
@@ -213,11 +220,19 @@ pipeline {
             steps {
                 retry(count: env.BUILD_RETRIES) {
                     script {
-                        echo "Triggering OCR Image push build"
-                        build job: "publish-release-images-to-ocr",
-                            parameters: [
-                                string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: '${RELEASE_JOB_NAME}'),
-                            ], wait: true
+                        if (params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE.equals("NONE")) {
+                            echo "Triggering OCR Image push build"
+                            build job: "publish-release-images-to-ocr",
+                                parameters: [
+                                    string(name: 'IMAGES_TO_PUBLISH_JOB_NAME', value: "${RELEASE_JOB_NAME}"),
+                                ], wait: true
+                        } else {
+                            echo "Triggering OCR Image push build supplying existing candidate"
+                            build job: "publish-release-images-to-ocr",
+                                parameters: [
+                                    string(name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', value: "${params.IMAGES_TO_PUBLISH_OBJECT_STORE_FILE}"),
+                                ], wait: true
+                        }
                     }
                 }
             }
