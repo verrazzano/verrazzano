@@ -59,12 +59,12 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 	// vZ-2336: Be able to read MultiClusterXXX resources in the admin cluster
 	//			Be able to update the status of MultiClusterXXX resources in the admin cluster
-	t.Context("Admin Cluster - verify mc resources and their status updates", func() {
+	t.Context("In Admin Cluster, verify mc resources and their status updates.", func() {
 		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		t.It("admin cluster - verify mc config map", func() {
+		t.It("Verify mc config map", func() {
 			Eventually(func() (bool, error) {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
@@ -91,7 +91,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("admin cluster - verify mc secret", func() {
+		t.It("Verify mc secret", func() {
 			Eventually(func() (bool, error) {
 				return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
@@ -111,7 +111,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		// VZ-2336: Be able to update the status of a VerrazzanoManagedCluster resource
-		t.It("admin cluster vmc status updates", func() {
+		t.It("vmc status updates", func() {
 			Eventually(func() bool {
 				// Verify we have the expected status update
 				vmc := vmcv1alpha1.VerrazzanoManagedCluster{}
@@ -122,12 +122,12 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 
 	})
 
-	t.Context("Managed Cluster - check for underlying resources", func() {
+	t.Context("In the Managed Cluster, check for ", func() {
 		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		t.It("managed cluster has the expected mc and underlying configmap", func() {
+		t.It("the expected mc and underlying configmap", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
@@ -142,7 +142,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			)
 		})
 
-		t.It("managed cluster has the expected mc and underlying secret", func() {
+		t.It("the expected mc and underlying secret", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
@@ -159,12 +159,12 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 	})
 
 	// VZ-2336:  NOT be able to update or delete any MultiClusterXXX resources in the admin cluster
-	t.Context("Managed Cluster - MC object access on admin cluster", func() {
+	t.Context("Managed Cluster", func() {
 		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_ACCESS_KUBECONFIG"))
 		})
 
-		t.It("managed cluster can access MultiClusterConfigMap but not modify it on admin", func() {
+		t.It("can access MultiClusterConfigMap but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
 				return findMultiClusterConfigMap(testNamespace, "mymcconfigmap")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
@@ -188,7 +188,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		t.It("managed cluster can access MultiClusterSecret but not modify it on admin", func() {
+		t.It("can access MultiClusterSecret but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
 				return findMultiClusterSecret(permissionTest1Namespace, "mymcsecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
@@ -212,7 +212,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		t.It("managed cluster can access OAM Component but not modify it on admin", func() {
+		t.It("can access OAM Component but not modify it on admin", func() {
 			Eventually(func() (bool, error) {
 				return findOAMComponent(permissionTest1Namespace, "oam-component")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
@@ -236,7 +236,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		t.It("managed cluster can access secrets on admin from a namespace placed by a VerrazzanoProject", func() {
+		t.It("can access secrets on admin from a namespace placed by a VerrazzanoProject", func() {
 			Eventually(func() (bool, error) {
 				return findSecret(permissionTest1Namespace, "mysecret")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
@@ -260,7 +260,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 		})
 
-		t.It("managed cluster cannot access secrets on admin for namespaces not placed by a VerrazzanoProject", func() {
+		t.It("cannot access secrets on admin for namespaces not placed by a VerrazzanoProject", func() {
 
 			// Expect success while namespace is placed on the managed cluster
 			Eventually(func() (bool, error) {
@@ -282,7 +282,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
-		t.It("managed cluster cannot modify vmc on admin", func() {
+		t.It("cannot modify vmc on admin", func() {
 			cluster := vmcv1alpha1.VerrazzanoManagedCluster{}
 			Eventually(func() error {
 				return getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
@@ -309,7 +309,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
 		})
 
 		// VZ-2336: NOT be able to read other resources such as config maps in the admin cluster
-		t.It("managed cluster cannot access resources in other namespaaces", func() {
+		t.It("cannot access resources in other namespaaces", func() {
 			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry

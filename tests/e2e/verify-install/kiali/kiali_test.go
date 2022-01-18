@@ -58,7 +58,7 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Kiali", func() {
 
-	t.Context("Successful Install", func() {
+	t.Context("after successful installation", func() {
 		WhenKialiInstalledIt("should have a monitoring crd", func() {
 			Eventually(func() bool {
 				exists, err := pkg.DoesCRDExist("monitoringdashboards.monitoring.kiali.io")
@@ -69,14 +69,14 @@ var _ = t.Describe("Kiali", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		WhenKialiInstalledIt("has a running pod", func() {
+		WhenKialiInstalledIt("should have a running pod", func() {
 			kialiPodsRunning := func() bool {
 				return pkg.PodsRunning(systemNamespace, []string{kiali})
 			}
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
-		t.Context("Ingress", func() {
+		t.Context("should", func() {
 			var (
 				ingress   *networking.Ingress
 				kialiHost string
@@ -99,7 +99,7 @@ var _ = t.Describe("Kiali", func() {
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			})
 
-			WhenKialiInstalledIt("should not allow unauthenticated logins", func() {
+			WhenKialiInstalledIt("not allow unauthenticated logins", func() {
 				Eventually(func() bool {
 					unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
 					if err != nil {
@@ -109,13 +109,13 @@ var _ = t.Describe("Kiali", func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
-			WhenKialiInstalledIt("should allow basic authentication", func() {
+			WhenKialiInstalledIt("allow basic authentication", func() {
 				Eventually(func() bool {
 					return pkg.AssertURLAccessibleAndAuthorized(httpClient, kialiHost, creds)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 
-			WhenKialiInstalledIt("should allow bearer authentication", func() {
+			WhenKialiInstalledIt("allow bearer authentication", func() {
 				Eventually(func() bool {
 					return pkg.AssertBearerAuthorized(httpClient, kialiHost)
 				}, waitTimeout, pollingInterval).Should(BeTrue())

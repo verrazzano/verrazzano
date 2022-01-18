@@ -45,19 +45,19 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Kubernetes Cluster",
+var _ = t.Describe("In the Kubernetes Cluster",
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
 
-		t.It("has the expected number of nodes", func() {
+		t.It("the expected number of nodes exist", func() {
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
 			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
-		t.It("has the expected namespaces", func() {
+		t.It("the expected namespaces exist", func() {
 			var namespaces *v1.NamespaceList
 			Eventually(func() (*v1.NamespaceList, error) {
 				var err error
@@ -94,7 +94,7 @@ var _ = t.Describe("Kubernetes Cluster",
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 
-		t.DescribeTable("deployed Verrazzano components",
+		t.DescribeTable("Verrazzano components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
@@ -110,7 +110,7 @@ var _ = t.Describe("Kubernetes Cluster",
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		)
 
-		t.DescribeTable("deployed cert-manager components",
+		t.DescribeTable("cert-manager components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "cert-manager")
@@ -120,7 +120,7 @@ var _ = t.Describe("Kubernetes Cluster",
 			t.Entry("does include cert-manager-cainjector", "cert-manager-cainjector", true),
 		)
 
-		t.DescribeTable("deployed ingress components",
+		t.DescribeTable("ingress components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "ingress-nginx")
@@ -129,7 +129,7 @@ var _ = t.Describe("Kubernetes Cluster",
 			t.Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
 		)
 
-		t.DescribeTable("keycloak components are not deployed",
+		t.DescribeTable("keycloak components are not deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "keycloak")
@@ -139,7 +139,7 @@ var _ = t.Describe("Kubernetes Cluster",
 		)
 
 		if isManagedClusterProfile {
-			t.DescribeTable("rancher components are not deployed",
+			t.DescribeTable("rancher components are not deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
@@ -148,7 +148,7 @@ var _ = t.Describe("Kubernetes Cluster",
 				t.Entry("includes rancher", "rancher", false),
 			)
 		} else {
-			t.DescribeTable("deployed rancher components",
+			t.DescribeTable("rancher components are deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
@@ -158,7 +158,7 @@ var _ = t.Describe("Kubernetes Cluster",
 			)
 		}
 
-		t.DescribeTable("deployed VMI components",
+		t.DescribeTable("VMI components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
@@ -175,7 +175,7 @@ var _ = t.Describe("Kubernetes Cluster",
 		)
 
 		// Test components that may not exist for older versions
-		t.DescribeTable("deployed VMI components that are don't exist in older versions",
+		t.DescribeTable("VMI components that don't exist in older versions are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
@@ -190,7 +190,7 @@ var _ = t.Describe("Kubernetes Cluster",
 			t.Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
-		t.It("Expected pods are running", func() {
+		t.It("the expected pods are running", func() {
 			pkg.Concurrently(
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed

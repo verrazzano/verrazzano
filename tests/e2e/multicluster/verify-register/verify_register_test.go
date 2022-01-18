@@ -48,7 +48,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))
 		})
 
-		t.It("admin cluster create VerrazzanoProject", func() {
+		t.It("create VerrazzanoProject", func() {
 			// create a project
 			Eventually(func() error {
 				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
@@ -59,7 +59,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		t.It("admin cluster has the expected VerrazzanoManagedCluster", func() {
+		t.It("has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
 			Eventually(func() (*vmcClient.Clientset, error) {
 				var err error
@@ -75,7 +75,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
 		})
 
-		t.It("admin cluster has the expected ServiceAccounts", func() {
+		t.It("has the expected ServiceAccounts", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() (bool, error) {
@@ -85,7 +85,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		t.It("admin cluster no longer has a ClusterRoleBinding for a managed cluster", func() {
+		t.It("no longer has a ClusterRoleBinding for a managed cluster", func() {
 			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
 			if err != nil {
 				Fail(err.Error())
@@ -99,7 +99,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			}
 		})
 
-		t.It("admin cluster has a ClusterRoleBinding for a managed cluster", func() {
+		t.It("has a ClusterRoleBinding for a managed cluster", func() {
 			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
 			if err != nil {
 				Fail(err.Error())
@@ -113,7 +113,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			}
 		})
 
-		t.It("admin cluster has the expected secrets", func() {
+		t.It("has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
 					secretName := fmt.Sprintf("verrazzano-cluster-%s-manifest", managedClusterName)
@@ -136,7 +136,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		t.It("admin cluster has the expected system logs from admin and managed cluster", func() {
+		t.It("has the expected system logs from admin and managed cluster", func() {
 			verrazzanoIndex := "verrazzano-namespace-verrazzano-system"
 			systemdIndex := "verrazzano-systemd-journal"
 			pkg.Concurrently(
@@ -185,7 +185,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		t.It("admin cluster has the expected metrics from managed cluster", func() {
+		t.It("has the expected metrics from managed cluster", func() {
 			clusterNameMetricsLabel := getClusterNameMetricLabel()
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
@@ -193,7 +193,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a metrics from managed cluster")
 		})
 
-		t.It("admin cluster Fluentd should point to the correct ES", func() {
+		t.It("Fluentd should point to the correct ES", func() {
 			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
@@ -211,7 +211,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		t.It("managed cluster has the expected secrets", func() {
+		t.It("has the expected secrets", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -227,19 +227,19 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		t.It("managed cluster has the expected VerrazzanoProject", func() {
+		t.It("has the expected VerrazzanoProject", func() {
 			Eventually(func() (bool, error) {
 				return findVerrazzanoProject(fmt.Sprintf("project-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoProject")
 		})
 
-		t.It("managed cluster has the expected namespace", func() {
+		t.It("has the expected namespace", func() {
 			Eventually(func() bool {
 				return findNamespace(fmt.Sprintf("ns-%s", managedClusterName))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find namespace")
 		})
 
-		t.It("managed cluster has the expected RoleBindings", func() {
+		t.It("has the expected RoleBindings", func() {
 			namespace := fmt.Sprintf("ns-%s", managedClusterName)
 			pkg.Concurrently(
 				func() {
@@ -265,7 +265,7 @@ var _ = t.Describe("Multi Cluster Verify Register", func() {
 			)
 		})
 
-		t.It("managed cluster Fluentd should point to the correct ES", func() {
+		t.It("Fluentd should point to the correct ES", func() {
 			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")

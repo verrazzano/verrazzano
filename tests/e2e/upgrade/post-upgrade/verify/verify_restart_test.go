@@ -30,7 +30,7 @@ var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("verify platform pods post-upgrade", func() {
+var _ = t.Describe("Post upgrade", func() {
 
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
 	MinimumVerrazzanoIt := func(description string, f interface{}) {
