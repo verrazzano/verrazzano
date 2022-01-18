@@ -119,7 +119,6 @@ pipeline {
                         else
                             echo "Failed pre-release checks for ${VERRAZZANO_DEV_VERSION}"
                             echo "NOT RELEASABLE" > release_status.out
-                            #echo "SOMEWHAT RELEASABLE" > release_status.out
                         fi
                         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/current-dev-version.txt --file $WORKSPACE/.verrazzano_development_version
                         set -e
