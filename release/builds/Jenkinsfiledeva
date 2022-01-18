@@ -25,11 +25,11 @@ pipeline {
         //string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         //string (description: 'The target version (major.minor.patch format, e.g. 1.0.1)', name: 'TARGET_VERSION', defaultValue: 'NONE', trim: true)
         //string (description: 'Number of times to retry a failed triggered build', name: 'BUILD_RETRIES', defaultValue: '1', trim: true)
-        //booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
         //booleanParam (description: 'Only create release branch (skips release validation, build, and image push)', name: 'CREATE_BRANCH_ONLY', defaultValue: false)
 
         // TBD: Pass TEST_RUN down to the downstream when we remove the hard-coded stuff
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
+        booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
     }
 
     environment {
@@ -84,9 +84,10 @@ pipeline {
                 build job: "verrazzano-release-pipeline-stage-1/${CLEAN_BRANCH_NAME}",
                         parameters: [
                                 string(name: 'COMMIT_TO_USE', value: LAST_RELEASABLE_COMMIT),
-                                booleanParam(name: 'TEST_RUN', value: true),
+                                booleanParam(name: 'TEST_RUN', value: params.TEST_RUN),
                                 string(name: 'TARGET_VERSION', value: VERRAZZANO_DEV_VERSION),
                                 string(name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', value: IMAGES_TO_PUBLISH_OBJECT_STORE_FILE)
+                                string(name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', value: params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES)
                         ], wait: true
             }
         }
