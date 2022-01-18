@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var fileUrl string
+var fileURL string
 
 var objectName string
 
@@ -99,8 +99,12 @@ func uploadObject(c objectstorage.ObjectStorageClient, namespace, bucket, object
 		StorageTier:   objectstorage.PutObjectStorageTierStandard,
 	}
 	_, err := c.PutObject(context.Background(), req)
+	if err != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("There is an error in uploading the file to the Object Storage: %s\n", err))
+		return err
+	}
 	pkg.Log(pkg.Info, fmt.Sprintf("Successfully uploaded %s to the bucket %s\n", objectName, bucket))
-	return err
+	return nil
 }
 
 // getObjectStorageClient returns an OCI SDK client for ObjectStorage. If a region is specified then use an instance
@@ -125,9 +129,9 @@ func getObjectStorageClient(region string) (objectstorage.ObjectStorageClient, e
 	return objectstorage.NewObjectStorageClientWithConfigurationProvider(provider)
 }
 
-func downloadArtifact(artifactUrl, localFile string) error {
+func downloadArtifact(artifactURL, localFile string) error {
 	client := http.Client{Timeout: 10 * time.Minute}
-	req, err := http.NewRequest(http.MethodGet, artifactUrl, http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, artifactURL, http.NoBody)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("There is an error while creating a new request: %s\n", err))
 		return err
@@ -161,7 +165,7 @@ func downloadArtifact(artifactUrl, localFile string) error {
 
 	// Writer the body to file
 	_, copyErr := io.Copy(outFile, res.Body)
-	if copyErr != nil  {
+	if copyErr != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("There is an error copying the contents to the out file: %s\n", copyErr))
 		return copyErr
 	}
@@ -190,8 +194,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	fileName := path.Base(fileUrl)
-	err = downloadArtifact(fileUrl, fileName)
+	fileName := path.Base(fileURL)
+	err = downloadArtifact(fileURL, fileName)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -205,17 +209,20 @@ func main() {
 	defer file.Close()
 
 	// Get the FileInfo structure to determine the size
-	fileInfo, err := file.Stat()
+	fileInfo, _ := file.Stat()
 
 	// Get the objectName from the last element of the path
 	if objectName == "" {
 		objectName = fileName
 	}
 	err = uploadObject(objectStorageClient, nameSpace, bucketName, objectName, fileInfo.Size(), file, nil)
+	if err != nil {
+		os.Exit(1)
+	}
 }
 
 func init() {
-	flag.StringVar(&fileUrl, "file-url", "", "URL of the artifact to be uploaded to Object Storage")
+	flag.StringVar(&fileURL, "file-url", "", "URL of the artifact to be uploaded to Object Storage")
 	flag.StringVar(&objectName, "object-name", "", "The name of the object in the Object Storage, if different than the actual file name")
 	flag.StringVar(&nameSpace, "namespace", "", "Object Storage namespace")
 	flag.StringVar(&bucketName, "bucket-name", "", "Name of the bucket")
@@ -223,7 +230,7 @@ func init() {
 	flag.StringVar(&region, "region", "", "OCI region")
 	flag.Parse()
 
-	if fileUrl == "" {
+	if fileURL == "" {
 		pkg.Log(pkg.Info, fmt.Sprintln("Required command line argument archive-url is not specified, exiting."))
 		printUsage()
 		os.Exit(1)
