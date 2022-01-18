@@ -129,6 +129,7 @@ func getObjectStorageClient(region string) (objectstorage.ObjectStorageClient, e
 	return objectstorage.NewObjectStorageClientWithConfigurationProvider(provider)
 }
 
+// downloadArtifact downloads the file at the artifactURL to local file system
 func downloadArtifact(artifactURL, localFile string) error {
 	client := http.Client{Timeout: 10 * time.Minute}
 	req, err := http.NewRequest(http.MethodGet, artifactURL, http.NoBody)
@@ -151,7 +152,7 @@ func downloadArtifact(artifactURL, localFile string) error {
 	defer res.Body.Close()
 
 	if 200 != res.StatusCode {
-		pkg.Log(pkg.Error, fmt.Sprintf("Downloading the file failed with response: %s\n", res.Body))
+		pkg.Log(pkg.Error, fmt.Sprintf("Downloading the file failed with error code: %d\n", res.StatusCode))
 		return errors.New("HTTP Error other than 200")
 	}
 
@@ -178,32 +179,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	objectStorageClient, clientErr := getObjectStorageClient(region)
-	if clientErr != nil {
-		pkg.Log(pkg.Info, fmt.Sprintf("There is an error in obtaining an OCI SDK client for ObjectStorage: %s\n", clientErr))
-		os.Exit(1)
-	}
-
-	if nameSpace == "" {
-		nameSpace = getNamespace(objectStorageClient)
-	}
-
-	// Create bucket if it doesn't exist and command line argument create-bucket is set to true
-	err := createBucketInternal(objectStorageClient, nameSpace, bucketName, compartmentID)
-	if err != nil {
-		os.Exit(1)
-	}
-
 	fileName := path.Base(fileURL)
-	err = downloadArtifact(fileURL, fileName)
+	err := downloadArtifact(fileURL, fileName)
 	if err != nil {
 		os.Exit(1)
 	}
 
 	// Open the named file for reading.
-	file, err := os.Open(fileName)
-	if err != nil {
-		pkg.Log(pkg.Info, fmt.Sprintf("There is an error in opening the file for reading: %s\n", err))
+	file, openErr := os.Open(fileName)
+	if openErr != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("There is an error in opening the file for reading: %s\n", openErr))
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -215,6 +200,25 @@ func main() {
 	if objectName == "" {
 		objectName = fileName
 	}
+
+	// Get an OCI SDK client for ObjectStorage
+	objectStorageClient, clientErr := getObjectStorageClient(region)
+	if clientErr != nil {
+		pkg.Log(pkg.Info, fmt.Sprintf("There is an error in obtaining an OCI SDK client for ObjectStorage: %s\n", clientErr))
+		os.Exit(1)
+	}
+
+	// Derive namespace, if not provided as the command line argument
+	if nameSpace == "" {
+		nameSpace = getNamespace(objectStorageClient)
+	}
+
+	// Create bucket if it doesn't exist and command line argument create-bucket is set to true
+	createErr := createBucketInternal(objectStorageClient, nameSpace, bucketName, compartmentID)
+	if createErr != nil {
+		os.Exit(1)
+	}
+
 	err = uploadObject(objectStorageClient, nameSpace, bucketName, objectName, fileInfo.Size(), file, nil)
 	if err != nil {
 		os.Exit(1)
