@@ -79,13 +79,13 @@ const (
 	testNamespace = "helidon-logging"
 )
 
-var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
+var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// Verify hello-helidon-workload pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Describe("Verify hello-helidon-workload pod is running.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Describe("hello-helidon-workload pod", func() {
+		t.It("is running", func() {
 			Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -107,7 +107,7 @@ var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	t.Describe("Verify Hello Helidon app is working.", func() {
+	t.Describe("for Ingress.", func() {
 		t.It("Access /greet App Url.", func() {
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 			Expect(err).ShouldNot(HaveOccurred())
@@ -118,7 +118,7 @@ var _ = t.Describe("Verify Hello Helidon OAM App.", func() {
 		})
 	})
 
-	t.Context("Logging.", func() {
+	t.Context("for Logging.", func() {
 		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved

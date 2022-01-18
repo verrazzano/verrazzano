@@ -140,9 +140,9 @@ func undeployToDoListExample() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verify ToDo List example application.", func() {
+var _ = t.Describe("ToDo List test", func() {
 
-	t.Context("Deployment.", func() {
+	t.Context("application Deployment.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
