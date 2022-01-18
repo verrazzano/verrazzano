@@ -131,7 +131,7 @@ func getObjectStorageClient(region string) (objectstorage.ObjectStorageClient, e
 
 // downloadArtifact downloads the file at the artifactURL to local file system
 func downloadArtifact(artifactURL, localFile string) error {
-	client := http.Client{Timeout: 10 * time.Minute}
+	client := http.Client{Timeout: 30 * time.Minute}
 	req, err := http.NewRequest(http.MethodGet, artifactURL, http.NoBody)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("There is an error while creating a new request: %s\n", err))
