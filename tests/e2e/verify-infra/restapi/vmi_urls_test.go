@@ -17,20 +17,20 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("VMI urls test", func() {
+var _ = t.Describe("VMI", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	t.Context("Fetching the system vmi using api and test urls", func() {
+	t.Context("urls test to", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		var isEsEnabled = false
 		var isKibanaEnabled = false
 		var isPrometheusEnabled = false
 		var isGrafanaEnabled = false
 
-		t.It("Fetches VMI", func() {
+		t.It("Fetch VMI", func() {
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -69,7 +69,7 @@ var _ = t.Describe("VMI urls test", func() {
 			}
 		})
 
-		t.It("Accesses VMI endpoints", func() {
+		t.It("Access VMI endpoints", func() {
 			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

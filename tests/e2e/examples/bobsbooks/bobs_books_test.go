@@ -130,8 +130,8 @@ func undeployBobsBooksExample() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = t.Describe("Verify Bobs Books example application.", func() {
-	t.It("Wait for deployment.", func() {
+var _ = t.Describe("Bobs Books test", func() {
+	t.It("application deployment.", func() {
 		Eventually(func() bool {
 			expectedPods := []string{
 				"bobbys-front-end-adminserver",

@@ -19,14 +19,14 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("rancher url test", func() {
+var _ = t.Describe("rancher", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	t.Context("Fetching the rancher url using api and test ", func() {
-		t.It("Fetches rancher url", func() {
+	t.Context("url test to", func() {
+		t.It("Fetch rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {

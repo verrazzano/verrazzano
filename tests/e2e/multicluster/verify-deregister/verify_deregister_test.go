@@ -52,13 +52,13 @@ var _ = t.Describe("Multi Cluster Verify Deregister", func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("MANAGED_KUBECONFIG"))
 		})
 
-		t.It("managed cluster should not have verrazzano-cluster-registration secret", func() {
+		t.It("should not have verrazzano-cluster-registration secret", func() {
 			Eventually(func() bool {
 				return missingSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected secret verrazzano-cluster-registration gone in managed cluster")
 		})
 
-		t.It("managed cluster Fluentd should point to the correct ES", func() {
+		t.It("Fluentd should point to the correct ES", func() {
 			Eventually(func() bool {
 				return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESSecret)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in managed cluster fluentd Daemonset setting")

@@ -466,6 +466,10 @@ func (f fakeComponent) PostUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
+func (f fakeComponent) Reconcile(_ spi.ComponentContext) error {
+	return nil
+}
+
 func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }

@@ -14,14 +14,14 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("keycloak url test", func() {
+var _ = t.Describe("keycloak", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	t.Context("Fetching the keycloak url using api and test ", func() {
-		t.It("Fetches keycloak url", func() {
+	t.Context("url test to", func() {
+		t.It("Fetch keycloak url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				var keycloakURL string
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
