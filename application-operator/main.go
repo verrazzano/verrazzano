@@ -418,8 +418,7 @@ func main() {
 		os.Exit(1)
 	}
 	// Register the metrics workload controller
-	// _, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
-	err = nil
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
