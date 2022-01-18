@@ -402,13 +402,18 @@ pipeline {
                     kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
                     echo "Installing Verrazzano on ${TEST_ENV}"
                     # apply config to create cluster
-                    if [ "${TEST_ENV}" == "magicdns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
-                    elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}
-                    elif [ "${TEST_ENV}" == "kind" ]; then
-                      kubectl apply -f ${INSTALL_CONFIG_FILE_NODEPORT}
-                    fi
+                    retval=1
+                    retries=0
+                    while [[ $retval -ne 0 ]] && [[ $retries -lt 10 ]] ; do
+                        if [ "${TEST_ENV}" == "magicdns_oke" ]; then
+                            retval=$("kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}")
+                        elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
+                            retval=$("kubectl apply -f ${INSTALL_CONFIG_FILE_OCIDNS}")
+                        elif [ "${TEST_ENV}" == "kind" ]; then
+                            retval=$("kubectl apply -f ${INSTALL_CONFIG_FILE_NODEPORT}")
+                        fi
+                        retries=$((retries+1))
+                    done
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
                     # Create acceptance test configuration file
