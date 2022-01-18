@@ -226,6 +226,10 @@ func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
 	return nil
 }
 
+func (i istioComponent) Reconcile(_ spi.ComponentContext) error {
+	return nil
+}
+
 // GetIngressNames returns the list of ingress names associated with the component
 func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
