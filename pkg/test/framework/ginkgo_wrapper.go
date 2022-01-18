@@ -5,6 +5,7 @@ package framework
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
 	"reflect"
 	"time"
 
@@ -200,6 +201,11 @@ func (t *TestFramework) BeforeAll(args ...interface{}) bool {
 //AfterAll - wrapper function for Ginkgo AfterAll
 func (t *TestFramework) AfterAll(args ...interface{}) bool {
 	return ginkgo.AfterAll(args...)
+}
+
+// Eventually - wrapper function for Gomega Eventually
+func (t *TestFramework) Eventually(body interface{}, args ...interface{}) gomega.AsyncAssertion {
+	return gomega.Eventually(body, args...)
 }
 
 // VzBeforeSuite - wrapper function for ginkgo BeforeSuite

@@ -71,7 +71,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Describe("hello-helidon-deployment pod is running.", func() {
 		t.It("waiting for expected pods must be running", func() {
-			Eventually(helloHelidonPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
+			t.Eventually(helloHelidonPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -82,7 +82,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", func() {
-		Eventually(func() (string, error) {
+		t.Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(pkg.HelloHelidonNamespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
@@ -95,7 +95,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	t.Describe("for Ingress.", func() {
 		t.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return appEndpointAccessible(url, host)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
@@ -109,19 +109,19 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(nodeExporterProcsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(nodeExporterProcsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(nodeExporterDiskIoNow, waitTimeout, pollingInterval).Should(BeTrue())
+					t.Eventually(nodeExporterDiskIoNow, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 			)
 		})
@@ -134,7 +134,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
 		})
@@ -143,13 +143,13 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		t.It("Verify recent Elasticsearch log record exists", func() {
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
 					"kubernetes.container_name":            "hello-helidon-container",
 				})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-			Eventually(func() bool {
+			t.Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
 					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
