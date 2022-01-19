@@ -239,8 +239,7 @@ func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, 
 
 // getLogSearchClient returns an OCI SDK client for searching logs. If a region is specified then
 // use an instance principal auth provider, otherwise use the default provider (auth config comes from
-// an OCI config file or environment variables). Instance principals are used when running in the
-// CI/CD pipelines while the default provider is suitable for running locally.
+// an OCI config file or environment variables).
 func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
 	var provider common.ConfigurationProvider
 	var err error
