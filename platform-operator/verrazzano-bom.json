@@ -215,7 +215,7 @@
               "registry": "phx.ocir.io",
               "repository": "odx-sre/sauron",
               "image": "opensearch-mirror",
-              "tag": "1.1.0-2",
+              "tag": "test",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -236,8 +236,8 @@
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
-              "image": "fluentd-kubernetes-daemonset-jenkins",
-              "tag": "20220117120749-90959d1",
+              "image": "fluentd-kubernetes-daemonset",
+              "tag": "test",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {

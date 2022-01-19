@@ -93,9 +93,9 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := SetupDataStreams(ctx, c.ChartNamespace); err != nil {
 		return err
 	}
-	if err := restartFD(ctx.Client(), c.ChartNamespace); err != nil {
-		return err
-	}
+	//if err := restartFD(ctx.Client(), c.ChartNamespace); err != nil {
+	//	return err
+	//}
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -110,10 +110,8 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	cleanTempFiles(ctx)
-	if err := c.updateElasticsearchResources(ctx); err != nil {
-		return err
-	}
-	return restartFD(ctx.Client(), c.ChartNamespace)
+	return c.updateElasticsearchResources(ctx)
+	//return restartFD(ctx.Client(), c.ChartNamespace)
 }
 
 // updateElasticsearchResources updates elasticsearch resources

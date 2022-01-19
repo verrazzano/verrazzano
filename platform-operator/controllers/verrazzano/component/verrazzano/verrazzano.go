@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	neturl "net/url"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -55,6 +56,7 @@ const (
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
 	notFound      = 404
+	searchPort    = "9200"
 
 	tmpFilePrefix        = "verrazzano-overrides-"
 	tmpSuffix            = "yaml"
@@ -162,11 +164,18 @@ const ismPayloadTemplate = `{
     }
 }`
 
-type ISMPolicy struct {
-	PrimaryTerm    int `json:"_primary_term"`
-	SequenceNumber int `json:"_seq_no"`
-	Status         int `json:"status"`
-}
+type (
+	ISMPolicy struct {
+		PrimaryTerm    int `json:"_primary_term"`
+		SequenceNumber int `json:"_seq_no"`
+		Status         int `json:"status"`
+	}
+	uriComponents struct {
+		host   string
+		port   string
+		scheme string
+	}
+)
 
 var (
 	// For Unit test purposes
@@ -220,7 +229,9 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	vzkvs = appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, vzkvs)
 
 	// append any fluentd overrides
-	appendFluentdOverrides(effectiveCR, &overrides)
+	if err := appendFluentdOverrides(effectiveCR, &overrides); err != nil {
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
 	// append the security role overrides
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -420,7 +431,23 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 	return nil, fmt.Errorf("Unsupported volume source: %v", defaultVolumeSource)
 }
 
-func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) {
+func newURIComponents(url string) (*uriComponents, error) {
+	parsedURL, err := neturl.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	uriComp := &uriComponents{}
+	if len(parsedURL.Port()) > 0 {
+		uriComp.port = parsedURL.Port()
+	} else {
+		uriComp.port = searchPort
+	}
+	uriComp.scheme = parsedURL.Scheme
+	uriComp.host = strings.Split(parsedURL.Host, ":")[0]
+	return uriComp, nil
+}
+
+func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) error {
 	overrides.Fluentd = &fluentdValues{
 		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
 	}
@@ -429,7 +456,13 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 	if fluentd != nil {
 		overrides.Logging = &loggingValues{}
 		if len(fluentd.ElasticsearchURL) > 0 {
-			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
+			uriComp, err := newURIComponents(fluentd.ElasticsearchURL)
+			if err != nil {
+				return err
+			}
+			overrides.Logging.ElasticsearchURL = uriComp.host
+			overrides.Logging.ElasticsearchPort = uriComp.port
+			overrides.Logging.ElasticsearchScheme = uriComp.scheme
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
 			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
@@ -457,6 +490,8 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 			}
 		}
 	}
+
+	return nil
 }
 
 func isVMOEnabled(vz *vzapi.Verrazzano) bool {
@@ -714,6 +749,7 @@ var SetupDataStreams = func(ctx spi.ComponentContext, namespace string) error {
 	return doSetupViaOpenSearchAPI(ctx, pod)
 }
 
+//doSetupViaOpenSearchAPI creates the ISM Policy and Index Template
 func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
@@ -759,21 +795,8 @@ func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 		}
 	}
 
-	var putCommands = []string{
-		// this is the data stream template used by all managed data streams
-		fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload),
-		// these are the verrazzano data streams
-		"_data_stream/verrazzano-pods",
-		"_data_stream/verrazzano-system",
-		"_data_stream/verrazzano-data-stream",
-	}
-	// Sequentially apply data stream configuration to OpenSearch
-	for _, cmd := range putCommands {
-		if err := doPUT(cfg, cli, pod, cmd); err != nil {
-			return err
-		}
-	}
-	return nil
+	putTemplatePayload := fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)
+	return doPUT(cfg, cli, pod, putTemplatePayload)
 }
 
 func formatISMPayload(lcm vzapi.LifecycleManagement) (string, error) {
