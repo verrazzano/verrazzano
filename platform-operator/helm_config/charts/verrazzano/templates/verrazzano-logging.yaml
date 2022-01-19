@@ -604,10 +604,12 @@ spec:
             - mountPath: /fluentd/secret
               name: secret-volume
               readOnly: true
+  {{- if .Values.fluentd.oci }}
   {{- if .Values.fluentd.oci.apiSecret }}
             - mountPath: /root/.oci
               name: oci-secret-volume
               readOnly: true
+  {{- end }}
   {{- end }}
             - mountPath: /fluentd/etc
               name: {{ .Values.logging.name }}-config
@@ -645,10 +647,12 @@ spec:
   {{- else }}
             secretName: verrazzano
   {{- end }}
+  {{- if .Values.fluentd.oci }}
   {{- if .Values.fluentd.oci.apiSecret }}
         - name: oci-secret-volume
           secret:
             secretName: {{ .Values.fluentd.oci.apiSecret }}
+  {{- end }}
   {{- end }}
         - configMap:
             name: {{ .Values.logging.name }}-config
