@@ -31,12 +31,13 @@ const (
 var (
 	t = framework.NewTestFramework("helidon")
 
+	namespace   = pkg.GenerateNamespace(name)
 	yamlApplier = k8sutil.YAMLApplier{
 		Files: []string{
-			"examples/hello-helidon/hello-helidon-comp.yaml",
-			"examples/hello-helidon/hello-helidon-app.yaml",
+			"../../../../examples/hello-helidon/hello-helidon-comp.yaml",
+			"../../../../examples/hello-helidon/hello-helidon-app.yaml",
 		},
-		Values: map[string]interface{}{"Namespace": pkg.GenerateNamespace(name)},
+		Values: map[string]interface{}{"Namespace": namespace},
 	}
 
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
@@ -47,7 +48,7 @@ var _ = t.BeforeSuite(func() {
 	var _ = BeforeSuite(func() {
 		if !skipDeploy {
 			start := time.Now()
-			pkg.DeployHelloHelidonApplication(*yamlApplier, "")
+			pkg.DeployHelloHelidonApplication(&yamlApplier, "")
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 		}
 	})
@@ -63,7 +64,7 @@ var _ = t.BeforeSuite(func() {
 		}
 		if !skipUndeploy {
 			start := time.Now()
-			pkg.UndeployHelloHelidonApplication()
+			pkg.UndeployHelloHelidonApplication(&yamlApplier)
 			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 		}
 	})

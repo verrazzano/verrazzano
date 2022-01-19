@@ -24,7 +24,7 @@ const (
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func DeployHelloHelidonApplication(yamlApplier &k8sutil.YAMLApplier, ociLogID string) {
+func DeployHelloHelidonApplication(yamlApplier *k8sutil.YAMLApplier, ociLogID string) {
 	Log(Info, "Deploy Hello Helidon Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", HelloHelidonNamespace))
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -53,7 +53,7 @@ func DeployHelloHelidonApplication(yamlApplier &k8sutil.YAMLApplier, ociLogID st
 }
 
 // UndeployHelloHelidonApplication undeploys the Hello Helidon example application.
-func UndeployHelloHelidonApplication() {
+func UndeployHelloHelidonApplication(yamlApplier *k8sutil.YAMLApplier) {
 	Log(Info, "Undeploy Hello Helidon Application")
 	if exists, _ := DoesNamespaceExist(HelloHelidonNamespace); exists {
 		Log(Info, "Delete Hello Helidon application")
