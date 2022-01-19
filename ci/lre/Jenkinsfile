@@ -28,7 +28,8 @@ pipeline {
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         dev_lre_compartment_id = credentials('dev-lre-compartment-id')
-        dev_lre_cluster_id = credentials('dev-lre-cluster-id')
+        dev2_lre_compartment_id = credentials('dev2-lre-compartment-id')
+        dev2_lre_cluster_id = credentials('dev2-lre-cluster-id')
         dev_lre_bastion_ip = credentials('dev-lre-bastion-ip')
         OCI_CLI_REGION = "us-ashburn-1"
         KUBECONFIG = "${WORKSPACE}/.kube/config"
@@ -136,7 +137,7 @@ pipeline {
                         rm -rf ${KUBECONFIG}
                         # get kubeconfig from OCI
                         oci ce cluster create-kubeconfig \
-                        --cluster-id ${dev_lre_cluster_id} \
+                        --cluster-id ${dev2_lre_cluster_id} \
                         --file ${KUBECONFIG} \
                         --region ${OCI_CLI_REGION} \
                         --token-version 2.0.0  \

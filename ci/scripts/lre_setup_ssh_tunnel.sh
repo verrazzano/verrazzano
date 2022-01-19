@@ -34,7 +34,7 @@ fi
 SESSION_ID=$(oci bastion session create-port-forwarding \
    --bastion-id $BASTION_ID \
    --ssh-public-key-file ${ssh_public_key_path} \
-   --target-private-ip 10.196.0.58 \
+   --target-private-ip 10.196.0.171 \
    --target-port 6443 | jq '.data.id' | sed s/\"//g)
 
 if [ -z "$SESSION_ID" ]; then
@@ -48,7 +48,6 @@ sleep 60
 COMMAND=`oci bastion session get  --session-id=${SESSION_ID} | \
   jq '.data."ssh-metadata".command' | \
   sed 's/"//g' | \
-  sed 's|ssh|ssh -t|g' | \
   sed 's|<privateKey>|'"${ssh_private_key_path}"'|g' | \
   sed 's|<localPort>|6443|g'`
 echo "command = ${COMMAND}"
@@ -56,7 +55,7 @@ if [ -z "$COMMAND" ]; then
     echo "didn't find the command to set up ssh tunnel"
     exit 1
 fi
-COMMAND+=" -o StrictHostKeyChecking=no -v -4 'ssh -t -L 6443:10.244.1.78:8443 keycloakadmin@10.244.1.78' &"
+COMMAND+=" -o StrictHostKeyChecking=no -v -4 &"
 echo "command = ${COMMAND}"
 echo "Setting up the ssh tunnel"
 eval ${COMMAND}
