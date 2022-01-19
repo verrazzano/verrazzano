@@ -67,7 +67,7 @@ var _ = t.AfterSuite(func() {
 })
 
 var _ = t.Describe("Test RBAC Permission", func() {
-	t.Context("for user with role verrazzano-project-admin", func() {
+	t.Context("for verrazzano-project-admin.", func() {
 
 		t.It("Fail getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  No")
@@ -194,7 +194,7 @@ var _ = t.Describe("Test RBAC Permission", func() {
 })
 
 var _ = t.Describe("Test RBAC Permission", func() {
-	t.Context("for user with role verrazzano-project-monitor", func() {
+	t.Context("for verrazzano-project-monitor.", func() {
 
 		t.It("Fail getting Pods in namespace rbactest", func() {
 			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  No")
