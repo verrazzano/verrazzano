@@ -5,6 +5,7 @@ package pkg
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -23,7 +24,7 @@ const (
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func DeployHelloHelidonApplication(ociLogID string) {
+func DeployHelloHelidonApplication(yamlApplier &k8sutil.YAMLApplier, ociLogID string) {
 	Log(Info, "Deploy Hello Helidon Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", HelloHelidonNamespace))
 	gomega.Eventually(func() (*v1.Namespace, error) {

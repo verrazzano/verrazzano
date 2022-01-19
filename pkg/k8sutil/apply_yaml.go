@@ -29,6 +29,8 @@ type (
 	YAMLApplier struct {
 		client  crtpkg.Client
 		objects []unstructured.Unstructured
+		Files   []string
+		Values  map[string]interface{}
 	}
 
 	action func(obj *unstructured.Unstructured) error
