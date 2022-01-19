@@ -145,6 +145,10 @@
               "tag": "v0.1.6"
             },
             {
+              "image": "kubectl",
+              "tag": "v1.20.2"
+            },
+            {
               "image": "rancher-webhook",
               "tag": "v0.1.2"
             },
