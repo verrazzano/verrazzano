@@ -77,7 +77,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(pkg.HelloHelidonNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -155,7 +155,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 })
 
 func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(pkg.HelloHelidonNamespace, expectedPodsHelloHelidon)
+	return pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
 }
 
 func appEndpointAccessible(url string, hostname string) bool {

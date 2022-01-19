@@ -12,8 +12,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-const HelloHelidonNamespace = "hello-helidon"
-
 const (
 	helidonPollingInterval = 10 * time.Second
 	helidonWaitTimeout     = 5 * time.Minute
@@ -68,7 +66,7 @@ func UndeployHelloHelidonApplication(yamlApplier *k8sutil.YAMLApplier, namespace
 			return yamlApplier.DeleteFTDefaultConfig(helidonComponentYaml, values)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
 
-		Log(Info, fmt.Sprintf("Delete namespace %s", HelloHelidonNamespace))
+		Log(Info, fmt.Sprintf("Delete namespace %s", namespace))
 		gomega.Eventually(func() error {
 			return DeleteNamespace(namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Failed to deleted namespace %s", namespace))
