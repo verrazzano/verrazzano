@@ -30,7 +30,7 @@ var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("verify platform pods post-upgrade", func() {
+var _ = t.Describe("Post upgrade", func() {
 
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
 	MinimumVerrazzanoIt := func(description string, f interface{}) {
@@ -49,7 +49,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// GIVEN the verrazzano-system namespace
 	// WHEN the annotations from the pods are retrieved
 	// THEN verify that the have the verrazzano.io/restartedAt annotations
-	MinimumVerrazzanoIt("Verify pods in verrazzano-system restarted post upgrade", func() {
+	MinimumVerrazzanoIt("pods in verrazzano-system restarted", func() {
 		Eventually(func() bool {
 			return pkg.PodsHaveAnnotation(constants.VerrazzanoSystemNamespace, vzconst.VerrazzanoRestartAnnotation)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in verrazzano-system")
@@ -58,7 +58,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// GIVEN the ingress-nginx namespace
 	// WHEN the annotations from the pods are retrieved
 	// THEN verify that the have the verrazzano.io/restartedAt annotations
-	MinimumVerrazzanoIt("Verify pods in ingress-nginx restarted post upgrade", func() {
+	MinimumVerrazzanoIt("pods in ingress-nginx restarted", func() {
 		Eventually(func() bool {
 			return pkg.PodsHaveAnnotation(constants.IngressNginxNamespace, vzconst.VerrazzanoRestartAnnotation)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in ingress-nginx")
@@ -67,7 +67,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// GIVEN the keycloak namespace
 	// WHEN the annotations from the pods are retrieved
 	// THEN verify that the have the verrazzano.io/restartedAt annotations
-	MinimumVerrazzanoIt("Verify pods in keycloak restarted post upgrade", func() {
+	MinimumVerrazzanoIt("pods in keycloak restarted", func() {
 		Eventually(func() bool {
 			return pkg.PodsHaveAnnotation(constants.KeycloakNamespace, vzconst.VerrazzanoRestartAnnotation)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in keycloak")
@@ -76,7 +76,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// GIVEN the verrazzano-system namespace
 	// WHEN the container images are retrieved
 	// THEN verify that each pod that uses istio has the correct istio proxy image
-	MinimumVerrazzanoIt("Verify pods in verrazzano-system have correct istio proxy image", func() {
+	MinimumVerrazzanoIt("pods in verrazzano-system have correct istio proxy image", func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.VerrazzanoSystemNamespace, envoyImage)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
@@ -85,7 +85,7 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// GIVEN the ingress-nginx namespace
 	// WHEN the container images are retrieved
 	// THEN verify that each pod that uses istio has the correct istio proxy image
-	MinimumVerrazzanoIt("Verify pods in ingress-nginx have correct istio proxy image", func() {
+	MinimumVerrazzanoIt("pods in ingress-nginx have correct istio proxy image", func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.IngressNginxNamespace, envoyImage)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
@@ -94,21 +94,21 @@ var _ = t.Describe("verify platform pods post-upgrade", func() {
 	// GIVEN the keycloak namespace
 	// WHEN the container images are retrieved
 	// THEN verify that each pod that uses istio has the correct istio proxy image
-	MinimumVerrazzanoIt("Verify pods in keycloak have correct istio proxy image", func() {
+	MinimumVerrazzanoIt("pods in keycloak have correct istio proxy image", func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.KeycloakNamespace, envoyImage)
 		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")
 	})
 })
 
-var _ = t.Describe("verify application pods post-upgrade", func() {
+var _ = t.Describe("Application pods post-upgrade", func() {
 	const (
 		bobsBooksNamespace    = "bobs-books"
 		helloHelidonNamespace = "hello-helidon"
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("Pods should contain Envoy sidecar 1.10.4",
+	t.DescribeTable("should contain Envoy sidecar 1.10.4",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {

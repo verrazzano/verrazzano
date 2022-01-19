@@ -20,7 +20,7 @@ var t = framework.NewTestFramework("verrazzano")
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verrazzano", func() {
+var _ = t.Describe("In Verrazzano", func() {
 
 	vzInstallReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
@@ -129,21 +129,21 @@ var _ = t.Describe("Verrazzano", func() {
 				"there should be eleven rules")
 		})
 
-		t.DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			t.Entry("vzInstallReadRule should exist", vzInstallReadRule),
-			t.Entry("vzInstallWriteRule should exist", vzInstallWriteRule),
-			t.Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			t.Entry("vzSystemWriteRule should exist", vzSystemWriteRule),
-			t.Entry("vzAppReadRule should exist", vzAppReadRule),
-			t.Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			t.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			t.Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			t.Entry("vzInstallReadRule", vzInstallReadRule),
+			t.Entry("vzInstallWriteRule", vzInstallWriteRule),
+			t.Entry("vzSystemReadRule", vzSystemReadRule),
+			t.Entry("vzSystemWriteRule", vzSystemWriteRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzAppWriteRule", vzAppWriteRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzWebLogicWriteRule", vzWebLogicWriteRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzIstioReadRule", vzIstioReadRule),
 		)
 	})
 
@@ -166,15 +166,15 @@ var _ = t.Describe("Verrazzano", func() {
 				"there should be five rules")
 		})
 
-		t.DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			t.Entry("vzSystemReadRule should exist", vzSystemReadRule),
-			t.Entry("vzAppReadRule should exist", vzAppReadRule),
-			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			t.Entry("vzIstioReadRule should exist", vzIstioReadRule),
+			t.Entry("vzSystemReadRule", vzSystemReadRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzIstioReadRule", vzIstioReadRule),
 		)
 	})
 
@@ -197,16 +197,16 @@ var _ = t.Describe("Verrazzano", func() {
 				"there should be six rules")
 		})
 
-		t.DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			t.Entry("vzAppReadRule should exist", vzAppReadRule),
-			t.Entry("vzAppWriteRule should exist", vzAppWriteRule),
-			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			t.Entry("vzWebLogicWriteRule should exist", vzWebLogicWriteRule),
-			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
-			t.Entry("vzCoherenceWriteRule should exist", vzCoherenceWriteRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzAppWriteRule", vzAppWriteRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzWebLogicWriteRule", vzWebLogicWriteRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
+			t.Entry("vzCoherenceWriteRule", vzCoherenceWriteRule),
 		)
 	})
 
@@ -229,13 +229,13 @@ var _ = t.Describe("Verrazzano", func() {
 				"there should be three rules")
 		})
 
-		t.DescribeTable("PolicyRule",
+		t.DescribeTable("should have PolicyRule",
 			func(rule rbacv1.PolicyRule) {
 				Expect(pkg.SliceContainsPolicyRule(rules, rule)).To(BeTrue())
 			},
-			t.Entry("vzAppReadRule should exist", vzAppReadRule),
-			t.Entry("vzWebLogicReadRule should exist", vzWebLogicReadRule),
-			t.Entry("vzCoherenceReadRule should exist", vzCoherenceReadRule),
+			t.Entry("vzAppReadRule", vzAppReadRule),
+			t.Entry("vzWebLogicReadRule", vzWebLogicReadRule),
+			t.Entry("vzCoherenceReadRule", vzCoherenceReadRule),
 		)
 	})
 
