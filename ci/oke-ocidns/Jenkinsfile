@@ -414,14 +414,16 @@ pipeline {
                     done
                     # wait for Verrazzano install to complete
                     ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                    echo "Installed Verrazzano on ${TEST_ENV}"
                     # Create acceptance test configuration file
                     ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
-
+                    echo "Created Acceptance Test Config File"
                     # edit DNS info in the test config file
                     if [ "${TEST_ENV}" == "magicdns_oke" ]; then
                       ${WORKSPACE}/tests/e2e/config/scripts/get_ingress_ip.sh ${TEST_CONFIG_FILE}
                     elif [ "${TEST_ENV}" == "ocidns_oke" ]; then
                       ${WORKSPACE}/tests/e2e/config/scripts/get_oci_dns_zone.sh ${TEST_CONFIG_FILE} ${OCI_DNS_ZONE_NAME}
+                      echo "Edit DNS Info Config File"
                     elif [ "${TEST_ENV}" == "kind" ]; then
                       ${WORKSPACE}/tests/e2e/config/scripts/get_node_ip.sh ${CLUSTER_NAME} ${TEST_CONFIG_FILE}
                     fi
