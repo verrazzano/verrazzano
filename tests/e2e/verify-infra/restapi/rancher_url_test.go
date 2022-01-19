@@ -5,34 +5,33 @@ package restapi_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+
 	"github.com/hashicorp/go-retryablehttp"
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = framework.VzDescribe("rancher url test", func() {
+var _ = t.Describe("rancher", func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
 	)
 
-	Context("Fetching the rancher url using api and test ", func() {
-		framework.ItM(metricsLogger, "Fetches rancher url", func() {
+	t.Context("url test to", func() {
+		t.It("Fetch rancher url", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					Fail(err.Error())
+					t.Logs.Error(fmt.Sprintf("Error getting kubeconfig: %v", err))
+					t.Fail(err.Error())
 				}
 
 				var rancherURL string
@@ -47,7 +46,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 						return err
 					}
 					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
-					pkg.Log(pkg.Info, fmt.Sprintf("Found ingress URL: %s", rancherURL))
+					t.Logs.Info(fmt.Sprintf("Found ingress URL: %s", rancherURL))
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
 
@@ -56,7 +55,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 				Eventually(func() error {
 					httpClient, err = pkg.GetRancherHTTPClient(kubeconfigPath)
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+						t.Logs.Error(fmt.Sprintf("Error getting HTTP client: %v", err))
 						return err
 					}
 					return nil
@@ -76,14 +75,14 @@ var _ = framework.VzDescribe("rancher url test", func() {
 					var err error
 					secret, err := pkg.GetSecret("cattle-system", "rancher-admin-secret")
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error getting rancher-admin-secret: %v", err))
+						t.Logs.Error(fmt.Sprintf("Error getting rancher-admin-secret: %v", err))
 						return err
 					}
 
 					var rancherAdminPassword []byte
 					var ok bool
 					if rancherAdminPassword, ok = secret.Data["password"]; !ok {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error getting rancher admin credentials: %v", err))
+						t.Logs.Error(fmt.Sprintf("Error getting rancher admin credentials: %v", err))
 						return err
 					}
 
@@ -91,7 +90,7 @@ var _ = framework.VzDescribe("rancher url test", func() {
 					payload := `{"Username": "admin", "Password": "` + string(rancherAdminPassword) + `"}`
 					response, err := httpClient.Post(rancherLoginURL, "application/json", strings.NewReader(payload))
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error getting rancher admin token: %v", err))
+						t.Logs.Error(fmt.Sprintf("Error getting rancher admin token: %v", err))
 						return err
 					}
 
@@ -115,29 +114,28 @@ var _ = framework.VzDescribe("rancher url test", func() {
 
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
-				metrics.Emit(metricsLogger.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
+				metrics.Emit(t.Metrics.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
 
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
-				state := ""
 				start = time.Now()
-				Eventually(func() error {
+				Eventually(func() (string, error) {
 					req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/%s", rancherURL, "v3/clusters/local"), nil)
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error creating rancher clusters api request: %v", err))
-						return err
+						t.Logs.Error(fmt.Sprintf("Error creating rancher clusters api request: %v", err))
+						return "", err
 					}
 
 					req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", token))
 					req.Header.Set("Accept", "application/json")
 					response, err := httpClient.Do(req)
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error invoking rancher clusters api request: %v", err))
-						return err
+						t.Logs.Error(fmt.Sprintf("Error invoking rancher clusters api request: %v", err))
+						return "", err
 					}
 
 					err = httputil.ValidateResponseCode(response, http.StatusOK)
 					if err != nil {
-						return err
+						return "", err
 					}
 
 					defer response.Body.Close()
@@ -145,22 +143,15 @@ var _ = framework.VzDescribe("rancher url test", func() {
 					// extract the response body
 					body, err := ioutil.ReadAll(response.Body)
 					if err != nil {
-						return err
+						return "", err
 					}
 
-					state, err = httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "state", "unable to find state in Rancher clusters response")
-					if err != nil {
-						return err
-					}
-
-					return nil
-				}, waitTimeout, pollingInterval).Should(BeNil())
-				metrics.Emit(metricsLogger.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
-
-				Expect(state).To(Equal("active"), "rancher local cluster not in active state")
+					return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "state", "unable to find state in Rancher clusters response")
+				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
+				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 			}
 		})
 	})
 })
 
-var _ = framework.AfterEachM(metricsLogger, func() {})
+var _ = t.AfterEach(func() {})

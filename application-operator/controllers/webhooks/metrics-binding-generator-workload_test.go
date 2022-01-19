@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,8 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// newScrapeGeneratorWebhook creates a new ScrapeGeneratorWebhook
-func newScrapeGeneratorWebhook() ScrapeGeneratorWebhook {
+// newGeneratorWorkloadWebhook creates a new GeneratorWorkloadWebhook
+func newGeneratorWorkloadWebhook() GeneratorWorkloadWebhook {
 	scheme := newScheme()
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
@@ -31,7 +32,7 @@ func newScrapeGeneratorWebhook() ScrapeGeneratorWebhook {
 	vzapp.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewFakeClientWithScheme(scheme)
-	v := ScrapeGeneratorWebhook{
+	v := GeneratorWorkloadWebhook{
 		Client:     cli,
 		Decoder:    decoder,
 		KubeClient: fake.NewSimpleClientset(),
@@ -39,8 +40,8 @@ func newScrapeGeneratorWebhook() ScrapeGeneratorWebhook {
 	return v
 }
 
-// newScrapeGeneratorRequest creates a new admissionRequest with the provided operation and object.
-func newScrapeGeneratorRequest(op admissionv1beta1.Operation, kind string, obj interface{}) admission.Request {
+// newGeneratorWorkloadRequest creates a new admissionRequest with the provided operation and object.
+func newGeneratorWorkloadRequest(op admissionv1beta1.Operation, kind string, obj interface{}) admission.Request {
 	raw := runtime.RawExtension{}
 	bytes, _ := json.Marshal(obj)
 	raw.Raw = bytes
@@ -58,7 +59,7 @@ func newScrapeGeneratorRequest(op admissionv1beta1.Operation, kind string, obj i
 // WHEN the Pod is properly formed
 // THEN the validation should succeed
 func TestHandlePod(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", nil)
@@ -70,7 +71,7 @@ func TestHandlePod(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testPod))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Pod", testPod)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Pod", testPod)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -80,7 +81,7 @@ func TestHandlePod(t *testing.T) {
 // WHEN the Deployment is properly formed
 // THEN the validation should succeed
 func TestHandleDeployment(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", nil)
@@ -92,7 +93,7 @@ func TestHandleDeployment(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -102,7 +103,7 @@ func TestHandleDeployment(t *testing.T) {
 // WHEN the ReplicaSet is properly formed
 // THEN the validation should succeed
 func TestHandleReplicaSet(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", nil)
@@ -114,7 +115,7 @@ func TestHandleReplicaSet(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testReplicaSet))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "ReplicaSet", testReplicaSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -124,7 +125,7 @@ func TestHandleReplicaSet(t *testing.T) {
 // WHEN the StatefulSet is properly formed
 // THEN the validation should succeed
 func TestHandleStatefulSet(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", nil)
@@ -136,7 +137,7 @@ func TestHandleStatefulSet(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testStatefulSet))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "StatefulSet", testStatefulSet)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "StatefulSet", testStatefulSet)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed, "Expected validation to succeed.")
 }
@@ -146,7 +147,7 @@ func TestHandleStatefulSet(t *testing.T) {
 // WHEN the workload resource has owner references
 // THEN the Handle function should succeed and the metricsBinding is not created
 func TestHandleOwnerRefs(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", nil)
@@ -163,7 +164,7 @@ func TestHandleOwnerRefs(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Nil(t, res.Patches, "expected no changes to workload resource")
@@ -177,7 +178,7 @@ func TestHandleOwnerRefs(t *testing.T) {
 // WHEN the workload resource has  "app.verrazzano.io/metrics": "none"
 // THEN the Handle function should succeed and the metricsBinding is not created
 func TestHandleMetricsNone(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -192,7 +193,7 @@ func TestHandleMetricsNone(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Nil(t, res.Patches, "expected no changes to workload resource")
@@ -207,7 +208,7 @@ func TestHandleMetricsNone(t *testing.T) {
 // WHEN the workload resource has  "app.verrazzano.io/metrics": "badTemplate"
 // THEN the Handle function should generate an error
 func TestHandleInvalidMetricsTemplate(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -222,7 +223,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
 	assert.Equal(t, "metricstemplates.app.verrazzano.io \"badTemplate\" not found", res.Result.Message)
@@ -234,7 +235,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 // WHEN the workload resource has a valid metrics template reference
 // THEN the Handle function should succeed and the metricsBinding is created
 func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -271,10 +272,13 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Empty(t, res.Patches)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
@@ -286,7 +290,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 // WHEN the workload resource has a valid metrics template reference
 // THEN the Handle function should succeed and the metricsBinding is created
 func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -324,10 +328,13 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Empty(t, res.Patches)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSameNamespace")
@@ -339,7 +346,7 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 // WHEN the workload resource has an invalid Prometheus config map reference
 // THEN the Handle function should fail and return an error
 func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -371,7 +378,7 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
 	assert.Equal(t, "configmaps \"testPromConfigMap\" not found", res.Result.Message)
@@ -383,7 +390,7 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and the metricsBinding is created
 func TestHandleMatchWorkloadNamespace(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -428,9 +435,13 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "test", "testTemplateWorkloadNamespace")
@@ -442,7 +453,7 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and the metricsBinding is created
 func TestHandleMatchSystemNamespace(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -487,9 +498,13 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
 
 	// validate that metrics binding was created as expected
 	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateSystemNamespace")
@@ -501,7 +516,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
 func TestHandleMatchNotFound(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -546,67 +561,10 @@ func TestHandleMatchNotFound(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
-
-	// validate that metrics binding was not created as expected
-	v.validateNoMetricsBinding(t)
-}
-
-// TestHandleWorkloadUIDNotFound tests the handling of a workload resource with no UID
-// GIVEN a call to the webhook Handle function
-// WHEN the workload resource has no UID defined
-// THEN the Handle function should succeed and no metrics binding is created
-func TestHandleWorkloadUIDNotFound(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
-
-	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
-	v.createConfigMap(t, "test", "testPromConfigMap")
-	testDeployment := appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
-			Namespace: "test",
-		},
-	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
-	testTemplate := vzapp.MetricsTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test",
-			Name:      "testTemplateWorkloadNamespace",
-		},
-		Spec: vzapp.MetricsTemplateSpec{
-			WorkloadSelector: vzapp.WorkloadSelector{
-				APIGroups: []string{
-					"apps",
-				},
-				APIVersions: []string{
-					"v1",
-				},
-				Resources: []string{
-					"deployment",
-				},
-			},
-			PrometheusConfig: vzapp.PrometheusConfig{
-				TargetConfigMap: vzapp.TargetConfigMap{
-					Namespace: "test",
-					Name:      "testPromConfigMap",
-				},
-			},
-		},
-	}
-	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
-
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
-	res := v.Handle(context.TODO(), req)
-	assert.True(t, res.Allowed)
 
 	// validate that metrics binding was not created as expected
 	v.validateNoMetricsBinding(t)
@@ -618,7 +576,7 @@ func TestHandleWorkloadUIDNotFound(t *testing.T) {
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
 func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -652,7 +610,7 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
@@ -667,7 +625,7 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 // WHEN the workload resource has a metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
 func TestHandleNoConfigMap(t *testing.T) {
-	v := newScrapeGeneratorWebhook()
+	v := newGeneratorWorkloadWebhook()
 
 	// Test data
 	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
@@ -696,7 +654,7 @@ func TestHandleNoConfigMap(t *testing.T) {
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
 
-	req := newScrapeGeneratorRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
 	res := v.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
 	assert.Empty(t, res.Patches)
@@ -705,7 +663,7 @@ func TestHandleNoConfigMap(t *testing.T) {
 	v.validateNoMetricsBinding(t)
 }
 
-func (v *ScrapeGeneratorWebhook) createNamespace(t *testing.T, name string, labels map[string]string) {
+func (v *GeneratorWorkloadWebhook) createNamespace(t *testing.T, name string, labels map[string]string) {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
@@ -716,7 +674,7 @@ func (v *ScrapeGeneratorWebhook) createNamespace(t *testing.T, name string, labe
 	assert.NoError(t, err, "unexpected error creating namespace")
 }
 
-func (v *ScrapeGeneratorWebhook) createConfigMap(t *testing.T, namespace string, name string) {
+func (v *GeneratorWorkloadWebhook) createConfigMap(t *testing.T, namespace string, name string) {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -727,23 +685,19 @@ func (v *ScrapeGeneratorWebhook) createConfigMap(t *testing.T, namespace string,
 	assert.NoError(t, err, "unexpected error creating namespace")
 }
 
-func (v *ScrapeGeneratorWebhook) validateNoMetricsBinding(t *testing.T) {
+func (v *GeneratorWorkloadWebhook) validateNoMetricsBinding(t *testing.T) {
 	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
 	metricsBinding := &vzapp.MetricsBinding{}
 	assert.EqualError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding), "metricsbindings.app.verrazzano.io \"testDeployment-deployment\" not found")
 }
 
-func (v *ScrapeGeneratorWebhook) validateMetricsBinding(t *testing.T, templateNamespace string, templateName string) {
-	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-deployment"}
+func (v *GeneratorWorkloadWebhook) validateMetricsBinding(t *testing.T, templateNamespace string, templateName string) {
+	namespacedName := types.NamespacedName{Namespace: "test", Name: "testDeployment-apps-v1-deployment"}
 	metricsBinding := &vzapp.MetricsBinding{}
 	assert.NoError(t, v.Client.Get(context.TODO(), namespacedName, metricsBinding))
-	assert.Len(t, metricsBinding.OwnerReferences, 1)
-	assert.Equal(t, "apps/v1", metricsBinding.OwnerReferences[0].APIVersion)
-	assert.Equal(t, "Deployment", metricsBinding.OwnerReferences[0].Kind)
-	assert.Equal(t, "testDeployment", metricsBinding.OwnerReferences[0].Name)
-	assert.Equal(t, "11", string(metricsBinding.OwnerReferences[0].UID))
-	assert.True(t, *metricsBinding.OwnerReferences[0].BlockOwnerDeletion)
-	assert.True(t, *metricsBinding.OwnerReferences[0].Controller)
+	assert.Equal(t, "apps/v1", metricsBinding.Spec.Workload.TypeMeta.APIVersion)
+	assert.Equal(t, "Deployment", metricsBinding.Spec.Workload.TypeMeta.Kind)
+	assert.Equal(t, "testDeployment", metricsBinding.Spec.Workload.Name)
 	assert.Equal(t, templateNamespace, metricsBinding.Spec.MetricsTemplate.Namespace)
 	assert.Equal(t, templateName, metricsBinding.Spec.MetricsTemplate.Name)
 	assert.Equal(t, "test", metricsBinding.Spec.PrometheusConfigMap.Namespace)

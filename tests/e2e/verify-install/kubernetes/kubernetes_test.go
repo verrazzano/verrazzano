@@ -5,23 +5,20 @@ package kubernetes_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"time"
-
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 const waitTimeout = 15 * time.Minute
 const pollingInterval = 30 * time.Second
 const timeout5Min = 5 * time.Minute
 
-var metricsLogger, _ = metrics.NewMetricsLogger("kubernetes")
+var t = framework.NewTestFramework("kubernetes")
 
 var expectedPodsCattleSystem = []string{
 	"rancher"}
@@ -46,19 +43,21 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 //"vmi-system-prometheus",
 //"vmi-system-prometheus-gw"}
 
-var _ = framework.VzDescribe("Kubernetes Cluster",
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("In the Kubernetes Cluster",
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
 
-		framework.ItM(metricsLogger, "has the expected number of nodes", func() {
+		t.It("the expected number of nodes exist", func() {
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
 			}, timeout5Min, pollingInterval).Should(BeTrue())
 		})
 
-		framework.ItM(metricsLogger, "has the expected namespaces", func() {
+		t.It("the expected namespaces exist", func() {
 			var namespaces *v1.NamespaceList
 			Eventually(func() (*v1.NamespaceList, error) {
 				var err error
@@ -95,88 +94,88 @@ var _ = framework.VzDescribe("Kubernetes Cluster",
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 
-		DescribeTable("deployed Verrazzano components",
+		t.DescribeTable("Verrazzano components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			Entry("includes verrazzano-operator", "verrazzano-operator", true),
-			Entry("does not include verrazzano-web", "verrazzano-web", false),
-			Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
-			Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
-			Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
-			Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
-			Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
-			Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
+			t.Entry("includes verrazzano-operator", "verrazzano-operator", true),
+			t.Entry("does not include verrazzano-web", "verrazzano-web", false),
+			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
+			t.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
+			t.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
+			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
+			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
+			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		)
 
-		DescribeTable("deployed cert-manager components",
+		t.DescribeTable("cert-manager components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "cert-manager")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			Entry("includes cert-manager", "cert-manager", true),
-			Entry("does include cert-manager-cainjector", "cert-manager-cainjector", true),
+			t.Entry("includes cert-manager", "cert-manager", true),
+			t.Entry("does include cert-manager-cainjector", "cert-manager-cainjector", true),
 		)
 
-		DescribeTable("deployed ingress components",
+		t.DescribeTable("ingress components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "ingress-nginx")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
+			t.Entry("includes ingress-controller-ingress-nginx-controller", "ingress-controller-ingress-nginx-controller", true),
 		)
 
-		DescribeTable("keycloak components are not deployed",
+		t.DescribeTable("keycloak components are not deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "keycloak")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
+			t.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
 		if isManagedClusterProfile {
-			DescribeTable("rancher components are not deployed",
+			t.DescribeTable("rancher components are not deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
-				Entry("includes rancher", "rancher", false),
+				t.Entry("includes rancher", "rancher", false),
 			)
 		} else {
-			DescribeTable("deployed rancher components",
+			t.DescribeTable("rancher components are deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
-				Entry("includes rancher", "rancher", true),
+				t.Entry("includes rancher", "rancher", true),
 			)
 		}
 
-		DescribeTable("deployed VMI components",
+		t.DescribeTable("VMI components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			Entry("includes prometheus", "vmi-system-prometheus", true),
-			Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
-			Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
-			Entry("includes es-data", "vmi-system-es-data", isProdProfile),
-			Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
-			Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
-			Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
-			Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
+			t.Entry("includes prometheus", "vmi-system-prometheus", true),
+			t.Entry("includes prometheus-gw", "vmi-system-prometheus-gw", false),
+			t.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
+			t.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
+			t.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
+			t.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
+			t.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
+			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)
 
 		// Test components that may not exist for older versions
-		DescribeTable("deployed VMI components that are don't exist in older versions",
+		t.DescribeTable("VMI components that don't exist in older versions are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
@@ -188,10 +187,10 @@ var _ = framework.VzDescribe("Kubernetes Cluster",
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
+			t.Entry("includes kiali", "vmi-system-kiali", !isManagedClusterProfile),
 		)
 
-		framework.ItM(metricsLogger, "Expected pods are running", func() {
+		t.It("the expected pods are running", func() {
 			pkg.Concurrently(
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed

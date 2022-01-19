@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package main
 
@@ -6,8 +6,23 @@ import (
 	"github.com/verrazzano/verrazzano/tools/eventually-checker/test/internal"
 
 	. "github.com/onsi/ginkgo/v2" //nolint
-	. "github.com/onsi/gomega" //nolint
+	. "github.com/onsi/gomega"    //nolint
 )
+
+type testStruct struct {
+}
+
+func (t *testStruct) PointerReceiverThatCallsExpect() error {
+	Expect(false).To(BeTrue())
+	return nil
+}
+
+func (t testStruct) ValueReceiverThatCallsExpect() error {
+	Expect(false).To(BeTrue())
+	return nil
+}
+
+var ts testStruct
 
 func main() {
 	It("Test 1", func() {
@@ -25,6 +40,18 @@ func main() {
 
 	It("Test 3", func() {
 		Eventually(internal.AnotherFunc)
+	})
+
+	It("Test 4", func() {
+		Eventually(func() error {
+			return ts.PointerReceiverThatCallsExpect()
+		})
+	})
+
+	It("Test 5", func() {
+		Eventually(func() error {
+			return ts.ValueReceiverThatCallsExpect()
+		})
 	})
 }
 

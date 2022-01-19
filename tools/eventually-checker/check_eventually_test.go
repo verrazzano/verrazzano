@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package main
 
@@ -36,7 +36,7 @@ func TestAnalyzePackages(t *testing.T) {
 
 	// check for bad calls, we should get 2
 	results := checkForBadCalls()
-	assert.Len(results, 2)
+	assert.Len(results, 4)
 
 	for key, val := range results {
 		// convert the failed call position to a string of the form "filename:row:column"
@@ -46,12 +46,22 @@ func TestAnalyzePackages(t *testing.T) {
 			// expect this bad call from Eventually in main.go
 			assert.Len(val, 1)
 			eventuallyPos := fset.PositionFor(val[0], true).String()
-			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:14:3"))
-		} else if strings.HasSuffix(failedCallPos, "/main.go:32:2") {
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:29:3"))
+		} else if strings.HasSuffix(failedCallPos, "/main.go:59:2") {
 			// expect this bad call from Eventually in main.go
 			assert.Len(val, 1)
 			eventuallyPos := fset.PositionFor(val[0], true).String()
-			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:23:3"))
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:38:3"))
+		} else if strings.HasSuffix(failedCallPos, "/main.go:16:2") {
+			// expect this bad call from Eventually in main.go
+			assert.Len(val, 1)
+			eventuallyPos := fset.PositionFor(val[0], true).String()
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:46:3"))
+		} else if strings.HasSuffix(failedCallPos, "/main.go:21:2") {
+			// expect this bad call from Eventually in main.go
+			assert.Len(val, 1)
+			eventuallyPos := fset.PositionFor(val[0], true).String()
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:52:3"))
 		} else {
 			t.Errorf("Found unexpected Fail/Expect call at: %s", failedCallPos)
 		}
@@ -107,8 +117,12 @@ func TestDisplayResults(t *testing.T) {
 
 	var b bytes.Buffer
 	displayResults(results, fset, &b)
-	assert.Contains(b.String(), "main.go:32:2")
-	assert.Contains(b.String(), "main.go:23:3")
 	assert.Contains(b.String(), "helper.go:12:2")
-	assert.Contains(b.String(), "main.go:14:3")
+	assert.Contains(b.String(), "main.go:29:3")
+	assert.Contains(b.String(), "main.go:59:2")
+	assert.Contains(b.String(), "main.go:38:3")
+	assert.Contains(b.String(), "main.go:16:2")
+	assert.Contains(b.String(), "main.go:46:3")
+	assert.Contains(b.String(), "main.go:21:2")
+	assert.Contains(b.String(), "main.go:52:3")
 }
