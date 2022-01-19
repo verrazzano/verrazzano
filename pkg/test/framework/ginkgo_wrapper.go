@@ -115,7 +115,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
 
-	if len(args) > 0 {
+	if len(args) > 1 {
 		labels, body := args[0], args[1]
 		if !isBodyFunc(body) {
 			ginkgo.Fail("Unsupported body type - expected function")
@@ -129,7 +129,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 			metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		}
 	} else {
-		body := args[0]
+		body = args[0]
 		if !isBodyFunc(body) {
 			ginkgo.Fail("Unsupported body type - expected function")
 		}
