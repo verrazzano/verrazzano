@@ -129,7 +129,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 			metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		}
 	} else {
-		body = args[0]
+		body := args[0]
 		if !isBodyFunc(body) {
 			ginkgo.Fail("Unsupported body type - expected function")
 		}
