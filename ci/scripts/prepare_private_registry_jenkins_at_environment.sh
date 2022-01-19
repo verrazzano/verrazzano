@@ -154,8 +154,13 @@ start_installation() {
   # Create docker secret for platform operator image
   ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
 
-  # Configure the custom resource to install Verrazzano on Kind
-  ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
+# optionally create a cluster dump snapshot for verifying uninstalls
+if [ -n "${CLUSTER_DUMP_DIR}" ]; then
+  ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_DUMP_DIR}
+fi
+
+# Configure the custom resource to install Verrazzano on Kind
+./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
 
   echo "Wait for Operator to be ready"
   cd ${GO_REPO_PATH}/verrazzano

@@ -37,6 +37,7 @@ pipeline {
         GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        PERIODIC_JOB_PROJECT_NAME = 'verrazzano-periodic-triggered-tests'
     }
 
     stages {
@@ -114,21 +115,46 @@ pipeline {
                             echo "Passed pre-release checks for ${VERRAZZANO_DEV_VERSION}, promoting this to the latest releasable candidate"
                             echo "git-commit=${env.GIT_COMMIT}" > $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
                             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-$VERRAZZANO_DEV_VERSION-releasable-candidate-commit.txt --file $WORKSPACE/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt
-                            echo "${env.BUILD_NUMBER} : RELEASE CANDIDATE" > release_status.out
+                            echo "RELEASE CANDIDATE" > release_status.out
                         else
                             echo "Failed pre-release checks for ${VERRAZZANO_DEV_VERSION}"
-                            echo "${env.BUILD_NUMBER} : NOT RELEASABLE" > release_status.out
+                            echo "NOT RELEASABLE" > release_status.out
                         fi
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/current-dev-version.txt --file $WORKSPACE/.verrazzano_development_version
                         set -e
                     """
-                    currentBuild.displayName = readFile file: "release_status.out"
+                    def releaseStatus = readFile file: "release_status.out"
+                    currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
+                    if (currentBuild.displayName.contains("NOT RELEASABLE")) {
+                        currentBuild.result = "FAILED"
+                    }
                 }
             }
         }
     }
     post {
         always {
-            archiveArtifacts artifacts: '**/prerelease_validation.out,**/release_status.out', allowEmptyArchive: true
+            script {
+                writeUpstreamBuildInfo(currentBuild)
+                sh "echo ${env.GIT_COMMIT} > ${WORKSPACE}/git_commit.out"
+            }
+            archiveArtifacts artifacts: '**/prerelease_validation.out,**/release_status.out,**/upstream_periodic_test_build_number.out,**/git_commit.out', allowEmptyArchive: true
         }
+    }
+}
+
+def writeUpstreamBuildInfo(currBuild) {
+    println("upstream builds: ${currBuild.upstreamBuilds}")
+    currBuild.upstreamBuilds.each {
+        println("upstream project name: ${it.projectName}");
+        println("upstream build full project name: ${it.fullProjectName} , comparing to ${env.PERIODIC_JOB_PROJECT_NAME}/${CLEAN_BRANCH_NAME}, are they equal: " +
+                it.fullProjectName.equals("${env.PERIODIC_JOB_PROJECT_NAME}/${CLEAN_BRANCH_NAME}") + " are they equal 2? " +
+                (it.fullProjectName == "${env.PERIODIC_JOB_PROJECT_NAME}/${CLEAN_BRANCH_NAME}"))
+        println("upstream build number: ${it.number}")
+    }
+    upstreamPeriodicBuild = currBuild.upstreamBuilds.find { it.fullProjectName == "${env.PERIODIC_JOB_PROJECT_NAME}/${CLEAN_BRANCH_NAME}" }
+    println("found upstream periodic build ${upstreamPeriodicBuild}")
+    if (upstreamPeriodicBuild != null) {
+        sh "echo ${upstreamPeriodicBuild.number} > ${WORKSPACE}/upstream_periodic_test_build_number.out"
     }
 }
