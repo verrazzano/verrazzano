@@ -40,7 +40,7 @@ data:
     -- CORS handling
     local h, _ = ngx.req.get_headers()["origin"]
     if h ~= nil and h ~= "" then
-        auth.info("Origin header: "..h)
+        auth.debug("Origin header: "..h)
         if h == "*" then
             -- not a legit origin, could be intended to trick us into oversharing
             auth.bad_request("Invalid Origin header: '*'")
@@ -80,7 +80,7 @@ data:
         end
     end
 
-    auth.info("Processing request for backend '"..ingressHost.."'")
+    auth.debug("Processing request for backend '"..ingressHost.."'")
     if (backend == 'console' or backend == 'verrazzano') and (not auth.isBodyValidJson()) then
         auth.bad_request("Invalid request")
     end
@@ -94,10 +94,10 @@ data:
             token = auth.handleBasicAuth(authHeader)
         end
         if not token then
-            auth.info("No recognized credentials in authorization header")
+            auth.error("No recognized credentials in authorization header")
         end
     else
-        auth.info("No authorization header found")
+        auth.debug("No authorization header found")
         if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
@@ -148,10 +148,10 @@ data:
         end
         -- set the oidc_user
         ngx.var.oidc_user = auth.usernameFromIdToken(token)
-        auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
+        auth.debug("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
 
-    auth.info("Setting backend_server_url to '"..backendUrl.."'")
+    auth.debug("Setting backend_server_url to '"..backendUrl.."'")
     ngx.var.backend_server_url = backendUrl
   auth.lua: |
     local me = {}
@@ -192,8 +192,6 @@ data:
             me.internal_server_error("Error getting cookie key")
         end
         local salt = string.sub(key, 49, 56)
-        -- me.info("Got encryption key from secret: '"..key.."', length: "..#key)
-        -- me.info("Salt is: '"..salt.."', length: "..#salt)
         local encryptor, err = aes:new(key, salt, aes.cipher(256, "cbc"), aes.hash.sha256, 3)
         if err or not encryptor then
             me.internal_server_error("Unable to get encryptor, error is: '"..err.."'")
@@ -209,7 +207,7 @@ data:
 
         local keycloakURL = me.read_file("/api-config/keycloak-url")
         if keycloakURL and keycloakURL ~= "" then
-            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+            me.debug("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
             oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
             oidcProviderInClusterUri = nil
         end
@@ -239,6 +237,14 @@ data:
             me.log(ngx.INFO, msg, 'object', obj)
         else
             me.log(ngx.INFO, msg)
+        end
+    end
+    
+    function me.error(msg, obj)
+        if obj then
+            me.log(ngx.ERR, msg, 'object', obj)
+        else
+            me.log(ngx.ERR, msg)
         end
     end
     
@@ -507,7 +513,7 @@ data:
         if found then
             local token = string.sub(authHeader, index+2)
             if token then
-                me.info("Found bearer token in authorization header")
+                me.debug("Found bearer token in authorization header")
                 me.oidcValidateBearerToken(token)
                 return token
             else
@@ -524,18 +530,18 @@ data:
     function me.handleBasicAuth(authHeader)
         local found, index = authHeader:find('Basic')
         if not found then
-            me.info("No basic auth credentials found")
+            me.debug("No basic auth credentials found")
             return nil
         end
         local basicCred = string.sub(authHeader, index+2)
         if not basicCred then
             me.unauthorized("Invalid BasicAuth authorization header")
         end
-        me.info("Found basic auth credentials in authorization header")
+        me.debug("Found basic auth credentials in authorization header")
         local now = ngx.time()
         local basicAuth = basicCache[basicCred]
         if basicAuth and (now < basicAuth.expiry) then
-            me.info("Returning cached token")
+            me.debug("Returning cached token")
             return basicAuth.id_token
         end
         local decode, err = ngx.decode_base64(basicCred)
@@ -596,7 +602,7 @@ data:
     end
 
     function me.oidcAuthenticate()
-        me.info("Authenticating user")
+        me.debug("Authenticating user")
         local sha256 = (require 'resty.sha256'):new()
         -- code verifier must be between 43 and 128 characters
         local codeVerifier = me.randomBase64(56)
@@ -631,7 +637,7 @@ data:
     end
 
     function me.oidcHandleCallback()
-        me.info("Handle authentication callback")
+        me.debug("Handle authentication callback")
         local queryParams = me.queryParams(ngx.var.request_uri)
         local state = queryParams.state
         local code = queryParams.code
@@ -665,7 +671,7 @@ data:
     end
 
     function me.oidcTokenRequest(formArgs)
-        me.info("Requesting token from OP")
+        me.debug("Requesting token from OP")
         local tokenUri = me.getOidcTokenUri()
         local http = require "resty.http"
         local httpc = http.new()
@@ -684,7 +690,7 @@ data:
         end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
-            me.info("Error requesting token")
+            me.error("Error requesting token")
             me.unauthorized(tokenRes.error_description)
         end
         return tokenRes
@@ -765,7 +771,7 @@ data:
     end
 
     function me.oidcValidateTokenWithClaims(token, claim_spec)
-        me.info("Validating JWT token")
+        me.debug("Validating JWT token")
         local default_claim_spec = {
             iat = validators.is_not_before(),
             exp = validators.is_not_expired(),
@@ -780,8 +786,8 @@ data:
         if not publicKey then
             me.unauthorized("No public key found")
         end
-        -- me.info("TOKEN: iss is "..jwt_obj.payload.iss)
-        -- me.info("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
+        me.debug("TOKEN: iss is "..jwt_obj.payload.iss)
+        me.debug("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, default_claim_spec, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
             me.unauthorized("Failed to validate token", jwt_obj.reason)
@@ -789,7 +795,7 @@ data:
     end
 
     function me.isAuthorized(idToken)
-        me.info("Checking for required role '"..requiredRole.."'")
+        me.debug("Checking for required role '"..requiredRole.."'")
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
             for _, role in ipairs(id_token.payload.realm_access.roles) do
@@ -802,7 +808,7 @@ data:
     end
 
     function me.usernameFromIdToken(idToken)
-        -- me.info("usernameFromIdToken: fetching preferred_username")
+        me.debug("usernameFromIdToken: fetching preferred_username")
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.preferred_username then
             return id_token.payload.preferred_username
@@ -813,35 +819,35 @@ data:
     -- returns id token, token is refreshed first, if necessary.
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
-        -- me.info("Check for existing session")
+        me.debug("Check for existing session")
         local ck = me.readCookie("vz_authn")
         if ck then
-            me.info("Existing session found")
+            me.debug("Existing session found")
             local rft = ck.rt
             local now = ngx.time()
             local expiry = tonumber(ck.expiry)
             local refresh_expiry = tonumber(ck.refresh_expiry)
             if now < expiry then
-                -- me.info("Returning ID token")
+                me.debug("Returning ID token")
                 return ck.it
             else
                 if now < refresh_expiry then
-                    me.info("Token is expired, refreshing")
+                    me.debug("Token is expired, refreshing")
                     local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
                     if tokenRes then
                         me.oidcValidateIDTokenPKCE(tokenRes.id_token)
                         me.tokenToCookie(tokenRes)
-                        -- me.info("Token refreshed",  tokenRes)
+                        me.debug("Token refreshed",  tokenRes)
                         return tokenRes.id_token
                     else
-                        me.info("No valid response from token refresh")
+                        me.debug("No valid response from token refresh")
                     end
                 else
-                    me.info("Refresh token expired, cannot refresh")
+                    me.debug("Refresh token expired, cannot refresh")
                 end
             end
         else
-            me.info("No existing session found")
+            me.debug("No existing session found")
         end
         -- no valid token found, delete cookie
         me.deleteCookies("vz_authn", "vz_userinfo")
@@ -926,17 +932,17 @@ data:
         local cookie, err = require("resty.cookie"):new()
         local ck = cookie:get(ckName)
         if not ck then
-            me.info("Cookie not found")
+            me.debug("Cookie not found")
             return nil
         end
         local decoded = base64.decode_base64url(ck)
         if not decoded then
-            me.info("Cookie not decoded")
+            me.debug("Cookie not decoded")
             return nil
         end
         local json = me.aes256:decrypt(decoded)
         if not json then
-            me.info("Cookie not decrypted")
+            me.debug("Cookie not decrypted")
             return nil
         end
         return cjson.decode(json)
@@ -959,7 +965,7 @@ data:
         end
         local data = cjson.decode(res.body)
         if not (data.keys) then
-            me.info("No keys found")
+            me.debug("No keys found")
             return nil
         end
         for i, key in pairs(data.keys) do
@@ -1221,6 +1227,7 @@ data:
 
         # Posts from Fluentd can require more than the default 1m max body size
         client_max_body_size {{ .MaxRequestSize }};
+        client_body_buffer_size {{ .MaxRequestSize }};
         proxy_buffer_size {{ .ProxyBufferSize }};
 
         #keepalive_timeout  0;
