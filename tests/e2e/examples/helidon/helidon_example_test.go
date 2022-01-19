@@ -21,7 +21,6 @@ import (
 )
 
 const (
-	name                 = "hello-helidon"
 	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
@@ -29,9 +28,10 @@ const (
 )
 
 var (
-	t = framework.NewTestFramework("helidon")
-	namespace   = pkg.GenerateNamespace(name)
-	yamlApplier = k8sutil.YAMLApplier{}
+	t                        = framework.NewTestFramework("helidon")
+	namespace                = pkg.GenerateNamespace("hello-helidon")
+	yamlApplier              = k8sutil.YAMLApplier{}
+	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
 
 var _ = t.BeforeSuite(func() {
@@ -58,17 +58,6 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-var (
-	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
-	waitTimeout              = 10 * time.Minute
-	pollingInterval          = 30 * time.Second
-)
-
-const (
-	istioNamespace     = "istio-system"
-	ingressServiceName = "istio-ingressgateway"
-)
-
 var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
@@ -76,7 +65,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	// THEN the expected pod must be running in the test namespace
 	t.Describe("hello-helidon-deployment pod", func() {
 		t.It("is running", func() {
-			Eventually(helloHelidonPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 
@@ -114,19 +103,19 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appComponentMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appConfigMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(nodeExporterProcsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(nodeExporterProcsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(nodeExporterDiskIoNow, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(nodeExporterDiskIoNow, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
 		})
