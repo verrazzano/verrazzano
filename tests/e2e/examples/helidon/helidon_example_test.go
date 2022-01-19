@@ -29,7 +29,7 @@ const (
 
 var (
 	t                        = framework.NewTestFramework("helidon")
-	namespace                = pkg.GenerateNamespace("hello-helidon")
+	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
 	yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
