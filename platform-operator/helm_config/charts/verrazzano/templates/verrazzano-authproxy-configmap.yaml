@@ -787,8 +787,6 @@ data:
         if not publicKey then
             me.unauthorized("No public key found")
         end
-        me.debug("TOKEN: iss is "..jwt_obj.payload.iss)
-        me.debug("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, default_claim_spec, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
             me.unauthorized("Failed to validate token", jwt_obj.reason)
