@@ -397,7 +397,7 @@ pipeline {
 
         stage("install-verrazzano") {
             steps {
-                sh """
+                sh '''
                     echo "Waiting for Operator to be ready"
                     set -x
                     kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
@@ -428,7 +428,7 @@ pipeline {
                     echo "----------Test config file:-------------"
                     cat ${TEST_CONFIG_FILE}
                     echo "----------------------------------------"
-                """
+                '''
             }
             post {
                 always {
