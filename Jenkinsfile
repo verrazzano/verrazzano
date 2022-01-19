@@ -121,8 +121,6 @@ pipeline {
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
-
-        COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
     }
 
     stages {
@@ -616,9 +614,8 @@ pipeline {
             """
             archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             sh """
-                export USER_NAME=${JENKINS_READ_USR}
-                export PASSWORD=${JENKINS_READ_PSW}
-                go run ${GO_REPO_PATH}/verrazzano/pkg/test/framework/file-uploader/upload_file.go --file-url="${BUILD_URL}artifact/*zip*/archive.zip" --bucket-name="${OCI_OS_ARTIFACT_BUCKET}" --create-bucket="true" --object-name="${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip" --region="us-phoenix-1"
+                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
+                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
                 rm archive.zip
             """
             script {
