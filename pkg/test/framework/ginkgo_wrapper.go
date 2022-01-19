@@ -75,16 +75,37 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
-	body := args[0]
-	if !isBodyFunc(body) {
-		ginkgo.Fail("Unsupported body type - expected function")
-	}
-	f := func() {
-		metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started)) // Starting point metric
-		reflect.ValueOf(body).Call([]reflect.Value{})
-	}
+	//body := args[0]
+	//if !isBodyFunc(body) {
+	//	ginkgo.Fail("Unsupported body type - expected function")
+	//}
+	//f := func() {
+	//	metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started)) // Starting point metric
+	//	reflect.ValueOf(body).Call([]reflect.Value{})
+	//}
 
-	args[0] = f
+	if len(args) > 1 {
+		label, body := args[0], args[1]
+		if !isBodyFunc(body) {
+			ginkgo.Fail("Unsupported body type - expected function")
+		}
+		args[0] = func() {
+			reflect.ValueOf(label).Call([]reflect.Value{})
+		}
+		args[1] = func() {
+			metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started)) // Starting point metric
+			reflect.ValueOf(body).Call([]reflect.Value{})
+		}
+	} else {
+		body := args[0]
+		if !isBodyFunc(body) {
+			ginkgo.Fail("Unsupported body type - expected function")
+		}
+		args[0] = func() {
+			metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started)) // Starting point metric
+			reflect.ValueOf(body).Call([]reflect.Value{})
+		}
+	}
 	return ginkgo.It(text, args...)
 }
 
@@ -93,16 +114,31 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
-	body := args[0]
-	if !isBodyFunc(body) {
-		ginkgo.Fail("Unsupported body type - expected function")
+
+	if len(args) > 0 {
+		labels, body := args[0], args[1]
+		if !isBodyFunc(body) {
+			ginkgo.Fail("Unsupported body type - expected function")
+		}
+		args[0] = func() {
+			reflect.ValueOf(labels).Call([]reflect.Value{})
+		}
+		args[1] = func() {
+			metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started))
+			reflect.ValueOf(body).Call([]reflect.Value{})
+			metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
+		}
+	} else {
+		body := args[0]
+		if !isBodyFunc(body) {
+			ginkgo.Fail("Unsupported body type - expected function")
+		}
+		args[0] = func() {
+			metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started))
+			reflect.ValueOf(body).Call([]reflect.Value{})
+			metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
+		}
 	}
-	f := func() {
-		metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started))
-		reflect.ValueOf(body).Call([]reflect.Value{})
-		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
-	}
-	args[0] = f
 	return ginkgo.Describe(text, args...)
 }
 

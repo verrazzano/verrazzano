@@ -64,7 +64,7 @@ const (
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = t.Describe("Hello Helidon OAM App test", func() {
+var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.helidon-workload"), func() {
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
