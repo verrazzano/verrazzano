@@ -139,9 +139,6 @@ start_installation() {
     load_images
   fi
 
-  echo "Get verrazzano container registry secret"
-  kubectl get secret ${IMAGE_PULL_SECRET} --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode | jq '.auths'
-
   cd ${GO_REPO_PATH}/verrazzano
   echo "Install Platform Operator"
   VPO_IMAGE=$(cat ${BOM_FILE} | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
