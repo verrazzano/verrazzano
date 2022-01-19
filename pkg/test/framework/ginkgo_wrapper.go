@@ -85,12 +85,9 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 	//}
 
 	if len(args) > 1 {
-		label, body := args[0], args[1]
+		body := args[1]
 		if !isBodyFunc(body) {
 			ginkgo.Fail("Unsupported body type - expected function")
-		}
-		args[0] = func() {
-			reflect.ValueOf(label).Call([]reflect.Value{})
 		}
 		args[1] = func() {
 			metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started)) // Starting point metric
@@ -116,12 +113,9 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	}
 
 	if len(args) > 1 {
-		labels, body := args[0], args[1]
+		body := args[1]
 		if !isBodyFunc(body) {
 			ginkgo.Fail("Unsupported body type - expected function")
-		}
-		args[0] = func() {
-			reflect.ValueOf(labels).Call([]reflect.Value{})
 		}
 		args[1] = func() {
 			metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started))
