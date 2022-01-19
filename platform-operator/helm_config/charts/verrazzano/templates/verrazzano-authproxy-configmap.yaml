@@ -241,6 +241,14 @@ data:
             me.log(ngx.INFO, msg)
         end
     end
+    
+    function me.debug(msg, obj)
+        if obj then
+            me.log(ngx.DEBUG, msg, 'object', obj)
+        else
+            me.log(ngx.DEBUG, msg)
+        end
+    end
 
     function me.queryParams(req_uri)
          local i = req_uri:find("?")
@@ -418,7 +426,7 @@ data:
         local able_to_redirect = true
         local hostname = nil
         if ingressHost and #ingressHost > 0 then
-            me.info("ingressHost is '"..ingressHost.."'")
+            me.debug("ingressHost is '"..ingressHost.."'")
             -- Strip the port off, if present
             local first, last = nil
             first, last, hostname = ingressHost:find("^([^:]+)")
@@ -428,10 +436,10 @@ data:
                     -- Strip the auth proxy prefix from the extracted backend name if present
                     if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
                         backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
-                        me.info("Validating host (local): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
+                        me.debug("Validating host (local): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
                         backend_name = me.validateIngressHost(backend_name, hostname, true)
                     else
-                        me.info("Validating host (ingress): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
+                        me.debug("Validating host (ingress): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
                         backend_name = me.validateIngressHost(backend_name, hostname, false)
                     end
                 end
@@ -452,9 +460,9 @@ data:
             end
         end
         if able_to_redirect == true then
-            me.info("returning backend_name '"..backend_name.."', able_to_redirect is true")
+            me.debug("returning backend_name '"..backend_name.."', able_to_redirect is true")
         else
-            me.info("returning backend_name '"..backend_name.."', able_to_redirect is false")
+            me.debug("returning backend_name '"..backend_name.."', able_to_redirect is false")
         end
         return backend_name, able_to_redirect
     end
@@ -514,7 +522,6 @@ data:
     -- should only be called if some vz process is trying to access vmi using basic auth
     -- tokens are cached locally
     function me.handleBasicAuth(authHeader)
-        -- me.info("Checking for basic auth credentials")
         local found, index = authHeader:find('Basic')
         if not found then
             me.info("No basic auth credentials found")
