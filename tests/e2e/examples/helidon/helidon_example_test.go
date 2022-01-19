@@ -122,7 +122,7 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	})
 
 	t.Context("Logging.", func() {
-		indexName := "verrazzano-namespace-hello-helidon"
+		indexName := "verrazzano-namespace-" + namespace
 
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
