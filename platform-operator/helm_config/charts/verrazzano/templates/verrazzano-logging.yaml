@@ -368,6 +368,8 @@ data:
       # length of fractional seconds, e.g. 10^-9.
       time_precision 9
 
+      time_key timestamp
+
       # Prevent reloading connections to Elasticsearch
       reload_connections false
       reconnect_on_error true
