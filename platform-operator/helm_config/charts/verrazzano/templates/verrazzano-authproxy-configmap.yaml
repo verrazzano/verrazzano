@@ -509,7 +509,6 @@ data:
     -- console originally sent access token by itself, as bearer token (originally obtained via pkce client)
     -- with combined proxy, console no longer handles tokens, but tests may be sending ID tokens.
     function me.handleBearerToken(authHeader)
-        me.debug("Checking for basic auth credentials")
         local found, index = authHeader:find('Bearer')
         if found then
             local token = string.sub(authHeader, index+2)
@@ -529,6 +528,7 @@ data:
     -- should only be called if some vz process is trying to access vmi using basic auth
     -- tokens are cached locally
     function me.handleBasicAuth(authHeader)
+        me.debug("Checking for basic auth credentials")
         local found, index = authHeader:find('Basic')
         if not found then
             me.debug("No basic auth credentials found")
@@ -933,17 +933,17 @@ data:
         local cookie, err = require("resty.cookie"):new()
         local ck = cookie:get(ckName)
         if not ck then
-            me.debug("Cookie not found")
+            me.error("Cookie not found")
             return nil
         end
         local decoded = base64.decode_base64url(ck)
         if not decoded then
-            me.debug("Cookie not decoded")
+            me.error("Cookie not decoded")
             return nil
         end
         local json = me.aes256:decrypt(decoded)
         if not json then
-            me.debug("Cookie not decrypted")
+            me.error("Cookie not decrypted")
             return nil
         end
         return cjson.decode(json)
@@ -966,7 +966,7 @@ data:
         end
         local data = cjson.decode(res.body)
         if not (data.keys) then
-            me.debug("No keys found")
+            me.error("No keys found")
             return nil
         end
         for i, key in pairs(data.keys) do
