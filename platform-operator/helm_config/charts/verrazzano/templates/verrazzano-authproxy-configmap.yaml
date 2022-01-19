@@ -97,7 +97,7 @@ data:
             auth.error("No recognized credentials in authorization header")
         end
     else
-        auth.error("No authorization header found")
+        auth.debug("No authorization header found")
         if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
