@@ -132,6 +132,9 @@ data:
     if not auth.isAuthorized(token) then
         auth.forbidden("Not authorized")
     end
+  
+    local usernameFromToken = auth.usernameFromIdToken(token)
+    me.audit("User "..usernameFromToken.." authenticated and authorized")
 
     if backend == 'verrazzano' then
         local args = ngx.req.get_uri_args()
@@ -147,7 +150,7 @@ data:
             ngx.req.clear_header("Authorization")
         end
         -- set the oidc_user
-        ngx.var.oidc_user = auth.usernameFromIdToken(token)
+        ngx.var.oidc_user = usernameFromToken
         auth.debug("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
 
@@ -688,16 +691,16 @@ data:
             }
         })
         if err then
-            me.error("Error requesting token from Keycloak")
+            me.error("Failed requesting token from Keycloak: "..err)
             me.unauthorized("Error requesting token", err)
         end
         if not res then
-            me.error("Error requesting token from Keycloak: response is nil")
+            me.info("Failed requesting token from Keycloak: response is nil")
             me.unauthorized("Error requesting token: response was nil")
         end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
-            me.error("Error requesting token from Keycloak")
+            me.info("Failed requesting token from Keycloak: "..tokenRes.error_description)
             me.unauthorized(tokenRes.error_description)
         end
         return tokenRes
@@ -905,7 +908,7 @@ data:
         local ck = require "resty.cookie"
         local cookie, err = ck:new()
         if not cookie then
-            me.audit("Error setting cookie "..ckName, err)
+            me.debug("Error setting cookie "..ckName..": "..err)
             return
         end
         local expires = ngx.cookie_time(ngx.time() + expiresInSec)
@@ -967,12 +970,12 @@ data:
         local certsUri = me.getOidcCertsUri()
         local res, err = httpc:request_uri(certsUri)
         if err then
-            me.audit("Could not retrieve certs", err)
+            me.error("Could not retrieve certs"..err)
             return nil
         end
         local data = cjson.decode(res.body)
         if not (data.keys) then
-            me.debug("No keys found")
+            me.error("No keys found")
             return nil
         end
         for i, key in pairs(data.keys) do
@@ -997,7 +1000,7 @@ data:
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
     function me.getServiceAccountToken()
-      me.audit("Read service account token")
+      me.debug("Read service account token")
       local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
       if not (serviceAccountToken) then
         me.unauthorized("No service account token present in pod.")
@@ -1047,7 +1050,7 @@ data:
         end
 
         local serviceAccountToken = me.getServiceAccountToken()
-        me.audit("Set service account bearer token as Authorization header")
+        me.debug("Set service account bearer token as Authorization header")
         ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
 
         if not token then
@@ -1063,17 +1066,17 @@ data:
 
         if jwt_obj.payload and jwt_obj.payload.sub then
             -- Uid is ignored prior to kubernetes v1.22
-            me.audit(("Adding sub as Impersonate-Uid: " .. jwt_obj.payload.sub))
+            me.debug(("Adding sub as Impersonate-Uid: " .. jwt_obj.payload.sub))
             ngx.req.set_header("Impersonate-Uid", jwt_obj.payload.sub)
             -- this group is needed for discovery, but not automatically set for impersonated users prior to v1.20.
             -- the group is ignored if duplicated >= v1.20, so no harm done if we always send it.
             -- adding it here so that it's present IFF we actually have a subject.
             local sys_auth = "system:authenticated"
-            me.audit(("Including group: " .. sys_auth))
+            me.debug(("Including group: " .. sys_auth))
             table.insert(groups, sys_auth)
         end
         if jwt_obj.payload and jwt_obj.payload.preferred_username then
-            me.audit(("Adding preferred_username as Impersonate-User: " .. jwt_obj.payload.preferred_username))
+            me.debug(("Adding preferred_username as Impersonate-User: " .. jwt_obj.payload.preferred_username))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.preferred_username)
         end
         if jwt_obj.payload and jwt_obj.payload.groups then
@@ -1082,7 +1085,7 @@ data:
             end
         end
         if #groups > 0 then
-            me.audit(("Adding groups as Impersonate-Group: " .. table.concat(groups, ", ")))
+            me.debug(("Adding groups as Impersonate-Group: " .. table.concat(groups, ", ")))
             ngx.req.set_header("Impersonate-Group", groups)
         end
     end
@@ -1090,7 +1093,7 @@ data:
     function me.handleExternalAPICall(token)
         local args = ngx.req.get_uri_args()
 
-        me.audit("Read vmc resource for " .. args.cluster)
+        me.debug("Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(token, args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
             me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
@@ -1103,13 +1106,13 @@ data:
         -- The value of cacrt field is decoded to get the ca certificate and is appended to file being pointed to by the proxy_ssl_trusted_certificate variable.
 
         if not(vmc.spec) or not(vmc.spec.caSecret) then
-            me.audit("ca secret name not present on vmc resource, assuming well known CA certificate exists for managed cluster " .. args.cluster)
+            me.debug("ca secret name not present on vmc resource, assuming well known CA certificate exists for managed cluster " .. args.cluster)
             do return end
         end
 
         local secret = me.getSecret(token, vmc.spec.caSecret)
         if not(secret) or not(secret.data) or not(secret.data["cacrt"]) or secret.data["cacrt"] == "" then
-            me.audit("Unable to fetch ca secret for vmc, assuming well known CA certificate exists for managed cluster " .. args.cluster)
+            me.debug("Unable to fetch ca secret for vmc, assuming well known CA certificate exists for managed cluster " .. args.cluster)
             do return end
         end
 
@@ -1141,7 +1144,7 @@ data:
             local decoder = require("cjson.safe").decode
             local decoded_data, err = decoder(data)
             if err then
-                me.audit("Invalid request payload:" .. data)
+                me.debug("Invalid request payload: " .. data)
                 return false
             end
         end
