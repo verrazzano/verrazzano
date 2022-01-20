@@ -971,7 +971,7 @@ data:
         local certsUri = me.getOidcCertsUri()
         local res, err = httpc:request_uri(certsUri)
         if err then
-            me.error("Could not retrieve certs"..err)
+            me.error("Could not retrieve certs: "..err)
             return nil
         end
         local data = cjson.decode(res.body)
