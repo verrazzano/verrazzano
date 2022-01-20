@@ -286,6 +286,7 @@ data:
         end
     end
     
+    -- For now, auditing reports a log message at the debug level
     function me.audit(msg, err)
         me.logJson(ngx.DEBUG, msg, err)
     end
