@@ -28,7 +28,7 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Verify OAM Infra", func() {
 	t.Describe("verrazzano-application-operator pod", func() {
-		t.It("is must be running", func() {
+		t.It("must be running", func() {
 			Eventually(func() (bool, error) {
 				return applicationOperatorPodRunning()
 			}, waitTimeout, pollingInterval).Should(BeTrue())
