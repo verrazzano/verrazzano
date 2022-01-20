@@ -25,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -112,6 +111,9 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
+
+	// Append any installArgs overrides to the kvs list
+	vzkvs = appendVerrazzanoComponentOverrides(effectiveCR, vzkvs)
 
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
@@ -246,6 +248,19 @@ func appendSecurityOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzan
 		overrides.Security.MonitorSubjects = monSubjectMap
 	}
 	return nil
+}
+
+// appendVerrazzanoComponentOverrides - append overrides specified for the Verrazzano component
+func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) []bom.KeyValue {
+	if effectiveCR.Spec.Components.Verrazzano != nil {
+		for _, arg := range effectiveCR.Spec.Components.Verrazzano.VerrrazzanoInstallArgs {
+			kvs = append(kvs, bom.KeyValue{
+				Key:   arg.Name,
+				Value: arg.Value,
+			})
+		}
+	}
+	return kvs
 }
 
 func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *resourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
