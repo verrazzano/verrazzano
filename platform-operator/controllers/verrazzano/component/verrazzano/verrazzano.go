@@ -65,7 +65,10 @@ const (
 )
 
 const indexTemplatePayload = `{
-    "index_patterns":"verrazzano-*",
+    "index_patterns":[
+		"verrazzano-system*",
+		"verrazzano-application*"
+    ],
     "version":60001,
     "priority": 100,
     "data_stream": {},
@@ -117,10 +120,10 @@ const (
 	defaultMinIndexAge = "7d"
 )
 
-const ismPayloadTemplate = `{
+const systemISMPayloadTemplate = `{
     "policy": {
-        "policy_id": "ingest_delete",
-        "description": "Default Verrazzano policy which deletes documents after fixed time or size",
+        "policy_id": "system_ingest_delete",
+        "description": "Verrazzano System Index policy which deletes documents after fixed time or size",
         "schema_version": 12,
         "error_notification": null,
         "default_state": "ingest",
@@ -157,7 +160,54 @@ const ismPayloadTemplate = `{
         ],
         "ism_template": {
           "index_patterns": [
-            "verrazzano-*"
+            "verrazzano-system*"
+          ],
+          "priority": 1
+        }
+    }
+}`
+
+const applicationISMPayloadTemplate = `{
+    "policy": {
+        "policy_id": "application_ingest_delete",
+        "description": "Verrazzano Application Index policy which deletes documents after fixed time or size",
+        "schema_version": 12,
+        "error_notification": null,
+        "default_state": "ingest",
+        "states": [
+            {
+                "name": "ingest",
+                "actions": [
+                    {
+                        "rollover": {
+                            "min_size": "{{ .min_size }}",
+                            "min_doc_count": 1,
+                            "min_index_age": "{{ .min_index_age }}"
+                        }
+                    }
+                ],
+                "transitions": [
+                    {
+                        "state_name": "delete",
+                        "conditions": {
+                            "min_index_age": "{{ .min_index_age }}"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "delete",
+                "actions": [
+                    {
+                        "delete": {}
+                    }
+                ],
+                "transitions": []
+            }
+        ],
+        "ism_template": {
+          "index_patterns": [
+            "verrazzano-application*"
           ],
           "priority": 1
         }
@@ -447,6 +497,17 @@ func newURIComponents(url string) (*uriComponents, error) {
 	return uriComp, nil
 }
 
+func setLoggingOverrides(values *loggingValues, url string) error {
+	uriComp, err := newURIComponents(url)
+	if err != nil {
+		return err
+	}
+	values.ElasticsearchURL = uriComp.host
+	values.ElasticsearchPort = uriComp.port
+	values.ElasticsearchScheme = uriComp.scheme
+	return nil
+}
+
 func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) error {
 	overrides.Fluentd = &fluentdValues{
 		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
@@ -456,13 +517,9 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 	if fluentd != nil {
 		overrides.Logging = &loggingValues{}
 		if len(fluentd.ElasticsearchURL) > 0 {
-			uriComp, err := newURIComponents(fluentd.ElasticsearchURL)
-			if err != nil {
+			if err := setLoggingOverrides(overrides.Logging, fluentd.ElasticsearchURL); err != nil {
 				return err
 			}
-			overrides.Logging.ElasticsearchURL = uriComp.host
-			overrides.Logging.ElasticsearchPort = uriComp.port
-			overrides.Logging.ElasticsearchScheme = uriComp.scheme
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
 			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
@@ -774,53 +831,64 @@ func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 		return err
 	}
 
-	getCommand := makeBashCommand("curl localhost:9200/_plugins/_ism/policies/verrazzano-policy")
-	getResponse, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, getCommand)
-	if err != nil {
-		return err
-	}
-
-	policy := &ISMPolicy{}
-	if err := json.Unmarshal([]byte(getResponse), policy); err != nil {
-		return err
-	}
-
-	var lcm = vzapi.LifecycleManagement{}
+	var policies = vzapi.RetentionPolicies{}
 	cr := ctx.EffectiveCR()
 	if cr.Spec.Components.Elasticsearch != nil {
-		lcm = cr.Spec.Components.Elasticsearch.LifecycleManagement
+		policies = cr.Spec.Components.Elasticsearch.RetentionPolicies
 	}
 
-	payload, err := formatISMPayload(lcm)
-	if err != nil {
+	// Create ISM Policy for Verrazzano Applications
+	if err := putISMPayload(cfg, cli, pod, policies.Application, "verrazzano-application", applicationISMPayloadTemplate); err != nil {
 		return err
 	}
-	if policy.Status == notFound {
-		putISMCommand := fmt.Sprintf("_plugins/_ism/policies/verrazzano-policy -d '%s'", payload)
-		if err := doPUT(cfg, cli, pod, putISMCommand); err != nil {
-			return err
-		}
-	} else {
-		post := fmt.Sprintf("curl -X PUT 'localhost:9200/_plugins/_ism/policies/verrazzano-policy?if_seq_no=%d&if_primary_term=%d' -H 'Content-Type: application/json' -d '%s'",
-			policy.SequenceNumber,
-			policy.PrimaryTerm,
-			payload,
-		)
-		postCommand := makeBashCommand(post)
-		_, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, postCommand)
-		if err != nil {
-			return err
-		}
+	// Create ISM Policy for Verrazzano System
+	if err := putISMPayload(cfg, cli, pod, policies.System, "verrazzano-system", systemISMPayloadTemplate); err != nil {
+		return err
 	}
 
 	putTemplatePayload := fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)
 	return doPUT(cfg, cli, pod, putTemplatePayload)
 }
 
-func formatISMPayload(lcm vzapi.LifecycleManagement) (string, error) {
+func putISMPayload(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, ismConfig vzapi.ISMConfig, policyName, template string) error {
+	// Check if Policy exists or not
+	getCommand := makeBashCommand(fmt.Sprintf("curl 'localhost:9200/_plugins/_ism/policies/%s'", policyName))
+	getResponse, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, getCommand)
+	if err != nil {
+		return err
+	}
+	policy := &ISMPolicy{}
+	if err := json.Unmarshal([]byte(getResponse), policy); err != nil {
+		return err
+	}
+
+	// Create payload for updating ISM Policy
+	payload, err := formatISMPayload(ismConfig, template)
+	if err != nil {
+		return err
+	}
+
+	// If Policy doesn't exist, PUT it. If Policy exists, POST it.
+	var cmd string
+	if policy.Status == notFound {
+		cmd = fmt.Sprintf("curl -X PUT -H 'Content-Type: application/json' 'localhost:9200/_plugins/_ism/policies/%s' -d '%s'", policyName, payload)
+	} else {
+		cmd = fmt.Sprintf("curl -X POST -H 'Content-Type: application/json' 'localhost:9200/_plugins/_ism/policies/%s?if_seq_no=%d&if_primary_term=%d' -d '%s'",
+			policyName,
+			policy.SequenceNumber,
+			policy.PrimaryTerm,
+			payload,
+		)
+	}
+	containerCommand := makeBashCommand(cmd)
+	_, _, err = k8sutil.ExecPod(cli, cfg, pod, containerName, containerCommand)
+	return err
+}
+
+func formatISMPayload(ismConfig vzapi.ISMConfig, payload string) (string, error) {
 	tmpl, err := template.New("lifecycleManagement").
 		Option("missingkey=error").
-		Parse(ismPayloadTemplate)
+		Parse(payload)
 	if err != nil {
 		return "", err
 	}
@@ -832,17 +900,13 @@ func formatISMPayload(lcm vzapi.LifecycleManagement) (string, error) {
 			values[key] = *value
 		}
 	}
-	putOrDefault(lcm.MinSize, minSize, defaultMinSize)
-	putOrDefault(lcm.MinAge, minIndexAge, defaultMinIndexAge)
+	putOrDefault(ismConfig.MinSize, minSize, defaultMinSize)
+	putOrDefault(ismConfig.MinAge, minIndexAge, defaultMinIndexAge)
 	buffer := &bytes.Buffer{}
 	if err := tmpl.Execute(buffer, values); err != nil {
 		return "", err
 	}
 	return buffer.String(), nil
-}
-
-func restartFD(client clipkg.Client, namespace string) error {
-	return client.DeleteAllOf(context.TODO(), &corev1.Pod{}, clipkg.InNamespace(namespace), clipkg.MatchingLabels{"app": "fluentd"})
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster

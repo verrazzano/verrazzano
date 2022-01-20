@@ -20,7 +20,9 @@ elasticSearch:
         storage: ""
 logging:
   elasticsearchSecret: verrazzano
-  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+  elasticsearchURL: verrazzano-authproxy-elasticsearch
+  elasticsearchPort: 8775
+  elasticsearchScheme: http
 fluentd:
   enabled: true
 grafana:

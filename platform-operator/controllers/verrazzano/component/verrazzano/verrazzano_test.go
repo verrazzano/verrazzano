@@ -1235,17 +1235,17 @@ func Test_formatISMPayload(t *testing.T) {
 
 	var tests = []struct {
 		name        string
-		lcm         vzapi.LifecycleManagement
+		lcm         vzapi.ISMConfig
 		containsStr string
 	}{
 		{
 			"Should format with default values",
-			vzapi.LifecycleManagement{},
+			vzapi.ISMConfig{},
 			defaultMinIndexAge,
 		},
 		{
 			"Should format with custom values",
-			vzapi.LifecycleManagement{
+			vzapi.ISMConfig{
 				MinAge:  &age,
 				MinSize: &size,
 			},
@@ -1255,7 +1255,7 @@ func Test_formatISMPayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			payload, err := formatISMPayload(tt.lcm)
+			payload, err := formatISMPayload(tt.lcm, systemISMPayloadTemplate)
 			assert.NoError(t, err)
 			assert.Contains(t, payload, tt.containsStr)
 		})

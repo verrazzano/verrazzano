@@ -16,7 +16,9 @@ elasticSearch:
   enabled: true
 logging:
   elasticsearchSecret: custom-elasticsearch-secret
-  elasticsearchURL: http://myes.mydomain.com:9200
+  elasticsearchURL: myes.mydomain.com
+  elasticsearchPort: 9200
+  elasticsearchScheme: http
 fluentd:
   enabled: true
   extraVolumeMounts:
