@@ -532,7 +532,7 @@ data:
     -- should only be called if some vz process is trying to access vmi using basic auth
     -- tokens are cached locally
     function me.handleBasicAuth(authHeader)
-        me.debug("Checking for basic auth credentials")
+        -- me.debug("Checking for basic auth credentials")
         local found, index = authHeader:find('Basic')
         if not found then
             me.debug("No basic auth credentials found")
@@ -793,6 +793,8 @@ data:
         if not publicKey then
             me.unauthorized("No public key found")
         end
+        -- me.debug("TOKEN: iss is "..jwt_obj.payload.iss)
+        -- me.debug("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, default_claim_spec, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
             me.unauthorized("Failed to validate token", jwt_obj.reason)
@@ -813,7 +815,7 @@ data:
     end
 
     function me.usernameFromIdToken(idToken)
-        me.debug("usernameFromIdToken: fetching preferred_username")
+        -- me.debug("usernameFromIdToken: fetching preferred_username")
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.preferred_username then
             return id_token.payload.preferred_username
@@ -824,7 +826,7 @@ data:
     -- returns id token, token is refreshed first, if necessary.
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
-        me.debug("Check for existing session")
+        -- me.debug("Check for existing session")
         local ck = me.readCookie("vz_authn")
         if ck then
             me.debug("Existing session found")
@@ -833,7 +835,7 @@ data:
             local expiry = tonumber(ck.expiry)
             local refresh_expiry = tonumber(ck.refresh_expiry)
             if now < expiry then
-                me.debug("Returning ID token")
+                -- me.debug("Returning ID token")
                 return ck.it
             else
                 if now < refresh_expiry then
@@ -842,7 +844,7 @@ data:
                     if tokenRes then
                         me.oidcValidateIDTokenPKCE(tokenRes.id_token)
                         me.tokenToCookie(tokenRes)
-                        me.debug("Token refreshed",  tokenRes)
+                        -- me.debug("Token refreshed",  tokenRes)
                         return tokenRes.id_token
                     else
                         me.debug("No valid response from token refresh")
