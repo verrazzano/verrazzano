@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -803,6 +804,27 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	return mergedMap, updated
 }
 
+// containsString checks for a string in a slice of strings
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+// removeString removes a string from a slice of strings
+func removeString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
+	}
+	return
+}
+
 // buildDomain Build the DNS Domain from the current install
 func buildDomain(c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	subdomain := vz.Spec.EnvironmentName
@@ -987,7 +1009,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 				// All install related resources have been deleted, delete the finalizer so that the Verrazzano
 				// resource can get removed from etcd.
 				log.Debugf("Removing finalizer %s", finalizerName)
-				vz.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vz.ObjectMeta.Finalizers, finalizerName)
+				vz.ObjectMeta.Finalizers = removeString(vz.ObjectMeta.Finalizers, finalizerName)
 				err = r.Update(ctx, vz)
 				if err != nil {
 					return newRequeueWithDelay(), err
@@ -1040,7 +1062,9 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz 
 
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
-	return vzctrl.NewRequeueWithDelay(3, 5, time.Second)
+	var seconds = rand.IntnRange(3, 5)
+	delaySecs := time.Duration(seconds) * time.Second
+	return ctrl.Result{Requeue: true, RequeueAfter: delaySecs}
 }
 
 // Return true if requeue is needed
