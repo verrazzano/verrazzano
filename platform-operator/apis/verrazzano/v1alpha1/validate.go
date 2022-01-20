@@ -10,8 +10,6 @@ import (
 	"reflect"
 	"sigs.k8s.io/yaml"
 
-	"sigs.k8s.io/yaml"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
