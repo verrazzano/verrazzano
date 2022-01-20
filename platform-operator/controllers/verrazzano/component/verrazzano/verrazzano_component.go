@@ -105,15 +105,6 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 	return nil
 }
 
-// IsEnabled verrazzano-specific enabled check for installation
-func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Verrazzano
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
-}
-
 // GetIngressNames - gets the names of the ingresses associated with this component
 func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	ingressNames := []types.NamespacedName{

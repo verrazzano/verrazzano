@@ -6,8 +6,6 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"os"
 	"strings"
@@ -971,7 +969,7 @@ func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verra
 // Process the Verrazzano resource deletion
 func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Finalizer is present, so lets do the uninstall
-	if vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
+	if containsString(vz.ObjectMeta.Finalizers, finalizerName) {
 		// Create the uninstall job if it doesn't exist
 		if err := r.createUninstallJob(log, vz); err != nil {
 			log.Errorf("Failed creating the uninstall job: %v", err)
@@ -1108,7 +1106,7 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 	}
 
 	// Add our finalizer if not already added
-	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
+	if !containsString(vz.ObjectMeta.Finalizers, finalizerName) {
 		log.Debugf("Adding finalizer %s", finalizerName)
 		vz.ObjectMeta.Finalizers = append(vz.ObjectMeta.Finalizers, finalizerName)
 		if err := r.Update(context.TODO(), vz); err != nil {

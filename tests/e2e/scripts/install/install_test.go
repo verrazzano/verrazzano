@@ -6,7 +6,6 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"os"
 	"strings"
@@ -133,13 +132,13 @@ func isConsoleIngressHost(ingressHost string) bool {
 // isConsoleURLExpected - Returns true in VZ < 1.1.1. For VZ >= 1.1.1, returns false only if explicitly disabled
 // in the CR or when managed cluster profile is used
 func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
-	isAtleastVz111, err := pkg.IsVerrazzanoMinVersion("1.1.1")
+	isAtleastVz12, err := pkg.IsVerrazzanoMinVersion("1.1.1")
 	if err != nil {
 		return false, err
 	}
 	// Pre 1.1.1, the console URL was always present irrespective of whether console is enabled
 	// This behavior changed in VZ 1.1.1
-	if !isAtleastVz111 {
+	if !isAtleastVz12 {
 		return true, nil
 	}
 

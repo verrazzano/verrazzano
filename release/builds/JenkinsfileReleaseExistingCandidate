@@ -1,0 +1,89 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+def LAST_RELEASABLE_COMMIT
+def VERRAZZANO_DEV_VERSION
+def IMAGES_TO_PUBLISH_OBJECT_STORE_FILE
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RELEASE_RUNNER_IMAGE}"
+            args "${RELEASE_RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "internal"
+        }
+    }
+
+    parameters {
+        booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
+        booleanParam (description: 'Ignore pre-release validation failures', name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', defaultValue: false)
+    }
+
+    environment {
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+        GITHUB_CREDENTIALS = credentials('github-markxnelns-private-access-token')
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "us-phoenix-1"
+        OCI_REGION = "${env.OCI_CLI_REGION}"
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+        RELEASABLE_IMAGES_OBJECT_STORE = "releasable-verrazzano-images.txt"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+    }
+
+    stages {
+        stage('Find Last Releasable Commit') {
+            steps {
+                script {
+                    dir ("${WORKSPACE}") {
+                        def cleanBranchName = "${env.BRANCH_NAME.replace("/", "%2F")}"
+                        sh """
+                          oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/current-dev-version.txt --file ${WORKSPACE}/current_dev_version.txt
+                        """
+                        def propsDevVersion = readProperties file: "current_dev_version.txt"
+                        VERRAZZANO_DEV_VERSION = propsDevVersion['verrazzano-development-version']
+                        println("Current dev version is ${VERRAZZANO_DEV_VERSION}")
+                        sh """
+                          oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt --file ${WORKSPACE}/last_releasable_candidate_commit.txt
+                        """
+                        def props = readProperties file: "last_releasable_candidate_commit.txt"
+                        LAST_RELEASABLE_COMMIT = props['git-commit']
+                        if (!LAST_RELEASABLE_COMMIT) {
+                            println("ERROR: No releasable commit found for dev version ${VERRAZZANO_DEV_VERSION}")
+                            sh "exit 1"
+                        }
+                        IMAGES_TO_PUBLISH_OBJECT_STORE_FILE="${env.CLEAN_BRANCH_NAME}/${env.RELEASABLE_IMAGES_OBJECT_STORE}"
+                    }
+                }
+            }
+        }
+
+        stage('Start Release Job') {
+            steps {
+                build job: "verrazzano-release-pipeline-stage-1/${CLEAN_BRANCH_NAME}",
+                        parameters: [
+                                string(name: 'COMMIT_TO_USE', value: LAST_RELEASABLE_COMMIT),
+                                booleanParam(name: 'TEST_RUN', value: params.TEST_RUN),
+                                string(name: 'TARGET_VERSION', value: VERRAZZANO_DEV_VERSION),
+                                string(name: 'IMAGES_TO_PUBLISH_OBJECT_STORE_FILE', value: IMAGES_TO_PUBLISH_OBJECT_STORE_FILE),
+                                booleanParam(name: 'IGNORE_PRE_RELEASE_VALIDATION_FAILURES', value: params.IGNORE_PRE_RELEASE_VALIDATION_FAILURES)
+                        ], wait: true
+            }
+        }
+    }
+}

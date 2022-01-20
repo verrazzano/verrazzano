@@ -1,11 +1,10 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package keycloak
 
 import (
 	"context"
-	"path/filepath"
-
+	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -124,7 +124,6 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return updateKeycloakUris(ctx)
 }
 
-// IsEnabled Keycloak-specific enabled check for installation
 func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
@@ -135,19 +134,25 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	// TLS cert from Cert Manager should be in Ready state
-	secretName := getSecretName(ctx.EffectiveCR())
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
+	certName := getCertName(ctx.EffectiveCR())
+	certificate := &certmanager.Certificate{}
+	namespacedName := types.NamespacedName{Name: certName, Namespace: ComponentNamespace}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, certificate); err != nil {
 		ctx.Log().Infof("Keycloak isReady: Failed to get Keycloak Certificate: %s", err)
 		return false
 	}
+	if certificate.Status.Conditions == nil {
+		ctx.Log().Infof("Keycloak IsReady: No Certificate Status conditions found")
+		return false
+	}
 
+	condition := certificate.Status.Conditions[0]
 	statefulsetName := []types.NamespacedName{
 		{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 	}
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
+	return condition.Type == "Ready" &&
+		status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
 }

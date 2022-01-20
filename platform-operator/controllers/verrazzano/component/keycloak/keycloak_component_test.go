@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package keycloak
@@ -71,10 +71,17 @@ func TestIsEnabled(t *testing.T) {
 }
 
 func TestIsReady(t *testing.T) {
-	readySecret := &v1.Secret{
+	readyCert := &certmanager.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSecretName(testVZ),
+			Name:      getCertName(testVZ),
 			Namespace: ComponentNamespace,
+		},
+		Status: certmanager.CertificateStatus{
+			Conditions: []certmanager.CertificateCondition{
+				{
+					Type: "Ready",
+				},
+			},
 		},
 	}
 	scheme := k8scheme.Scheme
@@ -93,25 +100,37 @@ func TestIsReady(t *testing.T) {
 			"should not be ready when certificate has no status",
 			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      getSecretName(testVZ),
+					Name:      getCertName(testVZ),
 					Namespace: ComponentNamespace,
 				},
 			}),
 			false,
 		},
 		{
-			"should not be ready when secret does not exists",
-			fake.NewFakeClientWithScheme(scheme),
+			"should not be ready when certificate status is not ready",
+			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      getCertName(testVZ),
+					Namespace: ComponentNamespace,
+				},
+				Status: certmanager.CertificateStatus{
+					Conditions: []certmanager.CertificateCondition{
+						{
+							Type: "NotReady",
+						},
+					},
+				},
+			}),
 			false,
 		},
 		{
 			"should not be ready when certificate status is ready but statefulset is not ready",
-			fake.NewFakeClientWithScheme(scheme, readySecret),
+			fake.NewFakeClientWithScheme(scheme, readyCert),
 			false,
 		},
 		{
 			"should be ready when certificate status is ready and statefulset is ready",
-			fake.NewFakeClientWithScheme(scheme, readySecret, &appsv1.StatefulSet{
+			fake.NewFakeClientWithScheme(scheme, readyCert, &appsv1.StatefulSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: ComponentNamespace,
 					Name:      ComponentName,
