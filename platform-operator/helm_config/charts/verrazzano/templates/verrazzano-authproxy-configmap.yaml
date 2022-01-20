@@ -899,7 +899,7 @@ data:
         local ck = require "resty.cookie"
         local cookie, err = ck:new()
         if not cookie then
-            me.logJson(ngx.ERR, "Error setting cookie "..ckName, err)
+            me.logJson(ngx.DEBUG, "Error setting cookie "..ckName, err)
             return
         end
         local expires = ngx.cookie_time(ngx.time() + expiresInSec)
@@ -961,7 +961,7 @@ data:
         local certsUri = me.getOidcCertsUri()
         local res, err = httpc:request_uri(certsUri)
         if err then
-            me.logJson(ngx.WARN, "Could not retrieve certs", err)
+            me.logJson(ngx.DEBUG, "Could not retrieve certs", err)
             return nil
         end
         local data = cjson.decode(res.body)
@@ -1135,7 +1135,7 @@ data:
             local decoder = require("cjson.safe").decode
             local decoded_data, err = decoder(data)
             if err then
-                me.logJson(ngx.ERR, "Invalid request payload:" .. data)
+                me.logJson(ngx.DEBUG, "Invalid request payload:" .. data)
                 return false
             end
         end
