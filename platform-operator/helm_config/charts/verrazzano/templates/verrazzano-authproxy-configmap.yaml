@@ -94,7 +94,7 @@ data:
             token = auth.handleBasicAuth(authHeader)
         end
         if not token then
-            auth.error("No recognized credentials in authorization header")
+            auth.debug("No recognized credentials in authorization header")
         end
     else
         auth.debug("No authorization header found")
@@ -284,7 +284,7 @@ data:
     end
 
     function me.internal_server_error(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.logJson(ngx.DEBUG, msg, err)
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
         ngx.say("500 Internal Server Error")
         ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
@@ -292,28 +292,28 @@ data:
 
     function me.unauthorized(msg, err)
         me.deleteCookies("vz_authn", "vz_userinfo", "vz_state")
-        me.logJson(ngx.ERR, msg, err)
+        me.logJson(ngx.DEBUG, msg, err)
         ngx.status = ngx.HTTP_UNAUTHORIZED
         ngx.say("401 Unauthorized")
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     function me.forbidden(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.logJson(ngx.DEBUG, msg, err)
         ngx.status = ngx.HTTP_FORBIDDEN
         ngx.say("403 Forbidden")
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
     function me.not_found(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.logJson(ngx.DEBUG, msg, err)
         ngx.status = ngx.HTTP_NOT_FOUND
         ngx.say("404 Not Found")
         ngx.exit(ngx.HTTP_NOT_FOUND)
     end
 
     function me.bad_request(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.logJson(ngx.DEBUG, msg, err)
         ngx.status = ngx.HTTP_BAD_REQUEST
         ngx.say("400 Bad Request")
         ngx.exit(ngx.HTTP_BAD_REQUEST)
@@ -684,14 +684,16 @@ data:
             }
         })
         if err then
+            me.error("Error requesting token from Keycloak")
             me.unauthorized("Error requesting token", err)
         end
         if not res then
+            me.error("Error requesting token from Keycloak: response is nil")
             me.unauthorized("Error requesting token: response was nil")
         end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
-            me.error("Error requesting token")
+            me.error("Error requesting token from Keycloak")
             me.unauthorized(tokenRes.error_description)
         end
         return tokenRes
@@ -931,17 +933,17 @@ data:
         local cookie, err = require("resty.cookie"):new()
         local ck = cookie:get(ckName)
         if not ck then
-            me.error("Cookie not found")
+            me.debug("Cookie not found")
             return nil
         end
         local decoded = base64.decode_base64url(ck)
         if not decoded then
-            me.error("Cookie not decoded")
+            me.debug("Cookie not decoded")
             return nil
         end
         local json = me.aes256:decrypt(decoded)
         if not json then
-            me.error("Cookie not decrypted")
+            me.debug("Cookie not decrypted")
             return nil
         end
         return cjson.decode(json)
