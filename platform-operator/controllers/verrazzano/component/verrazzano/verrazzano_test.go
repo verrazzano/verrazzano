@@ -942,14 +942,15 @@ func Test_findStorageOverride(t *testing.T) {
 }
 
 // Test_loggingPreInstall tests the Verrazzano loggingPreInstall call
-// GIVEN a Verrazzano component
-//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret
-//  THEN no error is returned
 func Test_loggingPreInstall(t *testing.T) {
+	// GIVEN a Verrazzano component
+	//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret
+	//  THEN no error is returned and the secret has been copied
 	trueValue := true
+	secretName := "my-es-secret" //nolint:gosec //#gosec G101
 	client := fake.NewFakeClientWithScheme(testScheme,
 		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: "my-es-secret"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
 		},
 	)
 	ctx := spi.NewFakeContext(client,
@@ -959,13 +960,46 @@ func Test_loggingPreInstall(t *testing.T) {
 					Fluentd: &vzapi.FluentdComponent{
 						Enabled:             &trueValue,
 						ElasticsearchURL:    "https://myes.mydomain.com:9200",
-						ElasticsearchSecret: "my-es-secret",
+						ElasticsearchSecret: secretName,
 					},
 				},
 			},
 		},
 		false)
 	err := loggingPreInstall(ctx)
+	assert.NoError(t, err)
+
+	secret := &corev1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: vpoconst.VerrazzanoSystemNamespace}, secret)
+	assert.NoError(t, err)
+
+	// GIVEN a Verrazzano component
+	//  WHEN I call loggingPreInstall with fluentd overrides for OCI logging, including an OCI API secret name
+	//  THEN no error is returned and the secret has been copied
+	secretName = "my-oci-api-secret" //nolint:gosec //#gosec G101
+	client = fake.NewFakeClientWithScheme(testScheme,
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
+		},
+	)
+	ctx = spi.NewFakeContext(client,
+		&vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Fluentd: &vzapi.FluentdComponent{
+						Enabled: &trueValue,
+						OCI: &vzapi.OciLoggingConfiguration{
+							APISecret: secretName,
+						},
+					},
+				},
+			},
+		},
+		false)
+	err = loggingPreInstall(ctx)
+	assert.NoError(t, err)
+
+	err = client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: vpoconst.VerrazzanoSystemNamespace}, secret)
 	assert.NoError(t, err)
 }
 
