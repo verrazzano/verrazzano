@@ -686,7 +686,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
-					log.Errorf("Failed to determin if component %s is installed: %v", comp.Name(), err)
+					log.Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
 					return newRequeueWithDelay(), err
 				}
 				if installed {

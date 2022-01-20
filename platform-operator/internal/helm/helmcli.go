@@ -171,7 +171,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
-			log.Debugf("Successfully ran Helm command for operation %s and release %s", operation, releaseName, stdout)
+			log.Debugf("Successfully ran Helm command for operation %s and release %s", operation, releaseName)
 			break
 		}
 		if i == 1 || i == maxRetry {
