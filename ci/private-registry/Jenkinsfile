@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -10,6 +10,7 @@ def ocirRegion = "phx"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
     options {
@@ -40,7 +41,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'master-last-clean-periodic-test/verrazzano_full.zip',
+                        defaultValue: 'master-last-clean-periodic-test/verrazzano_periodic.zip',
                         description: 'The bucket location to use for the Zip file download',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -75,6 +76,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
+        LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
@@ -111,6 +113,7 @@ pipeline {
                 }
 
                 script {
+                   EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
@@ -151,9 +154,9 @@ pipeline {
 
                 script {
                     try {
-                    sh """
-                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                    """
+                        sh """
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                        """
                     } catch(error) {
                         echo "docker login failed, retrying after sleep"
                         retry(4) {
@@ -207,6 +210,7 @@ pipeline {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
+                    setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
             }
@@ -264,6 +268,7 @@ pipeline {
                         REGISTRY="${ocirRegistry}"
                         PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
                         PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
+                        CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
                     }
                     steps {
                         sh """
@@ -272,6 +277,13 @@ pipeline {
                         """
                     }
                     post {
+                        success {
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                                    dumpK8sCluster('install-success-cluster-dump')
+                                }
+                            }
+                        }
                         always {
                             archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                             sh """
@@ -448,16 +460,77 @@ pipeline {
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('private-registry-tests-cluster-dump')
+                            dumpK8sCluster('tests-failure-cluster-dump')
                         }
                     }
                 }
                 success {
                     script {
-                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('private-registry-tests-cluster-dump')
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('tests-success-cluster-dump')
                         }
                     }
+                }
+            }
+        }
+        stage('Uninstall') {
+            options {
+                timeout(time: 30, unit: "MINUTES")
+            }
+            steps {
+                script {
+                    try {
+                        sh """
+                            kubectl delete verrazzano my-verrazzano
+                        """
+                    } catch (err) {
+                        currentBuild.result = "FAILURE"
+                        echo "Caught: ${err}"
+                        err 'Verrazzano uninstall failed'
+                    }
+                }
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out uninstall logs
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                        kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
+                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                        echo "Listing all pods in all namespaces after uninstall"
+                        kubectl get pods --all-namespaces
+                        echo "-----------------------------------------------------"
+                    """
+                    listNamespacesAndPods('after Verrazzano uninstall')
+                    listHelmReleases('after Verrazzano uninstall')
+                }
+                failure {
+                    dumpK8sCluster('uninstall-failure-cluster-dump')
+                }
+                aborted {
+                    dumpK8sCluster('uninstall-aborted-cluster-dump')
+                }
+            }
+        }
+        stage("Verify Uninstall") {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                    """
+                }
+            }
+            post {
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verify-uninstall-success-cluster-dump')
+                        }
+                    }
+                }
+                failure {
+                    dumpK8sCluster('verify-uninstall-failed-cluster-dump')
                 }
             }
         }
@@ -613,3 +686,49 @@ def dumpVerrazzanoApiLogs() {
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "verrazzano-api-*" -m "verrazzano api" -c verrazzano-api -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
+
+def setDisplayName() {
+    echo "Start setDisplayName"
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        if (causeString.contains("UpstreamCause") && causeString.contains("Started by upstream project")) {
+             echo "This job was caused by " + causeString
+             if (causeString.contains("verrazzano-periodic-triggered-tests")) {
+                 currentBuild.displayName = env.BUILD_NUMBER + " : PERIODIC"
+             } else if (causeString.contains("verrazzano-flaky-tests")) {
+                 currentBuild.displayName = env.BUILD_NUMBER + " : FLAKY"
+             }
+         }
+    }
+    echo "End setDisplayName"
+}
+
+def getEffectiveDumpOnSuccess() {
+    def effectiveValue = params.DUMP_K8S_CLUSTER_ON_SUCCESS
+    if (FORCE_DUMP_K8S_CLUSTER_ON_SUCCESS.equals("true") && (env.BRANCH_NAME.equals("master"))) {
+        effectiveValue = true
+        echo "Forcing dump on success based on global override setting"
+    }
+    return effectiveValue
+}
+
+def listNamespacesAndPods(customMessage) {
+    sh """
+        echo "Listing all the namespaces and pods the namespaces ${customMessage}."
+        kubectl get namespaces
+        kubectl get pods -A
+        echo "-----------------------------------------------------"
+    """
+}
+
+def listHelmReleases(customMessage) {
+    sh """
+        echo "Listing the releases across all namespaces ${customMessage}."
+        helm list -A
+        echo "-----------------------------------------------------"
+    """
+}
+
