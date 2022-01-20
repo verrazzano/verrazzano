@@ -10,7 +10,7 @@ pipeline {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
-            label "largeexperimental"
+            label "VM.Standard2.8"
             registryCredentialsId 'ocir-pull-and-push-account'
         }
     }
