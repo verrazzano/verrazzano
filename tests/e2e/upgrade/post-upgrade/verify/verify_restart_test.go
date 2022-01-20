@@ -5,6 +5,7 @@ package verify
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -126,5 +127,27 @@ var _ = t.Describe("Application pods post-upgrade", func() {
 		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", springbootNamespace), springbootNamespace, twoMinutes),
 		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, fiveMinutes),
 		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, fiveMinutes),
+	)
+})
+
+var _ = t.Describe("Verify istio helm releases are removed", func() {
+	const (
+		istiod       = "istiod"
+		istioBase    = "istio"
+		istioIngress = "istio-ingress"
+		istioEgress  = "istio-egress"
+		istioCoreDNS = "istiocoredns"
+	)
+	t.DescribeTable("should contain Envoy sidecar 1.10.4",
+		func(release string) {
+			Eventually(func() (bool, error) {
+				return helm.IsReleaseInstalled(release, constants.IstioSystemNamespace)
+			}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to not find release %s in istio-system", release))
+		},
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istiod), istiod, twoMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioBase), istioBase, twoMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioIngress), istioIngress, fiveMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioEgress), istioEgress, fiveMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioCoreDNS), istioCoreDNS, fiveMinutes),
 	)
 })
