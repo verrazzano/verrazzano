@@ -133,12 +133,12 @@ func setBashFunc(f bashFuncSig) {
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
-		compContext.Log().Debugf("cert-manager PreInstall dry run")
+		compContext.Log().Debug("cert-manager PreInstall dry run")
 		return nil
 	}
 
 	// create cert-manager namespace
-	compContext.Log().Debugf("Adding label needed by network policies to cert-manager namespace")
+	compContext.Log().Debug("Adding label needed by network policies to cert-manager namespace")
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
@@ -150,7 +150,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	}
 
 	// Apply the cert-manager manifest, patching if needed
-	compContext.Log().Debugf("Applying cert-manager crds")
+	compContext.Log().Debug("Applying cert-manager crds")
 	err := c.applyManifest(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %v", err)
@@ -168,7 +168,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
-		compContext.Log().Debugf("cert-manager PostInstall dry run")
+		compContext.Log().Debug("cert-manager PostInstall dry run")
 		return nil
 	}
 

@@ -345,7 +345,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 			if err != nil {
 				compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
 			} else {
-				compContext.Log().Debugf("Deleted helm secret %v", secretName)
+				compContext.Log().Debugf("Deleted helm secret %s", secretName)
 			}
 		}
 	}

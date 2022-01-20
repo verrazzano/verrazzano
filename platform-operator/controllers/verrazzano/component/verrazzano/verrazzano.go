@@ -433,7 +433,7 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespa
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].Value = string(elasticsearchURL)
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].ValueFrom = nil
 	}
-	log.Debugf("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
+	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
 }
@@ -623,7 +623,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 	if httpPort <= 0 {
 		err := fmt.Errorf("no port found")
-		ctx.Log().Errorf("Failed to find Elasticsearch port during post-upgrade: %s", err)
+		ctx.Log().Errorf("Failed to find Elasticsearch port during post-upgrade: %v", err)
 		return err
 	}
 
@@ -637,7 +637,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch cluster health: %s", err)
 		return err
 	}
-	ctx.Log().Debug("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %v", string(output))
+	ctx.Log().Debugf("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %s", string(output))
 	// If the data node count is seen as 1 then the node is considered as single node cluster
 	if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
 		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster

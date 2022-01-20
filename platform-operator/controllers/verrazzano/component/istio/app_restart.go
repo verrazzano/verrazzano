@@ -91,7 +91,7 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 
 // StartDomainsStoppedByUpgrade starts all the WebLogic domains that upgrade previously stopped
 func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client, restartVersion string) error {
-	log.Debugf("StartDomainsStoppedByUpgrade: Checking if any domains need to be started")
+	log.Debug("StartDomainsStoppedByUpgrade: Checking if any domains need to be started")
 
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
@@ -140,7 +140,7 @@ func startDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, wlNamespa
 
 // RestartAllApps restarts all the applications
 func RestartAllApps(log *zap.SugaredLogger, client clipkg.Client, restartVersion string) error {
-	log.Debugf("RestartAllApps: restarting all apps")
+	log.Debug("RestartAllApps: restarting all apps")
 
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}

@@ -178,7 +178,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 			log.Errorf("Failed running Helm command for operation %s and release %s: stderr %s", operation, releaseName, string(stderr))
 			return stdout, stderr, err
 		}
-		log.Info("Failed running Helm command for operation %s and release %s. Retrying %s of %s", operation, releaseName, i+1, maxRetry)
+		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %s of %s", operation, releaseName, i+1, maxRetry)
 	}
 
 	//  Log upgrade output

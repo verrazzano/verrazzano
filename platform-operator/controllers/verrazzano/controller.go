@@ -222,7 +222,7 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	log := spiCtx.Log()
 	actualCR := spiCtx.ActualCR()
-	log.Debugf("Entering ProcInstallingState")
+	log.Debug("Entering ProcInstallingState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
@@ -248,7 +248,7 @@ func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Resu
 func (r *Reconciler) ProcUninstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
-	log.Debugf("Entering ProcUninstallingState")
+	log.Debug("Entering ProcUninstallingState")
 	ctx := context.TODO()
 
 	// Update uninstall status
@@ -263,7 +263,7 @@ func (r *Reconciler) ProcUninstallingState(spiCtx spi.ComponentContext) (ctrl.Re
 func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
-	log.Debugf("Entering ProcUpgradingState")
+	log.Debug("Entering ProcUpgradingState")
 
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
@@ -279,7 +279,7 @@ func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Resul
 func (r *Reconciler) ProcFailedState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
-	log.Debugf("Entering ProcFailedState")
+	log.Debug("Entering ProcFailedState")
 	ctx := context.TODO()
 
 	// Determine if the user specified to retry upgrade

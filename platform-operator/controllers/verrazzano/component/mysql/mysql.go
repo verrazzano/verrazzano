@@ -104,7 +104,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 // preInstall creates and label the MySQL namespace
 func preInstall(compContext spi.ComponentContext, namespace string) error {
 	if compContext.IsDryRun() {
-		compContext.Log().Debugf("MySQL PreInstall dry run")
+		compContext.Log().Debug("MySQL PreInstall dry run")
 		return nil
 	}
 	compContext.Log().Debugf("Adding label needed by network policies to %s namespace", namespace)
@@ -125,7 +125,7 @@ func preInstall(compContext spi.ComponentContext, namespace string) error {
 // postInstall removes the MySQL Init file
 func postInstall(ctx spi.ComponentContext) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Debugf("MySQL PostInstall dry run")
+		ctx.Log().Debug("MySQL PostInstall dry run")
 		return nil
 	}
 	// Delete create-mysql-db.sql after install

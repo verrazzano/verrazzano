@@ -436,7 +436,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	ingress := networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
 	}
-	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
 		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
 			return err
@@ -446,7 +446,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 		ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 		return nil
 	})
-	ctx.Log().Debugf("updateKeycloakIngress: Keycloak ingress operation result: %s", opResult)
+	ctx.Log().Debugf("updateKeycloakIngress: Keycloak ingress operation result: %v", err)
 	return err
 }
 
@@ -474,7 +474,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	if id == "" {
 		return errors.New("Keycloak Post Upgrade: Error retrieving ID for Keycloak user, zero length")
 	}
-	ctx.Log().Debugf("Keycloak Post Upgrade: Successfully retrieved clientID")
+	ctx.Log().Debug("Keycloak Post Upgrade: Successfully retrieved clientID")
 
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
@@ -692,7 +692,7 @@ func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname str
 		if err != nil {
 			return err
 		}
-		opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
 			// Build the secret data
 			secret.Data = map[string][]byte{
 				"username": []byte(username),
@@ -700,7 +700,7 @@ func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname str
 			}
 			return nil
 		})
-		ctx.Log().Debugf("Keycloak secret operation result: %s", opResult)
+		ctx.Log().Debugf("Keycloak secret operation result: %v", err)
 
 		if err != nil {
 			return err
@@ -751,7 +751,7 @@ func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 	ctx.Log().Debugf("createVerrazzanoSystemRealm: Check Verrazzano System Realm Exists Cmd = %s", checkRealmExistsCmd)
 	_, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(checkRealmExistsCmd))
 	if err != nil {
-		ctx.Log().Debugf("createVerrazzanoSystemRealm: Verrazzano System Realm doesn't exist: Creating it")
+		ctx.Log().Debug("createVerrazzanoSystemRealm: Verrazzano System Realm doesn't exist: Creating it")
 		createRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh create realms -s " + realm + " -s enabled=false"
 		ctx.Log().Debugf("createVerrazzanoSystemRealm: Create Verrazzano System Realm Cmd = %s", createRealmCmd)
 		stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRealmCmd))

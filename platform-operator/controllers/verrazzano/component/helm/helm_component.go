@@ -210,7 +210,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 		return err
 	}
 
-	// Perform a helm upgrade --install
+	// Perform an install using the helm upgrade --install command
 	context.Log().Infof("Performing installation of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
@@ -250,7 +250,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	if h.SkipUpgrade {
-		context.Log().Infof("Upgrade disabled for %v", h.ReleaseName)
+		context.Log().Infof("Upgrade disabled for %s", h.ReleaseName)
 		return nil
 	}
 
@@ -309,7 +309,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of component-specified override files if present
 	overrides.FileOverrides = append(overrides.FileOverrides, tmpFile.Name())
 
-	// Perform a helm upgrade --install
+	// Perform an upgrade using the helm upgrade --install command
 	context.Log().Infof("Performing upgrade of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
