@@ -9,9 +9,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"go.uber.org/zap"
-
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 const ns = "my_namespace"
