@@ -966,7 +966,7 @@ data:
         end
         local data = cjson.decode(res.body)
         if not (data.keys) then
-            me.error("No keys found")
+            me.debug("No keys found")
             return nil
         end
         for i, key in pairs(data.keys) do
