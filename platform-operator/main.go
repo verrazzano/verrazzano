@@ -94,10 +94,10 @@ func main() {
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {
-		log.Debug("Setting up certificates for webhook")
+		log.Debug("Creating certificates used by webhooks")
 		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
-			log.Errorf("Failed to setup certificates for webhook: %v", err)
+			log.Errorf("Failed to create certificates used by webhooks: %v", err)
 			os.Exit(1)
 		}
 
@@ -143,7 +143,7 @@ func main() {
 		LeaderElectionID:   "3ec4d290.verrazzano.io",
 	})
 	if err != nil {
-		log.Errorf("Failed to start manager: %v", err)
+		log.Errorf("Failed to create a controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
 
@@ -154,7 +154,7 @@ func main() {
 		DryRun: config.DryRun,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed creating controller: %v", err)
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
 		os.Exit(1)
 	}
 
@@ -173,7 +173,7 @@ func main() {
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "Failed creating controller", "controller", "VerrazzanoManagedCluster")
+		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoManagedCluster")
 		os.Exit(1)
 	}
 
@@ -189,9 +189,9 @@ func main() {
 
 	// +kubebuilder:scaffold:builder
 
-	log.Debug("Starting controller-runtime manager.  Controllers will now be activated and Webhook URLs will accessible.")
+	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Errorf("problem running manager: %v", err)
+		log.Errorf("Failed starting controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
 }
