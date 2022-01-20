@@ -494,48 +494,66 @@ func LabelKubeSystemNamespace(client clipkg.Client) error {
 	return nil
 }
 
+// loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
 func loggingPreInstall(ctx spi.ComponentContext) error {
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		// If fluentd is enabled, copy any custom Elasticsearch secret if found
+		// If fluentd is enabled, copy any custom secrets
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
-		if fluentdConfig != nil &&
-			len(fluentdConfig.ElasticsearchURL) > 0 &&
-			fluentdConfig.ElasticsearchSecret != globalconst.DefaultElasticsearchSecretName {
-
-			esSecret := fluentdConfig.ElasticsearchSecret
-			vzLog := ctx.Log()
-			vzLog.Debugf("Copying custom/external Elasticsearch secret %s to %s namespace",
-				esSecret, globalconst.VerrazzanoSystemNamespace)
-			targetSecret := corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: esSecret, Namespace: globalconst.VerrazzanoSystemNamespace},
-			}
-			opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &targetSecret, func() error {
-				sourceSecret := corev1.Secret{}
-				if err := ctx.Client().Get(context.TODO(),
-					types.NamespacedName{Name: esSecret, Namespace: constants.VerrazzanoInstallNamespace},
-					&sourceSecret); err != nil {
+		if fluentdConfig != nil {
+			// Copy the external Elasticsearch secret
+			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.DefaultElasticsearchSecretName {
+				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
 					return err
 				}
-				targetSecret.Type = sourceSecret.Type
-				targetSecret.Immutable = sourceSecret.Immutable
-				targetSecret.StringData = sourceSecret.StringData
-				targetSecret.Data = sourceSecret.Data
-				return nil
-			})
-			vzLog.Debugf("Copy custom Elasticsearch secret result: %s", opResult)
-			if err != nil {
-				if !errors.IsNotFound(err) {
-					return ctrlerrors.RetryableError{
-						Source: ComponentName,
-						Cause:  err,
-					}
+			}
+			// Copy the OCI API secret
+			if fluentdConfig.OCI != nil && len(fluentdConfig.OCI.APISecret) > 0 {
+				if err := copySecret(ctx, fluentdConfig.OCI.APISecret, "OCI API"); err != nil {
+					return err
 				}
-				vzLog.Errorf("Custom Elasticsearch secret %s not found in namespace %s",
-					esSecret, constants.VerrazzanoInstallNamespace)
-				return ctrlerrors.RetryableError{Source: ComponentName}
 			}
 		}
 	}
+	return nil
+}
+
+// copySecret copies a secret from the verrazzano-install namespace to the verrazzano-system namespace. If
+// the target secret already exists, then it will be updated if necessary.
+func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) error {
+	vzLog := ctx.Log()
+	vzLog.Debugf("Copying %s secret %s to %s namespace", logMsg, secretName, globalconst.VerrazzanoSystemNamespace)
+
+	targetSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+	}
+	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &targetSecret, func() error {
+		sourceSecret := corev1.Secret{}
+		nsn := types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}
+		if err := ctx.Client().Get(context.TODO(), nsn, &sourceSecret); err != nil {
+			return err
+		}
+		targetSecret.Type = sourceSecret.Type
+		targetSecret.Immutable = sourceSecret.Immutable
+		targetSecret.StringData = sourceSecret.StringData
+		targetSecret.Data = sourceSecret.Data
+		return nil
+	})
+
+	vzLog.Debugf("Copy %s secret result: %s", logMsg, opResult)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return ctrlerrors.RetryableError{
+				Source: ComponentName,
+				Cause:  err,
+			}
+		}
+		vzLog.Errorf("The %s secret %s not found in namespace %s", logMsg, secretName, constants.VerrazzanoInstallNamespace)
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+
 	return nil
 }
 
