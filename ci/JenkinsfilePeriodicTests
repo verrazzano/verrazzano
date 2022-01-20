@@ -10,6 +10,12 @@ def tarfilePrefix="verrazzano_periodic"
 def storeLocation=""
 def branchSpecificSchedule = getCronSchedule()
 
+// The job name from which the verrazzano_images file is available to be copied to this job
+// We will copy over and make it part of the artifacts of the periodic job, available when we want to release a candidate
+def verrazzanoImagesJobProjectName = "verrazzano-new-oci-dns-acceptance-tests"
+def verrazzanoImagesFile = "verrazzano_images.txt"
+def verrazzanoImagesBuildNumber = 0 // will be set to actual build number when the job is run
+
 pipeline {
     options {
         skipDefaultCheckout true
@@ -59,6 +65,7 @@ pipeline {
         OCI_OS_BUCKET="verrazzano-builds"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+        RELEASABLE_IMAGES_OBJECT_STORE = "releasable-verrazzano-images.txt"
     }
 
     // This job runs against the latest stable master commit. That is defined as the last clean master build and test run whose
@@ -158,7 +165,7 @@ pipeline {
                 stage('OCI DNS tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                            def builtOCIDNS = build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -166,6 +173,8 @@ pipeline {
                                     string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                     string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                 ], wait: true
+                            // The OCI DNS job is the one from which we get the verrazzano images file
+                            verrazzanoImagesBuildNumber = builtOCIDNS.number
                         }
                     }
                 }
@@ -186,7 +195,7 @@ pipeline {
                         }
                     }
                }
-                stage('OCI Private DNS tests') {
+               stage('OCI Private DNS tests') {
                     steps {
                         script {
                             build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
@@ -203,7 +212,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('Kind Acceptance Tests on 1.19') {
                     steps {
                         script {
@@ -349,32 +357,9 @@ pipeline {
                         }
                     }
                 }
-                /*stage('Multi Cluster with OCI DNS/ACME-Staging Tests') {
-                    steps {
-                        script {
-                            build job: "verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'TEST_ENV', value: 'ocidns_oke'),
-                                    string(name: 'ACME_ENVIRONMENT', value: "staging"),
-                                    // Disable Calico with these runs temporarily
-                                    booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                ], wait: true
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                TESTS_FAILED = true
-                            }
-                        }
-                    }
-                }*/
             }
         }
+
         stage("Private Registry") {
             when {
                 allOf {
@@ -428,16 +413,20 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Release Candidate Validation Checks') {
                     steps {
                         script {
                             def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
-                                ], wait: true
+                                ], wait: true, propagate: false
+                            println("Result of verrazzano-prerelease-check is ${built.result}")
                             dir ("${WORKSPACE}") {
-                                copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}", selector: specific("${built.number}"));
-                                currentBuild.displayName = readFile file: "release_status.out"
+                                copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                                        selector: specific("${built.number}"));
+                                def releaseStatus = readFile file: "release_status.out"
+                                currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
                             }
                         }
                     }
@@ -447,7 +436,19 @@ pipeline {
     }
     post {
         always {
-            archiveArtifacts artifacts: '**/prerelease_validation.out,**/release_status.out', allowEmptyArchive: true
+            script {
+                if (verrazzanoImagesBuildNumber > 0) {
+                    copyArtifacts(projectName: "${verrazzanoImagesJobProjectName}/${CLEAN_BRANCH_NAME}",
+                            selector: specific("${verrazzanoImagesBuildNumber}"),
+                            filter: verrazzanoImagesFile)
+                    sh """
+                        OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/${RELEASABLE_IMAGES_OBJECT_STORE} --file ${verrazzanoImagesFile}
+                    """
+                } else {
+                    println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
+                }
+            }
+            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile}", allowEmptyArchive: true
         }
         failure {
             script {

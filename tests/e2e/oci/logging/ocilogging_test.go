@@ -43,6 +43,9 @@ var failed = false
 
 var t = framework.NewTestFramework("logging")
 
+var helidonNamespace = pkg.GenerateNamespace("helidon-logging")
+var yamlApplier = k8sutil.YAMLApplier{}
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
@@ -74,7 +77,7 @@ var _ = t.AfterSuite(func() {
 		},
 		func() {
 			start := time.Now()
-			pkg.UndeployHelloHelidonApplication()
+			pkg.UndeployHelloHelidonApplication(&yamlApplier, helidonNamespace)
 			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 		},
 	)
@@ -167,11 +170,11 @@ var _ = t.Describe("OCI Logging", func() {
 		t.It("the namespace-specific app log object has recent log records", func() {
 
 			start := time.Now()
-			pkg.DeployHelloHelidonApplication(nsLogID)
+			pkg.DeployHelloHelidonApplication(&yamlApplier, helidonNamespace, nsLogID)
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 			Eventually(func() (int, error) {
-				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, pkg.HelloHelidonNamespace)
+				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, nsLogID, helidonNamespace)
 				if err != nil {
 					return 0, err
 				}
@@ -239,8 +242,7 @@ func getLogRecordsFromOCI(client *loggingsearch.LogSearchClient, compartmentID, 
 
 // getLogSearchClient returns an OCI SDK client for searching logs. If a region is specified then
 // use an instance principal auth provider, otherwise use the default provider (auth config comes from
-// an OCI config file or environment variables). Instance principals are used when running in the
-// CI/CD pipelines while the default provider is suitable for running locally.
+// an OCI config file or environment variables).
 func getLogSearchClient(region string) (loggingsearch.LogSearchClient, error) {
 	var provider common.ConfigurationProvider
 	var err error
