@@ -98,7 +98,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
 	index := 0
-	if len(args) > 0 {
+	if len(args) > 1 {
 		index++
 	}
 	body := args[index]
