@@ -226,7 +226,7 @@ func TestInstallInitComponents(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 
 	// Validate the results
 	mocker.Finish()

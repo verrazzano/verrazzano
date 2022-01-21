@@ -72,7 +72,6 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	res, err := r.doReconcile(req)
-
 	if shouldRequeue(res) {
 		return res, nil
 	}
@@ -86,14 +85,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 // reconcile the
 func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
-
 	ctx := context.TODO()
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, "Verrazzano")
+	log.Debugf("Reconcile called")
 
 	// Add cert-manager components to the scheme
 	cmapiv1.AddToScheme(r.Scheme)
-
-	log.Debugf("Reconcile called")
 
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
@@ -347,9 +344,11 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 		log.Debugf("Creating install service account %s", buildServiceAccountName(vz.Name))
 		err = r.Create(ctx, serviceAccount)
 		if err != nil {
+			log.Errorf("Failed to create install service account %s: %v", buildServiceAccountName(vz.Name), err)
 			return err
 		}
 	} else if err != nil {
+		log.Errorf("Failed to get install service account %s: %v", buildServiceAccountName(vz.Name), err)
 		return err
 	}
 
@@ -387,9 +386,11 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 		log.Debugf("Creating install cluster role binding %s", binding.Name)
 		err = r.Create(ctx, binding)
 		if err != nil {
+			log.Errorf("Failed to create install cluster role binding %s: %v", binding.Name, err)
 			return err
 		}
 	} else if err != nil {
+		log.Errorf("Failed to get install cluster role binding %s: %v", binding.Name, err)
 		return err
 	}
 
@@ -696,7 +697,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 		}
 	}
 	// Update the status
-	return ctrl.Result{}, r.updateVerrazzanoStatus(log, cr)
+	return newRequeueWithDelay(), r.updateVerrazzanoStatus(log, cr)
 }
 
 // setUninstallCondition sets the Verrazzano resource condition in status for uninstall
@@ -713,8 +714,9 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 		job.SetOwnerReferences([]metav1.OwnerReference{})
 
 		// Update the job
-		err := r.updateVerrazzanoStatus(log, vz)
+		err := r.Status().Update(context.TODO(), job)
 		if err != nil {
+			log.Errorf("Failed to update uninstall job owner references: %v", err)
 			return err
 		}
 
@@ -760,7 +762,7 @@ func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *z
 	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Errorf("Failed to delete namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
+			log.Errorf("Failed to get namespace %s: %v", vzconst.VerrazzanoSystemNamespace, err)
 			return err
 		}
 		vzSystemNS.Name = vzconst.VerrazzanoSystemNamespace
