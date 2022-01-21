@@ -4,6 +4,7 @@
 package istio
 
 import (
+	"fmt"
 	"os/exec"
 	"strings"
 
@@ -90,10 +91,13 @@ func IsInstalled(log *zap.SugaredLogger) (bool, error) {
 
 // VerifyInstall verifies the Istio installation
 func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err error) {
-	args := []string{}
+	args := []string{"verify-install"}
 
 	// Perform istioctl call of type upgrade
 	stdout, stderr, err = runIstioctl(log, args, "verify-install")
+	stringout := string(stdout)
+	stringerr := string(stderr)
+	fmt.Println(stringout + stringerr)
 	if err != nil {
 		return stdout, stderr, err
 	}

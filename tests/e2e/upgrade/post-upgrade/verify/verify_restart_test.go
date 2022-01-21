@@ -5,15 +5,17 @@ package verify
 
 import (
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"go.uber.org/zap"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const (
@@ -141,8 +143,7 @@ var _ = t.Describe("Istio helm releases", func() {
 	t.DescribeTable("should be removed from the istio-system namepsace post upgrade",
 		func(release string) {
 			Eventually(func() bool {
-				installed, err := helm.IsReleaseInstalled(release, constants.IstioSystemNamespace)
-				Expect(err).To(BeNil(), fmt.Sprintf("Error should be nil for release %s: %v", release, err))
+				installed, _ := helm.IsReleaseInstalled(release, constants.IstioSystemNamespace)
 				return installed
 			}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected to not find release %s in istio-system", release))
 		},
@@ -152,4 +153,10 @@ var _ = t.Describe("Istio helm releases", func() {
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioEgress), istioEgress),
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioCoreDNS), istioCoreDNS),
 	)
+	It("Test verify-install", func() {
+		Eventually(func() (bool, error) {
+			log := zap.S()
+			return istio.IsInstalled(log)
+		}, threeMinutes, pollingInterval).Should(BeTrue(), "test verify install")
+	})
 })
