@@ -137,6 +137,10 @@ pipeline {
                         echo "Current execution region: $ocirRegion"
                         echo "OCIR Repository: ${OCIR_REGISTRY}"
                     }
+                    sh """
+                        echo "Helm version: "
+                        helm version
+                    """
                 }
 
                 script {
