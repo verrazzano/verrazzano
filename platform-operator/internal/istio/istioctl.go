@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 
 	"go.uber.org/zap"
 )
