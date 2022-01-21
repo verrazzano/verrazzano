@@ -554,6 +554,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			description:  "Test basic managed-cluster no user overrides",
 			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "managed-cluster"}},
 			expectedYAML: "testdata/vzOverridesManagedClusterDefault.yaml",
+			numKeyValues: 3,
 		},
 		{
 			name:        "DevWithOverrides",
@@ -774,8 +775,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			//t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 3, 1 file override + 2 custom image overrides
-				expectedNumKvs = 3
+				// default is 4, 2 file override + 2 custom image overrides
+				expectedNumKvs = 4
 			}
 			assert.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file
