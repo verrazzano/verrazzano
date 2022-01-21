@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package install
@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,17 +24,11 @@ const (
 
 var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
 
-var t = framework.NewTestFramework("install")
-
-var _ = t.BeforeSuite(func() {})
-var _ = t.AfterSuite(func() {})
-var _ = t.AfterEach(func() {})
-
 // This test checks that the Verrazzano install resource has the expected console URLs.
-var _ = t.Describe("Verify Verrazzano install scripts", func() {
+var _ = Describe("Verify Verrazzano install scripts", func() {
 
-	t.Context("Verify Console URLs in the installed Verrazzano resource", func() {
-		t.It("Verify the expected console URLs are there in the installed Verrazzano resource", func() {
+	Context("Verify Console URLs in the installed Verrazzano resource", func() {
+		It("Verify the expected console URLs are there in the installed Verrazzano resource", func() {
 			// Validation for passed in cluster
 			Eventually(func() bool {
 				return validateConsoleUrlsCluster(kubeConfigFromEnv)
