@@ -45,4 +45,3 @@ func (r RetryableError) Error() string {
 func IsUpdateConflict(err error) bool {
 	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
 }
-
