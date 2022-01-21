@@ -6,10 +6,10 @@ package logging
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -44,7 +44,7 @@ type FluentdManager interface {
 // Fluentd is an implementation of FluentdManager.
 type Fluentd struct {
 	k8sclient.Client
-	Log                    logr.Logger
+	Log                    *zap.SugaredLogger
 	Context                context.Context
 	ParseRules             string
 	StorageVolumeName      string

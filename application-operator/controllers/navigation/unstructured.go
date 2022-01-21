@@ -6,6 +6,7 @@ package navigation
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/go-logr/logr"
@@ -67,15 +68,15 @@ func GetAPIVersionKindOfUnstructured(u *unstructured.Unstructured) (string, erro
 // namespace - The namespace to search for children objects
 // parentUID - The parent UID a child must have to be included in the result.
 // childResKinds - The set of resource kinds a child's resource kind must in to be included in the result.
-func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli client.Reader, log logr.Logger, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
+func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
 	var childResources []*unstructured.Unstructured
-	log.V(1).Info("Fetch children", "parent", parentUID)
+	log.Debugf("Fetch children, parent: %s", parentUID)
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
 		resources.SetKind(childResKind.Kind)
 		if err := cli.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
-			log.Error(err, "Failed listing children")
+			log.Errorf("Failed listing children %v", err)
 			return nil, err
 		}
 		for i, item := range resources.Items {

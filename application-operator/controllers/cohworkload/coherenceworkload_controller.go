@@ -7,13 +7,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
@@ -108,7 +108,7 @@ type containersMountsVolumes struct {
 // Reconciler reconciles a VerrazzanoCoherenceWorkload object
 type Reconciler struct {
 	client.Client
-	Log     logr.Logger
+	Log     *zap.SugaredLogger
 	Scheme  *runtime.Scheme
 	Metrics *metricstrait.Reconciler
 }
@@ -126,7 +126,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanocoherenceworkloads/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("verrazzanocoherenceworkload", req.NamespacedName)
+	log := r.Log.With("verrazzanocoherenceworkload", req.NamespacedName)
 	log.Info("Reconciling Verrazzano Coherence workload")
 
 	// fetch the workload and unwrap the Coherence resource
@@ -154,9 +154,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// the embedded resource doesn't have an API version or kind, so add them
 	gvk := vznav.APIVersionAndKindToContainedGVK(workload.APIVersion, workload.Kind)
 	if gvk == nil {
-		errStr := "unable to determine contained GroupVersionKind for workload"
-		log.Error(nil, errStr, "workload", workload)
-		return reconcile.Result{}, errors.New(errStr)
+		err = fmt.Errorf("Failed to determine contained GroupVersionKind for workload")
+		log.Errorf("Failed to get the GroupVersionKind for workload %s: %v", workload, err)
+		return reconcile.Result{}, err
 	}
 
 	apiVersion, kind := gvk.ToAPIVersionAndKind()
@@ -181,10 +181,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	coherenceKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
 	if err := r.Get(ctx, coherenceKey, &existingCoherence); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("No existing Coherence StatefulSet found")
+			log.Debug("No existing Coherence StatefulSet found")
 			domainExists = false
 		} else {
-			log.Error(err, "An error occurred trying to obtain an existing Coherence StatefulSet")
+			log.Error(err, "Failed to obtain an existing Coherence StatefulSet")
 			return reconcile.Result{}, err
 		}
 	}
@@ -192,7 +192,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// If the Coherence cluster already exists, make sure that it can be restarted.
 	// If the cluster cannot be restarted, don't make any Coherence changes.
 	if domainExists && !r.isOkToRestartCoherence(workload) {
-		log.Info("There have been no changes to the Coherence workload, nor has the restart annotation changed. The Coherence resource will not be modified.")
+		log.Debug("The Coherence resource will not be modified")
 		return ctrl.Result{}, nil
 	}
 
@@ -222,7 +222,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// set controller reference so the Coherence CR gets deleted when the workload is deleted
 	if err = controllerutil.SetControllerReference(workload, u, r.Scheme); err != nil {
-		log.Error(err, "Unable to set controller ref")
+		log.Errorf("Failed to set controller ref: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -239,7 +239,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// if the Coherence CR exists
 	specCopy, _, err := unstructured.NestedFieldCopy(u.Object, specField)
 	if err != nil {
-		log.Error(err, "Unable to make a copy of the Coherence spec")
+		log.Errorf("Failed to make a copy of the Coherence spec: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -248,7 +248,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return unstructured.SetNestedField(u.Object, specCopy, specField)
 	})
 	if err != nil {
-		log.Error(err, "Error creating or updating Coherence CR")
+		log.Errorf("Failed creating or updating Coherence CR: %v", err)
 		return reconcile.Result{}, err
 	}
 
@@ -266,7 +266,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	log.Info("Successfully reconciled Verrazzano Coherence workload")
+	log.Debug("Successfully reconciled Verrazzano Coherence workload")
 	return reconcile.Result{}, nil
 }
 
@@ -275,9 +275,9 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 	var workload vzapi.VerrazzanoCoherenceWorkload
 	if err := r.Get(ctx, name, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("VerrazzanoCoherenceWorkload has been deleted", "workload", name)
+			r.Log.Debugf("VerrazzanoCoherenceWorkload %s has been deleted", name.Name)
 		} else {
-			r.Log.Error(err, "Failed to fetch VerrazzanoCoherenceWorkload", "workload", name)
+			r.Log.Errorf("Failed to fetch VerrazzanoCoherenceWorkload %s", name)
 		}
 		return nil, err
 	}
@@ -286,7 +286,7 @@ func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedNam
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained Coherence resource
-func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
+func copyLabels(log *zap.SugaredLogger, workloadLabels map[string]string, coherence *unstructured.Unstructured) error {
 	labels, found, _ := unstructured.NestedStringMap(coherence.Object, specLabelsFields...)
 	if !found {
 		labels = map[string]string{}
@@ -303,7 +303,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *un
 
 	err := unstructured.SetNestedStringMap(coherence.Object, labels, specLabelsFields...)
 	if err != nil {
-		log.Error(err, "Unable to set labels in spec")
+		log.Errorf("Failed to set labels in spec: %v", err)
 		return err
 	}
 
@@ -311,7 +311,7 @@ func copyLabels(log logr.Logger, workloadLabels map[string]string, coherence *un
 }
 
 // disableIstioInjection sets the sidecar.istio.io/inject annotation to false since Coherence does not work with Istio
-func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unstructured) error {
+func (r *Reconciler) disableIstioInjection(log *zap.SugaredLogger, u *unstructured.Unstructured) error {
 	annotations, _, err := unstructured.NestedStringMap(u.Object, specAnnotationsFields...)
 	if err != nil {
 		return errors.New("unable to get annotations from Coherence spec")
@@ -332,7 +332,7 @@ func (r *Reconciler) disableIstioInjection(log logr.Logger, u *unstructured.Unst
 }
 
 // addLogging adds a FLUENTD sidecar and updates the Coherence spec if there is an associated LogInfo
-func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
+func (r *Reconciler) addLogging(ctx context.Context, log *zap.SugaredLogger, workload *vzapi.VerrazzanoCoherenceWorkload, coherenceSpec map[string]interface{}, existingCoherence *v1.StatefulSet) error {
 	// extract just enough of the Coherence data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
@@ -395,22 +395,22 @@ func (r *Reconciler) addLogging(ctx context.Context, log logr.Logger, workload *
 
 // addMetrics adds the labels and annotations needed for metrics to the Coherence resource annotations which are propagated to the individual Coherence pods.
 // Returns the success fo the operation and any error occurred. If metrics were successfully added, true is return with a nil error.
-func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace string, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured) error {
-	log.Info(fmt.Sprintf("Adding Metrics for: %s", workload.Name))
+func (r *Reconciler) addMetrics(ctx context.Context, log *zap.SugaredLogger, namespace string, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured) error {
+	log.Debugf("Adding Metrics for: %s", workload.Name)
 	metricsTrait, err := vznav.MetricsTraitFromWorkloadLabels(ctx, r.Client, log, namespace, workload.ObjectMeta)
 	if err != nil {
 		return err
 	}
 
 	if metricsTrait == nil {
-		log.Info("Workload has no associated MetricTrait, nothing to do")
+		log.Debug("Workload has no associated MetricTrait, nothing to do")
 		return nil
 	}
-	log.Info(fmt.Sprintf("Found associated metrics trait for workload: %s : %s", workload.Name, metricsTrait.Name))
+	log.Debugf("Found associated metrics trait for workload: %s : %s", workload.Name, metricsTrait.Name)
 
 	traitDefaults, err := r.Metrics.NewTraitDefaultsForCOHWorkload(ctx, coherence)
 	if err != nil {
-		log.Error(err, "Unable to get default metric trait values")
+		log.Errorf("Failed to get default metric trait values: %v", err)
 		return err
 	}
 
@@ -425,19 +425,19 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 	}
 
 	finalAnnotations := metricstrait.MutateAnnotations(metricsTrait, coherence, traitDefaults, metricAnnotations)
-	log.Info(fmt.Sprintf("Setting annotations on %s: %v", workload.Name, finalAnnotations))
+	log.Debugf("Setting annotations on %s: %v", workload.Name, finalAnnotations)
 	err = unstructured.SetNestedStringMap(coherence.Object, finalAnnotations, specAnnotationsFields...)
 	if err != nil {
-		log.Error(err, "Unable to set metric annotations on Coherence resource")
+		log.Errorf("Failed to set metric annotations on Coherence resource: %v", err)
 		return err
 	}
 
 	finalLabels := metricstrait.MutateLabels(metricsTrait, coherence, metricLabels)
-	log.Info(fmt.Sprintf("Setting labels on %s: %v", workload.Name, finalLabels))
+	log.Debugf("Setting labels on %s: %v", workload.Name, finalLabels)
 
 	err = unstructured.SetNestedStringMap(coherence.Object, finalLabels, specLabelsFields...)
 	if err != nil {
-		log.Error(err, "Unable to set metric labels on Coherence resource")
+		log.Errorf("Failed to set metric labels on Coherence resource: %v", err)
 		return err
 	}
 
@@ -448,7 +448,7 @@ func (r *Reconciler) addMetrics(ctx context.Context, log logr.Logger, namespace 
 // for the FLUENTD config map stored in "configMapVolumes", so we will pull the mount out from the
 // FLUENTD container and put it in its new home in the Coherence spec (this should all be handled
 // by the FLUENTD code at some point but I tried to limit the surgery for now)
-func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, coherenceSpec map[string]interface{}) error {
+func moveConfigMapVolume(log *zap.SugaredLogger, fluentdPod *logging.FluentdPod, coherenceSpec map[string]interface{}) error {
 	var fluentdVolMount corev1.VolumeMount
 
 	for _, container := range fluentdPod.Containers {
@@ -476,7 +476,7 @@ func moveConfigMapVolume(log logr.Logger, fluentdPod *logging.FluentdPod, cohere
 			coherenceSpec["configMapVolumes"] = append(vols, fluentdVolMountUnstructured)
 		}
 	} else {
-		log.Info("Expected to find config map volume mount in fluentd container but did not")
+		log.Debug("Expected to find config map volume mount in fluentd container but did not")
 	}
 
 	volumes := fluentdPod.Volumes
@@ -519,7 +519,7 @@ func addJvmArgs(coherenceSpec map[string]interface{}) {
 
 // createOrUpdateDestinationRule creates or updates an Istio destinationRule required by Coherence.
 // The destinationRule is only created when the namespace has the label istio-injection=enabled.
-func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log logr.Logger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
+func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log *zap.SugaredLogger, namespace string, namespaceLabels map[string]string, workloadLabels map[string]string) error {
 	istioEnabled := false
 	value, ok := namespaceLabels["istio-injection"]
 	if ok && value == "enabled" {
@@ -547,7 +547,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, log logr
 		},
 	}
 
-	log.Info(fmt.Sprintf("Creating/updating destination rule %s:%s", namespace, appName))
+	log.Debugf("Creating/updating destination rule %s:%s", namespace, appName)
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, destinationRule, func() error {
 		return r.mutateDestinationRule(destinationRule, namespace, appName)
 	})
@@ -599,7 +599,7 @@ func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, workload *vz
 }
 
 // addLoggingTrait adds the logging trait sidecar to the workload
-func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured, coherenceSpec map[string]interface{}) error {
+func (r *Reconciler) addLoggingTrait(ctx context.Context, log *zap.SugaredLogger, workload *vzapi.VerrazzanoCoherenceWorkload, coherence *unstructured.Unstructured, coherenceSpec map[string]interface{}) error {
 	loggingTrait, err := vznav.LoggingTraitFromWorkloadLabels(ctx, r.Client, log, workload.GetNamespace(), workload.ObjectMeta)
 	if err != nil {
 		return err
@@ -626,7 +626,7 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 		if err != nil {
 			return err
 		}
-		log.Info(fmt.Sprintf("Creating logging trait configmap %s:%s", coherence.GetNamespace(), configMapName))
+		log.Debugf("Creating logging trait configmap %s:%s", coherence.GetNamespace(), configMapName)
 		err = r.Create(ctx, configMap)
 		if err != nil {
 			return err
@@ -634,13 +634,13 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	} else if err != nil {
 		return err
 	}
-	log.Info(fmt.Sprintf("logging trait configmap %s:%s already exist", coherence.GetNamespace(), configMapName))
+	log.Debugf("logging trait configmap %s:%s already exist", coherence.GetNamespace(), configMapName)
 
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the logging trait data
 	var extract containersMountsVolumes
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(coherenceSpec, &extract); err != nil {
-		return errors.New("unable to extract containers, volumes, and volume mounts from Coherence spec")
+		return fmt.Errorf("failed to extract containers, volumes, and volume mounts from Coherence spec")
 	}
 	extracted := &containersMountsVolumes{
 		SideCars:     extract.SideCars,
@@ -714,9 +714,9 @@ func (r *Reconciler) addLoggingTrait(ctx context.Context, log logr.Logger, workl
 	return nil
 }
 
-func (r *Reconciler) addRestartVersionAnnotation(coherence *unstructured.Unstructured, restartVersion string, name, namespace string, log logr.Logger) error {
+func (r *Reconciler) addRestartVersionAnnotation(coherence *unstructured.Unstructured, restartVersion string, name, namespace string, log *zap.SugaredLogger) error {
 	if len(restartVersion) > 0 {
-		log.Info(fmt.Sprintf("The Coherence %s/%s restart version is set to %s", namespace, name, restartVersion))
+		log.Debugf("The Coherence %s/%s restart version is set to %s", namespace, name, restartVersion)
 		annotations, _, err := unstructured.NestedStringMap(coherence.Object, specAnnotationsFields...)
 		if err != nil {
 			return errors.New("unable to get annotations from Coherence spec")
