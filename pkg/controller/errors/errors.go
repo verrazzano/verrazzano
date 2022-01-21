@@ -39,3 +39,10 @@ func (r RetryableError) Error() string {
 	}
 	return builder.String()
 }
+
+// IsUpdateConflict returns true if the error is an update confict error.  This is occurs when the controller-runtime cache
+// is out of sync with the etc database
+func IsUpdateConflict(err error) bool {
+	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
+}
+
