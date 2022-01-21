@@ -134,7 +134,7 @@ data:
     end
   
     local usernameFromToken = auth.usernameFromIdToken(token)
-    me.audit("User "..usernameFromToken.." authenticated and authorized")
+    auth.audit("User "..usernameFromToken.." authenticated and authorized")
 
     if backend == 'verrazzano' then
         local args = ngx.req.get_uri_args()
@@ -976,7 +976,7 @@ data:
         end
         local data = cjson.decode(res.body)
         if not (data.keys) then
-            me.error("No keys found: key object is nil")
+            me.error("Failed to find keys: key object is nil")
             return nil
         end
         for i, key in pairs(data.keys) do
