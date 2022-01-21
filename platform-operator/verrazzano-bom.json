@@ -196,11 +196,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-<<<<<<< HEAD
-              "tag": "1.2.0-20211216213535-ce59978",
-=======
               "tag": "1.1.0-20211213080834-4558ab0",
->>>>>>> release-1.1
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -413,11 +409,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-<<<<<<< HEAD
-              "tag": "1.2.0-20211216213531-c95fa79"
-=======
               "tag": "1.1.0-20211213082115-a6ff0b8"
->>>>>>> release-1.1
             }
           ]
         }
