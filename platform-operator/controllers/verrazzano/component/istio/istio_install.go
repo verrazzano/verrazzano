@@ -224,7 +224,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 			log.Errorf("Failed to close temporary file: %v", err)
 			return err
 		}
-		log.Infof("Created values file from Istio install args: %s", userFileCR.Name())
+		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
 
 	// check for global image pull secret

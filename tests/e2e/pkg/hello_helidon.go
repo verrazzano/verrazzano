@@ -16,8 +16,8 @@ const (
 	helidonPollingInterval = 10 * time.Second
 	helidonWaitTimeout     = 5 * time.Minute
 
-	helidonComponentYaml = "../../../../examples/hello-helidon/hello-helidon-comp.template"
-	helidonAppYaml       = "../../../../examples/hello-helidon/hello-helidon-app.template"
+	helidonComponentYaml = "../../../testdata/hello-helidon-comp.template"
+	helidonAppYaml       = "../../../testdata/hello-helidon-app.template"
 )
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional

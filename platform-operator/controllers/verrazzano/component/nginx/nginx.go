@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package nginx
@@ -63,10 +63,10 @@ func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string,
 // PreInstall Create and label the NGINX namespace, and create any override helm args needed
 func PreInstall(compContext spi.ComponentContext, name string, namespace string, dir string) error {
 	if compContext.IsDryRun() {
-		compContext.Log().Infof("NGINX PostInstall dry run")
+		compContext.Log().Debug("NGINX PostInstall dry run")
 		return nil
 	}
-	compContext.Log().Infof("Adding label needed by network policies to ingress-nginx namespace")
+	compContext.Log().Debug("Adding label needed by network policies to ingress-nginx namespace")
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		if ns.Labels == nil {
@@ -84,7 +84,7 @@ func PreInstall(compContext spi.ComponentContext, name string, namespace string,
 // PostInstall Patch the controller service ports based on any user-supplied overrides
 func PostInstall(ctx spi.ComponentContext, _ string, _ string) error {
 	if ctx.IsDryRun() {
-		ctx.Log().Infof("NGINX PostInstall dry run")
+		ctx.Log().Debug("NGINX PostInstall dry run")
 		return nil
 	}
 	// Add any port specs needed to the service after boot
