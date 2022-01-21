@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	appsv1 "k8s.io/api/apps/v1"
@@ -22,7 +23,7 @@ var t = framework.NewTestFramework("istio")
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Istio", func() {
+var _ = t.Describe("Istio", Label("f:platform-lcm.install"), func() {
 	const istioNamespace = "istio-system"
 
 	t.DescribeTable("namespace",

@@ -111,7 +111,7 @@ var _ = t.AfterSuite(func() {})
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Prometheus Metrics", func() {
+var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 	// Query Prometheus for the sample metrics from the default scraping jobs
 	var _ = t.Describe("for the system components", func() {
 		t.It("Verify sample NGINX metrics can be queried from Prometheus", func() {

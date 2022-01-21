@@ -87,7 +87,11 @@ const registerTemp = `{
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Sock Shop test", func() {
+var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
+	"f:app-lcm.helidon-workload",
+	"f:app-lcm.spring-workload",
+	"f:app-lcm.coherence-workload"), func() {
+
 	t.It("application deployment.", func() {
 		// checks that all pods are up and running
 		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
@@ -95,7 +99,7 @@ var _ = t.Describe("Sock Shop test", func() {
 
 	var hostname = ""
 	var err error
-	t.It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (string, error) {
 			hostname, err = k8sutil.GetHostnameFromGateway("sockshop", "")
 			return hostname, err
@@ -229,7 +233,7 @@ var _ = t.Describe("Sock Shop test", func() {
 		//TODO
 	})
 
-	t.It("Verify '/catalogue' UI endpoint is working.", func() {
+	t.It("Verify '/catalogue' UI endpoint is working.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/catalogue", hostname)
 			return pkg.GetWebPage(url, hostname)

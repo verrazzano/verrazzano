@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -31,7 +32,7 @@ var _ = t.AfterSuite(func() {})
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Multi Cluster Verify API", func() {
+var _ = t.Describe("Multi Cluster Verify API", Label("f:ui.api"), func() {
 	t.Context("Admin Cluster", func() {
 		t.BeforeEach(func() {
 			os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))

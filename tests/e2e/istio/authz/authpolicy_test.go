@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -259,7 +260,8 @@ func undeployNoIstioApplication() {
 	}, waitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
-var _ = t.Describe("AuthPolicy test,", func() {
+var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
+	"f:app-lcm.spring-workload"), func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
