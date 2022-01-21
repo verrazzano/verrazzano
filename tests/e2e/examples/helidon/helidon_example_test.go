@@ -58,12 +58,6 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-
-const (
-	istioNamespace     = "istio-system"
-	ingressServiceName = "istio-ingressgateway"
-)
-
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
 	// Verify hello-helidon-deployment pod is running
