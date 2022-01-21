@@ -75,11 +75,7 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
-	index := 0
-	if len(args) > 1 {
-		index++
-	}
-	body := args[index]
+	body := args[len(args)-1]
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
@@ -88,7 +84,7 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
 
-	args[index] = f
+	args[len(args)-1] = f
 	return ginkgo.It(text, args...)
 }
 
@@ -97,11 +93,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
-	index := 0
-	if len(args) > 1 {
-		index++
-	}
-	body := args[index]
+	body := args[len(args)-1]
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
@@ -110,7 +102,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 	}
-	args[index] = f
+	args[len(args)-1] = f
 	return ginkgo.Describe(text, args...)
 }
 

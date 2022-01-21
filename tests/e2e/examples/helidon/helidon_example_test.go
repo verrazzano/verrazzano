@@ -122,7 +122,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
 
 		indexName := "verrazzano-namespace-" + namespace
