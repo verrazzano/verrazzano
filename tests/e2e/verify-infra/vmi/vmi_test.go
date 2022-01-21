@@ -220,12 +220,12 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			assertOidcIngressByName("vmi-system-kibana")
 		})
 
-		t.It("Prometheus endpoint should be accessible", Label("f:mesh.ingress,"+
+		t.It("Prometheus endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.monitoring.prom"), func() {
 			assertOidcIngressByName("vmi-system-prometheus")
 		})
 
-		t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress,"+
+		t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.monitoring.graf"), func() {
 			Expect(ingressURLs).To(HaveKey("vmi-system-grafana"), "Ingress vmi-system-grafana not found")
 			assertOidcIngressByName("vmi-system-grafana")
