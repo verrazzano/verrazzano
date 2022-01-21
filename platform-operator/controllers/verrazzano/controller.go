@@ -87,7 +87,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, "Verrazzano")
-	log.Debugf("Reconcile called")
+	log.Debug("Reconcile called")
 
 	// Add cert-manager components to the scheme
 	cmapiv1.AddToScheme(r.Scheme)
