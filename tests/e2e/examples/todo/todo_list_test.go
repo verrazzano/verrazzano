@@ -1,12 +1,11 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package todo
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"time"
 
@@ -26,17 +25,23 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
-var t = framework.NewTestFramework("todo")
-
-var _ = t.BeforeSuite(func() {
+var _ = BeforeSuite(func() {
 	if !skipDeploy {
 		deployToDoListExample()
 	}
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
-var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
-var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
+var failed = false
+var _ = AfterEach(func() {
+	failed = failed || CurrentSpecReport().Failed()
+})
+
+var _ = AfterSuite(func() {
+	if failed {
+		// Dump todo domain pods
+		pkg.DumpContainerLogs("todo-list", "tododomain-adminserver", "weblogic-server", "/scratch/logs/todo-domain")
+		pkg.ExecuteClusterDumpWithEnvVarConfig()
+	}
 	if !skipUndeploy {
 		undeployToDoListExample()
 	}
@@ -52,7 +57,6 @@ func deployToDoListExample() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	pkg.Log(pkg.Info, "Create namespace")
-	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -84,13 +88,11 @@ func deployToDoListExample() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("examples/todo-list/todo-list-application.yaml")
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create application resource").ShouldNot(HaveOccurred())
-	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
 func undeployToDoListExample() {
 	pkg.Log(pkg.Info, "Undeploy ToDoList example")
 	pkg.Log(pkg.Info, "Delete application")
-	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("examples/todo-list/todo-list-application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -124,29 +126,37 @@ func undeployToDoListExample() {
 	// WHEN the app config secret generated to support secure gateways is fetched
 	// THEN the secret should have been cleaned up
 	pkg.Log(pkg.Info, "Waiting for secret containing certificate to be deleted")
-	Eventually(func() bool {
-		_, err := pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
+	var secret *v1.Secret
+	var err error
+	for i := 0; i < 30; i++ {
+		secret, err = pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
 		if err != nil && errors.IsNotFound(err) {
 			pkg.Log(pkg.Info, "Secret deleted")
-			return true
+			return
 		}
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get secret: %v", err))
 		}
-		return false
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "delete ingress trait secret")
-	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+		time.Sleep(shortPollingInterval)
+	}
+
+	pkg.Log(pkg.Error, "Secret could not be deleted. Secret data:")
+	if secret != nil {
+		if b, err := json.Marshal(secret); err == nil {
+			pkg.Log(pkg.Info, string(b))
+		}
+	}
+	pkg.ExecuteClusterDumpWithEnvVarConfig()
+	Fail("Unable to delete secret")
 }
 
-var _ = t.AfterEach(func() {})
+var _ = Describe("Verify ToDo List example application.", func() {
 
-var _ = t.Describe("Verify ToDo List example application.", func() {
-
-	t.Context("Deployment.", func() {
+	Context("Deployment.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
-		t.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
+		It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning("todo-list", []string{"mysql", "tododomain-adminserver"})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
@@ -154,7 +164,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist
-		t.It("Verify 'todo-list-todo-appconf-cert-secret' has been created", func() {
+		It("Verify 'todo-list-todo-appconf-cert-secret' has been created", func() {
 			Eventually(func() (*v1.Secret, error) {
 				return pkg.GetSecret("istio-system", "todo-list-todo-appconf-cert-secret")
 			}, longWaitTimeout, longPollingInterval).ShouldNot(BeNil())
@@ -162,7 +172,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the servers in the WebLogic domain is ready
 		// THEN the domain.servers.status.health.overallHeath fields should be ok
-		t.It("Verify 'todo-domain' overall health is ok", func() {
+		It("Verify 'todo-domain' overall health is ok", func() {
 			Eventually(func() bool {
 				domain, err := weblogic.GetDomain("todo-list", "todo-domain")
 				if err != nil {
@@ -178,14 +188,14 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 
 	})
 
-	t.Context("Ingress.", func() {
+	Context("Ingress.", func() {
 		var host = ""
 		var err error
 		// Get the host from the Istio gateway resource.
 		// GIVEN the Istio gateway for the todo-list namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
-		t.It("Get host from gateway.", func() {
+		It("Get host from gateway.", func() {
 			Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGateway("todo-list", "")
 				return host, err
@@ -196,7 +206,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the UI is accessed
 		// THEN the expected returned page should contain an expected value.
-		t.It("Verify '/todo' UI endpoint is working.", func() {
+		It("Verify '/todo' UI endpoint is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/", host)
 				return pkg.GetWebPage(url, host)
@@ -207,7 +217,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the REST endpoint is accessed
 		// THEN the expected results should be returned
-		t.It("Verify '/todo/rest/items' REST endpoint is working.", func() {
+		It("Verify '/todo/rest/items' REST endpoint is working.", func() {
 			task := fmt.Sprintf("test-task-%s", time.Now().Format("20060102150405.0000"))
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/todo/rest/items", host)
@@ -224,12 +234,12 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		})
 	})
 
-	t.Context("Metrics.", func() {
+	Context("Metrics.", func() {
 		// Verify Prometheus scraped metrics
 		// GIVEN a deployed WebLogic application
 		// WHEN the application configuration uses a default metrics trait
 		// THEN confirm that metrics are being collected
-		t.It("Retrieve Prometheus scraped metrics", func() {
+		It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -245,7 +255,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		})
 	})
 
-	t.Context("Logging.", func() {
+	Context("Logging.", func() {
 		indexName := "verrazzano-namespace-todo-list"
 
 		// GIVEN a WebLogic application with logging enabled
@@ -262,7 +272,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		// THEN verify that at least one recent log record is found
 		pkg.Concurrently(
 			func() {
-				t.It("Verify recent adminserver log record exists", func() {
+				It("Verify recent adminserver log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.weblogic_domainUID":  "tododomain",
@@ -274,7 +284,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 				})
 			},
 			func() {
-				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
+				It("Verify recent pattern-matched AdminServer log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -287,7 +297,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 				})
 			},
 			func() {
-				t.It("Verify recent pattern-matched WebLogic Server log record exists", func() {
+				It("Verify recent pattern-matched WebLogic Server log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -300,7 +310,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 				})
 			},
 			func() {
-				t.It("Verify recent pattern-matched Security log record exists", func() {
+				It("Verify recent pattern-matched Security log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -313,7 +323,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 				})
 			},
 			func() {
-				t.It("Verify recent pattern-matched multi-lines log record exists", func() {
+				It("Verify recent pattern-matched multi-lines log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -369,7 +379,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of tododomain-adminserver stdout is found
 			func() {
-				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
+				It("Verify recent pattern-matched AdminServer log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -386,7 +396,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 			// WHEN the log records are retrieved from the Elasticsearch index
 			// THEN verify that a recent pattern-matched log record of tododomain-adminserver stdout is found
 			func() {
-				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
+				It("Verify recent pattern-matched AdminServer log record exists", func() {
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
@@ -404,7 +414,7 @@ var _ = t.Describe("Verify ToDo List example application.", func() {
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-		t.It("Verify recent 'pattern not matched' log records do not exist", func() {
+		It("Verify recent 'pattern not matched' log records do not exist", func() {
 			Expect(pkg.NoLog(indexName,
 				[]pkg.Match{
 					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
