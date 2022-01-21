@@ -130,7 +130,7 @@ var _ = t.Describe("Application pods post-upgrade", func() {
 	)
 })
 
-var _ = t.Describe("Verify istio helm releases are removed", func() {
+var _ = t.Describe("Istio helm releases", func() {
 	const (
 		istiod       = "istiod"
 		istioBase    = "istio"
@@ -138,7 +138,7 @@ var _ = t.Describe("Verify istio helm releases are removed", func() {
 		istioEgress  = "istio-egress"
 		istioCoreDNS = "istiocoredns"
 	)
-	t.DescribeTable("should contain Envoy sidecar 1.10.4",
+	t.DescribeTable("should be removed from the istio-system namepsace post upgrade",
 		func(release string) {
 			Eventually(func() bool {
 				installed, err := helm.IsReleaseInstalled(release, constants.IstioSystemNamespace)
@@ -146,10 +146,10 @@ var _ = t.Describe("Verify istio helm releases are removed", func() {
 				return installed
 			}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected to not find release %s in istio-system", release))
 		},
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istiod), istiod),
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioBase), istioBase),
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioIngress), istioIngress),
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioEgress), istioEgress),
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", istioCoreDNS), istioCoreDNS),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istiod), istiod),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioBase), istioBase),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioIngress), istioIngress),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioEgress), istioEgress),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioCoreDNS), istioCoreDNS),
 	)
 })
