@@ -167,7 +167,7 @@ var _ = t.Describe("VMI", func() {
 		})
 
 		t.It("Elasticsearch verrazzano-system Index should be accessible", func() {
-			indexName := "verrazzano-namespace-verrazzano-system"
+			indexName := "verrazzano-system"
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
@@ -199,9 +199,8 @@ var _ = t.Describe("VMI", func() {
 
 		t.It("Elasticsearch systemd journal Index should be accessible", func() {
 			Eventually(func() bool {
-				return pkg.FindAnyLog("verrazzano-systemd-journal",
+				return pkg.FindAnyLog("verrazzano-system",
 					[]pkg.Match{
-						{Key: "tag", Value: "systemd"},
 						{Key: "TRANSPORT", Value: "journal"},
 						{Key: "cluster_name", Value: constants.MCLocalCluster}},
 					[]pkg.Match{})

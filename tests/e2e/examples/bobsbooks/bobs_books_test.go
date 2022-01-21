@@ -308,13 +308,13 @@ var _ = t.Describe("Bobs Books test", func() {
 		})
 	})
 	t.Context("WebLogic logging.", func() {
-		bobsIndexName := "verrazzano-namespace-bobs-books"
+		bobsIndexName := "verrazzano-application"
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(bobsIndexName)
+				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+bobsIndexName)
 		})
 		pkg.Concurrently(
@@ -530,13 +530,13 @@ var _ = t.Describe("Bobs Books test", func() {
 		)
 	})
 	t.Context("Coherence logging.", func() {
-		indexName := "verrazzano-namespace-bobs-books"
+		indexName := "verrazzano-application"
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(indexName)
+				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
 		})
 		pkg.Concurrently(

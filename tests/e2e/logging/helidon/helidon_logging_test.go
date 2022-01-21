@@ -119,13 +119,13 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 	})
 
 	t.Context("for Logging.", func() {
-		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
+		indexName := "verrazzano-application"
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index for Logging exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(indexName)
+				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello-helidon-container")
 		})
 		pkg.Concurrently(

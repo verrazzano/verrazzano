@@ -94,10 +94,10 @@ var _ = t.Describe("Spring Boot test", func() {
 	})
 
 	t.Context("for Logging.", func() {
-		indexName := "verrazzano-namespace-springboot"
+		indexName := "verrazzano-application"
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(indexName)
+				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
 		})
 		t.It("Verify recent Elasticsearch log record exists", func() {

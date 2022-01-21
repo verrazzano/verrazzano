@@ -242,14 +242,14 @@ var _ = t.Describe("ToDo List test", func() {
 	})
 
 	t.Context("Logging.", func() {
-		indexName := "verrazzano-namespace-todo-list"
+		indexName := "verrazzano-application"
 
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(indexName)
+				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for todo-list")
 		})
 

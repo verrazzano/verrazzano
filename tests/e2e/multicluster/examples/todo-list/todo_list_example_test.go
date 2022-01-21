@@ -197,14 +197,13 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 	})
 
 	t.Context("for Logging", func() {
-		indexName := "verrazzano-namespace-mc-todo-list"
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		t.It("Verify Elasticsearch index exists on admin cluster", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
+				return pkg.LogIndexFoundInCluster(".ds-verrazzano-application-000001", adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for todo-list")
 		})
 	})
