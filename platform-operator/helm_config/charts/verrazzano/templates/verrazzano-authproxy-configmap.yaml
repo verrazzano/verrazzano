@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -40,7 +40,7 @@ data:
     -- CORS handling
     local h, _ = ngx.req.get_headers()["origin"]
     if h ~= nil and h ~= "" then
-        auth.info("Origin header: "..h)
+        auth.debug("Origin header: "..h)
         if h == "*" then
             -- not a legit origin, could be intended to trick us into oversharing
             auth.bad_request("Invalid Origin header: '*'")
@@ -80,7 +80,7 @@ data:
         end
     end
 
-    auth.info("Processing request for backend '"..ingressHost.."'")
+    auth.debug("Processing request for backend '"..ingressHost.."'")
     if (backend == 'console' or backend == 'verrazzano') and (not auth.isBodyValidJson()) then
         auth.bad_request("Invalid request")
     end
@@ -94,10 +94,10 @@ data:
             token = auth.handleBasicAuth(authHeader)
         end
         if not token then
-            auth.info("No recognized credentials in authorization header")
+            auth.debug("No recognized credentials in authorization header")
         end
     else
-        auth.info("No authorization header found")
+        auth.debug("No authorization header found")
         if auth.requestUriMatches(ngx.var.request_uri, callbackPath) then
             -- we initiated authentication via pkce, and OP is delivering the code
             -- will redirect to target url, where token will be found in cookie
@@ -132,6 +132,9 @@ data:
     if not auth.isAuthorized(token) then
         auth.forbidden("Not authorized")
     end
+  
+    local usernameFromToken = auth.usernameFromIdToken(token)
+    auth.audit("User "..usernameFromToken.." authenticated and authorized")
 
     if backend == 'verrazzano' then
         local args = ngx.req.get_uri_args()
@@ -147,11 +150,11 @@ data:
             ngx.req.clear_header("Authorization")
         end
         -- set the oidc_user
-        ngx.var.oidc_user = auth.usernameFromIdToken(token)
-        auth.info("Authorized: oidc_user is "..ngx.var.oidc_user)
+        ngx.var.oidc_user = usernameFromToken
+        auth.debug("Authorized: oidc_user is "..ngx.var.oidc_user)
     end
 
-    auth.info("Setting backend_server_url to '"..backendUrl.."'")
+    auth.debug("Setting backend_server_url to '"..backendUrl.."'")
     ngx.var.backend_server_url = backendUrl
   auth.lua: |
     local me = {}
@@ -192,8 +195,6 @@ data:
             me.internal_server_error("Error getting cookie key")
         end
         local salt = string.sub(key, 49, 56)
-        -- me.info("Got encryption key from secret: '"..key.."', length: "..#key)
-        -- me.info("Salt is: '"..salt.."', length: "..#salt)
         local encryptor, err = aes:new(key, salt, aes.cipher(256, "cbc"), aes.hash.sha256, 3)
         if err or not encryptor then
             me.internal_server_error("Unable to get encryptor, error is: '"..err.."'")
@@ -209,7 +210,7 @@ data:
 
         local keycloakURL = me.read_file("/api-config/keycloak-url")
         if keycloakURL and keycloakURL ~= "" then
-            me.info("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+            me.debug("keycloak-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
             oidcProviderUri = keycloakURL..'/auth/realms/'..oidcRealm
             oidcProviderInClusterUri = nil
         end
@@ -241,6 +242,22 @@ data:
             me.log(ngx.INFO, msg)
         end
     end
+    
+    function me.error(msg, obj)
+        if obj then
+            me.log(ngx.ERR, msg, 'object', obj)
+        else
+            me.log(ngx.ERR, msg)
+        end
+    end
+    
+    function me.debug(msg, obj)
+        if obj then
+            me.log(ngx.DEBUG, msg, 'object', obj)
+        else
+            me.log(ngx.DEBUG, msg)
+        end
+    end
 
     function me.queryParams(req_uri)
          local i = req_uri:find("?")
@@ -268,9 +285,14 @@ data:
             return req_uri:sub(begin, endin-1)
         end
     end
+    
+    -- For now, auditing reports a log message at the debug level
+    function me.audit(msg, err)
+        me.logJson(ngx.DEBUG, msg, err)
+    end
 
     function me.internal_server_error(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.audit(msg, err)
         ngx.status = ngx.HTTP_INTERNAL_SERVER_ERROR
         ngx.say("500 Internal Server Error")
         ngx.exit(ngx.HTTP_INTERNAL_SERVER_ERROR)
@@ -278,28 +300,28 @@ data:
 
     function me.unauthorized(msg, err)
         me.deleteCookies("vz_authn", "vz_userinfo", "vz_state")
-        me.logJson(ngx.ERR, msg, err)
+        me.audit(msg, err)
         ngx.status = ngx.HTTP_UNAUTHORIZED
         ngx.say("401 Unauthorized")
         ngx.exit(ngx.HTTP_UNAUTHORIZED)
     end
 
     function me.forbidden(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.audit(msg, err)
         ngx.status = ngx.HTTP_FORBIDDEN
         ngx.say("403 Forbidden")
         ngx.exit(ngx.HTTP_FORBIDDEN)
     end
 
     function me.not_found(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.audit(msg, err)
         ngx.status = ngx.HTTP_NOT_FOUND
         ngx.say("404 Not Found")
         ngx.exit(ngx.HTTP_NOT_FOUND)
     end
 
     function me.bad_request(msg, err)
-        me.logJson(ngx.ERR, msg, err)
+        me.audit(msg, err)
         ngx.status = ngx.HTTP_BAD_REQUEST
         ngx.say("400 Bad Request")
         ngx.exit(ngx.HTTP_BAD_REQUEST)
@@ -418,7 +440,7 @@ data:
         local able_to_redirect = true
         local hostname = nil
         if ingressHost and #ingressHost > 0 then
-            me.info("ingressHost is '"..ingressHost.."'")
+            me.debug("ingressHost is '"..ingressHost.."'")
             -- Strip the port off, if present
             local first, last = nil
             first, last, hostname = ingressHost:find("^([^:]+)")
@@ -428,10 +450,10 @@ data:
                     -- Strip the auth proxy prefix from the extracted backend name if present
                     if string.sub(backend_name, 1, #authproxy_prefix) == authproxy_prefix then
                         backend_name = string.sub(backend_name, #authproxy_prefix+1, -1)
-                        me.info("Validating host (local): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
+                        me.debug("Validating host (local): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
                         backend_name = me.validateIngressHost(backend_name, hostname, true)
                     else
-                        me.info("Validating host (ingress): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
+                        me.debug("Validating host (ingress): backend_name is '"..backend_name.."', hostname is '"..hostname.."'")
                         backend_name = me.validateIngressHost(backend_name, hostname, false)
                     end
                 end
@@ -452,9 +474,9 @@ data:
             end
         end
         if able_to_redirect == true then
-            me.info("returning backend_name '"..backend_name.."', able_to_redirect is true")
+            me.debug("returning backend_name '"..backend_name.."', able_to_redirect is true")
         else
-            me.info("returning backend_name '"..backend_name.."', able_to_redirect is false")
+            me.debug("returning backend_name '"..backend_name.."', able_to_redirect is false")
         end
         return backend_name, able_to_redirect
     end
@@ -499,7 +521,7 @@ data:
         if found then
             local token = string.sub(authHeader, index+2)
             if token then
-                me.info("Found bearer token in authorization header")
+                me.debug("Found bearer token in authorization header")
                 me.oidcValidateBearerToken(token)
                 return token
             else
@@ -514,21 +536,21 @@ data:
     -- should only be called if some vz process is trying to access vmi using basic auth
     -- tokens are cached locally
     function me.handleBasicAuth(authHeader)
-        -- me.info("Checking for basic auth credentials")
+        -- me.debug("Checking for basic auth credentials")
         local found, index = authHeader:find('Basic')
         if not found then
-            me.info("No basic auth credentials found")
+            me.debug("No basic auth credentials found")
             return nil
         end
         local basicCred = string.sub(authHeader, index+2)
         if not basicCred then
             me.unauthorized("Invalid BasicAuth authorization header")
         end
-        me.info("Found basic auth credentials in authorization header")
+        me.debug("Found basic auth credentials in authorization header")
         local now = ngx.time()
         local basicAuth = basicCache[basicCred]
         if basicAuth and (now < basicAuth.expiry) then
-            me.info("Returning cached token")
+            me.debug("Returning cached token")
             return basicAuth.id_token
         end
         local decode, err = ngx.decode_base64(basicCred)
@@ -589,7 +611,7 @@ data:
     end
 
     function me.oidcAuthenticate()
-        me.info("Authenticating user")
+        me.debug("Authenticating user")
         local sha256 = (require 'resty.sha256'):new()
         -- code verifier must be between 43 and 128 characters
         local codeVerifier = me.randomBase64(56)
@@ -624,7 +646,7 @@ data:
     end
 
     function me.oidcHandleCallback()
-        me.info("Handle authentication callback")
+        me.debug("Handle authentication callback")
         local queryParams = me.queryParams(ngx.var.request_uri)
         local state = queryParams.state
         local code = queryParams.code
@@ -658,7 +680,7 @@ data:
     end
 
     function me.oidcTokenRequest(formArgs)
-        me.info("Requesting token from OP")
+        me.debug("Requesting token from OP")
         local tokenUri = me.getOidcTokenUri()
         local http = require "resty.http"
         local httpc = http.new()
@@ -670,14 +692,16 @@ data:
             }
         })
         if err then
+            me.error("Failed requesting token from Keycloak: "..err)
             me.unauthorized("Error requesting token", err)
         end
         if not res then
+            me.info("Failed requesting token from Keycloak: response is nil")
             me.unauthorized("Error requesting token: response was nil")
         end
         local tokenRes = cjson.decode(res.body)
         if tokenRes.error or tokenRes.error_description then
-            me.info("Error requesting token")
+            me.info("Failed requesting token from Keycloak: "..tokenRes.error_description)
             me.unauthorized(tokenRes.error_description)
         end
         return tokenRes
@@ -758,7 +782,7 @@ data:
     end
 
     function me.oidcValidateTokenWithClaims(token, claim_spec)
-        me.info("Validating JWT token")
+        me.debug("Validating JWT token")
         local default_claim_spec = {
             iat = validators.is_not_before(),
             exp = validators.is_not_expired(),
@@ -773,8 +797,8 @@ data:
         if not publicKey then
             me.unauthorized("No public key found")
         end
-        -- me.info("TOKEN: iss is "..jwt_obj.payload.iss)
-        -- me.info("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
+        -- me.debug("TOKEN: iss is "..jwt_obj.payload.iss)
+        -- me.debug("TOKEN: oidcIssuerUri is"..oidcIssuerUri)
         local verified = jwt:verify_jwt_obj(publicKey, jwt_obj, default_claim_spec, claim_spec)
         if not verified or (tostring(jwt_obj.valid) == "false" or tostring(jwt_obj.verified) == "false") then
             me.unauthorized("Failed to validate token", jwt_obj.reason)
@@ -782,7 +806,7 @@ data:
     end
 
     function me.isAuthorized(idToken)
-        me.info("Checking for required role '"..requiredRole.."'")
+        me.debug("Checking for required role '"..requiredRole.."'")
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
             for _, role in ipairs(id_token.payload.realm_access.roles) do
@@ -795,7 +819,7 @@ data:
     end
 
     function me.usernameFromIdToken(idToken)
-        -- me.info("usernameFromIdToken: fetching preferred_username")
+        -- me.debug("usernameFromIdToken: fetching preferred_username")
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.preferred_username then
             return id_token.payload.preferred_username
@@ -806,35 +830,35 @@ data:
     -- returns id token, token is refreshed first, if necessary.
     -- nil token returned if no session or the refresh token has expired
     function me.getTokenFromSession()
-        -- me.info("Check for existing session")
+        -- me.debug("Check for existing session")
         local ck = me.readCookie("vz_authn")
         if ck then
-            me.info("Existing session found")
+            me.debug("Existing session found")
             local rft = ck.rt
             local now = ngx.time()
             local expiry = tonumber(ck.expiry)
             local refresh_expiry = tonumber(ck.refresh_expiry)
             if now < expiry then
-                -- me.info("Returning ID token")
+                -- me.debug("Returning ID token")
                 return ck.it
             else
                 if now < refresh_expiry then
-                    me.info("Token is expired, refreshing")
+                    me.debug("Token is expired, refreshing")
                     local tokenRes = me.oidcRefreshToken(rft, me.callbackUri)
                     if tokenRes then
                         me.oidcValidateIDTokenPKCE(tokenRes.id_token)
                         me.tokenToCookie(tokenRes)
-                        -- me.info("Token refreshed",  tokenRes)
+                        -- me.debug("Token refreshed",  tokenRes)
                         return tokenRes.id_token
                     else
-                        me.info("No valid response from token refresh")
+                        me.debug("No valid response from token refresh")
                     end
                 else
-                    me.info("Refresh token expired, cannot refresh")
+                    me.debug("Refresh token expired, cannot refresh")
                 end
             end
         else
-            me.info("No existing session found")
+            me.debug("No existing session found")
         end
         -- no valid token found, delete cookie
         me.deleteCookies("vz_authn", "vz_userinfo")
@@ -885,7 +909,7 @@ data:
         local ck = require "resty.cookie"
         local cookie, err = ck:new()
         if not cookie then
-            me.logJson(ngx.ERR, "Error setting cookie "..ckName, err)
+            me.debug("Error setting cookie "..ckName..": "..err)
             return
         end
         local expires = ngx.cookie_time(ngx.time() + expiresInSec)
@@ -919,17 +943,17 @@ data:
         local cookie, err = require("resty.cookie"):new()
         local ck = cookie:get(ckName)
         if not ck then
-            me.info("Cookie not found")
+            me.debug("Cookie not found")
             return nil
         end
         local decoded = base64.decode_base64url(ck)
         if not decoded then
-            me.info("Cookie not decoded")
+            me.debug("Cookie not decoded")
             return nil
         end
         local json = me.aes256:decrypt(decoded)
         if not json then
-            me.info("Cookie not decrypted")
+            me.debug("Cookie not decrypted")
             return nil
         end
         return cjson.decode(json)
@@ -947,12 +971,12 @@ data:
         local certsUri = me.getOidcCertsUri()
         local res, err = httpc:request_uri(certsUri)
         if err then
-            me.logJson(ngx.WARN, "Could not retrieve certs", err)
+            me.error("Could not retrieve certs: "..err)
             return nil
         end
         local data = cjson.decode(res.body)
         if not (data.keys) then
-            me.info("No keys found")
+            me.error("Failed to find keys: key object is nil")
             return nil
         end
         for i, key in pairs(data.keys) do
@@ -977,7 +1001,7 @@ data:
     local vzApiVersion = os.getenv("VZ_API_VERSION")
 
     function me.getServiceAccountToken()
-      me.logJson(ngx.INFO, "Read service account token")
+      me.debug("Read service account token")
       local serviceAccountToken = me.read_file("/run/secrets/kubernetes.io/serviceaccount/token")
       if not (serviceAccountToken) then
         me.unauthorized("No service account token present in pod.")
@@ -1027,7 +1051,7 @@ data:
         end
 
         local serviceAccountToken = me.getServiceAccountToken()
-        me.logJson(ngx.INFO, "Set service account bearer token as Authorization header")
+        me.debug("Set service account bearer token as Authorization header")
         ngx.req.set_header("Authorization", "Bearer " .. serviceAccountToken)
 
         if not token then
@@ -1043,17 +1067,17 @@ data:
 
         if jwt_obj.payload and jwt_obj.payload.sub then
             -- Uid is ignored prior to kubernetes v1.22
-            me.logJson(ngx.INFO, ("Adding sub as Impersonate-Uid: " .. jwt_obj.payload.sub))
+            me.debug(("Adding sub as Impersonate-Uid: " .. jwt_obj.payload.sub))
             ngx.req.set_header("Impersonate-Uid", jwt_obj.payload.sub)
             -- this group is needed for discovery, but not automatically set for impersonated users prior to v1.20.
             -- the group is ignored if duplicated >= v1.20, so no harm done if we always send it.
             -- adding it here so that it's present IFF we actually have a subject.
             local sys_auth = "system:authenticated"
-            me.logJson(ngx.INFO, ("Including group: " .. sys_auth))
+            me.debug(("Including group: " .. sys_auth))
             table.insert(groups, sys_auth)
         end
         if jwt_obj.payload and jwt_obj.payload.preferred_username then
-            me.logJson(ngx.INFO, ("Adding preferred_username as Impersonate-User: " .. jwt_obj.payload.preferred_username))
+            me.debug(("Adding preferred_username as Impersonate-User: " .. jwt_obj.payload.preferred_username))
             ngx.req.set_header("Impersonate-User", jwt_obj.payload.preferred_username)
         end
         if jwt_obj.payload and jwt_obj.payload.groups then
@@ -1062,7 +1086,7 @@ data:
             end
         end
         if #groups > 0 then
-            me.logJson(ngx.INFO, ("Adding groups as Impersonate-Group: " .. table.concat(groups, ", ")))
+            me.debug(("Adding groups as Impersonate-Group: " .. table.concat(groups, ", ")))
             ngx.req.set_header("Impersonate-Group", groups)
         end
     end
@@ -1070,7 +1094,7 @@ data:
     function me.handleExternalAPICall(token)
         local args = ngx.req.get_uri_args()
 
-        me.logJson(ngx.INFO, "Read vmc resource for " .. args.cluster)
+        me.debug("Read vmc resource for " .. args.cluster)
         local vmc = me.getVMC(token, args.cluster)
         if not(vmc) or not(vmc.status) or not(vmc.status.apiUrl) then
             me.unauthorized("Unable to fetch vmc api url for vmc " .. args.cluster)
@@ -1083,13 +1107,13 @@ data:
         -- The value of cacrt field is decoded to get the ca certificate and is appended to file being pointed to by the proxy_ssl_trusted_certificate variable.
 
         if not(vmc.spec) or not(vmc.spec.caSecret) then
-            me.logJson(ngx.INFO, "ca secret name not present on vmc resource, assuming well known CA certificate exists for managed cluster " .. args.cluster)
+            me.debug("ca secret name not present on vmc resource, assuming well known CA certificate exists for managed cluster " .. args.cluster)
             do return end
         end
 
         local secret = me.getSecret(token, vmc.spec.caSecret)
         if not(secret) or not(secret.data) or not(secret.data["cacrt"]) or secret.data["cacrt"] == "" then
-            me.logJson(ngx.INFO, "Unable to fetch ca secret for vmc, assuming well known CA certificate exists for managed cluster " .. args.cluster)
+            me.debug("Unable to fetch ca secret for vmc, assuming well known CA certificate exists for managed cluster " .. args.cluster)
             do return end
         end
 
@@ -1121,7 +1145,7 @@ data:
             local decoder = require("cjson.safe").decode
             local decoded_data, err = decoder(data)
             if err then
-                me.logJson(ngx.ERR, "Invalid request payload:" .. data)
+                me.debug("Invalid request payload: " .. data)
                 return false
             end
         end
