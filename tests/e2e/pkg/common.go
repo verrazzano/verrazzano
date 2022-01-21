@@ -281,7 +281,9 @@ func PodsHaveAnnotation(namespace string, annotation string) bool {
 	}
 	for _, pod := range pods.Items {
 		_, hasAnnotation := pod.Annotations[annotation]
-		if !hasAnnotation && !strings.Contains(pod.Name, "vmi-system-kiali") {
+		if !hasAnnotation &&
+			!strings.Contains(pod.Name, "vmi-system-kiali") &&
+			!strings.Contains(pod.Name, "vmi-system-es-data") {
 			return false
 		}
 	}
