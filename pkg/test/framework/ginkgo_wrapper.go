@@ -93,7 +93,24 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
-	body := args[len(args) - 1]
+
+	// handle decorations - iterate through all but the last args and look for our decorators
+	var ginkgoArgs []interface{}
+
+	for _, arg := range args[:len(args)-1] {
+		if reflect.TypeOf(arg).String() == "internal.Requires" {
+			fmt.Println("I found a requires decoration! woot woot!")
+			fmt.Printf("This Describe container is telling me it needs: %s\n", arg)
+		} else {
+			// if it is not one of ours, it must be one of ginkgo's and we need to pass it to them
+			ginkgoArgs = append(ginkgoArgs, arg)
+		}
+	}
+	// add the body func too
+	ginkgoArgs = append(ginkgoArgs, args[len(args) - 1])
+
+	// get the body
+	body := args[len(args)-1]
 	if !isBodyFunc(body) {
 		ginkgo.Fail("Unsupported body type - expected function")
 	}
@@ -102,8 +119,8 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 	}
-	args[len(args) - 1] = f
-	return ginkgo.Describe(text, args...)
+	args[len(args)-1] = f
+	return ginkgo.Describe(text, ginkgoArgs...)
 }
 
 // DescribeTable - wrapper function for Ginkgo DescribeTable

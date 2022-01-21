@@ -27,7 +27,7 @@ func([]byte) {
 	work("SynchronizedBeforeSuite.allProcesses (runs once per process/node)")
 })
 
-var _ = t.Describe("Upgrade", func() {
+var _ = t.Describe("Upgrade", ginkgo.Ordered, framework.Require("verrazzano"), func() {
 
 	t.BeforeAll(func() {
 		work("BeforeAll - I install the starting version of Verrazzano")
