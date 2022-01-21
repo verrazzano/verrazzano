@@ -10,6 +10,7 @@ import (
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -18,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,7 +28,7 @@ import (
 
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
+	Log    *zap.SugaredLogger
 	Scheme *runtime.Scheme
 }
 
@@ -46,7 +46,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // version annotation value is updated.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("applicationconfiguration", req.NamespacedName)
+	log := r.Log.With("applicationconfiguration", req.NamespacedName)
 	log.Info("Reconciling ApplicationConfiguration")
 	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
 
@@ -54,16 +54,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var appConfig oamv1.ApplicationConfiguration
 	if err := r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("ApplicationConfiguration has been deleted")
+			log.Debug("ApplicationConfiguration has been deleted")
 		} else {
-			log.Error(err, "Failed to fetch ApplicationConfiguration")
+			log.Errorf("Failed to fetch ApplicationConfiguration: %v", err)
 		}
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// If the application configuration no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if isAppConfigBeingDeleted(&appConfig) {
-		r.Log.Info("App Configuration is being deleted", "applicationConfiguration", nsn)
+		r.Log.Debugf("App Configuration is being deleted %s", nsn.Name)
 		if err := ingresstrait.Cleanup(nsn, r.Client, r.Log); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -82,24 +82,24 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// get the user-specified restart version - if it's missing then there's nothing to do here
 	restartVersion, ok := appConfig.Annotations[vzconst.RestartVersionAnnotation]
 	if !ok || len(restartVersion) == 0 {
-		log.Info("No restart version annotation found, nothing to do")
+		log.Debug("No restart version annotation found, nothing to do")
 		return reconcile.Result{}, nil
 	}
 
 	// restart all workloads in the appconfig
-	log.Info(fmt.Sprintf("Setting restart version %s for workloads in application %s", restartVersion, appConfig.Name))
+	log.Debugf("Setting restart version %s for workloads in application %s", restartVersion, appConfig.Name)
 	for _, wlStatus := range appConfig.Status.Workloads {
 		err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log)
 		if err != nil {
-			log.Error(err, fmt.Sprintf("Error marking component %s in namespace %s with restart-version %s", wlStatus.ComponentName, appConfig.Namespace, restartVersion))
+			log.Errorf("Error marking component %s in namespace %s with restart-version %s: %v", wlStatus.ComponentName, appConfig.Namespace, restartVersion, err)
 			return reconcile.Result{}, err
 		}
 	}
-	log.Info("Successfully reconciled ApplicationConfiguration")
+	log.Debug("Successfully reconciled ApplicationConfiguration")
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, wlStatus oamv1.WorkloadStatus, restartVersion string, log logr.Logger) error {
+func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, wlStatus oamv1.WorkloadStatus, restartVersion string, log *zap.SugaredLogger) error {
 	// Get the workload as an unstructured object
 	var wlName = wlStatus.Reference.Name
 	var workload unstructured.Unstructured
@@ -112,74 +112,74 @@ func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, w
 	// Set the annotation based on the workload kind
 	switch workload.GetKind() {
 	case vzconst.VerrazzanoCoherenceWorkloadKind:
-		log.Info(fmt.Sprintf("Setting Coherence workload %s restart-version", wlName))
+		log.Debugf("Setting Coherence workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
 	case vzconst.VerrazzanoWebLogicWorkloadKind:
-		log.Info(fmt.Sprintf("Setting WebLogic workload %s restart-version", wlName))
+		log.Debugf("Setting WebLogic workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
 	case vzconst.VerrazzanoHelidonWorkloadKind:
-		log.Info(fmt.Sprintf("Setting Helidon workload %s restart-version", wlName))
+		log.Debugf("Setting Helidon workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
 	case vzconst.ContainerizedWorkloadKind:
-		log.Info(fmt.Sprintf("Setting Containerized workload %s restart-version", wlName))
+		log.Debugf("Setting Containerized workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r, &workload, restartVersion, log)
 	case vzconst.DeploymentWorkloadKind:
-		log.Info(fmt.Sprintf("Setting Deployment workload %s restart-version", wlName))
+		log.Debugf("Setting Deployment workload %s restart-version", wlName)
 		return r.restartDeployment(ctx, restartVersion, wlName, wlNamespace, log)
 	case vzconst.StatefulSetWorkloadKind:
-		log.Info(fmt.Sprintf("Setting StatefulSet workload %s restart-version", wlName))
+		log.Debugf("Setting StatefulSet workload %s restart-version", wlName)
 		return r.restartStatefulSet(ctx, restartVersion, wlName, wlNamespace, log)
 	case vzconst.DaemonSetWorkloadKind:
-		log.Info(fmt.Sprintf("Setting DaemonSet workload %s restart-version", wlName))
+		log.Debugf("Setting DaemonSet workload %s restart-version", wlName)
 		return r.restartDaemonSet(ctx, restartVersion, wlName, wlNamespace, log)
 	default:
-		log.Info(fmt.Sprintf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), wlNamespace))
+		log.Debugf("Skip marking restart-version for %s of kind %s in namespace %s", workload.GetName(), workload.GetKind(), wlNamespace)
 	}
 	return nil
 }
 
-func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
+func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion string, name, namespace string, log *zap.SugaredLogger) error {
 	var deployment = appsv1.Deployment{}
 	deploymentKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(ctx, deploymentKey, &deployment); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info(fmt.Sprintf("Can not find deployment %s in namespace %s", name, namespace))
+			log.Debugf("Can not find deployment %s in namespace %s", name, namespace)
 		} else {
-			log.Error(err, fmt.Sprintf("An error occurred trying to obtain deployment %s in namespace %s", name, namespace))
+			log.Errorf("Failed to obtain deployment %s in namespace %s: %v", name, namespace, err)
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Marking deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Debugf("Marking deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion)
 	return DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log)
 }
 
-func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
+func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion string, name, namespace string, log *zap.SugaredLogger) error {
 	var statefulSet = appsv1.StatefulSet{}
 	statefulSetKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(ctx, statefulSetKey, &statefulSet); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info(fmt.Sprintf("Can not find statefulSet %s in namespace %s", name, namespace))
+			log.Debugf("Can not find statefulSet %s in namespace %s", name, namespace)
 		} else {
-			log.Error(err, fmt.Sprintf("An error occurred trying to obtain statefulSet %s in namespace %s", name, namespace))
+			log.Errorf("Failed to obtain statefulSet %s in namespace %s: %v", name, namespace, err)
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Marking statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Debugf("Marking statefulSet %s in namespace %s with restart-version %s", name, namespace, restartVersion)
 	return DoRestartStatefulSet(ctx, r.Client, restartVersion, &statefulSet, log)
 }
 
-func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string, name, namespace string, log logr.Logger) error {
+func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string, name, namespace string, log *zap.SugaredLogger) error {
 	var daemonSet = appsv1.DaemonSet{}
 	daemonSetKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(ctx, daemonSetKey, &daemonSet); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info(fmt.Sprintf("Can not find daemonSet %s in namespace %s", name, namespace))
+			log.Debugf("Can not find daemonSet %s in namespace %s", name, namespace)
 		} else {
-			log.Error(err, fmt.Sprintf("An error occurred trying to obtain daemonSet %s in namespace %s", name, namespace))
+			log.Errorf("Failed to obtain daemonSet %s in namespace %s: %v", name, namespace, err)
 			return err
 		}
 	}
-	log.Info(fmt.Sprintf("Marking daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion))
+	log.Debugf("Marking daemonSet %s in namespace %s with restart-version %s", name, namespace, restartVersion)
 	return DoRestartDaemonSet(ctx, r.Client, restartVersion, &daemonSet, log)
 }
 
@@ -188,10 +188,10 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
 	if !appConfig.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		r.Log.Info("Removing finalizer from application configuration", "appConfig", appName)
+		r.Log.Debugf("Removing finalizer from application configuration %s", appName)
 		appConfig.Finalizers = vzstring.RemoveStringFromSlice(appConfig.Finalizers, finalizerName)
 		if err := r.Update(ctx, appConfig); err != nil {
-			r.Log.Error(err, "failed to remove finalizer from application configuration", "appConfig", appName)
+			r.Log.Errorf("Failed to remove finalizer from application configuration %s: %v", appName, err)
 			return err
 		}
 	}
@@ -203,21 +203,21 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *o
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
 	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		r.Log.Info("Adding finalizer for appConfig", "appConfig", appName)
+		r.Log.Debugf("Adding finalizer for appConfig %s", appName)
 		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
 		if err := r.Update(ctx, appConfig); err != nil {
-			r.Log.Error(err, "failed to add finalizer to appConfig", "appConfig", appName)
+			r.Log.Errorf("Failed to add finalizer to appConfig %s", appName)
 			return err
 		}
 	}
 	return nil
 }
 
-func DoRestartDeployment(ctx context.Context, client client.Client, restartVersion string, deployment *appsv1.Deployment, log logr.Logger) error {
+func DoRestartDeployment(ctx context.Context, client client.Client, restartVersion string, deployment *appsv1.Deployment, log *zap.SugaredLogger) error {
 	if deployment.Spec.Paused {
 		return fmt.Errorf("deployment %s can't be restarted because it is paused", deployment.Name)
 	}
-	log.Info(fmt.Sprintf("The deployment %s/%s restart version is set to %s", deployment.Namespace, deployment.Name, restartVersion))
+	log.Debugf("The deployment %s/%s restart version is set to %s", deployment.Namespace, deployment.Name, restartVersion)
 	_, err := controllerutil.CreateOrUpdate(ctx, client, deployment, func() error {
 		if len(restartVersion) > 0 {
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
@@ -228,14 +228,14 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 		return nil
 	})
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Error updating deployment %s/%s", deployment.Namespace, deployment.Name))
+		log.Errorf("Error updating deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
 		return err
 	}
 	return nil
 }
 
-func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log logr.Logger) error {
-	log.Info(fmt.Sprintf("The statefulSet %s/%s restart version is set to %s", statefulSet.Namespace, statefulSet.Name, restartVersion))
+func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log *zap.SugaredLogger) error {
+	log.Debugf("The statefulSet %s/%s restart version is set to %s", statefulSet.Namespace, statefulSet.Name, restartVersion)
 	_, err := controllerutil.CreateOrUpdate(ctx, client, statefulSet, func() error {
 		if len(restartVersion) > 0 {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
@@ -246,14 +246,14 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 		return nil
 	})
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Error updating statefulSet %s/%s", statefulSet.Namespace, statefulSet.Name))
+		log.Errorf("Error updating statefulSet %s/%s: %v", statefulSet.Namespace, statefulSet.Name, err)
 		return err
 	}
 	return nil
 }
 
-func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log logr.Logger) error {
-	log.Info(fmt.Sprintf("The daemonSet %s/%s restart version is set to %s", daemonSet.Namespace, daemonSet.Name, restartVersion))
+func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log *zap.SugaredLogger) error {
+	log.Debugf("The daemonSet %s/%s restart version is set to %s", daemonSet.Namespace, daemonSet.Name, restartVersion)
 	_, err := controllerutil.CreateOrUpdate(ctx, client, daemonSet, func() error {
 		if len(restartVersion) > 0 {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
@@ -264,22 +264,22 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 		return nil
 	})
 	if err != nil {
-		log.Error(err, fmt.Sprintf("Error updating daemonSet %s/%s", daemonSet.Namespace, daemonSet.Name))
+		log.Errorf("Error updating daemonSet %s/%s: %v", daemonSet.Namespace, daemonSet.Name, err)
 		return err
 	}
 	return nil
 }
 
 // Update the workload annotation with the restart version. This will cause the workload to be restarted if the version changed
-func updateRestartVersion(ctx context.Context, client client.Client, u *unstructured.Unstructured, restartVersion string, log logr.Logger) error {
+func updateRestartVersion(ctx context.Context, client client.Client, u *unstructured.Unstructured, restartVersion string, log *zap.SugaredLogger) error {
 	const metadataField = "metadata"
 	var metaAnnotationFields = []string{metadataField, "annotations"}
 
-	log.Info(fmt.Sprintf("Setting workload %s restartVersion to %s", u.GetName(), restartVersion))
+	log.Debugf("Setting workload %s restartVersion to %s", u.GetName(), restartVersion)
 	_, err := controllerutil.CreateOrUpdate(ctx, client, u, func() error {
 		annotations, found, err := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
 		if err != nil {
-			log.Info(fmt.Sprintf("Error getting NestedStringMap for workload %s", u.GetName()))
+			log.Errorf("Error getting NestedStringMap for workload %s: %v", u.GetName(), err)
 			return err
 		}
 		if !found {
@@ -288,7 +288,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		err = unstructured.SetNestedStringMap(u.Object, annotations, metaAnnotationFields...)
 		if err != nil {
-			log.Info(fmt.Sprintf("Error setting NestedStringMap for workload %s", u.GetName()))
+			log.Errorf("Error setting NestedStringMap for workload %s: %v", u.GetName(), err)
 			return err
 		}
 		return nil
