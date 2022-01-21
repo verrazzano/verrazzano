@@ -72,7 +72,6 @@ func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
 	}
 
 	outputPaths, err := configureOutputs(ind)
-	logger.Info("boom")
 	if err != nil {
 		logger.Errorf("failed to configure outputs: %v", err)
 		return nil, err
