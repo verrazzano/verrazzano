@@ -6,9 +6,6 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"os"
 	"strings"
 	"time"
@@ -16,11 +13,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 
 	"go.uber.org/zap"
@@ -70,12 +71,12 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
-	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
+	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, "Verrazzano")
 
 	// Add cert-manager components to the scheme
 	cmapiv1.AddToScheme(r.Scheme)
 
-	log.Debugf("Reconciler called")
+	log.Debugf("Reconcile called")
 
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
@@ -85,7 +86,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return reconcile.Result{}, nil
 		}
 
-		// Error getting the Verrazzano resource - don't requeue.
 		log.Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return reconcile.Result{}, err
 	}
@@ -93,7 +93,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
 	if err != nil {
-		log.Errorf("unable to set watch for Job resource: %v", err)
+		log.Errorf("Failed to set watch for Job resource: %v", err)
 		return result, err
 	}
 	if shouldRequeue(result) {
@@ -119,33 +119,33 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	spiContext, err := spi.NewContext(log, r, vz, r.DryRun)
 	if err != nil {
-		log.Errorf("Could not create component context: %v", err)
+		log.Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
 	}
 
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.Failed:
-		return r.FailedState(spiContext)
+		return r.ProcFailedState(spiContext)
 	case installv1alpha1.Installing:
-		return r.InstallingState(spiContext)
+		return r.ProcInstallingState(spiContext)
 	case installv1alpha1.Ready:
-		return r.ReadyState(spiContext)
+		return r.ProcReadyState(spiContext)
 	case installv1alpha1.Uninstalling:
-		return r.UninstallingState(spiContext)
+		return r.ProcUninstallingState(spiContext)
 	case installv1alpha1.Upgrading:
-		return r.UpgradingState(spiContext)
+		return r.ProcUpgradingState(spiContext)
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
 }
 
 // ReadyState processes the CR while in the ready state
-func (r *Reconciler) ReadyState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	log := spiCtx.Log()
 	actualCR := spiCtx.ActualCR()
 
-	log.Debugf("enter ReadyState")
+	log.Debugf("Entering ProcReadyState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
@@ -218,11 +218,11 @@ func (r *Reconciler) ReadyState(spiCtx spi.ComponentContext) (ctrl.Result, error
 	return newRequeueWithDelay(), err
 }
 
-// InstallingState processes the CR while in the installing state
-func (r *Reconciler) InstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+// ProcInstallingState processes the CR while in the installing state
+func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	log := spiCtx.Log()
 	actualCR := spiCtx.ActualCR()
-	log.Debugf("enter InstallingState")
+	log.Debug("Entering ProcInstallingState")
 	ctx := context.TODO()
 
 	// Check if Verrazzano resource is being deleted
@@ -245,10 +245,10 @@ func (r *Reconciler) InstallingState(spiCtx spi.ComponentContext) (ctrl.Result, 
 }
 
 // UninstallingState processes the CR while in the uninstalling state
-func (r *Reconciler) UninstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+func (r *Reconciler) ProcUninstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
-	log.Debugf("enter UninstallingState")
+	log.Debug("Entering ProcUninstallingState")
 	ctx := context.TODO()
 
 	// Update uninstall status
@@ -260,10 +260,10 @@ func (r *Reconciler) UninstallingState(spiCtx spi.ComponentContext) (ctrl.Result
 }
 
 // UpgradingState processes the CR while in the upgrading state
-func (r *Reconciler) UpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
-	log.Debugf("enter UpgradingState")
+	log.Debug("Entering ProcUpgradingState")
 
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
@@ -275,11 +275,11 @@ func (r *Reconciler) UpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, e
 	return newRequeueWithDelay(), nil
 }
 
-// FailedState only allows uninstall
-func (r *Reconciler) FailedState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
+// ProcFailedState only allows uninstall
+func (r *Reconciler) ProcFailedState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
-	log.Debugf("enter FailedState")
+	log.Debug("Entering ProcFailedState")
 	ctx := context.TODO()
 
 	// Determine if the user specified to retry upgrade
@@ -373,7 +373,7 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 	log.Debugf("Checking if install cluster role binding %s exist", binding.Name)
 	err := r.Get(ctx, types.NamespacedName{Name: binding.Name, Namespace: binding.Namespace}, bindingFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Infof("Creating install cluster role binding %s", binding.Name)
+		log.Debugf("Creating install cluster role binding %s", binding.Name)
 		err = r.Create(ctx, binding)
 		if err != nil {
 			return err
@@ -532,7 +532,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 
 	// Set the state of resource
 	cr.Status.State = checkCondtitionType(conditionType)
-	log.Infof("Setting Verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
+	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
@@ -547,7 +547,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
 	// Set the state of resource
 	cr.Status.State = state
-	log.Infof("Setting Verrazzano state: %v", cr.Status.State)
+	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
 
 	// Update the status
 	err := r.Status().Update(context.TODO(), cr)
@@ -686,7 +686,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
-					log.Errorf("IsInstalled error for component %s: %s", comp.Name(), err)
+					log.Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
 					return newRequeueWithDelay(), err
 				}
 				if installed {
@@ -727,11 +727,11 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 		var message string
 		var conditionType installv1alpha1.ConditionType
 		if job.Status.Succeeded == 1 {
-			message = "Verrazzano uninstall completed successfully"
+			message = "Successfullly uninstalled Verrazzano"
 			conditionType = installv1alpha1.UninstallComplete
 			log.Info(message)
 		} else {
-			message = "Verrazzano uninstall failed to complete"
+			message = "Failed to uninstall Verrazzano"
 			conditionType = installv1alpha1.UninstallFailed
 			log.Error(message)
 		}
@@ -745,7 +745,7 @@ func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.
 		}
 	}
 
-	return r.updateStatus(log, vz, "Verrazzano uninstall in progress", installv1alpha1.UninstallStarted)
+	return r.updateStatus(log, vz, "Installing Verrazzano", installv1alpha1.UninstallStarted)
 }
 
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
@@ -1124,7 +1124,7 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.
 
 	// Watch the jobs in the operator namespace for this VZ CR
 	if err := r.watchJobs(vz.Namespace, vz.Name, log); err != nil {
-		log.Errorf("unable to set Job watch for Verrrazzano CR %s: %v", vz.Name, err)
+		log.Errorf("Failed to set Job watch for Verrrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
 	}
 

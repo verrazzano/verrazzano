@@ -389,7 +389,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		compContext.Log().Errorf("AppendKeycloakOverrides: Error retrieving DNS sub domain: %s", err)
 		return nil, err
 	}
-	compContext.Log().Infof("AppendKeycloakOverrides: DNSDomain returned %s", dnsSubDomain)
+	compContext.Log().Debugf("AppendKeycloakOverrides: DNSDomain returned %s", dnsSubDomain)
 
 	host := "keycloak." + dnsSubDomain
 
@@ -434,17 +434,17 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 	ingress := networkv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: "keycloak"},
 	}
-	opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
+	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
 		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
 			return err
 		}
 		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
-		ctx.Log().Infof("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
+		ctx.Log().Debugf("updateKeycloakIngress: Updating Keycloak Ingress with ingressTarget = %s", ingressTarget)
 		ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 		return nil
 	})
-	ctx.Log().Infof("updateKeycloakIngress: Keycloak ingress operation result: %s", opResult)
+	ctx.Log().Debugf("updateKeycloakIngress: Keycloak ingress operation result: %v", err)
 	return err
 }
 
@@ -472,7 +472,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	if id == "" {
 		return errors.New("Keycloak Post Upgrade: Error retrieving ID for Keycloak user, zero length")
 	}
-	ctx.Log().Info("Keycloak Post Upgrade: Successfully retrieved clientID")
+	ctx.Log().Debug("Keycloak Post Upgrade: Successfully retrieved clientID")
 
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
@@ -480,7 +480,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 		ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving DNS sub domain: %s", err)
 		return err
 	}
-	ctx.Log().Infof("Keycloak Post Upgrade: DNSDomain returned %s", dnsSubDomain)
+	ctx.Log().Debugf("Keycloak Post Upgrade: DNSDomain returned %s", dnsSubDomain)
 
 	// Call the Script and Update the URIs
 	scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
@@ -488,7 +488,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 		ctx.Log().Errorf("Keycloak Post Upgrade: Failed updating KeyCloak URIs %s: %s", err, stderr)
 		return err
 	}
-	ctx.Log().Info("Keycloak Post Upgrade: Successfully Updated Keycloak URIs")
+	ctx.Log().Debug("Keycloak Post Upgrade: Successfully Updated Keycloak URIs")
 	return nil
 }
 
@@ -621,7 +621,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	ctx.Log().Infof("configureKeycloakRealm: successfully configured realm %s", vzSysRealm)
+	ctx.Log().Debugf("configureKeycloakRealm: successfully configured realm %s", vzSysRealm)
 	return nil
 }
 
@@ -690,7 +690,7 @@ func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname str
 		if err != nil {
 			return err
 		}
-		opResult, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
 			// Build the secret data
 			secret.Data = map[string][]byte{
 				"username": []byte(username),
@@ -698,7 +698,7 @@ func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname str
 			}
 			return nil
 		})
-		ctx.Log().Infof("Keycloak secret operation result: %s", opResult)
+		ctx.Log().Debugf("Keycloak secret operation result: %v", err)
 
 		if err != nil {
 			return err
@@ -749,7 +749,7 @@ func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 	ctx.Log().Debugf("createVerrazzanoSystemRealm: Check Verrazzano System Realm Exists Cmd = %s", checkRealmExistsCmd)
 	_, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(checkRealmExistsCmd))
 	if err != nil {
-		ctx.Log().Info("createVerrazzanoSystemRealm: Verrazzano System Realm doesn't exist: Creating it")
+		ctx.Log().Debug("createVerrazzanoSystemRealm: Verrazzano System Realm doesn't exist: Creating it")
 		createRealmCmd := "/opt/jboss/keycloak/bin/kcadm.sh create realms -s " + realm + " -s enabled=false"
 		ctx.Log().Debugf("createVerrazzanoSystemRealm: Create Verrazzano System Realm Cmd = %s", createRealmCmd)
 		stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRealmCmd))
@@ -950,7 +950,7 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		ctx.Log().Errorf("createVerrazzanoPkceClient: Error retrieving DNS sub domain: %s", err)
 		return err
 	}
-	ctx.Log().Infof("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
+	ctx.Log().Debugf("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
 	data.DNSSubDomain = dnsSubDomain
 
 	// use template to get populate template with data
@@ -970,13 +970,13 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		b.String() +
 		"END"
 
-	ctx.Log().Infof("createVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
+	ctx.Log().Debugf("createVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPkceCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("createVerrazzanoPkceClient: Error creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Info("createVerrazzanoPkceClient: Created verrazzano-pkce client")
+	ctx.Log().Debug("createVerrazzanoPkceClient: Created verrazzano-pkce client")
 	return nil
 }
 
@@ -990,13 +990,13 @@ func createVerrazzanoPgClient(ctx spi.ComponentContext, cfg *restclient.Config, 
 	vzPgCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create clients -r " + vzSysRealm + " -f - <<\\END" +
 		pgClient +
 		"END"
-	ctx.Log().Infof("createVerrazzanoPgClient: Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
+	ctx.Log().Debugf("createVerrazzanoPgClient: Create verrazzano-pg client Cmd = %s", vzPgCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPgCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("createVerrazzanoPgClient: Error creating verrazzano-pg client: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Info("createVerrazzanoPgClient: Created verrazzano-pg client")
+	ctx.Log().Debug("createVerrazzanoPgClient: Created verrazzano-pg client")
 	return nil
 }
 

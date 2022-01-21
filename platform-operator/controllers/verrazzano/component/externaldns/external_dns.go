@@ -34,7 +34,7 @@ const (
 func preInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
-		compContext.Log().Infof("cert-manager PreInstall dry run")
+		compContext.Log().Debug("cert-manager PreInstall dry run")
 		return nil
 	}
 
