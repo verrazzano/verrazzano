@@ -76,6 +76,20 @@ func (y *YAMLApplier) ApplyFT(filePath string, args map[string]interface{}) erro
 	return y.doTemplatedFileAction(filePath, y.applyAction, args)
 }
 
+// ApplyFTDefaultConfig calls ApplyFT with rest client from the default config
+func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args map[string]interface{}) error {
+	config, err := GetKubeConfig()
+	if err != nil {
+		return err
+	}
+	client, err := crtpkg.New(config, crtpkg.Options{})
+	if err != nil {
+		return err
+	}
+	y.client = client
+	return y.ApplyFT(filePath, args)
+}
+
 //DeleteF deletes a file spec from Kubernetes
 func (y *YAMLApplier) DeleteF(filePath string) error {
 	return y.doFileAction(filePath, y.deleteAction)
@@ -84,6 +98,20 @@ func (y *YAMLApplier) DeleteF(filePath string) error {
 //DeleteFT deletes a file template spec (go text.template) to Kubernetes
 func (y *YAMLApplier) DeleteFT(filePath string, args map[string]interface{}) error {
 	return y.doTemplatedFileAction(filePath, y.deleteAction, args)
+}
+
+// DeleteFTDefaultConfig calls deleteFT with rest client from the default config
+func (y *YAMLApplier) DeleteFTDefaultConfig(filePath string, args map[string]interface{}) error {
+	config, err := GetKubeConfig()
+	if err != nil {
+		return err
+	}
+	client, err := crtpkg.New(config, crtpkg.Options{})
+	if err != nil {
+		return err
+	}
+	y.client = client
+	return y.DeleteFT(filePath, args)
 }
 
 //applyAction creates a merge patch of the object with the server object

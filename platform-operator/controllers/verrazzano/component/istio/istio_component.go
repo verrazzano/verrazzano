@@ -158,7 +158,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 			return err
 		}
 
-		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
+		log.Debugf("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
 	// images overrides to get passed into the istioctl command
@@ -345,7 +345,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 			if err != nil {
 				compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
 			} else {
-				compContext.Log().Infof("Deleted helm secret %v", secretName)
+				compContext.Log().Debugf("Deleted helm secret %s", secretName)
 			}
 		}
 	}
