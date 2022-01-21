@@ -123,8 +123,8 @@ pipeline {
         IMAGE_REPO_SUBPATH_PREFIX="verrazzano-private-registry"
         IMAGE_REPO_SUBPATH_SUFFIX="${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
 
-        HARBOR_EPHEMERAL_ADMIN_USR="admin"
-        HARBOR_EPHEMERAL_ADMIN_PASSWORD="admin"
+        HARBOR_EPHEMERAL_REGISTRY_CREDS = credentials('harbor-ephemeral-registry-account')
+
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
     }
@@ -667,7 +667,7 @@ def getPrivateRegistryUser() {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return env.OCIR_CREDS_USR
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_EPHEMERAL_ADMIN_USR
+        return env.HARBOR_EPHEMERAL_REGISTRY_CREDS_USR
     }
     return ""
 }
@@ -676,7 +676,7 @@ def getPrivateRegistryPassword() {
     if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
         return env.OCIR_CREDS_PSW
     } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_EPHEMERAL_ADMIN_PASSWORD
+        return env.HARBOR_EPHEMERAL_REGISTRY_CREDS_PSW
     }
     return ""
 }
