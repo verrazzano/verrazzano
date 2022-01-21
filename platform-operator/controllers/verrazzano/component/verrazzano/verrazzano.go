@@ -328,7 +328,7 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues
 	if err := writeFileFunc(overridesFileName, bytes, fs.ModeAppend); err != nil {
 		return "", err
 	}
-	ctx.Log().Infof("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
+	ctx.Log().Debugf("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
 	return overridesFileName, nil
 }
 
@@ -638,7 +638,7 @@ func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespa
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].Value = string(elasticsearchURL)
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].ValueFrom = nil
 	}
-	log.Infof("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
+	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
 }
@@ -913,7 +913,7 @@ func formatISMPayload(ismConfig vzapi.ISMConfig, payload string) (string, error)
 func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
 	// Only apply this fix to clusters with Elasticsearch enabled.
 	if !vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		ctx.Log().Info("Elasticsearch Post Upgrade: Replica count update unnecessary on managed cluster.")
+		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary on managed cluster.")
 		return nil
 	}
 
@@ -928,7 +928,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		return err
 	}
 	if sourceVer.IsGreatherThan(ver1_1_0) || sourceVer.IsEqualTo(ver1_1_0) {
-		ctx.Log().Info("Elasticsearch Post Upgrade: Replica count update unnecessary for source Verrazzano version %v.", sourceVer.ToString())
+		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary for source Verrazzano version %v.", sourceVer.ToString())
 		return nil
 	}
 
@@ -942,18 +942,18 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	// Find the Elasticsearch HTTP control container port.
 	httpPort, err := getNamedContainerPortOfContainer(pod, containerName, portName)
 	if err != nil {
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Failed to find HTTP port of Elasticsearch container: %s", err)
+		ctx.Log().Errorf("Failed to find HTTP port of Elasticsearch container during post-upgrade: %v", err)
 		return err
 	}
 	if httpPort <= 0 {
 		err := fmt.Errorf("no port found")
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Failed to find Elasticsearch port: %s", err)
+		ctx.Log().Errorf("Failed to find Elasticsearch port during post-upgrade: %v", err)
 		return err
 	}
 
 	// Set the the number of replicas for the Verrazzano indices
 	// to something valid in single node Elasticsearch cluster
-	ctx.Log().Info("Elasticsearch Post Upgrade: Getting the health of the Elasticsearch cluster")
+	ctx.Log().Debug("Elasticsearch Post Upgrade: Getting the health of the Elasticsearch cluster")
 	getCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
 		fmt.Sprintf("curl -v -XGET -s -k --fail http://localhost:%d/_cluster/health", httpPort))
 	output, err := getCmd.Output()
@@ -961,7 +961,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch cluster health: %s", err)
 		return err
 	}
-	ctx.Log().Info("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %v", string(output))
+	ctx.Log().Debugf("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %s", string(output))
 	// If the data node count is seen as 1 then the node is considered as single node cluster
 	if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
 		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
@@ -972,9 +972,9 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 			ctx.Log().Errorf("Elasticsearch Post Upgrade: Error logging into Elasticsearch: %s", err)
 			return err
 		}
-		ctx.Log().Info("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
+		ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
 	}
-	ctx.Log().Info("Elasticsearch Post Upgrade: Completed successfully")
+	ctx.Log().Debug("Elasticsearch Post Upgrade: Completed successfully")
 	return nil
 }
 

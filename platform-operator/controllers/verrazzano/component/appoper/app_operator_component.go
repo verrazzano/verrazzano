@@ -65,7 +65,7 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 			if err != nil {
 				errorList = append(errorList, fmt.Sprintf("failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
 			} else {
-				ctx.Log().Infof("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
+				ctx.Log().Debugf("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
 			}
 		}
 	}

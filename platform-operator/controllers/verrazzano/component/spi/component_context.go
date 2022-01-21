@@ -47,7 +47,7 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 	log := zap.S()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
-		log.Infof("Profiles location: %s", config.TestProfilesDir)
+		log.Debugf("Profiles location: %s", config.TestProfilesDir)
 		defer func() { config.TestProfilesDir = "" }()
 
 		var err error

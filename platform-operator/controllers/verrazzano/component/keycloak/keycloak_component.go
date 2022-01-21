@@ -139,7 +139,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Infof("Keycloak isReady: Failed to get Keycloak Certificate: %s", err)
+		ctx.Log().Infof("Waiting for Keycloak Certificate: %s to exist", secretName)
 		return false
 	}
 

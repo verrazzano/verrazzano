@@ -388,7 +388,6 @@ data:
       data_stream_template_name verrazzano-data-stream
 
       time_precision 9
-
       # Prevent reloading connections to Elasticsearch
       reload_connections false
       reconnect_on_error true
