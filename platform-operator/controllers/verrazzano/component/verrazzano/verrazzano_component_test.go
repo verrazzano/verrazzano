@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package verrazzano
 
@@ -20,18 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-const profilesRelativePath = "../../../../manifests/profiles"
-
-var crEnabled = vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
-		Components: vzapi.ComponentSpec{
-			Verrazzano: &vzapi.VerrazzanoComponent{
-				Enabled: getBoolPtr(true),
-			},
-		},
-	},
-}
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
 // GIVEN a Verrazzano component
@@ -316,56 +304,4 @@ func createPreInstallTestClient(extraObjs ...runtime.Object) client.Client {
 	objs = append(objs, extraObjs...)
 	client := fake.NewFakeClientWithScheme(testScheme, objs...)
 	return client
-}
-
-// TestIsEnabledNilVerrazzano tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
-//  THEN true is returned
-func TestIsEnabledNilVerrazzano(t *testing.T) {
-	cr := crEnabled
-	cr.Spec.Components.Verrazzano = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
-}
-
-// TestIsEnabledNilComponent tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
-//  THEN false is returned
-func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
-}
-
-// TestIsEnabledNilEnabled tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component enabled is nil
-//  THEN true is returned
-func TestIsEnabledNilEnabled(t *testing.T) {
-	cr := crEnabled
-	cr.Spec.Components.Verrazzano.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
-}
-
-// TestIsEnabledExplicit tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly enabled
-//  THEN true is returned
-func TestIsEnabledExplicit(t *testing.T) {
-	cr := crEnabled
-	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
-}
-
-// TestIsDisableExplicit tests the IsEnabled function
-// GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly disabled
-//  THEN false is returned
-func TestIsDisableExplicit(t *testing.T) {
-	cr := crEnabled
-	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
-}
-
-func getBoolPtr(b bool) *bool {
-	return &b
 }
