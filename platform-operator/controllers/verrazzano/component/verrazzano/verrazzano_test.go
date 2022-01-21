@@ -572,17 +572,11 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 						Keycloak:      &vzapi.KeycloakComponent{Enabled: &falseValue},
 						Rancher:       &vzapi.RancherComponent{Enabled: &falseValue},
 						DNS:           &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
-						Verrazzano: &vzapi.VerrazzanoComponent{
-							Enabled: &trueValue,
-							VerrrazzanoInstallArgs: []vzapi.InstallArgs{
-								{Name: "api.replicas", Value: "2"},
-							},
-						},
 					},
 				},
 			},
 			expectedYAML: "testdata/vzOverridesDevWithOverrides.yaml",
-			numKeyValues: 8,
+			numKeyValues: 7,
 		},
 		{
 			name:        "ProdWithExternaDNSEnabled",
