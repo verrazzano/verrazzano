@@ -421,9 +421,17 @@ pipeline {
                                 runGinkgo('examples/springboot')
                             }
                         }
-                        stage('examples helidon') {
+                        stage('examples helidon 1') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-1"
+                            }
+                            steps {
+                                runGinkgo('examples/helidon')
+                            }
+                        }
+                        stage('examples helidon 2') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon-2"
                             }
                             steps {
                                 runGinkgo('examples/helidon')

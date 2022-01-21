@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"strings"
@@ -428,6 +429,11 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 	}
 
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// GenerateNamespace takes a string and combines that with a UUID to generate a namespace
+func GenerateNamespace(name string) string {
+	return name + "-" + uuid.NewString()[:7]
 }
 
 // GetEffectiveKeyCloakPersistenceOverride returns the effective PVC override for Keycloak, if it exists
