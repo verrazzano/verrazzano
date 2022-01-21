@@ -79,13 +79,13 @@ var _ = Describe("Generic decl bug fix", func() {
 
 // Tests for the Ginkgo wrapped functions
 var _ = t.Describe("Wrapper for the Ginkgo Describe node", func() {
-	t.It("This is a test", func() {
+	t.It("Test 6", func() {
 		Eventually(func() (bool, error) {
 			return true, nil
 		})
 	})
 
-	t.It("Sample test with Expect inside Eventually", func() {
+	t.It("Test 7, sample test with Expect inside Eventually", func() {
 		Eventually(func() (bool, error) {
 			// Linter should catch this as an issue
 			Expect(true).To(BeTrue())
@@ -93,13 +93,26 @@ var _ = t.Describe("Wrapper for the Ginkgo Describe node", func() {
 		})
 	})
 
-	t.It("Sample test with Fail inside Eventually", func() {
+	t.It("Test 8, sample test with Fail inside Eventually", func() {
 		Eventually(func() (bool, error) {
 			// Linter should catch this as an issue
 			Fail("There is a failure")
 			return true, nil
 		})
 	})
+
+	t.It("Test 9, the function called from Eventually has Expect inside it", func() {
+		Eventually(func() (bool, error) {
+			return internal.DoCallExpect(), nil
+		})
+
+		Expect(false).To(BeTrue())
+	})
+
+	t.It("Test 10, call a function having Eventually has Expect inside it", func() {
+		internal.DoCallEventually()
+	})
+
 	// The following calls are good
 	Expect(true).To(BeTrue())
 	Fail("This Fail is not in an eventually")

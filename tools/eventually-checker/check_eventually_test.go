@@ -36,12 +36,11 @@ func TestAnalyzePackages(t *testing.T) {
 
 	// check for bad calls, we should get 2
 	results := checkForBadCalls()
-	assert.Len(results, 6)
+	assert.Len(results, 8)
 
 	for key, val := range results {
 		// convert the failed call position to a string of the form "filename:row:column"
 		failedCallPos := fset.PositionFor(key, true).String()
-
 		if strings.HasSuffix(failedCallPos, "/internal/helper.go:12:2") {
 			// expect this bad call from Eventually in main.go
 			assert.Len(val, 1)
@@ -72,6 +71,16 @@ func TestAnalyzePackages(t *testing.T) {
 			assert.Len(val, 1)
 			eventuallyPos := fset.PositionFor(val[0], true).String()
 			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:97:3"))
+		} else if strings.HasSuffix(failedCallPos, "/helper.go:21:9") {
+			// expect this bad call from Eventually in main.go
+			assert.Len(val, 1)
+			eventuallyPos := fset.PositionFor(val[0], true).String()
+			assert.True(strings.HasSuffix(eventuallyPos, "/main.go:105:3"))
+		} else if strings.HasSuffix(failedCallPos, "/helper.go:26:3") {
+			// expect this bad call from Eventually in main.go
+			assert.Len(val, 1)
+			eventuallyPos := fset.PositionFor(val[0], true).String()
+			assert.True(strings.HasSuffix(eventuallyPos, "/helper.go:25:2"))
 		} else {
 			t.Errorf("Found unexpected Fail/Expect call at: %s", failedCallPos)
 		}
