@@ -58,12 +58,6 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-<<<<<<< HEAD
-var (
-	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
-	waitTimeout              = 10 * time.Minute
-	pollingInterval          = 30 * time.Second
-)
 
 const (
 	istioNamespace     = "istio-system"
@@ -72,9 +66,6 @@ const (
 
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
-=======
-var _ = t.Describe("Hello Helidon OAM App test", func() {
->>>>>>> master
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
@@ -137,13 +128,10 @@ var _ = t.Describe("Hello Helidon OAM App test", func() {
 		})
 	})
 
-<<<<<<< HEAD
+
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-hello-helidon"
-=======
-	t.Context("Logging.", func() {
+
 		indexName := "verrazzano-namespace-" + namespace
->>>>>>> master
 
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
