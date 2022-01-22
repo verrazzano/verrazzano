@@ -7,19 +7,19 @@ import (
 	"time"
 )
 
-// futureMap contains a map of futureLog objects
-var futureMap = make(map[string]*futureLog)
+// historyMap contains a map of historyLog objects
+var historyMap = make(map[string]*historyLog)
 
 type Logger interface {
 	Info(args ...interface{})
 }
 
-// futureLog contains a message to be logged in the future
-type futureLog struct {
-	// Next time message will be logged
-	nextLogTime time.Time
+// historyLog contains the history messages logged
+type historyLog struct {
+	// Last time message was logged
+	lastLogTime *time.Time
 
-	// Message to log
+	// Message logged
 	msg string
 }
 
@@ -44,31 +44,33 @@ func NewProgressLogger(log Logger, name string) ProgressLogger {
 	}
 }
 
-// Log logs an info message for a specific key.  The message
-// will be logged only if it is new or the next log time has been reached
+// Log logs an info message either now or sometime in the future.  The message
+// will be logged only if it is new or the next log time has been reached.
+// This function allows a controller to constantly log info messages very frequently,
+// such as "waiting for Verrazzano secret", but the message will only be logged
+// once periodically according to the frequency (e.g. once every 60 seconds).
+// If the log message is new or has changed.
 func (p ProgressLogger) Log(msg string) {
 	now := time.Now()
 
-	// Get the tracker for this key, create a new one if needed
-	future, ok := futureMap[p.name]
+	// Get the history for this key, create a new one if needed
+	history, ok := historyMap[p.name]
 	if !ok {
-		future = &futureLog{
-			nextLogTime: now,
-			msg:         msg,
-		}
-		futureMap[p.name] = future
+		history = &historyLog{}
+		historyMap[p.name] = history
 	}
-	// If the message changed then log now
-	if msg != future.msg {
-		future.nextLogTime = now
-	}
-	// Log the message if it is time to do so
-	if now.Equal(future.nextLogTime) || now.After(future.nextLogTime) {
-		p.logger.Info(msg)
-
-		// Calculate next time to log
+	// Log now if the message changed or wait time exceeded
+	logNow := true
+	if msg == history.msg {
+		// Check if it is time to log since the message didn't change
 		waitSecs := time.Duration(p.frequencySecs) * time.Second
-		future.nextLogTime = future.nextLogTime.Add(waitSecs)
+		nextLogTime := history.lastLogTime.Add(waitSecs)
+		logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
+	}
+	if logNow {
+		p.logger.Info(msg)
+		history.lastLogTime = &now
+		history.msg = msg
 	}
 }
 
