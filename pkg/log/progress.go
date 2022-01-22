@@ -4,6 +4,7 @@
 package log
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -44,13 +45,20 @@ func NewProgressLogger(log Logger, name string) ProgressLogger {
 	}
 }
 
-// Log logs an info message either now or sometime in the future.  The message
+// Infof formats a message and logs it
+func (p ProgressLogger) Infof(template string, args ...interface{}) {
+	s := fmt.Sprintf(template, args...)
+	p.Info(s)
+}
+
+// Info logs an info message either now or sometime in the future.  The message
 // will be logged only if it is new or the next log time has been reached.
 // This function allows a controller to constantly log info messages very frequently,
 // such as "waiting for Verrazzano secret", but the message will only be logged
 // once periodically according to the frequency (e.g. once every 60 seconds).
 // If the log message is new or has changed.
-func (p ProgressLogger) Log(msg string) {
+func (p ProgressLogger) Info(args ...interface{}) {
+	msg := fmt.Sprint(args...)
 	now := time.Now()
 
 	// Get the history for this key, create a new one if needed
