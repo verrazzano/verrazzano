@@ -56,7 +56,7 @@ func (p ProgressLogger) Infof(template string, args ...interface{}) {
 // This function allows a controller to constantly log info messages very frequently,
 // such as "waiting for Verrazzano secret", but the message will only be logged
 // once periodically according to the frequency (e.g. once every 60 seconds).
-// If the log message is new or has changed.
+// If the log message is new or has changed then it is logged immediately.
 func (p ProgressLogger) Info(args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
