@@ -29,10 +29,10 @@ type ProgressLogger struct {
 	// name is the name of the logger
 	name string
 
-	// Frequency between logs in seconds
+	// frequency between logs in seconds
 	frequencySecs int
 
-	// Logger
+	// logger is the logger used to log the message.
 	logger Logger
 }
 
