@@ -253,7 +253,7 @@ func appendSecurityOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzan
 // appendVerrazzanoComponentOverrides - append overrides specified for the Verrazzano component
 func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) []bom.KeyValue {
 	if effectiveCR.Spec.Components.Verrazzano != nil {
-		for _, arg := range effectiveCR.Spec.Components.Verrazzano.VerrrazzanoInstallArgs {
+		for _, arg := range effectiveCR.Spec.Components.Verrazzano.InstallArgs {
 			kvs = append(kvs, bom.KeyValue{
 				Key:   arg.Name,
 				Value: arg.Value,
