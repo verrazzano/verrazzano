@@ -11,12 +11,12 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 )
 
-const log1 = `####<Nov 17, 2021 10:36:24,316 PM GMT> <Progress> <Security> <bobs-bookstore-managed-server1> <> <main> <> <> <> <1637188584316> <[severity-value: 64] [partition-id: 0] [partition-name: DOMAIN] > <BEA-090905> <Disabling the CryptoJ JCE Provider self-integrity check for better startup performance. To enable this check, specify -Dweblogic.security.allowCryptoJDefaultJCEVerification=true.> 
+const log1 = `####<Nov 17, 2021 10:36:24,316 PM GMT> <Info> <Security> <bobs-bookstore-managed-server1> <> <main> <> <> <> <1637188584316> <[severity-value: 64] [partition-id: 0] [partition-name: DOMAIN] > <BEA-090905> <Disabling the CryptoJ JCE Provider self-integrity check for better startup performance. To enable this check, specify -Dweblogic.security.allowCryptoJDefaultJCEVerification=true.> 
 `
 const log2 = `####<Nov 17, 2021 5:55:46,955 PM GMT> <Trace> <com.oracle.logging.SystemLogger> <tododomain-adminserver> <AdminServer> <[ACTIVE] ExecuteThread: '9' for queue: 'weblogic.kernel.Default (self-tuning)'> <<WLS Kernel>> <> <cd1631dc-0279-48fc-bb29-85462f5ea85c-00000013> <1637171746955> <[severity-value: 256] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > <BEA-000000> <[com.oracle.cie.wls.config.online.Util:log] CIE Config Helper: registering MBean >>
 ####<Nov 17, 2021 5:55:46,955 PM GMT> <Trace> <com.oracle.logging.SystemLogger> <tododomain-adminserver> <AdminServer> <[ACTIVE] ExecuteThread: '9' for queue: 'weblogic.kernel.Default (self-tuning)'> <<WLS Kernel>> <> <cd1631dc-0279-48fc-bb29-85462f5ea85c-00000013> <1637171746955> <[severity-value: 256] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > <BEA-000000> <[com.oracle.cie.wls.config.online.Util:log] CIE Config Helper: isRegistered MBean: true> `
 
-const log3 = `####<Nov 17, 2021 10:36:32,616 PM GMT> <Progress> <RJVM> <bobs-bookstore-managed-server1> <> <Thread-11> <> <> <> <1637188592616> <[severity-value: 64] [partition-id: 0] [partition-name: DOMAIN] > <BEA-000570> <Network Configuration for Channel "managed-server1"
+const log3 = `####<Nov 17, 2021 10:36:32,616 PM GMT> <Info> <RJVM> <bobs-bookstore-managed-server1> <> <Thread-11> <> <> <> <1637188592616> <[severity-value: 64] [partition-id: 0] [partition-name: DOMAIN] > <BEA-000570> <Network Configuration for Channel "managed-server1"
  Listen Address		 bobs-bookstore-managed-server1:8001
  Public Address		 N/A
  Http Enabled		 true
@@ -24,7 +24,7 @@ const log3 = `####<Nov 17, 2021 10:36:32,616 PM GMT> <Progress> <RJVM> <bobs-boo
  Outbound Enabled	 false
  Admin Traffic Enabled	 true ResolveDNSName Enabled	 false>
 `
-const log4 = `####<Nov 17, 2021 10:37:35,553 PM GMT> <Progress> <JDBC> <bobs-bookstore-managed-server1> <managed-server1> <[ACTIVE] ExecuteThread: '8' for queue: 'weblogic.kernel.Default (self-tuning)'> <<anonymous>> <> <c10cf642-4fbe-4753-9b2c-3c99b96df564-00000013> <1637188655553> <[severity-value: 64] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > <BEA-001156> <Stack trace associated with message 001129 follows: 
+const log4 = `####<Nov 17, 2021 10:37:35,553 PM GMT> <Info> <JDBC> <bobs-bookstore-managed-server1> <managed-server1> <[ACTIVE] ExecuteThread: '8' for queue: 'weblogic.kernel.Default (self-tuning)'> <<anonymous>> <> <c10cf642-4fbe-4753-9b2c-3c99b96df564-00000013> <1637188655553> <[severity-value: 64] [rid: 0] [partition-id: 0] [partition-name: DOMAIN] > <BEA-001156> <Stack trace associated with message 001129 follows: 
 
 com.mysql.cj.jdbc.exceptions.CommunicationsException: Communications link failure
 

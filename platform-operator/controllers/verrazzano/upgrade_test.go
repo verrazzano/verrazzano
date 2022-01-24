@@ -284,7 +284,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUpgradeStarted tests the reconcileUpgrade method for the following use case
@@ -640,7 +640,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.NoError(err)
+	asserts.Error(err)
 	asserts.Equal(true, result.Requeue)
 }
 
