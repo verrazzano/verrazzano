@@ -287,7 +287,7 @@ func main() {
 		// MultiClusterConfigMap validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterConfigMapName)
 		if err != nil {
-			log.Errorf("unable to update multiclusterconfigmap validation webhook configuration: %v", err)
+			log.Errorf("Failed to update multiclusterconfigmap validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
@@ -330,7 +330,7 @@ func main() {
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("unable to create VerrazzanoHelidonWorkload controller: %v", err)
+		log.Errorf("Failed to create VerrazzanoHelidonWorkload controller: %v", err)
 		os.Exit(1)
 	}
 	// Setup the namespace reconciler

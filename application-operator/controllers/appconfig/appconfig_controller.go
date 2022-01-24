@@ -91,7 +91,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	for _, wlStatus := range appConfig.Status.Workloads {
 		err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log)
 		if err != nil {
-			log.Errorf("Error marking component %s in namespace %s with restart-version %s: %v", wlStatus.ComponentName, appConfig.Namespace, restartVersion, err)
+			log.Errorf("Failed marking component %s in namespace %s with restart-version %s: %v", wlStatus.ComponentName, appConfig.Namespace, restartVersion, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -228,7 +228,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Error updating deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
+		log.Errorf("Failed updating deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
 		return err
 	}
 	return nil
@@ -246,7 +246,7 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Error updating statefulSet %s/%s: %v", statefulSet.Namespace, statefulSet.Name, err)
+		log.Errorf("Failed updating statefulSet %s/%s: %v", statefulSet.Namespace, statefulSet.Name, err)
 		return err
 	}
 	return nil
@@ -264,7 +264,7 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Error updating daemonSet %s/%s: %v", daemonSet.Namespace, daemonSet.Name, err)
+		log.Errorf("Failed updating daemonSet %s/%s: %v", daemonSet.Namespace, daemonSet.Name, err)
 		return err
 	}
 	return nil
@@ -279,7 +279,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 	_, err := controllerutil.CreateOrUpdate(ctx, client, u, func() error {
 		annotations, found, err := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
 		if err != nil {
-			log.Errorf("Error getting NestedStringMap for workload %s: %v", u.GetName(), err)
+			log.Errorf("Failed getting NestedStringMap for workload %s: %v", u.GetName(), err)
 			return err
 		}
 		if !found {
@@ -288,7 +288,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		err = unstructured.SetNestedStringMap(u.Object, annotations, metaAnnotationFields...)
 		if err != nil {
-			log.Errorf("Error setting NestedStringMap for workload %s: %v", u.GetName(), err)
+			log.Errorf("Failed setting NestedStringMap for workload %s: %v", u.GetName(), err)
 			return err
 		}
 		return nil

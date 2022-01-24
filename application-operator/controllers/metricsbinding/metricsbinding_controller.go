@@ -296,7 +296,7 @@ func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding) (*
 	namespacedName := types.NamespacedName{Name: templateSpec.Name, Namespace: templateSpec.Namespace}
 	err := r.Client.Get(context.Background(), namespacedName, &template)
 	if err != nil {
-		r.Log.Errorf("Could not get the MetricsTemplate %s: %v", templateSpec.Name, err)
+		r.Log.Errorf("Failed to get the MetricsTemplate %s: %v", templateSpec.Name, err)
 		return nil, err
 	}
 

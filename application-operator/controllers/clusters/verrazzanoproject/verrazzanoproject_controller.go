@@ -261,7 +261,7 @@ func (r *Reconciler) createOrUpdateRoleBinding(ctx context.Context, roleBinding 
 		return nil
 	})
 	if err != nil {
-		log.Errorf("Unable to create or update rolebinding %s: %v", roleBinding.ObjectMeta.Name, err)
+		log.Errorf("Failed to create or update rolebinding %s: %v", roleBinding.ObjectMeta.Name, err)
 		return err
 	}
 	return err
