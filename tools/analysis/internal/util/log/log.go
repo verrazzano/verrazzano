@@ -12,7 +12,7 @@ import (
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-// InitLogs initializes logs with Time and Global Level of Logs set at Progress
+// InitLogs initializes logs with Time and Global Level of Logs set at Info
 func InitLogs(opts kzap.Options) {
 	var config zap.Config
 	if opts.Development {

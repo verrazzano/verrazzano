@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220119205950-b0543ed2",
+              "tag": "v0.7.1-20220114051301-ec9bcfea",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"

@@ -299,7 +299,7 @@ func verifyKeycloakClientURIs() bool {
 		return false
 	}
 
-	// Get the client Progress
+	// Get the client Info
 	client := "clients/" + id
 	cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", client, "-r", "verrazzano-system")
 	out, err = cmd.Output()
