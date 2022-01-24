@@ -6,13 +6,13 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	s "strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sValidations "k8s.io/apimachinery/pkg/util/validation"
 	ctrl "sigs.k8s.io/controller-runtime"
 	c "sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
@@ -20,7 +20,7 @@ var getAllIngressTraits = listIngressTraits
 var client c.Client
 
 // log is for logging in this package.
-var log = logf.Log.WithName("ingresstrait-resource")
+var log = zap.S().With("ingresstrait-resource")
 
 // SetupWebhookWithManager saves client from manager and sets up webhook
 func (r *IngressTrait) SetupWebhookWithManager(mgr ctrl.Manager) error {
