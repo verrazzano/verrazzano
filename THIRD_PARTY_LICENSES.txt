@@ -9,29 +9,17 @@ Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
-Copyright The Helm Authors.
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
-Copyright Scanner
-Copyright scanning target .
-Copyright scanning target platform-operator/scripts
-copyright/licsense information:
-Copyright scanning target ignore_copyright_check.txt
-Copyright scanning target tools/copyright/README.md
-Copyright scanning target .DS_Store
-Copyright scanning target platform-operator/run-vpo.sh
-Copyright scanning target Jenkinsfile
-Copyright scanning target Makefile
-Copyright scanning target tools/copyright/copyright.go
 Copyright (c) 2020, Oracle and/or its affiliates.
 fmt.Println("// Copyright (c) 2021, Oracle and/or its affiliates.")
 fmt.Println("-- Copyright (c) 2021, Oracle and/or its affiliates.")
 fmt.Println("<!-- Copyright (c) 2021, Oracle and/or its affiliates. -->")
 fmt.Println("# Copyright (c) 2021, Oracle and/or its affiliates.")
-Copyright Fixer
 
 -------- License
 Copyright (c) 2020, 2021, Oracle America, Inc. and its affiliates.
@@ -231,7 +219,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 -------- Dependency
 github.com/hashicorp/golang-lru
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependencies Summary
 github.com/hashicorp/golang-lru
@@ -605,12 +592,10 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 -------- Dependency
 github.com/hashicorp/go-cleanhttp
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 github.com/hashicorp/go-retryablehttp
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependencies Summary
 github.com/hashicorp/go-cleanhttp
@@ -1173,8 +1158,6 @@ Copyright 2014 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors
 Copyright (c) 2015, 2018, 2019 Opsmate, Inc. All rights reserved.
 Copyright 2020 The cert-manager Authors.
-Copyright YEAR The cert-manager Authors.
-Copyright The cert-manager Authors.
 Copyright 2015 The Kubernetes Authors.
 Copyright (c) 2015-2017 Sebastian Erhart
 Copyright 2016 The Kubernetes Authors.
@@ -1193,12 +1176,10 @@ Copyright 2012 Matt T. Proud (matt.proud@gmail.com)
 -------- Dependency
 github.com/modern-go/concurrent
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 github.com/modern-go/reflect2
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 github.com/oracle/oci-go-sdk/v53
@@ -1313,12 +1294,9 @@ github.com/spf13/cobra
 -------- Copyrights
 Copyright © 2020 Steve Francia <spf@spf13.com>
 Copyright © 2015 Steve Francia <spf@spf13.com>.
-Copyright:    copyrightLine(),
 Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
 11 of the WIPO copyright treaty adopted on 20 December 1996, or
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
-Copyright    string
-copyright": copyrightLine(),
 Copyright © 2013 Steve Francia <spf@spf13.com>.
 Copyright 2015 Red Hat Inc. All rights reserved.
 Copyright 2016 French Ben. All rights reserved.
@@ -1326,7 +1304,6 @@ Copyright 2016 French Ben. All rights reserved.
 -------- Dependency
 gomodules.xyz/jsonpatch/v2
 -------- Copyrights
-  (no copyright notices found)
 
 -------- Dependency
 google.golang.org/genproto
@@ -1377,7 +1354,6 @@ limitations under the License.
 istio.io/api
 -------- Copyrights
 Copyright 2016-2020 Istio Authors
-Copyright Istio Authors
 Copyright 2019 Istio Authors
 Copyright 2020 Istio Authors
 Copyright (c) 2013 TOML authors
@@ -1408,7 +1384,6 @@ Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
-Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2012 Alex Ogier. All rights reserved.
 Copyright (c) 2014 Stretchr, Inc.
@@ -1428,7 +1403,6 @@ Copyright 2014 The Kubernetes Authors.
 istio.io/client-go
 -------- Copyrights
 Copyright 2016-2020 Istio Authors
-Copyright Istio Authors
 Copyright 2019 Istio Authors
 Copyright 2015 Microsoft Corporation
 Copyright (c) 2013 TOML authors
@@ -1467,7 +1441,6 @@ Copyright (c) 2016 Mail.Ru Group
 Copyright (c) 2014 The Go-FlowRate Authors. All rights reserved.
 Copyright (c) 2013-2014 Onsi Fakhouri
 Copyright (c) 2016 Yasuhiro Matsumoto
-Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright (c) 2011-2012 Peter Bourgon
 Copyright (c) 2013, Patrick Mezard
 Copyright (c) 2012 Alex Ogier. All rights reserved.
@@ -1490,14 +1463,12 @@ Copyright 2014 The Kubernetes Authors.
 istio.io/gogo-genproto
 -------- Copyrights
 Copyright 2016-2019 Istio Authors
-Copyright Istio Authors
 Copyright 2019 Istio Authors
 
 -------- Dependency
 k8s.io/api
 -------- Copyrights
 Copyright 2019 The Kubernetes Authors.
-Copyright The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2015 The Kubernetes Authors.
@@ -1509,7 +1480,6 @@ k8s.io/apiextensions-apiserver
 -------- Copyrights
 Copyright 2019 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
-Copyright The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
@@ -1524,7 +1494,6 @@ Copyright 2020 The Kubernetes Authors.
 Copyright 2015 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
-Copyright The Kubernetes Authors.
 Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2009 The Go Authors. All rights reserved.
 
@@ -1541,7 +1510,6 @@ Copyright 2016 The Kubernetes Authors.
 -------- Dependency
 k8s.io/client-go
 -------- Copyrights
-Copyright The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2016 The Kubernetes Authors.
 Copyright 2014 The Kubernetes Authors.
@@ -1558,7 +1526,6 @@ Copyright 2013 Google Inc. All Rights Reserved.
 -------- Dependency
 k8s.io/kube-openapi
 -------- Copyrights
-Copyright The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
@@ -2013,9 +1980,9 @@ Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
 Copyright (C) 2009 Apple Inc. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
-Copyright 2021 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2074,6 +2041,39 @@ Copyright 2014 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2009,2010 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All right reserved.
+-------- Patents
+Additional IP Rights Grant (Patents)
+
+"This implementation" means the copyrightable works distributed by
+Google as part of the Go project.
+
+Google hereby grants to You a perpetual, worldwide, non-exclusive,
+no-charge, royalty-free, irrevocable (except as stated in this section)
+patent license to make, have made, use, offer to sell, sell, import,
+transfer and otherwise run, modify and propagate the contents of this
+implementation of Go, where such license applies only to those patent
+claims, both currently owned or controlled by Google and acquired in
+the future, licensable by Google that are necessarily infringed by this
+implementation of Go.  This grant does not include claims that would be
+infringed only as a consequence of further modification of this
+implementation.  If you or your agent or exclusive licensee institute or
+order or agree to the institution of patent litigation against any
+entity (including a cross-claim or counterclaim in a lawsuit) alleging
+that this implementation of Go or any code incorporated within this
+implementation of Go constitutes direct or contributory patent
+infringement, or inducement of patent infringement, then any patent
+rights granted to you under this License for this implementation of Go
+shall terminate as of the date such litigation is filed.
+
+
+-------- Dependency
+golang.org/x/term
+-------- Copyrights
+Copyright (c) 2009 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2020 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
@@ -2313,6 +2313,7 @@ golang.org/x/mod
 golang.org/x/net
 golang.org/x/oauth2
 golang.org/x/sys
+golang.org/x/term
 golang.org/x/text
 golang.org/x/time
 golang.org/x/tools
@@ -2460,7 +2461,6 @@ go.uber.org/zap
 -------- Copyrights
 Copyright (c) 2016-2017 Uber Technologies, Inc.
 Copyright (c) 2016 Uber Technologies, Inc.
-Copyright (c) "*" Uber Technologies, Inc.")
 Copyright (c) 2017 Uber Technologies, Inc.
 Copyright (c) 2019 Uber Technologies, Inc.
 Copyright (c) 2020 Uber Technologies, Inc.
@@ -2601,4 +2601,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 ATTRIBUTION-HELPER-GENERATED:
-License file based on go.mod with md5 sum: 8da8d93cff21a85bde2744771bbb5c60
+License file based on go.mod with md5 sum: d434af517ebf9dbd0570f880ed44d189
