@@ -851,6 +851,10 @@ func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 }
 
 func putISMPayload(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, ismConfig vzapi.ISMConfig, policyName, template string) error {
+	// Skip ISM Creation if disabled
+	if ismConfig.Enabled != nil && !*ismConfig.Enabled {
+		return nil
+	}
 	// Check if Policy exists or not
 	getCommand := makeBashCommand(fmt.Sprintf("curl 'localhost:9200/_plugins/_ism/policies/%s'", policyName))
 	getResponse, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, getCommand)

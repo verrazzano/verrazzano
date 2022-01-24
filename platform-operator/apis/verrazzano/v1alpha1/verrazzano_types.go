@@ -519,6 +519,9 @@ type RetentionPolicies struct {
 
 //ISMConfig allows for configuration of the search index lifecycle policy
 type ISMConfig struct {
+	// If the ISMConfig should be applied
+	// +optional
+	Enabled *bool `json:"enabled"`
 	// Min index age for ISM Policy
 	// +optional
 	MinAge *string `json:"minAge"`

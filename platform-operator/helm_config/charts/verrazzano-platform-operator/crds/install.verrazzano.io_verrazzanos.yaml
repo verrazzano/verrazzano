@@ -189,6 +189,9 @@ spec:
                             description: ISMConfig allows for configuration of the
                               search index lifecycle policy
                             properties:
+                              enabled:
+                                description: If the ISMConfig should be applied
+                                type: boolean
                               minAge:
                                 description: Min index age for ISM Policy
                                 type: string
@@ -200,6 +203,9 @@ spec:
                             description: ISMConfig allows for configuration of the
                               search index lifecycle policy
                             properties:
+                              enabled:
+                                description: If the ISMConfig should be applied
+                                type: boolean
                               minAge:
                                 description: Min index age for ISM Policy
                                 type: string
