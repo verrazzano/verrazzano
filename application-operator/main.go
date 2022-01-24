@@ -286,7 +286,7 @@ func main() {
 		// MultiClusterConfigMap validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterConfigMapName)
 		if err != nil {
-			log.Errorf( "unable to update multiclusterconfigmap validation webhook configuration: %v", err)
+			log.Errorf("unable to update multiclusterconfigmap validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
@@ -325,7 +325,7 @@ func main() {
 	}
 	if err = (&helidonworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     log.With("controller", "VerrazzanoHelidonWorkload"),,
+		Log:     log.With("controller", "VerrazzanoHelidonWorkload"),
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
@@ -334,7 +334,7 @@ func main() {
 	}
 	// Setup the namespace reconciler
 	if _, err := namespace.NewNamespaceController(mgr, log.With("controller", "VerrazzanoNamespaceController")); err != nil {
-		log.Error(err, "Failed to create VerrazzanoNamespaceController controller")
+		log.Errorf("Failed to create VerrazzanoNamespaceController controller: %v", err)
 		os.Exit(1)
 	}
 
@@ -398,7 +398,7 @@ func main() {
 	}
 	if err = (&appconfig.Reconciler{
 		Client: mgr.GetClient(),
-		Log:   log.With("controller", "ApplicationConfiguration"),
+		Log:    log.With("controller", "ApplicationConfiguration"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create ApplicationConfiguration controller: %v", err)
@@ -417,7 +417,7 @@ func main() {
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
-			Log:   log.With("controller", "MetricsBinding"),
+			Log:    log.With("controller", "MetricsBinding"),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
 			log.Errorf("Failed to create MetricsBinding controller: %v", err)

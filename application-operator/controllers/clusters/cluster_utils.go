@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -6,9 +6,9 @@ package clusters
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 
-	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -216,11 +216,11 @@ func IsPlacedInThisCluster(ctx context.Context, rdr client.Reader, placement clu
 
 // IgnoreNotFoundWithLog returns nil if err is a "Not Found" error, and if not, logs an error
 // message that the resource could not be fetched and returns the original error
-func IgnoreNotFoundWithLog(resourceType string, err error, logger logr.Logger) error {
+func IgnoreNotFoundWithLog(resourceType string, err error, log *zap.SugaredLogger) error {
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
-	logger.Info("Failed to fetch resource", "type", resourceType, "err", err)
+	log.Debugw("Failed to fetch resource", "type", resourceType, "err", err)
 	return err
 }
 

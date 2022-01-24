@@ -6,11 +6,11 @@ package mcagent
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"reflect"
 	"strings"
 	"time"
 
-	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -25,7 +25,7 @@ import (
 type Syncer struct {
 	AdminClient           client.Client
 	LocalClient           client.Client
-	Log                   logr.Logger
+	Log                   *zap.SugaredLogger
 	ManagedClusterName    string
 	Context               context.Context
 	AgentSecretFound      bool
@@ -67,9 +67,9 @@ func (s *Syncer) processStatusUpdates() {
 		case msg := <-s.StatusUpdateChannel:
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("processStatusUpdates: failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %s",
+				s.Log.Errorf("processStatusUpdates: failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %v",
 					msg.Resource.GetNamespace(), msg.Resource.GetName(),
-					msg.NewClusterStatus.Name, retryCount, err.Error()))
+					msg.NewClusterStatus.Name, retryCount, err)
 			}
 		default:
 			break

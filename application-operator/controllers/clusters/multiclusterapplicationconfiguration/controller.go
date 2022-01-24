@@ -6,8 +6,8 @@ package multiclusterapplicationconfiguration
 import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -24,7 +24,7 @@ import (
 // failure of the changes to the embedded resource
 type Reconciler struct {
 	client.Client
-	Log          logr.Logger
+	Log          *zap.SugaredLogger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
@@ -36,20 +36,20 @@ const finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
 // of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
 // the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("multiclusterapplicationconfiguration", req.NamespacedName)
+	log := r.Log.With("multiclusterapplicationconfiguration", req.NamespacedName)
 	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
 	result := reconcile.Result{}
 	ctx := context.Background()
 	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
 	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, logger)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, log)
 	}
 
 	if !mcAppConfig.ObjectMeta.DeletionTimestamp.IsZero() {
 		// delete the wrapped resource since MC is being deleted
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 		if err != nil {
-			logger.Error(err, "Failed to delete associated app config and finalizer")
+			log.Errorf("Failed to delete associated app config and finalizer: %v", err)
 		}
 		return reconcile.Result{}, err
 	}
@@ -70,7 +70,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("MultiClusterApplicationConfiguration create or update with underlying OAM applicationconfiguration",
+	log.Debugw("MultiClusterApplicationConfiguration create or update with underlying OAM applicationconfiguration",
 		"applicationconfiguration", mcAppConfig.Spec.Template.Metadata.Name,
 		"placement", mcAppConfig.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateAppConfig(ctx, mcAppConfig)

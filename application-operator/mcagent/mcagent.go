@@ -6,12 +6,12 @@ package mcagent
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"time"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -32,7 +32,7 @@ import (
 const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
-func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log logr.Logger) {
+func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log *zap.SugaredLogger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
 	// for connecting to a managed cluster.
 	log.Info("Starting multi-cluster agent")
@@ -52,7 +52,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		// Process one iteration of the agent thread
 		err := s.ProcessAgentThread()
 		if err != nil {
-			s.Log.Error(err, "error processing multi-cluster resources")
+			s.Log.Errorf("Failed processing multi-cluster resources: %v", err)
 		}
 		s.updateDeployment("verrazzano-monitoring-operator")
 		s.configureLogging()
@@ -73,7 +73,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
 	if err != nil {
 		if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && s.AgentSecretFound {
-			s.Log.Info(fmt.Sprintf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace))
+			s.Log.Debugf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
 			s.AgentSecretFound = false
 			s.AgentSecretValid = false
 		}
@@ -92,7 +92,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	// The cluster secret exists - log the cluster name only if it changes
 	managedClusterName := string(secret.Data[constants.ClusterNameData])
 	if managedClusterName != s.ManagedClusterName {
-		s.Log.Info(fmt.Sprintf("Found secret named %s in namespace %s, cluster name changed from %q to %q", secret.Name, secret.Namespace, s.ManagedClusterName, managedClusterName))
+		s.Log.Debugf("Found secret named %s in namespace %s, cluster name changed from %q to %q", secret.Name, secret.Namespace, s.ManagedClusterName, managedClusterName)
 		s.ManagedClusterName = managedClusterName
 
 	}
@@ -111,7 +111,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	err = s.updateVMCStatus()
 	if err != nil {
 		// we couldn't update status of the VMC - but we should keep going with the rest of the work
-		s.Log.Error(err, "Failed to update VMC status on admin cluster")
+		s.Log.Errorf("Failed to update VMC status on admin cluster: %v", err)
 	}
 
 	// Sync multi-cluster objects
@@ -150,30 +150,30 @@ func (s *Syncer) updateVMCStatus() error {
 func (s *Syncer) SyncMultiClusterResources() {
 	err := s.syncVerrazzanoProjects()
 	if err != nil {
-		s.Log.Error(err, "Error syncing VerrazzanoProject objects")
+		s.Log.Errorf("Failed syncing VerrazzanoProject objects: %v", err)
 	}
 
 	// Synchronize objects one namespace at a time
 	for _, namespace := range s.ProjectNamespaces {
 		err = s.syncSecretObjects(namespace)
 		if err != nil {
-			s.Log.Error(err, "Error syncing Secret objects")
+			s.Log.Errorf("Failed to sync Secret objects: %v", err)
 		}
 		err = s.syncMCSecretObjects(namespace)
 		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterSecret objects")
+			s.Log.Errorf("Failed to sync MultiClusterSecret objects: %v", err)
 		}
 		err = s.syncMCConfigMapObjects(namespace)
 		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterConfigMap objects")
+			s.Log.Errorf("Failed to sync MultiClusterConfigMap objects: %v", err)
 		}
 		err = s.syncMCComponentObjects(namespace)
 		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterComponent objects")
+			s.Log.Errorf("Failed to sync MultiClusterComponent objects: %v", err)
 		}
 		err = s.syncMCApplicationConfigurationObjects(namespace)
 		if err != nil {
-			s.Log.Error(err, "Error syncing MultiClusterApplicationConfiguration objects")
+			s.Log.Errorf("Failed to sync MultiClusterApplicationConfiguration objects: %v", err)
 		}
 
 		s.processStatusUpdates()
@@ -237,11 +237,11 @@ func (s *Syncer) updateDeployment(name string) {
 	deployment := appsv1.Deployment{}
 	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
 	if err != nil {
-		s.Log.Info(fmt.Sprintf("Failed to find the deployment %s, %s", deploymentName, err.Error()))
+		s.Log.Errorf("Failed to find the deployment %s: %v", deploymentName, err)
 		return
 	}
 	if len(deployment.Spec.Template.Spec.Containers) < 1 {
-		s.Log.Info(fmt.Sprintf("No container defined in the deployment %s", deploymentName))
+		s.Log.Debugf("No container defined in the deployment %s", deploymentName)
 		return
 	}
 
@@ -261,7 +261,7 @@ func (s *Syncer) updateDeployment(name string) {
 	// CreateOrUpdate updates the deployment if cluster registration secret version changed
 	if secretVersionEnv != secretVersion {
 		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
-			s.Log.Info(fmt.Sprintf("Update the deployment %s, registration secret version from %q to %q", deploymentName, secretVersionEnv, secretVersion))
+			s.Log.Debugf("Update the deployment %s, registration secret version from %q to %q", deploymentName, secretVersionEnv, secretVersion)
 			// update the container env
 			env := updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion, secretVersion)
 			deployment.Spec.Template.Spec.Containers[0].Env = env
@@ -276,7 +276,7 @@ func (s *Syncer) configureLogging() {
 	daemonSet := appsv1.DaemonSet{}
 	err := s.LocalClient.Get(context.TODO(), loggingName, &daemonSet)
 	if err != nil {
-		s.Log.Info(fmt.Sprintf("Failed to find the logging DaemonSet %s, %s", loggingName, err.Error()))
+		s.Log.Errorf("Failed to find the logging DaemonSet %s: %v", loggingName, err)
 		return
 	}
 
@@ -472,7 +472,7 @@ func (s *Syncer) getVzESURLSecret() (string, string, error) {
 	esConfig := corev1.ConfigMap{}
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: esConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, &esConfig)
 	if err != nil {
-		s.Log.Info(fmt.Sprintf("Failed to find the ConfigMap %s/%s", constants.VerrazzanoSystemNamespace, esConfigMapName))
+		s.Log.Errorf("Failed to find the ConfigMap %s/%s: %v", constants.VerrazzanoSystemNamespace, esConfigMapName, err)
 	}
 	if len(esConfig.Data[esConfigMapURLKey]) > 0 {
 		url = esConfig.Data[esConfigMapURLKey]
