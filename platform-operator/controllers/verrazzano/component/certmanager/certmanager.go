@@ -15,17 +15,17 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -133,12 +133,12 @@ func setBashFunc(f bashFuncSig) {
 func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
-		compContext.Log().Infof("cert-manager PreInstall dry run")
+		compContext.Log().Debug("cert-manager PreInstall dry run")
 		return nil
 	}
 
 	// create cert-manager namespace
-	compContext.Log().Info("Adding label needed by network policies to cert-manager namespace")
+	compContext.Log().Debug("Adding label needed by network policies to cert-manager namespace")
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
@@ -150,10 +150,10 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	}
 
 	// Apply the cert-manager manifest, patching if needed
-	compContext.Log().Info("Applying cert-manager crds")
+	compContext.Log().Debug("Applying cert-manager crds")
 	err := c.applyManifest(compContext)
 	if err != nil {
-		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %s", err)
+		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %v", err)
 		return ctrlerrrors.RetryableError{
 			Source: c.Name(),
 			Cause:  fmt.Errorf("failed to apply the cert-manager manifest: %s", err),
@@ -168,7 +168,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
-		compContext.Log().Infof("cert-manager PostInstall dry run")
+		compContext.Log().Debug("cert-manager PostInstall dry run")
 		return nil
 	}
 

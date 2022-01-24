@@ -357,16 +357,7 @@ data:
       # nanosecond-precision values.
       time_as_integer false
 
-      # Ensure that the elasticsearch-service plugin preserves
-      # nanosecond-precision when formatting Fluent::EventTime values
-      # into a JSON payload destined for Elasticsearch.
-      # time_key_format %Y-%m-%dT%H:%M:%S.%N%Z
-
-      # A value of 9 gives us nanosecond-precision in our timestamps. The default is
-      # 0 which effectively gives us only second-precision; we don't want that. The
-      # value here comes from Ruby's DateTime::iso8601 method and represents the
-      # length of fractional seconds, e.g. 10^-9.
-      time_precision 9
+      time_key timestamp
 
       # Prevent reloading connections to Elasticsearch
       reload_connections false

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package internal
 
@@ -15,4 +15,16 @@ func someNestedFunc() bool {
 
 func AnotherFunc() bool {
 	return false
+}
+
+func DoCallExpect() bool {
+	return Expect(true).To(BeTrue())
+}
+
+func DoCallEventually() (bool, error) {
+	Eventually(func() (bool, error) {
+		Expect(true).To(BeTrue())
+		return true, nil
+	})
+	return true, nil
 }

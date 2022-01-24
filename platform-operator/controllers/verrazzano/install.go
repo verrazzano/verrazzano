@@ -27,7 +27,7 @@ import (
 func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	log := spiCtx.Log()
 	cr := spiCtx.ActualCR()
-	log.Debugf("reconcileComponents for installation")
+	log.Debug("Reconciling components for installation")
 
 	var requeue bool
 
@@ -35,28 +35,28 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		compContext := spiCtx.For(compName).Operation(vzconst.InstallOperation)
-		log.Debugf("processing install for %s", compName)
+		log.Debugf("Processing install for %s", compName)
 
 		if !comp.IsOperatorInstallSupported() {
-			log.Debugf("component based install not supported for %s", compName)
+			log.Debugf("Component based install not supported for %s", compName)
 			continue
 		}
 		componentStatus, ok := cr.Status.Components[comp.Name()]
 		if !ok {
-			log.Warn("Did not find status details in map for component %s", comp.Name())
+			log.Debugf("Did not find status details in map for component %s", comp.Name())
 			continue
 		}
 		switch componentStatus.State {
 		case vzapi.Ready:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
-			log.Debugf("component %s is ready", compName)
+			log.Debugf("Component %s is ready", compName)
 			if err := comp.Reconcile(spiCtx); err != nil {
 				return newRequeueWithDelay(), err
 			}
 			continue
 		case vzapi.Disabled:
 			if !comp.IsEnabled(compContext) {
-				log.Debugf("component %s is disabled, skipping install", compName)
+				log.Debugf("Component %s is disabled, skipping install", compName)
 				// User has disabled component in Verrazzano CR, don't install
 				continue
 			}
@@ -107,7 +107,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 					requeue = true
 					continue
 				}
-				log.Infof("Component %s has been successfully installed", comp.Name())
+				log.Infof("Successfully installed component %s", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}

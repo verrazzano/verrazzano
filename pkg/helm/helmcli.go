@@ -10,7 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
+
 	"go.uber.org/zap"
 )
 
@@ -72,15 +73,15 @@ func GetValues(log *zap.SugaredLogger, releaseName string, namespace string) ([]
 	}
 
 	cmd := exec.Command("helm", args...)
-	log.Infof("Running command: %s", cmd.String())
+	log.Debugf("Running command to get Helm values: %s", cmd.String())
 	stdout, stderr, err := runner.Run(cmd)
 	if err != nil {
-		log.Errorf("helm get values for %s failed with stderr: %s", releaseName, string(stderr))
+		log.Errorf("Failed to get Helm values for %s: stderr %s", releaseName, string(stderr))
 		return nil, err
 	}
 
 	//  Log get values output
-	log.Debugf("helm get values succeeded for %s", releaseName)
+	log.Debugf("Successfully fetched Helm get values %s", releaseName)
 
 	return stdout, nil
 }
@@ -167,18 +168,18 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 		// mask sensitive data before logging
 		cmdStr := maskSensitiveData(cmd.String())
-		log.Infof("Running command: %s", cmdStr)
+		log.Infof("Running Helm command: %s", cmdStr)
 
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
-			log.Debugf("helm %s for %s succeeded: %s", operation, releaseName, stdout)
+			log.Debugf("Successfully ran Helm command for operation %s and release %s", operation, releaseName)
 			break
 		}
-		log.Errorf("helm %s for %s failed with stderr: %s", operation, releaseName, string(stderr))
-		if i == maxRetry {
+		if i == 1 || i == maxRetry {
+			log.Errorf("Failed running Helm command for operation %s and release %s: stderr %s", operation, releaseName, string(stderr))
 			return stdout, stderr, err
 		}
-		log.Warnf("Retrying %s for %s, attempt %v", operation, releaseName, i+1)
+		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %s of %s", operation, releaseName, i+1, maxRetry)
 	}
 
 	//  Log upgrade output

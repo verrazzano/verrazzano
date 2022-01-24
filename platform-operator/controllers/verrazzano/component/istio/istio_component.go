@@ -12,20 +12,19 @@ import (
 	"strings"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -158,7 +157,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 			return err
 		}
 
-		log.Infof("Created values file from Istio install args: %s", tmpFile.Name())
+		log.Debugf("Created values file from Istio install args: %s", tmpFile.Name())
 	}
 
 	// images overrides to get passed into the istioctl command
@@ -345,7 +344,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 			if err != nil {
 				compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
 			} else {
-				compContext.Log().Infof("Deleted helm secret %v", secretName)
+				compContext.Log().Debugf("Deleted helm secret %s", secretName)
 			}
 		}
 	}

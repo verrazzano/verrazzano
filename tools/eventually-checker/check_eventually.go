@@ -238,7 +238,7 @@ func getEventuallyFuncName(pkg string, args []ast.Expr) (string, bool) {
 	}
 }
 
-// checkForBadCalls searchs all functions called by Eventually functions looking for bad calls and
+// checkForBadCalls searches all the functions called by Eventually functions looking for bad calls and
 // returns a map of results, where the key has the position of the bad call and the values contains
 // a slice with all of the positions of Eventually calls that call the function (directly or indirectly)
 func checkForBadCalls() map[token.Pos][]token.Pos {

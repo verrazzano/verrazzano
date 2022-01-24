@@ -5,15 +5,19 @@ package istio
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+
 	"go.uber.org/zap"
-	"io/ioutil"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,8 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -48,7 +50,7 @@ var forkInstallFunc forkInstallFuncSig = forkInstall
 
 type bashFuncSig func(inArgs ...string) (string, string, error)
 
-var bashFunc bashFuncSig = vzos.RunBash
+var bashFunc bashFuncSig = os2.RunBash
 
 func setInstallFunc(f installFuncSig) {
 	installFunc = f
@@ -222,7 +224,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 			log.Errorf("Failed to close temporary file: %v", err)
 			return err
 		}
-		log.Infof("Created values file from Istio install args: %s", userFileCR.Name())
+		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
 
 	// check for global image pull secret
@@ -342,7 +344,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 }
 
 func removeTempFiles(log *zap.SugaredLogger) {
-	if err := vzos.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
+	if err := os2.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
 		log.Errorf("Unexpected error removing temp files: %s", err.Error())
 	}
 }

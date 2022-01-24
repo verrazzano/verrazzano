@@ -9,19 +9,18 @@ import (
 	"os"
 	"strings"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -210,7 +209,8 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 		return err
 	}
 
-	// Perform a helm upgrade --install
+	// Perform an install using the helm upgrade --install command
+	context.Log().Infof("Performing installation of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
 }
@@ -249,7 +249,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	if h.SkipUpgrade {
-		context.Log().Infof("Upgrade skipped for %v", h.ReleaseName)
+		context.Log().Infof("Upgrade disabled for %s", h.ReleaseName)
 		return nil
 	}
 
@@ -308,7 +308,8 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of component-specified override files if present
 	overrides.FileOverrides = append(overrides.FileOverrides, tmpFile.Name())
 
-	// Perform a helm upgrade --install
+	// Perform an upgrade using the helm upgrade --install command
+	context.Log().Infof("Performing upgrade of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
 }
