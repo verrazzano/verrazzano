@@ -75,7 +75,7 @@ func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli c
 		resources.SetAPIVersion(childResKind.APIVersion)
 		resources.SetKind(childResKind.Kind)
 		if err := cli.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
-			log.Errorf("Failed listing children %v", err)
+			log.Errorf("Failed listing children: %v", err)
 			return nil, err
 		}
 		for i, item := range resources.Items {

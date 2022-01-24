@@ -308,7 +308,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
-			r.Log.Info("Host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
+			r.Log.Debug("Host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
 				" Please redeploy after removing the hosts or specifying a secret with the given hosts in its SAN list")
 			break
 		}
@@ -316,7 +316,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if !ok {
-		err = fmt.Errorf("Failed to obtain app name from ingress trait")
+		err = fmt.Errorf("failed to obtain app name from ingress trait")
 		status.Errors = append(status.Errors, err)
 		status.Results = append(status.Results, controllerutil.OperationResultNone)
 		return ""

@@ -6,9 +6,9 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	s "strings"
 
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sValidations "k8s.io/apimachinery/pkg/util/validation"
 	ctrl "sigs.k8s.io/controller-runtime"

@@ -6,7 +6,6 @@ package multiclustersecret
 import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"go.uber.org/zap"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -15,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

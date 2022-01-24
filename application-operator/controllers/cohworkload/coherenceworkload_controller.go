@@ -154,7 +154,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// the embedded resource doesn't have an API version or kind, so add them
 	gvk := vznav.APIVersionAndKindToContainedGVK(workload.APIVersion, workload.Kind)
 	if gvk == nil {
-		err = fmt.Errorf("Failed to determine contained GroupVersionKind for workload")
+		err = fmt.Errorf("failed to determine contained GroupVersionKind for workload")
 		log.Errorf("Failed to get the GroupVersionKind for workload %s: %v", workload, err)
 		return reconcile.Result{}, err
 	}

@@ -61,7 +61,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.With("verrazzanoproject", req.NamespacedName)
 	var vp clustersv1alpha1.VerrazzanoProject
 	ctx := context.Background()
-	log.Debug("Fetching VerrazzanoProject")
+	log.Info("Fetching VerrazzanoProject")
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,

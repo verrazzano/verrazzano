@@ -5,12 +5,12 @@ package webhooks
 
 import (
 	"context"
-	"go.uber.org/zap"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"go.uber.org/zap"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	"istio.io/api/type/v1beta1"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
