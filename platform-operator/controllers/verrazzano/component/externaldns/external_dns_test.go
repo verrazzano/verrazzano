@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
@@ -36,6 +36,29 @@ var oci = &vzapi.OCI{
 	DNSZoneCompartmentOCID: "compartmentID",
 	DNSZoneOCID:            "zoneID",
 	DNSZoneName:            "zone.name.io",
+}
+
+var ociGlobalScope = &vzapi.OCI{
+	OCIConfigSecret:        "oci",
+	DNSZoneCompartmentOCID: "compartmentID",
+	DNSZoneOCID:            "zoneID",
+	DNSZoneName:            "zone.name.io",
+	DNSScope:               "GLOBAL",
+}
+var ociPrivateScope = &vzapi.OCI{
+	OCIConfigSecret:        "oci",
+	DNSZoneCompartmentOCID: "compartmentID",
+	DNSZoneOCID:            "zoneID",
+	DNSZoneName:            "zone.name.io",
+	DNSScope:               "PRIVATE",
+}
+
+var ociInvalidScope = &vzapi.OCI{
+	OCIConfigSecret:        "oci",
+	DNSZoneCompartmentOCID: "compartmentID",
+	DNSZoneOCID:            "zoneID",
+	DNSZoneName:            "zone.name.io",
+	DNSScope:               "#jhwuyusj!!!",
 }
 
 var fakeComponent = externalDNSComponent{}
@@ -89,7 +112,7 @@ func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz.Spec.Components.DNS.OCI = oci
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, externalDNSNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 8)
+	assert.Len(t, kvs, 9)
 }
 
 // TestExternalDNSPreInstallDryRun tests the PreInstall fn
@@ -119,6 +142,51 @@ func TestExternalDNSPreInstall(t *testing.T) {
 	localvz.Spec.Components.DNS.OCI = oci
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
 	assert.NoError(t, err)
+}
+
+func TestExternalDNSPreInstallGlobalScope(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "oci",
+				Namespace: constants.VerrazzanoInstallNamespace,
+			},
+			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
+		})
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.DNS.OCI = ociGlobalScope
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
+	assert.NoError(t, err)
+}
+
+func TestExternalDNSPreInstallPrivateScope(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "oci",
+				Namespace: constants.VerrazzanoInstallNamespace,
+			},
+			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
+		})
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.DNS.OCI = ociPrivateScope
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
+	assert.NoError(t, err)
+}
+
+func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "oci",
+				Namespace: constants.VerrazzanoInstallNamespace,
+			},
+			Data: map[string][]byte{"oci.yaml": []byte("fake data")},
+		})
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.DNS.OCI = ociInvalidScope
+	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
+	assert.Error(t, err)
 }
 
 // Create a new deployment object for testing

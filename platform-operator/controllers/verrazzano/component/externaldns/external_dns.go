@@ -1,10 +1,11 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package externaldns
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -24,6 +25,8 @@ const (
 	externalDNSNamespace      = "cert-manager"
 	externalDNSDeploymentName = "external-dns"
 	ociSecretFileName         = "oci.yaml"
+	dnsGlobal                 = "GLOBAL" //default
+	dnsPrivate                = "PRIVATE"
 	imagePullSecretHelmKey    = "global.imagePullSecrets[0]"
 )
 
@@ -40,6 +43,14 @@ func preInstall(compContext spi.ComponentContext) error {
 	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: dns.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, &dnsSecret); err != nil {
 		compContext.Log().Errorf("Could not find secret %s in the %s namespace: %s", dns.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace, err)
 		return err
+	}
+
+	//check if scope value is valid
+	scope := dns.OCI.DNSScope
+	if scope != dnsGlobal && scope != dnsPrivate && scope != "" {
+		message := fmt.Sprintf("Invalid OCI DNS scope value: %s. If set, value can only be 'GLOBAL' or 'PRIVATE", dns.OCI.DNSScope)
+		compContext.Log().Errorf(message)
+		return errors.New(message)
 	}
 
 	// Attach compartment field to secret and apply it in the external DNS namespace
@@ -90,6 +101,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	arguments := []bom.KeyValue{
 		{Key: "domainFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName},
 		{Key: "zoneIDFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneOCID},
+		{Key: "ociDnsScope", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSScope},
 		{Key: "txtOwnerId", Value: nameTimeString},
 		{Key: "txtPrefix", Value: "_" + nameTimeString},
 		{Key: "extraVolumes[0].name", Value: "config"},
