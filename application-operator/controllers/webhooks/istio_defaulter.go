@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 
@@ -24,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -44,11 +44,11 @@ type IstioWebhook struct {
 	DynamicClient dynamic.Interface
 }
 
-var istioLogger = ctrl.Log.WithName("webhooks.istio-defaulter")
-
 // Handle is the entry point for the mutating webhook.
 // This function is called for any pods that are created in a namespace with the label istio-injection=enabled.
 func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+	var log = zap.S().With("webhooks.istio-defaulter")
+
 	pod := &corev1.Pod{}
 	err := a.Decoder.Decode(req, pod)
 	if err != nil {
@@ -58,13 +58,13 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	// Check for the annotation "sidecar.istio.io/inject: false".  No action required if annotation is set to false.
 	for key, value := range pod.Annotations {
 		if key == "sidecar.istio.io/inject" && value == "false" {
-			istioLogger.Info(fmt.Sprintf("Pod labeled with sidecar.istio.io/inject: false: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
+			log.Debugf("Pod labeled with sidecar.istio.io/inject: false: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName)
 			return admission.Allowed("No action required, pod labeled with sidecar.istio.io/inject: false")
 		}
 	}
 
 	// Get all owner references for this pod
-	ownerRefList, err := a.flattenOwnerReferences(nil, req.Namespace, pod.OwnerReferences)
+	ownerRefList, err := a.flattenOwnerReferences(nil, req.Namespace, pod.OwnerReferences, log)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -80,7 +80,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 	// No ApplicationConfiguration ownerReference resource was found so there is no action required.
 	if appConfigOwnerRef == (metav1.OwnerReference{}) {
-		istioLogger.Info(fmt.Sprintf("Pod is not a child of an ApplicationConfiguration: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName))
+		log.Debugf("Pod is not a child of an ApplicationConfiguration: %s:%s:%s", req.Namespace, pod.Name, pod.GenerateName)
 		return admission.Allowed("No action required, pod is not a child of an ApplicationConfiguration resource")
 	}
 
@@ -88,14 +88,14 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	// created.  A service account is used as a principal in the Istio Authorization policy we create/update.
 	serviceAccountName := pod.Spec.ServiceAccountName
 	if serviceAccountName == "default" || serviceAccountName == "" {
-		serviceAccountName, err = a.createServiceAccount(req.Namespace, appConfigOwnerRef)
+		serviceAccountName, err = a.createServiceAccount(req.Namespace, appConfigOwnerRef, log)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
 	}
 
 	// Create/update Istio Authorization policy for the given pod.
-	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef, pod.ObjectMeta.Labels)
+	err = a.createUpdateAuthorizationPolicy(req.Namespace, serviceAccountName, appConfigOwnerRef, pod.ObjectMeta.Labels, log)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -105,7 +105,7 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 		Client:      a.Client,
 		IstioClient: a.IstioClient,
 	}
-	err = ap.fixupAuthorizationPoliciesForProjects(req.Namespace)
+	err = ap.fixupAuthorizationPoliciesForProjects(req.Namespace, log)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -136,7 +136,7 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 }
 
 // createUpdateAuthorizationPolicy will create/update an Istio authoriztion policy.
-func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference, labels map[string]string) error {
+func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference, labels map[string]string, log *zap.SugaredLogger) error {
 	podPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
 	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
 	promPrincipal := "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator"
@@ -200,7 +200,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 			},
 		}
 
-		istioLogger.Info(fmt.Sprintf("Creating Istio authorization policy: %s:%s", namespace, ownerRef.Name))
+		log.Debugf("Creating Istio authorization policy: %s:%s", namespace, ownerRef.Name)
 		_, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace).Create(context.TODO(), ap, metav1.CreateOptions{})
 		return err
 	} else if err != nil {
@@ -222,7 +222,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 	}
 	// Update the policy with the principals that are missing
 	if update {
-		istioLogger.Info(fmt.Sprintf("Updating Istio authorization policy: %s:%s", namespace, ownerRef.Name))
+		log.Debugf("Updating Istio authorization policy: %s:%s", namespace, ownerRef.Name)
 		_, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace).Update(context.TODO(), authPolicy, metav1.UpdateOptions{})
 		if err != nil {
 			return err
@@ -232,7 +232,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 }
 
 // createServiceAccount will create a service account to be referenced by the Istio authorization policy
-func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.OwnerReference) (string, error) {
+func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.OwnerReference, log *zap.SugaredLogger) (string, error) {
 	// Check if service account exist.  The name of the service account is the owner reference name which happens
 	// to be the appconfig name.
 	serviceAccount, err := a.KubeClient.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
@@ -256,7 +256,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 				},
 			},
 		}
-		istioLogger.Info(fmt.Sprintf("Creating service account: %s:%s", namespace, ownerRef.Name))
+		log.Debugf("Creating service account: %s:%s", namespace, ownerRef.Name)
 		serviceAccount, err = a.KubeClient.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), sa, metav1.CreateOptions{})
 		if err != nil {
 			return "", err
@@ -269,7 +269,7 @@ func (a *IstioWebhook) createServiceAccount(namespace string, ownerRef metav1.Ow
 }
 
 // flattenOwnerReferences traverses a nested array of owner references and returns a single array of owner references.
-func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
+func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference, log *zap.SugaredLogger) ([]metav1.OwnerReference, error) {
 	for _, ownerRef := range ownerRefs {
 		list = append(list, ownerRef)
 
@@ -282,12 +282,12 @@ func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, name
 
 		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
-			istioLogger.Error(err, "Dynamic API failed")
+			log.Errorf("Failed getting the Dynamic API: %v", err)
 			return nil, nil
 		}
 
 		if len(unst.GetOwnerReferences()) != 0 {
-			list, err = a.flattenOwnerReferences(list, namespace, unst.GetOwnerReferences())
+			list, err = a.flattenOwnerReferences(list, namespace, unst.GetOwnerReferences(), log)
 			if err != nil {
 				return nil, nil
 			}

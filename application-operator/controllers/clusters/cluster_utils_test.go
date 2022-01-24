@@ -6,6 +6,7 @@ package clusters
 import (
 	"context"
 	"errors"
+	"go.uber.org/zap"
 	"testing"
 	"time"
 
@@ -99,12 +100,12 @@ func TestGetConditionFromResult(t *testing.T) {
 // WHEN IgnoreNotFoundWithLog is called
 // THEN the error is returned
 func TestIgnoreNotFoundWithLog(t *testing.T) {
-	logger := controllerruntime.Log.WithName("somelogger")
-	err := IgnoreNotFoundWithLog("myResourceType", kerr.NewNotFound(controllerruntime.GroupResource{}, ""), logger)
+	log := zap.S().With("somelogger")
+	err := IgnoreNotFoundWithLog("myResourceType", kerr.NewNotFound(controllerruntime.GroupResource{}, ""), log)
 	asserts.Nil(t, err)
 
 	otherErr := kerr.NewBadRequest("some other error")
-	err = IgnoreNotFoundWithLog("myResourceType", otherErr, logger)
+	err = IgnoreNotFoundWithLog("myResourceType", otherErr, log)
 	asserts.Equal(t, otherErr, err)
 }
 

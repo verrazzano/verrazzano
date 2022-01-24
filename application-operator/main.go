@@ -102,6 +102,7 @@ func main() {
 	kzap.UseFlagOptions(&opts)
 	vzlog.InitLogs(opts)
 
+	// Initialize the zap log
 	log := zap.S()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

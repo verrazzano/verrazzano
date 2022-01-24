@@ -5,6 +5,7 @@ package webhooks
 
 import (
 	"encoding/json"
+	"go.uber.org/zap"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -50,7 +51,7 @@ func testDefaulter(t *testing.T, componentPath, configPath string, initTraitsSiz
 	assert.Equal(t, 1, len(appConfig.Spec.Components))
 	assert.Equal(t, initTraitsSize, len(appConfig.Spec.Components[0].Traits))
 	defaulter := &MetricsTraitDefaulter{}
-	err = defaulter.Default(appConfig, false)
+	err = defaulter.Default(appConfig, false, zap.S())
 	if err != nil {
 		t.Fatalf("Error in defaulter.Default %v", err)
 	}
@@ -77,7 +78,7 @@ func testMetricsTraitDefaulterCleanup(t *testing.T, configPath string, dryRun bo
 	}
 	assert.Equal(t, 1, len(appConfig.Spec.Components))
 	defaulter := &MetricsTraitDefaulter{}
-	err = defaulter.Cleanup(appConfig, dryRun)
+	err = defaulter.Cleanup(appConfig, dryRun, zap.S())
 	if err != nil {
 		t.Fatalf("Error in defaulter.Default %v", err)
 	}

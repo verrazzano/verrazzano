@@ -5,6 +5,7 @@ package webhooks
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,7 @@ func TestDeleteOnePolicyOneNamespace(t *testing.T) {
 	_, err = ap.IstioClient.SecurityV1beta1().AuthorizationPolicies("appconfig-namespace").Create(context.TODO(), authzPolicy, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating authorization policies")
 
-	err = ap.cleanupAuthorizationPoliciesForProjects("appconfig-namespace", "appconfig-name")
+	err = ap.cleanupAuthorizationPoliciesForProjects("appconfig-namespace", "appconfig-name", zap.S())
 	assert.NoError(t, err, "Unexpected error cleaning up authorization policies")
 }
 
@@ -269,7 +270,7 @@ func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 	_, err = ap.IstioClient.SecurityV1beta1().AuthorizationPolicies("appconfig-namespace").Create(context.TODO(), authzPolicy2, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating authorization policies")
 
-	err = ap.cleanupAuthorizationPoliciesForProjects("appconfig-namespace", "appconfig-name1")
+	err = ap.cleanupAuthorizationPoliciesForProjects("appconfig-namespace", "appconfig-name1", zap.S())
 	assert.NoError(t, err, "Unexpected error cleaning up authorization policies")
 
 	updatedPolicy, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies("appconfig-namespace").Get(context.TODO(), "appconfig-name2", metav1.GetOptions{})
@@ -530,7 +531,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 	_, err = ap.IstioClient.SecurityV1beta1().AuthorizationPolicies("appconfig-namespace2").Create(context.TODO(), authzPolicy2, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating authorization policies")
 
-	err = ap.cleanupAuthorizationPoliciesForProjects("appconfig-namespace1", "appconfig-name1")
+	err = ap.cleanupAuthorizationPoliciesForProjects("appconfig-namespace1", "appconfig-name1", zap.S())
 	assert.NoError(t, err, "Unexpected error cleaning up authorization policies")
 
 	updatedPolicy, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies("appconfig-namespace1").Get(context.TODO(), "appconfig-name2", metav1.GetOptions{})
