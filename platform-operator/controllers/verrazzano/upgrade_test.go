@@ -284,7 +284,11 @@ func TestUpgradeInitComponents(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
+<<<<<<< HEAD
 	asserts.NotZero(result.RequeueAfter)
+=======
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+>>>>>>> 0a9a67b66c090581f6d3a99a7211ef7eb55eac4e
 }
 
 // TestUpgradeStarted tests the reconcileUpgrade method for the following use case
