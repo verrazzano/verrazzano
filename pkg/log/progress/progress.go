@@ -106,7 +106,7 @@ func (r *RootLogger) EnsureProgressLogger(key string) *ProgressLogger {
 	return log
 }
 
-// Infof formats a message and logs it
+// Progressf formats a message and logs it
 func (p *ProgressLogger) Progressf(template string, args ...interface{}) {
 	s := fmt.Sprintf(template, args...)
 	p.Progress(s)
@@ -160,12 +160,12 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 	}
 }
 
-// Info is a wrapper for SugaredLogger Info
+// Debug is a wrapper for SugaredLogger Debug
 func (p *ProgressLogger) Debug(args ...interface{}) {
 	p.rootLogger.zapLogger.Info(args...)
 }
 
-// Infof is a wrapper for SugaredLogger Infof
+// Debugf is a wrapper for SugaredLogger Debugf
 func (p *ProgressLogger) Debugf(template string, args ...interface{}) {
 	p.rootLogger.zapLogger.Infof(template, args...)
 }
