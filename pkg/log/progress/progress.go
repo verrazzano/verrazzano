@@ -17,13 +17,17 @@ var fakeInfoLogger infoLogger
 type infoLogger interface {
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
+	Error(args ...interface{})
+	Errorf(template string, args ...interface{})
+	Progress(args ...interface{})
+	Progressf(template string, args ...interface{})
 }
 
 // RootLogger is the root logger for a given resource.
 // This logger can be used to manage logging for the resource and sub-resources, such as components
 type RootLogger struct {
 	// zapLog is the logger used to log messages
-	zap.SugaredLogger
+	zapLogger *zap.SugaredLogger
 
 	// pregressLoggerMap contains a map of ProgressLogger objects
 	progressLoggerMap map[string]*ProgressLogger
@@ -32,7 +36,7 @@ type RootLogger struct {
 // ProgressLogger logs a message periodically
 type ProgressLogger struct {
 	// zapLog is the logger used to log messages
-	zap.SugaredLogger
+	rootLogger *RootLogger
 
 	// frequency between logs in seconds
 	frequencySecs int
@@ -53,21 +57,16 @@ type lastLog struct {
 	msgLogged string
 }
 
-// BuildKey builds a key from the namespace/name combo
-func BuildKey(name string, namespace string) string {
-	return namespace + "/" + name
-}
-
 // EnsureRootLogger ensures that a RootLogger exists
 // The key must be unique for the process, for example a namespace/name combo.
 func EnsureRootLogger(key string, zapLog *zap.SugaredLogger) *RootLogger {
 	log, ok := RootLoggerMap[key]
 	if !ok {
 		log = &RootLogger{
+			zapLogger:         zapLog,
 			progressLoggerMap: make(map[string]*ProgressLogger),
 		}
 		RootLoggerMap[key] = log
-		log.SugaredLogger
 	}
 	return log
 }
@@ -80,12 +79,17 @@ func DeleteRootLogger(key string) {
 	}
 }
 
-// EnsureProgressLogger creates a new ProgressLogger for the given key
+// DefaultProgressLogger ensures that a new default ProgressLogger exists
+func (r *RootLogger) DefaultProgressLogger() *ProgressLogger {
+	return r.EnsureProgressLogger("default")
+}
+
+// EnsureProgressLogger ensures that a new ProgressLogger exists for the given key
 func (r *RootLogger) EnsureProgressLogger(key string) *ProgressLogger {
 	log, ok := r.progressLoggerMap[key]
 	if !ok {
 		log = &ProgressLogger{
-		//	zapLogger:  r.zapLogger,
+			rootLogger:      r,
 			frequencySecs:   60,
 			historyMessages: make(map[string]bool),
 		}
@@ -137,7 +141,7 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 	// Log the message if it is time and save the lastLog info
 	if logNow {
 		if fakeInfoLogger == nil {
-	//		p.zapLogger.Info(msg)
+			p.rootLogger.zapLogger.Info(msg)
 		} else {
 			fakeInfoLogger.Info(msg)
 		}
@@ -146,6 +150,26 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 			msgLogged:   msg,
 		}
 	}
+}
+
+// Info is a wrapper for SugaredLogger Info
+func (p *ProgressLogger) Info(args ...interface{}) {
+	p.rootLogger.zapLogger.Info(args...)
+}
+
+// Infof is a wrapper for SugaredLogger Infof
+func (p *ProgressLogger) Infof(template string, args ...interface{}) {
+	p.rootLogger.zapLogger.Infof(template, args...)
+}
+
+// Error is a wrapper for SugaredLogger Error
+func (p *ProgressLogger) Error(args ...interface{}) {
+	p.rootLogger.zapLogger.Error(args...)
+}
+
+// Errorf is a wrapper for SugaredLogger Errorf
+func (p *ProgressLogger) Errorf(template string, args ...interface{}) {
+	p.rootLogger.zapLogger.Errorf(template, args...)
 }
 
 // Set the log frequency

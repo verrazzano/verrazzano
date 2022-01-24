@@ -98,22 +98,25 @@ func TestLogFormat(t *testing.T) {
 	DeleteRootLogger(rKey)
 }
 
-
-// TestLogFormat tests the ProgressLogger function message formatting
-// GIVEN a ProgressLogger
+// TestDefault tests the DefaultProgressLogger
+// GIVEN a DefaultProgressLogger
 // WHEN log.Infof is called with a string and a template
 // THEN ensure that the message is formatted correctly and logged
-func TestZapLogger(t *testing.T) {
+func TestDefault(t *testing.T) {
 	testOpts := kzap.Options{}
 	testOpts.Development = true
 	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	log.InitLogs(testOpts)
-	msg := "foo"
+	template := "test %s"
+	inStr := "foo"
+	logger := fakeLogger{}
+	setFakeLogger(&logger)
+	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
-	rl := EnsureRootLogger(rKey, zap.S())
-	l := rl.EnsureProgressLogger("comp1")
-	l.Info(msg)
-
+	l := EnsureRootLogger(rKey, zap.S()).DefaultProgressLogger()
+	l.Progressf(template, inStr)
+	assert.Equal(t, 1, logger.count)
+	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
 	DeleteRootLogger(rKey)
 }
 
@@ -128,4 +131,21 @@ func (l *fakeLogger) Info(args ...interface{}) {
 func (l *fakeLogger) Infof(template string, args ...interface{}) {
 	s := fmt.Sprintf(template, args...)
 	l.Info(s)
+}
+
+// Error is a wrapper for SugaredLogger Error
+func (l *fakeLogger) Error(args ...interface{}) {
+}
+
+// Errorf is a wrapper for SugaredLogger Errorf
+func (l *fakeLogger) Errorf(template string, args ...interface{}) {
+}
+
+
+// Error is a wrapper for SugaredLogger Error
+func (l *fakeLogger) Progress(args ...interface{}) {
+}
+
+// Errorf is a wrapper for SugaredLogger Errorf
+func (l *fakeLogger) Progressf(template string, args ...interface{}) {
 }
