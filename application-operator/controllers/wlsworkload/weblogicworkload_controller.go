@@ -766,7 +766,7 @@ func (r *Reconciler) createDefaultWDTConfigMap(ctx context.Context, log *zap.Sug
 			return err
 		}
 		if err = controllerutil.SetControllerReference(appConfig, configMap, r.Scheme); err != nil {
-			log.Error(err, "Unable to set controller ref for WDT config map")
+			log.Errorf("Failed to set controller ref for WDT config map: %v", err)
 			return err
 		}
 		bytes, err := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))

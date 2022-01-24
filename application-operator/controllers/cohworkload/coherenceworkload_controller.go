@@ -184,7 +184,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Debug("No existing Coherence StatefulSet found")
 			domainExists = false
 		} else {
-			log.Error(err, "Failed to obtain an existing Coherence StatefulSet")
+			log.Errorf("Failed to obtain an existing Coherence StatefulSet: %v", err)
 			return reconcile.Result{}, err
 		}
 	}

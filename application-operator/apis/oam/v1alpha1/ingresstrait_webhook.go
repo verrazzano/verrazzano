@@ -36,7 +36,7 @@ var _ webhook.Validator = &IngressTrait{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for ingress trait type creation.
 func (r *IngressTrait) ValidateCreate() error {
-	log.Info("validate create", "name", r.Name)
+	log.Debug("validate create", "name", r.Name)
 	allIngressTraits, err := getAllIngressTraits(r.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to obtain list of existing IngressTrait's during create validation: %v", err)
@@ -46,7 +46,7 @@ func (r *IngressTrait) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for ingress trait type update.
 func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
-	log.Info("validate update", "name", r.Name)
+	log.Debug("validate update", "name", r.Name)
 
 	existingIngressList, err := getAllIngressTraits(r.Namespace)
 	if err != nil {
@@ -67,7 +67,7 @@ func (r *IngressTrait) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for ingress trait type deletion.
 func (r *IngressTrait) ValidateDelete() error {
-	log.Info("validate delete", "name", r.Name)
+	log.Debug("validate delete", "name", r.Name)
 
 	// no validation on delete
 	return nil

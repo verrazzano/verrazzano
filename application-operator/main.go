@@ -113,7 +113,7 @@ func main() {
 		LeaderElectionID:   "5df248b3.verrazzano.io",
 	})
 	if err != nil {
-		log.Error(err, "Failed to start manager")
+		log.Errorf("Failed to start manager: %v", err)
 		os.Exit(1)
 	}
 
@@ -165,7 +165,7 @@ func main() {
 		}
 		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.IstioMutatingWebhookName)
 		if err != nil {
-			log.Error("Failed to update pod mutating webhook configuration: %v", err)
+			log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 			os.Exit(1)
 		}
 
@@ -176,7 +176,7 @@ func main() {
 			os.Exit(1)
 		}
 		if err = (&vzapi.IngressTrait{}).SetupWebhookWithManager(mgr); err != nil {
-			log.Error(err, "Failed to create IngressTrait webhook", "webhook", "IngressTrait")
+			log.Errorf("Failed to create IngressTrait webhook: %v", err)
 			os.Exit(1)
 		}
 
@@ -375,7 +375,7 @@ func main() {
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		log.Error("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterAppConfigKind, err)
+		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterAppConfigKind, err)
 		os.Exit(1)
 	}
 	scheme := mgr.GetScheme()
