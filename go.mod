@@ -22,8 +22,8 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/onsi/ginkgo/v2 v2.1.0
-	github.com/onsi/gomega v1.18.0
+	github.com/onsi/ginkgo/v2 v2.0.0
+	github.com/onsi/gomega v1.17.0
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/cobra v1.1.1
@@ -31,9 +31,10 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20201216223049-8b5274cf687f // indirect
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
+	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
 	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
 	istio.io/client-go v0.0.0-20200807182027-d287a5abb594
@@ -51,6 +52,7 @@ require (
 
 replace (
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api => k8s.io/api v0.19.2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.19.2
@@ -58,5 +60,4 @@ replace (
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.2
 	k8s.io/client-go => k8s.io/client-go v0.19.2
 	k8s.io/code-generator => k8s.io/code-generator v0.19.2
-	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
 )
