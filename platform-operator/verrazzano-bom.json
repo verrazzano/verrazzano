@@ -221,8 +221,8 @@
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "kibana-oss",
-              "tag": "7.10.2-20211213083528-4463f4c",
+              "image": "kibana",
+              "tag": "7.10.2-20220121142821-1799c88",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
