@@ -33,7 +33,7 @@ func TestLog(t *testing.T) {
 	logger := fakeLogger{expectedMsg: msg}
 	setFakeLogger(&logger)
 	const rKey = "testns/test"
-	rl := EnsureRootLogger(rKey, zap.S())
+	rl := EnsureLogger(rKey, zap.S())
 	l := rl.EnsureProgressLogger("comp1").SetFrequency(3)
 
 	// 5 calls to log should result in only 2 log messages being written
@@ -61,7 +61,7 @@ func TestLogNewMsg(t *testing.T) {
 	logger := fakeLogger{expectedMsg: msg}
 	setFakeLogger(&logger)
 	const rKey = "testns/test2"
-	rl := EnsureRootLogger(rKey, zap.S())
+	rl := EnsureLogger(rKey, zap.S())
 	l := rl.EnsureProgressLogger("comp1").SetFrequency(2)
 
 	// Calls to log should result in only 2 log messages being written
@@ -90,7 +90,7 @@ func TestLogFormat(t *testing.T) {
 	setFakeLogger(&logger)
 	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
-	rl := EnsureRootLogger(rKey, zap.S())
+	rl := EnsureLogger(rKey, zap.S())
 	l := rl.EnsureProgressLogger("comp1")
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
@@ -113,7 +113,7 @@ func TestDefault(t *testing.T) {
 	setFakeLogger(&logger)
 	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
-	l := EnsureRootLogger(rKey, zap.S()).DefaultProgressLogger()
+	l := EnsureLogger(rKey, zap.S()).DefaultProgressLogger()
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
 	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
@@ -133,6 +133,14 @@ func (l *fakeLogger) Infof(template string, args ...interface{}) {
 	l.Info(s)
 }
 
+// Debug is a wrapper for SugaredLogger Debug
+func (l *fakeLogger) Debug(args ...interface{}) {
+}
+
+// Debugf is a wrapper for SugaredLogger Debugf
+func (l *fakeLogger) Debugf(template string, args ...interface{}) {
+}
+
 // Error is a wrapper for SugaredLogger Error
 func (l *fakeLogger) Error(args ...interface{}) {
 }
@@ -140,7 +148,6 @@ func (l *fakeLogger) Error(args ...interface{}) {
 // Errorf is a wrapper for SugaredLogger Errorf
 func (l *fakeLogger) Errorf(template string, args ...interface{}) {
 }
-
 
 // Error is a wrapper for SugaredLogger Error
 func (l *fakeLogger) Progress(args ...interface{}) {

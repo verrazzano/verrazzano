@@ -12,9 +12,12 @@ import (
 // RootLoggerMap contains a map of RootLogger objects
 var RootLoggerMap = make(map[string]*RootLogger)
 
-var fakeInfoLogger infoLogger
+var fakeInfoLogger VerrazzanoLogger
 
-type infoLogger interface {
+// VerrazzanoLogger is a logger interface that provides progress logging
+type VerrazzanoLogger interface {
+	Debug(args ...interface{})
+	Debugf(template string, args ...interface{})
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
 	Error(args ...interface{})
@@ -57,9 +60,9 @@ type lastLog struct {
 	msgLogged string
 }
 
-// EnsureRootLogger ensures that a RootLogger exists
+// EnsureLogger ensures that a RootLogger exists
 // The key must be unique for the process, for example a namespace/name combo.
-func EnsureRootLogger(key string, zapLog *zap.SugaredLogger) *RootLogger {
+func EnsureLogger(key string, zapLog *zap.SugaredLogger) *RootLogger {
 	log, ok := RootLoggerMap[key]
 	if !ok {
 		log = &RootLogger{
@@ -77,6 +80,11 @@ func DeleteRootLogger(key string) {
 	if ok {
 		delete(RootLoggerMap, key)
 	}
+}
+
+// S returns the zap SugaredLogger
+func (r *RootLogger) S() *zap.SugaredLogger {
+	return r.zapLogger
 }
 
 // DefaultProgressLogger ensures that a new default ProgressLogger exists
@@ -153,6 +161,16 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 }
 
 // Info is a wrapper for SugaredLogger Info
+func (p *ProgressLogger) Debug(args ...interface{}) {
+	p.rootLogger.zapLogger.Info(args...)
+}
+
+// Infof is a wrapper for SugaredLogger Infof
+func (p *ProgressLogger) Debugf(template string, args ...interface{}) {
+	p.rootLogger.zapLogger.Infof(template, args...)
+}
+
+// Info is a wrapper for SugaredLogger Info
 func (p *ProgressLogger) Info(args ...interface{}) {
 	p.rootLogger.zapLogger.Info(args...)
 }
@@ -172,12 +190,12 @@ func (p *ProgressLogger) Errorf(template string, args ...interface{}) {
 	p.rootLogger.zapLogger.Errorf(template, args...)
 }
 
-// Set the log frequency
+// SetFrequency sets the log frequency
 func (p ProgressLogger) SetFrequency(secs int) ProgressLogger {
 	p.frequencySecs = secs
 	return p
 }
 
-func setFakeLogger(logger infoLogger) {
+func setFakeLogger(logger VerrazzanoLogger) {
 	fakeInfoLogger = logger
 }
