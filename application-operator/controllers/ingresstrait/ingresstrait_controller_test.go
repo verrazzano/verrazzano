@@ -616,7 +616,7 @@ func TestFailureCreateGatewayCertNoAppName(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, trait *vzapi.IngressTrait, opts ...client.UpdateOption) error {
 			assert.Len(trait.Status.Conditions, 1)
-			assert.Equal("Failed to obtain app name from ingress trait", trait.Status.Conditions[0].Message, "Unexpected error message")
+			assert.Equal("failed to obtain app name from ingress trait", trait.Status.Conditions[0].Message, "Unexpected error message")
 			assert.Len(trait.Status.Resources, 0)
 			return nil
 		})
