@@ -5,80 +5,146 @@ package progress
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 )
 
-// historyMap contains a map of historyLog objects
-var historyMap = make(map[string]*historyLog)
+// RootLoggerMap contains a map of RootLogger objects
+var RootLoggerMap = make(map[string]*RootLogger)
 
-type Logger interface {
+var fakeInfoLogger infoLogger
+
+type infoLogger interface {
 	Info(args ...interface{})
+	Infof(template string, args ...interface{})
 }
 
-// historyLog contains the history messages logged
-type historyLog struct {
-	// Last time message was logged
-	lastLogTime *time.Time
+// RootLogger is the root logger for a given resource.
+// This logger can be used to manage logging for the resource and sub-resources, such as components
+type RootLogger struct {
+	// zapLog is the logger used to log messages
+	zap.SugaredLogger
 
-	// Message logged
-	msg string
+	// pregressLoggerMap contains a map of ProgressLogger objects
+	progressLoggerMap map[string]*ProgressLogger
 }
 
 // ProgressLogger logs a message periodically
 type ProgressLogger struct {
-	// name is the name of the logger
-	name string
+	// zapLog is the logger used to log messages
+	zap.SugaredLogger
 
 	// frequency between logs in seconds
 	frequencySecs int
 
-	// logger is the logger used to log the message.
-	logger Logger
+	// history is a set of log messages for this ProgressLogger
+	historyMessages map[string]bool
+
+	// lastLog keeps track of the last logged message
+	*lastLog
 }
 
-// NewProgressLogger creates a new ProgressLogger
-func NewProgressLogger(log Logger, name string) ProgressLogger {
-	return ProgressLogger{
-		logger:        log,
-		name:          name,
-		frequencySecs: 60,
+// lastLog contains the history messages logged
+type lastLog struct {
+	// Last time message was logged
+	lastLogTime *time.Time
+
+	// Message logged
+	msgLogged string
+}
+
+// BuildKey builds a key from the namespace/name combo
+func BuildKey(name string, namespace string) string {
+	return namespace + "/" + name
+}
+
+// EnsureRootLogger ensures that a RootLogger exists
+// The key must be unique for the process, for example a namespace/name combo.
+func EnsureRootLogger(key string, zapLog *zap.SugaredLogger) *RootLogger {
+	log, ok := RootLoggerMap[key]
+	if !ok {
+		log = &RootLogger{
+			progressLoggerMap: make(map[string]*ProgressLogger),
+		}
+		RootLoggerMap[key] = log
+		log.SugaredLogger
+	}
+	return log
+}
+
+// DeleteRootLogger deletes the ResouceLogger for the given key
+func DeleteRootLogger(key string) {
+	_, ok := RootLoggerMap[key]
+	if ok {
+		delete(RootLoggerMap, key)
 	}
 }
 
-// Infof formats a message and logs it
-func (p ProgressLogger) Infof(template string, args ...interface{}) {
-	s := fmt.Sprintf(template, args...)
-	p.Info(s)
+// EnsureProgressLogger creates a new ProgressLogger for the given key
+func (r *RootLogger) EnsureProgressLogger(key string) *ProgressLogger {
+	log, ok := r.progressLoggerMap[key]
+	if !ok {
+		log = &ProgressLogger{
+		//	zapLogger:  r.zapLogger,
+			frequencySecs:   60,
+			historyMessages: make(map[string]bool),
+		}
+		r.progressLoggerMap[key] = log
+	}
+	return log
 }
 
-// Info logs an info message either now or sometime in the future.  The message
+// Infof formats a message and logs it
+func (p *ProgressLogger) Progressf(template string, args ...interface{}) {
+	s := fmt.Sprintf(template, args...)
+	p.Progress(s)
+}
+
+// Progress logs an info message either now or sometime in the future.  The message
 // will be logged only if it is new or the next log time has been reached.
 // This function allows a controller to constantly log info messages very frequently,
 // such as "waiting for Verrazzano secret", but the message will only be logged
 // once periodically according to the frequency (e.g. once every 60 seconds).
 // If the log message is new or has changed then it is logged immediately.
-func (p ProgressLogger) Info(args ...interface{}) {
+func (p *ProgressLogger) Progress(args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
 
-	// Get the history for this key, create a new one if needed
-	history, ok := historyMap[p.name]
-	if !ok {
-		history = &historyLog{}
-		historyMap[p.name] = history
+	// If this message is in the history map, that means it has been
+	// logged already, previous to the current message.  This happens
+	// if a controller reconcile loop is called repeatedly.  In this
+	// case we never want to display this message again, so just ignore it.
+	_, ok := p.historyMessages[msg]
+	if ok {
+		return
 	}
 	// Log now if the message changed or wait time exceeded
 	logNow := true
-	if msg == history.msg {
-		// Check if it is time to log since the message didn't change
-		waitSecs := time.Duration(p.frequencySecs) * time.Second
-		nextLogTime := history.lastLogTime.Add(waitSecs)
-		logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
+
+	// If the message has changed, then save the old message in the history
+	// so that it is never displayed again
+	if p.lastLog != nil {
+		if msg != p.lastLog.msgLogged {
+			p.historyMessages[msg] = true
+		} else {
+			// Check if it is time to log since the message didn't change
+			waitSecs := time.Duration(p.frequencySecs) * time.Second
+			nextLogTime := p.lastLog.lastLogTime.Add(waitSecs)
+			logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
+		}
 	}
+
+	// Log the message if it is time and save the lastLog info
 	if logNow {
-		p.logger.Info(msg)
-		history.lastLogTime = &now
-		history.msg = msg
+		if fakeInfoLogger == nil {
+	//		p.zapLogger.Info(msg)
+		} else {
+			fakeInfoLogger.Info(msg)
+		}
+		p.lastLog = &lastLog{
+			lastLogTime: &now,
+			msgLogged:   msg,
+		}
 	}
 }
 
@@ -86,4 +152,8 @@ func (p ProgressLogger) Info(args ...interface{}) {
 func (p ProgressLogger) SetFrequency(secs int) ProgressLogger {
 	p.frequencySecs = secs
 	return p
+}
+
+func setFakeLogger(logger infoLogger) {
+	fakeInfoLogger = logger
 }

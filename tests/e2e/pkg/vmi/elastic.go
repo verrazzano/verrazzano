@@ -239,10 +239,10 @@ func (e *Elastic) CheckIndicesHealth() bool {
 //	certList, _ := pkg.ListCertificates("verrazzano-system")
 //	for _, cert := range certList.Items {
 //		if cert.Name == fmt.Sprintf("%v-tls", e.binding) {
-//			pkg.Log(pkg.Info, fmt.Sprintf("Found Certificate %v for binding %v", cert.Name, e.binding))
+//			pkg.Log(pkg.Progress, fmt.Sprintf("Found Certificate %v for binding %v", cert.Name, e.binding))
 //			for _, condition := range cert.Status.Conditions {
 //				if condition.Type == "Ready" {
-//					pkg.Log(pkg.Info, fmt.Sprintf("Certificate %v status: Ready = %v", cert.Name, condition.Status))
+//					pkg.Log(pkg.Progress, fmt.Sprintf("Certificate %v status: Ready = %v", cert.Name, condition.Status))
 //					return condition.Status == "True"
 //				}
 //			}
