@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package loggingtrait
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/golang/mock/gomock"
@@ -230,7 +230,7 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 		})
 
 	reconciler := newLoggingTraitReconciler(mock, t)
-	result, err := reconciler.reconcileTraitDelete(context.TODO(), log.Log, &trait)
+	result, err := reconciler.reconcileTraitDelete(context.TODO(), zap.S(), &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -265,12 +265,11 @@ func appendAsUnstructured(list *unstructured.UnstructuredList, object interface{
 // newLoggingTraitReconciler creates a new reconciler for testing
 // cli - The Kerberos client to inject into the reconciler
 func newLoggingTraitReconciler(cli client.Client, t *testing.T) LoggingTraitReconciler {
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 	scheme := runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
 	reconciler := LoggingTraitReconciler{
 		Client: cli,
-		Log:    ctrl.Log,
+		Log:    zap.S(),
 		Scheme: scheme,
 	}
 	return reconciler

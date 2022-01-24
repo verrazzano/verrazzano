@@ -6,8 +6,8 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 
+	"go.uber.org/zap"
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"

@@ -6,7 +6,6 @@ package mcagent
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"

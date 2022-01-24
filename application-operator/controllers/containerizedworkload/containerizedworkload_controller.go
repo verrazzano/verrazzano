@@ -6,10 +6,10 @@ package containerizedworkload
 import (
 	"context"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"go.uber.org/zap"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package navigation
@@ -6,10 +6,9 @@ package navigation
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 
+	"go.uber.org/zap"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/conversion"
@@ -97,12 +96,12 @@ func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli c
 }
 
 // FetchUnstructuredByReference fetches an unstructured using the namespace and name from a qualified resource relation.
-func FetchUnstructuredByReference(ctx context.Context, cli client.Reader, log logr.Logger, reference vzapi.QualifiedResourceRelation) (*unstructured.Unstructured, error) {
+func FetchUnstructuredByReference(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, reference vzapi.QualifiedResourceRelation) (*unstructured.Unstructured, error) {
 	var uns unstructured.Unstructured
 	uns.SetAPIVersion(reference.APIVersion)
 	uns.SetKind(reference.Kind)
 	key := client.ObjectKey{Name: reference.Name, Namespace: reference.Namespace}
-	log.Info("Fetch related resource", "resource", key)
+	log.Debugw("Fetch related resource", "resource", key)
 	if err := cli.Get(ctx, key, &uns); err != nil {
 		return nil, err
 	}

@@ -6,7 +6,6 @@ package metricstrait
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"regexp"
 	"strconv"
 	"time"
@@ -17,6 +16,7 @@ import (
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"

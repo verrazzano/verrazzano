@@ -6,12 +6,12 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"os"
 	"strings"
 
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
