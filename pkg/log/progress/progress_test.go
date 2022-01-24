@@ -1,11 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package log
+package progress
 
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ func TestLog(t *testing.T) {
 	testOpts := kzap.Options{}
 	testOpts.Development = true
 	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
-	InitLogs(testOpts)
+	log.InitLogs(testOpts)
 	msg := "test1"
 	logger := fakeLogger{expectedMsg: msg}
 	l := NewProgressLogger(&logger, "a").SetFrequency(3)
@@ -50,7 +51,7 @@ func TestLogNewMsg(t *testing.T) {
 	testOpts := kzap.Options{}
 	testOpts.Development = true
 	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
-	InitLogs(testOpts)
+	log.InitLogs(testOpts)
 	msg := "test1"
 	msg2 := "test2"
 	logger := fakeLogger{expectedMsg: msg}
@@ -74,7 +75,7 @@ func TestLogFormat(t *testing.T) {
 	testOpts := kzap.Options{}
 	testOpts.Development = true
 	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
-	InitLogs(testOpts)
+	log.InitLogs(testOpts)
 	template := "test %s"
 	inStr := "foo"
 	logger := fakeLogger{}
