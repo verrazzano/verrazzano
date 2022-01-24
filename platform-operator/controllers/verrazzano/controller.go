@@ -76,7 +76,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return res, nil
 	}
 	// Never return an error since it has already been logged and we don't want the
-	// controller runtime to log again (with stack trace).  Just requue if there is an error.
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
