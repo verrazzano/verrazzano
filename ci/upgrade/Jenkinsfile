@@ -395,7 +395,13 @@ pipeline {
             }
         }
 
-        stage("Validate Upgrade") {
+        stage('Post-upgrade Acceptance Tests') {
+            environment {
+                TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+            }
             parallel {
                 stage("Validate BOM") {
                     when {
@@ -416,68 +422,6 @@ pipeline {
                         """
                     }
                 }
-                stage("Istioctl verify install") {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                istioctl verify-install
-                            """
-                        }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('validate-upgrade-failure-cluster-dump')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('validate-upgrade-success-cluster-dump')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Validate Apps Restarted2") {
-            steps {
-                sh """
-                    echo "Application pods after post-upgrade verify:"
-                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE2}
-                    cat ${NEW_PODS_FILE2}
-                """
-            }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-failure-cluster-dump2')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-success-cluster-dump2')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Post-upgrade Acceptance Tests') {
-            environment {
-                TEST_ENV = "KIND"
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-            parallel {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')

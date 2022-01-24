@@ -5,21 +5,22 @@ package verify
 
 import (
 	"fmt"
+	"time"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"go.uber.org/zap"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"go.uber.org/zap"
 )
 
 const (
-	twoMinutes   = 2 * time.Minute
+	twoMinutes   = 1 * time.Minute
 	threeMinutes = 3 * time.Minute
 	fiveMinutes  = 5 * time.Minute
 
@@ -153,10 +154,17 @@ var _ = t.Describe("Istio helm releases", func() {
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioEgress), istioEgress),
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioCoreDNS), istioCoreDNS),
 	)
-	It("Test verify-install", func() {
-		Eventually(func() (bool, error) {
+})
+
+var _ = t.Describe("istioctl verify-install", func() {
+	framework.VzIt("should not return an error", func() {
+		Eventually(func() error {
 			log := zap.S()
-			return istio.IsInstalled(log)
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "test verify install")
+			stdout, _, err := istio.VerifyInstall(log)
+			if err != nil {
+				pkg.Log(pkg.Error, string(stdout))
+			}
+			return err
+		}, twoMinutes, pollingInterval).Should(BeNil(), "istioctl verify-install return with stderr")
 	})
 })

@@ -4,7 +4,6 @@
 package istio
 
 import (
-	"fmt"
 	"os/exec"
 	"strings"
 
@@ -95,9 +94,6 @@ func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err er
 
 	// Perform istioctl call of type upgrade
 	stdout, stderr, err = runIstioctl(log, args, "verify-install")
-	stringout := string(stdout)
-	stringerr := string(stderr)
-	fmt.Println(stringout + stringerr)
 	if err != nil {
 		return stdout, stderr, err
 	}
