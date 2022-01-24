@@ -75,7 +75,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if shouldRequeue(res) {
 		return res, nil
 	}
-	// Never return an error since it has alrady been logged and we don't want the
+	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just requue if there is an error.
 	if err != nil {
 		return newRequeueWithDelay(), nil
@@ -83,7 +83,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return res, nil
 }
 
-// reconcile the Verrazzano CR
+// doReconcile the Verrazzano CR
 func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.TODO()
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, "Verrazzano")
