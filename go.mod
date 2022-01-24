@@ -22,7 +22,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/onsi/ginkgo/v2 v2.0.0
+	github.com/onsi/ginkgo/v2 v2.1.0
 	github.com/onsi/gomega v1.18.0
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
 	github.com/prometheus/client_golang v1.7.1
@@ -58,4 +58,5 @@ replace (
 	k8s.io/cli-runtime => k8s.io/cli-runtime v0.19.2
 	k8s.io/client-go => k8s.io/client-go v0.19.2
 	k8s.io/code-generator => k8s.io/code-generator v0.19.2
+	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
 )
