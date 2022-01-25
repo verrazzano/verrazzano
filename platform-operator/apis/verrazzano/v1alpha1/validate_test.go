@@ -640,7 +640,7 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Equal(t, "Secret \"oci-bad-secret\" must be created in the verrazzano-install namespace before installing Verrrazzano", err.Error())
+	assert.Equal(t, "Secret \"oci-bad-secret\" must be created in the \"verrazzano-install\" namespace before installing Verrrazzano", err.Error())
 }
 
 // TestValidateOciDnsSecretUserAuth tests validateOCISecrets
@@ -845,7 +845,7 @@ func TestValidateOciDnsSecretInvalidAPIKey(t *testing.T) {
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Private key is either empty or not a valid key in PEM format")
+	assert.Contains(t, err.Error(), "Private key in secret \"oci\" is either empty or not a valid key in PEM format")
 }
 
 // TestValidateOciDnsSecretInvalidAuthType tests validateOCISecrets
@@ -1009,7 +1009,7 @@ region=us-ashburn-1
 fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
 key_file=/root/.oci/key
 `
-	runTestFluentdOCIConfig(t, ociConfigBytes, "User OCID not specified in Fluentd OCI config secret fluentd-oci")
+	runTestFluentdOCIConfig(t, ociConfigBytes, "User OCID not specified in Fluentd OCI config secret \"fluentd-oci\"")
 }
 
 // TestValidateFluentdOCISecretNoTenancyOCID tests validateOCISecrets
@@ -1025,7 +1025,7 @@ region=us-ashburn-1
 fingerprint=a0:bb:dd:c2:dd:e0:f1:fa:cd:d1:8a:11:bb:c0:f1:55
 key_file=/root/.oci/key
 `
-	runTestFluentdOCIConfig(t, ociConfigBytes, "Tenancy OCID not specified in Fluentd OCI config secret fluentd-oci")
+	runTestFluentdOCIConfig(t, ociConfigBytes, "Tenancy OCID not specified in Fluentd OCI config secret \"fluentd-oci\"")
 }
 
 // TestValidateFluentdOCISecretNoRegion tests validateOCISecrets
@@ -1057,7 +1057,7 @@ region=us-ashburn-1
 fingerprint=
 key_file=/root/.oci/key
 `
-	runTestFluentdOCIConfig(t, ociConfigBytes, "Fingerprint not specified in Fluentd OCI config secret fluentd-oci")
+	runTestFluentdOCIConfig(t, ociConfigBytes, "Fingerprint not specified in Fluentd OCI config secret \"fluentd-oci\"")
 }
 
 func runTestFluentdOCIConfig(t *testing.T, ociConfigBytes string, errorMsg ...string) {
@@ -1130,7 +1130,7 @@ func TestValidateFluentdOCISecretInvalidKeyFormat(t *testing.T) {
 // WHEN validateOCISecrets is called
 // THEN an error is returned from validateOCISecrets
 func TestValidateFluentdOCISecretNoKeyData(t *testing.T) {
-	runFluentdInvalidKeyTest(t, []byte{}, "Private key is either empty or not a valid key in PEM format")
+	runFluentdInvalidKeyTest(t, []byte{}, "Private key in secret \"fluentd-oci\" is either empty or not a valid key in PEM format")
 }
 
 func runFluentdInvalidKeyTest(t *testing.T, key []byte, msgSnippet string) {
@@ -1228,7 +1228,7 @@ key_file=/root/.oci/key
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("%s not found in secret", fluentdOCISecretPrivateKeyEntry))
+	assert.Contains(t, err.Error(), fmt.Sprintf("Expected entry \"%s\" not found in secret \"%s\"", fluentdOCISecretPrivateKeyEntry, ociSecretName))
 }
 
 // TestValidateFluentdOCISecretMissingConfigSection tests validateOCISecrets
@@ -1272,7 +1272,7 @@ func TestValidateFluentdOCISecretMissingConfigSection(t *testing.T) {
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Did not find OCI configuration in secret fluentd-oci")
+	assert.Contains(t, err.Error(), "Did not find OCI configuration in secret \"fluentd-oci\"")
 }
 
 // TestValidateFluentdOCISecretMissingConfigSection tests validateOCISecrets
@@ -1302,7 +1302,7 @@ func TestValidateFluentdOCISecretMissingSecret(t *testing.T) {
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("Secret \"%s\" must be created in the %s namespace", ociSecretName, constants.VerrazzanoInstallNamespace))
+	assert.Contains(t, err.Error(), fmt.Sprintf("Secret \"%s\" must be created in the \"%s\" namespace", ociSecretName, constants.VerrazzanoInstallNamespace))
 }
 
 // TestValidateFluentdOCISecretInvalidKeyPath tests validateOCISecrets
@@ -1318,7 +1318,7 @@ region=us-ashburn-1
 fingerprint=a-fingerprint
 key_file=invalid/path/to/key
 `
-	runTestFluentdOCIConfig(t, ociConfigBytes, "Unexpected or missing value for the Fluentd OCI key file location, should be /root/.oci/key")
+	runTestFluentdOCIConfig(t, ociConfigBytes, "Unexpected or missing value for the Fluentd OCI key file location in secret \"fluentd-oci\", should be \"/root/.oci/key\"")
 }
 
 // Test_validateSecretContents Tests validateSecretContents
@@ -1326,7 +1326,7 @@ key_file=invalid/path/to/key
 // WHEN the YAML bytes are not valid
 // THEN an error is returned
 func Test_validateSecretContents(t *testing.T) {
-	err := validateSecretContents([]byte("foo"), &authData{})
+	err := validateSecretContents("mysecret", []byte("foo"), &authData{})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error unmarshaling JSON")
 }
@@ -1336,9 +1336,9 @@ func Test_validateSecretContents(t *testing.T) {
 // WHEN the YAML bytes are empty
 // THEN an error is returned
 func Test_validateSecretContentsEmpty(t *testing.T) {
-	err := validateSecretContents([]byte{}, &authData{})
+	err := validateSecretContents("mysecret", []byte{}, &authData{})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Secret data is empty")
+	assert.Contains(t, err.Error(), "Secret \"mysecret\" data is empty")
 }
 
 func newBool(v bool) *bool {

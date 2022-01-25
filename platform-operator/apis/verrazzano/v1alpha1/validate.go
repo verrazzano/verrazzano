@@ -225,7 +225,7 @@ func validateFluentdOCIAuthSecret(client client.Client, spec *VerrazzanoSpec) er
 		if err != nil {
 			return err
 		}
-		if err := validatePrivateKey(pemData); err != nil {
+		if err := validatePrivateKey(secret.Name, pemData); err != nil {
 			return err
 		}
 	}
@@ -237,7 +237,7 @@ func validateFluentdConfigData(secret *corev1.Secret) error {
 	secretName := secret.Name
 	configData, ok := secret.Data[fluentdOCISecretConfigEntry]
 	if !ok {
-		return fmt.Errorf("Did not find OCI configuration in secret %s", secretName)
+		return fmt.Errorf("Did not find OCI configuration in secret \"%s\"", secretName)
 	}
 	// Write the OCI config in the secret to a temp file and use the OCI SDK
 	// ConfigurationProvider API to validate its contents
@@ -248,7 +248,7 @@ func validateFluentdConfigData(secret *corev1.Secret) error {
 	defer func() {
 		os.Remove(configTemp.Name())
 	}()
-	const ociConfigErrorFormatString = "%s not specified in Fluentd OCI config secret %s"
+	const ociConfigErrorFormatString = "%s not specified in Fluentd OCI config secret \"%s\""
 	if err := os.WriteFile(configTemp.Name(), configData, fs.ModeAppend); err != nil {
 		return err
 	}
@@ -285,8 +285,8 @@ func validateFluentdConfigData(secret *corev1.Secret) error {
 		return fmt.Errorf(ociConfigErrorFormatString, "Region", secretName)
 	}
 	if !strings.Contains(string(configData), fluentdOCIKeyFileEntry) {
-		return fmt.Errorf("Unexpected or missing value for the Fluentd OCI key file location, should be %s",
-			fluentdExpectedKeyPath)
+		return fmt.Errorf("Unexpected or missing value for the Fluentd OCI key file location in secret \"%s\", should be \"%s\"",
+			secretName, fluentdExpectedKeyPath)
 	}
 	return nil
 }
@@ -307,10 +307,10 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	for key := range secret.Data {
 		// validate auth_type
 		var authProp ociAuth
-		if err := validateSecretContents(secret.Data[key], &authProp); err != nil {
+		if err := validateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
 			return err
 		}
-		if err := validatePrivateKey([]byte(authProp.Auth.Key)); err != nil {
+		if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
 			return err
 		}
 		if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
@@ -324,17 +324,17 @@ func getInstallSecret(client client.Client, secretName string, secret *corev1.Se
 	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}, secret)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			return fmt.Errorf("Secret \"%s\" must be created in the %s namespace before installing Verrrazzano", secretName, constants.VerrazzanoInstallNamespace)
+			return fmt.Errorf("Secret \"%s\" must be created in the \"%s\" namespace before installing Verrrazzano", secretName, constants.VerrazzanoInstallNamespace)
 		}
 		return err
 	}
 	return nil
 }
 
-func validatePrivateKey(pemData []byte) error {
+func validatePrivateKey(secretName string, pemData []byte) error {
 	block, _ := pem.Decode(pemData)
 	if block == nil || !strings.Contains(block.Type, expectedKeyHeader) {
-		return fmt.Errorf("Private key is either empty or not a valid key in PEM format")
+		return fmt.Errorf("Private key in secret \"%s\" is either empty or not a valid key in PEM format", secretName)
 	}
 	return nil
 }
@@ -343,20 +343,20 @@ func validateSecretKey(secret *corev1.Secret, dataKey string, target interface{}
 	var secretBytes []byte
 	var ok bool
 	if secretBytes, ok = secret.Data[dataKey]; !ok {
-		return nil, fmt.Errorf("Expected entry %s not found in secret %s", dataKey, secret.Name)
+		return nil, fmt.Errorf("Expected entry \"%s\" not found in secret \"%s\"", dataKey, secret.Name)
 	}
 	if target == nil {
 		return secretBytes, nil
 	}
-	if err := validateSecretContents(secretBytes, target); err != nil {
+	if err := validateSecretContents(secret.Name, secretBytes, target); err != nil {
 		return secretBytes, nil
 	}
 	return secretBytes, nil
 }
 
-func validateSecretContents(bytes []byte, target interface{}) error {
+func validateSecretContents(secretName string, bytes []byte, target interface{}) error {
 	if len(bytes) == 0 {
-		return fmt.Errorf("Secret data is empty")
+		return fmt.Errorf("Secret \"%s\" data is empty", secretName)
 	}
 	if err := yaml.Unmarshal(bytes, &target); err != nil {
 		return err
