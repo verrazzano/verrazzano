@@ -255,6 +255,9 @@ func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overr
 	// clone the parameters
 	overridesFilesCopy := make([]string, len(files))
 	copy(overridesFilesCopy, files)
+
+	// clone zap logger
+
 	monitor.run(
 		installRoutineParams{
 			overrides:     overrideStrings,

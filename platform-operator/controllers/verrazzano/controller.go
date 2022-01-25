@@ -14,7 +14,7 @@ import (
 
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -1150,7 +1150,7 @@ func (r *Reconciler) updateVerrazzano(log vzlog.VerrazzanoLogger, vz *installv1a
 	if err == nil {
 		return nil
 	}
-	if ctrlerrrors.IsUpdateConflict(err) {
+	if ctrlerrors.IsUpdateConflict(err) {
 		log.Info("Requeuing to get a new copy of the Verrazzano resource since the current one is outdated.")
 	} else {
 		log.Errorf("Failed to update Verrazzano resource :v", err)
@@ -1164,7 +1164,7 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	if err == nil {
 		return nil
 	}
-	if ctrlerrrors.IsUpdateConflict(err) {
+	if ctrlerrors.IsUpdateConflict(err) {
 		log.Info("Requeuing to get a fresh copy of the Verrazzano resource since the current one is outdated.")
 	} else {
 		log.Errorf("Failed to update Verrazzano resource :v", err)

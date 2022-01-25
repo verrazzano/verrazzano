@@ -4,9 +4,11 @@ package spi
 
 import (
 	"github.com/stretchr/testify/assert"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"go.uber.org/zap"
 	"io/ioutil"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -138,7 +140,8 @@ func TestContextProfilesMerge(t *testing.T) {
 			assert.NotNil(expectedVZ)
 
 			// Create the context with the effective CR
-			context, err := NewContext(zap.S(), fake.NewFakeClientWithScheme(testScheme), &test.actualCR, false)
+			log := vzlog.EnsureLogContext("test", zap.S(), zap.S()).DefaulLogger()
+			context, err := NewContext(log, fake.NewFakeClientWithScheme(testScheme), &test.actualCR, false)
 			// Assert the error expectations
 			if test.expectedErr {
 				assert.Error(err)

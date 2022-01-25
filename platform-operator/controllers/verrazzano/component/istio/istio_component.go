@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -87,7 +88,7 @@ func SetDefaultRestartComponentsFunction() {
 	restartComponentsFunction = restartComponents
 }
 
-type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+type helmUninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
 
@@ -184,7 +185,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: IstiodDeployment, Namespace: IstioNamespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
 }
 
 // GetDependencies returns the dependencies of this component
@@ -411,7 +412,7 @@ func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool
 	deployments := []types.NamespacedName{
 		{Name: "istiod", Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+	return status.DeploymentsReady(ctx.Log().GetZapLogger(), ctx.Client(), deployments, 1)
 }
 
 func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
