@@ -13,6 +13,7 @@ import (
 
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -677,7 +678,7 @@ func newReconciler(c client.Client) Reconciler {
 	metricsReconciler := &metricstrait.Reconciler{Client: c, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	return Reconciler{
 		Client:  c,
-		Log:     ctrl.Log.WithName("test"),
+		Log:     zap.S().With("test"),
 		Scheme:  scheme,
 		Metrics: metricsReconciler,
 	}

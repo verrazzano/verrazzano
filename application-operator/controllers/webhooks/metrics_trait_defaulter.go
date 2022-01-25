@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -43,7 +44,7 @@ func (m *MetricsTraitDefaulter) addDefaultTrait(component *oamv1.ApplicationConf
 }
 
 //Default method adds default MetricsTrait to ApplicationConfiguration
-func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool) error {
+func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	for i := range appConfig.Spec.Components {
 		found := m.findMetricsTrait(&appConfig.Spec.Components[i])
 		if !found {
@@ -54,6 +55,6 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 }
 
 // Cleanup is not used by the metrics trait defaulter
-func (m *MetricsTraitDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool) error {
+func (m *MetricsTraitDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	return nil
 }

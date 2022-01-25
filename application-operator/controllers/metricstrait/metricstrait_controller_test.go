@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -24,6 +24,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +35,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
 )
 
@@ -2143,12 +2143,11 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 // newMetricsTraitReconciler creates a new reconciler for testing
 // cli - The Kerberos client to inject into the reconciler
 func newMetricsTraitReconciler(cli client.Client) Reconciler {
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 	scheme := runtime.NewScheme()
 	vzapi.AddToScheme(scheme)
 	reconciler := Reconciler{
 		Client:  cli,
-		Log:     ctrl.Log,
+		Log:     zap.S(),
 		Scheme:  scheme,
 		Scraper: "istio-system/prometheus",
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -23,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,7 +41,7 @@ var validSecret = corev1.Secret{
 // THEN ensure that there are no calls to sync any multi-cluster resources
 func TestProcessAgentThreadNoProjects(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -111,7 +111,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 // THEN ensure that there are no calls to get VerrazzanoProject resources
 func TestProcessAgentThreadSecretDeleted(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -359,7 +359,7 @@ func TestSyncer_updateDeployment(t *testing.T) {
 			// Make the request
 			s := &Syncer{
 				LocalClient: mcMock,
-				Log:         ctrl.Log.WithName("test"),
+				Log:         zap.S().With("test"),
 				Context:     context.TODO(),
 			}
 			s.updateDeployment(deploymentName)
@@ -418,7 +418,7 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 // THEN updateVMCStatus returns a non-nil error
 func TestSyncer_updateVMCStatus(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Admin cluster mocks
 	adminMocker := gomock.NewController(t)
@@ -681,7 +681,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 			// Make the request
 			s := &Syncer{
 				LocalClient: mcMock,
-				Log:         ctrl.Log.WithName("test"),
+				Log:         zap.S().With("test"),
 				Context:     context.TODO(),
 			}
 			s.configureLogging()
