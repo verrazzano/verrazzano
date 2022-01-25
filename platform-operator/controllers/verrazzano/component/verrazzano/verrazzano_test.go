@@ -1231,23 +1231,21 @@ func Test_waitForPodsWithReadyContainer(t *testing.T) {
 
 func Test_formatISMPayload(t *testing.T) {
 	age := "12d"
-	size := "2m"
 
 	var tests = []struct {
 		name        string
-		lcm         vzapi.ISMConfig
+		policy      vzapi.RetentionPolicy
 		containsStr string
 	}{
 		{
 			"Should format with default values",
-			vzapi.ISMConfig{},
+			vzapi.RetentionPolicy{},
 			defaultMinIndexAge,
 		},
 		{
 			"Should format with custom values",
-			vzapi.ISMConfig{
-				MinAge:  &age,
-				MinSize: &size,
+			vzapi.RetentionPolicy{
+				MinAge: &age,
 			},
 			age,
 		},
@@ -1255,7 +1253,7 @@ func Test_formatISMPayload(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			payload, err := formatISMPayload(tt.lcm, systemISMPayloadTemplate)
+			payload, err := formatISMPayload(tt.policy, systemISMPayloadTemplate)
 			assert.NoError(t, err)
 			assert.Contains(t, payload, tt.containsStr)
 		})

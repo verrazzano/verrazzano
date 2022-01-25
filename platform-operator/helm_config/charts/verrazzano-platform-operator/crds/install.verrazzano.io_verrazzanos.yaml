@@ -184,33 +184,29 @@ spec:
                           type: object
                         type: array
                       retentionPolicies:
+                        description: RetentionPolicies defines the policies which
+                          may be configued in Verrazzano
                         properties:
                           application:
-                            description: ISMConfig allows for configuration of the
-                              search index lifecycle policy
+                            description: RetentionPolicy defines configuration for
+                              an index retention policy
                             properties:
                               enabled:
-                                description: If the ISMConfig should be applied
+                                description: If the RetentionPolicy should be applied
                                 type: boolean
                               minAge:
-                                description: Min index age for ISM Policy
-                                type: string
-                              minSize:
-                                description: Min index size for ISM Policy
+                                description: Min index age for Retention Policy
                                 type: string
                             type: object
                           system:
-                            description: ISMConfig allows for configuration of the
-                              search index lifecycle policy
+                            description: RetentionPolicy defines configuration for
+                              an index retention policy
                             properties:
                               enabled:
-                                description: If the ISMConfig should be applied
+                                description: If the RetentionPolicy should be applied
                                 type: boolean
                               minAge:
-                                description: Min index age for ISM Policy
-                                type: string
-                              minSize:
-                                description: Min index size for ISM Policy
+                                description: Min index age for Retention Policy
                                 type: string
                             type: object
                         type: object

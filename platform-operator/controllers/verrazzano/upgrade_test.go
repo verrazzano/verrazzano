@@ -56,7 +56,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
-	verrazzano.SetupDataStreams = func(_ spi.ComponentContext, _ string) error {
+	verrazzano.ConfigureIndexManagement = func(_ spi.ComponentContext, _ string) error {
 		return nil
 	}
 
@@ -144,7 +144,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
-	verrazzano.SetupDataStreams = func(_ spi.ComponentContext, _ string) error {
+	verrazzano.ConfigureIndexManagement = func(_ spi.ComponentContext, _ string) error {
 		return nil
 	}
 

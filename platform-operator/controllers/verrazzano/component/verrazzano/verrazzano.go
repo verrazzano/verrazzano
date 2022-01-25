@@ -66,7 +66,7 @@ const (
 
 const indexTemplatePayload = `{
     "index_patterns":[
-		"verrazzano-system*",
+		"verrazzano-system",
 		"verrazzano-application*"
     ],
     "version":60001,
@@ -114,8 +114,6 @@ const indexTemplatePayload = `{
 }`
 
 const (
-	minSize            = "min_size"
-	defaultMinSize     = "1gb"
 	minIndexAge        = "min_index_age"
 	defaultMinIndexAge = "7d"
 )
@@ -123,7 +121,7 @@ const (
 const systemISMPayloadTemplate = `{
     "policy": {
         "policy_id": "system_ingest_delete",
-        "description": "Verrazzano System Index policy which deletes documents after fixed time or size",
+        "description": "Verrazzano Index policy to rollover and delete system indices",
         "schema_version": 12,
         "error_notification": null,
         "default_state": "ingest",
@@ -133,9 +131,7 @@ const systemISMPayloadTemplate = `{
                 "actions": [
                     {
                         "rollover": {
-                            "min_size": "{{ .min_size }}",
-                            "min_doc_count": 1,
-                            "min_index_age": "{{ .min_index_age }}"
+                            "min_index_age": "1d"
                         }
                     }
                 ],
@@ -160,7 +156,7 @@ const systemISMPayloadTemplate = `{
         ],
         "ism_template": {
           "index_patterns": [
-            "verrazzano-system*"
+            "verrazzano-system"
           ],
           "priority": 1
         }
@@ -170,7 +166,7 @@ const systemISMPayloadTemplate = `{
 const applicationISMPayloadTemplate = `{
     "policy": {
         "policy_id": "application_ingest_delete",
-        "description": "Verrazzano Application Index policy which deletes documents after fixed time or size",
+        "description": "Verrazzano Index policy to rollover and delete application indices",
         "schema_version": 12,
         "error_notification": null,
         "default_state": "ingest",
@@ -180,9 +176,7 @@ const applicationISMPayloadTemplate = `{
                 "actions": [
                     {
                         "rollover": {
-                            "min_size": "{{ .min_size }}",
-                            "min_doc_count": 1,
-                            "min_index_age": "{{ .min_index_age }}"
+                            "min_index_age": "1d"
                         }
                     }
                 ],
@@ -809,7 +803,7 @@ func doPUT(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, cmd stri
 	return err
 }
 
-var SetupDataStreams = func(ctx spi.ComponentContext, namespace string) error {
+var ConfigureIndexManagement = func(ctx spi.ComponentContext, namespace string) error {
 	cr := ctx.EffectiveCR()
 	log := ctx.Log()
 	if !vzconfig.IsElasticsearchEnabled(cr) {
@@ -837,12 +831,12 @@ func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 		policies = cr.Spec.Components.Elasticsearch.RetentionPolicies
 	}
 
-	// Create ISM Policy for Verrazzano Applications
-	if err := putISMPayload(cfg, cli, pod, policies.Application, "verrazzano-application", applicationISMPayloadTemplate); err != nil {
+	// Create Retention Policy for Verrazzano Applications
+	if err := putRetententionPolicy(cfg, cli, pod, policies.Application, "verrazzano-application", applicationISMPayloadTemplate); err != nil {
 		return err
 	}
 	// Create ISM Policy for Verrazzano System
-	if err := putISMPayload(cfg, cli, pod, policies.System, "verrazzano-system", systemISMPayloadTemplate); err != nil {
+	if err := putRetententionPolicy(cfg, cli, pod, policies.System, "verrazzano-system", systemISMPayloadTemplate); err != nil {
 		return err
 	}
 
@@ -850,9 +844,9 @@ func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 	return doPUT(cfg, cli, pod, putTemplatePayload)
 }
 
-func putISMPayload(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, ismConfig vzapi.ISMConfig, policyName, template string) error {
+func putRetententionPolicy(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, retentionPolicy vzapi.RetentionPolicy, policyName, template string) error {
 	// Skip ISM Creation if disabled
-	if ismConfig.Enabled != nil && !*ismConfig.Enabled {
+	if retentionPolicy.Enabled != nil && !*retentionPolicy.Enabled {
 		return nil
 	}
 	// Check if Policy exists or not
@@ -861,26 +855,26 @@ func putISMPayload(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, 
 	if err != nil {
 		return err
 	}
-	policy := &ISMPolicy{}
-	if err := json.Unmarshal([]byte(getResponse), policy); err != nil {
+	serverPolicy := &ISMPolicy{}
+	if err := json.Unmarshal([]byte(getResponse), serverPolicy); err != nil {
 		return err
 	}
 
 	// Create payload for updating ISM Policy
-	payload, err := formatISMPayload(ismConfig, template)
+	payload, err := formatISMPayload(retentionPolicy, template)
 	if err != nil {
 		return err
 	}
 
 	// If Policy doesn't exist, PUT it. If Policy exists, POST it.
 	var cmd string
-	if policy.Status == notFound {
+	if serverPolicy.Status == notFound {
 		cmd = fmt.Sprintf("curl -X PUT -H 'Content-Type: application/json' 'localhost:9200/_plugins/_ism/policies/%s' -d '%s'", policyName, payload)
 	} else {
 		cmd = fmt.Sprintf("curl -X POST -H 'Content-Type: application/json' 'localhost:9200/_plugins/_ism/policies/%s?if_seq_no=%d&if_primary_term=%d' -d '%s'",
 			policyName,
-			policy.SequenceNumber,
-			policy.PrimaryTerm,
+			serverPolicy.SequenceNumber,
+			serverPolicy.PrimaryTerm,
 			payload,
 		)
 	}
@@ -889,7 +883,7 @@ func putISMPayload(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, 
 	return err
 }
 
-func formatISMPayload(ismConfig vzapi.ISMConfig, payload string) (string, error) {
+func formatISMPayload(retentionPolicy vzapi.RetentionPolicy, payload string) (string, error) {
 	tmpl, err := template.New("lifecycleManagement").
 		Option("missingkey=error").
 		Parse(payload)
@@ -904,8 +898,7 @@ func formatISMPayload(ismConfig vzapi.ISMConfig, payload string) (string, error)
 			values[key] = *value
 		}
 	}
-	putOrDefault(ismConfig.MinSize, minSize, defaultMinSize)
-	putOrDefault(ismConfig.MinAge, minIndexAge, defaultMinIndexAge)
+	putOrDefault(retentionPolicy.MinAge, minIndexAge, defaultMinIndexAge)
 	buffer := &bytes.Buffer{}
 	if err := tmpl.Execute(buffer, values); err != nil {
 		return "", err

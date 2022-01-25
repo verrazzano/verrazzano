@@ -510,24 +510,25 @@ type InstallArgs struct {
 	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
 }
 
+//RetentionPolicies defines the policies which may be configued in Verrazzano
 type RetentionPolicies struct {
 	// +optional
-	System ISMConfig `json:"system"`
+	System RetentionPolicy `json:"system"`
 	// +optional
-	Application ISMConfig `json:"application"`
+	Application RetentionPolicy `json:"application"`
 }
 
-//ISMConfig allows for configuration of the search index lifecycle policy
-type ISMConfig struct {
-	// If the ISMConfig should be applied
+//RetentionPolicy defines configuration for an index retention policy
+type RetentionPolicy struct {
+	// If the RetentionPolicy should be applied
 	// +optional
 	Enabled *bool `json:"enabled"`
-	// Min index age for ISM Policy
+	// Min index age for Retention Policy
 	// +optional
 	MinAge *string `json:"minAge"`
-	// Min index size for ISM Policy
-	// +optional
-	MinSize *string `json:"minSize"`
+}
+
+type RolloverPolicy struct {
 }
 
 // VolumeMount defines a hostPath type Volume mount
