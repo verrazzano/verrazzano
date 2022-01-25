@@ -60,7 +60,7 @@ func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 			containers := pod.Spec.Containers
 			found := false
 			for _, container := range containers {
-				if strings.Contains(container.Image, "proxyv2:1.10") {
+				if strings.Contains(container.Image, imageName) {
 					found = true
 					break
 				}
