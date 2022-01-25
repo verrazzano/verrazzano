@@ -380,31 +380,32 @@ pipeline {
                 }
             }
         }
-/* REMOVE-ME: COMMENT OUT SCAN, NOT FOR CHECKIN JUST FOR GETTING WORK DONE UNTIL SCANS WORK AGAIN
-        stage('Scan Image') {
-            when { not { buildingTag() } }
-            steps {
-                script {
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    if (SCAN_IMAGE_PATCH_OPERATOR == true) {
-                        scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
-                }
-            }
-        }
-*/
+
+// NOT FOR CHECKING, COMMENT OUT TO TEST SCAN JOB
+//        stage('Scan Image') {
+//            when { not { buildingTag() } }
+//            steps {
+//                script {
+//                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    if (SCAN_IMAGE_PATCH_OPERATOR == true) {
+//                        scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+//                    }
+//                }
+//            }
+//            post {
+//                failure {
+//                    script {
+//                        SKIP_TRIGGERED_TESTS = true
+//                    }
+//                }
+//                always {
+//                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+//                }
+//            }
+//        }
+
         stage('Integration Tests') {
             when { not { buildingTag() } }
             steps {
