@@ -72,6 +72,8 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// Ensure a Verrazzano logger exists, using zap SugaredLogger as the underlying logger.
 	zaplog := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, "Verrazzano")
 	key := req.Namespace + "/" + req.Name
 	log := vzlog.EnsureLogContext(key).EnsureLogger("default", zaplog, zaplog)
@@ -86,6 +88,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
+
+	// The Verrazzano resource has been reconciled.  Delete the logger context so that a new
+	// one is created the next reconcile cycle.
 	vzlog.DeleteLogContext(key)
 	return ctrl.Result{}, nil
 }
