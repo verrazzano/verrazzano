@@ -109,7 +109,7 @@ if [ $? -eq 0 ]; then
   echo "Fetching scan results for BOM: ${SCAN_LAST_PERIODIC_BOM_FILE}"
   oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${SCAN_COMMIT_PERIODIC_PATH} --file ${SCAN_LAST_PERIODIC_COMMIT_FILE} 2> /dev/null
   if [ $? -eq 0 ]; then
-    GIT_COMMIT=$(cat ${SCAN_LAST_PERIODIC_COMMIT_FILE} | cut -d'=' -f2")
+    GIT_COMMIT=$(cat ${SCAN_LAST_PERIODIC_COMMIT_FILE} | cut -d'=' -f2)
   fi
   export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/latest-periodic
   mkdir -p ${SCAN_RESULTS_DIR}
