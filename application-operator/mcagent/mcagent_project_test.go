@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -16,12 +16,12 @@ import (
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -102,7 +102,7 @@ func TestSyncer_syncVerrazzanoProjects(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := asserts.New(t)
-			log := ctrl.Log.WithName("test")
+			log := zap.S().With("test")
 
 			// Managed cluster mocks
 			localMocker := gomock.NewController(t)
@@ -242,7 +242,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := asserts.New(t)
-			log := ctrl.Log.WithName("test")
+			log := zap.S().With("test")
 
 			// Managed cluster mocks
 			localMocker := gomock.NewController(t)
@@ -372,7 +372,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := asserts.New(t)
-			log := ctrl.Log.WithName("test")
+			log := zap.S().With("test")
 
 			// Managed cluster mocks
 			localMocker := gomock.NewController(t)
@@ -494,7 +494,7 @@ func TestVerrazzanoProjectMulti(t *testing.T) {
 // THEN ensure that the VerrazzanoProject is deleted.
 func TestRemovePlacementVerrazzanoProject(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 	vpName := "test"
 	vpNamespace := constants.VerrazzanoMultiClusterNamespace
 	nsList := []clustersv1alpha1.NamespaceTemplate{testNamespace1, testNamespace2}
