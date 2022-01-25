@@ -146,7 +146,7 @@ pipeline {
         stage ('BFS Periodic Test Suites') {
             steps {
                 script {
-                    if (params.TEST_RUN.equals(true)) {}
+                    if (params.TEST_RUN.equals(true)) {
                         build job: "/verrazzano/${CLEAN_BRANCH_NAME}",
                             parameters: [
                                 string(name: 'TRIGGER_FULL_TESTS', value: params.TRIGGER_FULL_TESTS),
