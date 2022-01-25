@@ -141,8 +141,8 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	//Build number is retrieved from the Build url.
 	if buildURL != "" {
 		buildURL = strings.Replace(buildURL, "%252F", "/", 1)
-		buildApiURL, _ := neturl.Parse(buildURL)
-		jenkinsJob := buildApiURL.Path[5:]
+		buildAPIURL, _ := neturl.Parse(buildURL)
+		jenkinsJob := buildAPIURL.Path[5:]
 		log = log.With("build_url", buildURL).With("jenkins_job", jenkinsJob)
 	}
 
