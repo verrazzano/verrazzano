@@ -8,6 +8,7 @@ import (
 	"fmt"
 	s "strings"
 
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sValidations "k8s.io/apimachinery/pkg/util/validation"
@@ -20,7 +21,7 @@ var getAllIngressTraits = listIngressTraits
 var client c.Client
 
 // log is for logging in this package.
-var log = zap.S().With("ingresstrait-resource")
+var log = zap.S().With(vzlog.FieldResourceName, "ingresstrait-resource")
 
 // SetupWebhookWithManager saves client from manager and sets up webhook
 func (r *IngressTrait) SetupWebhookWithManager(mgr ctrl.Manager) error {

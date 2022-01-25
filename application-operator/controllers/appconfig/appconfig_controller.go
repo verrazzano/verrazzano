@@ -9,9 +9,12 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -46,7 +49,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // version annotation value is updated.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.With("applicationconfiguration", req.NamespacedName)
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "ApplicationConfiguration")
 	log.Info("Reconciling ApplicationConfiguration")
 	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
 
@@ -65,18 +68,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if isAppConfigBeingDeleted(&appConfig) {
 		r.Log.Debugf("App Configuration %s is being deleted", nsn.Name)
 		if err := ingresstrait.Cleanup(nsn, r.Client, r.Log); err != nil {
-			return reconcile.Result{}, err
+			// Requeue without error to avoid higher level log message
+			return reconcile.Result{Requeue: true}, nil
 		}
 		// resource cleanup has succeeded, remove the finalizer
 		if err := r.removeFinalizerIfRequired(ctx, &appConfig); err != nil {
-			return reconcile.Result{}, err
+			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 		}
-		return reconcile.Result{}, nil
 	}
 
 	// add finalizer
 	if err := r.addFinalizerIfRequired(ctx, &appConfig); err != nil {
-		return reconcile.Result{}, err
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
@@ -89,9 +92,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// restart all workloads in the appconfig
 	log.Debugf("Setting restart version %s for workloads in application %s", restartVersion, appConfig.Name)
 	for _, wlStatus := range appConfig.Status.Workloads {
-		err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log)
-		if err != nil {
-			return reconcile.Result{}, err
+		if err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log); err != nil {
+			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 		}
 	}
 	log.Debug("Successfully reconciled ApplicationConfiguration")
@@ -190,11 +192,8 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *o
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
 		r.Log.Debugf("Removing finalizer from application configuration %s", appName)
 		appConfig.Finalizers = vzstring.RemoveStringFromSlice(appConfig.Finalizers, finalizerName)
-		if err := r.Update(ctx, appConfig); err != nil {
-			// TODO: check for update reconciliation error
-			r.Log.Errorf("Failed to remove finalizer from application configuration %s: %v", appName, err)
-			return err
-		}
+		err := r.Update(ctx, appConfig)
+		return vzlog.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, r.Log)
 	}
 	return nil
 }
@@ -206,11 +205,9 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
 		r.Log.Debugf("Adding finalizer for appConfig %s", appName)
 		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
-		if err := r.Update(ctx, appConfig); err != nil {
-			// TODO: check for update reconciliation error
-			r.Log.Errorf("Failed to add finalizer to appConfig %s", appName)
-			return err
-		}
+		err := r.Update(ctx, appConfig)
+		_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, r.Log)
+		return err
 	}
 	return nil
 }
@@ -229,12 +226,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 		}
 		return nil
 	})
-	if err != nil {
-		// TODO: check for update reconciliation error
-		log.Errorf("Failed updating deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
-		return err
-	}
-	return nil
+	return vzlog.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, log)
 }
 
 func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log *zap.SugaredLogger) error {
@@ -248,11 +240,7 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 		}
 		return nil
 	})
-	if err != nil {
-		log.Errorf("Failed updating statefulSet %s/%s: %v", statefulSet.Namespace, statefulSet.Name, err)
-		return err
-	}
-	return nil
+	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating statefulSet %s/%s:", statefulSet.Namespace, statefulSet.Name), err, log)
 }
 
 func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log *zap.SugaredLogger) error {
@@ -266,12 +254,7 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 		}
 		return nil
 	})
-	if err != nil {
-		// TODO: check for update reconciliation error
-		log.Errorf("Failed updating daemonSet %s/%s: %v", daemonSet.Namespace, daemonSet.Name, err)
-		return err
-	}
-	return nil
+	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating daemonSet %s/%s:", daemonSet.Namespace, daemonSet.Name), err, log)
 }
 
 // Update the workload annotation with the restart version. This will cause the workload to be restarted if the version changed
@@ -297,7 +280,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		}
 		return nil
 	})
-	// TODO: check for update reconciliation error
+	err = vzlog.ConflictWithLog(fmt.Sprintf("Failed to update restart version for workload %s/%s", u.GetNamespace(), u.GetName()), err, log)
 	return err
 }
 

@@ -4,6 +4,10 @@
 package log
 
 import (
+	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
 
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -40,4 +44,35 @@ func TestInitLogsNonDefaultInfo(t *testing.T) {
 	assert.NotNil(t, zap.L().Check(zapcore.ErrorLevel, msg), msg)
 	msg = "DebugLevel is disabled"
 	assert.Nil(t, zap.L().Check(zapcore.DebugLevel, msg), msg)
+}
+
+func TestConflictWithLog(t *testing.T) {
+	// Random error
+	err := ConflictWithLog("test-message", fmt.Errorf("test-error"), zap.S())
+	assert.NotNil(t, err)
+
+	// Conflict Error
+	err = ConflictWithLog("test-message", k8serrors.NewConflict(schema.GroupResource{}, "test-conflict", fmt.Errorf("test-error")), zap.S())
+	assert.NotNil(t, err)
+
+	// No Error
+	err = ConflictWithLog("test-message", nil, zap.S())
+	assert.Nil(t, err)
+}
+
+func TestIgnoreConflictWithLog(t *testing.T) {
+	// Random error
+	result, err := IgnoreConflictWithLog("test-message", fmt.Errorf("test-error"), zap.S())
+	assert.Nil(t, err)
+	assert.NotEqual(t, result, reconcile.Result{})
+
+	// Conflict Error
+	result, err = IgnoreConflictWithLog("test-message", k8serrors.NewConflict(schema.GroupResource{}, "test-conflict", fmt.Errorf("test-error")), zap.S())
+	assert.Nil(t, err)
+	assert.NotEqual(t, result, reconcile.Result{})
+
+	// No Error
+	result, err = IgnoreConflictWithLog("test-message", nil, zap.S())
+	assert.Nil(t, err)
+	assert.Equal(t, result, reconcile.Result{})
 }
