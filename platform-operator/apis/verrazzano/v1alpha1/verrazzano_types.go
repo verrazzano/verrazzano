@@ -436,6 +436,10 @@ type IstioComponent struct {
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// +optional
+	IngressGatewayReplicas uint `json:"ingressGatewayReplicas,omitempty"`
+	// +optional
+	EgressGatewayReplicas uint `json:"egressGatewayReplicas,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration

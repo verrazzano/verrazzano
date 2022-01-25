@@ -333,8 +333,12 @@ spec:
                   istio:
                     description: Istio contains the istio component configuration
                     properties:
+                      egressGatewayReplicas:
+                        type: integer
                       enabled:
                         type: boolean
+                      ingressGatewayReplicas:
+                        type: integer
                       istioInstallArgs:
                         description: Arguments for installing Istio
                         items:
