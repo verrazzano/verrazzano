@@ -1239,6 +1239,7 @@ data:
         # Posts from Fluentd can require more than the default 1m max body size
         client_max_body_size {{ .MaxRequestSize }};
         proxy_buffer_size {{ .ProxyBufferSize }};
+        client_body_buffer_size 256k;
 
         #keepalive_timeout  0;
         keepalive_timeout  65;
