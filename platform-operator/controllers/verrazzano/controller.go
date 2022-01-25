@@ -77,7 +77,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	zaplog := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, "Verrazzano")
 	key := req.Namespace + "/" + req.Name
 	log := vzlog.EnsureLogContext(key).EnsureLogger("default", zaplog, zaplog)
-	log.Progress("Reconciling Verrazzano resrouce %v", req.NamespacedName)
+	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)
 
 	res, err := r.doReconcile(req, log)
 	if shouldRequeue(res) {

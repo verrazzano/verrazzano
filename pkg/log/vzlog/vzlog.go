@@ -117,13 +117,17 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 	if !ok {
 		log = &verrazzanoLogger{
 			context:         c,
-			sLogger:         sLogger,
-			zapLogger:       zap,
 			frequencySecs:   60,
 			historyMessages: make(map[string]bool),
 		}
 		c.loggerMap[key] = log
 	}
+
+	// Always replace the zap logger so that we get a clean set of
+	// with clauses
+	log.sLogger = sLogger
+	log.zapLogger = zap
+
 	return log
 }
 
@@ -158,7 +162,7 @@ func (m *verrazzanoLogger) Progress(args ...interface{}) {
 	// so that it is never displayed again
 	if m.lastLog != nil {
 		if msg != m.lastLog.msgLogged {
-			m.historyMessages[msg] = true
+			m.historyMessages[m.lastLog.msgLogged] = true
 		} else {
 			// Check if it is time to log since the message didn't change
 			waitSecs := time.Duration(m.frequencySecs) * time.Second
@@ -185,12 +189,12 @@ func (v *verrazzanoLogger) SetFrequency(secs int) VerrazzanoLogger {
 
 // Debug is a wrapper for SugaredLogger Debug
 func (v *verrazzanoLogger) Debug(args ...interface{}) {
-	v.sLogger.Info(args...)
+	v.sLogger.Debug(args...)
 }
 
 // Debugf is a wrapper for SugaredLogger Debugf
 func (v *verrazzanoLogger) Debugf(template string, args ...interface{}) {
-	v.sLogger.Infof(template, args...)
+	v.sLogger.Debugf(template, args...)
 }
 
 // Info is a wrapper for SugaredLogger Info
