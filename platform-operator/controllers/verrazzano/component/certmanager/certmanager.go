@@ -15,17 +15,17 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
