@@ -710,6 +710,89 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType authenticationType) {
 	assert.NoError(t, err)
 }
 
+// TestValidateOciDnsSecretNoDataKeys tests validateOCISecrets
+// GIVEN a Verrazzano spec containing an OCI DNS instance-principal auth secret that exists but has no data keys
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateOciDnsSecretNoDataKeys(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Secret \"oci\" for OCI DNS should have one data key, found 0")
+	}
+}
+
+// TestValidateOciDnsSecretTooManyDataKeys tests validateOCISecrets
+// GIVEN a Verrazzano spec containing an OCI DNS instance-principal auth secret that exists but has more than one data key
+// WHEN validateOCISecrets is called
+// THEN an error is returned from validateOCISecrets
+func TestValidateOciDnsSecretTooManyDataKeys(t *testing.T) {
+	vz := Verrazzano{
+		Spec: VerrazzanoSpec{
+			Components: ComponentSpec{
+				DNS: &DNSComponent{
+					OCI: &OCI{
+						OCIConfigSecret: "oci",
+					},
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	err := AddToScheme(scheme)
+	assert.NoError(t, err)
+	err = clientgoscheme.AddToScheme(scheme)
+	assert.NoError(t, err)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "oci",
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+		Data: map[string][]byte{
+			ociDNSSecretFileName:        []byte("value1"),
+			ociDNSSecretFileName + "-2": []byte("value2"),
+		},
+	}
+	err = client.Create(context.TODO(), secret)
+	assert.NoError(t, err)
+
+	err = validateOCISecrets(client, &vz.Spec)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Secret \"oci\" for OCI DNS should have one data key, found 2")
+	}
+
+}
+
 // TestValidateOciDnsSecretInvalidAPIKey tests validateOCISecrets
 // GIVEN a Verrazzano spec containing a secret that exists but with an invalid private key
 // WHEN validateOCISecrets is called

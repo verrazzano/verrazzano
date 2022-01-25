@@ -300,16 +300,22 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	if err := getInstallSecret(client, ociDNSConfigSecret, secret); err != nil {
 		return err
 	}
-	// validate auth_type
-	var authProp ociAuth
-	if err := validateSecretContents(secret.Data[ociDNSSecretFileName], &authProp); err != nil {
-		return err
+	// Verify that the oci secret has one value
+	if len(secret.Data) != 1 {
+		return fmt.Errorf("Secret \"%s\" for OCI DNS should have one data key, found %v", ociDNSConfigSecret, len(secret.Data))
 	}
-	if err := validatePrivateKey([]byte(authProp.Auth.Key)); err != nil {
-		return err
-	}
-	if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
-		return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, userPrincipal, instancePrincipal)
+	for key := range secret.Data {
+		// validate auth_type
+		var authProp ociAuth
+		if err := validateSecretContents(secret.Data[key], &authProp); err != nil {
+			return err
+		}
+		if err := validatePrivateKey([]byte(authProp.Auth.Key)); err != nil {
+			return err
+		}
+		if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
+			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, userPrincipal, instancePrincipal)
+		}
 	}
 	return nil
 }
