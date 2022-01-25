@@ -5,7 +5,7 @@ package secret
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

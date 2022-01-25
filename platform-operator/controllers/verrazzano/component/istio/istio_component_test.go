@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

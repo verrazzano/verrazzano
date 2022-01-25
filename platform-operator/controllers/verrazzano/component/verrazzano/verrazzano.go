@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -16,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"

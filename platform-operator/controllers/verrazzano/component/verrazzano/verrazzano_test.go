@@ -9,8 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -90,8 +89,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	appsv1.AddToScheme(scheme)
 	corev1.AddToScheme(scheme)
 	client := fake.NewFakeClientWithScheme(scheme)
-	logger, _ := zap.NewProduction()
-	log := vzlog.EnsureLogContext("test").EnsureLogger("test", logger.Sugar(), logger.Sugar())
+	log := vzlog.DefaultLogger()
 
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

@@ -8,7 +8,7 @@ import (
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"

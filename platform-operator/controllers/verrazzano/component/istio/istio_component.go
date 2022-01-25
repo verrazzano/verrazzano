@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
@@ -14,8 +15,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"

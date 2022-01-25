@@ -6,7 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	v1 "k8s.io/api/core/v1"

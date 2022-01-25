@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strings"
 	"time"
@@ -16,7 +17,6 @@ import (
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"

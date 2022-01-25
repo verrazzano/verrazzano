@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package progress
+package vzlog
 
 import (
 	"fmt"
@@ -39,6 +39,7 @@ type VerrazzanoLogger interface {
 	ProgressLogger
 	SetZapLogger(zap *zap.SugaredLogger)
 	GetZapLogger() *zap.SugaredLogger
+	GetContext() *LogContext
 }
 
 // LogContext is the log context for a given resource.
@@ -50,6 +51,9 @@ type LogContext struct {
 
 // verrazzanoLogger implements the VerrazzanoLogger interface
 type verrazzanoLogger struct {
+	// context is the LogContext
+	context *LogContext
+
 	// zapLogger is the zap SugaredLogger
 	zapLogger *zap.SugaredLogger
 
@@ -73,6 +77,11 @@ type lastLog struct {
 
 	// msgLogged is the message that was logged
 	msgLogged string
+}
+
+// Ensure the default logger exists.  This is typically used for testing
+func DefaultLogger() VerrazzanoLogger {
+	return EnsureLogContext("default").EnsureLogger("default", zap.S(), zap.S())
 }
 
 // EnsureLogContext ensures that a LogContext exists
@@ -107,6 +116,7 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 	log, ok := c.loggerMap[key]
 	if !ok {
 		log = &verrazzanoLogger{
+			context:         c,
 			sLogger:         sLogger,
 			zapLogger:       zap,
 			frequencySecs:   60,
@@ -212,4 +222,9 @@ func (v *verrazzanoLogger) SetZapLogger(zap *zap.SugaredLogger) {
 // GetZapLogger gets the zap logger
 func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
 	return v.zapLogger
+}
+
+// GetContext gets the logger context
+func (v *verrazzanoLogger) GetContext() *LogContext {
+	return v.context
 }

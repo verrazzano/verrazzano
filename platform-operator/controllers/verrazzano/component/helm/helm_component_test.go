@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"os"
 	"os/exec"
@@ -22,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/stretchr/testify/assert"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"

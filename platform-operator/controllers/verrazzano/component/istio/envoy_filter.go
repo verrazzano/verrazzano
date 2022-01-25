@@ -5,7 +5,7 @@ package istio
 
 import (
 	"context"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"

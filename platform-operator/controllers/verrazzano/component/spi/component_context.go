@@ -5,10 +5,9 @@ package spi
 // Default implementation of the ComponentContext interface
 
 import (
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -45,7 +44,7 @@ func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Ver
 // profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	effectiveCR := actualCR
-	log := vzlog.EnsureLogContext("test").EnsureLogger("test", zap.S(), zap.S())
+	log := vzlog.DefaultLogger()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
 		log.Debugf("Profiles location: %s", config.TestProfilesDir)

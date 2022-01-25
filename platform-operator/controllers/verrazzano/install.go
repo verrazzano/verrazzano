@@ -5,12 +5,12 @@ package verrazzano
 
 import (
 	"context"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 

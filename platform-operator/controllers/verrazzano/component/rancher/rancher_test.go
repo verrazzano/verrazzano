@@ -6,10 +6,9 @@ package rancher
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"go.uber.org/zap/zaptest"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
@@ -64,8 +63,7 @@ func getScheme() *runtime.Scheme {
 }
 
 func getTestLogger(t *testing.T) vzlog.VerrazzanoLogger {
-	l := zaptest.NewLogger(t).Sugar()
-	return vzlog.EnsureLogContext("test").EnsureLogger("test", l,l)
+	return vzlog.DefaultLogger()
 }
 
 func createRootCASecret() v1.Secret {

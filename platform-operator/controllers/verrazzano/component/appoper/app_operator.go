@@ -6,7 +6,7 @@ package appoper
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"path/filepath"
 

@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os/exec"
 	"strings"
@@ -16,7 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"

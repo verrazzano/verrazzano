@@ -5,6 +5,7 @@ package helm
 
 import (
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
@@ -20,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
