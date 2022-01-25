@@ -20,14 +20,14 @@ logging:
 fluentd:
   enabled: true
   extraVolumeMounts:
-  - Destination: mysourceDefaults
-    Source: mysourceDefaults
-    readOnly: true
-  - Destination: mysourceRO
-    Source: mysourceRO
-    readOnly: true
-  - Destination: mydest
-    Source: mysourceCustomDestRW
+    - Destination: mysourceDefaults
+      Source: mysourceDefaults
+      readOnly: true
+    - Destination: mysourceRO
+      Source: mysourceRO
+      readOnly: true
+    - Destination: mydest
+      Source: mysourceCustomDestRW
 grafana:
   enabled: true
 keycloak:

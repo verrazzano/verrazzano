@@ -6,11 +6,15 @@ package progress
 import (
 	"fmt"
 	"go.uber.org/zap"
+	"sync"
 	"time"
 )
 
 // LogContextMap contains a map of LogContext objects
 var LogContextMap = make(map[string]*LogContext)
+
+// Lock for map access
+var lock sync.Mutex
 
 // SugaredLogger is a logger interface that provides base logging
 type SugaredLogger interface {
@@ -40,20 +44,17 @@ type VerrazzanoLogger interface {
 // LogContext is the log context for a given resource.
 // This logger can be used to manage logging for the resource and sub-resources, such as components
 type LogContext struct {
-	// zapLogger is the zap SugaredLogger
-	zapLogger *zap.SugaredLogger
-
-	// sLogger is the interface used to log
-	sLogger SugaredLogger
-
 	// loggerMap contains a map of verrazzanoLogger objects
 	loggerMap map[string]*verrazzanoLogger
 }
 
 // verrazzanoLogger implements the VerrazzanoLogger interface
 type verrazzanoLogger struct {
-	// context is the log context
-	context *LogContext
+	// zapLogger is the zap SugaredLogger
+	zapLogger *zap.SugaredLogger
+
+	// sLogger is the interface used to log
+	sLogger SugaredLogger
 
 	// frequency between logs in seconds
 	frequencySecs int
@@ -76,12 +77,12 @@ type lastLog struct {
 
 // EnsureLogContext ensures that a LogContext exists
 // The key must be unique for the process, for example a namespace/name combo.
-func EnsureLogContext(key string, sLogger SugaredLogger, zap *zap.SugaredLogger) *LogContext {
+func EnsureLogContext(key string) *LogContext {
+	lock.Lock()
+	defer lock.Unlock()
 	log, ok := LogContextMap[key]
 	if !ok {
 		log = &LogContext{
-			zapLogger: zap,
-			sLogger:   sLogger,
 			loggerMap: make(map[string]*verrazzanoLogger),
 		}
 		LogContextMap[key] = log
@@ -91,23 +92,23 @@ func EnsureLogContext(key string, sLogger SugaredLogger, zap *zap.SugaredLogger)
 
 // DeleteLogContext deletes the LogContext for the given key
 func DeleteLogContext(key string) {
+	lock.Lock()
+	defer lock.Unlock()
 	_, ok := LogContextMap[key]
 	if ok {
 		delete(LogContextMap, key)
 	}
 }
 
-// DefaulLogger ensures that a new default verrazzanoLogger exists
-func (c *LogContext) DefaulLogger() VerrazzanoLogger {
-	return c.EnsureLogger("default")
-}
-
 // EnsureLogger ensures that a new VerrazzanoLogger exists for the given key
-func (c *LogContext) EnsureLogger(key string) VerrazzanoLogger {
+func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.SugaredLogger) VerrazzanoLogger {
+	lock.Lock()
+	defer lock.Unlock()
 	log, ok := c.loggerMap[key]
 	if !ok {
 		log = &verrazzanoLogger{
-			context:         c,
+			sLogger:         sLogger,
+			zapLogger:       zap,
 			frequencySecs:   60,
 			historyMessages: make(map[string]bool),
 		}
@@ -158,7 +159,7 @@ func (m *verrazzanoLogger) Progress(args ...interface{}) {
 
 	// Log the message if it is time and save the lastLog info
 	if logNow {
-		m.context.sLogger.Info(msg)
+		m.sLogger.Info(msg)
 		m.lastLog = &lastLog{
 			lastLogTime: &now,
 			msgLogged:   msg,
@@ -174,41 +175,41 @@ func (v *verrazzanoLogger) SetFrequency(secs int) VerrazzanoLogger {
 
 // Debug is a wrapper for SugaredLogger Debug
 func (v *verrazzanoLogger) Debug(args ...interface{}) {
-	v.context.sLogger.Info(args...)
+	v.sLogger.Info(args...)
 }
 
 // Debugf is a wrapper for SugaredLogger Debugf
 func (v *verrazzanoLogger) Debugf(template string, args ...interface{}) {
-	v.context.sLogger.Infof(template, args...)
+	v.sLogger.Infof(template, args...)
 }
 
 // Info is a wrapper for SugaredLogger Info
 func (v *verrazzanoLogger) Info(args ...interface{}) {
-	v.context.sLogger.Info(args...)
+	v.sLogger.Info(args...)
 }
 
 // Infof is a wrapper for SugaredLogger Infof
 func (v *verrazzanoLogger) Infof(template string, args ...interface{}) {
-	v.context.sLogger.Infof(template, args...)
+	v.sLogger.Infof(template, args...)
 }
 
 // Error is a wrapper for SugaredLogger Error
 func (v *verrazzanoLogger) Error(args ...interface{}) {
-	v.context.sLogger.Error(args...)
+	v.sLogger.Error(args...)
 }
 
 // Errorf is a wrapper for SugaredLogger Errorf
 func (v *verrazzanoLogger) Errorf(template string, args ...interface{}) {
-	v.context.sLogger.Errorf(template, args...)
+	v.sLogger.Errorf(template, args...)
 }
 
 // SetZapLogger sets the zap logger
 func (v *verrazzanoLogger) SetZapLogger(zap *zap.SugaredLogger) {
-	v.context.zapLogger = zap
-	v.context.sLogger = zap
+	v.zapLogger = zap
+	v.sLogger = zap
 }
 
 // GetZapLogger gets the zap logger
 func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
-	return v.context.zapLogger
+	return v.zapLogger
 }

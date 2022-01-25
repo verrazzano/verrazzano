@@ -45,7 +45,7 @@ func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Ver
 // profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	effectiveCR := actualCR
-	log := vzlog.EnsureLogContext("test", zap.S(), zap.S()).DefaulLogger()
+	log := vzlog.EnsureLogContext("test").EnsureLogger("test", zap.S(), zap.S())
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
 		log.Debugf("Profiles location: %s", config.TestProfilesDir)

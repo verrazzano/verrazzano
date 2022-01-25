@@ -20,7 +20,7 @@ package progress
 // two new calls are Progress and Progressf. The S() method will return the underlying SugaredLogger.
 // The following psuedo-code shows how this should be used:
 //
-//   l := EnsureLogger("namespace/myresource", zap.S()).DefaulLogger()
+//   l := EnsureLogger("namespace/myresource", zap.S()).DefaultLogger()
 //
 // Display info and errors as usual
 //   p.Errorf(...)

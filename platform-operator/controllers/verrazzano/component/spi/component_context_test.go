@@ -140,7 +140,7 @@ func TestContextProfilesMerge(t *testing.T) {
 			assert.NotNil(expectedVZ)
 
 			// Create the context with the effective CR
-			log := vzlog.EnsureLogContext("test", zap.S(), zap.S()).DefaulLogger()
+			log := vzlog.EnsureLogContext("test").EnsureLogger("test", zap.S(), zap.S())
 			context, err := NewContext(log, fake.NewFakeClientWithScheme(testScheme), &test.actualCR, false)
 			// Assert the error expectations
 			if test.expectedErr {

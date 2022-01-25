@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"os"
 	"os/exec"
 	"strings"
@@ -103,7 +104,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(_ *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	defer setDefaultUpgradeFunc()
@@ -128,7 +129,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 
 	comp := HelmComponent{}
 
-	setUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(_ *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
 	helm.SetCmdRunner(helmFakeRunner{})
@@ -249,7 +250,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 
-	setUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		assert.Contains(overrides.FileOverrides, "my-overrides.yaml", "Overrides file not found")
 		assert.Contains(overrides.SetOverrides, "setKey=setValue", "Incorrect --set overrides")
 		assert.Contains(overrides.SetStringOverrides, "setStringKey=setStringValue", "Incorrect --set overrides")
@@ -353,7 +354,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
-	setUpgradeFunc(func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	setUpgradeFunc(func(_ *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		if overrides.SetOverrides != expectedOverridesString {
 			return nil, nil, fmt.Errorf("Unexpected overrides string %s, expected %s", overrides, expectedOverridesString)
 		}
@@ -484,7 +485,7 @@ func TestReady(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(_ *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "rancher" {
 		return []byte("error"), []byte(""), errors.New("Invalid release name")
 	}

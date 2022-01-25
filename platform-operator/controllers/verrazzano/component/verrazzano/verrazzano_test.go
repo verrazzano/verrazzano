@@ -9,6 +9,8 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+	"go.uber.org/zap"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -19,7 +21,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -90,7 +91,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	corev1.AddToScheme(scheme)
 	client := fake.NewFakeClientWithScheme(scheme)
 	logger, _ := zap.NewProduction()
-	log := logger.Sugar()
+	log := vzlog.EnsureLogContext("test").EnsureLogger("test", logger.Sugar(), logger.Sugar())
 
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

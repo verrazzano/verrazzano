@@ -19,5 +19,5 @@ func IsOAMReady(context spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: oamOperatorDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
 }

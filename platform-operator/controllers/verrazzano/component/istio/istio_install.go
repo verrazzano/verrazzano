@@ -257,12 +257,14 @@ func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overr
 	copy(overridesFilesCopy, files)
 
 	// clone zap logger
+	clone := log.GetZapLogger().With()
+	log.SetZapLogger(clone)
 
 	monitor.run(
 		installRoutineParams{
 			overrides:     overrideStrings,
 			fileOverrides: overridesFilesCopy,
-			log:           log.With(), // clone the logger
+			log:           log,
 		},
 	)
 	return ctrlerrors.RetryableError{Source: ComponentName}
@@ -347,7 +349,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 }
 
 func removeTempFiles(log vzlog.VerrazzanoLogger) {
-	if err := os2.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
+	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
 		log.Errorf("Unexpected error removing temp files: %s", err.Error())
 	}
 }

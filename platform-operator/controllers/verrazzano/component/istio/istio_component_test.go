@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -131,7 +132,7 @@ func TestPostUpgrade(t *testing.T) {
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakeHelmUninstall(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(zap *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiocoredns" {
 		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}

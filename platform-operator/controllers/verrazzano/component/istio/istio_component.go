@@ -319,7 +319,7 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 		return err
 	}
 	if found {
-		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		_, _, err = helmUninstallFunction(context.Log().GetZapLogger(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
 			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}
