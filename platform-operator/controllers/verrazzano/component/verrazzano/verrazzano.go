@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -25,8 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -112,6 +111,9 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
+
+	// Append any installArgs overrides to the kvs list
+	vzkvs = appendVerrazzanoComponentOverrides(effectiveCR, vzkvs)
 
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
@@ -246,6 +248,19 @@ func appendSecurityOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzan
 		overrides.Security.MonitorSubjects = monSubjectMap
 	}
 	return nil
+}
+
+// appendVerrazzanoComponentOverrides - append overrides specified for the Verrazzano component
+func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) []bom.KeyValue {
+	if effectiveCR.Spec.Components.Verrazzano != nil {
+		for _, arg := range effectiveCR.Spec.Components.Verrazzano.InstallArgs {
+			kvs = append(kvs, bom.KeyValue{
+				Key:   arg.Name,
+				Value: arg.Value,
+			})
+		}
+	}
+	return kvs
 }
 
 func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *resourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
@@ -574,7 +589,7 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 
 //cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
-	if err := vzos.RemoveTempFiles(ctx.Log(), tmpFileCleanPattern); err != nil {
+	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Error deleting temp files: %s", err.Error())
 	}
 }
