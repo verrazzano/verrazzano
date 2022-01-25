@@ -5,41 +5,43 @@ package progress
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"time"
 )
 
-// RootLoggerMap contains a map of RootLogger objects
-var RootLoggerMap = make(map[string]*RootLogger)
+// LogContextMap contains a map of LogContext objects
+var LogContextMap = make(map[string]*LogContext)
 
-var fakeInfoLogger VerrazzanoLogger
-
-// VerrazzanoLogger is a logger interface that provides progress logging
-type VerrazzanoLogger interface {
+// SugaredLogger is a logger interface that provides base logging
+type SugaredLogger interface {
 	Debug(args ...interface{})
 	Debugf(template string, args ...interface{})
 	Info(args ...interface{})
 	Infof(template string, args ...interface{})
 	Error(args ...interface{})
 	Errorf(template string, args ...interface{})
+}
+
+// VerrazzanoLogger is a logger interface that provides Verrazzano base and progress logging
+type VerrazzanoLogger interface {
+	SugaredLogger
 	Progress(args ...interface{})
 	Progressf(template string, args ...interface{})
 }
 
-// RootLogger is the root logger for a given resource.
+// LogContext is the log context for a given resource.
 // This logger can be used to manage logging for the resource and sub-resources, such as components
-type RootLogger struct {
-	// zapLog is the logger used to log messages
-	zapLogger *zap.SugaredLogger
+type LogContext struct {
+	// sLogger is the interface used to log
+	sLogger SugaredLogger
 
-	// pregressLoggerMap contains a map of ProgressLogger objects
+	// progressLoggerMap contains a map of ProgressLogger objects
 	progressLoggerMap map[string]*ProgressLogger
 }
 
 // ProgressLogger logs a message periodically
 type ProgressLogger struct {
-	// zapLog is the logger used to log messages
-	rootLogger *RootLogger
+	// sLogger is the interface used to log
+	sLogger SugaredLogger
 
 	// frequency between logs in seconds
 	frequencySecs int
@@ -51,53 +53,48 @@ type ProgressLogger struct {
 	*lastLog
 }
 
-// lastLog contains the history messages logged
+// lastLog tracks the last message logged
 type lastLog struct {
-	// Last time message was logged
+	// lastLogTime is the last time the message was logged
 	lastLogTime *time.Time
 
-	// Message logged
+	// msgLogged is the message that was logged
 	msgLogged string
 }
 
-// EnsureLogger ensures that a RootLogger exists
+// EnsureLogContext ensures that a LogContext exists
 // The key must be unique for the process, for example a namespace/name combo.
-func EnsureLogger(key string, zapLog *zap.SugaredLogger) *RootLogger {
-	log, ok := RootLoggerMap[key]
+func EnsureLogContext(key string, sLogger SugaredLogger) *LogContext {
+	log, ok := LogContextMap[key]
 	if !ok {
-		log = &RootLogger{
-			zapLogger:         zapLog,
+		log = &LogContext{
+			sLogger:           sLogger,
 			progressLoggerMap: make(map[string]*ProgressLogger),
 		}
-		RootLoggerMap[key] = log
+		LogContextMap[key] = log
 	}
 	return log
 }
 
-// DeleteRootLogger deletes the ResouceLogger for the given key
-func DeleteRootLogger(key string) {
-	_, ok := RootLoggerMap[key]
+// DeleteLogContext deletes the LogContext for the given key
+func DeleteLogContext(key string) {
+	_, ok := LogContextMap[key]
 	if ok {
-		delete(RootLoggerMap, key)
+		delete(LogContextMap, key)
 	}
 }
 
-// S returns the zap SugaredLogger
-func (r *RootLogger) S() *zap.SugaredLogger {
-	return r.zapLogger
-}
-
 // DefaultProgressLogger ensures that a new default ProgressLogger exists
-func (r *RootLogger) DefaultProgressLogger() *ProgressLogger {
+func (r *LogContext) DefaultProgressLogger() *ProgressLogger {
 	return r.EnsureProgressLogger("default")
 }
 
 // EnsureProgressLogger ensures that a new ProgressLogger exists for the given key
-func (r *RootLogger) EnsureProgressLogger(key string) *ProgressLogger {
+func (r *LogContext) EnsureProgressLogger(key string) *ProgressLogger {
 	log, ok := r.progressLoggerMap[key]
 	if !ok {
 		log = &ProgressLogger{
-			rootLogger:      r,
+			sLogger:         r.sLogger,
 			frequencySecs:   60,
 			historyMessages: make(map[string]bool),
 		}
@@ -148,11 +145,7 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 
 	// Log the message if it is time and save the lastLog info
 	if logNow {
-		if fakeInfoLogger == nil {
-			p.rootLogger.zapLogger.Info(msg)
-		} else {
-			fakeInfoLogger.Info(msg)
-		}
+		p.sLogger.Info(msg)
 		p.lastLog = &lastLog{
 			lastLogTime: &now,
 			msgLogged:   msg,
@@ -162,40 +155,36 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 
 // Debug is a wrapper for SugaredLogger Debug
 func (p *ProgressLogger) Debug(args ...interface{}) {
-	p.rootLogger.zapLogger.Info(args...)
+	p.sLogger.Info(args...)
 }
 
 // Debugf is a wrapper for SugaredLogger Debugf
 func (p *ProgressLogger) Debugf(template string, args ...interface{}) {
-	p.rootLogger.zapLogger.Infof(template, args...)
+	p.sLogger.Infof(template, args...)
 }
 
 // Info is a wrapper for SugaredLogger Info
 func (p *ProgressLogger) Info(args ...interface{}) {
-	p.rootLogger.zapLogger.Info(args...)
+	p.sLogger.Info(args...)
 }
 
 // Infof is a wrapper for SugaredLogger Infof
 func (p *ProgressLogger) Infof(template string, args ...interface{}) {
-	p.rootLogger.zapLogger.Infof(template, args...)
+	p.sLogger.Infof(template, args...)
 }
 
 // Error is a wrapper for SugaredLogger Error
 func (p *ProgressLogger) Error(args ...interface{}) {
-	p.rootLogger.zapLogger.Error(args...)
+	p.sLogger.Error(args...)
 }
 
 // Errorf is a wrapper for SugaredLogger Errorf
 func (p *ProgressLogger) Errorf(template string, args ...interface{}) {
-	p.rootLogger.zapLogger.Errorf(template, args...)
+	p.sLogger.Errorf(template, args...)
 }
 
 // SetFrequency sets the log frequency
 func (p ProgressLogger) SetFrequency(secs int) ProgressLogger {
 	p.frequencySecs = secs
 	return p
-}
-
-func setFakeLogger(logger VerrazzanoLogger) {
-	fakeInfoLogger = logger
 }
