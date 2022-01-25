@@ -6,13 +6,17 @@ package metrics
 import (
 	"fmt"
 	neturl "net/url"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/discovery"
 )
 
 const (
@@ -84,7 +88,75 @@ func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
 	}
 
 	suiteUUID := uuid.NewUUID()
-	return log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg), nil
+	sugaredLogger := log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg)
+	return configureLoggerWithJenkinsEnv(sugaredLogger), nil
+}
+
+func getKubernetesVersion() (string, error) {
+
+	var kubeVersion string
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		logger.Errorf("error getting kubeconfig path:  %v", err)
+		return kubeVersion, nil
+	}
+	kubeConfig, err := k8sutil.GetKubeConfigGivenPath(kubeConfigPath)
+
+	if err != nil {
+		logger.Errorf("error getting kubeconfig:  %v", err)
+		return kubeVersion, nil
+	}
+
+	discover, err := discovery.NewDiscoveryClientForConfig(kubeConfig)
+	if err != nil {
+		logger.Errorf("error getting discovery client:  %v", err)
+		return kubeVersion, nil
+	}
+
+	version, err := discover.ServerVersion()
+	if err != nil {
+		logger.Errorf("error getting ServerVersion info:  %v", err)
+		return kubeVersion, nil
+	}
+	kubeVersion = version.Major + "." + version.Minor
+
+	return kubeVersion, nil
+}
+
+func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
+
+	kubernetesVersion, err := getKubernetesVersion()
+
+	if err == nil {
+		log = log.With("kubernetes_version", kubernetesVersion)
+	}
+
+	branchName := os.Getenv("BRANCH_NAME")
+	if branchName != "" {
+		log = log.With("branch_name", branchName)
+	}
+
+	buildURL := os.Getenv("BUILD_URL")
+	// if branch name is empty we wouldn't get the build number
+	if buildURL != "" && branchName != "" {
+		splitArray := strings.Split(buildURL, "/")
+		buildNumber := splitArray[len(splitArray)-2]
+		jenkinsJob := branchName + "/" + buildNumber
+		log = log.With("build_url", buildURL).With("jenkins_job", jenkinsJob)
+	}
+
+	gitCommit := os.Getenv("GIT_COMMIT")
+	if gitCommit != "" {
+		gitCommitAndBranch := branchName + "/" + gitCommit
+		log = log.With("commit_hash", gitCommitAndBranch)
+	}
+
+	testEnv := os.Getenv("TEST_ENV")
+	if testEnv != "" {
+		log = log.With("test_env", testEnv)
+	}
+
+	return log
 }
 
 func Millis() int64 {

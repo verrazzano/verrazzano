@@ -56,6 +56,7 @@ pipeline {
     }
 
     environment {
+        TEST_ENV = "JENKINS"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         IS_PERIODIC_PIPELINE = "false"
 
