@@ -98,12 +98,12 @@ spec:
     egressGateways:
     - enabled: true
       k8s:
-        replicaCount: 2
+        replicaCount: 3
       name: istio-egressgateway
     ingressGateways:
     - enabled: true
       k8s:
-        replicaCount: 2
+        replicaCount: 3
         service:
           externalIPs:
           - 1.2.3.4
@@ -233,25 +233,25 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 		expected string
 	}{
 		{
-			testName: "1",
+			testName: "Default Dev Profile Install",
 			profile:  vzapi.Dev,
 			value:    &cr1,
 			expected: cr1Yaml,
 		},
 		{
-			testName: "2",
+			testName: "Default Prod Profile Install",
 			profile:  vzapi.Prod,
 			value:    &cr2,
 			expected: cr2Yaml,
 		},
 		{
-			testName: "3",
+			testName: "Configured Gateway Replica Overrides",
 			profile:  vzapi.Dev,
 			value:    &cr3,
 			expected: cr3Yaml,
 		},
 		{
-			testName: "4",
+			testName: "Default Managed Cluster Install",
 			profile:  vzapi.ManagedCluster,
 			value:    &cr4,
 			expected: cr4Yaml,

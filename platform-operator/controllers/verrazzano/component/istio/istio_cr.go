@@ -72,9 +72,6 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent, profile vzapi.ProfileTyp
 
 	var externalIPYAMLTemplateValue string = ""
 
-	fmt.Printf("CDD BuildOperatorYaml IstioComponent is: %+v\n", comp)
-	fmt.Printf("CDD BuildOperatorYaml profile is: %s\n", profile)
-
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
 	for _, arg := range comp.IstioInstallArgs {
@@ -146,18 +143,14 @@ func configureGateways(profile vzapi.ProfileType, ingressReplicas uint, egressRe
 	if profile == vzapi.Dev || profile == vzapi.ManagedCluster {
 		data.IngressReplicaCount = 1
 		data.EgressReplicaCount = 1
-		fmt.Print("CDD BuildOperatorYaml setting replicas to 1\n")
 	} else {
-		data.IngressReplicaCount = 2
-		data.EgressReplicaCount = 2
-		fmt.Print("CDD BuildOperatorYaml setting replicas to 2\n")
+		data.IngressReplicaCount = 3
+		data.EgressReplicaCount = 3
 	}
 	// use configured replicas if valued
-	fmt.Printf("CDD BuildOperatorYaml Config IngressGateways is: %d\n", ingressReplicas)
 	if ingressReplicas > 0 {
 		data.IngressReplicaCount = ingressReplicas
 	}
-	fmt.Printf("CDD BuildOperatorYaml Config EgressGateways is: %d\n", egressReplicas)
 	if egressReplicas > 0 {
 		data.EgressReplicaCount = egressReplicas
 	}

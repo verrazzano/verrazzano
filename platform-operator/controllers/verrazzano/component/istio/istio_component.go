@@ -141,7 +141,6 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	defer os.Remove(tmpFile.Name())
 	if vz.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio, vz.Spec.Profile)
-		log.Infof("CDD Operator Yaml is: %s", istioOperatorYaml)
 		if err != nil {
 			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
 			return err
