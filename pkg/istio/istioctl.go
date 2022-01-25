@@ -90,7 +90,7 @@ func IsInstalled(log *zap.SugaredLogger) (bool, error) {
 
 // VerifyInstall verifies the Istio installation
 func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err error) {
-	args := []string{}
+	args := []string{"verify-install"}
 
 	// Perform istioctl call of type upgrade
 	stdout, stderr, err = runIstioctl(log, args, "verify-install")
