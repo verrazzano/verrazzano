@@ -63,7 +63,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// If the application configuration no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if isAppConfigBeingDeleted(&appConfig) {
-		r.Log.Debugf("App Configuration is being deleted %s", nsn.Name)
+		r.Log.Debugf("App Configuration %s is being deleted", nsn.Name)
 		if err := ingresstrait.Cleanup(nsn, r.Client, r.Log); err != nil {
 			return reconcile.Result{}, err
 		}
@@ -91,7 +91,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	for _, wlStatus := range appConfig.Status.Workloads {
 		err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log)
 		if err != nil {
-			log.Errorf("Failed marking component %s in namespace %s with restart-version %s: %v", wlStatus.ComponentName, appConfig.Namespace, restartVersion, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -107,6 +106,7 @@ func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, w
 	workload.SetKind(wlStatus.Reference.Kind)
 	err := r.Client.Get(ctx, types.NamespacedName{Name: wlName, Namespace: wlNamespace}, &workload)
 	if err != nil {
+		log.Errorf("Failed getting workload component %s in namespace %s with restart-version %s: %v", wlName, wlNamespace, restartVersion, err)
 		return err
 	}
 	// Set the annotation based on the workload kind
@@ -191,6 +191,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *o
 		r.Log.Debugf("Removing finalizer from application configuration %s", appName)
 		appConfig.Finalizers = vzstring.RemoveStringFromSlice(appConfig.Finalizers, finalizerName)
 		if err := r.Update(ctx, appConfig); err != nil {
+			// TODO: check for update reconciliation error
 			r.Log.Errorf("Failed to remove finalizer from application configuration %s: %v", appName, err)
 			return err
 		}
@@ -206,6 +207,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv
 		r.Log.Debugf("Adding finalizer for appConfig %s", appName)
 		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
 		if err := r.Update(ctx, appConfig); err != nil {
+			// TODO: check for update reconciliation error
 			r.Log.Errorf("Failed to add finalizer to appConfig %s", appName)
 			return err
 		}
@@ -228,6 +230,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 		return nil
 	})
 	if err != nil {
+		// TODO: check for update reconciliation error
 		log.Errorf("Failed updating deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
 		return err
 	}
@@ -264,6 +267,7 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 		return nil
 	})
 	if err != nil {
+		// TODO: check for update reconciliation error
 		log.Errorf("Failed updating daemonSet %s/%s: %v", daemonSet.Namespace, daemonSet.Name, err)
 		return err
 	}
@@ -293,6 +297,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		}
 		return nil
 	})
+	// TODO: check for update reconciliation error
 	return err
 }
 

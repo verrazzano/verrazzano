@@ -49,6 +49,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// delete the wrapped resource since MC is being deleted
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcAppConfig, finalizerName, &v1alpha2.ApplicationConfiguration{}, types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 		if err != nil {
+			// TODO: check for update reconciliation error
 			log.Errorf("Failed to delete associated app config and finalizer: %v", err)
 		}
 		return reconcile.Result{}, err
