@@ -28,8 +28,8 @@ func TestLog(t *testing.T) {
 	msg := "test1"
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test"
-	rl := EnsureLogContext(rKey, &logger)
-	l := rl.EnsureProgressLogger("comp1").SetFrequency(3)
+	rl := EnsureLogContext(rKey, &logger, zap.S())
+	l := rl.EnsureVerrazzanoLogger("comp1").SetFrequency(3)
 
 	// 5 calls to log should result in only 2 log messages being written
 	// since the frequency is 3 secs
@@ -51,8 +51,8 @@ func TestLogNewMsg(t *testing.T) {
 	msg2 := "test2"
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test2"
-	rl := EnsureLogContext(rKey, &logger)
-	l := rl.EnsureProgressLogger("comp1").SetFrequency(2)
+	rl := EnsureLogContext(rKey, &logger, zap.S())
+	l := rl.EnsureVerrazzanoLogger("comp1").SetFrequency(2)
 
 	// Calls to log should result in only 2 log messages being written
 	l.Progress(msg)
@@ -75,16 +75,16 @@ func TestLogFormat(t *testing.T) {
 	logger := fakeLogger{}
 	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
-	rl := EnsureLogContext(rKey, &logger)
-	l := rl.EnsureProgressLogger("comp1")
+	rl := EnsureLogContext(rKey, &logger, zap.S())
+	l := rl.EnsureVerrazzanoLogger("comp1")
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
 	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
 	DeleteLogContext(rKey)
 }
 
-// TestDefault tests the DefaultProgressLogger
-// GIVEN a DefaultProgressLogger
+// TestDefault tests the DefaultVerrazzanoLogger
+// GIVEN a DefaultVerrazzanoLogger
 // WHEN log.Infof is called with a string and a template
 // THEN ensure that the message is formatted correctly and logged
 func TestDefault(t *testing.T) {
@@ -93,7 +93,7 @@ func TestDefault(t *testing.T) {
 	logger := fakeLogger{}
 	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
-	l := EnsureLogContext(rKey, &logger).DefaultProgressLogger()
+	l := EnsureLogContext(rKey, &logger, zap.S()).DefaultVerrazzanoLogger()
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
 	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
@@ -109,8 +109,8 @@ func TestMultipleContexts(t *testing.T) {
 	const rKey2 = "k2"
 	logger1 := fakeLogger{}
 	logger2 := fakeLogger{}
-	c1 := EnsureLogContext(rKey1, &logger1)
-	c2 := EnsureLogContext(rKey2, &logger2)
+	c1 := EnsureLogContext(rKey1, &logger1, zap.S())
+	c2 := EnsureLogContext(rKey2, &logger2, zap.S())
 
 	assert.Equal(t, 2, len(LogContextMap))
 	c1Actual := LogContextMap[rKey1]
@@ -132,7 +132,7 @@ func TestZap(t *testing.T) {
 	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	log.InitLogs(testOpts)
 	const rKey = "testns/test3"
-	l := EnsureLogContext(rKey, zap.S()).DefaultProgressLogger()
+	l := EnsureLogContext(rKey, zap.S(), zap.S()).DefaultVerrazzanoLogger()
 	l.Progress("testmsg")
 	DeleteLogContext(rKey)
 }
@@ -164,4 +164,11 @@ func (l *fakeLogger) Error(args ...interface{}) {
 
 // Errorf is a wrapper for SugaredLogger Errorf
 func (l *fakeLogger) Errorf(template string, args ...interface{}) {
+}
+
+func (p *fakeLogger) setZapLogger(zap *zap.SugaredLogger) {
+}
+
+func (p *fakeLogger) getZapLogger() *zap.SugaredLogger {
+	return nil
 }

@@ -15,7 +15,8 @@ import (
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -71,7 +72,12 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	res, err := r.doReconcile(req)
+	zaplog := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, "Verrazzano")
+	key := req.Namespace + "/" + req.Name
+	log := vzlog.EnsureLogContext(key, zaplog).DefaultVerrazzanoLogger()
+	log.Progress("Reconciling Verrazzano resrouce %v", req.NamespacedName)
+
+	res, err := r.doReconcile(req, log)
 	if shouldRequeue(res) {
 		return res, nil
 	}
@@ -80,14 +86,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
-	return res, nil
+	vzlog.DeleteLogContext(key)
+	return ctrl.Result{}, nil
 }
 
 // doReconcile the Verrazzano CR
-func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) doReconcile(req ctrl.Request, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
-	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, "Verrazzano")
-	log.Debug("Reconcile called")
 
 	// Add cert-manager components to the scheme
 	cmapiv1.AddToScheme(r.Scheme)
@@ -328,7 +333,7 @@ func (r *Reconciler) doesOCIDNSConfigSecretExist(vz *installv1alpha1.Verrazzano)
 }
 
 // createServiceAccount creates a required service account
-func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) createServiceAccount(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new service account resource
 	imagePullSecrets := strings.Split(os.Getenv("IMAGE_PULL_SECRETS"), ",")
 	for i := range imagePullSecrets {
@@ -356,7 +361,7 @@ func (r *Reconciler) createServiceAccount(ctx context.Context, log *zap.SugaredL
 }
 
 // deleteServiceAccount deletes the service account used for install
-func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
+func (r *Reconciler) deleteServiceAccount(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano, namespace string) error {
 	sa := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -374,7 +379,7 @@ func (r *Reconciler) deleteServiceAccount(ctx context.Context, log *zap.SugaredL
 // createClusterRoleBinding creates a required cluster role binding
 // NOTE: A RoleBinding doesn't work because we get the following error when the install scripts call kubectl get nodes
 //   " nodes is forbidden: User "xyz" cannot list resource "nodes" in API group "" at the cluster scope"
-func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new cluster role binding resource
 	binding := rbac.NewClusterRoleBinding(vz, buildClusterRoleBindingName(vz.Namespace, vz.Name), getInstallNamespace(), buildServiceAccountName(vz.Name))
 
@@ -398,7 +403,7 @@ func (r *Reconciler) createClusterRoleBinding(ctx context.Context, log *zap.Suga
 }
 
 // deleteClusterRoleBinding deletes the cluster role binding
-func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	binding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: buildClusterRoleBindingName(vz.Namespace, vz.Name),
@@ -430,7 +435,7 @@ func (r *Reconciler) checkInstallComplete(spiCtx spi.ComponentContext) (bool, er
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
-func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log *zap.SugaredLogger) error {
+func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log vzlog.VerrazzanoLogger) error {
 	// Check if the job for running the uninstall scripts exist
 	jobFound := &batchv1.Job{}
 	log.Debugf("Checking if stale uninstall job %s exists", jobName)
@@ -449,7 +454,7 @@ func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log *
 }
 
 // deleteNamespace deletes a namespace
-func (r *Reconciler) deleteNamespace(ctx context.Context, log *zap.SugaredLogger, namespace string) error {
+func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLogger, namespace string) error {
 	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -472,7 +477,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return err
 }
 
-func (r *Reconciler) createUninstallJob(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Define a new uninstall job resource
 	job := uninstalljob.NewJob(
 		&uninstalljob.JobConfig{
@@ -530,7 +535,7 @@ func buildInternalConfigMapName(name string) string {
 }
 
 // updateStatus updates the status in the Verrazzano CR
-func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
+func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -551,7 +556,7 @@ func (r *Reconciler) updateStatus(log *zap.SugaredLogger, cr *installv1alpha1.Ve
 }
 
 // updateState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateState(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
+func (r *Reconciler) updateState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
 	// Set the state of resource
 	cr.Status.State = state
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
@@ -597,7 +602,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
-func appendConditionIfNecessary(log *zap.SugaredLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
+func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
 	for _, existingCondition := range compStatus.Conditions {
 		if existingCondition.Type == newCondition.Type {
 			return compStatus.Conditions
@@ -627,7 +632,7 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 }
 
 // setInstallStartedCondition
-func (r *Reconciler) setInstallingState(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Set the version in the status.  This will be updated when the starting install condition is updated.
 	bomSemVer, err := installv1alpha1.GetCurrentBomVersion()
 	if err != nil {
@@ -662,7 +667,7 @@ func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (boo
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
 // operator-based in stall.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
-func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	if cr.Status.Components != nil {
 		return ctrl.Result{}, nil
 	}
@@ -701,7 +706,7 @@ func (r *Reconciler) initializeComponentStatus(log *zap.SugaredLogger, cr *insta
 }
 
 // setUninstallCondition sets the Verrazzano resource condition in status for uninstall
-func (r *Reconciler) setUninstallCondition(log *zap.SugaredLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
+func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, job *batchv1.Job, vz *installv1alpha1.Verrazzano) (err error) {
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
@@ -756,7 +761,7 @@ func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alph
 }
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
-func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log *zap.SugaredLogger) error {
+func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, log vzlog.VerrazzanoLogger) error {
 	// First check if VZ system namespace exists. If not, create it.
 	var vzSystemNS corev1.Namespace
 	err := r.Get(ctx, types.NamespacedName{Name: vzconst.VerrazzanoSystemNamespace}, &vzSystemNS)
@@ -803,7 +808,7 @@ func mergeMaps(to map[string]string, from map[string]string) (map[string]string,
 }
 
 // buildDomain Build the DNS Domain from the current install
-func buildDomain(log *zap.SugaredLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+func buildDomain(log vzlog.VerrazzanoLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	subdomain := vz.Spec.EnvironmentName
 	if len(subdomain) == 0 {
 		subdomain = vzconst.DefaultEnvironmentName
@@ -817,7 +822,7 @@ func buildDomain(log *zap.SugaredLogger, c client.Client, vz *installv1alpha1.Ve
 }
 
 // buildDomainSuffix Get the configured domain suffix, or compute the nip.io domain
-func buildDomainSuffix(log *zap.SugaredLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
+func buildDomainSuffix(log vzlog.VerrazzanoLogger, c client.Client, vz *installv1alpha1.Verrazzano) (string, error) {
 	dns := vz.Spec.Components.DNS
 	if dns != nil && dns.OCI != nil {
 		return dns.OCI.DNSZoneName, nil
@@ -839,7 +844,7 @@ func buildDomainSuffix(log *zap.SugaredLogger, c client.Client, vz *installv1alp
 }
 
 // getIngressIP get the Ingress IP, used for the wildcard case (magic DNS)
-func getIngressIP(log *zap.SugaredLogger, c client.Client) (string, error) {
+func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
 	const nginxIngressController = "ingress-controller-ingress-nginx-controller"
 	const nginxNamespace = "ingress-nginx"
 	nsn := types.NamespacedName{Name: nginxIngressController, Namespace: nginxNamespace}
@@ -971,7 +976,7 @@ func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verra
 }
 
 // Process the Verrazzano resource deletion
-func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Finalizer is present, so lets do the uninstall
 	if vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
 		// Create the uninstall job if it doesn't exist
@@ -1003,7 +1008,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 }
 
 // Cleanup the resources left over from install and uninstall
-func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) cleanup(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete roleBinding
 	err := r.deleteClusterRoleBinding(ctx, log, vz)
 	if err != nil {
@@ -1026,7 +1031,7 @@ func (r *Reconciler) cleanup(ctx context.Context, log *zap.SugaredLogger, vz *in
 
 // cleanupOld deltes the resources that used to be in the default namespace in earlier versions of Verrazzano.  This
 // also includes the ClusterRoleBinding, which is outside the scope of namespace
-func (r *Reconciler) cleanupOld(ctx context.Context, log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	// Delete ClusterRoleBinding
 	err := r.deleteClusterRoleBinding(ctx, log, vz)
 	if err != nil {
@@ -1054,7 +1059,7 @@ func shouldRequeue(r ctrl.Result) bool {
 
 // Watch the jobs in the verrazzano-install for this vz resource.  The reconcile loop will be called
 // when a job is updated.
-func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLogger) error {
+func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 
 	// Define a mapping to the Verrazzano resource
 	mapFn := handler.ToRequestsFunc(
@@ -1098,7 +1103,7 @@ func (r *Reconciler) watchJobs(namespace string, name string, log *zap.SugaredLo
 // initForVzResource will do initialization for the given Verrazzano resource.
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
-func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	if unitTesting {
 		return ctrl.Result{}, nil
 	}
@@ -1140,7 +1145,7 @@ func initUnitTesing() {
 	unitTesting = true
 }
 
-func (r *Reconciler) updateVerrazzano(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) updateVerrazzano(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	err := r.Update(context.TODO(), vz)
 	if err == nil {
 		return nil
@@ -1154,7 +1159,7 @@ func (r *Reconciler) updateVerrazzano(log *zap.SugaredLogger, vz *installv1alpha
 	return err
 }
 
-func (r *Reconciler) updateVerrazzanoStatus(log *zap.SugaredLogger, vz *installv1alpha1.Verrazzano) error {
+func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	err := r.Status().Update(context.TODO(), vz)
 	if err == nil {
 		return nil

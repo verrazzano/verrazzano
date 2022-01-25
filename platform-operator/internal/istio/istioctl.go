@@ -4,6 +4,7 @@
 package istio
 
 import (
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"os/exec"
 	"strings"
 
@@ -20,7 +21,7 @@ type fakeIstioInstalledRunner struct {
 }
 
 // Upgrade function gets called from istio_component to perform istio upgrade
-func Upgrade(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
 	// Add override files to arg array

@@ -6,7 +6,7 @@ package istio
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -40,7 +40,7 @@ spec:
 const specField = "spec"
 
 // Create the Envoy network filter
-func createEnvoyFilter(log *zap.SugaredLogger, client clipkg.Client) error {
+func createEnvoyFilter(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	const IstioEnvoyFilter = "server-header-filter"
 
 	// Unmarshal the YAML into an object

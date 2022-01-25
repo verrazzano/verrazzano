@@ -53,7 +53,7 @@ func CheckImagePullSecret(client client.Client, targetNamespace string) (bool, e
 }
 
 // AddGlobalImagePullSecretHelmOverride Adds a helm override Key if the global image pull secret exists and was copied successfully to the target namespace
-func AddGlobalImagePullSecretHelmOverride(log *zap.SugaredLogger, client client.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
+func AddGlobalImagePullSecretHelmOverride(log vzlog.VerrazzanoLogger, client client.Client, ns string, kvs []bom.KeyValue, keyName string) ([]bom.KeyValue, error) {
 	secretExists, err := CheckImagePullSecret(client, ns)
 	if err != nil {
 		log.Errorf("Error copying global image pull secret %s to %s namespace", constants.GlobalImagePullSecName, ns)

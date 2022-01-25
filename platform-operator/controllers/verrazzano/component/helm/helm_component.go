@@ -19,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -96,7 +96,7 @@ type preInstallFuncSig func(context spi.ComponentContext, releaseName string, na
 type postInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string) error
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
-type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
+type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
@@ -105,7 +105,7 @@ type appendOverridesSig func(context spi.ComponentContext, releaseName string, n
 type resolveNamespaceSig func(ns string) string
 
 // upgradeFuncSig is a function needed for unit test override
-type upgradeFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
 // readyStatusFuncSig describes the function signature for doing deeper checks on a component's ready state
 type readyStatusFuncSig func(context spi.ComponentContext, releaseName string, namespace string) bool

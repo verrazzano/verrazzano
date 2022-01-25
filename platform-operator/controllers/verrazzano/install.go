@@ -10,10 +10,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
-	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -126,7 +126,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 
 // Check if the component can be installed in this Verrazzano installation based on version
 // Components might require a specific a minimum version of Verrazzano > 1.0.0
-func isVersionOk(log *zap.SugaredLogger, compVersion string, vzVersion string) bool {
+func isVersionOk(log vzlog.VerrazzanoLogger, compVersion string, vzVersion string) bool {
 	if len(vzVersion) == 0 {
 		return true
 	}
@@ -146,7 +146,7 @@ func isVersionOk(log *zap.SugaredLogger, compVersion string, vzVersion string) b
 }
 
 // handleError - detects if a an error is a RetryableError; if it is, logs it appropriately and
-func handleError(log *zap.SugaredLogger, err error) {
+func handleError(log vzlog.VerrazzanoLogger, err error) {
 	switch actualErr := err.(type) {
 	case ctrlerrors.RetryableError:
 		if actualErr.HasCause() {

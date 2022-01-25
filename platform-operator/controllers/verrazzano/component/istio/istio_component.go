@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
@@ -22,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -61,7 +62,7 @@ type istioComponent struct {
 	monitor installMonitor
 }
 
-type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = istio.Upgrade
@@ -74,7 +75,7 @@ func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type restartComponentsFuncSig func(log *zap.SugaredLogger, err error, i istioComponent, client clipkg.Client) error
+type restartComponentsFuncSig func(log vzlog.VerrazzanoLogger, err error, i istioComponent, client clipkg.Client) error
 
 var restartComponentsFunction = restartComponents
 
@@ -86,7 +87,7 @@ func SetDefaultRestartComponentsFunction() {
 	restartComponentsFunction = restartComponents
 }
 
-type helmUninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
 
@@ -236,7 +237,7 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func restartComponents(log *zap.SugaredLogger, err error, i istioComponent, client clipkg.Client) error {
+func restartComponents(log vzlog.VerrazzanoLogger, err error, i istioComponent, client clipkg.Client) error {
 
 	// Restart all the deployments in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
@@ -351,7 +352,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
+func buildImageOverridesString(_ vzlog.VerrazzanoLogger) (string, error) {
 	// Get the image overrides from the BOM
 	var kvs []bom.KeyValue
 	var err error
@@ -413,7 +414,7 @@ func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-func buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()
 	if err != nil {

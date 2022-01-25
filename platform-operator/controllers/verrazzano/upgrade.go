@@ -17,7 +17,7 @@ import (
 )
 
 // Reconcile upgrade will upgrade the components as required
-func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Debugf("enter reconcileUpgrade")
 
 	// Upgrade version was validated in webhook, see ValidateVersion
@@ -111,6 +111,6 @@ func fmtGeneration(gen int64) string {
 	return "generation:" + s
 }
 
-func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
+func postUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	return nil
 }

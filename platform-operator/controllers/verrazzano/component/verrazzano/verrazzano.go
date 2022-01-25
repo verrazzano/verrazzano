@@ -26,7 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -74,7 +74,7 @@ func resolveVerrazzanoNamespace(ns string) string {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) error {
+func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
 	return fixupFluentdDaemonset(log, client, namespace)
 }
 
@@ -361,7 +361,7 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
 // ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
 // template for the fluentd daemonset expects a Value.
-func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespace string) error {
+func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
 	// Get the fluentd daemonset resource
 	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: namespace}
 	daemonSet := appsv1.DaemonSet{}

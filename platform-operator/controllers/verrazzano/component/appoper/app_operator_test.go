@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"go.uber.org/zap/zaptest"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
@@ -63,7 +63,7 @@ func getScheme() *runtime.Scheme {
 	return scheme
 }
 
-func getTestLogger(t *testing.T) *zap.SugaredLogger {
+func getTestLogger(t *testing.T) vzlog.VerrazzanoLogger {
 	return zaptest.NewLogger(t).Sugar()
 }
 

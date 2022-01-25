@@ -5,6 +5,7 @@ package progress
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -21,27 +22,36 @@ type SugaredLogger interface {
 	Errorf(template string, args ...interface{})
 }
 
-// VerrazzanoLogger is a logger interface that provides Verrazzano base and progress logging
-type VerrazzanoLogger interface {
-	SugaredLogger
+// ProgressLogger is a logger interface that provides Verrazzano base and progress logging
+type ProgressLogger interface {
 	Progress(args ...interface{})
 	Progressf(template string, args ...interface{})
+	SetFrequency(secs int) VerrazzanoLogger
+}
+
+// VerrazzanoLogger is a logger interface that provides sugared and progress logging
+type VerrazzanoLogger interface {
+	SugaredLogger
+	ProgressLogger
 }
 
 // LogContext is the log context for a given resource.
 // This logger can be used to manage logging for the resource and sub-resources, such as components
 type LogContext struct {
+	// zapLogger is the zap SugaredLogger
+	zapLogger *zap.SugaredLogger
+
 	// sLogger is the interface used to log
 	sLogger SugaredLogger
 
 	// progressLoggerMap contains a map of ProgressLogger objects
-	progressLoggerMap map[string]*ProgressLogger
+	progressLoggerMap map[string]*progressLogger
 }
 
 // ProgressLogger logs a message periodically
-type ProgressLogger struct {
-	// sLogger is the interface used to log
-	sLogger SugaredLogger
+type progressLogger struct {
+	// context is the log context
+	context *LogContext
 
 	// frequency between logs in seconds
 	frequencySecs int
@@ -64,12 +74,13 @@ type lastLog struct {
 
 // EnsureLogContext ensures that a LogContext exists
 // The key must be unique for the process, for example a namespace/name combo.
-func EnsureLogContext(key string, sLogger SugaredLogger) *LogContext {
+func EnsureLogContext(key string, sLogger SugaredLogger, zap *zap.SugaredLogger) *LogContext {
 	log, ok := LogContextMap[key]
 	if !ok {
 		log = &LogContext{
+			zapLogger:         zap,
 			sLogger:           sLogger,
-			progressLoggerMap: make(map[string]*ProgressLogger),
+			progressLoggerMap: make(map[string]*progressLogger),
 		}
 		LogContextMap[key] = log
 	}
@@ -84,27 +95,27 @@ func DeleteLogContext(key string) {
 	}
 }
 
-// DefaultProgressLogger ensures that a new default ProgressLogger exists
-func (r *LogContext) DefaultProgressLogger() *ProgressLogger {
-	return r.EnsureProgressLogger("default")
+// DefaultVerrazzanoLogger ensures that a new default ProgressLogger exists
+func (c *LogContext) DefaultVerrazzanoLogger() VerrazzanoLogger {
+	return c.EnsureVerrazzanoLogger("default")
 }
 
-// EnsureProgressLogger ensures that a new ProgressLogger exists for the given key
-func (r *LogContext) EnsureProgressLogger(key string) *ProgressLogger {
-	log, ok := r.progressLoggerMap[key]
+// EnsureVerrazzanoLogger ensures that a new ProgressLogger exists for the given key
+func (c *LogContext) EnsureVerrazzanoLogger(key string) VerrazzanoLogger {
+	log, ok := c.progressLoggerMap[key]
 	if !ok {
-		log = &ProgressLogger{
-			sLogger:         r.sLogger,
+		log = &progressLogger{
+			context:         c,
 			frequencySecs:   60,
 			historyMessages: make(map[string]bool),
 		}
-		r.progressLoggerMap[key] = log
+		c.progressLoggerMap[key] = log
 	}
 	return log
 }
 
 // Progressf formats a message and logs it
-func (p *ProgressLogger) Progressf(template string, args ...interface{}) {
+func (p *progressLogger) Progressf(template string, args ...interface{}) {
 	s := fmt.Sprintf(template, args...)
 	p.Progress(s)
 }
@@ -115,7 +126,7 @@ func (p *ProgressLogger) Progressf(template string, args ...interface{}) {
 // such as "waiting for Verrazzano secret", but the message will only be logged
 // once periodically according to the frequency (e.g. once every 60 seconds).
 // If the log message is new or has changed then it is logged immediately.
-func (p *ProgressLogger) Progress(args ...interface{}) {
+func (p *progressLogger) Progress(args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
 
@@ -145,7 +156,7 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 
 	// Log the message if it is time and save the lastLog info
 	if logNow {
-		p.sLogger.Info(msg)
+		p.context.sLogger.Info(msg)
 		p.lastLog = &lastLog{
 			lastLogTime: &now,
 			msgLogged:   msg,
@@ -153,38 +164,46 @@ func (p *ProgressLogger) Progress(args ...interface{}) {
 	}
 }
 
+// SetFrequency sets the log frequency
+func (p *progressLogger) SetFrequency(secs int) VerrazzanoLogger {
+	p.frequencySecs = secs
+	return p
+}
+
 // Debug is a wrapper for SugaredLogger Debug
-func (p *ProgressLogger) Debug(args ...interface{}) {
-	p.sLogger.Info(args...)
+func (p *progressLogger) Debug(args ...interface{}) {
+	p.context.sLogger.Info(args...)
 }
 
 // Debugf is a wrapper for SugaredLogger Debugf
-func (p *ProgressLogger) Debugf(template string, args ...interface{}) {
-	p.sLogger.Infof(template, args...)
+func (p *progressLogger) Debugf(template string, args ...interface{}) {
+	p.context.sLogger.Infof(template, args...)
 }
 
 // Info is a wrapper for SugaredLogger Info
-func (p *ProgressLogger) Info(args ...interface{}) {
-	p.sLogger.Info(args...)
+func (p *progressLogger) Info(args ...interface{}) {
+	p.context.sLogger.Info(args...)
 }
 
 // Infof is a wrapper for SugaredLogger Infof
-func (p *ProgressLogger) Infof(template string, args ...interface{}) {
-	p.sLogger.Infof(template, args...)
+func (p *progressLogger) Infof(template string, args ...interface{}) {
+	p.context.sLogger.Infof(template, args...)
 }
 
 // Error is a wrapper for SugaredLogger Error
-func (p *ProgressLogger) Error(args ...interface{}) {
-	p.sLogger.Error(args...)
+func (p *progressLogger) Error(args ...interface{}) {
+	p.context.sLogger.Error(args...)
 }
 
 // Errorf is a wrapper for SugaredLogger Errorf
-func (p *ProgressLogger) Errorf(template string, args ...interface{}) {
-	p.sLogger.Errorf(template, args...)
+func (p *progressLogger) Errorf(template string, args ...interface{}) {
+	p.context.sLogger.Errorf(template, args...)
 }
 
-// SetFrequency sets the log frequency
-func (p ProgressLogger) SetFrequency(secs int) ProgressLogger {
-	p.frequencySecs = secs
-	return p
+func (p *progressLogger) setZapLogger(zap *zap.SugaredLogger) {
+	p.context.zapLogger = zap
+}
+
+func (p *progressLogger) getZapLogger() *zap.SugaredLogger {
+	return p.context.zapLogger
 }

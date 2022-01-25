@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +22,7 @@ const (
 	ensureAdminCommand   = "ensure-default-admin"
 )
 
-func createAdminSecretIfNotExists(log *zap.SugaredLogger, c client.Client) error {
+func createAdminSecretIfNotExists(log vzlog.VerrazzanoLogger, c client.Client) error {
 	_, err := common.GetAdminSecret(c)
 	if err == nil {
 		log.Debugf("Rancher Post Install: admin secret exists, skipping object creation")
