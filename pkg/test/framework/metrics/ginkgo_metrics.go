@@ -137,15 +137,17 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	}
 
 	buildURL := os.Getenv("BUILD_URL")
-	// if branch name is empty we wouldn't get the build number
-	if buildURL != "" && branchName != "" {
-		splitArray := strings.Split(buildURL, "/")
-		buildNumber := splitArray[len(splitArray)-2]
-		jenkinsJob := branchName + "/" + buildNumber
+
+	//Build number is retrieved from the Build url.
+	if buildURL != "" {
+		buildURL = strings.Replace(url, "%252F", "/", 1)
+		buildApiURL, _ := neturl.Parse(buildURL)
+		jenkinsJob := buildApiURL.Path[5:]
 		log = log.With("build_url", buildURL).With("jenkins_job", jenkinsJob)
 	}
 
 	gitCommit := os.Getenv("GIT_COMMIT")
+	//Tagging commit with the branch.
 	if gitCommit != "" {
 		gitCommitAndBranch := branchName + "/" + gitCommit
 		log = log.With("commit_hash", gitCommitAndBranch)
