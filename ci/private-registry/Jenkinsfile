@@ -7,6 +7,7 @@ def DOCKER_IMAGE_TAG
 //def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8_1_1"
 def agentLabel = "phxlarge"
 def ocirRegion = "phx"
+def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
@@ -39,10 +40,6 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
-        choice (name: 'SELECT_IMAGE_REGISTRY',
-                description: 'Select an image registry',
-                // 1st choice is the default value
-                choices: ["OCIR", "Harbor"])
         string (name: 'ZIPFILE_LOCATION',
                         defaultValue: 'master-last-clean-periodic-test/verrazzano_periodic.zip',
                         description: 'The bucket location to use for the Zip file download',
@@ -87,7 +84,6 @@ pipeline {
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
-        OCIR_REGISTRY="${ocirRegion}.ocir.io"
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
@@ -119,26 +115,14 @@ pipeline {
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
         TARBALL_DIR = "${WORKSPACE}/vz-tarball"
-
-        IMAGE_REPO_SUBPATH_PREFIX="verrazzano-private-registry"
-        IMAGE_REPO_SUBPATH_SUFFIX="${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
-
-        HARBOR_STANDALONE_REGISTRY_CREDS = credentials('harbor-standalone-registry-account')
-        HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL = "https://${HARBOR_STANDALONE_REGISTRY}${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
     }
 
     stages {
         stage('Initialize workspace and checkout') {
             steps {
                 script {
-                    if (SELECT_IMAGE_REGISTRY == "OCIR") {
-                        echo "Current execution region: $ocirRegion"
-                        echo "OCIR Repository: ${OCIR_REGISTRY}"
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        echo "Harbor registry: ${HARBOR_STANDALONE_REGISTRY}"
-                        echo "Harbor registry REST API Subpath: ${HARBOR_STANDALONE_REGISTRY_REST_API_SUBPATH}"
-                        echo "Harbor registry REST API full URL: ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL}"
-                    }
+                    echo "Current execution region: $ocirRegion"
+                    echo "OCIR Repository: ${ocirRegistry}"
                 }
 
                 script {
@@ -166,13 +150,8 @@ pipeline {
                         }
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
-                    imageRepoSubPath="${env.IMAGE_REPO_SUBPATH_PREFIX}/${env.IMAGE_REPO_SUBPATH_SUFFIX}".trim().toLowerCase()
-                    if (SELECT_IMAGE_REGISTRY == "OCIR") {
-                        baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        // In case of Harbor, base image repo should be same as image repo sub path
-                        baseImageRepo=imageRepoSubPath
-                    }
+                    imageRepoSubPath="verrazzano-private-registry/${env.BRANCH_NAME}/b${env.BUILD_NUMBER}".trim().toLowerCase()
+                    baseImageRepo="${env.OCI_OS_NAMESPACE}/${imageRepoSubPath}".trim().toLowerCase()
                     echo "Image Repo Subpath: ${imageRepoSubPath}"
                     echo "Base Image Repo: ${baseImageRepo}"
                 }
@@ -217,36 +196,20 @@ pipeline {
                     }
 	            }
                 script {
-                    if (SELECT_IMAGE_REGISTRY == "OCIR") {
-                        try {
+                    try {
+                        sh """
+                            echo "${OCIR_CREDS_PSW}" | docker login -u ${OCIR_CREDS_USR} ${ocirRegistry} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
                             sh """
-                                echo "${OCIR_CREDS_PSW}" | docker login -u ${OCIR_CREDS_USR} ${OCIR_REGISTRY} --password-stdin
+                            echo "${OCIR_CREDS_PSW}" | docker login -u ${OCIR_CREDS_USR} ${ocirRegistry} --password-stdin
                             """
-                        } catch(error) {
-                            echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
-                            retry(4) {
-                                sleep(30)
-                                sh """
-                                echo "${OCIR_CREDS_PSW}" | docker login -u ${OCIR_CREDS_USR} ${OCIR_REGISTRY} --password-stdin
-                                """
-                            }
-                        }
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        try {
-                            sh """
-                                echo "${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}" | docker login -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} ${HARBOR_STANDALONE_REGISTRY} --password-stdin
-                            """
-                        } catch(error) {
-                            echo "Harbor standalone instance docker login at ${HARBOR_STANDALONE_REGISTRY} failed, retrying after sleep"
-                            retry(4) {
-                                sleep(30)
-                                sh """
-                                echo "${HARBOR_STANDALONE_REGISTRY_CREDS_PSW}" | docker login -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} ${HARBOR_STANDALONE_REGISTRY} --password-stdin
-                                """
-                            }
                         }
                     }
-                }
+	            }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -298,27 +261,15 @@ pipeline {
         }
         stage('Upload Verrazzano Images') {
             steps {
-                script {
-                    if (SELECT_IMAGE_REGISTRY == "OCIR") {
-                        sh """
-                            # Create OCIR repos for the images in the tarballs in the test compartment
-                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
-                            echo "Upload OCIR region: $ocirRegion"
-                            echo "Upload OCIR Repository: ${OCIR_REGISTRY}"
-                            # Run the image-helper to load the images into the OCIR registry in the runner's region
-                            cd ${TARBALL_DIR}
-                            ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${OCIR_REGISTRY} -l . -r ${baseImageRepo}
-                        """
-                    } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                        sh """
-                            # Create the Harbor project if it does not exist
-                            sh ${TEST_SCRIPTS_DIR}/create_harbor_project.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l false
-                            # Run the image-helper to load the images into the Harbor registry
-                            cd ${TARBALL_DIR}
-                            ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${HARBOR_STANDALONE_REGISTRY} -l . -r ${baseImageRepo}
-                        """
-                    }
-                }
+                sh """
+                    # Create OCIR repos for the images in the tarballs in the test compartment
+                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
+                    echo "Upload OCIR region: $ocirRegion"
+                    echo "Upload OCIR Repository: ${ocirRegistry}"
+                    # Run the image-helper to load the images into the OCIR registry in the runner's region
+                    cd ${TARBALL_DIR}
+                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
+                """
             }
         }
         stage('Acceptance Tests') {
@@ -327,14 +278,12 @@ pipeline {
                     environment {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         PRIVATE_REPO="${baseImageRepo}"
+                        REGISTRY="${ocirRegistry}"
+                        PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
+                        PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                         CLUSTER_DUMP_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
                     }
                     steps {
-                        script {
-                            env.REGISTRY=getPrivateRegistry()
-                            env.PRIVATE_REGISTRY_USR=getPrivateRegistryUser()
-                            env.PRIVATE_REGISTRY_PSW=getPrivateRegistryPassword()
-                        }
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
@@ -526,6 +475,7 @@ pipeline {
                 // having to duplicate the waits.
                 stage('Verify Registry') {
                     environment {
+                        REGISTRY="${ocirRegistry}"
                         PRIVATE_REPO="${baseImageRepo}"
                     }
                     parallel {
@@ -647,55 +597,18 @@ pipeline {
                   echo "Failures seen during dumping of artifacts, treat post as failed"
                   exit 1
                 fi
-            """
 
-            script {
-                if (SELECT_IMAGE_REGISTRY == "OCIR") {
-                    sh """
-                        echo "Current execution region: $ocirRegion"
-                        echo "OCIR Repository: ${OCIR_REGISTRY}"
-                        echo "Image repo subpath: ${imageRepoSubPath}"
-                        echo "Base image repo: ${baseImageRepo}"
-                        sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
-                    """
-                } else if (SELECT_IMAGE_REGISTRY == "Harbor") {
-                    sh """
-                        sh ${TEST_SCRIPTS_DIR}/delete_harbor_repositories.sh -a ${HARBOR_STANDALONE_REGISTRY_REST_API_FULL_URL} -u ${HARBOR_STANDALONE_REGISTRY_CREDS_USR} -p ${HARBOR_STANDALONE_REGISTRY_CREDS_PSW} -m ${IMAGE_REPO_SUBPATH_PREFIX} -l ${TARBALL_DIR} -i ${IMAGE_REPO_SUBPATH_SUFFIX}
-                    """
-                }
-            }
+                echo "Current execution region: $ocirRegion"
+                echo "OCIR Repository: ${ocirRegistry}"
+                echo "Image repo subpath: ${imageRepoSubPath}"
+                echo "Base image repo: ${baseImageRepo}"
+                sh ${TEST_SCRIPTS_DIR}/delete_ocir_repositories.sh -p ${imageRepoSubPath}  -s $ocirRegion -c ${REPOSITORY_COMPARTMENT_OCID} -f -w
+            """
         }
         cleanup {
             deleteDir()
         }
     }
-}
-
-def getPrivateRegistry() {
-    if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
-        return env.OCIR_REGISTRY
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_STANDALONE_REGISTRY
-    }
-    return ""
-}
-
-def getPrivateRegistryUser() {
-    if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
-        return env.OCIR_CREDS_USR
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_STANDALONE_REGISTRY_CREDS_USR
-    }
-    return ""
-}
-
-def getPrivateRegistryPassword() {
-    if (params.SELECT_IMAGE_REGISTRY == "OCIR") {
-        return env.OCIR_CREDS_PSW
-    } else if (params.SELECT_IMAGE_REGISTRY == "Harbor") {
-        return env.HARBOR_STANDALONE_REGISTRY_CREDS_PSW
-    }
-    return ""
 }
 
 def runGinkgoRandomize(testSuitePath) {
