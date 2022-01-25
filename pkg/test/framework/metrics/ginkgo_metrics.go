@@ -20,11 +20,17 @@ import (
 )
 
 const (
-	Duration = "duration"
-	Started  = "started"
-	Status   = "status"
-	attempts = "attempts"
-	test     = "test"
+	Duration          = "duration"
+	Started           = "started"
+	Status            = "status"
+	attempts          = "attempts"
+	test              = "test"
+	BuildURL          = "build_url"
+	JenkinsJob        = "jenkins_job"
+	BranchName        = "branch_name"
+	CommitSHA         = "commit_sha"
+	KubernetesVersion = "kubernetes_version"
+	TestEnv           = "test_env"
 
 	MetricsIndex     = "metrics"
 	TestLogIndex     = "testlogs"
@@ -128,12 +134,12 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	kubernetesVersion, err := getKubernetesVersion()
 
 	if err == nil {
-		log = log.With("kubernetes_version", kubernetesVersion)
+		log = log.With(KubernetesVersion, kubernetesVersion)
 	}
 
 	branchName := os.Getenv("BRANCH_NAME")
 	if branchName != "" {
-		log = log.With("branch_name", branchName)
+		log = log.With(BranchName, branchName)
 	}
 
 	buildURL := os.Getenv("BUILD_URL")
@@ -143,19 +149,19 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 		buildURL = strings.Replace(buildURL, "%252F", "/", 1)
 		buildAPIURL, _ := neturl.Parse(buildURL)
 		jenkinsJob := buildAPIURL.Path[5:]
-		log = log.With("build_url", buildURL).With("jenkins_job", jenkinsJob)
+		log = log.With(BuildURL, buildURL).With(JenkinsJob, jenkinsJob)
 	}
 
 	gitCommit := os.Getenv("GIT_COMMIT")
 	//Tagging commit with the branch.
 	if gitCommit != "" {
 		gitCommitAndBranch := branchName + "/" + gitCommit
-		log = log.With("commit_hash", gitCommitAndBranch)
+		log = log.With(CommitSHA, gitCommitAndBranch)
 	}
 
 	testEnv := os.Getenv("TEST_ENV")
 	if testEnv != "" {
-		log = log.With("test_env", testEnv)
+		log = log.With(TestEnv, testEnv)
 	}
 
 	return log
