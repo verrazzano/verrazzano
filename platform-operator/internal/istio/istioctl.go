@@ -4,13 +4,11 @@
 package istio
 
 import (
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"os/exec"
 	"strings"
 
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
-
-	"go.uber.org/zap"
 )
 
 // cmdRunner needed for unit tests
@@ -49,7 +47,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFi
 }
 
 // Install does and Istio installation using or or more IstioOperator YAML files
-func Install(log *zap.SugaredLogger, overrideStrings string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
 	for _, overridesFileName := range overridesFiles {
@@ -76,7 +74,7 @@ func Install(log *zap.SugaredLogger, overrideStrings string, overridesFiles ...s
 }
 
 // IsInstalled returns true if Istio is installed
-func IsInstalled(log *zap.SugaredLogger) (bool, error) {
+func IsInstalled(log vzlog.VerrazzanoLogger) (bool, error) {
 
 	// Perform istioctl call of type upgrade
 	stdout, _, err := VerifyInstall(log)
@@ -90,7 +88,7 @@ func IsInstalled(log *zap.SugaredLogger) (bool, error) {
 }
 
 // VerifyInstall verifies the Istio installation
-func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err error) {
+func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
 	args := []string{}
 
 	// Perform istioctl call of type upgrade
@@ -105,7 +103,7 @@ func VerifyInstall(log *zap.SugaredLogger) (stdout []byte, stderr []byte, err er
 // runIstioctl will perform istioctl calls with specified arguments  for operations
 // Note that operation name as of now does not affect the istioctl call (both upgrade and install call istioctl install)
 // The operationName field is just used for visibility of operation in logging at the moment
-func runIstioctl(log *zap.SugaredLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
+func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
 	log.Infof("Running command: %s", cmd.String())
 

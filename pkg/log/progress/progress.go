@@ -33,6 +33,8 @@ type ProgressLogger interface {
 type VerrazzanoLogger interface {
 	SugaredLogger
 	ProgressLogger
+	SetZapLogger(zap *zap.SugaredLogger)
+	GetZapLogger() *zap.SugaredLogger
 }
 
 // LogContext is the log context for a given resource.
@@ -44,19 +46,19 @@ type LogContext struct {
 	// sLogger is the interface used to log
 	sLogger SugaredLogger
 
-	// progressLoggerMap contains a map of ProgressLogger objects
-	progressLoggerMap map[string]*progressLogger
+	// loggerMap contains a map of verrazzanoLogger objects
+	loggerMap map[string]*verrazzanoLogger
 }
 
-// ProgressLogger logs a message periodically
-type progressLogger struct {
+// verrazzanoLogger implements the VerrazzanoLogger interface
+type verrazzanoLogger struct {
 	// context is the log context
 	context *LogContext
 
 	// frequency between logs in seconds
 	frequencySecs int
 
-	// history is a set of log messages for this ProgressLogger
+	// history is a set of log messages for this logger
 	historyMessages map[string]bool
 
 	// lastLog keeps track of the last logged message
@@ -78,9 +80,9 @@ func EnsureLogContext(key string, sLogger SugaredLogger, zap *zap.SugaredLogger)
 	log, ok := LogContextMap[key]
 	if !ok {
 		log = &LogContext{
-			zapLogger:         zap,
-			sLogger:           sLogger,
-			progressLoggerMap: make(map[string]*progressLogger),
+			zapLogger: zap,
+			sLogger:   sLogger,
+			loggerMap: make(map[string]*verrazzanoLogger),
 		}
 		LogContextMap[key] = log
 	}
@@ -95,29 +97,29 @@ func DeleteLogContext(key string) {
 	}
 }
 
-// DefaultVerrazzanoLogger ensures that a new default ProgressLogger exists
-func (c *LogContext) DefaultVerrazzanoLogger() VerrazzanoLogger {
-	return c.EnsureVerrazzanoLogger("default")
+// DefaulLogger ensures that a new default verrazzanoLogger exists
+func (c *LogContext) DefaulLogger() VerrazzanoLogger {
+	return c.EnsureLogger("default")
 }
 
-// EnsureVerrazzanoLogger ensures that a new ProgressLogger exists for the given key
-func (c *LogContext) EnsureVerrazzanoLogger(key string) VerrazzanoLogger {
-	log, ok := c.progressLoggerMap[key]
+// EnsureLogger ensures that a new VerrazzanoLogger exists for the given key
+func (c *LogContext) EnsureLogger(key string) VerrazzanoLogger {
+	log, ok := c.loggerMap[key]
 	if !ok {
-		log = &progressLogger{
+		log = &verrazzanoLogger{
 			context:         c,
 			frequencySecs:   60,
 			historyMessages: make(map[string]bool),
 		}
-		c.progressLoggerMap[key] = log
+		c.loggerMap[key] = log
 	}
 	return log
 }
 
 // Progressf formats a message and logs it
-func (p *progressLogger) Progressf(template string, args ...interface{}) {
+func (m *verrazzanoLogger) Progressf(template string, args ...interface{}) {
 	s := fmt.Sprintf(template, args...)
-	p.Progress(s)
+	m.Progress(s)
 }
 
 // Progress logs an info message either now or sometime in the future.  The message
@@ -126,7 +128,7 @@ func (p *progressLogger) Progressf(template string, args ...interface{}) {
 // such as "waiting for Verrazzano secret", but the message will only be logged
 // once periodically according to the frequency (e.g. once every 60 seconds).
 // If the log message is new or has changed then it is logged immediately.
-func (p *progressLogger) Progress(args ...interface{}) {
+func (m *verrazzanoLogger) Progress(args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
 
@@ -134,7 +136,7 @@ func (p *progressLogger) Progress(args ...interface{}) {
 	// logged already, previous to the current message.  This happens
 	// if a controller reconcile loop is called repeatedly.  In this
 	// case we never want to display this message again, so just ignore it.
-	_, ok := p.historyMessages[msg]
+	_, ok := m.historyMessages[msg]
 	if ok {
 		return
 	}
@@ -143,21 +145,21 @@ func (p *progressLogger) Progress(args ...interface{}) {
 
 	// If the message has changed, then save the old message in the history
 	// so that it is never displayed again
-	if p.lastLog != nil {
-		if msg != p.lastLog.msgLogged {
-			p.historyMessages[msg] = true
+	if m.lastLog != nil {
+		if msg != m.lastLog.msgLogged {
+			m.historyMessages[msg] = true
 		} else {
 			// Check if it is time to log since the message didn't change
-			waitSecs := time.Duration(p.frequencySecs) * time.Second
-			nextLogTime := p.lastLog.lastLogTime.Add(waitSecs)
+			waitSecs := time.Duration(m.frequencySecs) * time.Second
+			nextLogTime := m.lastLog.lastLogTime.Add(waitSecs)
 			logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
 		}
 	}
 
 	// Log the message if it is time and save the lastLog info
 	if logNow {
-		p.context.sLogger.Info(msg)
-		p.lastLog = &lastLog{
+		m.context.sLogger.Info(msg)
+		m.lastLog = &lastLog{
 			lastLogTime: &now,
 			msgLogged:   msg,
 		}
@@ -165,45 +167,48 @@ func (p *progressLogger) Progress(args ...interface{}) {
 }
 
 // SetFrequency sets the log frequency
-func (p *progressLogger) SetFrequency(secs int) VerrazzanoLogger {
-	p.frequencySecs = secs
-	return p
+func (v *verrazzanoLogger) SetFrequency(secs int) VerrazzanoLogger {
+	v.frequencySecs = secs
+	return v
 }
 
 // Debug is a wrapper for SugaredLogger Debug
-func (p *progressLogger) Debug(args ...interface{}) {
-	p.context.sLogger.Info(args...)
+func (v *verrazzanoLogger) Debug(args ...interface{}) {
+	v.context.sLogger.Info(args...)
 }
 
 // Debugf is a wrapper for SugaredLogger Debugf
-func (p *progressLogger) Debugf(template string, args ...interface{}) {
-	p.context.sLogger.Infof(template, args...)
+func (v *verrazzanoLogger) Debugf(template string, args ...interface{}) {
+	v.context.sLogger.Infof(template, args...)
 }
 
 // Info is a wrapper for SugaredLogger Info
-func (p *progressLogger) Info(args ...interface{}) {
-	p.context.sLogger.Info(args...)
+func (v *verrazzanoLogger) Info(args ...interface{}) {
+	v.context.sLogger.Info(args...)
 }
 
 // Infof is a wrapper for SugaredLogger Infof
-func (p *progressLogger) Infof(template string, args ...interface{}) {
-	p.context.sLogger.Infof(template, args...)
+func (v *verrazzanoLogger) Infof(template string, args ...interface{}) {
+	v.context.sLogger.Infof(template, args...)
 }
 
 // Error is a wrapper for SugaredLogger Error
-func (p *progressLogger) Error(args ...interface{}) {
-	p.context.sLogger.Error(args...)
+func (v *verrazzanoLogger) Error(args ...interface{}) {
+	v.context.sLogger.Error(args...)
 }
 
 // Errorf is a wrapper for SugaredLogger Errorf
-func (p *progressLogger) Errorf(template string, args ...interface{}) {
-	p.context.sLogger.Errorf(template, args...)
+func (v *verrazzanoLogger) Errorf(template string, args ...interface{}) {
+	v.context.sLogger.Errorf(template, args...)
 }
 
-func (p *progressLogger) setZapLogger(zap *zap.SugaredLogger) {
-	p.context.zapLogger = zap
+// SetZapLogger sets the zap logger
+func (v *verrazzanoLogger) SetZapLogger(zap *zap.SugaredLogger) {
+	v.context.zapLogger = zap
+	v.context.sLogger = zap
 }
 
-func (p *progressLogger) getZapLogger() *zap.SugaredLogger {
-	return p.context.zapLogger
+// GetZapLogger gets the zap logger
+func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
+	return v.context.zapLogger
 }

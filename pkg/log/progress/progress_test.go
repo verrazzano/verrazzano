@@ -29,7 +29,7 @@ func TestLog(t *testing.T) {
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test"
 	rl := EnsureLogContext(rKey, &logger, zap.S())
-	l := rl.EnsureVerrazzanoLogger("comp1").SetFrequency(3)
+	l := rl.EnsureLogger("comp1").SetFrequency(3)
 
 	// 5 calls to log should result in only 2 log messages being written
 	// since the frequency is 3 secs
@@ -52,7 +52,7 @@ func TestLogNewMsg(t *testing.T) {
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test2"
 	rl := EnsureLogContext(rKey, &logger, zap.S())
-	l := rl.EnsureVerrazzanoLogger("comp1").SetFrequency(2)
+	l := rl.EnsureLogger("comp1").SetFrequency(2)
 
 	// Calls to log should result in only 2 log messages being written
 	l.Progress(msg)
@@ -76,15 +76,15 @@ func TestLogFormat(t *testing.T) {
 	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
 	rl := EnsureLogContext(rKey, &logger, zap.S())
-	l := rl.EnsureVerrazzanoLogger("comp1")
+	l := rl.EnsureLogger("comp1")
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
 	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
 	DeleteLogContext(rKey)
 }
 
-// TestDefault tests the DefaultVerrazzanoLogger
-// GIVEN a DefaultVerrazzanoLogger
+// TestDefault tests the DefaulLogger
+// GIVEN a DefaulLogger
 // WHEN log.Infof is called with a string and a template
 // THEN ensure that the message is formatted correctly and logged
 func TestDefault(t *testing.T) {
@@ -93,7 +93,7 @@ func TestDefault(t *testing.T) {
 	logger := fakeLogger{}
 	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
-	l := EnsureLogContext(rKey, &logger, zap.S()).DefaultVerrazzanoLogger()
+	l := EnsureLogContext(rKey, &logger, zap.S()).DefaulLogger()
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
 	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
@@ -132,7 +132,7 @@ func TestZap(t *testing.T) {
 	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	log.InitLogs(testOpts)
 	const rKey = "testns/test3"
-	l := EnsureLogContext(rKey, zap.S(), zap.S()).DefaultVerrazzanoLogger()
+	l := EnsureLogContext(rKey, zap.S(), zap.S()).DefaulLogger()
 	l.Progress("testmsg")
 	DeleteLogContext(rKey)
 }
@@ -166,9 +166,11 @@ func (l *fakeLogger) Error(args ...interface{}) {
 func (l *fakeLogger) Errorf(template string, args ...interface{}) {
 }
 
-func (p *fakeLogger) setZapLogger(zap *zap.SugaredLogger) {
+// SetZapLogger gets the zap logger
+func (p *fakeLogger) SetZapLogger(zap *zap.SugaredLogger) {
 }
 
-func (p *fakeLogger) getZapLogger() *zap.SugaredLogger {
+// GetZapLogger gets the zap logger
+func (p *fakeLogger) GetZapLogger() *zap.SugaredLogger {
 	return nil
 }

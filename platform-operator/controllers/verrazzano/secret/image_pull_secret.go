@@ -5,8 +5,8 @@ package secret
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/progress"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"

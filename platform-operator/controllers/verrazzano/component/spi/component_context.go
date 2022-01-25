@@ -45,10 +45,10 @@ func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Ver
 // profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	effectiveCR := actualCR
-	log := vzlog.EnsureLogContext("test", zap.S(), zap.S()).DefaultVerrazzanoLogger()
+	log := vzlog.EnsureLogContext("test", zap.S(), zap.S()).DefaulLogger()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
-		log.("Profiles location: %s", config.TestProfilesDir)
+		log.Debugf("Profiles location: %s", config.TestProfilesDir)
 		defer func() { config.TestProfilesDir = "" }()
 
 		var err error
@@ -59,7 +59,7 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		}
 	}
 	return componentContext{
-		log:         vzlog.EnsureLogContext("test", zap.S()).DefaultVerrazzanoLogger(),
+		log:         log,
 		client:      c,
 		dryRun:      dryRun,
 		cr:          actualCR,
@@ -152,10 +152,11 @@ func (c componentContext) Copy() ComponentContext {
 }
 
 func (c componentContext) For(comp string) ComponentContext {
-	zapLogger := c.log.With("component", comp)
-	c.log.
+	zapLogger := c.log.GetZapLogger().With("component", comp)
+	c.log.SetZapLogger(zapLogger)
+	// c.log.
 	return componentContext{
-		log:         c.log.With("component", comp),
+		log:         c.log,
 		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,
@@ -166,8 +167,10 @@ func (c componentContext) For(comp string) ComponentContext {
 }
 
 func (c componentContext) Operation(op string) ComponentContext {
+	zapLogger := c.log.GetZapLogger().With("operation", op)
+	c.log.SetZapLogger(zapLogger)
 	return componentContext{
-		log:         c.log.With("operation", op),
+		log:         c.log,
 		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,

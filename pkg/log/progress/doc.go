@@ -20,7 +20,7 @@ package progress
 // two new calls are Progress and Progressf. The S() method will return the underlying SugaredLogger.
 // The following psuedo-code shows how this should be used:
 //
-//   l := EnsureLogger("namespace/myresource", zap.S()).DefaultVerrazzanoLogger()
+//   l := EnsureLogger("namespace/myresource", zap.S()).DefaulLogger()
 //
 // Display info and errors as usual
 //   p.Errorf(...)
@@ -30,11 +30,11 @@ package progress
 //   p.Progress("Reconciling namespace/resource")
 //
 // Display Keycloak progress
-//   cl := l.EnsureVerrazzanoLogger("Keycloak")
+//   cl := l.EnsureLogger("Keycloak")
 //   cl.Progress("Waiting for Verrazzano secret")
 //   cl.Errorf(...)
 //
 // Display Istio progress
-//   cl := l.EnsureVerrazzanoLogger("Istio")
+//   cl := l.EnsureLogger("Istio")
 //   cl.Progress("Waiting for Istio to start")
 //   cl.Errorf(...)
