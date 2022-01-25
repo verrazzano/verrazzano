@@ -330,7 +330,11 @@ func main() {
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
+<<<<<<< HEAD
 		log.Errorf("Failed to create VerrazzanoHelidonWorkload controller: %v", err)
+=======
+		log.Errorf("unable to create VerrazzanoHelidonWorkload controller: %v", err)
+>>>>>>> 800f2599fdc45d0dbb0e6aaa1b84f78a4864898f
 		os.Exit(1)
 	}
 	// Setup the namespace reconciler
