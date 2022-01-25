@@ -98,25 +98,25 @@ func getKubernetesVersion() (string, error) {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		logger.Errorf("error getting kubeconfig path:  %v", err)
-		return kubeVersion, nil
+		return kubeVersion, err
 	}
 	kubeConfig, err := k8sutil.GetKubeConfigGivenPath(kubeConfigPath)
 
 	if err != nil {
 		logger.Errorf("error getting kubeconfig:  %v", err)
-		return kubeVersion, nil
+		return kubeVersion, err
 	}
 
 	discover, err := discovery.NewDiscoveryClientForConfig(kubeConfig)
 	if err != nil {
 		logger.Errorf("error getting discovery client:  %v", err)
-		return kubeVersion, nil
+		return kubeVersion, err
 	}
 
 	version, err := discover.ServerVersion()
 	if err != nil {
 		logger.Errorf("error getting ServerVersion info:  %v", err)
-		return kubeVersion, nil
+		return kubeVersion, err
 	}
 	kubeVersion = version.Major + "." + version.Minor
 
