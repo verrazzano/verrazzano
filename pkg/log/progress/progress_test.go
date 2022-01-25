@@ -113,9 +113,9 @@ func TestMultipleContexts(t *testing.T) {
 	c2 := EnsureLogContext(rKey2, &logger2)
 
 	assert.Equal(t, 2, len(LogContextMap))
-	c1Actual, _ := LogContextMap[rKey1]
+	c1Actual := LogContextMap[rKey1]
 	assert.Equal(t, c1, c1Actual)
-	c2Actual, _ := LogContextMap[rKey2]
+	c2Actual := LogContextMap[rKey2]
 	assert.Equal(t, c2, c2Actual)
 	DeleteLogContext(rKey1)
 	DeleteLogContext(rKey2)
