@@ -116,11 +116,13 @@ func Emit(log *zap.SugaredLogger) {
 		log = log.With(Status, spec.State)
 	}
 	t := spec.FullText()
-	l := spec.Labels()
+
+	for _, l := range spec.Labels() {
+		log = log.With(label, l)
+	}
 
 	log.With(attempts, spec.NumAttempts).
 		With(test, t).
-		With(label, l).
 		Info()
 }
 
