@@ -34,8 +34,8 @@ data:
   {{- else }}
   es-url: http://verrazzano-authproxy-elasticsearch:8775
   {{- end }}
-  {{- if .Values.fluentd.elasticsearchSecret }}
-  es-secret: {{ .Values.fluentd.elasticsearchSecret }}
+  {{- if .Values.logging.elasticsearchSecret }}
+  es-secret: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
   es-secret: verrazzano
   {{- end }}
@@ -628,8 +628,8 @@ spec:
           emptyDir: {}
         - name: secret-volume
           secret:
-  {{- if .Values.fluentd.elasticsearchSecret }}
-            secretName: {{ .Values.fluentd.elasticsearchSecret }}
+  {{- if .Values.logging.elasticsearchSecret }}
+            secretName: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
             secretName: verrazzano
   {{- end }}
