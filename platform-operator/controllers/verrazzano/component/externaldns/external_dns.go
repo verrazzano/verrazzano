@@ -47,7 +47,7 @@ func preInstall(compContext spi.ComponentContext) error {
 	}); err != nil {
 		return ctrlerrrors.RetryableError{
 			Source: compContext.GetComponent(),
-			Cause:  fmt.Errorf("Failed to create or update the cert-manager namespace: %s", err),
+			Cause:  fmt.Errorf("Failed to create or update the cert-manager namespace: %v", err),
 		}
 	}
 
