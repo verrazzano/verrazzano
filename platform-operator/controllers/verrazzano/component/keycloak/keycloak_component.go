@@ -149,5 +149,5 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 			Name:      ComponentName,
 		},
 	}
-	return status.StatefulsetReady(ctx.Log().GetZapLogger(), ctx.Client(), statefulsetName, 1)
+	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
 }

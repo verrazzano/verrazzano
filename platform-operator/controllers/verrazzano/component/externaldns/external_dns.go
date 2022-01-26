@@ -84,7 +84,7 @@ func isReady(compContext spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
 	}
-	return status.DeploymentsReady(compContext.Log().GetZapLogger(), compContext.Client(), deployments, 1)
+	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
