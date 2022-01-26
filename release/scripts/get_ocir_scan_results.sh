@@ -91,7 +91,7 @@ function generate_detail_text_report() {
 # $3 Image tag
 # $4 Issue count
 # $5 Scan result OCID
-# $6 Result file basename (path and file prefix to use)
+# $6 Result file path
 # $7 Overall Summary Report File
 function get_scan_details() {
   [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ] || [ -z "$5" ] || [ -z "$6" ] || [ -z "$7" ] && { echo "ERROR: get_scan_details invalid args: $1 $2 $3 $4 $5 $6 $7"; return; }
@@ -100,11 +100,11 @@ function get_scan_details() {
   RESULT_IMAGE_TAG=$3
   RESULT_COUNT=$4
   SCAN_RESULT_OCID=$5
-  RESULT_FILE_BASE=$6
-  oci vulnerability-scanning container scan result get --container-scan-result-id $5 --region $OCI_REGION > $RESULT_FILE_BASE-ocir-details.json
-  cat $RESULT_FILE_BASE-ocir-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_BASE-ocir-details.csv
-  TIME_FINISHED=$(cat $RESULT_FILE_BASE-ocir-details.json | jq -r '.data."time-finished"')
-  generate_detail_text_report $1 $2 $3 $4 $5 $6 $TIME_FINISHED $7
+  RESULT_FILE_PREFIX="$6/$RESULT_REPOSITORY_IMAGE:$RESULT_REPOSITORY_IMAGE"
+  oci vulnerability-scanning container scan result get --container-scan-result-id $5 --region $OCI_REGION > $RESULT_FILE_PREFIX-ocir-details.json
+  cat $RESULT_FILE_PREFIX-ocir-details.json | jq -r '.data.problems[] | { sev: .severity, cve: ."cve-reference", description: .description } ' | jq -r '[.[]] | @csv' | sort -u > $RESULT_FILE_PREFIX-ocir-details.csv
+  TIME_FINISHED=$(cat $RESULT_FILE_PREFIX-ocir-details.json | jq -r '.data."time-finished"')
+  generate_detail_text_report $1 $2 $3 $4 $5 $RESULT_FILE_PREFIX $TIME_FINISHED $7
 }
 
 # This will get the scan summaries and details for all of the repositories
@@ -149,8 +149,7 @@ function get_all_scan_details() {
       SCAN_RESULT_OCID=$(echo "$CSV_LINE" | cut -d, -f"7" | sed 's/"//g')
 
       # We only are reporting the last scan for the specific tagged image, so we should be OK using the image name/tag here for the filename)
-      RESULT_FILE_PREFIX=$(echo "$SCAN_RESULTS_DIR/${RESULT_REPOSITORY_IMAGE}_${RESULT_IMAGE_TAG}")
-      get_scan_details $RESULT_SEVERITY $RESULT_REPOSITORY_IMAGE $RESULT_IMAGE_TAG $RESULT_COUNT $SCAN_RESULT_OCID $RESULT_FILE_PREFIX $overallsummary
+      get_scan_details $RESULT_SEVERITY $RESULT_REPOSITORY_IMAGE $RESULT_IMAGE_TAG $RESULT_COUNT $SCAN_RESULT_OCID $SCAN_RESULTS_DIR $overallsummary
     fi
     rm $imagecsv
   done <$bomimages
