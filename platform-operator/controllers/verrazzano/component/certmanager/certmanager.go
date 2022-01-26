@@ -257,7 +257,7 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 		{Name: cainjectorDeploymentName, Namespace: namespace},
 		{Name: webhookDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
 }
 
 //writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
