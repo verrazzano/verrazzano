@@ -72,6 +72,11 @@ type LogContext struct {
 }
 
 // verrazzanoLogger implements the VerrazzanoLogger interface
+// Notice that the SugaredLogger methods (Debug, Info, Error) have another level
+// of indirection (Debug2).  This is because it has to match the 2 levels of call stack
+// used by Progrss and Once, with both call doLog.  We setup the logger to skip 2 calls
+// in the stack frame when logging, so the caller file/line is displayed.  Otherwise, you
+// would see "vzlog.go/line xyz"
 type verrazzanoLogger struct {
 	// context is the LogContext
 	context *LogContext
@@ -156,7 +161,7 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 // Oncef formats a message and logs it once
 func (v *verrazzanoLogger) Oncef(template string, args ...interface{}) {
 	s := fmt.Sprintf(template, args...)
-	v.Once(s)
+	v.doLog(true, s)
 }
 
 // Once logs a message once
@@ -167,7 +172,7 @@ func (v *verrazzanoLogger) Once(args ...interface{}) {
 // Progressf formats a message and logs it periodically
 func (v *verrazzanoLogger) Progressf(template string, args ...interface{}) {
 	s := fmt.Sprintf(template, args...)
-	v.Progress(s)
+	v.doLog(false, s)
 }
 
 // Progress logs a message periodically
@@ -225,36 +230,6 @@ func (v *verrazzanoLogger) SetFrequency(secs int) VerrazzanoLogger {
 	return v
 }
 
-// Debug is a wrapper for SugaredLogger Debug
-func (v *verrazzanoLogger) Debug(args ...interface{}) {
-	v.sLogger.Debug(args...)
-}
-
-// Debugf is a wrapper for SugaredLogger Debugf
-func (v *verrazzanoLogger) Debugf(template string, args ...interface{}) {
-	v.sLogger.Debugf(template, args...)
-}
-
-// Info is a wrapper for SugaredLogger Info
-func (v *verrazzanoLogger) Info(args ...interface{}) {
-	v.sLogger.Info(args...)
-}
-
-// Infof is a wrapper for SugaredLogger Infof
-func (v *verrazzanoLogger) Infof(template string, args ...interface{}) {
-	v.sLogger.Infof(template, args...)
-}
-
-// Error is a wrapper for SugaredLogger Error
-func (v *verrazzanoLogger) Error(args ...interface{}) {
-	v.sLogger.Error(args...)
-}
-
-// Errorf is a wrapper for SugaredLogger Errorf
-func (v *verrazzanoLogger) Errorf(template string, args ...interface{}) {
-	v.sLogger.Errorf(template, args...)
-}
-
 // SetZapLogger sets the zap logger
 func (v *verrazzanoLogger) SetZapLogger(zap *zap.SugaredLogger) {
 	v.zapLogger = zap
@@ -269,4 +244,64 @@ func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
 // GetContext gets the logger context
 func (v *verrazzanoLogger) GetContext() *LogContext {
 	return v.context
+}
+
+// Debug is a wrapper for SugaredLogger Debug
+func (v *verrazzanoLogger) Debug(args ...interface{}) {
+	v.Debug2(args...)
+}
+
+// Debugf is a wrapper for SugaredLogger Debugf
+func (v *verrazzanoLogger) Debugf(template string, args ...interface{}) {
+	v.Debugf2(template, args...)
+}
+
+// Info is a wrapper for SugaredLogger Info
+func (v *verrazzanoLogger) Info(args ...interface{}) {
+	v.Info2(args...)
+}
+
+// Infof is a wrapper for SugaredLogger Infof
+func (v *verrazzanoLogger) Infof(template string, args ...interface{}) {
+	v.Infof2(template, args...)
+}
+
+// Error is a wrapper for SugaredLogger Error
+func (v *verrazzanoLogger) Error(args ...interface{}) {
+	v.Error2(args...)
+}
+
+// Errorf is a wrapper for SugaredLogger Errorf
+func (v *verrazzanoLogger) Errorf(template string, args ...interface{}) {
+	v.Errorf2(template, args...)
+}
+
+// Debug is a wrapper for SugaredLogger Debug
+func (v *verrazzanoLogger) Debug2(args ...interface{}) {
+	v.sLogger.Debug(args...)
+}
+
+// Debugf is a wrapper for SugaredLogger Debugf
+func (v *verrazzanoLogger) Debugf2(template string, args ...interface{}) {
+	v.sLogger.Debugf(template, args...)
+}
+
+// Info is a wrapper for SugaredLogger Info
+func (v *verrazzanoLogger) Info2(args ...interface{}) {
+	v.sLogger.Info(args...)
+}
+
+// Infof is a wrapper for SugaredLogger Infof
+func (v *verrazzanoLogger) Infof2(template string, args ...interface{}) {
+	v.sLogger.Infof(template, args...)
+}
+
+// Error is a wrapper for SugaredLogger Error
+func (v *verrazzanoLogger) Error2(args ...interface{}) {
+	v.sLogger.Error(args...)
+}
+
+// Errorf is a wrapper for SugaredLogger Errorf
+func (v *verrazzanoLogger) Errorf2(template string, args ...interface{}) {
+	v.sLogger.Errorf(template, args...)
 }

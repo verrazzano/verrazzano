@@ -49,3 +49,21 @@ func InitLogs(opts kzap.Options) {
 	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
 	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }
+
+// BuildZapLogger initializes zap logger
+func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
+	var config zap.Config
+	config = zap.NewProductionConfig()
+	config.Level.SetLevel(zapcore.InfoLevel)
+
+	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.TimeKey = "@timestamp"
+	config.EncoderConfig.MessageKey = "message"
+	config.EncoderConfig.CallerKey = "caller"
+	logger, err := config.Build()
+	if err != nil {
+		return nil, err
+	}
+	l := logger.WithOptions(zap.AddCallerSkip(callerSkip))
+	return l.Sugar(), nil
+}
