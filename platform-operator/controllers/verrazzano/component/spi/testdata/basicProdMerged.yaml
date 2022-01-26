@@ -48,5 +48,8 @@ spec:
       enabled: true
     verrazzano:
       enabled: true
+      installArgs:
+        - name: api.replicas
+          value: "2"
     weblogicOperator:
       enabled: true

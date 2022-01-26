@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -25,8 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -74,7 +73,7 @@ func resolveVerrazzanoNamespace(ns string) string {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(log *zap.SugaredLogger, client clipkg.Client, _ string, namespace string, _ string) error {
+func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
 	return fixupFluentdDaemonset(log, client, namespace)
 }
 
@@ -112,6 +111,9 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
+
+	// Append any installArgs overrides to the kvs list
+	vzkvs = appendVerrazzanoComponentOverrides(effectiveCR, vzkvs)
 
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
@@ -248,6 +250,19 @@ func appendSecurityOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzan
 	return nil
 }
 
+// appendVerrazzanoComponentOverrides - append overrides specified for the Verrazzano component
+func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) []bom.KeyValue {
+	if effectiveCR.Spec.Components.Verrazzano != nil {
+		for _, arg := range effectiveCR.Spec.Components.Verrazzano.InstallArgs {
+			kvs = append(kvs, bom.KeyValue{
+				Key:   arg.Name,
+				Value: arg.Value,
+			})
+		}
+	}
+	return kvs
+}
+
 func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *resourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
 	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
 
@@ -361,7 +376,7 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
 // ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
 // template for the fluentd daemonset expects a Value.
-func fixupFluentdDaemonset(log *zap.SugaredLogger, client clipkg.Client, namespace string) error {
+func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
 	// Get the fluentd daemonset resource
 	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: namespace}
 	daemonSet := appsv1.DaemonSet{}
@@ -574,7 +589,7 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 
 //cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
-	if err := vzos.RemoveTempFiles(ctx.Log(), tmpFileCleanPattern); err != nil {
+	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Error deleting temp files: %s", err.Error())
 	}
 }

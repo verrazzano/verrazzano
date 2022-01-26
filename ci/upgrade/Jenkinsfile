@@ -4,9 +4,6 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def PROXY_IMAGES_SPRINGBOOT
-def PROXY_IMAGES_TODO
-def PROXY_IMAGES_BOBSBOOKS
 
 pipeline {
     options {
@@ -265,9 +262,6 @@ pipeline {
                 stage('examples spring') {
                     steps {
                         runGinkgo('examples/springboot', "false", "true")
-                        script {
-                            PROXY_IMAGES_SPRINGBOOT = getProxyImageCount("springboot")
-                        }
                     }
                 }
                 stage('examples helidon') {
@@ -401,33 +395,13 @@ pipeline {
             }
         }
 
-        stage("Validate Apps Restarted") {
-            steps {
-                sh """
-                    echo "Application pods after upgrade:"
-                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE}
-                    cat ${NEW_PODS_FILE}
-                """
+        stage('Post-upgrade Acceptance Tests') {
+            environment {
+                TEST_ENV = "KIND"
+                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-failure-cluster-dump')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-success-cluster-dump')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Validate Upgrade") {
             parallel {
                 stage("Validate BOM") {
                     when {
@@ -448,83 +422,6 @@ pipeline {
                         """
                     }
                 }
-                stage("Validate helm istio releases removed") {
-                    steps {
-                        validateHelmIstioReleasesDeleted()
-                    }
-                }
-                stage("Validate istiocoredns uninstalled") {
-                    steps {
-                        validateIstioCoreDNSUninstall()
-                    }
-                }
-                stage("Validate springboot istio upgrade") {
-                    steps {
-                        validateProxyImageCount("springboot", PROXY_IMAGES_SPRINGBOOT)
-                    }
-                }
-                stage("Istioctl verify install") {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                istioctl verify-install
-                            """
-                        }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('validate-upgrade-failure-cluster-dump')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('validate-upgrade-success-cluster-dump')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage("Validate Apps Restarted2") {
-            steps {
-                sh """
-                    echo "Application pods after post-upgrade verify:"
-                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${NEW_PODS_FILE2}
-                    cat ${NEW_PODS_FILE2}
-                """
-            }
-            post {
-                failure {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-failure-cluster-dump2')
-                        }
-                    }
-                }
-                success {
-                    script {
-                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                            dumpK8sCluster('restart-apps-success-cluster-dump2')
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Post-upgrade Acceptance Tests') {
-            environment {
-                TEST_ENV = "KIND"
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-            parallel {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -948,90 +845,10 @@ def listHelmReleases(customMessage) {
     """
 }
 
-def validateHelmIstioReleasesDeleted() {
-    echo "Validating helm istio releases have been removed"
-    try {
-        istiod = sh(returnStdout: true, script: 'helm list -n istio-system | grep istiod -o -m 1').trim()
-    } catch(error) {
-        istiod = ""
-    }
-    if ("" != istiod.toString()) {
-        echo "helm release istiod found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-
-    try {
-        istio_base = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-base -o -m 1').trim()
-    } catch(error) {
-        istio_base = ""
-    }
-    if ("" != istio_base.toString()) {
-        echo "helm release istio-base found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-
-    try {
-        istio_ingress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-ingress -o -m 1').trim()
-    } catch(error) {
-        istio_ingress = ""
-    }
-    if ("" != istio_ingress.toString()) {
-        echo "helm release istio-ingress found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-
-    try {
-        istio_egress = sh(returnStdout: true, script: 'helm list -n istio-system | grep istio-egress -o -m 1').trim()
-    } catch(error) {
-        istio_egress = ""
-    }
-    if ("" != istio_egress.toString()) {
-        echo "helm release istio-egress found in istio-system namespace after upgrade"
-        helm list -n istio-system
-        exit 1
-    }
-}
-
-def validateIstioCoreDNSUninstall() {
-    retries = 12
-    for(int retry=0; retry<retries; retry++) {
-        try {
-            sh(returnStdout: true, script: 'helm list -n istio-system | grep istiocoredns -o -m 1').trim()
-        } catch(error) {
-            return
-        }
-        sleep(10)
-    }
-    echo "helm release istiocoredns found in istio-system namespace after upgrade"
-    helm list -n istio-system
-    exit 1
-}
-
 def restartExampleApps() {
     sh """
         kubectl rollout restart deployment -n springboot
 
         kubectl rollout restart deployment -n hello-helidon
     """
-}
-
-def getProxyImageCount(namespace)  {
-    def count = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.7.3 -o | wc -l")
-    return count
-}
-
-def validateProxyImageCount(namespace, count) {
-    for(int retry=0; retry<40; retry++) {
-        upgraded_proxy_images = sh(returnStdout: true, script: "kubectl get pods -n ${namespace} -o jsonpath={.items[*].spec.containers[*].image} | grep ghcr.io/verrazzano/proxyv2:1.10 -o | wc -l")
-        if(upgraded_proxy_images == count) {
-            echo "Found all ${count} expected istio proxy images in namespace ${namespace}"
-            return
-        }
-        sleep(15)
-    }
-    echo "Incorrect number of new istio proxy images in namespace ${namespace} after upgrade, found ${upgraded_proxy_images} but expected ${count}"
-    exit 1
 }

@@ -5,6 +5,8 @@ package istio
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,9 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-
-	"go.uber.org/zap"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -40,7 +39,7 @@ const (
 )
 
 // create func vars for unit tests
-type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type installFuncSig func(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 var installFunc installFuncSig = istio.Install
 
@@ -70,7 +69,7 @@ type installMonitorType struct {
 type installRoutineParams struct {
 	overrides     string
 	fileOverrides []string
-	log           *zap.SugaredLogger
+	log           vzlog.VerrazzanoLogger
 }
 
 //installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
@@ -255,11 +254,16 @@ func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overr
 	// clone the parameters
 	overridesFilesCopy := make([]string, len(files))
 	copy(overridesFilesCopy, files)
+
+	// clone zap logger
+	clone := log.GetZapLogger().With()
+	log.SetZapLogger(clone)
+
 	monitor.run(
 		installRoutineParams{
 			overrides:     overrideStrings,
 			fileOverrides: overridesFilesCopy,
-			log:           log.With(), // clone the logger
+			log:           log,
 		},
 	)
 	return ctrlerrors.RetryableError{Source: ComponentName}
@@ -343,8 +347,8 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 	return err
 }
 
-func removeTempFiles(log *zap.SugaredLogger) {
-	if err := os2.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
+func removeTempFiles(log vzlog.VerrazzanoLogger) {
+	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
 		log.Errorf("Unexpected error removing temp files: %s", err.Error())
 	}
 }

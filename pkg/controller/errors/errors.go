@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package spi
 
@@ -38,4 +38,10 @@ func (r RetryableError) Error() string {
 		builder.WriteString(fmt.Sprintf(", result: {requeue: %v, requeueAfter: %s}", r.Result.Requeue, r.Result.RequeueAfter))
 	}
 	return builder.String()
+}
+
+// IsUpdateConflict returns true if the error is an update confict error.  This is occurs when the controller-runtime cache
+// is out of sync with the etc database
+func IsUpdateConflict(err error) bool {
+	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
 }
