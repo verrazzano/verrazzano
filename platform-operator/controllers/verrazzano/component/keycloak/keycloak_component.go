@@ -6,6 +6,8 @@ import (
 	"context"
 	"path/filepath"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -64,7 +66,13 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		Name:      constants.Verrazzano,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving Verrazzano password: %s", err)
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the Verrazzano password %s/%s to exist",
+				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
+			return nil
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the Verrazzano password %s/%s: %v",
+			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
 	// Check MySQL Secret. return error which will cause reque
@@ -74,7 +82,11 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		Name:      mysql.ComponentName,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving MySQL password: %s", err)
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
+			return nil
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
 		return err
 	}
 

@@ -653,7 +653,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 		ctx.Log().Errorf("loginKeycloak: Error retrieving logging into Keycloak: stdout = %s: stderr = %s", stdOut, stdErr)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Debug("loginKeycloak: Successfully logged into Keycloak")
+	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
 
 	return nil
 }
@@ -703,6 +703,8 @@ func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname str
 		if err != nil {
 			return err
 		}
+		ctx.Log().Once("Component Keycloak successfully created the auth secret")
+
 	}
 	return nil
 }
@@ -715,13 +717,15 @@ func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname st
 		Name:      secretname,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("getSecretPassword: Error retrieving secret %s password: %s", secretname, err)
+		ctx.Log().Errorf("Failed retrieving secret %s/%s: %v", namespace, secretname, err)
 		return "", err
 	}
 	pw := secret.Data["password"]
 	stringpw := string(pw)
 	if stringpw == "" {
-		return "", fmt.Errorf("getSecretPassword: Error retrieving secret %s password", secretname)
+		err := fmt.Errorf("Password field empty in secret %s/%s", namespace, secretname)
+		ctx.Log().Error(err)
+		return "", err
 	}
 	return stringpw, nil
 }
@@ -742,7 +746,6 @@ func getSecretName(vz *vzapi.Verrazzano) string {
 }
 
 func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
-
 	kcPod := keycloakPod()
 	realm := "realm=" + vzSysRealm
 	checkRealmExistsCmd := "/opt/jboss/keycloak/bin/kcadm.sh get realms/" + vzSysRealm
@@ -757,8 +760,8 @@ func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 			ctx.Log().Errorf("createVerrazzanoSystemRealm: Error creating Verrazzano System Realm: stdout = %s, stderr = %s", stdout, stderr)
 			return err
 		}
+		ctx.Log().Once("Component Keycloak successfully created the Verrazzano system realm")
 	}
-	ctx.Log().Debug("createVerrazzanoSystemRealm: Successfully Created Verrazzano System Realm")
 	return nil
 }
 
@@ -786,7 +789,7 @@ func createVerrazzanoUsersGroup(ctx spi.ComponentContext) (string, error) {
 		return "", fmt.Errorf("createVerrazzanoUsersGroup: Error parsing output returned from Users Group create stdout returned = %s", out)
 	}
 	ctx.Log().Debugf("createVerrazzanoUsersGroup: User Group ID = %s", arr[1])
-	ctx.Log().Debug("createVerrazzanoUsersGroup: Successfully Created Verrazzano User Group")
+	ctx.Log().Once("Component Keycloak successfully created the Verrazzano user group")
 	return arr[1], nil
 }
 
@@ -814,7 +817,7 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 		return "", fmt.Errorf("createVerrazzanoAdminGroup: Error parsing output returned from Admin Group create stdout returned = %s", out)
 	}
 	ctx.Log().Debugf("createVerrazzanoAdminGroup: Admin Group ID = %s", arr[1])
-	ctx.Log().Debug("createVerrazzanoAdminGroup: Successfully Created Verrazzano Admin Group")
+	ctx.Log().Once("Component Keycloak successfully created the Verrazzano admin group")
 	return arr[1], nil
 }
 
@@ -842,7 +845,8 @@ func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string)
 		return "", fmt.Errorf("createVerrazzanoProjectMonitorsGroup: Error parsing output returned from Monitor Group create stdout returned = %s", out)
 	}
 	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Monitor Group ID = %s", arr[1])
-	ctx.Log().Debug("createVerrazzanoProjectMonitorsGroup: Successfully Created Verrazzano Monitors Group")
+	ctx.Log().Once("Component Keycloak successfully created the Verrazzano monitors group")
+
 	return arr[1], nil
 }
 
@@ -863,12 +867,11 @@ func createVerrazzanoSystemGroup(ctx spi.ComponentContext, cfg *restclient.Confi
 		ctx.Log().Errorf("createVerrazzanoSystemGroup: Error creating Verrazzano System Group: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("createVerrazzanoSystemGroup: Successfully Created Verrazzano System Group")
+	ctx.Log().Once("Component Keycloak successfully created the Verrazzano system group")
 	return nil
 }
 
 func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, roleName string) error {
-
 	keycloakRoles, err := getKeycloakRoles(ctx)
 	if err == nil && roleExists(keycloakRoles, roleName) {
 		return nil
@@ -882,7 +885,7 @@ func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		ctx.Log().Errorf("createVerrazzanoRole: Error creating Verrazzano API Access Role: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("createVerrazzanoRole: Successfully Created Verrazzano API Access Role")
+	ctx.Log().Once("Component Keycloak successfully created the Verrazzano API access role")
 	return nil
 }
 
@@ -897,7 +900,7 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 		ctx.Log().Errorf("grantRolesToGroups: Error granting api access role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("grantRolesToGroups: Granted Access Role to User Group")
+	ctx.Log().Once("Component Keycloak successfully granted the access role to the Verrazzano user group")
 
 	return nil
 }
@@ -914,14 +917,13 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	ctx.Log().Debugf("createUser: Create Verrazzano User Cmd = %s", createVzUserCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createVzUserCmd))
 	if err != nil {
-		ctx.Log().Errorf("createUser: Error creating Verrazzano user: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano user: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Debugf("createUser: Successfully Created VZ User %s", userName)
 
 	vzpw, err := getSecretPassword(ctx, "verrazzano-system", secretName)
 	if err != nil {
-		ctx.Log().Errorf("createUser: Error retrieving Verrazzano password: %s", err)
 		return err
 	}
 	setVZUserPwCmd := "/opt/jboss/keycloak/bin/kcadm.sh set-password -r " + vzSysRealm + " --username " + userName + " --new-password " + vzpw
@@ -932,6 +934,8 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debugf("createUser: Created VZ User %s PW", userName)
+	ctx.Log().Oncef("Component Keycloak successfully create user %s", userName)
+
 	return nil
 }
 
@@ -1010,6 +1014,7 @@ func setPasswordPolicyForRealm(ctx spi.ComponentContext, cfg *restclient.Config,
 		return err
 	}
 	ctx.Log().Debugf("setPasswordPolicyForRealm: Set password policy for realm %s", realmName)
+	ctx.Log().Oncef("Component Keycloak successfully set the password policy for realm %s", realmName)
 	return nil
 }
 
@@ -1023,6 +1028,7 @@ func configureLoginThemeForRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 		return err
 	}
 	ctx.Log().Debug("configureLoginThemeForRealm: Configured login theme for master Cmd")
+	ctx.Log().Oncef("Component Keycloak successfully set the login theme for realm %s", realmName)
 	return nil
 }
 
@@ -1036,6 +1042,8 @@ func enableVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 		return err
 	}
 	ctx.Log().Debug("enableVerrazzanoSystemRealm: Enabled vzSysRealm realm")
+	ctx.Log().Once("Component Keycloak successfully enabled the vzSysRealm realm")
+
 	return nil
 }
 
