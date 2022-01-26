@@ -7,16 +7,20 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 )
 
 const (
-	twoMinutes   = 2 * time.Minute
+	twoMinutes   = 1 * time.Minute
 	threeMinutes = 3 * time.Minute
 	fiveMinutes  = 5 * time.Minute
 
@@ -127,4 +131,40 @@ var _ = t.Describe("Application pods post-upgrade", func() {
 		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, fiveMinutes),
 		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, fiveMinutes),
 	)
+})
+
+var _ = t.Describe("Istio helm releases", func() {
+	const (
+		istiod       = "istiod"
+		istioBase    = "istio"
+		istioIngress = "istio-ingress"
+		istioEgress  = "istio-egress"
+		istioCoreDNS = "istiocoredns"
+	)
+	t.DescribeTable("should be removed from the istio-system namepsace post upgrade",
+		func(release string) {
+			Eventually(func() bool {
+				installed, _ := helm.IsReleaseInstalled(release, constants.IstioSystemNamespace)
+				return installed
+			}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected to not find release %s in istio-system", release))
+		},
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istiod), istiod),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioBase), istioBase),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioIngress), istioIngress),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioEgress), istioEgress),
+		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioCoreDNS), istioCoreDNS),
+	)
+})
+
+var _ = t.Describe("istioctl verify-install", func() {
+	framework.VzIt("should not return an error", func() {
+		Eventually(func() error {
+			log := zap.S()
+			stdout, _, err := istio.VerifyInstall(log)
+			if err != nil {
+				pkg.Log(pkg.Error, string(stdout))
+			}
+			return err
+		}, twoMinutes, pollingInterval).Should(BeNil(), "istioctl verify-install return with stderr")
+	})
 })

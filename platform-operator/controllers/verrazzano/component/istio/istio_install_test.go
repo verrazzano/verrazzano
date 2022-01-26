@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/istio"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os/exec"
@@ -21,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -36,7 +36,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 			// Synchronize the components referenced by the application
 			err := s.syncComponentList(mcAppConfig)
 			if err != nil {
-				s.Log.Error(err, "Error syncing components referenced by object",
+				s.Log.Errorw(fmt.Sprintf("Failed syncing components referenced by object: %v", err),
 					"MultiClusterApplicationConfiguration",
 					types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 			}
@@ -46,7 +46,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 			// an MultiClusterComponent resource.
 			_, err = s.createOrUpdateMCAppConfig(mcAppConfig)
 			if err != nil {
-				s.Log.Error(err, "Error syncing object",
+				s.Log.Errorw(fmt.Sprintf("Failed syncing object: %c", err),
 					"MultiClusterApplicationConfiguration",
 					types.NamespacedName{Namespace: mcAppConfig.Namespace, Name: mcAppConfig.Name})
 			}
@@ -60,7 +60,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 	allLocalMCAppConfigs := clustersv1alpha1.MultiClusterApplicationConfigurationList{}
 	err = s.LocalClient.List(s.Context, &allLocalMCAppConfigs, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list MultiClusterApplicationConfiguration on local cluster")
+		s.Log.Errorf("Failed to list MultiClusterApplicationConfiguration on local cluster: %v", err)
 		return nil
 	}
 	for i, mcAppConfig := range allLocalMCAppConfigs.Items {
@@ -68,7 +68,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 		if !s.appConfigPlacedOnCluster(&allAdminMCAppConfigs, mcAppConfig.Name, mcAppConfig.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalMCAppConfigs.Items[i])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterApplicationConfiguration with name %q in namespace %q", mcAppConfig.Name, mcAppConfig.Namespace))
+				s.Log.Errorf("Failed to delete MultiClusterApplicationConfiguration with name %q in namespace %q: %v", mcAppConfig.Name, mcAppConfig.Namespace, err)
 			}
 		}
 	}
@@ -76,7 +76,7 @@ func (s *Syncer) syncMCApplicationConfigurationObjects(namespace string) error {
 	// Delete OAM components no longer associated with any MultiClusterApplicationConfiguration
 	err = s.deleteOrphanedComponents(namespace)
 	if err != nil {
-		s.Log.Error(err, fmt.Sprintf("error deleting orphaned OAM Components in namespace %q", namespace))
+		s.Log.Errorf("Failed deleting orphaned OAM Components in namespace %q: %v", namespace, err)
 	}
 
 	return nil
@@ -245,7 +245,7 @@ func (s *Syncer) deleteOrphanedComponents(namespace string) error {
 		}
 		if len(actualAppConfigs) == 0 {
 			// Delete the orphaned OAM Component
-			s.Log.Info(fmt.Sprintf("Deleting orphaned OAM Component %s in namespace %s", oamComp.Name, oamComp.Namespace))
+			s.Log.Debugf("Deleting orphaned OAM Component %s in namespace %s", oamComp.Name, oamComp.Namespace)
 			err = s.LocalClient.Delete(s.Context, &oamCompList.Items[i])
 			if err != nil {
 				return err

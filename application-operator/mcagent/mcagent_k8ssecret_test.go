@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -12,11 +12,11 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -27,7 +27,7 @@ import (
 // THEN ensure that the Secret objects are created
 func TestCreateSecretOneMCAppConfig(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -81,7 +81,7 @@ func TestCreateSecretOneMCAppConfig(t *testing.T) {
 // THEN ensure that the Secret objects are created
 func TestCreateSecretTwoMCAppConfigs(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig1, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -138,7 +138,7 @@ func TestCreateSecretTwoMCAppConfigs(t *testing.T) {
 // THEN ensure that the Secret objects are created and then removed
 func TestChangePlacement(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -206,7 +206,7 @@ func TestChangePlacement(t *testing.T) {
 // THEN ensure that the Secret objects are deleted
 func TestDeleteSecret(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -273,7 +273,7 @@ func TestDeleteSecret(t *testing.T) {
 //   the deleted MultiClusterApplicationConfiguration object
 func TestDeleteSecretSharedSecret(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig1, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -347,7 +347,7 @@ func TestDeleteSecretSharedSecret(t *testing.T) {
 // THEN ensure that only the secret in the MultiClusterApplicationConfiguration object is deleted
 func TestDeleteSecretExtra(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig2, err := getSampleMCAppConfig("testdata/multicluster-appconfig2.yaml")

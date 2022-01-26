@@ -4,7 +4,7 @@
 package istio
 
 import (
-	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os/exec"
 	"strings"
 
@@ -19,7 +19,7 @@ type fakeIstioInstalledRunner struct {
 }
 
 // Upgrade function gets called from istio_component to perform istio upgrade
-func Upgrade(log vzlog2.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Upgrade(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
 	// Add override files to arg array
@@ -47,7 +47,7 @@ func Upgrade(log vzlog2.VerrazzanoLogger, imageOverrideString string, overridesF
 }
 
 // Install does and Istio installation using or or more IstioOperator YAML files
-func Install(log vzlog2.VerrazzanoLogger, overrideStrings string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	args := []string{"install", "-y"}
 
 	for _, overridesFileName := range overridesFiles {
@@ -74,7 +74,7 @@ func Install(log vzlog2.VerrazzanoLogger, overrideStrings string, overridesFiles
 }
 
 // IsInstalled returns true if Istio is installed
-func IsInstalled(log vzlog2.VerrazzanoLogger) (bool, error) {
+func IsInstalled(log vzlog.VerrazzanoLogger) (bool, error) {
 
 	// Perform istioctl call of type upgrade
 	stdout, _, err := VerifyInstall(log)
@@ -88,8 +88,9 @@ func IsInstalled(log vzlog2.VerrazzanoLogger) (bool, error) {
 }
 
 // VerifyInstall verifies the Istio installation
-func VerifyInstall(log vzlog2.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
-	args := []string{}
+
+func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
+	args := []string{"verify-install"}
 
 	// Perform istioctl call of type upgrade
 	stdout, stderr, err = runIstioctl(log, args, "verify-install")
@@ -103,7 +104,7 @@ func VerifyInstall(log vzlog2.VerrazzanoLogger) (stdout []byte, stderr []byte, e
 // runIstioctl will perform istioctl calls with specified arguments  for operations
 // Note that operation name as of now does not affect the istioctl call (both upgrade and install call istioctl install)
 // The operationName field is just used for visibility of operation in logging at the moment
-func runIstioctl(log vzlog2.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
+func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
 	log.Infof("Running command: %s", cmd.String())
 
