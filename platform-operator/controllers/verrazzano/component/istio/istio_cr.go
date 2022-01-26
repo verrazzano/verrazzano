@@ -65,13 +65,12 @@ type ReplicaData struct {
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
-func BuildIstioOperatorYaml(comp *vzapi.IstioComponent, profile vzapi.ProfileType) (string, error) {
+func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// All generated YAML will be indented 6 spaces
 	const leftMargin = 0
 	const leftMarginExtIP = 12
 
 	var externalIPYAMLTemplateValue string = ""
-
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
 	for _, arg := range comp.IstioInstallArgs {
@@ -103,7 +102,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent, profile vzapi.ProfileTyp
 			expandedYamls = append(expandedYamls, yaml)
 		}
 	}
-	gatewayYaml, err := configureGateways(profile, comp.IngressGatewayReplicas, comp.EgressGatewayReplicas, fixExternalIPYaml(externalIPYAMLTemplateValue))
+	gatewayYaml, err := configureGateways(comp.IngressGatewayReplicas, comp.EgressGatewayReplicas, fixExternalIPYaml(externalIPYAMLTemplateValue))
 	if err != nil {
 		return "", err
 	}
@@ -136,24 +135,12 @@ func fixExternalIPYaml(yaml string) string {
 }
 
 // value replicas and create Istio gateway yaml
-func configureGateways(profile vzapi.ProfileType, ingressReplicas uint, egressReplicas uint, externalIP string) (string, error) {
+func configureGateways(ingressReplicas uint, egressReplicas uint, externalIP string) (string, error) {
 	data := ReplicaData{}
 
-	// defaults based on profile
-	if profile == vzapi.Dev || profile == vzapi.ManagedCluster {
-		data.IngressReplicaCount = 1
-		data.EgressReplicaCount = 1
-	} else {
-		data.IngressReplicaCount = 3
-		data.EgressReplicaCount = 3
-	}
 	// use configured replicas if valued
-	if ingressReplicas > 0 {
-		data.IngressReplicaCount = ingressReplicas
-	}
-	if egressReplicas > 0 {
-		data.EgressReplicaCount = egressReplicas
-	}
+	data.IngressReplicaCount = ingressReplicas
+	data.EgressReplicaCount = egressReplicas
 
 	data.ExternalIps = ""
 	if externalIP != "" {

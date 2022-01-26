@@ -14,3 +14,6 @@ spec:
           value: "0"
         - name: nodes.data.replicas
           value: "0"
+    istio:
+      ingressGatewayReplicas: 1
+      egressGatewayReplicas: 1

@@ -16,3 +16,6 @@ spec:
       enabled: false
     kiali:
       enabled: false
+    istio:
+      ingressGatewayReplicas: 1
+      egressGatewayReplicas: 1

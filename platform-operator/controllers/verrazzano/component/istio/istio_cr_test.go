@@ -14,6 +14,8 @@ const argShape = `gateways.istio-ingressgateway.serviceAnnotations."service\.bet
 
 // Specify the install args
 var cr1 = vzapi.IstioComponent{
+	IngressGatewayReplicas: 1,
+	EgressGatewayReplicas:  1,
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
 			Name:  argShape,
@@ -69,6 +71,8 @@ spec:
 
 // Specify the install args
 var cr2 = vzapi.IstioComponent{
+	IngressGatewayReplicas: 3,
+	EgressGatewayReplicas:  3,
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
 			Name:  argShape,
@@ -181,6 +185,8 @@ spec:
 
 // Specify the install args
 var cr4 = vzapi.IstioComponent{
+	IngressGatewayReplicas: 1,
+	EgressGatewayReplicas:  1,
 	IstioInstallArgs: []vzapi.InstallArgs{
 		{
 			Name:  argShape,
@@ -228,31 +234,26 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 
 	tests := []struct {
 		testName string
-		profile  vzapi.ProfileType
 		value    *vzapi.IstioComponent
 		expected string
 	}{
 		{
 			testName: "Default Dev Profile Install",
-			profile:  vzapi.Dev,
 			value:    &cr1,
 			expected: cr1Yaml,
 		},
 		{
 			testName: "Default Prod Profile Install",
-			profile:  vzapi.Prod,
 			value:    &cr2,
 			expected: cr2Yaml,
 		},
 		{
 			testName: "Configured Gateway Replica Overrides",
-			profile:  vzapi.Dev,
 			value:    &cr3,
 			expected: cr3Yaml,
 		},
 		{
 			testName: "Default Managed Cluster Install",
-			profile:  vzapi.ManagedCluster,
 			value:    &cr4,
 			expected: cr4Yaml,
 		},
@@ -260,7 +261,7 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			assert := assert.New(t)
-			s, err := BuildIstioOperatorYaml(test.value, test.profile)
+			s, err := BuildIstioOperatorYaml(test.value)
 			assert.NoError(err, s, "error merging yamls")
 			assert.YAMLEq(test.expected, s, "Result does not match expected value")
 		})
