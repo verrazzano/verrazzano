@@ -73,7 +73,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
-	if !status.DeploymentsReady(ctx.Log().GetZapLogger(), ctx.Client(), deployments, 1) {
+	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1) {
 		return false
 	}
 	return isVerrazzanoSecretReady(ctx)

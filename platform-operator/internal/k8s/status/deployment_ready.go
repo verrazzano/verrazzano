@@ -4,28 +4,29 @@ package status
 
 import (
 	"context"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 )
 
 // DeploymentsReady Check that the named deployments have the minimum number of specified replicas ready and available
-func DeploymentsReady(log *zap.SugaredLogger, client clipkg.Client, deployments []types.NamespacedName, expectedReplicas int32) bool {
+func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployments []types.NamespacedName, expectedReplicas int32) bool {
 	for _, namespacedName := range deployments {
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				log.Debugf("%v deployment not found", namespacedName)
+				log.Progressf ("Waiting for deployment %v to exist", namespacedName)
 				// Deployment not found
 				return false
 			}
-			log.Errorf("Unexpected error checking %v status: %v", namespacedName, err)
+			log.Errorf("Failed getting deployment %v: %v", namespacedName, err)
 			return false
 		}
 		if deployment.Status.AvailableReplicas < expectedReplicas {
-			log.Debugf("Not enough available replicas for the %v deployment yet", namespacedName)
+			log.Progressf("Waiting for deployment %s to have %v replica(s)", namespacedName, expectedReplicas)
 			return false
 		}
 	}

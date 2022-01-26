@@ -139,7 +139,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Infof("Waiting for Keycloak Certificate: %s to exist", secretName)
+		ctx.Log().Progressf("Waiting for Keycloak Certificate: %s to exist", secretName)
 		return false
 	}
 
@@ -149,5 +149,5 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 			Name:      ComponentName,
 		},
 	}
-	return status.StatefulsetReady(ctx.Log().GetZapLogger(), ctx.Client(), statefulsetName, 1)
+	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
 }
