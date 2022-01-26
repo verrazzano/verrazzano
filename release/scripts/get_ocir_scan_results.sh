@@ -142,14 +142,13 @@ function get_all_scan_details() {
       CSV_LINE=$(tail -n 1 $imagecsv)
       RESULT_FINISHED=$(echo "$CSV_LINE" | cut -d, -f"1" | sed 's/"//g')
       RESULT_SEVERITY=$(echo "$CSV_LINE" | cut -d, -f"2" | sed 's/"//g')
-      RESULT_FULL_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"3" | sed 's/"//g')
-      RESULT_REPOSITORY_IMAGE=$(echo "$CSV_LINE" | cut -d, -f"4" | sed 's/"//g' | sed 's;/;_;g')
+      RESULT_REPOSITORY_IMAGE=$(echo "$BOM_IMAGE" | sed 's;/;_;g')
       RESULT_IMAGE_TAG=$(echo "$CSV_LINE" | cut -d, -f"5" | sed 's/"//g')
       RESULT_COUNT=$(echo "$CSV_LINE" | cut -d, -f"6" | sed 's/"//g')
       SCAN_RESULT_OCID=$(echo "$CSV_LINE" | cut -d, -f"7" | sed 's/"//g')
 
       # We only are reporting the last scan for the specific tagged image, so we should be OK using the image name/tag here for the filename)
-      get_scan_details $RESULT_SEVERITY $RESULT_REPOSITORY_IMAGE $RESULT_IMAGE_TAG $RESULT_COUNT $SCAN_RESULT_OCID $SCAN_RESULTS_DIR $overallsummary
+      get_scan_details $RESULT_SEVERITY $RESULT_REPOSITORY_IMAGE $BOM_IMAGE $RESULT_IMAGE_TAG $RESULT_COUNT $SCAN_RESULT_OCID $SCAN_RESULTS_DIR $overallsummary
     fi
     rm $imagecsv
   done <$bomimages
