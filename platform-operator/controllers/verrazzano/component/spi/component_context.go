@@ -150,26 +150,33 @@ func (c componentContext) Copy() ComponentContext {
 	}
 }
 
-func (c componentContext) For(comp string) ComponentContext {
-	zapLogger := c.log.GetZapLogger().With("component", comp)
-	c.log.SetZapLogger(zapLogger)
+func (c componentContext) For(compName string) ComponentContext {
+	// Get zap logger, add "with" field for this component name
+	zapLogger := c.log.GetZapLogger().With("component", compName)
+	// Ensure that there is a logger for this component, inject the new zap logger
+	log := c.log.GetContext().EnsureLogger(compName, zapLogger, zapLogger)
+
 	// c.log.
 	return componentContext{
-		log:         c.log,
+		log:         log,
 		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,
 		effectiveCR: c.effectiveCR,
 		operation:   c.operation,
-		component:   comp,
+		component:   compName,
 	}
 }
 
 func (c componentContext) Operation(op string) ComponentContext {
+	// Get zap logger, add "with" field for this component operation
 	zapLogger := c.log.GetZapLogger().With("operation", op)
+	// Ensure that there is a logger for this component, inject the new zap logger
+	log := c.log.GetContext().EnsureLogger(c.component, zapLogger, zapLogger)
+
 	c.log.SetZapLogger(zapLogger)
 	return componentContext{
-		log:         c.log,
+		log:         log,
 		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,

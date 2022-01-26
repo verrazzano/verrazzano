@@ -263,6 +263,7 @@ func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Resu
 	if !done || err != nil {
 		return newRequeueWithDelay(), err
 	}
+	log.Progress("Successfully installed Verrazzano")
 	return ctrl.Result{}, nil
 }
 
@@ -984,6 +985,9 @@ func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verra
 func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Finalizer is present, so lets do the uninstall
 	if vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
+
+		log.Progress("Deleting Verrazzano installation")
+
 		// Create the uninstall job if it doesn't exist
 		if err := r.createUninstallJob(log, vz); err != nil {
 			log.Errorf("Failed creating the uninstall job: %v", err)
