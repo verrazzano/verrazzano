@@ -57,6 +57,8 @@ spec:
           targetPort: 0
     istio:
       enabled: true
+      ingressGatewayReplicas: 3
+      egressGatewayReplicas: 3
       istioInstallArgs:
         - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
           value: "10Mbps"

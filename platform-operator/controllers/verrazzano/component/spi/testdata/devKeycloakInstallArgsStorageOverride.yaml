@@ -52,6 +52,8 @@ spec:
       type: LoadBalancer
     istio:
       enabled: true
+      ingressGatewayReplicas: 1
+      egressGatewayReplicas: 1
     kiali:
       enabled: true
     keycloak:
