@@ -85,13 +85,13 @@ const (
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = t.Describe("Verify Helidon Config OAM App.", func() {
+var _ = t.Describe("Helidon Config OAM App test", func() {
 	// Verify helidon-config-deployment pod is running
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Describe("Verify helidon-config-deployment pod is running.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Describe("helidon-config-deployment pod", func() {
+		t.It("is running", func() {
 			Eventually(helidonConfigPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -113,7 +113,7 @@ var _ = t.Describe("Verify Helidon Config OAM App.", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	t.Describe("Verify Helidon Config app is working.", func() {
+	t.Describe("Ingress.", func() {
 		t.It("Access /config App Url.", func() {
 			url := fmt.Sprintf("https://%s/config", host)
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -128,7 +128,7 @@ var _ = t.Describe("Verify Helidon Config OAM App.", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	t.Describe("Verify Prometheus scraped metrics", func() {
+	t.Describe("Metrics.", func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {

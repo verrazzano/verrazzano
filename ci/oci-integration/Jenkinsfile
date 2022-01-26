@@ -40,15 +40,22 @@ pipeline {
             // 1st choice is the default value
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
-                // 1st choice is the default value
-                choices: [ "v1.20.8", "1.18.10", "v1.19.7", "v1.19.12" ])
+            // 1st choice is the default value
+            choices: [ "v1.20.8", "1.18.10", "v1.19.7", "v1.19.12" ])
+        choice (description: 'Kubernetes Version for KinD Cluster',
+            name: 'KIND_CLUSTER_VERSION',
+            // 1st choice is the default value
+            choices: [ "1.20", "1.19", "1.21", "1.22" ])
         choice(description: 'Verrazzano Install Profile', name: "INSTALL_PROFILE", choices: installProfiles )
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
+        choice (name: 'WILDCARD_DNS_DOMAIN',
+                description: 'This is the wildcard DNS domain',
+                // 1st choice is the default value
+                choices: [ "nip.io", "sslip.io"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
                         trim: true)
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         string (name: 'TAGGED_TESTS',
@@ -79,6 +86,13 @@ pipeline {
         OCIR_PHX_REPO = 'phx.ocir.io'
         POST_DUMP_FAILED = 'false'
         GOPATH = '/home/opc/go'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_EMAIL = credentials('github-packages-email')
+        DOCKER_REPO = 'ghcr.io'
+        DOCKER_NAMESPACE = 'verrazzano'
 
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_user_id = credentials('oci-user-ocid')
@@ -99,9 +113,9 @@ pipeline {
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
 
         TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
-        CLUSTER_TYPE = getTestClusterType("${TEST_ENV}")
-        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
+        OKE_KUBECONFIG = "${WORKSPACE}/test_oke_kubeconfig"
+        KIND_KUBECONFIG = "${WORKSPACE}/test_kind_kubeconfig"
 
         DISABLE_SPINNER=1
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
@@ -110,18 +124,17 @@ pipeline {
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         GITHUB_API_TOKEN = credentials('github-api-token-release-assets')
 
-        IMG_LIST_FILE = "${WORKSPACE}/verrazzano_images.txt"
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio-with-persistence.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-kind.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
 
-        DUMP_KUBECONFIG="${KUBECONFIG}"
         DUMP_COMMAND="${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
 
-        // used for console artifact capture on failure
+        // used for console artifact capture on failure and for downloading the operator.yaml file
         JENKINS_READ = credentials('jenkins-auditor')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
@@ -137,12 +150,6 @@ pipeline {
     }
 
     stages {
-        environment {
-            SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-            SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-            SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-        }
-
         stage('Initialize') {
             steps {
                 script {
@@ -182,6 +189,12 @@ pipeline {
                     echo "${NODE_LABELS}"
                 """
 
+                sh """
+                    rm -rf ${GO_REPO_PATH}/verrazzano
+                    mkdir -p ${GO_REPO_PATH}/verrazzano
+                    tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+                """
+
                 script {
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                     // update the description with some meaningful info
@@ -194,77 +207,15 @@ pipeline {
             }
         }
 
-        stage("Create OCI test resources") {
-            steps {
-                script {
-                    env.LOG_IDS = sh(script:"${WORKSPACE}/tests/e2e/config/scripts/create_oci_logging_resources.sh ${COMPARTMENT_ID}", returnStdout: true).trim()
-
-                    env.LOG_GROUP_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.logGroupId'", returnStdout: true).trim()
-                    env.SYSTEM_LOG_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.systemLogId'", returnStdout: true).trim()
-                    env.APP_LOG_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.appLogId'", returnStdout: true).trim()
-                    env.NS_LOG_ID = sh(script:"echo \'${LOG_IDS}\' | jq -r '.nsLogId'", returnStdout: true).trim()
-                }
-            }
-        }
-
-        stage("Create OKE cluster") {
-            environment {
-                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
-            }
-            steps {
-                script {
-                    withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
-                        sh """
-                            # get the ssh public key
-                            ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
-                            # convert SSH2 public key into an OpenSSH format
-                            ssh-keygen -i -f /tmp/opc_ssh2.pub > /tmp/opc_ssh.pub
-                            # set the ssh public key value for terraform
-                            export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
-                            export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
-                            # call create_oke_cluster with cluster access private
-                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true ${params.CREATE_CLUSTER_USE_CALICO}
-                        """
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        echo "Cluster create failed"
-                    }
-                }
-            }
-        }
-
-        stage("Create image pull secrets") {
-            steps {
-                sh """
-                    # Create image pull secret for Verrazzano docker images
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-                """
-            }
-        }
-
-        stage("Install platform operator") {
+        stage("Download platform operator") {
             environment {
                 OCI_CLI_AUTH="instance_principal"
             }
             steps {
                 sh """
-                    echo "Install Platform Operator"
+                    echo "Download Platform Operator"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-
-                    # Install the verrazzano-platform-operator
-                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
-
-                    # make sure ns exists
-                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-                    # create secret in verrazzano-install ns
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
                 """
             }
             post {
@@ -274,105 +225,439 @@ pipeline {
             }
         }
 
-        stage("Process install YAML") {
-            steps {
-                script {
-                    sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
-                    """
-                }
-            }
-        }
+        stage("Create clusters and run tests") {
+            parallel {
+                stage("OKE") {
+                    environment {
+                        KUBECONFIG="${OKE_KUBECONFIG}"
+                        DUMP_KUBECONFIG="${OKE_KUBECONFIG}"
+                    }
+                    stages {
+                        stage("Create OCI test resources") {
+                            steps {
+                                script {
+                                    env.OKE_LOG_IDS = sh(script:"${WORKSPACE}/tests/e2e/config/scripts/create_oci_logging_resources.sh ${COMPARTMENT_ID}", returnStdout: true).trim()
 
-        stage("Install Verrazzano") {
-            steps {
-                sh """
-                    echo "Waiting for Operator to be ready"
-                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                    echo "Installing Verrazzano on ${TEST_ENV}"
-                    # apply config to create cluster
+                                    env.OKE_LOG_GROUP_ID = sh(script:"echo \'${OKE_LOG_IDS}\' | jq -r '.logGroupId'", returnStdout: true).trim()
+                                    env.OKE_SYSTEM_LOG_ID = sh(script:"echo \'${OKE_LOG_IDS}\' | jq -r '.systemLogId'", returnStdout: true).trim()
+                                    env.OKE_APP_LOG_ID = sh(script:"echo \'${OKE_LOG_IDS}\' | jq -r '.appLogId'", returnStdout: true).trim()
+                                    env.OKE_NS_LOG_ID = sh(script:"echo \'${OKE_LOG_IDS}\' | jq -r '.nsLogId'", returnStdout: true).trim()
+                                }
+                            }
+                        }
 
-                    kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
+                        stage("Create OKE cluster") {
+                            environment {
+                                TF_VAR_label_prefix="${OKE_CLUSTER_PREFIX}"
+                            }
+                            steps {
+                                script {
+                                    withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
+                                        sh """
+                                            # get the ssh public key
+                                            ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
+                                            # convert SSH2 public key into an OpenSSH format
+                                            ssh-keygen -i -f /tmp/opc_ssh2.pub > /tmp/opc_ssh.pub
+                                            # set the ssh public key value for terraform
+                                            export TF_VAR_ssh_public_key_path=/tmp/opc_ssh.pub
+                                            export TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME}
+                                            # call create_oke_cluster with cluster access private
+                                            ${WORKSPACE}/tests/e2e/config/scripts/create_oke_cluster.sh true false
+                                        """
+                                    }
+                                }
+                            }
+                            post {
+                                failure {
+                                    script {
+                                        echo "Cluster create failed"
+                                    }
+                                }
+                            }
+                        }
 
-                    # wait for Verrazzano install to complete
-                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-                    # Create acceptance test configuration file
-                    ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
+                        stage("Create image pull secrets") {
+                            steps {
+                                script {
+                                    createImagePullSecrets()
+                                }
+                            }
+                        }
 
-                    # edit DNS info in the test config file
-                    ${WORKSPACE}/tests/e2e/config/scripts/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                    echo "----------Test config file:-------------"
-                    cat ${TEST_CONFIG_FILE}
-                    echo "----------------------------------------"
-                """
-            }
-            post {
-                always {
-                    script {
-                        sh """
-                            # dump out install logs
-                            mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs
-                            kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install.log --tail -1
-                            kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                            echo "Verrazzano Installation logs dumped to verrazzano-install.log"
-                            echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
-                            echo "------------------------------------------"
-                        """
-                        VZ_TEST_METRIC = metricJobName('')
-                        metricTimerStart("${VZ_TEST_METRIC}")
+                        stage("Install platform operator") {
+                            environment {
+                                OCI_CLI_AUTH="instance_principal"
+                            }
+                            steps {
+                                sh """
+                                    echo "Install Platform Operator"
+                                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                                    # make sure ns exists
+                                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                                    # create secret in verrazzano-install ns
+                                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+                                """
+                            }
+                        }
+
+                        stage("Process install YAML") {
+                            environment {
+                                SYSTEM_LOG_ID="${OKE_SYSTEM_LOG_ID}"
+                                APP_LOG_ID="${OKE_APP_LOG_ID}"
+                            }
+                            steps {
+                                script {
+                                    sh """
+                                        ${WORKSPACE}/tests/e2e/config/scripts/process_nipio_install_yaml.sh $INSTALL_CONFIG_FILE_NIPIO
+                                    """
+                                }
+                            }
+                        }
+
+                        stage("Install Verrazzano") {
+                            steps {
+                                sh """
+                                    echo "Waiting for Operator to be ready"
+                                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                                """
+
+                                script {
+                                    VZ_INSTALL_METRIC = metricJobName('install_v8o_oke')
+                                    metricTimerStart("${VZ_INSTALL_METRIC}")
+                                }
+
+                                sh """
+                                    echo "Installing Verrazzano on ${TEST_ENV}"
+                                    # apply config to create cluster
+
+                                    kubectl apply -f ${INSTALL_CONFIG_FILE_NIPIO}
+
+                                    # wait for Verrazzano install to complete
+                                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                                    # Create acceptance test configuration file
+                                    ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
+
+                                    # edit DNS info in the test config file
+                                    ${WORKSPACE}/tests/e2e/config/scripts/get_ingress_ip.sh ${TEST_CONFIG_FILE}
+                                    echo "----------Test config file:-------------"
+                                    cat ${TEST_CONFIG_FILE}
+                                    echo "----------------------------------------"
+                                """
+                            }
+                            post {
+                                always {
+                                    script {
+                                        sh """
+                                            # dump out install logs
+                                            mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs/oke
+                                            kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/platform-operator/scripts/install/build/logs/oke/verrazzano-platform-operator.log --tail -1
+                                            kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/platform-operator/scripts/install/build/logs/oke/verrazzano-platform-operator-pod.out
+                                            echo "Verrazzano platform operator logs dumped to verrazzano-platform-operator.log"
+                                            echo "Verrazzano platform operator pod description dumped to verrazzano-platform-operator-pod.out"
+                                            echo "------------------------------------------"
+                                        """
+                                    }
+                                }
+                                failure {
+                                    script {
+                                        metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
+                                    }
+                                }
+                                success {
+                                    script {
+                                        metricTimerEnd("${VZ_INSTALL_METRIC}", '1')
+                                    }
+                                }
+                            }
+                        }
+
+                        stage('Verify Install') {
+                            environment {
+                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+                            }
+
+                            steps {
+                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                    sh """
+                                        cd ${WORKSPACE}/tests/e2e
+                                        ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/verrazzano/
+                                    """
+                                }
+                            }
+                        }
+
+                        stage('OCI Logging tests') {
+                            environment {
+                                LOG_GROUP_ID="${OKE_LOG_GROUP_ID}"
+                                NS_LOG_ID="${OKE_NS_LOG_ID}"
+
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oci-logging-oke"
+
+                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+                            }
+                            steps {
+                                script {
+                                    runGinkgo('oci/logging')
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            sh '''
+                                # Clean up the OCI Logging resources we created
+                                ${WORKSPACE}/tests/e2e/config/scripts/delete_oci_logging_resources.sh "${OKE_LOG_GROUP_ID}" "${OKE_SYSTEM_LOG_ID}" "${OKE_APP_LOG_ID}" "${OKE_NS_LOG_ID}" || true
+                            '''
+
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
+                                    dumpK8sCluster('oci-integration-tests-oke-cluster-dump')
+                                }
+                            }
+
+                            sh """
+                                # Destroy the OKE cluster
+                                if [ "${keepOKEClusterOnFailure}" == "false" ]; then
+                                    TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
+                                fi
+                            """
+                        }
                     }
                 }
-            }
-        }
 
-        stage('Verify Install') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        cd ${WORKSPACE}/tests/e2e
-                        ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/verrazzano/
-                    """
-                }
-            }
-        }
+                stage("KinD") {
+                    environment {
+                        KUBECONFIG="${KIND_KUBECONFIG}"
+                        DUMP_KUBECONFIG="${KIND_KUBECONFIG}"
+                        OCI_OS_LOCATION="${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
+                        CLUSTER_NAME="verrazzano"
+                    }
+                    stages {
+                        stage("Create OCI test resources") {
+                            steps {
+                                script {
+                                    env.KIND_LOG_IDS = sh(script:"${WORKSPACE}/tests/e2e/config/scripts/create_oci_logging_resources.sh ${COMPARTMENT_ID}", returnStdout: true).trim()
 
-        stage('OCI Logging tests') {
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oci-logging"
-            }
-            steps {
-                script {
-                    runGinkgo('oci/logging')
+                                    env.KIND_LOG_GROUP_ID = sh(script:"echo \'${KIND_LOG_IDS}\' | jq -r '.logGroupId'", returnStdout: true).trim()
+                                    env.KIND_SYSTEM_LOG_ID = sh(script:"echo \'${KIND_LOG_IDS}\' | jq -r '.systemLogId'", returnStdout: true).trim()
+                                    env.KIND_APP_LOG_ID = sh(script:"echo \'${KIND_LOG_IDS}\' | jq -r '.appLogId'", returnStdout: true).trim()
+                                    env.KIND_NS_LOG_ID = sh(script:"echo \'${KIND_LOG_IDS}\' | jq -r '.nsLogId'", returnStdout: true).trim()
+                                }
+                            }
+                        }
+
+                        stage("Create KinD cluster") {
+                            environment {
+                                KIND_KUBERNETES_CLUSTER_VERSION="${params.KIND_CLUSTER_VERSION}"
+                                OCI_CLI_AUTH="instance_principal"
+                            }
+                            steps {
+                                sh """
+                                    echo "Using KUBECONFIG: ${KUBECONFIG}"
+
+                                    echo "Create Kind cluster"
+                                    cd ${TEST_SCRIPTS_DIR}
+                                    ./create_kind_cluster.sh ${CLUSTER_NAME} ${GO_REPO_PATH}/verrazzano/platform-operator ${KUBECONFIG} ${KIND_KUBERNETES_CLUSTER_VERSION} true true true false
+                                    if [ \$? -ne 0 ]; then
+                                        mkdir ${WORKSPACE}/kind-logs
+                                        kind export logs ${WORKSPACE}/kind-logs
+                                        echo "Kind cluster creation failed"
+                                        exit 1
+                                    fi
+
+                                    kubectl wait --for=condition=ready nodes/${CLUSTER_NAME}-control-plane --timeout=5m --all
+                                    kubectl wait --for=condition=ready pods/kube-controller-manager-${CLUSTER_NAME}-control-plane -n kube-system --timeout=5m
+
+                                    echo "Install metallb"
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    ./tests/e2e/config/scripts/install-metallb.sh
+                                """
+                            }
+                        }
+
+                        stage("Create image pull secrets") {
+                            steps {
+                                script {
+                                    createImagePullSecrets()
+                                }
+                            }
+                        }
+
+                        stage("Install platform operator") {
+                            environment {
+                                OCI_CLI_AUTH="instance_principal"
+                            }
+                            steps {
+                                sh """
+                                    echo "Install Platform Operator"
+                                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+
+                                    # make sure ns exists
+                                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                                    # create secret in verrazzano-install ns
+                                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
+                                """
+                            }
+                        }
+
+                        stage("Process install YAML") {
+                            environment {
+                                SYSTEM_LOG_ID="${KIND_SYSTEM_LOG_ID}"
+                                APP_LOG_ID="${KIND_APP_LOG_ID}"
+                            }
+                            steps {
+                                script {
+                                    sh """
+                                        ${WORKSPACE}/tests/e2e/config/scripts/process_kind_install_yaml.sh "${INSTALL_CONFIG_FILE_KIND}" "${params.WILDCARD_DNS_DOMAIN}"
+                                    """
+                                }
+                            }
+                        }
+
+                        stage("Create OCI API secret") {
+                            environment {
+                                OUTPUT_FILE="${WORKSPACE}/oci_config"
+                                KEY_FILE="${WORKSPACE}/oci_key"
+                            }
+                            steps {
+                                script {
+                                    sh """
+                                        echo "Creating OCI config files"
+                                        echo "[DEFAULT]" > $OUTPUT_FILE
+                                        echo "region=${OCI_CLI_REGION}" >> $OUTPUT_FILE
+                                        echo "tenancy=${OCI_CLI_TENANCY}" >> $OUTPUT_FILE
+                                        echo "user=${OCI_CLI_USER}" >> $OUTPUT_FILE
+                                        echo "fingerprint=${OCI_CLI_FINGERPRINT}" >> $OUTPUT_FILE
+                                        echo "key_file=$KEY_FILE" >> $OUTPUT_FILE
+                                        cat ${OCI_CLI_KEY_FILE} > $KEY_FILE
+
+                                        echo "Creating OCI API secret from OCI config"
+                                        ${WORKSPACE}/platform-operator/scripts/install/create_oci_fluentd_secret.sh -o ${OUTPUT_FILE}
+                                    """
+                                }
+                            }
+                            post {
+                                always {
+                                    sh """
+                                        rm -f $OUTPUT_FILE $KEY_FILE
+                                    """
+                                }
+                            }
+                        }
+
+                        stage("Install Verrazzano") {
+                            steps {
+                                sh """
+                                    echo "Waiting for Operator to be ready"
+                                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                                """
+
+                                script {
+                                    VZ_INSTALL_METRIC = metricJobName('install_v8o_kind')
+                                    metricTimerStart("${VZ_INSTALL_METRIC}")
+                                }
+
+                                sh """
+                                    echo "Installing Verrazzano on KinD"
+                                    kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}
+
+                                    # wait for Verrazzano install to complete
+                                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                                """
+                            }
+                            post {
+                                always {
+                                    script {
+                                        sh """
+                                            # dump out install logs
+                                            mkdir -p ${WORKSPACE}/platform-operator/scripts/install/build/logs/kind
+                                            kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/platform-operator/scripts/install/build/logs/kind/verrazzano-platform-operator.log --tail -1
+                                            kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/platform-operator/scripts/install/build/logs/kind/verrazzano-platform-operator-pod.out
+                                            echo "Verrazzano platform operator logs dumped to verrazzano-platform-operator.log"
+                                            echo "Verrazzano platform operator pod description dumped to verrazzano-platform-operator-pod.out"
+                                            echo "------------------------------------------"
+                                        """
+                                    }
+                                }
+                                failure {
+                                    script {
+                                        metricTimerEnd("${VZ_INSTALL_METRIC}", '0')
+                                    }
+                                }
+                                success {
+                                    script {
+                                        metricTimerEnd("${VZ_INSTALL_METRIC}", '1')
+                                    }
+                                }
+                            }
+                        }
+
+                        stage('Verify Install') {
+                            environment {
+                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+                            }
+
+                            steps {
+                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                                    sh """
+                                        cd ${WORKSPACE}/tests/e2e
+                                        ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/verrazzano/
+                                    """
+                                }
+                            }
+                        }
+
+                        stage('OCI Logging tests') {
+                            environment {
+                                LOG_GROUP_ID="${KIND_LOG_GROUP_ID}"
+                                NS_LOG_ID="${KIND_NS_LOG_ID}"
+
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oci-logging-kind"
+
+                                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+                                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+                                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+                            }
+                            steps {
+                                script {
+                                    runGinkgo('oci/logging')
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            sh '''
+                                # Clean up the OCI Logging resources we created
+                                ${WORKSPACE}/tests/e2e/config/scripts/delete_oci_logging_resources.sh "${KIND_LOG_GROUP_ID}" "${KIND_SYSTEM_LOG_ID}" "${KIND_APP_LOG_ID}" "${KIND_NS_LOG_ID}" || true
+                            '''
+
+                            script {
+                                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
+                                    dumpK8sCluster('oci-integration-tests-kind-cluster-dump')
+                                }
+                            }
+
+                            sh """
+                                # Delete the KinD cluster
+                                kind delete cluster --name "${CLUSTER_NAME}"
+                            """
+                        }
+                    }
                 }
             }
         }
     }
     post {
         always {
-            sh '''
-                ${WORKSPACE}/tests/e2e/config/scripts/delete_oci_logging_resources.sh "${LOG_GROUP_ID}" "${SYSTEM_LOG_ID}" "${APP_LOG_ID}" "${NS_LOG_ID}" || true
-            '''
-
-            script {
-                if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true || currentBuild.currentResult == 'FAILURE') {
-                    dumpK8sCluster('oci-integration-tests-cluster-dump')
-                }
-            }
-
-            dumpVerrazzanoSystemPods()
-            dumpCattleSystemPods()
-            dumpNginxIngressControllerLogs()
-            dumpVerrazzanoPlatformOperatorLogs()
-
-            sh """
-                echo "sorting the images file prior to archiving"
-                if [ -f ${IMG_LIST_FILE} ];
-                then
-                    sort -u -o ${IMG_LIST_FILE} ${IMG_LIST_FILE}
-                fi
-            """
             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
                     withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
@@ -382,16 +667,6 @@ pipeline {
                     }
                 }
             }
-
-            sh """
-                if [ "${keepOKEClusterOnFailure}" == "false" ]; then
-                  TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=${env.BUILD_NUMBER}-${env.TIMESTAMP}-${env.BRANCH_NAME} ${WORKSPACE}/tests/e2e/config/scripts/delete_oke_cluster.sh
-                fi
-                if [ -f ${POST_DUMP_FAILED_FILE} ]; then
-                  echo "Failures seen during dumping of artifacts, treat post as failed"
-                  exit 1
-                fi
-            """
        }
        failure {
             sh """
@@ -404,17 +679,9 @@ pipeline {
                 rm archive.zip
             """
             script {
-                VZ_TEST_METRIC = metricJobName('')
-                METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                 if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
                 }
-           }
-       }
-       success {
-           script {
-               VZ_TEST_METRIC = metricJobName('')
-               METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
            }
        }
        cleanup {
@@ -424,8 +691,15 @@ pipeline {
     }
 }
 
-def getTestClusterType(testEnv) {
-    return "OKE"
+def createImagePullSecrets() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            # Create image pull secret for Verrazzano docker images
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}"
+            ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+        """
+    }
 }
 
 def runGinkgo(testSuitePath) {
@@ -440,47 +714,6 @@ def runGinkgo(testSuitePath) {
 def dumpK8sCluster(dumpDirectory) {
     sh """
         ${WORKSPACE}/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory} -r ${dumpDirectory}/cluster-dump/analysis.report
-    """
-}
-
-def dumpVerrazzanoSystemPods() {
-    sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-pods.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-def dumpCattleSystemPods() {
-    sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/cattle-system-pods.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -m "cattle system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/rancher.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n cattle-system -r "rancher-*" -m "Rancher logs" -c rancher -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-def dumpNginxIngressControllerLogs() {
-    sh """
-        export DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/nginx-ingress-controller.log"
-        ${WORKSPACE}/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n ingress-nginx -r "nginx-ingress-controller-*" -m "Nginx Ingress Controller" -c controller -l || echo "failed" > ${POST_DUMP_FAILED_FILE}
-    """
-}
-
-def dumpVerrazzanoPlatformOperatorLogs() {
-    sh """
-        ## dump out verrazzano-platform-operator logs
-        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-        kubectl -n verrazzano-install logs --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.log --tail -1 || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
-        echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
-        echo "------------------------------------------"
     """
 }
 

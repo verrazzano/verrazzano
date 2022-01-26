@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -32,7 +32,7 @@ func (s *Syncer) syncMCConfigMapObjects(namespace string) error {
 		if s.isThisCluster(mcConfigMap.Spec.Placement) {
 			_, err := s.createOrUpdateMCConfigMap(mcConfigMap)
 			if err != nil {
-				s.Log.Error(err, "Error syncing object",
+				s.Log.Errorw(fmt.Sprintf("Failed syncing object: %v", err),
 					"MultiClusterConfigMap",
 					types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
 			}
@@ -46,7 +46,7 @@ func (s *Syncer) syncMCConfigMapObjects(namespace string) error {
 	allLocalMCConfigMaps := clustersv1alpha1.MultiClusterConfigMapList{}
 	err = s.LocalClient.List(s.Context, &allLocalMCConfigMaps, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list MultiClusterConfigMap on local cluster")
+		s.Log.Errorf("Failed to list MultiClusterConfigMap on local cluster: %v", err)
 		return nil
 	}
 	for i, mcConfigMap := range allLocalMCConfigMaps.Items {
@@ -54,7 +54,7 @@ func (s *Syncer) syncMCConfigMapObjects(namespace string) error {
 		if !s.configMapPlacedOnCluster(&allAdminMCConfigMaps, mcConfigMap.Name, mcConfigMap.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalMCConfigMaps.Items[i])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterConfigMap with name %q and namespace %q", mcConfigMap.Name, mcConfigMap.Namespace))
+				s.Log.Errorf("Failed to delete MultiClusterConfigMap with name %q and namespace %q: %v", mcConfigMap.Name, mcConfigMap.Namespace, err)
 			}
 		}
 	}

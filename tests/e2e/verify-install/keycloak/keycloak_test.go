@@ -109,10 +109,10 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verify Keycloak configuration", func() {
-	var _ = t.Context("Verify password policies", func() {
+var _ = t.Describe("Test Keycloak configuration.", func() {
+	var _ = t.Context("Verify", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
-		t.It("Verify master realm password policy", func() {
+		t.It("master realm password policy", func() {
 			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the master realm during installation
 				// WHEN valid and invalid password changes are attempted
@@ -120,7 +120,7 @@ var _ = t.Describe("Verify Keycloak configuration", func() {
 				Eventually(verifyKeycloakMasterRealmPasswordPolicyIsCorrect, waitTimeout, pollingInterval).Should(BeTrue())
 			}
 		})
-		t.It("Verify verrazzano-system realm password policy", func() {
+		t.It("verrazzano-system realm password policy", func() {
 			if !isManagedClusterProfile {
 				// GIVEN the password policy setup for the verrazzano-system realm during installation
 				// WHEN valid and invalid password changes are attempted
@@ -131,8 +131,8 @@ var _ = t.Describe("Verify Keycloak configuration", func() {
 	})
 })
 
-var _ = t.Describe("Verify MySQL Persistent Volumes based on install profile", func() {
-	var _ = t.Context("Verify Persistent volumes allocated per install profile", func() {
+var _ = t.Describe("Verify", func() {
+	var _ = t.Context("MySQL Persistent Volumes in namespace keycloak based on", func() {
 
 		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
@@ -146,7 +146,7 @@ var _ = t.Describe("Verify MySQL Persistent Volumes based on install profile", f
 			if override != nil {
 				expectedKeyCloakPVCs = 1
 			}
-			t.It("Verify persistent volumes in namespace keycloak based on Dev install profile", func() {
+			t.It("Dev install profile", func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
 				if expectedKeyCloakPVCs > 0 {
@@ -154,7 +154,7 @@ var _ = t.Describe("Verify MySQL Persistent Volumes based on install profile", f
 				}
 			})
 		} else if pkg.IsManagedClusterProfile() {
-			t.It("Verify namespace keycloak doesn't exist based on Managed Cluster install profile", func() {
+			t.It("Managed Cluster install profile and verify namespace keycloak doesn't exist", func() {
 				// There is no keycloak namespace in a managed cluster install
 				Eventually(func() bool {
 					_, err := pkg.GetNamespace(keycloakNamespace)
@@ -162,7 +162,7 @@ var _ = t.Describe("Verify MySQL Persistent Volumes based on install profile", f
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		} else if pkg.IsProdProfile() {
-			t.It("Verify persistent volumes in namespace keycloak based on Prod install profile", func() {
+			t.It("Prod install profile", func() {
 				// 50 GB Persistent Volume create for MySQL in a prod install
 				Expect(len(volumeClaims)).To(Equal(1))
 				assertPersistentVolume("mysql", size)
@@ -171,8 +171,8 @@ var _ = t.Describe("Verify MySQL Persistent Volumes based on install profile", f
 	})
 })
 
-var _ = t.Describe("Verify Keycloak URIs", func() {
-	var _ = t.Context("Verify redirect and weborigins URIs", func() {
+var _ = t.Describe("Verify Keycloak", func() {
+	var _ = t.Context("redirect and weborigins URIs", func() {
 		pkg.MinVersionSpec("Verify redirect and weborigins URIs", "1.1.0",
 			func() {
 				isManagedClusterProfile := pkg.IsManagedClusterProfile()

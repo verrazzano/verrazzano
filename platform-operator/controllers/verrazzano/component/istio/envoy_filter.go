@@ -1,12 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
 
 import (
 	"context"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -40,7 +40,7 @@ spec:
 const specField = "spec"
 
 // Create the Envoy network filter
-func createEnvoyFilter(log *zap.SugaredLogger, client clipkg.Client) error {
+func createEnvoyFilter(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	const IstioEnvoyFilter = "server-header-filter"
 
 	// Unmarshal the YAML into an object

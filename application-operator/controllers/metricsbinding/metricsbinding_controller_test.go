@@ -10,6 +10,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
@@ -504,7 +505,7 @@ func newScheme() *runtime.Scheme {
 // newReconciler creates a new reconciler for testing
 // c - The Kerberos client to inject into the reconciler
 func newReconciler(c client.Client) Reconciler {
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 	scheme := newScheme()
 	reconciler := Reconciler{
 		Client:  c,

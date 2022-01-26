@@ -259,29 +259,29 @@ func undeployNoIstioApplication() {
 	}, waitTimeout, shortPollingInterval).Should(BeTrue())
 }
 
-var _ = t.Describe("Verify AuthPolicy Applications", func() {
+var _ = t.Describe("AuthPolicy test,", func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	t.Context("Deployment.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Context("check app deployment", func() {
+		t.It("in foo namespace", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
 
-	t.Context("Deployment.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Context("check app deployment", func() {
+		t.It("in bar namespace", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(barNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
 
-	t.Context("Deployment.", func() {
-		t.It("and waiting for expected pods must be running", func() {
+	t.Context("check app deployment", func() {
+		t.It("in noistio namespace", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))

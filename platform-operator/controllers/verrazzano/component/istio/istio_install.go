@@ -5,15 +5,18 @@ package istio
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-	vzos "github.com/verrazzano/verrazzano/platform-operator/internal/os"
-	"go.uber.org/zap"
-	"io/ioutil"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,8 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -38,7 +39,7 @@ const (
 )
 
 // create func vars for unit tests
-type installFuncSig func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type installFuncSig func(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 var installFunc installFuncSig = istio.Install
 
@@ -48,7 +49,7 @@ var forkInstallFunc forkInstallFuncSig = forkInstall
 
 type bashFuncSig func(inArgs ...string) (string, string, error)
 
-var bashFunc bashFuncSig = vzos.RunBash
+var bashFunc bashFuncSig = os2.RunBash
 
 func setInstallFunc(f installFuncSig) {
 	installFunc = f
@@ -68,7 +69,7 @@ type installMonitorType struct {
 type installRoutineParams struct {
 	overrides     string
 	fileOverrides []string
-	log           *zap.SugaredLogger
+	log           vzlog.VerrazzanoLogger
 }
 
 //installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
@@ -222,7 +223,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 			log.Errorf("Failed to close temporary file: %v", err)
 			return err
 		}
-		log.Infof("Created values file from Istio install args: %s", userFileCR.Name())
+		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
 
 	// check for global image pull secret
@@ -253,11 +254,16 @@ func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overr
 	// clone the parameters
 	overridesFilesCopy := make([]string, len(files))
 	copy(overridesFilesCopy, files)
+
+	// clone zap logger
+	clone := log.GetZapLogger().With()
+	log.SetZapLogger(clone)
+
 	monitor.run(
 		installRoutineParams{
 			overrides:     overrideStrings,
 			fileOverrides: overridesFilesCopy,
-			log:           log.With(), // clone the logger
+			log:           log,
 		},
 	)
 	return ctrlerrors.RetryableError{Source: ComponentName}
@@ -341,8 +347,8 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 	return err
 }
 
-func removeTempFiles(log *zap.SugaredLogger) {
-	if err := vzos.RemoveTempFiles(log, istioTmpFileCleanPattern); err != nil {
+func removeTempFiles(log vzlog.VerrazzanoLogger) {
+	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
 		log.Errorf("Unexpected error removing temp files: %s", err.Error())
 	}
 }

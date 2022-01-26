@@ -66,8 +66,8 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verrazzano Web UI", func() {
-	t.When("the console UI is configured", func() {
+var _ = t.Describe("Verrazzano Web UI,", func() {
+	t.When("when configured,", func() {
 		t.It("can be accessed", func() {
 			if !isManagedClusterProfile {
 				Eventually(func() (*pkg.HTTPResponse, error) {

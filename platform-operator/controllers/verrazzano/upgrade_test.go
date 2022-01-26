@@ -7,21 +7,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"go.uber.org/zap"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -283,7 +284,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUpgradeStarted tests the reconcileUpgrade method for the following use case
@@ -362,97 +363,6 @@ func TestUpgradeStarted(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(1), result.RequeueAfter)
-}
-
-// TestUpgradeTooManyFailures tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
-// WHEN the current upgrade failed more than the failure limit
-// THEN ensure that upgrade is not started
-func TestUpgradeTooManyFailures(t *testing.T) {
-	initUnitTesing()
-	namespace := "verrazzano"
-	name := "test"
-	var verrazzanoToUse vzapi.Verrazzano
-
-	config.SetDefaultBomFilePath(unitTestBomFile)
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Generation: 1,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.Ready,
-				Components: makeVerrazzanoComponentStatusMap(),
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.InstallComplete,
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-				},
-			}
-			return nil
-		})
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
@@ -555,108 +465,6 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(1), result.RequeueAfter)
-}
-
-// TestUpgradeNotStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
-// WHEN the current upgrade failures exceeds the limit, but there was a previous upgrade success
-// THEN ensure that upgrade is not started
-func TestUpgradeNotStartedWhenPrevFailures(t *testing.T) {
-	initUnitTesing()
-	namespace := "verrazzano"
-	name := "test"
-	var verrazzanoToUse vzapi.Verrazzano
-
-	config.SetDefaultBomFilePath(unitTestBomFile)
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Generation: 2,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "0.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.Ready,
-				Components: makeVerrazzanoComponentStatusMap(),
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.InstallComplete,
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type: vzapi.UpgradeComplete,
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.UpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-				},
-			}
-			return nil
-		})
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUpgradeCompleted tests the reconcileUpgrade method for the following use case
@@ -832,7 +640,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.Error(err)
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 }
 
@@ -999,7 +807,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1081,7 +889,7 @@ func TestUpgradeComponent(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1172,7 +980,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
 
 	// Validate the results
 	mocker.Finish()
