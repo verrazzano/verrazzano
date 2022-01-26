@@ -10,6 +10,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"go.uber.org/zap"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -1424,6 +1426,29 @@ func TestValidateProfileDevProfile(t *testing.T) {
 // THEN an error is returned
 func TestValidateProfileInvalidProfile(t *testing.T) {
 	assert.Error(t, ValidateProfile("wrong-profile"))
+}
+
+// TestValidateProfileInvalidProfile Tests cleanTempFiles()
+// GIVEN a call to cleanTempFiles
+// WHEN there are leftover validation temp files in the TMP dir
+// THEN the temp files are cleaned up properly
+func Test_cleanTempFiles(t *testing.T) {
+	assert := assert.New(t)
+
+	tmpFiles := []*os.File{}
+	for i := 1; i < 5; i++ {
+		temp, err := os.CreateTemp(os.TempDir(), validateTempFilePattern)
+		assert.NoErrorf(err, "Unable to create temp file %s for testing: %s", temp.Name(), err)
+		assert.FileExists(temp.Name())
+		tmpFiles = append(tmpFiles, temp)
+	}
+
+	err := cleanTempFiles(zap.S())
+	if assert.NoError(err) {
+		for _, tmpFile := range tmpFiles {
+			assert.NoFileExists(tmpFile.Name(), "Error, temp file %s not deleted", tmpFile.Name())
+		}
+	}
 }
 
 var testKey = []byte{}

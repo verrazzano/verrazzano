@@ -8,6 +8,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io/fs"
 	"os"
 	"reflect"
@@ -46,8 +47,9 @@ const (
 	fluentdOCISecretConfigEntry     = "config"
 	fluentdOCISecretPrivateKeyEntry = "key"
 	fluentdExpectedKeyPath          = "/root/.oci/key"
-	expectedKeyHeader               = "RSA PRIVATE KEY"
 	fluentdOCIKeyFileEntry          = "key_file=/root/.oci/key"
+	expectedKeyHeader               = "RSA PRIVATE KEY"
+	validateTempFilePattern         = "validate-"
 )
 
 // OCI DNS Secret Auth
@@ -63,6 +65,13 @@ type authData struct {
 // OCI DNS Secret Auth Wrapper
 type ociAuth struct {
 	Auth authData `json:"auth"`
+}
+
+func cleanTempFiles(log *zap.SugaredLogger) error {
+	if err := vzos.RemoveTempFiles(log, validateTempFilePattern); err != nil {
+		return fmt.Errorf("Error cleaning temp files: %s", err.Error())
+	}
+	return nil
 }
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
@@ -241,7 +250,7 @@ func validateFluentdConfigData(secret *corev1.Secret) error {
 	}
 	// Write the OCI config in the secret to a temp file and use the OCI SDK
 	// ConfigurationProvider API to validate its contents
-	configTemp, err := os.CreateTemp(os.TempDir(), "validate-")
+	configTemp, err := os.CreateTemp(os.TempDir(), validateTempFilePattern)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,6 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -22,7 +21,11 @@ import (
 var getControllerRuntimeClient = getClient
 
 // SetupWebhookWithManager is used to let the controller manager know about the webhook
-func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredLogger) error {
+	// clean up any temp files that may have been left over after a container restart
+	if err := cleanTempFiles(log); err != nil {
+		return err
+	}
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(v).
 		Complete()
