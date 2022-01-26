@@ -238,6 +238,9 @@ data:
       emit_invalid_record_to_error true
       <parse>
          @type multi_format
+         # authproxy has two formats for log records
+         # one has a timestamp, log level and other fields
+         # the other is just a messsage
          <pattern>
           format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) \[(?<level>.*?)\] (?<remaining>([\s\S]*?))\s*$/
           time_key logtime
@@ -255,6 +258,7 @@ data:
       enable_ruby true
       remove_keys remaining,logtime
       <record>
+        # set the timestamp to time in the log record or the current time if no time in the log record
         @timestamp ${if not record.dig("logtime").nil?; Time.strptime(record["logtime"], '%Y/%m/%d %H:%M:%S').iso8601(3); else; Time.strptime(Time.now.strftime('%Y-%m-%d %H:%M:%S.%L'),'%Y-%m-%d %H:%M:%S.%L').iso8601(3); end;}
       </record>
     </filter>
