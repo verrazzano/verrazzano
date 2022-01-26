@@ -155,7 +155,8 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 
 // Oncef formats a message and logs it once
 func (v *verrazzanoLogger) Oncef(template string, args ...interface{}) {
-	v.Progressf(template, args...)
+	s := fmt.Sprintf(template, args...)
+	v.Once(s)
 }
 
 // Once logs a message once

@@ -74,18 +74,19 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			requeue = true
 
 		case vzapi.PreInstalling:
-			compLog.Progressf("PreInstalling component %s", comp.Name())
 			if !registry.ComponentDependenciesMet(comp, compContext) {
-				compLog.Debugf("Dependencies not met for %s: %v", comp.Name(), comp.GetDependencies())
+				compLog.Progressf("Waiting for for component %s dependencies %v to be ready", comp.Name(), comp.GetDependencies())
 				requeue = true
 				continue
 			}
+			compLog.Progressf("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
 				handleError(compLog, err)
 				requeue = true
 				continue
 			}
 			// If component is not installed,install it
+			compLog.Oncef("Installing component %s ", compName)
 			if err := comp.Install(compContext); err != nil {
 				handleError(compLog, err)
 				requeue = true
@@ -101,14 +102,13 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			// If component is enabled -- need to replicate scripts' config merging logic here
 			// If component is in deployed state, continue
 			if comp.IsReady(compContext) {
-				compLog.Progressf("Component %s is ready", compName)
-
+				compLog.Progressf("Component %s post-install is running ", compName)
 				if err := comp.PostInstall(compContext); err != nil {
 					handleError(compLog, err)
 					requeue = true
 					continue
 				}
-				compLog.Progressf("Successfully installed component %s", comp.Name())
+				compLog.Oncef("Successfully installed component %s", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
