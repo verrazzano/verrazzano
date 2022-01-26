@@ -1,10 +1,11 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
 
 import (
 	"context"
+	"go.uber.org/zap"
 	"testing"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -58,7 +59,7 @@ func TestDefaultNetworkPolicy(t *testing.T) {
 	fakeNamespaceClient.Create(context.TODO(), ns, metav1.CreateOptions{})
 
 	// this is the function under test, we expect this to label the namespace and create the network policy
-	err := defaulter.Default(appConfig, false)
+	err := defaulter.Default(appConfig, false, zap.S())
 	assert.NoError(t, err, "Unexpected error creating network policy")
 
 	// assert that the app namespace was labeled
@@ -84,7 +85,7 @@ func TestRetryLabelNamespace(t *testing.T) {
 	fakeNamespaceClient.Create(context.TODO(), ns, metav1.CreateOptions{})
 
 	// this is the function under test, we expect this to label the namespace and create the network policy
-	err := defaulter.Default(appConfig, false)
+	err := defaulter.Default(appConfig, false, zap.S())
 	assert.NoError(t, err, "Unexpected error creating network policy")
 
 	// assert that the erroring fake client returned a conflict error
@@ -118,7 +119,7 @@ func TestDeleteNetworkPolicy(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error creating network policy")
 
 	// this is the function under test, we expect this to delete the network policy
-	err = defaulter.Cleanup(appConfig, false)
+	err = defaulter.Cleanup(appConfig, false, zap.S())
 	assert.NoError(t, err, "Unexpected error deleting network policy")
 
 	// assert that the network policy no longer exists
@@ -142,7 +143,7 @@ func TestAppConfigInDelete(t *testing.T) {
 
 	// this is the function under test, since the app config is being deleted, we expect
 	// no resources to be created or updated
-	err := defaulter.Default(appConfig, false)
+	err := defaulter.Default(appConfig, false, zap.S())
 	assert.NoError(t, err)
 
 	// assert that the network policy did not get created

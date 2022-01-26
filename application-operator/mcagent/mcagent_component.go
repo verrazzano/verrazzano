@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -32,7 +32,7 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 		if s.isThisCluster(mcComponent.Spec.Placement) {
 			_, err := s.createOrUpdateMCComponent(mcComponent)
 			if err != nil {
-				s.Log.Error(err, "Error syncing object",
+				s.Log.Errorw(fmt.Sprintf("Failed syncing object: %v", err),
 					"MultiClusterComponent",
 					types.NamespacedName{Namespace: mcComponent.Namespace, Name: mcComponent.Name})
 			}
@@ -46,7 +46,7 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 	allLocalMCComponents := clustersv1alpha1.MultiClusterComponentList{}
 	err = s.LocalClient.List(s.Context, &allLocalMCComponents, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list MultiClusterComponent on local cluster")
+		s.Log.Errorf("Failed to list MultiClusterComponent on local cluster: %v", err)
 		return nil
 	}
 	for i, mcComponent := range allLocalMCComponents.Items {
@@ -54,7 +54,7 @@ func (s *Syncer) syncMCComponentObjects(namespace string) error {
 		if !s.componentPlacedOnCluster(&allAdminMCComponents, mcComponent.Name, mcComponent.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalMCComponents.Items[i])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterComponent with name %q and namespace %q", mcComponent.Name, mcComponent.Namespace))
+				s.Log.Errorf("Failed to delete MultiClusterComponent with name %q and namespace %q: %v", mcComponent.Name, mcComponent.Namespace, err)
 			}
 		}
 	}

@@ -5,6 +5,7 @@ package istio
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/istio"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,8 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
-
 	"go.uber.org/zap"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"

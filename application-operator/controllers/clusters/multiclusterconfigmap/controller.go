@@ -1,12 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclusterconfigmap
 
 import (
 	"context"
-	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,7 +21,7 @@ import (
 // Reconciler reconciles a MultiClusterConfigMap object
 type Reconciler struct {
 	client.Client
-	Log          logr.Logger
+	Log          *zap.SugaredLogger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
@@ -33,20 +33,20 @@ const finalizerName = "multiclusterconfigmap.verrazzano.io"
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("multiclusterconfigmap", req.NamespacedName)
+	log := r.Log.With("multiclusterconfigmap", req.NamespacedName)
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
 	result := reconcile.Result{}
 	ctx := context.Background()
 	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
 	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, logger)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, log)
 	}
 
 	// delete the wrapped resource since MC is being deleted
 	if !mcConfigMap.ObjectMeta.DeletionTimestamp.IsZero() {
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
 		if err != nil {
-			logger.Error(err, "Failed to delete associated configmap and finalizer")
+			log.Errorf("Failed to delete associated configmap and finalizer: %v", err)
 		}
 		return ctrl.Result{}, err
 	}
@@ -67,7 +67,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("MultiClusterConfigMap create or update with underlying ConfigMap",
+	log.Debugw("MultiClusterConfigMap create or update with underlying ConfigMap",
 		"ConfigMap", mcConfigMap.Spec.Template.Metadata.Name,
 		"placement", mcConfigMap.Spec.Placement.Clusters[0].Name)
 	// Immutable ConfigMaps are not supported - we need a webhook to validate, or add the support

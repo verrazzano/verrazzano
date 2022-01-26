@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package logging
@@ -9,8 +9,8 @@ import (
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +44,7 @@ type FluentdManager interface {
 // Fluentd is an implementation of FluentdManager.
 type Fluentd struct {
 	k8sclient.Client
-	Log                    logr.Logger
+	Log                    *zap.SugaredLogger
 	Context                context.Context
 	ParseRules             string
 	StorageVolumeName      string

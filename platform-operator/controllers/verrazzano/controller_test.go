@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -224,7 +225,7 @@ func TestInstallInitComponents(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 
 	// Validate the results
 	mocker.Finish()
@@ -1018,9 +1019,9 @@ func TestVerrazzanoGetError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, "failed to get Verrazzano custom resource")
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestServiceAccountGetError tests the Reconcile method for the following use case
@@ -1063,9 +1064,9 @@ func TestServiceAccountGetError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, "failed to get ServiceAccount")
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestServiceAccountCreateError tests the Reconcile method for the following use case
@@ -1114,9 +1115,9 @@ func TestServiceAccountCreateError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, "failed to create ServiceAccount")
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestClusterRoleBindingGetError tests the Reconcile method for the following use case
@@ -1163,9 +1164,9 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, "failed to get ClusterRoleBinding")
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestClusterRoleBindingCreateError tests the Reconcile method for the following use case
@@ -1217,9 +1218,9 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, "failed to create ClusterRoleBinding")
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestVZSystemNamespaceGetError tests the Reconcile method for the following use case
@@ -1274,9 +1275,9 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, errMsg)
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestVZSystemNamespaceCreateError tests the Reconcile method for the following use case
@@ -1336,9 +1337,9 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, errMsg)
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestGetOCIConfigSecretError tests the Reconcile method for the following use case
@@ -1400,9 +1401,9 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	asserts.EqualError(err, "failed to get Secret")
+	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
+	asserts.NotZero(result.RequeueAfter)
 }
 
 // TestBuildIngressIPForNIPNodePort tests buildDomain method
@@ -1410,6 +1411,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 // WHEN an nip.io configuration is detected and the service type is NodePort
 // THEN the correct domain using 127.0.0.1 is returned
 func TestBuildIngressIPForNIPNodePort(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1426,7 +1428,7 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 			return nil
 		})
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
@@ -1441,6 +1443,7 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 // WHEN an nip.io configuration is detected and the service type is LoadBalancer
 // THEN the correct domain is returned
 func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1463,7 +1466,7 @@ func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
 			return nil
 		})
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
@@ -1478,6 +1481,7 @@ func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
 // WHEN an nip.io configuration is detected and the client.Get() call returns an error
 // THEN an error is returned
 func TestBuildIngressIPForNIPGetError(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1493,7 +1497,7 @@ func TestBuildIngressIPForNIPGetError(t *testing.T) {
 			return fmt.Errorf("Simulated error")
 		})
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.Error(t, err)
@@ -1508,6 +1512,7 @@ func TestBuildIngressIPForNIPGetError(t *testing.T) {
 // WHEN an nip.io configuration is detected with an invalid service type
 // THEN an error is returned
 func TestBuildIngressIPForNIPInvalidServiceType(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1524,7 +1529,7 @@ func TestBuildIngressIPForNIPInvalidServiceType(t *testing.T) {
 			return nil
 		})
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.Error(t, err)
@@ -1539,6 +1544,7 @@ func TestBuildIngressIPForNIPInvalidServiceType(t *testing.T) {
 // WHEN an nip.io configuration is detected and the service IP is in the expected location for OLCNE
 // THEN the correct domain is returned
 func TestBuildIngressIPForNIPLoadBalancerOLCNE(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1558,7 +1564,7 @@ func TestBuildIngressIPForNIPLoadBalancerOLCNE(t *testing.T) {
 			return nil
 		})
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
@@ -1573,6 +1579,7 @@ func TestBuildIngressIPForNIPLoadBalancerOLCNE(t *testing.T) {
 // WHEN an nip.io configuration is detected no service IP is in the expected location for OLCNE
 // THEN an error is returned
 func TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1589,7 +1596,7 @@ func TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound(t *testing.T) {
 			return nil
 		})
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.Error(t, err)
@@ -1604,6 +1611,7 @@ func TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound(t *testing.T) {
 // WHEN an OCI DNS configuration is detected both with and without an environment name in the spec
 // THEN the correct domain is returned
 func TestBuildOCIDNSDomain(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1612,7 +1620,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -1623,7 +1631,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "default.my.zone.com", suffix)
 
-	suffix, err = buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err = buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
@@ -1644,6 +1652,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 // WHEN an External DNS configuration is detected both with and without an environment name in the spec
 // THEN the correct domain is returned
 func TestBuildExternalDNSDomain(t *testing.T) {
+	log := zap.S()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1652,7 +1661,7 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	suffix, err := buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err := buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -1663,7 +1672,7 @@ func TestBuildExternalDNSDomain(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "default.my.external.com", suffix)
 
-	suffix, err = buildDomain(mock, &vzapi.Verrazzano{
+	suffix, err = buildDomain(log, mock, &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 		Spec: vzapi.VerrazzanoSpec{
 			EnvironmentName: "myenv",
