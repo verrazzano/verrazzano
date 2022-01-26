@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 pipeline {
@@ -47,8 +47,10 @@ pipeline {
                 script {
                     // Do not add a comment to the JIRA if an existing pull request is being updated
                     if (currentBuild.changeSets.size() == 0) {
+                        // Escape double quotes in the PR title
+                        env.PR_TITLE = sh(script:'echo "${CHANGE_TITLE}" | sed \'s/"/\\\\"/g\'', returnStdout: true).trim()
                         sh """
-                            verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.CHANGE_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
+                            verrazzano-helper update ticket-commits --pr-url "${env.CHANGE_URL}" --pr-title "${env.PR_TITLE}" --pr-target "${env.CHANGE_TARGET}" --token unused --jira-env=prod
                         """
                     } else {
                         echo "Existing pull request updated, skipping update of JIRA ticket"
