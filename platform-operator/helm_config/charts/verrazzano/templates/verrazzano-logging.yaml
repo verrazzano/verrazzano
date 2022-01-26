@@ -34,8 +34,8 @@ data:
   {{- else }}
   es-url: http://verrazzano-authproxy-elasticsearch:8775
   {{- end }}
-  {{- if .Values.logging.elasticsearchSecret }}
-  es-secret: {{ .Values.logging.elasticsearchSecret }}
+  {{- if .Values.fluentd.elasticsearchSecret }}
+  es-secret: {{ .Values.fluentd.elasticsearchSecret }}
   {{- else }}
   es-secret: verrazzano
   {{- end }}
