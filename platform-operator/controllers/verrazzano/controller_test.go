@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 	"time"
 
@@ -23,7 +24,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -1411,7 +1411,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 // WHEN an nip.io configuration is detected and the service type is NodePort
 // THEN the correct domain using 127.0.0.1 is returned
 func TestBuildIngressIPForNIPNodePort(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1443,7 +1443,7 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 // WHEN an nip.io configuration is detected and the service type is LoadBalancer
 // THEN the correct domain is returned
 func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1481,7 +1481,7 @@ func TestBuildIngressIPForNIPLoadBalancer(t *testing.T) {
 // WHEN an nip.io configuration is detected and the client.Get() call returns an error
 // THEN an error is returned
 func TestBuildIngressIPForNIPGetError(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1512,7 +1512,7 @@ func TestBuildIngressIPForNIPGetError(t *testing.T) {
 // WHEN an nip.io configuration is detected with an invalid service type
 // THEN an error is returned
 func TestBuildIngressIPForNIPInvalidServiceType(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1544,7 +1544,7 @@ func TestBuildIngressIPForNIPInvalidServiceType(t *testing.T) {
 // WHEN an nip.io configuration is detected and the service IP is in the expected location for OLCNE
 // THEN the correct domain is returned
 func TestBuildIngressIPForNIPLoadBalancerOLCNE(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1579,7 +1579,7 @@ func TestBuildIngressIPForNIPLoadBalancerOLCNE(t *testing.T) {
 // WHEN an nip.io configuration is detected no service IP is in the expected location for OLCNE
 // THEN an error is returned
 func TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1611,7 +1611,7 @@ func TestBuildIngressIPForNIPLoadBalancerOLCNENoIPFound(t *testing.T) {
 // WHEN an OCI DNS configuration is detected both with and without an environment name in the spec
 // THEN the correct domain is returned
 func TestBuildOCIDNSDomain(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)
@@ -1652,7 +1652,7 @@ func TestBuildOCIDNSDomain(t *testing.T) {
 // WHEN an External DNS configuration is detected both with and without an environment name in the spec
 // THEN the correct domain is returned
 func TestBuildExternalDNSDomain(t *testing.T) {
-	log := zap.S()
+	log := vzlog.DefaultLogger()
 	namespace := "verrazzano"
 	name := "test"
 	asserts := assert.New(t)

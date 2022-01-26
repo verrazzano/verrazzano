@@ -37,10 +37,6 @@ pipeline {
         booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to generate the analysis tool', name: 'GENERATE_TOOL', defaultValue: false)
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
-        choice (name: 'SELECT_IMAGE_REGISTRY',
-                description: 'Select an image registry',
-                // 1st choice is the default value
-                choices: ["OCIR", "Harbor"])
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
@@ -56,6 +52,7 @@ pipeline {
     }
 
     environment {
+        TEST_ENV = "JENKINS"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         IS_PERIODIC_PIPELINE = "false"
 
@@ -553,8 +550,7 @@ pipeline {
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation),
-                                    string(name: 'SELECT_IMAGE_REGISTRY', value: params.SELECT_IMAGE_REGISTRY)
+                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                 ], wait: true
                         }
                     }

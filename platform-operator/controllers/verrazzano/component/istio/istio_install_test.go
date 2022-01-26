@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os/exec"
 	"strings"
@@ -22,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"go.uber.org/zap"
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -232,7 +232,7 @@ func Test_forkInstallSuccess(t *testing.T) {
 	expectedOverridesFiles := []string{comp.ValuesFile, "istio-overrides.yaml"}
 	expectedOverridesString := "myoverride=true"
 
-	setInstallFunc(func(log *zap.SugaredLogger, overridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setInstallFunc(func(log vzlog.VerrazzanoLogger, overridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 		assert.Equal(expectedOverridesFiles, overridesFiles, "Did not get expected override files")
 		assert.Equal(expectedOverridesString, overridesString)
 		return []byte(""), []byte(""), nil
@@ -273,7 +273,7 @@ func Test_forkInstallFailure(t *testing.T) {
 	istio.SetCmdRunner(fakeRunner{})
 
 	cause := fmt.Errorf("Unexpected error on install")
-	setInstallFunc(func(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	setInstallFunc(func(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 		return []byte(""), []byte(""), cause
 	})
 	defer func() { installFunc = istio.Install }()
@@ -496,7 +496,7 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeInstall(log *zap.SugaredLogger, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeInstall(log vzlog.VerrazzanoLogger, _ string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}

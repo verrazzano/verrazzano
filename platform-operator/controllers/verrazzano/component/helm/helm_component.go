@@ -5,6 +5,8 @@ package helm
 
 import (
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -19,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -96,7 +97,7 @@ type preInstallFuncSig func(context spi.ComponentContext, releaseName string, na
 type postInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string) error
 
 // preUpgradeFuncSig is the signature for the optional preUgrade function
-type preUpgradeFuncSig func(log *zap.SugaredLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
+type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error
 
 // appendOverridesSig is an optional function called to generate additional overrides.
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
@@ -193,7 +194,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 		// NOTE: we'll likely have to put in some more logic akin to what we do for the scripts, see
 		//       reset_chart() in the common.sh script.  Recovering chart state can be a bit difficult, we
 		//       may need to draw on both the 'ls' and 'status' output for that.
-		helm.Uninstall(context.Log(), h.ReleaseName, resolvedNamespace, context.IsDryRun())
+		helm.Uninstall(context.Log().GetZapLogger(), h.ReleaseName, resolvedNamespace, context.IsDryRun())
 	}
 
 	var kvs []bom.KeyValue
@@ -211,7 +212,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Perform an install using the helm upgrade --install command
 	context.Log().Infof("Performing installation of %s", h.ReleaseName)
-	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
+	_, _, err = upgradeFunc(context.Log().GetZapLogger(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
 }
 
@@ -233,7 +234,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	}
 
 	// If the component has any ingresses associated, those should be present
-	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context)) {
+	if !status.IngressesPresent(context.Log().GetZapLogger(), context.Client(), h.GetIngressNames(context)) {
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
@@ -280,7 +281,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	stdout, err := helm.GetValues(context.Log(), h.ReleaseName, namespace)
+	stdout, err := helm.GetValues(context.Log().GetZapLogger(), h.ReleaseName, namespace)
 	if err != nil {
 		return err
 	}
@@ -310,7 +311,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 
 	// Perform an upgrade using the helm upgrade --install command
 	context.Log().Infof("Performing upgrade of %s", h.ReleaseName)
-	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
+	_, _, err = upgradeFunc(context.Log().GetZapLogger(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
 }
 

@@ -8,7 +8,7 @@ import (
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"go.uber.org/zap"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -18,7 +18,7 @@ import (
 )
 
 // StopDomainsUsingOldEnvoy stops all the WebLogic domains using Envoy 1.7.3
-func StopDomainsUsingOldEnvoy(log *zap.SugaredLogger, client clipkg.Client) error {
+func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
@@ -41,7 +41,7 @@ func StopDomainsUsingOldEnvoy(log *zap.SugaredLogger, client clipkg.Client) erro
 }
 
 // Determine if the WebLogic operator needs to be stopped, if so then stop it
-func stopDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string) error {
+func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string) error {
 	log.Debugf("stopDomainIfNeeded: Checking if domain for workload %s needs to be stopped", wlName)
 
 	// Get the domain pods for this workload
@@ -90,7 +90,7 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 }
 
 // StartDomainsStoppedByUpgrade starts all the WebLogic domains that upgrade previously stopped
-func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client, restartVersion string) error {
+func StartDomainsStoppedByUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
 	log.Debug("StartDomainsStoppedByUpgrade: Checking if any domains need to be started")
 
 	// get all the app configs
@@ -115,7 +115,7 @@ func StartDomainsStoppedByUpgrade(log *zap.SugaredLogger, client clipkg.Client, 
 }
 
 // Start the WebLogic domain if upgrade stopped it
-func startDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
+func startDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
 	// Set the lifecycle annotation on the VerrazzanoWebLogicWorkload
 	var wl vzapp.VerrazzanoWebLogicWorkload
 	wl.Namespace = wlNamespace
@@ -139,7 +139,7 @@ func startDomainIfNeeded(log *zap.SugaredLogger, client clipkg.Client, wlNamespa
 }
 
 // RestartAllApps restarts all the applications
-func RestartAllApps(log *zap.SugaredLogger, client clipkg.Client, restartVersion string) error {
+func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
 	log.Debug("RestartAllApps: restarting all apps")
 
 	// get all the app configs

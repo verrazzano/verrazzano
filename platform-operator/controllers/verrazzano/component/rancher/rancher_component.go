@@ -210,7 +210,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 				Namespace: common.CattleSystem,
 			},
 		}
-		return status.DeploymentsReady(log, c, rancherDeploy, 1)
+		return status.DeploymentsReady(log.GetZapLogger(), c, rancherDeploy, 1)
 	}
 
 	return false

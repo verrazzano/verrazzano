@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -6,10 +6,9 @@ package rancher
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
@@ -63,8 +62,8 @@ func getScheme() *runtime.Scheme {
 	return scheme
 }
 
-func getTestLogger(t *testing.T) *zap.SugaredLogger {
-	return zaptest.NewLogger(t).Sugar()
+func getTestLogger(t *testing.T) vzlog.VerrazzanoLogger {
+	return vzlog.DefaultLogger()
 }
 
 func createRootCASecret() v1.Secret {

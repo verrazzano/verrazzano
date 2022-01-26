@@ -36,7 +36,7 @@ func isKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: kialiSystemName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+	return status.DeploymentsReady(ctx.Log().GetZapLogger(), ctx.Client(), deployments, 1)
 }
 
 // AppendOverrides Build the set of Kiali overrides for the helm install
