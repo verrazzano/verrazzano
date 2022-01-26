@@ -28,7 +28,7 @@ const (
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
 	BranchName        = "branch_name"
-	CommitSHA         = "commit_sha"
+	CommitSHA         = "commit_hash"
 	KubernetesVersion = "kubernetes_version"
 	TestEnv           = "test_env"
 
