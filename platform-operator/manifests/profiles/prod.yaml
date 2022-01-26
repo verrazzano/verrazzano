@@ -9,4 +9,3 @@ spec:
     istio:
       ingressGatewayReplicas: 3
       egressGatewayReplicas: 3
-
