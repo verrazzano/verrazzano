@@ -28,7 +28,7 @@ const (
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
 	BranchName        = "branch_name"
-	CommitSHA         = "commit_hash"
+	CommitHash        = "commit_hash"
 	KubernetesVersion = "kubernetes_version"
 	TestEnv           = "test_env"
 
@@ -156,7 +156,7 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	//Tagging commit with the branch.
 	if gitCommit != "" {
 		gitCommitAndBranch := branchName + "/" + gitCommit
-		log = log.With(CommitSHA, gitCommitAndBranch)
+		log = log.With(CommitHash, gitCommitAndBranch)
 	}
 
 	testEnv := os.Getenv("TEST_ENV")
