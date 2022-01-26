@@ -37,7 +37,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 		compContext := spiCtx.For(compName).Operation(vzconst.InstallOperation)
 		compLog := compContext.Log()
 
-		compLog.Progressf("Processing install for %s", compName)
+		compLog.Oncef("Processing install for %s", compName)
 
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
@@ -51,20 +51,20 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 		switch componentStatus.State {
 		case vzapi.Ready:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
-			compLog.Progressf("Component %s is ready", compName)
+			compLog.Oncef("Component %s is ready", compName)
 			if err := comp.Reconcile(spiCtx); err != nil {
 				return newRequeueWithDelay(), err
 			}
 			continue
 		case vzapi.Disabled:
 			if !comp.IsEnabled(compContext) {
-				compLog.Debugf("Component %s is disabled, skipping install", compName)
+				compLog.Oncef("Component %s is disabled, skipping install", compName)
 				// User has disabled component in Verrazzano CR, don't install
 				continue
 			}
 			if !isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
 				// User needs to do upgrade before this component can be installed
-				compLog.Debugf("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
+				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
 					comp.Name(), comp.GetMinVerrazzanoVersion())
 				continue
 			}

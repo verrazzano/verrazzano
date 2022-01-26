@@ -20,6 +20,8 @@ type fakeLogger struct {
 	count       int
 }
 
+// var _ SugaredLogger = fakeLogger{}
+
 // TestLog tests the ProgressLogger function periodic logging
 // GIVEN a ProgressLogger with a frequency of 3 seconds
 // WHEN log is called 5 times in 5 seconds to log the same message
@@ -118,6 +120,15 @@ func TestZap(t *testing.T) {
 	DeleteLogContext(rKey)
 }
 
+// SetZapLogger gets the zap logger
+func (l *fakeLogger) SetZapLogger(zap *zap.SugaredLogger) {
+}
+
+// GetZapLogger gets the zap logger
+func (l *fakeLogger) GetZapLogger() *zap.SugaredLogger {
+	return nil
+}
+
 func (l *fakeLogger) Info(args ...interface{}) {
 	s := fmt.Sprint(args...)
 	l.actualMsg = s
@@ -145,13 +156,4 @@ func (l *fakeLogger) Error(args ...interface{}) {
 
 // Errorf is a wrapper for SugaredLogger Errorf
 func (l *fakeLogger) Errorf(template string, args ...interface{}) {
-}
-
-// SetZapLogger gets the zap logger
-func (l *fakeLogger) SetZapLogger(zap *zap.SugaredLogger) {
-}
-
-// GetZapLogger gets the zap logger
-func (l *fakeLogger) GetZapLogger() *zap.SugaredLogger {
-	return nil
 }

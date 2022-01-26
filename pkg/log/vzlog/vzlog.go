@@ -18,18 +18,40 @@ var lock sync.Mutex
 
 // SugaredLogger is a logger interface that provides base logging
 type SugaredLogger interface {
+	// Debug logs a message at Debug log level
 	Debug(args ...interface{})
+
+	// Debugf formats a message and logs it once at Debug log level
 	Debugf(template string, args ...interface{})
+
+	// Info logs a message at Info log level
 	Info(args ...interface{})
+
+	// Infof formats a message and logs it once at Info log level
 	Infof(template string, args ...interface{})
+
+	// Error logs a message at Error log level
 	Error(args ...interface{})
+
+	// Errorf formats a message and logs it once at Error log level
 	Errorf(template string, args ...interface{})
 }
 
 // ProgressLogger is a logger interface that provides Verrazzano base and progress logging
 type ProgressLogger interface {
+	// Once logs a message once at Info log level
+	Once(args ...interface{})
+
+	// Oncef formats a message and logs it once at Info log level
+	Oncef(template string, args ...interface{})
+
+	// Progress logs a message periodically at Info log level
 	Progress(args ...interface{})
+
+	// Progress formats a message and logs it periodically at Info log level
 	Progressf(template string, args ...interface{})
+
+	// SetFrequency sets the logging frequency of a progress message
 	SetFrequency(secs int) VerrazzanoLogger
 }
 
@@ -131,19 +153,34 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 	return log
 }
 
-// Progressf formats a message and logs it
-func (m *verrazzanoLogger) Progressf(template string, args ...interface{}) {
-	s := fmt.Sprintf(template, args...)
-	m.Progress(s)
+// Oncef formats a message and logs it once
+func (v *verrazzanoLogger) Oncef(template string, args ...interface{}) {
+	v.Progressf(template, args...)
 }
 
-// Progress logs an info message either now or sometime in the future.  The message
+// Once logs a message once
+func (v *verrazzanoLogger) Once(args ...interface{}) {
+	v.doLog(true, args...)
+}
+
+// Progressf formats a message and logs it periodically
+func (v *verrazzanoLogger) Progressf(template string, args ...interface{}) {
+	s := fmt.Sprintf(template, args...)
+	v.Progress(s)
+}
+
+// Progress logs a message periodically
+func (v *verrazzanoLogger) Progress(args ...interface{}) {
+	v.doLog(false, args...)
+}
+
+// doLog logs an info message either now or sometime in the future.  The message
 // will be logged only if it is new or the next log time has been reached.
 // This function allows a controller to constantly log info messages very frequently,
 // such as "waiting for Verrazzano secret", but the message will only be logged
 // once periodically according to the frequency (e.g. once every 60 seconds).
 // If the log message is new or has changed then it is logged immediately.
-func (v *verrazzanoLogger) Progress(args ...interface{}) {
+func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
 
@@ -158,10 +195,10 @@ func (v *verrazzanoLogger) Progress(args ...interface{}) {
 	// Log now if the message changed or wait time exceeded
 	logNow := true
 
-	// If the message has changed, then save the old message in the history
-	// so that it is never displayed again
 	if v.lastLog != nil {
-		if msg != v.lastLog.msgLogged {
+		// If "once" is true or the message has changed, then save the old message
+		// in the history so that it is never displayed again
+		if once || msg != v.lastLog.msgLogged {
 			v.historyMessages[v.lastLog.msgLogged] = true
 		} else {
 			// Check if it is time to log since the message didn't change
