@@ -1,9 +1,9 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package progress
+package vzlog
 
-// The progress package provides logging for progress messages in controllers and other
+// The vzlog package provides logging for messages in controllers and other
 // code that wants to throttle messages.  The Verrazzano Platform Operator controller for
 // the Verrazzano resource is an example where this should be used.  During a reconcile cycle,
 // the controller-runtime calls the controller Reconcile method repeatedly until the resource has
@@ -20,7 +20,7 @@ package progress
 // two new calls are Progress and Progressf. The S() method will return the underlying SugaredLogger.
 // The following psuedo-code shows how this should be used:
 //
-//   l := EnsureLogger("namespace/myresource", zap.S()).DefaultProgressLogger()
+//   log := vzlog.EnsureLogContext(key).EnsureLogger("default", zaplog, zaplog)
 //
 // Display info and errors as usual
 //   p.Errorf(...)
@@ -30,11 +30,11 @@ package progress
 //   p.Progress("Reconciling namespace/resource")
 //
 // Display Keycloak progress
-//   cl := l.EnsureProgressLogger("Keycloak")
+//   cl := l.GetContext().EnsureLogger("Keycloak")
 //   cl.Progress("Waiting for Verrazzano secret")
 //   cl.Errorf(...)
 //
 // Display Istio progress
-//   cl := l.EnsureProgressLogger("Istio")
+//   cl := l.GetContext().EnsureLogger("Istio")
 //   cl.Progress("Waiting for Istio to start")
 //   cl.Errorf(...)

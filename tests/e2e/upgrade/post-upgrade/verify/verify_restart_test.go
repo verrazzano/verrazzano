@@ -5,6 +5,7 @@ package verify
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -16,7 +17,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/zap"
 )
 
 const (
@@ -159,8 +159,7 @@ var _ = t.Describe("Istio helm releases", func() {
 var _ = t.Describe("istioctl verify-install", func() {
 	framework.VzIt("should not return an error", func() {
 		Eventually(func() error {
-			log := zap.S()
-			stdout, _, err := istio.VerifyInstall(log)
+			stdout, _, err := istio.VerifyInstall(vzlog.DefaultLogger())
 			if err != nil {
 				pkg.Log(pkg.Error, string(stdout))
 			}

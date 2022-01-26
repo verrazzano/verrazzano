@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -22,7 +23,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -807,7 +807,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -889,7 +889,7 @@ func TestUpgradeComponent(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -980,7 +980,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(zap.S(), &vz)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
 
 	// Validate the results
 	mocker.Finish()
