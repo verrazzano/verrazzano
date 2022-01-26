@@ -18,7 +18,7 @@ if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] ||
   exit 1
 fi
 
-BASE_OBJ_PATH="daily-scan/${CLEAN_BRANCH_NAME}/"
+BASE_OBJ_PATH="daily-scan/${CLEAN_BRANCH_NAME}"
 SCAN_DATETIME="$(date '+%Y%m%d%H%M%S')"
 JOB_OBJ_PATH="${BASE_OBJ_PATH}/${SCAN_DATETIME}-${BUILD_NUMBER}"
 
