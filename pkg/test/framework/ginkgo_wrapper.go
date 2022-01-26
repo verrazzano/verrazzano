@@ -96,11 +96,13 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 
 	// handle decorations - iterate through all but the last args and look for our decorators
 	var ginkgoArgs []interface{}
+	var ourDecorations []interface{}
 
 	for _, arg := range args[:len(args)-1] {
 		if reflect.TypeOf(arg).String() == "internal.Requires" {
-			fmt.Println("I found a requires decoration! woot woot!")
-			fmt.Printf("This Describe container is telling me it needs: %s\n", arg)
+			ginkgo.GinkgoWriter.Println("I found a requires decoration! woot woot!")
+			ginkgo.GinkgoWriter.Printf("This Describe container is telling me it needs: %s\n", arg)
+			ourDecorations = append(ourDecorations, arg)
 		} else {
 			// if it is not one of ours, it must be one of ginkgo's and we need to pass it to them
 			ginkgoArgs = append(ginkgoArgs, arg)
@@ -116,11 +118,16 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	}
 	f := func() {
 		metrics.Emit(t.Metrics.With(metrics.Status, metrics.Started))
+		ProcessDecorations()
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 	}
 	args[len(args)-1] = f
 	return ginkgo.Describe(text, ginkgoArgs...)
+}
+
+func ProcessDecorations() {
+	fmt.Println("PROCESSING DECORATIONS")
 }
 
 // DescribeTable - wrapper function for Ginkgo DescribeTable

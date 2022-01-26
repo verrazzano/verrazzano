@@ -30,6 +30,7 @@ func([]byte) {
 var _ = t.Describe("Upgrade", ginkgo.Ordered, framework.Require("verrazzano"), func() {
 
 	t.BeforeAll(func() {
+		framework.ProcessDecorations()
 		work("BeforeAll - I install the starting version of Verrazzano")
 	})
 
@@ -84,7 +85,7 @@ var _ = t.Describe("After Verrazzano is upgraded", func() {
 
 func work(s string) {
 	start := time.Now()
-	n, err := rand.Int(rand.Reader, big.NewInt(10))
+	n, err := rand.Int(rand.Reader, big.NewInt(3))
 	if err != nil {
 		panic(err)
 	}
