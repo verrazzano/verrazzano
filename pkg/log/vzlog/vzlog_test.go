@@ -148,10 +148,10 @@ func (l *fakeLogger) Errorf(template string, args ...interface{}) {
 }
 
 // SetZapLogger gets the zap logger
-func (p *fakeLogger) SetZapLogger(zap *zap.SugaredLogger) {
+func (l *fakeLogger) SetZapLogger(zap *zap.SugaredLogger) {
 }
 
 // GetZapLogger gets the zap logger
-func (p *fakeLogger) GetZapLogger() *zap.SugaredLogger {
+func (l *fakeLogger) GetZapLogger() *zap.SugaredLogger {
 	return nil
 }

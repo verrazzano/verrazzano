@@ -143,7 +143,7 @@ func (m *verrazzanoLogger) Progressf(template string, args ...interface{}) {
 // such as "waiting for Verrazzano secret", but the message will only be logged
 // once periodically according to the frequency (e.g. once every 60 seconds).
 // If the log message is new or has changed then it is logged immediately.
-func (m *verrazzanoLogger) Progress(args ...interface{}) {
+func (v *verrazzanoLogger) Progress(args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
 
@@ -151,7 +151,7 @@ func (m *verrazzanoLogger) Progress(args ...interface{}) {
 	// logged already, previous to the current message.  This happens
 	// if a controller reconcile loop is called repeatedly.  In this
 	// case we never want to display this message again, so just ignore it.
-	_, ok := m.historyMessages[msg]
+	_, ok := v.historyMessages[msg]
 	if ok {
 		return
 	}
@@ -160,21 +160,21 @@ func (m *verrazzanoLogger) Progress(args ...interface{}) {
 
 	// If the message has changed, then save the old message in the history
 	// so that it is never displayed again
-	if m.lastLog != nil {
-		if msg != m.lastLog.msgLogged {
-			m.historyMessages[m.lastLog.msgLogged] = true
+	if v.lastLog != nil {
+		if msg != v.lastLog.msgLogged {
+			v.historyMessages[v.lastLog.msgLogged] = true
 		} else {
 			// Check if it is time to log since the message didn't change
-			waitSecs := time.Duration(m.frequencySecs) * time.Second
-			nextLogTime := m.lastLog.lastLogTime.Add(waitSecs)
+			waitSecs := time.Duration(v.frequencySecs) * time.Second
+			nextLogTime := v.lastLog.lastLogTime.Add(waitSecs)
 			logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
 		}
 	}
 
 	// Log the message if it is time and save the lastLog info
 	if logNow {
-		m.sLogger.Info(msg)
-		m.lastLog = &lastLog{
+		v.sLogger.Info(msg)
+		v.lastLog = &lastLog{
 			lastLogTime: &now,
 			msgLogged:   msg,
 		}
