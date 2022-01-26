@@ -4,6 +4,7 @@ package status
 
 import (
 	"context"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	v1 "k8s.io/api/networking/v1"
@@ -18,7 +19,7 @@ func IngressesPresent(log vzlog.VerrazzanoLogger, client clipkg.Client, ingressN
 		ing := v1.Ingress{}
 		if err := client.Get(context.TODO(), ingName, &ing); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf ("Waiting for ingress %v to exist", ingressNames)
+				log.Progressf("Waiting for ingress %v to exist", ingressNames)
 				// Ingress not found
 				return false
 			}

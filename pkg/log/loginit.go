@@ -52,8 +52,7 @@ func InitLogs(opts kzap.Options) {
 
 // BuildZapLogger initializes zap logger
 func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
-	var config zap.Config
-	config = zap.NewProductionConfig()
+	config := zap.NewProductionConfig()
 	config.Level.SetLevel(zapcore.InfoLevel)
 
 	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder

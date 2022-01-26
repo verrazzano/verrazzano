@@ -4,12 +4,12 @@ package status
 
 import (
 	"context"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 )
 
 // DeploymentsReady Check that the named deployments have the minimum number of specified replicas ready and available
@@ -18,8 +18,7 @@ func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployme
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf ("Waiting for deployment %v to exist", namespacedName)
-				// Deployment not found
+				log.Progressf("Waiting for deployment %v to exist", namespacedName)
 				return false
 			}
 			log.Errorf("Failed getting deployment %v: %v", namespacedName, err)

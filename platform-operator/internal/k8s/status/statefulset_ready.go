@@ -5,6 +5,7 @@ package status
 
 import (
 	"context"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,7 +19,7 @@ func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, stateful
 		statefulset := appsv1.StatefulSet{}
 		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf ("Waiting for statefulset %v to exist", namespacedName)
+				log.Progressf("Waiting for statefulset %v to exist", namespacedName)
 				// StatefulSet not found
 				return false
 			}
