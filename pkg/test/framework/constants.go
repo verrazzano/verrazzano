@@ -3,10 +3,7 @@
 
 package framework
 
-import "github.com/verrazzano/verrazzano/pkg/test/framework/internal"
-
-func Require(requires ...string) Requires {
-	return Requires(requires)
-}
-
-type Requires = internal.Requires
+const (
+	DEFAULT_K8S_VERSION = "1.20"
+	DEFAULT_PRE_UPGRADE_V8O_VERSION = "1.0.0"
+)

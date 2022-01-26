@@ -122,8 +122,9 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 		reflect.ValueOf(body).Call([]reflect.Value{})
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 	}
-	args[len(args)-1] = f
-	return ginkgo.Describe(text, ginkgoArgs...)
+	args[len(args)-1] = ginkgo.Offset(1)
+	args = append(args, f)
+	return ginkgo.Describe(text, args...)
 }
 
 func ProcessDecorations() {

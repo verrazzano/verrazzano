@@ -21,16 +21,17 @@ var _ = t.SynchronizedBeforeSuite(func() []byte {
 	os.Remove(filename)
 
 	work("SynchronizedBeforeSuite.process1 (runs only once) - I will new a kind cluster")
+	framework.EnsureCluster(framework.DEFAULT_K8S_VERSION)
 	return []byte{}
 },
 func([]byte) {
 	work("SynchronizedBeforeSuite.allProcesses (runs once per process/node)")
 })
 
-var _ = t.Describe("Upgrade", ginkgo.Ordered, framework.Require("verrazzano"), func() {
+var _ = t.Describe("Upgrade", ginkgo.Ordered, func() {
 
 	t.BeforeAll(func() {
-		framework.ProcessDecorations()
+		framework.EnsureVerrazzanoInstalled(framework.DEFAULT_PRE_UPGRADE_V8O_VERSION)
 		work("BeforeAll - I install the starting version of Verrazzano")
 	})
 
