@@ -12,6 +12,7 @@ import (
 	"os"
 	"time"
 )
+
 const filename = ".upgrade-done"
 
 var t = framework.NewTestFramework("mark")
@@ -20,13 +21,13 @@ var _ = t.SynchronizedBeforeSuite(func() []byte {
 	// cleanup upgrade-done file from old run (hack to fake the inter-process wait)
 	os.Remove(filename)
 
-	work("SynchronizedBeforeSuite.process1 (runs only once) - I will new a kind cluster")
 	framework.EnsureCluster(framework.DEFAULT_K8S_VERSION)
+	work("SynchronizedBeforeSuite.process1 (runs only once) - I will new a kind cluster")
 	return []byte{}
 },
-func([]byte) {
-	work("SynchronizedBeforeSuite.allProcesses (runs once per process/node)")
-})
+	func([]byte) {
+		work("SynchronizedBeforeSuite.allProcesses (runs once per process/node)")
+	})
 
 var _ = t.Describe("Upgrade", ginkgo.Ordered, func() {
 
@@ -35,27 +36,22 @@ var _ = t.Describe("Upgrade", ginkgo.Ordered, func() {
 		work("BeforeAll - I install the starting version of Verrazzano")
 	})
 
-	t.Context("when Verrazzano is installed", ginkgo.Ordered, func(){
-		t.BeforeAll(func() {
-			work("I wait for Verrazzano to be installed")
-		})
+	t.It("the install verification should pass", func() {
+		work("verify-install")
+	})
 
-		t.It("the install verification should pass", func() {
-			work("verify-install")
-		})
+	t.It("the infrastructure verification should pass", func() {
+		work("verify-infra")
+	})
 
-		t.It("the infrastructure verification should pass", func() {
-			work("verify-infra")
-		})
+	t.When("and then", func() {
+		t.It("upgraded", func() {
+			framework.UpgradeVerrazzanoToRelease("1.2.0")
+			work("I upgrade Verrazzano")
 
-		t.When("and then", func() {
-			t.It("upgraded", func() {
-				work("I upgrade Verrazzano")
-
-				// create a file to fake the inter-process wait
-				f, _ := os.Create(filename)
-				f.Close()
-			})
+			// create a file to fake the inter-process wait
+			f, _ := os.Create(filename)
+			f.Close()
 		})
 	})
 })
@@ -72,6 +68,8 @@ var _ = t.Describe("After Verrazzano is upgraded", func() {
 			}
 		}
 
+		// we'd really do something more like this:
+		framework.EnsureVerrazzanoVersion("1.2.0")
 		work("I test/wait for the upgrade to be marked as complete")
 	})
 

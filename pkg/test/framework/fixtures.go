@@ -18,3 +18,9 @@ func EnsureVerrazzanoInstalled(version string) {
 func EnsureVerrazzanoVersion(version string) {
 
 }
+
+// UpgradeVerrazzanoToRelease will upgrade the VPO to the specified release, and then initiate an upgrade of Verrazzano
+// itself to that release
+func UpgradeVerrazzanoToRelease(version string) {
+
+}
