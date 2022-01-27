@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -87,7 +88,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("Test Network Policies", func() {
+var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 	// Verify test pod is running
 	// GIVEN netpol-test is deployed
 	// WHEN the pod is created

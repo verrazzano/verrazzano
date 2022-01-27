@@ -57,7 +57,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", func() {
+var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster

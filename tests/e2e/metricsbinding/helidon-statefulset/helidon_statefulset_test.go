@@ -4,13 +4,13 @@
 package statefulsetworkload
 
 import (
-	"time"
-
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/metricsbinding"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"time"
 )
 
 const (
@@ -38,7 +38,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verify application.", func() {
+var _ = t.Describe("Verify application.", Label("f:app-lcm.poko"), func() {
 	t.Context("StatefulSet.", func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
@@ -53,7 +53,7 @@ var _ = t.Describe("Verify application.", func() {
 	// GIVEN the Helidon app is deployed and the pods are running
 	// WHEN the Prometheus metrics in the app namespace are scraped
 	// THEN the Helidon application metrics should exist using the default metrics template for statefulsets
-	t.Context("Verify Prometheus scraped metrics.", func() {
+	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Retrieve Prometheus scraped metrics for 'hello-helidon-statefulset' Pod", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app_verrazzano_io_workload", "hello-helidon-statefulset-apps-v1-statefulset")
