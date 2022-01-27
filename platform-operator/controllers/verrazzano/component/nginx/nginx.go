@@ -37,7 +37,7 @@ func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 		{Name: ControllerName, Namespace: namespace},
 		{Name: backendName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {

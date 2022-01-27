@@ -76,5 +76,5 @@ func IsWeblogicOperatorReady(ctx spi.ComponentContext, _ string, namespace strin
 	deployments := []types.NamespacedName{
 		{Name: wlsOperatorDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+	return status.DeploymentsReady(ctx.Log().GetZapLogger(), ctx.Client(), deployments, 1)
 }

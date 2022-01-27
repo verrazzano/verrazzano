@@ -6,6 +6,8 @@ package istio
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -23,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,7 +98,7 @@ func TestUpgrade(t *testing.T) {
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log *zap.SugaredLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
 	if len(overridesFiles) != 2 {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
 	}
@@ -131,7 +132,7 @@ func TestPostUpgrade(t *testing.T) {
 	assert.NoError(err, "PostUpgrade returned an error")
 }
 
-func fakeHelmUninstall(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+func fakeHelmUninstall(zap *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiocoredns" {
 		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
 	}

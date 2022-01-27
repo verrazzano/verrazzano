@@ -6,22 +6,32 @@ package metrics
 import (
 	"fmt"
 	neturl "net/url"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/discovery"
 )
 
 const (
-	Duration = "duration"
-	Started  = "started"
-	Status   = "status"
-	attempts = "attempts"
-	test     = "test"
-	label    = "label"
+	Duration          = "duration"
+	Started           = "started"
+	Status            = "status"
+	attempts          = "attempts"
+	test              = "test"
+	BuildURL          = "build_url"
+	JenkinsJob        = "jenkins_job"
+	BranchName        = "branch_name"
+	CommitHash        = "commit_hash"
+	KubernetesVersion = "kubernetes_version"
+	TestEnv           = "test_env"
+	label             = "label"
 
 	MetricsIndex     = "metrics"
 	TestLogIndex     = "testlogs"
@@ -85,7 +95,77 @@ func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
 	}
 
 	suiteUUID := uuid.NewUUID()
-	return log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg), nil
+	sugaredLogger := log.Sugar().With("suite_uuid", suiteUUID).With("package", pkg)
+	return configureLoggerWithJenkinsEnv(sugaredLogger), nil
+}
+
+func getKubernetesVersion() (string, error) {
+
+	var kubeVersion string
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		logger.Errorf("error getting kubeconfig path:  %v", err)
+		return kubeVersion, err
+	}
+	kubeConfig, err := k8sutil.GetKubeConfigGivenPath(kubeConfigPath)
+
+	if err != nil {
+		logger.Errorf("error getting kubeconfig:  %v", err)
+		return kubeVersion, err
+	}
+
+	discover, err := discovery.NewDiscoveryClientForConfig(kubeConfig)
+	if err != nil {
+		logger.Errorf("error getting discovery client:  %v", err)
+		return kubeVersion, err
+	}
+
+	version, err := discover.ServerVersion()
+	if err != nil {
+		logger.Errorf("error getting ServerVersion info:  %v", err)
+		return kubeVersion, err
+	}
+	kubeVersion = version.Major + "." + version.Minor
+
+	return kubeVersion, nil
+}
+
+func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
+
+	kubernetesVersion, err := getKubernetesVersion()
+
+	if err == nil {
+		log = log.With(KubernetesVersion, kubernetesVersion)
+	}
+
+	branchName := os.Getenv("BRANCH_NAME")
+	if branchName != "" {
+		log = log.With(BranchName, branchName)
+	}
+
+	buildURL := os.Getenv("BUILD_URL")
+
+	//Build number is retrieved from the Build url.
+	if buildURL != "" {
+		buildURL = strings.Replace(buildURL, "%252F", "/", 1)
+		buildAPIURL, _ := neturl.Parse(buildURL)
+		jenkinsJob := buildAPIURL.Path[5:]
+		log = log.With(BuildURL, buildURL).With(JenkinsJob, jenkinsJob)
+	}
+
+	gitCommit := os.Getenv("GIT_COMMIT")
+	//Tagging commit with the branch.
+	if gitCommit != "" {
+		gitCommitAndBranch := branchName + "/" + gitCommit
+		log = log.With(CommitHash, gitCommitAndBranch)
+	}
+
+	testEnv := os.Getenv("TEST_ENV")
+	if testEnv != "" {
+		log = log.With(TestEnv, testEnv)
+	}
+
+	return log
 }
 
 func Millis() int64 {

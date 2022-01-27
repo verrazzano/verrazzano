@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -16,11 +16,11 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const testMCAppConfigNamespace = "unit-mcappconfig-namespace"
@@ -141,7 +141,7 @@ func TestSyncer_processStatusUpdates(t *testing.T) {
 		AdminClient:         adminMock,
 		ManagedClusterName:  "mycluster1",
 		StatusUpdateChannel: statusUpdatesChan,
-		Log:                 ctrl.Log.WithName("statusUpdateUnitTest"),
+		Log:                 zap.S().With("statusUpdateUnitTest"),
 	}
 	s.processStatusUpdates()
 
@@ -225,7 +225,7 @@ func TestSyncer_processStatusUpdates_RetriesOnConflict(t *testing.T) {
 		AdminClient:         adminMock,
 		ManagedClusterName:  "mycluster1",
 		StatusUpdateChannel: statusUpdatesChan,
-		Log:                 ctrl.Log.WithName("statusUpdateUnitTest"),
+		Log:                 zap.S().With("statusUpdateUnitTest"),
 	}
 	s.processStatusUpdates()
 
