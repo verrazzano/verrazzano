@@ -361,7 +361,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		return nil, err
 	}
 	if len(images) != 1 {
-		return nil, fmt.Errorf("expected 1 image for Keycloak theme, found %v", len(images))
+		return nil, fmt.Errorf("Keycloak component failed, expected 1 image for Keycloak theme, found %v", len(images))
 	}
 
 	// use template to get populate template with image:tag
@@ -386,7 +386,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(compContext.Client(), compContext.EffectiveCR())
 	if err != nil {
-		compContext.Log().Errorf("AppendKeycloakOverrides: Error retrieving DNS sub domain: %s", err)
+		compContext.Log().Errorf("Keycloak component failed retrieving DNS sub domain: %s", err)
 		return nil, err
 	}
 	compContext.Log().Debugf("AppendKeycloakOverrides: DNSDomain returned %s", dnsSubDomain)
@@ -470,14 +470,16 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	// Get the client ID for verrazzano-pkce
 	id := getClientID(keycloakClients, "verrazzano-pkce")
 	if id == "" {
-		return errors.New("Keycloak Post Upgrade: Error retrieving ID for Keycloak user, zero length")
+		err := errors.New("Component Keycloak failed retrieving ID for Keycloak user, zero length")
+		ctx.Log().Error(err)
+		return err
 	}
 	ctx.Log().Debug("Keycloak Post Upgrade: Successfully retrieved clientID")
 
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
-		ctx.Log().Errorf("Keycloak Post Upgrade: Error retrieving DNS sub domain: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %s", err)
 		return err
 	}
 	ctx.Log().Debugf("Keycloak Post Upgrade: DNSDomain returned %s", dnsSubDomain)
@@ -485,10 +487,10 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	// Call the Script and Update the URIs
 	scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
 	if _, stderr, err := bashFunc(scriptName, id, dnsSubDomain); err != nil {
-		ctx.Log().Errorf("Keycloak Post Upgrade: Failed updating KeyCloak URIs %s: %s", err, stderr)
+		ctx.Log().Errorf("Component Keycloak failed updating KeyCloak URIs %s: %s", err, stderr)
 		return err
 	}
-	ctx.Log().Debug("Keycloak Post Upgrade: Successfully Updated Keycloak URIs")
+	ctx.Log().Debug("Component Keycloak successfully updated Keycloak URIs")
 	return nil
 }
 
@@ -516,7 +518,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	if userGroupID == "" {
-		return errors.New("configureKeycloakRealms: Error creating/retrieving User Group ID from Keycloak, zero length")
+		err := errors.New("Component Keycloak failed; user Group ID from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return err
 	}
 
 	// Create Verrazzano Admin Group
@@ -525,7 +529,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	if adminGroupID == "" {
-		return errors.New("configureKeycloakRealms: Error creating/retrieving Admin Group ID from Keycloak, zero length")
+		err := errors.New("Component Keycloak failed; admin group ID from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return err
 	}
 
 	// Create Verrazzano Project Monitors Group
@@ -534,7 +540,9 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	if monitorGroupID == "" {
-		return errors.New("configureKeycloakRealms: Error creating/retrieving Monitor Group ID from Keycloak, zero length")
+		err = errors.New("Component Keycloak failed; monitor group ID from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return err
 	}
 
 	// Create Verrazzano System Group
@@ -621,7 +629,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	ctx.Log().Debugf("configureKeycloakRealm: successfully configured realm %s", vzSysRealm)
+	ctx.Log().Oncef("Component Keycloak successfully configured realm %s", vzSysRealm)
 	return nil
 }
 
@@ -634,13 +642,15 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 		Name:      "keycloak-http",
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("loginKeycloak: Error retrieving Keycloak password: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving Keycloak password: %s", err)
 		return err
 	}
 	pw := secret.Data["password"]
 	keycloakpw := string(pw)
 	if keycloakpw == "" {
-		return errors.New("loginKeycloak: Error retrieving Keycloak password, empty string")
+		err = errors.New("Component Keycloak failed; Keycloak password is an empty string")
+		ctx.Log().Error(err)
+		return err
 	}
 	ctx.Log().Debug("loginKeycloak: Successfully retrieved Keycloak password")
 
@@ -650,7 +660,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("loginKeycloak: Error retrieving logging into Keycloak: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Keycloak component failed retrieving logging into: stdout = %s: stderr = %s", stdOut, stdErr)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
@@ -717,13 +727,13 @@ func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname st
 		Name:      secretname,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Failed retrieving secret %s/%s: %v", namespace, secretname, err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving secret %s/%s: %v", namespace, secretname, err)
 		return "", err
 	}
 	pw := secret.Data["password"]
 	stringpw := string(pw)
 	if stringpw == "" {
-		err := fmt.Errorf("Password field empty in secret %s/%s", namespace, secretname)
+		err := fmt.Errorf("Component Keycloak failed, password field empty in secret %s/%s", namespace, secretname)
 		ctx.Log().Error(err)
 		return "", err
 	}
@@ -757,7 +767,7 @@ func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 		ctx.Log().Debugf("createVerrazzanoSystemRealm: Create Verrazzano System Realm Cmd = %s", createRealmCmd)
 		stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRealmCmd))
 		if err != nil {
-			ctx.Log().Errorf("createVerrazzanoSystemRealm: Error creating Verrazzano System Realm: stdout = %s, stderr = %s", stdout, stderr)
+			ctx.Log().Errorf("Component Keycloak failed creating Verrazzano System Realm: stdout = %s, stderr = %s", stdout, stderr)
 			return err
 		}
 		ctx.Log().Once("Component Keycloak successfully created the Verrazzano system realm")
@@ -777,16 +787,18 @@ func createVerrazzanoUsersGroup(ctx spi.ComponentContext) (string, error) {
 	ctx.Log().Debugf("createVerrazzanoUsersGroup: Create Verrazzano Users Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoUsersGroup: Error creating Verrazzano Users Group: command output = %s", out)
+		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano Users Group: command output = %s", out)
 		return "", err
 	}
 	ctx.Log().Debugf("createVerrazzanoUsersGroup: Create Verrazzano Users Group Output = %s", out)
 	if len(string(out)) == 0 {
-		return "", errors.New("createVerrazzanoUsersGroup: Error retrieving User Group ID from Keycloak, zero length")
+		err = errors.New("Component Keycloak failed; user group ID from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return "", err
 	}
 	arr := strings.Split(string(out), "'")
 	if len(arr) != 3 {
-		return "", fmt.Errorf("createVerrazzanoUsersGroup: Error parsing output returned from Users Group create stdout returned = %s", out)
+		return "", fmt.Errorf("Component Keycloak failed parsing output returned from Users Group create stdout returned = %s", out)
 	}
 	ctx.Log().Debugf("createVerrazzanoUsersGroup: User Group ID = %s", arr[1])
 	ctx.Log().Once("Component Keycloak successfully created the Verrazzano user group")
@@ -805,16 +817,18 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 	ctx.Log().Debugf("createVerrazzanoAdminGroup: Create Verrazzano Admin Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoAdminGroup: Error creating Verrazzano Admin Group: command output = %s", out)
+		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano Admin Group: command output = %s", out)
 		return "", err
 	}
 	ctx.Log().Debugf("createVerrazzanoAdminGroup: Create Verrazzano Admin Group Output = %s", out)
 	if len(string(out)) == 0 {
-		return "", errors.New("createVerrazzanoAdminGroup: Error retrieving Admin Group ID from Keycloak, zero length")
+		err = errors.New("Component Keycloak failed; admin group ID from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return "", err
 	}
 	arr := strings.Split(string(out), "'")
 	if len(arr) != 3 {
-		return "", fmt.Errorf("createVerrazzanoAdminGroup: Error parsing output returned from Admin Group create stdout returned = %s", out)
+		return "", fmt.Errorf("Component Keycloak failed parsing output returned from Admin Group create stdout returned = %s", out)
 	}
 	ctx.Log().Debugf("createVerrazzanoAdminGroup: Admin Group ID = %s", arr[1])
 	ctx.Log().Once("Component Keycloak successfully created the Verrazzano admin group")
@@ -833,16 +847,18 @@ func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string)
 	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Create Verrazzano Monitors Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		ctx.Log().Errorf("ccreateVerrazzanoProjectMonitorsGroup: Error creating Verrazzano Monitor Group: command output = %s", out)
+		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano Monitor Group: command output = %s", out)
 		return "", err
 	}
 	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Create Verrazzano Project Monitors Group Output = %s", out)
 	if len(string(out)) == 0 {
-		return "", errors.New("createVerrazzanoProjectMonitorsGroup: Error retrieving Monitor Group ID from Keycloak, zero length")
+		err = errors.New("Component Keycloak failed; monitor group ID from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return "", err
 	}
 	arr := strings.Split(string(out), "'")
 	if len(arr) != 3 {
-		return "", fmt.Errorf("createVerrazzanoProjectMonitorsGroup: Error parsing output returned from Monitor Group create stdout returned = %s", out)
+		return "", fmt.Errorf("Component Keycloak failed parsing output returned from Monitor Group create stdout returned = %s", out)
 	}
 	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Monitor Group ID = %s", arr[1])
 	ctx.Log().Once("Component Keycloak successfully created the Verrazzano monitors group")
@@ -864,7 +880,7 @@ func createVerrazzanoSystemGroup(ctx spi.ComponentContext, cfg *restclient.Confi
 	ctx.Log().Debugf("createVerrazzanoSystemGroup: Create Verrazzano System Group Cmd = %s", createVzSystemGroupCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createVzSystemGroupCmd))
 	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoSystemGroup: Error creating Verrazzano System Group: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano System Group: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Once("Component Keycloak successfully created the Verrazzano system group")
@@ -882,7 +898,7 @@ func createVerrazzanoRole(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 	ctx.Log().Debugf("createVerrazzanoRole: Create Verrazzano API Access Role Cmd = %s", createRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createRoleCmd))
 	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoRole: Error creating Verrazzano API Access Role: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating Verrazzano API Access Role: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Once("Component Keycloak successfully created the Verrazzano API access role")
@@ -897,7 +913,7 @@ func grantRolesToGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	ctx.Log().Debugf("grantRolesToGroups: Grant API Access to VZ Users Cmd = %s", grantAPIAccessToVzUserGroupCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantAPIAccessToVzUserGroupCmd))
 	if err != nil {
-		ctx.Log().Errorf("grantRolesToGroups: Error granting api access role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed granting api access role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Once("Component Keycloak successfully granted the access role to the Verrazzano user group")
@@ -930,11 +946,11 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	ctx.Log().Debugf("createUser: Set Verrazzano User PW Cmd = %s", maskPw(setVZUserPwCmd))
 	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setVZUserPwCmd))
 	if err != nil {
-		ctx.Log().Errorf("createUser: Error setting Verrazzano user password: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed setting Verrazzano user password: stdout = %s, stderr = %s", stdout, stderr)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debugf("createUser: Created VZ User %s PW", userName)
-	ctx.Log().Oncef("Component Keycloak successfully create user %s", userName)
+	ctx.Log().Oncef("Component Keycloak successfully created user %s", userName)
 
 	return nil
 }
@@ -951,7 +967,7 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoPkceClient: Error retrieving DNS sub domain: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %s", err)
 		return err
 	}
 	ctx.Log().Debugf("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
@@ -977,7 +993,7 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 	ctx.Log().Debugf("createVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPkceCreateCmd))
 	if err != nil {
-		ctx.Log().Errorf("createVerrazzanoPkceClient: Error creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Debug("createVerrazzanoPkceClient: Created verrazzano-pkce client")
@@ -1010,7 +1026,7 @@ func setPasswordPolicyForRealm(ctx spi.ComponentContext, cfg *restclient.Config,
 	ctx.Log().Debugf("setPasswordPolicyForRealm: Setting password policy for realm %s Cmd = %s", realmName, setPolicyCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setPolicyCmd))
 	if err != nil {
-		ctx.Log().Errorf("setPasswordPolicyForRealm: Error Setting password policy for master: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed setting password policy for master: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Debugf("setPasswordPolicyForRealm: Set password policy for realm %s", realmName)
@@ -1024,7 +1040,7 @@ func configureLoginThemeForRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 	ctx.Log().Debugf("configureLoginThemeForRealm: Configuring login theme Cmd = %s", setLoginThemeCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setLoginThemeCmd))
 	if err != nil {
-		ctx.Log().Errorf("configureLoginThemeForRealm: Error Configuring login theme for master: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed configuring login theme for master: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Debug("configureLoginThemeForRealm: Configured login theme for master Cmd")
@@ -1038,7 +1054,7 @@ func enableVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Confi
 	ctx.Log().Debugf("enableVerrazzanoSystemRealm: Enabling vzSysRealm realm Cmd = %s", setVzEnableRealmCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(setVzEnableRealmCmd))
 	if err != nil {
-		ctx.Log().Errorf("enableVerrazzanoSystemRealm: Error Enabling vzSysRealm realm: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed enabling vzSysRealm realm: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Debug("enableVerrazzanoSystemRealm: Enabled vzSysRealm realm")
@@ -1053,7 +1069,7 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 	ctx.Log().Debugf("removeLoginConfigFile: Removing login config file Cmd = %s", removeLoginConfigFileCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(removeLoginConfigFileCmd))
 	if err != nil {
-		ctx.Log().Errorf("removeLoginConfigFile: Error Removing login config file: stdout = %s, stderr = %s", stdout, stderr)
+		ctx.Log().Errorf("Component Keycloak failed removing login config file: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
 	ctx.Log().Debug("removeLoginConfigFile: Removed login config file")
@@ -1067,15 +1083,17 @@ func getKeycloakGroups(ctx spi.ComponentContext) (KeycloakGroups, error) {
 	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakGroups: Error retrieving Groups: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving Groups: %s", err)
 		return nil, err
 	}
 	if len(string(out)) == 0 {
-		return nil, errors.New("getKeycloakGroups: Error retrieving Groups JSON from Keycloak, zero length")
+		err = errors.New("Component Keycloak failed; groups JSON from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return nil, err
 	}
 	err = json.Unmarshal(out, &keycloakGroups)
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakGroups: Error ummarshalling groups json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %s", err)
 		return nil, err
 	}
 
@@ -1117,15 +1135,17 @@ func getKeycloakRoles(ctx spi.ComponentContext) (KeycloakRoles, error) {
 	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakRoles: Error retrieving Roles: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving Roles: %s", err)
 		return nil, err
 	}
 	if len(string(out)) == 0 {
-		return nil, errors.New("getKeycloakRoles: Error retrieving Roles JSON from Keycloak, zero length")
+		err = errors.New("Component Keycloak failed; roles JSON from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return nil, err
 	}
 	err = json.Unmarshal(out, &keycloakRoles)
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakGroups: Error ummarshalling groups json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %s", err)
 		return nil, err
 	}
 
@@ -1148,15 +1168,17 @@ func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
 	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakUsers: Error retrieving Users: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving Users: %s", err)
 		return nil, err
 	}
 	if len(string(out)) == 0 {
-		return nil, errors.New("getKeycloakUsers: Error retrieving Users JSON from Keycloak, zero length")
+		err := errors.New("Component Keycloak failed; users JSON from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return nil, err
 	}
 	err = json.Unmarshal(out, &keycloakUsers)
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakUsers: Error ummarshalling users json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling users json: %s", err)
 		return nil, err
 	}
 	return keycloakUsers, nil
@@ -1178,15 +1200,17 @@ func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakClients: Error retrieving clients: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", err)
 		return nil, err
 	}
 	if len(string(out)) == 0 {
-		return nil, errors.New("getKeycloakClients: Error retrieving Clients JSON from Keycloak, zero length")
+		err := errors.New("Component Keycloak failed; clients JSON from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return nil, err
 	}
 	err = json.Unmarshal(out, &keycloakClients)
 	if err != nil {
-		ctx.Log().Errorf("getKeycloakClients: Error ummarshalling client json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling client json: %s", err)
 		return nil, err
 	}
 	return keycloakClients, nil
