@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 const ns = "my_namespace"
@@ -61,7 +61,7 @@ func TestGetValues(t *testing.T) {
 	SetCmdRunner(getValuesRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, err := GetValues(zap.S(), release, ns)
+	stdout, err := GetValues(vzlog.DefaultLogger(), release, ns)
 	assert.NoError(err, "GetValues returned an error")
 	assert.NotZero(stdout, "GetValues stdout should not be empty")
 }
@@ -86,7 +86,7 @@ func TestUpgrade(t *testing.T) {
 	})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, overrides)
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), release, ns, chartdir, false, false, overrides)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -114,7 +114,7 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 	})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, chartdir, false, false, overrides)
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), release, ns, chartdir, false, false, overrides)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -130,7 +130,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), release, ns, "", false, false, overrides)
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), release, ns, "", false, false, overrides)
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
@@ -150,7 +150,7 @@ func TestUninstall(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-operator", "verrazzano-system", false)
 	assert.NoError(t, err)
 }
 
@@ -168,7 +168,7 @@ func TestUninstallError(t *testing.T) {
 		err:    fmt.Errorf("Unexpected uninstall error"),
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(zap.S(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-operator", "verrazzano-system", false)
 	assert.Error(t, err)
 }
 

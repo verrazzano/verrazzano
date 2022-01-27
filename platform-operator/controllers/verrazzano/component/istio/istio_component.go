@@ -14,7 +14,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"go.uber.org/zap"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -88,7 +87,7 @@ func SetDefaultRestartComponentsFunction() {
 	restartComponentsFunction = restartComponents
 }
 
-type helmUninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
 
@@ -320,7 +319,7 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 		return err
 	}
 	if found {
-		_, _, err = helmUninstallFunction(context.Log().GetZapLogger(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
 			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}
