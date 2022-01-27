@@ -6,6 +6,8 @@ package framework
 import (
 	"fmt"
 	"reflect"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -21,16 +23,32 @@ type TestFramework struct {
 	Logs    *zap.SugaredLogger
 }
 
-func NewTestFramework(pkg string) *TestFramework {
+func new() *TestFramework {
 	t := new(TestFramework)
+	// use runtime to get the caller and then parse it to figure out the package name
+	pc, _, _, _ := runtime.Caller(1)
+	funcName := runtime.FuncForPC(pc).Name()
+	lastSlash := strings.LastIndexByte(funcName, '/')
+	if lastSlash < 0 {
+		lastSlash = 0
+	}
+	lastDot := strings.LastIndexByte(funcName[lastSlash:], '.') + lastSlash
+	pkg := funcName[:lastDot]
+	// whew!
 	t.Pkg = pkg
 	t.Metrics, _ = metrics.NewLogger(pkg, metrics.MetricsIndex)
 	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex)
 	return t
 }
 
+func Metrics() *zap.SugaredLogger {
+	t := new()
+	return t.Metrics
+}
+
 // AfterEach wraps Ginkgo AfterEach to emit a metric
-func (t *TestFramework) AfterEach(args ...interface{}) bool {
+func AfterEach(args ...interface{}) bool {
+	t := new()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -50,7 +68,8 @@ func (t *TestFramework) AfterEach(args ...interface{}) bool {
 }
 
 // BeforeEach wraps Ginkgo BeforeEach to emit a metric
-func (t *TestFramework) BeforeEach(args ...interface{}) bool {
+func BeforeEach(args ...interface{}) bool {
+	// (unused) t := new()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -71,7 +90,8 @@ func (t *TestFramework) BeforeEach(args ...interface{}) bool {
 }
 
 // It wraps Ginkgo It to emit a metric
-func (t *TestFramework) It(text string, args ...interface{}) bool {
+func It(text string, args ...interface{}) bool {
+	t := new()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -89,7 +109,8 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 }
 
 // Describe wraps Ginkgo Describe to emit a metric
-func (t *TestFramework) Describe(text string, args ...interface{}) bool {
+func Describe(text string, args ...interface{}) bool {
+	t := new()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -107,7 +128,8 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 }
 
 // DescribeTable - wrapper function for Ginkgo DescribeTable
-func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
+func DescribeTable(text string, args ...interface{}) bool {
+	t := new()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -127,7 +149,8 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 }
 
 // BeforeSuite - wrapper function for Ginkgo BeforeSuite
-func (t *TestFramework) BeforeSuite(body func()) bool {
+func BeforeSuite(body func()) bool {
+	t := new()
 	if body == nil {
 		ginkgo.Fail("Unsupported body type - expected non-nil")
 	}
@@ -140,7 +163,8 @@ func (t *TestFramework) BeforeSuite(body func()) bool {
 }
 
 // AfterSuite - wrapper function for Ginkgo AfterSuite
-func (t *TestFramework) AfterSuite(body func()) bool {
+func AfterSuite(body func()) bool {
+	t := new()
 	if body == nil {
 		ginkgo.Fail("Unsupported body type - expected non-nil")
 	}
@@ -153,52 +177,62 @@ func (t *TestFramework) AfterSuite(body func()) bool {
 }
 
 // Entry - wrapper function for Ginkgo Entry
-func (t *TestFramework) Entry(description interface{}, args ...interface{}) ginkgo.TableEntry {
+func Entry(description interface{}, args ...interface{}) ginkgo.TableEntry {
+	// (unused) t := new()
 	return ginkgo.Entry(description, args...)
 }
 
 // Fail - wrapper function for Ginkgo Fail
-func (t *TestFramework) Fail(message string, callerSkip ...int) {
+func Fail(message string, callerSkip ...int) {
+	// (unused) t := new()
 	ginkgo.Fail(message, callerSkip...)
 }
 
 // Context - wrapper function for Ginkgo Context
-func (t *TestFramework) Context(text string, args ...interface{}) bool {
-	return t.Describe(text, args...)
+func Context(text string, args ...interface{}) bool {
+	// (unused) t := new()
+	return Describe(text, args...)
 }
 
 // When - wrapper function for Ginkgo When
-func (t *TestFramework) When(text string, args ...interface{}) bool {
+func When(text string, args ...interface{}) bool {
+	// (unused) t := new()
 	return ginkgo.When(text, args...)
 }
 
 // SynchronizedBeforeSuite - wrapper function for Ginkgo SynchronizedBeforeSuite
-func (t *TestFramework) SynchronizedBeforeSuite(process1Body func() []byte, allProcessBody func([]byte)) bool {
+func SynchronizedBeforeSuite(process1Body func() []byte, allProcessBody func([]byte)) bool {
+	// (unused) t := new()
 	return ginkgo.SynchronizedBeforeSuite(process1Body, allProcessBody)
 }
 
 // SynchronizedAfterSuite - wrapper function for Ginkgo SynchronizedAfterSuite
-func (t *TestFramework) SynchronizedAfterSuite(allProcessBody func(), process1Body func()) bool {
+func SynchronizedAfterSuite(allProcessBody func(), process1Body func()) bool {
+	// (unused) t := new()
 	return ginkgo.SynchronizedAfterSuite(allProcessBody, process1Body)
 }
 
 //	JustBeforeEach - wrapper function for Ginkgo JustBeforeEach
-func (t *TestFramework) JustBeforeEach(args ...interface{}) bool {
+func JustBeforeEach(args ...interface{}) bool {
+	// (unused) t := new()
 	return ginkgo.JustBeforeEach(args...)
 }
 
 // JustAfterEach - wrapper function for Ginkgo JustAfterEach
-func (t *TestFramework) JustAfterEach(args ...interface{}) bool {
+func JustAfterEach(args ...interface{}) bool {
+	// (unused) t := new()
 	return ginkgo.JustAfterEach(args...)
 }
 
 //BeforeAll - wrapper function for Ginkgo BeforeAll
-func (t *TestFramework) BeforeAll(args ...interface{}) bool {
+func BeforeAll(args ...interface{}) bool {
+	// (unused) t := new()
 	return ginkgo.BeforeAll(args...)
 }
 
 //AfterAll - wrapper function for Ginkgo AfterAll
-func (t *TestFramework) AfterAll(args ...interface{}) bool {
+func AfterAll(args ...interface{}) bool {
+	// (unused) t := new()
 	return ginkgo.AfterAll(args...)
 }
 

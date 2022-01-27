@@ -202,6 +202,8 @@ func Emit(log *zap.SugaredLogger) {
 }
 
 func DurationMillis() int64 {
+	// this value is in nanoseconds, so we need to divide by one million
+	// to convert to milliseconds
 	spec := ginkgo.CurrentSpecReport()
-	return int64(spec.RunTime) / 1000
+	return int64(spec.RunTime) / 1_000_000
 }

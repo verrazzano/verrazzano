@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	t "github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
@@ -28,7 +28,6 @@ const (
 )
 
 var (
-	t                        = framework.NewTestFramework("helidon")
 	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
 	yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
@@ -38,7 +37,7 @@ var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
 		pkg.DeployHelloHelidonApplication(&yamlApplier, namespace, "")
-		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+		metrics.Emit(t.Metrics().With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
@@ -54,7 +53,7 @@ var _ = t.AfterSuite(func() {
 	if !skipUndeploy {
 		start := time.Now()
 		pkg.UndeployHelloHelidonApplication(&yamlApplier, namespace)
-		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+		metrics.Emit(t.Metrics().With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
