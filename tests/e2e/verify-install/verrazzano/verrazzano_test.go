@@ -381,13 +381,13 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					return false
 				}
 				// Compare the number of running pods to the expected number
-				var runningPods = 0
+				var runningPods int32 = 0
 				for _, pod := range pods {
 					if pod.Status.Phase == corev1.PodRunning {
 						runningPods++
 					}
 				}
-				return int32(len(pods)) == *expectedPods
+				return runningPods == *expectedPods
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
