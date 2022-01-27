@@ -1,7 +1,7 @@
-package register_labels
+package registerlabels
 
 import (
-	. "github.com/onsi/ginkgo/v2"
+	gv2 "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -17,7 +17,7 @@ var _ = t.BeforeSuite(func() {
 })
 var failed = false
 var _ = t.AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
+	failed = failed || gv2.CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
@@ -28,7 +28,7 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe(" ", Label("f:platform-lcm.install",
+var _ = t.Describe(" ", gv2.Label("f:platform-lcm.install",
 	"f:platform-lcm.uninstall",
 	"f:platform-lcm.private-registry",
 	"f:platform-lcm.upgrade",
