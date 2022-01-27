@@ -5,9 +5,10 @@ package vzlog
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // LogContextMap contains a map of LogContext objects
@@ -90,8 +91,8 @@ type verrazzanoLogger struct {
 	// frequency between logs in seconds
 	frequencySecs int
 
-	// history is a set of log messages for this logger
-	historyMessages map[string]bool
+	// trashMessages is a set of log messages that can never be displayed again
+	trashMessages map[string]bool
 
 	// lastLog keeps track of the last logged message
 	*lastLog
@@ -108,12 +109,12 @@ type lastLog struct {
 
 // Ensure the default logger exists.  This is typically used for testing
 func DefaultLogger() VerrazzanoLogger {
-	return EnsureLogContext("default").EnsureLogger("default", zap.S(), zap.S())
+	return GetContext("default").GetLogger("default", zap.S(), zap.S())
 }
 
-// EnsureLogContext ensures that a LogContext exists
+// GetContext ensures that a LogContext exists
 // The key must be unique for the process, for example a namespace/name combo.
-func EnsureLogContext(key string) *LogContext {
+func GetContext(key string) *LogContext {
 	lock.Lock()
 	defer lock.Unlock()
 	log, ok := LogContextMap[key]
@@ -136,16 +137,16 @@ func DeleteLogContext(key string) {
 	}
 }
 
-// EnsureLogger ensures that a new VerrazzanoLogger exists for the given key
-func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.SugaredLogger) VerrazzanoLogger {
+// GetLogger ensures that a new VerrazzanoLogger exists for the given key
+func (c *LogContext) GetLogger(key string, sLogger SugaredLogger, zap *zap.SugaredLogger) VerrazzanoLogger {
 	lock.Lock()
 	defer lock.Unlock()
 	log, ok := c.loggerMap[key]
 	if !ok {
 		log = &verrazzanoLogger{
-			context:         c,
-			frequencySecs:   60,
-			historyMessages: make(map[string]bool),
+			context:       c,
+			frequencySecs: 60,
+			trashMessages: make(map[string]bool),
 		}
 		c.loggerMap[key] = log
 	}
@@ -190,31 +191,33 @@ func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
 
-	// If this message is in the history map, that means it has been
-	// logged already, previous to the current message.  This happens
-	// if a controller reconcile loop is called repeatedly.  In this
-	// case we never want to display this message again, so just ignore it.
-	_, ok := v.historyMessages[msg]
+	// If the message is in the trash, that means it should never be logged again.
+	_, ok := v.trashMessages[msg]
 	if ok {
 		return
 	}
 	// Log now if the message changed or wait time exceeded
 	logNow := true
 
+	// If this is log once save in trash so it is never logged again
+	if once {
+		v.trashMessages[msg] = true
+	}
+
+	// If we have already logged a message then ...
 	if v.lastLog != nil {
-		// If "once" is true or the message has changed, then save the old message
-		// in the history so that it is never displayed again
-		if once || msg != v.lastLog.msgLogged {
-			v.historyMessages[v.lastLog.msgLogged] = true
-		} else {
-			// Check if it is time to log since the message didn't change
+		// If message did not change then check if time to log
+		if msg == v.lastLog.msgLogged {
 			waitSecs := time.Duration(v.frequencySecs) * time.Second
 			nextLogTime := v.lastLog.lastLogTime.Add(waitSecs)
 			logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
+		} else {
+			// This is a new message.  Never display the old one again
+			v.trashMessages[v.lastLog.msgLogged] = true
 		}
 	}
 
-	// Log the message if it is time and save the lastLog info
+	// Log the message and save it in lastlog
 	if logNow {
 		v.sLogger.Info(msg)
 		v.lastLog = &lastLog{

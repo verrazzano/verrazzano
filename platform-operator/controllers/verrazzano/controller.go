@@ -7,11 +7,12 @@ import (
 	"context"
 	errors2 "errors"
 	"fmt"
-	vzlog2 "github.com/verrazzano/verrazzano/pkg/log"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strings"
 	"time"
+
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 
@@ -83,8 +84,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Ensure a Verrazzano logger exists, using zap SugaredLogger as the underlying logger.
 	zaplog = zaplog.With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, "Verrazzano")
 	key := req.Namespace + "/" + req.Name
-	log := vzlog.EnsureLogContext(key).EnsureLogger("default", zaplog, zaplog)
-	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)
+	log := vzlog.GetContext(key).GetLogger("default", zaplog, zaplog)
 
 	res, err := r.doReconcile(req, log)
 	if shouldRequeue(res) {
@@ -99,12 +99,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// The Verrazzano resource has been reconciled.  Delete the logger context so that a new
 	// one is created the next reconcile cycle.
 	vzlog.DeleteLogContext(key)
+	log.Progressf("Successfully reconciled Verrazzano resource %v", req.NamespacedName)
+
 	return ctrl.Result{}, nil
 }
 
 // doReconcile the Verrazzano CR
 func (r *Reconciler) doReconcile(req ctrl.Request, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	ctx := context.TODO()
+	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)
 
 	// Add cert-manager components to the scheme
 	cmapiv1.AddToScheme(r.Scheme)
@@ -510,7 +513,7 @@ func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv
 	log.Debugf("Checking if uninstall job %s exist", buildUninstallJobName(vz.Name))
 	err := r.Get(context.TODO(), types.NamespacedName{Name: buildUninstallJobName(vz.Name), Namespace: getInstallNamespace()}, jobFound)
 	if err != nil && errors.IsNotFound(err) {
-		log.Debugf("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
+		log.Infof("Creating uninstall job %s, dry-run=%v", buildUninstallJobName(vz.Name), r.DryRun)
 		err = r.Create(context.TODO(), job)
 		if err != nil {
 			return err
@@ -518,6 +521,8 @@ func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv
 	} else if err != nil {
 		return err
 	}
+
+	log.Oncef("Install job %s is running", buildUninstallJobName(vz.Name))
 
 	err = r.setUninstallCondition(log, jobFound, vz)
 	if err != nil {
@@ -997,7 +1002,11 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 
 		// Create the uninstall job if it doesn't exist
 		if err := r.createUninstallJob(log, vz); err != nil {
-			log.Errorf("Failed creating the uninstall job: %v", err)
+			if errors.IsConflict(err) {
+				log.Debug("Resource conflict creating the uninstall job, requeuing")
+			} else {
+				log.Errorf("Failed creating the uninstall job: %v", err)
+			}
 			return newRequeueWithDelay(), err
 		}
 
@@ -1020,7 +1029,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			}
 		}
 	}
-	return reconcile.Result{}, nil
+	return newRequeueWithDelay(), nil
 }
 
 // Cleanup the resources left over from install and uninstall

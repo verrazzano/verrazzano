@@ -168,7 +168,7 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 
 		// mask sensitive data before logging
 		cmdStr := maskSensitiveData(cmd.String())
-		log.Infof("Running Helm command: %s", cmdStr)
+		log.Infof("Running Helm command for operation %s: %s", cmdStr)
 
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
@@ -176,14 +176,15 @@ func runHelm(log *zap.SugaredLogger, releaseName string, namespace string, chart
 			break
 		}
 		if i == 1 || i == maxRetry {
-			log.Errorf("Failed running Helm command for operation %s and release %s: stderr %s", operation, releaseName, string(stderr))
+			log.Errorf("Failed running Helm command for operation %s and release %s: stderr is %s",
+				operation, releaseName, string(stderr))
 			return stdout, stderr, err
 		}
 		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %s of %s", operation, releaseName, i+1, maxRetry)
 	}
 
 	//  Log upgrade output
-	log.Debugf("helm upgrade succeeded for %s", releaseName)
+	log.Infof("Successfully ran Helm command for operation %s on release %s", operation, releaseName)
 	return stdout, stderr, nil
 }
 
