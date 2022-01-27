@@ -23,7 +23,7 @@ type TestFramework struct {
 	Logs    *zap.SugaredLogger
 }
 
-func new() *TestFramework {
+func newTestFramework() *TestFramework {
 	t := new(TestFramework)
 	// use runtime to get the caller and then parse it to figure out the package name
 	pc, _, _, _ := runtime.Caller(1)
@@ -42,13 +42,13 @@ func new() *TestFramework {
 }
 
 func Metrics() *zap.SugaredLogger {
-	t := new()
+	t := newTestFramework()
 	return t.Metrics
 }
 
 // AfterEach wraps Ginkgo AfterEach to emit a metric
 func AfterEach(args ...interface{}) bool {
-	t := new()
+	t := newTestFramework()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -69,7 +69,7 @@ func AfterEach(args ...interface{}) bool {
 
 // BeforeEach wraps Ginkgo BeforeEach to emit a metric
 func BeforeEach(args ...interface{}) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -91,7 +91,7 @@ func BeforeEach(args ...interface{}) bool {
 
 // It wraps Ginkgo It to emit a metric
 func It(text string, args ...interface{}) bool {
-	t := new()
+	t := newTestFramework()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -110,7 +110,7 @@ func It(text string, args ...interface{}) bool {
 
 // Describe wraps Ginkgo Describe to emit a metric
 func Describe(text string, args ...interface{}) bool {
-	t := new()
+	t := newTestFramework()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -129,7 +129,7 @@ func Describe(text string, args ...interface{}) bool {
 
 // DescribeTable - wrapper function for Ginkgo DescribeTable
 func DescribeTable(text string, args ...interface{}) bool {
-	t := new()
+	t := newTestFramework()
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
@@ -150,7 +150,7 @@ func DescribeTable(text string, args ...interface{}) bool {
 
 // BeforeSuite - wrapper function for Ginkgo BeforeSuite
 func BeforeSuite(body func()) bool {
-	t := new()
+	t := newTestFramework()
 	if body == nil {
 		ginkgo.Fail("Unsupported body type - expected non-nil")
 	}
@@ -164,7 +164,7 @@ func BeforeSuite(body func()) bool {
 
 // AfterSuite - wrapper function for Ginkgo AfterSuite
 func AfterSuite(body func()) bool {
-	t := new()
+	t := newTestFramework()
 	if body == nil {
 		ginkgo.Fail("Unsupported body type - expected non-nil")
 	}
@@ -178,61 +178,61 @@ func AfterSuite(body func()) bool {
 
 // Entry - wrapper function for Ginkgo Entry
 func Entry(description interface{}, args ...interface{}) ginkgo.TableEntry {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.Entry(description, args...)
 }
 
 // Fail - wrapper function for Ginkgo Fail
 func Fail(message string, callerSkip ...int) {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	ginkgo.Fail(message, callerSkip...)
 }
 
 // Context - wrapper function for Ginkgo Context
 func Context(text string, args ...interface{}) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return Describe(text, args...)
 }
 
 // When - wrapper function for Ginkgo When
 func When(text string, args ...interface{}) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.When(text, args...)
 }
 
 // SynchronizedBeforeSuite - wrapper function for Ginkgo SynchronizedBeforeSuite
 func SynchronizedBeforeSuite(process1Body func() []byte, allProcessBody func([]byte)) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.SynchronizedBeforeSuite(process1Body, allProcessBody)
 }
 
 // SynchronizedAfterSuite - wrapper function for Ginkgo SynchronizedAfterSuite
 func SynchronizedAfterSuite(allProcessBody func(), process1Body func()) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.SynchronizedAfterSuite(allProcessBody, process1Body)
 }
 
 //	JustBeforeEach - wrapper function for Ginkgo JustBeforeEach
 func JustBeforeEach(args ...interface{}) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.JustBeforeEach(args...)
 }
 
 // JustAfterEach - wrapper function for Ginkgo JustAfterEach
 func JustAfterEach(args ...interface{}) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.JustAfterEach(args...)
 }
 
 //BeforeAll - wrapper function for Ginkgo BeforeAll
 func BeforeAll(args ...interface{}) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.BeforeAll(args...)
 }
 
 //AfterAll - wrapper function for Ginkgo AfterAll
 func AfterAll(args ...interface{}) bool {
-	// (unused) t := new()
+	// (unused) t := newTestFramework()
 	return ginkgo.AfterAll(args...)
 }
 
