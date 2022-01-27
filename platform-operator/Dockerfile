@@ -31,6 +31,8 @@ RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
+#     && yum install -y istio-istioctl-1.10.4-4.el7 \
+
 RUN groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \

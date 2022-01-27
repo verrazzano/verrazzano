@@ -10,7 +10,7 @@ def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = "internal"
 
 pipeline {
     options {
@@ -102,7 +102,14 @@ pipeline {
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
 
-        OCI_CLI_AUTH="instance_principal"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+        OCI_CLI_REGION = "us-phoenix-1"
+        OCI_REGION = "${env.OCI_CLI_REGION}"
+
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
@@ -743,13 +750,14 @@ def qualityCheck() {
     sh """
         echo "run all linters"
         cd ${GO_REPO_PATH}/verrazzano
-        make check check-tests
+        make check-tests
+        #make check check-tests
 
-        echo "copyright scan"
-        time make copyright-check
-        ./ci/scripts/check_if_clean_after_generate.sh
+        #echo "copyright scan"
+        #time make copyright-check
+        #./ci/scripts/check_if_clean_after_generate.sh
 
-        echo "Third party license check"
+        #echo "Third party license check"
     """
 }
 
