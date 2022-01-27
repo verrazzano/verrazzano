@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -51,7 +52,7 @@ var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Private Registry Verification",
+var _ = t.Describe("Private Registry Verification", Label("f:platform-lcm.private-registry"),
 	func() {
 		t.It("All the pods in the cluster have the expected registry URLs",
 			func() {

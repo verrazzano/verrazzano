@@ -66,7 +66,7 @@ var _ = t.AfterSuite(func() {
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 })
 
-var _ = t.Describe("Test RBAC Permission", func() {
+var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 	t.Context("for verrazzano-project-admin.", func() {
 
 		t.It("Fail getting Pods in namespace rbactest", func() {
@@ -193,7 +193,7 @@ var _ = t.Describe("Test RBAC Permission", func() {
 	})
 })
 
-var _ = t.Describe("Test RBAC Permission", func() {
+var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 	t.Context("for verrazzano-project-monitor.", func() {
 
 		t.It("Fail getting Pods in namespace rbactest", func() {
@@ -332,7 +332,7 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil(), fmt.Sprintf("Failed to get service account %s in namespace %s", verrazzanoAPI, verrazzanoSystemNS))
 		})
 
-		t.It("Validate the secret of the Service Account of Verrazzano API", func() {
+		t.It("Validate the secret of the Service Account of Verrazzano API", Label("f:security.apiproxy"), func() {
 			GinkgoWriter.Write([]byte("DEBUG - This test fails on 1.21 - extra debugging added\n"))
 			// Get secret for the SA
 			var pods *corev1.PodList

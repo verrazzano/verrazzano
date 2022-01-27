@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
@@ -99,7 +100,7 @@ func undeployMetricsApplication() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = t.Describe("DeployMetrics Application test", func() {
+var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), func() {
 	// Verify deploymetrics-workload pod is running
 	// GIVEN deploymetrics app is deployed
 	// WHEN the component and appconfig are created
@@ -112,7 +113,7 @@ var _ = t.Describe("DeployMetrics Application test", func() {
 		})
 	})
 
-	t.Context("for Prometheus Config.", func() {
+	t.Context("for Prometheus Config.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {
 			Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
@@ -120,7 +121,7 @@ var _ = t.Describe("DeployMetrics Application test", func() {
 		})
 	})
 
-	t.Context("Retrieve Prometheus scraped metrics for", func() {
+	t.Context("Retrieve Prometheus scraped metrics for", Label("f:observability.monitoring.prom"), func() {
 		t.It("App Component", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "deploymetrics-appconf")

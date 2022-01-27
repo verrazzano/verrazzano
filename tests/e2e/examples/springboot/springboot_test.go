@@ -49,7 +49,8 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-var _ = t.Describe("Spring Boot test", func() {
+var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
+	"f:app-lcm.spring-workload"), func() {
 	// Verify springboot-workload pod is running
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig are created
@@ -68,7 +69,7 @@ var _ = t.Describe("Spring Boot test", func() {
 	// GIVEN the Istio gateway for the springboot namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(pkg.SpringbootNamespace, "")
 			return host, err
@@ -79,21 +80,21 @@ var _ = t.Describe("Spring Boot test", func() {
 	// GIVEN springboot app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	t.It("Verify welcome page of Spring Boot application is working.", func() {
+	t.It("Verify welcome page of Spring Boot application is working.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/", host)
 			return pkg.GetWebPage(url, host)
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("Greetings from Verrazzano Enterprise Container Platform")))
 	})
 
-	t.It("Verify Verrazzano facts endpoint is working.", func() {
+	t.It("Verify Verrazzano facts endpoint is working.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (*pkg.HTTPResponse, error) {
 			url := fmt.Sprintf("https://%s/facts", host)
 			return pkg.GetWebPage(url, host)
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
 	})
 
-	t.Context("for Logging.", func() {
+	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
 		indexName := "verrazzano-namespace-springboot"
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
@@ -117,7 +118,7 @@ var _ = t.Describe("Spring Boot test", func() {
 		})
 	})
 
-	t.Context("for metrics.", func() {
+	t.Context("for metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Retrieve Prometheus scraped metrics for App Component", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("http_server_requests_seconds_count", "app_oam_dev_name", "springboot-appconf")

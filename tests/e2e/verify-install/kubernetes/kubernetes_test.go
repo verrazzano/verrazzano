@@ -5,6 +5,7 @@ package kubernetes_test
 
 import (
 	"fmt"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -45,7 +46,7 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("In the Kubernetes Cluster",
+var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 	func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		isProdProfile := pkg.IsProdProfile()
