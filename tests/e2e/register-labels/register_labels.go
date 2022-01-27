@@ -1,8 +1,8 @@
 package register_labels
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"time"
@@ -12,8 +12,8 @@ var (
 	t = framework.NewTestFramework(" ")
 )
 var _ = t.BeforeSuite(func() {
-		start := time.Now()
-		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+	start := time.Now()
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 var failed = false
 var _ = t.AfterEach(func() {
@@ -24,8 +24,8 @@ var _ = t.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
-		start := time.Now()
-		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+	start := time.Now()
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var _ = t.Describe(" ", Label("f:platform-lcm.install",
