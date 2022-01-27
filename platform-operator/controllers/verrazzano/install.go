@@ -5,9 +5,11 @@ package verrazzano
 
 import (
 	"context"
+	"strings"
 
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -64,7 +66,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			}
 			if !isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
 				// User needs to do upgrade before this component can be installed
-				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
+				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
 					comp.Name(), comp.GetMinVerrazzanoVersion())
 				continue
 			}
@@ -81,12 +83,14 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
+				handleError(compLog, err)
 				requeue = true
 				continue
 			}
 			// If component is not installed,install it
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
+				handleError(compLog, err)
 				requeue = true
 				continue
 			}
@@ -102,6 +106,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			if comp.IsReady(compContext) {
 				compLog.Progressf("Component %s post-install is running ", compName)
 				if err := comp.PostInstall(compContext); err != nil {
+					handleError(compLog, err)
 					requeue = true
 					continue
 				}
@@ -142,4 +147,22 @@ func isVersionOk(log vzlog.VerrazzanoLogger, compVersion string, vzVersion strin
 
 	// return false if VZ version is too low to install component, else true
 	return !vzSemver.IsLessThan(compSemver)
+}
+
+// handleError - detects if a an error is a RetryableError; if it is, logs it appropriately and
+func handleError(log vzlog.VerrazzanoLogger, err error) {
+	switch actualErr := err.(type) {
+	case ctrlerrors.RetryableError:
+		if actualErr.HasCause() {
+			cause := actualErr.Cause
+			if ctrlerrors.IsUpdateConflict(cause) ||
+				strings.Contains(cause.Error(), "failed calling webhook") {
+				log.Debugf("Failed during install: %v", cause)
+				return
+			}
+			log.Errorf("Failed during install: %v", actualErr.Error())
+		}
+	default:
+		log.Errorf("Unexpected error occurred during install/upgrade: %s", actualErr.Error())
+	}
 }
