@@ -357,14 +357,14 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
 			"",
 			true,
-			"Error retrieving User Group ID from Keycloak",
+			"Component Keycloak failed; user group ID from Keycloak is zero length",
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
 			"",
 			true,
-			"Error parsing output returned from Users Group",
+			"failed parsing output returned from Users Group",
 		},
 		{
 			"should fail when Verrazzano secret is not present",
@@ -386,7 +386,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			}),
 			"blahblah'id",
 			true,
-			"Password field empty in secret",
+			"password field empty in secret",
 		},
 		{
 			"should fail when nginx service is not present",
