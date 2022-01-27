@@ -4,12 +4,17 @@
 package verrazzano_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"time"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -338,7 +343,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			Expect(crb.RoleRef.Name == "view").To(BeTrue(),
 				"the roleRef.name should be view")
 			Expect(crb.RoleRef.Kind == "ClusterRole").To(BeTrue(),
-				"the roleRef.kind shoudl be ClusterRole")
+				"the roleRef.kind should be ClusterRole")
 
 			Expect(len(crb.Subjects) == 1).To(BeTrue(),
 				"there should be one subject")
@@ -349,6 +354,34 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 				"the subject's kind should be Group")
 			Expect(s.Name == "verrazzano-monitors").To(BeTrue(),
 				"the subject's name should be verrazzano-monitors")
+		})
+	})
+
+	t.Describe("verrazzano-authproxy", Label("f:platform-lcm.install"), func() {
+		t.It("has expected deployment", func() {
+			Eventually(func() (bool, error) {
+				return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+		t.It("has correct number of pods running", func() {
+			// Get the deployment
+			var deployment *appsv1.Deployment
+			Eventually(func() (*appsv1.Deployment, error) {
+				var err error
+				deployment, err = pkg.GetDeployment(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
+				return deployment, err
+			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+			var expectedPods = deployment.Spec.Replicas
+			var pods []corev1.Pod
+			Eventually(func() bool {
+				var err error
+				pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
+				if err != nil {
+					return false
+				}
+				return int32(len(pods)) == *expectedPods
+			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
 })

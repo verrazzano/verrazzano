@@ -8,11 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/google/uuid"
 	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -126,6 +126,36 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 		return nil, err
 	}
 	return deployments, nil
+}
+
+// GetDeployment returns a deployment with the given name and namespace
+func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	deployment, err := clientSet.AppsV1().Deployments(namespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Deployment %v from namespace %v:  Error = %v ", deploymentName, namespace, err))
+		return nil, err
+	}
+	return deployment, nil
+}
+
+// DoesDeploymentExist returns whether a deployment with the given name and namespace exists for the cluster
+func DoesDeploymentExist(namespace string, name string) (bool, error) {
+	deployments, err := ListDeployments(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing deployments in cluster for namespace: %s, error: %v", namespace, err))
+		return false, err
+	}
+	for i := range deployments.Items {
+		if strings.HasPrefix(deployments.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // ListNodes returns the list of nodes for the cluster
