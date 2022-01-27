@@ -203,5 +203,5 @@ func Emit(log *zap.SugaredLogger) {
 
 func DurationMillis() int64 {
 	spec := ginkgo.CurrentSpecReport()
-	return int64(spec.RunTime) / 1000
+	return int64(spec.RunTime) / 1000000
 }
