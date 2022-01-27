@@ -14,12 +14,12 @@ import (
 )
 
 // StatefulsetReady Check that the named statefulsets have the minimum number of specified replicas ready and available
-func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, statefulsets []types.NamespacedName, expectedReplicas int32) bool {
+func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, statefulsets []types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	for _, namespacedName := range statefulsets {
 		statefulset := appsv1.StatefulSet{}
 		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("Waiting for statefulset %v to exist", namespacedName)
+				log.Progressf("%s waiting for statefulset %v to exist", prefix, namespacedName)
 				// StatefulSet not found
 				return false
 			}
@@ -27,7 +27,7 @@ func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, stateful
 			return false
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
-			log.Progressf("Waiting for statefulset %s to have %v replica(s)", namespacedName, expectedReplicas)
+			log.Progressf("%s waiting for statefulset %s to have %v replica(s)", prefix, namespacedName, expectedReplicas)
 			return false
 		}
 	}

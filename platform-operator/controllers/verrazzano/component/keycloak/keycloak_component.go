@@ -4,6 +4,7 @@ package keycloak
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -163,5 +164,6 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 			Name:      ComponentName,
 		},
 	}
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
 }

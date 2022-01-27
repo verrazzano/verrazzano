@@ -4,6 +4,8 @@
 package coherence
 
 import (
+	"fmt"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,5 +21,6 @@ func IsCoherenceOperatorReady(ctx spi.ComponentContext, _ string, namespace stri
 	deployments := []types.NamespacedName{
 		{Name: coherenceOperatorDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
