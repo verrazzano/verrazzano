@@ -86,10 +86,26 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	key := req.Namespace + "/" + req.Name
 	log := vzlog.GetContext(key).GetLogger("default", zaplog, zaplog)
 
-	res, err := r.doReconcile(req, log)
+	// Get the Verrazzano resource
+	vz := &installv1alpha1.Verrazzano{}
+	if err := r.Get(context.TODO(), req.NamespacedName, vz); err != nil {
+		// If the resource is not found, that means all of the finalizers have been removed,
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
+		if errors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
+		zaplog.Errorf("Failed to fetch Verrazzano resource: %v", err)
+		return reconcile.Result{}, err
+	}
+
+	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)
+	res, err := r.doReconcile(req, log, vz)
+
 	if shouldRequeue(res) {
 		return res, nil
 	}
+
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
@@ -105,24 +121,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // doReconcile the Verrazzano CR
-func (r *Reconciler) doReconcile(req ctrl.Request, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
+func (r *Reconciler) doReconcile(req ctrl.Request, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	ctx := context.TODO()
-	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)
 
 	// Add cert-manager components to the scheme
 	cmapiv1.AddToScheme(r.Scheme)
-
-	vz := &installv1alpha1.Verrazzano{}
-	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
-		// If the resource is not found, that means all of the finalizers have been removed,
-		// and the Verrazzano resource has been deleted, so there is nothing left to do.
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-
-		log.Errorf("Failed to fetch Verrazzano resource: %v", err)
-		return reconcile.Result{}, err
-	}
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
@@ -522,7 +525,7 @@ func (r *Reconciler) createUninstallJob(log vzlog.VerrazzanoLogger, vz *installv
 		return err
 	}
 
-	log.Oncef("Install job %s is running", buildUninstallJobName(vz.Name))
+	log.Progressf("Uninstall job %s is running", buildUninstallJobName(vz.Name))
 
 	err = r.setUninstallCondition(log, jobFound, vz)
 	if err != nil {
@@ -995,40 +998,41 @@ func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verra
 
 // Process the Verrazzano resource deletion
 func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	// Finalizer is present, so lets do the uninstall
-	if vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
-		log.Progress("Deleting Verrazzano installation")
+	// If finalizer is gone then uninstall is done
+	if !vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
+		return ctrl.Result{}, nil
+	}
+	log.Once("Deleting Verrazzano installation")
 
-		// Create the uninstall job if it doesn't exist
-		if err := r.createUninstallJob(log, vz); err != nil {
-			if errors.IsConflict(err) {
-				log.Debug("Resource conflict creating the uninstall job, requeuing")
-			} else {
-				log.Errorf("Failed creating the uninstall job: %v", err)
-			}
-			return newRequeueWithDelay(), err
+	// Create the uninstall job if it doesn't exist
+	if err := r.createUninstallJob(log, vz); err != nil {
+		if errors.IsConflict(err) {
+			log.Debug("Resource conflict creating the uninstall job, requeuing")
+		} else {
+			log.Errorf("Failed creating the uninstall job: %v", err)
 		}
+		return newRequeueWithDelay(), err
+	}
 
-		// Remove the finalizer and update the Verrazzano resource if the uninstall has finished.
-		for _, condition := range vz.Status.Conditions {
-			if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
-				err := r.cleanup(ctx, log, vz)
-				if err != nil {
-					return newRequeueWithDelay(), err
-				}
+	// Remove the finalizer and update the Verrazzano resource if the uninstall has finished.
+	for _, condition := range vz.Status.Conditions {
+		if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
+			err := r.cleanup(ctx, log, vz)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
 
-				// All install related resources have been deleted, delete the finalizer so that the Verrazzano
-				// resource can get removed from etcd.
-				log.Debugf("Removing finalizer %s", finalizerName)
-				vz.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vz.ObjectMeta.Finalizers, finalizerName)
-				err = r.Update(ctx, vz)
-				if err != nil {
-					return newRequeueWithDelay(), err
-				}
+			// All install related resources have been deleted, delete the finalizer so that the Verrazzano
+			// resource can get removed from etcd.
+			log.Debugf("Removing finalizer %s", finalizerName)
+			vz.ObjectMeta.Finalizers = vzstring.RemoveStringFromSlice(vz.ObjectMeta.Finalizers, finalizerName)
+			err = r.Update(ctx, vz)
+			if err != nil {
+				return newRequeueWithDelay(), err
 			}
 		}
 	}
-	return ctrl.Result{}, nil
+	return newRequeueWithDelay(), nil
 }
 
 // Cleanup the resources left over from install and uninstall

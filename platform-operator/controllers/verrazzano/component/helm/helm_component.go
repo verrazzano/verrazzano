@@ -212,7 +212,6 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	}
 
 	// Perform an install using the helm upgrade --install command
-	context.Log().Infof("Performing installation of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log().GetZapLogger(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
 	return err
 }
@@ -311,8 +310,6 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Generate a list of component-specified override files if present
 	overrides.FileOverrides = append(overrides.FileOverrides, tmpFile.Name())
 
-	// Perform an upgrade using the helm upgrade --install command
-	context.Log().Infof("Performing upgrade of %s", h.ReleaseName)
 	_, _, err = upgradeFunc(context.Log().GetZapLogger(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err
 }

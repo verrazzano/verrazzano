@@ -34,12 +34,11 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
-
 		compName := comp.Name()
 		compContext := spiCtx.For(compName).Operation(vzconst.InstallOperation)
 		compLog := compContext.Log()
 
-		compLog.Oncef("Processing install for %s", compName)
+		compLog.Oncef("Component %s is being reconciled", compName)
 
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
