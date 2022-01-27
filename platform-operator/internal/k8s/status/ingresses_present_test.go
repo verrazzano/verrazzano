@@ -3,9 +3,9 @@
 package status
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
-	"go.uber.org/zap"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -69,7 +69,7 @@ func TestIngressesPresent(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if present := IngressesPresent(zap.S(), tt.c, tt.n); present != tt.present {
+			if present := IngressesPresent(vzlog.DefaultLogger(), tt.c, tt.n); present != tt.present {
 				t.Errorf("IngressesPresent() = %v, want %v", present, tt.present)
 			}
 		})
