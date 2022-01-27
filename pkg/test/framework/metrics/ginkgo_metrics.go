@@ -21,7 +21,6 @@ const (
 	Status   = "status"
 	attempts = "attempts"
 	test     = "test"
-	label    = "label"
 
 	MetricsIndex     = "metrics"
 	TestLogIndex     = "testlogs"
@@ -116,11 +115,9 @@ func Emit(log *zap.SugaredLogger) {
 		log = log.With(Status, spec.State)
 	}
 	t := spec.FullText()
-	l := spec.Labels()
 
 	log.With(attempts, spec.NumAttempts).
 		With(test, t).
-		With(label, l).
 		Info()
 }
 
