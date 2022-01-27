@@ -6,6 +6,8 @@ import (
 	"context"
 	"path/filepath"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -69,7 +71,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		if errors.IsNotFound(err) {
 			ctx.Log().Progressf("Component Keycloak waiting for the Verrazzano password %s/%s to exist",
 				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
-			return nil
+			return ctrlerrors.RetryableError{Source: ComponentName}
 		}
 		ctx.Log().Errorf("Component Keycloak failed to get the Verrazzano password %s/%s: %v",
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
@@ -84,7 +86,7 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
-			return nil
+			return ctrlerrors.RetryableError{Source: ComponentName}
 		}
 		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
 		return err
@@ -151,7 +153,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Waiting for Keycloak Certificate: %s to exist", secretName)
+		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
 		return false
 	}
 

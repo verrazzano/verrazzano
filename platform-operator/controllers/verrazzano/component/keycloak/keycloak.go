@@ -1083,7 +1083,6 @@ func getKeycloakGroups(ctx spi.ComponentContext) (KeycloakGroups, error) {
 }
 
 func groupExists(keycloakGroups KeycloakGroups, groupName string) bool {
-
 	for _, keycloakGroup := range keycloakGroups {
 		if keycloakGroup.Name == groupName {
 			return true
@@ -1098,7 +1097,6 @@ func groupExists(keycloakGroups KeycloakGroups, groupName string) bool {
 }
 
 func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
-
 	for _, keycloakGroup := range keycloakGroups {
 		if keycloakGroup.Name == groupName {
 			return keycloakGroup.ID
@@ -1135,7 +1133,6 @@ func getKeycloakRoles(ctx spi.ComponentContext) (KeycloakRoles, error) {
 }
 
 func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
-
 	for _, keycloakRole := range keycloakRoles {
 		if keycloakRole.Name == roleName {
 			return true
@@ -1166,7 +1163,6 @@ func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
 }
 
 func userExists(keycloakUsers KeycloakUsers, userName string) bool {
-
 	for _, keycloakUser := range keycloakUsers {
 		if keycloakUser.Username == userName {
 			return true
