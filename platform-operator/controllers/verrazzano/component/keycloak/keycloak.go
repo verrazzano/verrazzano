@@ -361,7 +361,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		return nil, err
 	}
 	if len(images) != 1 {
-		return nil, fmt.Errorf("Keycloak component failed, expected 1 image for Keycloak theme, found %v", len(images))
+		return nil, fmt.Errorf("Component Keycloak failed, expected 1 image for Keycloak theme, found %v", len(images))
 	}
 
 	// use template to get populate template with image:tag
@@ -386,7 +386,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(compContext.Client(), compContext.EffectiveCR())
 	if err != nil {
-		compContext.Log().Errorf("Keycloak component failed retrieving DNS sub domain: %s", err)
+		compContext.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %s", err)
 		return nil, err
 	}
 	compContext.Log().Debugf("AppendKeycloakOverrides: DNSDomain returned %s", dnsSubDomain)
@@ -660,7 +660,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Keycloak component failed retrieving logging into: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Component Keycloak failed retrieving logging into: stdout = %s: stderr = %s", stdOut, stdErr)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
