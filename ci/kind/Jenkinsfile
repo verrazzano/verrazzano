@@ -266,6 +266,21 @@ pipeline {
                     }
                 }
 
+                stage('Register Feature Labels') {
+                environment {
+                TEST_ENV = "KIND"
+                }
+                steps {
+                runGinkgoRandomize('register-labels')
+                }
+                post {
+                    always {
+                        archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                        junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                    }
+                }
+                }
+
                 stage('Verify Install') {
                     environment {
                         TEST_ENV = "KIND"
