@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -15,10 +15,10 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -34,7 +34,7 @@ var mcComponentTestUpdatedLabels = map[string]string{"label1": "test1updated"}
 // THEN ensure that the MultiClusterComponent is created.
 func TestCreateMCComponent(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -107,7 +107,7 @@ func TestCreateMCComponent(t *testing.T) {
 // THEN ensure that the MultiClusterComponent is updated.
 func TestUpdateMCComponent(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -189,7 +189,7 @@ func TestUpdateMCComponent(t *testing.T) {
 // THEN ensure that the MultiClusterComponent is deleted.
 func TestDeleteMCComponent(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)
@@ -265,7 +265,7 @@ func TestDeleteMCComponent(t *testing.T) {
 // THEN ensure that the MultiClusterComponent is not created or updated
 func TestMCComponentPlacement(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Managed cluster mocks
 	mcMocker := gomock.NewController(t)

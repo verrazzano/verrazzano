@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package logging
@@ -8,14 +8,13 @@ import (
 	"reflect"
 	"testing"
 
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,7 +37,7 @@ func TestFluentdApply(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, zap.S(), context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	// simulate config map not existing
 	mockClient.EXPECT().
@@ -82,7 +81,7 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPodForUpdate()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, zap.S(), context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	// simulate config map existing
 	mockClient.EXPECT().
@@ -125,7 +124,7 @@ func TestFluentdRemove(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
-	fluentd := &Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := &Fluentd{mockClient, zap.S(), context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 	logInfo := createTestLogInfo(true)
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
@@ -176,7 +175,7 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	resource := createTestResourceRelation()
 	fluentdPod := createTestFluentdPod()
 
-	fluentd := Fluentd{mockClient, ctrl.Log, context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
+	fluentd := Fluentd{mockClient, zap.S(), context.Background(), testParseRules, testStorageName, scratchVolMountPath, testWorkLoadType}
 
 	// simulate config map not existing
 	mockClient.EXPECT().

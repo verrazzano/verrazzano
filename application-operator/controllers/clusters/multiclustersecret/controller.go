@@ -1,12 +1,12 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclustersecret
 
 import (
 	"context"
-	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -21,7 +21,7 @@ import (
 // Reconciler reconciles a MultiClusterSecret object
 type Reconciler struct {
 	client.Client
-	Log          logr.Logger
+	Log          *zap.SugaredLogger
 	Scheme       *runtime.Scheme
 	AgentChannel chan clusters.StatusUpdateMessage
 }
@@ -32,20 +32,20 @@ const finalizerName = "multiclustersecret.verrazzano.io"
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	logger := r.Log.WithValues("multiclustersecret", req.NamespacedName)
+	log := r.Log.With("multiclustersecret", req.NamespacedName)
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	result := reconcile.Result{}
 	ctx := context.Background()
 	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
 	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, logger)
+		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, log)
 	}
 
 	// delete the wrapped resource since MC is being deleted
 	if !mcSecret.ObjectMeta.DeletionTimestamp.IsZero() {
 		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 		if err != nil {
-			logger.Error(err, "Failed to delete associated secret and finalizer")
+			log.Errorf("Failed to delete associated secret and finalizer: %v", err)
 		}
 		return ctrl.Result{}, err
 	}
@@ -66,7 +66,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("MultiClusterSecret create or update with underlying secret",
+	log.Debugw("MultiClusterSecret create or update with underlying secret",
 		"secret", mcSecret.Spec.Template.Metadata.Name,
 		"placement", mcSecret.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateSecret(ctx, mcSecret)

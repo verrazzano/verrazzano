@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package secret
 
@@ -6,13 +6,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -182,7 +182,7 @@ func TestAddImagePullSecretUnexpectedError(t *testing.T) {
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := AddGlobalImagePullSecretHelmOverride(zap.S(), mock, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), mock, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.NotNil(t, err)
 	assert.Equal(t, kvs, retKVs)
 }
@@ -202,7 +202,7 @@ func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := AddGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of Key/Value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {
@@ -226,7 +226,7 @@ func TestAddImagePullSecretTargetSecretCopied(t *testing.T) {
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := AddGlobalImagePullSecretHelmOverride(zap.S(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of Key/Value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {

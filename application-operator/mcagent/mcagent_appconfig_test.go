@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -13,12 +13,12 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -31,7 +31,7 @@ var mcAppConfigTestUpdatedLabels = map[string]string{"label1": "test1updated"}
 // THEN ensure that the MultiClusterApplicationConfiguration and its associated OAM Component are created.
 func TestCreateMCAppConfig(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -78,7 +78,7 @@ func TestCreateMCAppConfig(t *testing.T) {
 // THEN ensure that the MultiClusterApplicationConfiguration is created but not the OAM component
 func TestCreateMCAppConfigNoOAMComponent(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -124,7 +124,7 @@ func TestCreateMCAppConfigNoOAMComponent(t *testing.T) {
 // THEN ensure that the MultiClusterApplicationConfiguration is updated.
 func TestUpdateMCAppConfig(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -188,7 +188,7 @@ func TestUpdateMCAppConfig(t *testing.T) {
 // THEN ensure that the MultiClusterApplicationConfiguration is deleted.
 func TestDeleteMCAppConfig(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -248,7 +248,7 @@ func TestDeleteMCAppConfig(t *testing.T) {
 // THEN ensure that the MultiClusterApplicationConfiguration is deleted and OAM component object is not deleted
 func TestDeleteMCAppConfigNoOAMComponent(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -318,7 +318,7 @@ func TestDeleteMCAppConfigNoOAMComponent(t *testing.T) {
 // THEN ensure that when MultiClusterApplicationConfiguration is deleted, the OAM component that is no longer shared is deleted
 func TestDeleteMCAppConfigShared(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	testMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -381,7 +381,7 @@ func TestDeleteMCAppConfigShared(t *testing.T) {
 // THEN ensure that the orphaned OAM component gets deleted
 func TestDeleteOrphanedComponents(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 
@@ -428,7 +428,7 @@ func TestDeleteOrphanedComponents(t *testing.T) {
 // THEN ensure that the MultiClusterApplicationConfiguration is not created or updated
 func TestMCAppConfigPlacement(t *testing.T) {
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Test data
 	adminMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
@@ -474,7 +474,7 @@ func TestSyncComponentList(t *testing.T) {
 	testAnnot := "test-annotation"
 
 	assert := asserts.New(t)
-	log := ctrl.Log.WithName("test")
+	log := zap.S().With("test")
 
 	// Create a fake client for the admin cluster
 	adminClient := fake.NewFakeClientWithScheme(newScheme(),

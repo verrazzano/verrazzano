@@ -1,14 +1,13 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
 
 import (
 	"errors"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os/exec"
 	"testing"
-
-	"go.uber.org/zap"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +38,7 @@ func TestUpgrade(t *testing.T) {
 	SetCmdRunner(upgradeRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), overrideYaml)
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), overrideYaml)
 	assert.NoError(err, "Upgrade returned an error")
 	assert.Len(stderr, 0, "Upgrade stderr should be empty")
 	assert.NotZero(stdout, "Upgrade stdout should not be empty")
@@ -54,7 +53,7 @@ func TestUpgradeFail(t *testing.T) {
 	SetCmdRunner(badRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Upgrade(zap.S(), "", "")
+	stdout, stderr, err := Upgrade(vzlog.DefaultLogger(), "", "")
 	assert.Error(err, "Upgrade should have returned an error")
 	assert.Len(stdout, 0, "Upgrade stdout should be empty")
 	assert.NotZero(stderr, "Upgrade stderr should not be empty")
@@ -71,7 +70,7 @@ func TestInstall(t *testing.T) {
 	SetCmdRunner(installRunner{t: t})
 	defer SetDefaultRunner()
 
-	stdout, stderr, err := Install(zap.S(), overrideYaml)
+	stdout, stderr, err := Install(vzlog.DefaultLogger(), overrideYaml)
 	assert.NoError(err, "Install returned an error")
 	assert.Len(stderr, 0, "Install stderr should be empty")
 	assert.NotZero(stdout, "Install stdout should not be empty")
@@ -85,7 +84,7 @@ func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
 
 	SetCmdRunner(fakeIstioInstalledRunner{})
-	b, err := IsInstalled(zap.S())
+	b, err := IsInstalled(vzlog.DefaultLogger())
 	assert.NoError(err, "IsInstalled returned an error")
 	assert.True(b, "IsInstalled returned false")
 }
