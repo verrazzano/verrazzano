@@ -997,7 +997,6 @@ func (r *Reconciler) retryUpgrade(ctx context.Context, vz *installv1alpha1.Verra
 func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Finalizer is present, so lets do the uninstall
 	if vzstring.SliceContainsString(vz.ObjectMeta.Finalizers, finalizerName) {
-
 		log.Progress("Deleting Verrazzano installation")
 
 		// Create the uninstall job if it doesn't exist
@@ -1029,7 +1028,7 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			}
 		}
 	}
-	return newRequeueWithDelay(), nil
+	return ctrl.Result{}, nil
 }
 
 // Cleanup the resources left over from install and uninstall

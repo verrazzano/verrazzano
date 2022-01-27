@@ -28,7 +28,7 @@ import (
 //    immediately.
 func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	cr := spiCtx.ActualCR()
-	spiCtx.Log().Progress("Reconciling components")
+	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
 
