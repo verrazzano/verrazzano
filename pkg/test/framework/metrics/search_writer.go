@@ -37,7 +37,7 @@ func SearchWriterFromEnv(index string) (SearchWriter, error) {
 	}
 
 	return SearchWriter{
-		hc:    &retryablehttp.Client{},
+		hc:    retryablehttp.NewClient(),
 		url:   uri,
 		index: index,
 		auth:  auth,
