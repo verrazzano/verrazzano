@@ -75,7 +75,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 
 		case vzapi.PreInstalling:
 			if !registry.ComponentDependenciesMet(comp, compContext) {
-				compLog.Progressf("Waiting for for component %s dependencies %v to be ready", comp.Name(), comp.GetDependencies())
+				compLog.Progressf("Component %s waiting for dependencies %v to be ready", comp.Name(), comp.GetDependencies())
 				requeue = true
 				continue
 			}
@@ -86,7 +86,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				continue
 			}
 			// If component is not installed,install it
-			compLog.Oncef("Installing component %s ", compName)
+			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
 				handleError(compLog, err)
 				requeue = true
@@ -108,7 +108,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 					requeue = true
 					continue
 				}
-				compLog.Oncef("Successfully installed component %s", comp.Name())
+				compLog.Oncef("Component %s successfully installed", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
@@ -116,7 +116,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				continue
 			}
 			// Install of this component is not done, requeue to check status
-			compLog.Progressf("Waiting for component %s to finish installing", compName)
+			compLog.Progressf("Component %s waiting to finish installing", compName)
 			requeue = true
 		}
 	}
@@ -134,12 +134,12 @@ func isVersionOk(log vzlog.VerrazzanoLogger, compVersion string, vzVersion strin
 	}
 	vzSemver, err := semver.NewSemVersion(vzVersion)
 	if err != nil {
-		log.Errorf("Unexpected error getting semver from status")
+		log.Errorf("Failed getting semver from status: %v", err)
 		return false
 	}
 	compSemver, err := semver.NewSemVersion(compVersion)
 	if err != nil {
-		log.Errorf("Unexpected error getting semver from component")
+		log.Errorf("Failed creating new semver for component: %v", err)
 		return false
 	}
 

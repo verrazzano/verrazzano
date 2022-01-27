@@ -84,7 +84,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
+var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -170,7 +170,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		})
 	})
 
-	t.Context("for Ingress", func() {
+	t.Context("for Ingress", Label("f:mesh.ingress"), func() {
 		var host = ""
 		var err error
 		// Get the host from the Istio gateway resource.
@@ -196,7 +196,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		})
 	})
 
-	t.Context("for Logging", func() {
+	t.Context("for Logging", Label("f:observability.logging.es"), func() {
 		indexName := "verrazzano-namespace-mc-todo-list"
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -209,7 +209,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", func() {
 		})
 	})
 
-	t.Context("for Prometheus Metrics", func() {
+	t.Context("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		t.It("Verify scrape_duration_seconds metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()

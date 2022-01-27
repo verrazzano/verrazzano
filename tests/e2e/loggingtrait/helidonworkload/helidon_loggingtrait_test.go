@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -42,7 +43,9 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Test helidon loggingtrait application", func() {
+var _ = t.Describe("Test helidon loggingtrait application", Label("f:app-lcm.oam",
+	"f:app-lcm.helidon-workload",
+	"f:app-lcm.logging-trait"), func() {
 
 	t.Context("Deployment.", func() {
 		// GIVEN the app is deployed
