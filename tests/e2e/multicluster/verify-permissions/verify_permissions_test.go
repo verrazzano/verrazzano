@@ -13,6 +13,7 @@ import (
 	"time"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -55,7 +56,7 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", func() {
+var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multicluster.register"), func() {
 
 	// vZ-2336: Be able to read MultiClusterXXX resources in the admin cluster
 	//			Be able to update the status of MultiClusterXXX resources in the admin cluster

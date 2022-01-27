@@ -6,6 +6,7 @@ package appoper
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"path/filepath"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -86,7 +86,7 @@ func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
 }
 
-func ApplyCRDYaml(log *zap.SugaredLogger, c client.Client, _ string, _ string, _ string) error {
+func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {
 	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
 	yamlApplier := k8sutil.NewYAMLApplier(c)
 	return yamlApplier.ApplyD(path)

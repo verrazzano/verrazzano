@@ -47,7 +47,9 @@ var _ = t.AfterSuite(func() {
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
 })
 
-var _ = t.Describe("Test coherence loggingtrait application", func() {
+var _ = t.Describe("Test coherence loggingtrait application", Label("f:app-lcm.oam",
+	"f:app-lcm.coherence-workload",
+	"f:app-lcm.logging-trait"), func() {
 
 	t.Context("Deployment.", func() {
 		// GIVEN the app is deployed

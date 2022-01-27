@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -109,7 +110,7 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Test Keycloak configuration.", func() {
+var _ = t.Describe("Test Keycloak configuration.", Label("f:platform-lcm.install"), func() {
 	var _ = t.Context("Verify", func() {
 		isManagedClusterProfile := pkg.IsManagedClusterProfile()
 		t.It("master realm password policy", func() {
@@ -131,7 +132,7 @@ var _ = t.Describe("Test Keycloak configuration.", func() {
 	})
 })
 
-var _ = t.Describe("Verify", func() {
+var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 	var _ = t.Context("MySQL Persistent Volumes in namespace keycloak based on", func() {
 
 		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
@@ -171,7 +172,7 @@ var _ = t.Describe("Verify", func() {
 	})
 })
 
-var _ = t.Describe("Verify Keycloak", func() {
+var _ = t.Describe("Verify Keycloak", Label("f:platform-lcm.install"), func() {
 	var _ = t.Context("redirect and weborigins URIs", func() {
 		pkg.MinVersionSpec("Verify redirect and weborigins URIs", "1.1.0",
 			func() {
