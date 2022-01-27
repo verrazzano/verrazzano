@@ -9,6 +9,7 @@ import (
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"go.uber.org/zap"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
@@ -53,7 +54,7 @@ func newScheme() *runtime.Scheme {
 func newReconciler(c client.Client) Reconciler {
 	return Reconciler{
 		Client: c,
-		Log:    ctrl.Log.WithName("test"),
+		Log:    zap.S().With("test"),
 		Scheme: newScheme(),
 	}
 }

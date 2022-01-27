@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"go.uber.org/zap"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -53,7 +54,7 @@ func newTestController(c client.Client) (*NamespaceController, error) {
 		Client: c,
 		scheme: testScheme,
 	}
-	return NewNamespaceController(mgr, log.NullLogger{})
+	return NewNamespaceController(mgr, zap.S())
 }
 
 // TestReconcileNamespaceUpdate tests the Reconcile method for the following use case

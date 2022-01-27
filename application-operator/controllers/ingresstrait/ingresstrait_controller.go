@@ -13,7 +13,6 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
-	"github.com/go-logr/logr"
 	ptypes "github.com/gogo/protobuf/types"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -23,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -69,7 +69,7 @@ var (
 // Reconciler is used to reconcile an IngressTrait object
 type Reconciler struct {
 	client.Client
-	Log    logr.Logger
+	Log    *zap.SugaredLogger
 	Scheme *runtime.Scheme
 }
 
@@ -90,7 +90,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	ctx := context.Background()
-	r.Log.Info("Reconcile ingress trait", "trait", req.NamespacedName)
+	r.Log.Infof("Reconcile ingress trait %s", req.Name)
 	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
 
 	// Fetch the trait.
@@ -188,13 +188,13 @@ func isTraitBeingDeleted(trait *vzapi.IngressTrait) bool {
 // Will return nil for the trait and no error if the trait does not exist.
 func (r *Reconciler) fetchTrait(ctx context.Context, nsn types.NamespacedName) (*vzapi.IngressTrait, error) {
 	var trait vzapi.IngressTrait
-	r.Log.Info("Fetching trait", "trait", nsn)
+	r.Log.Debugf("Fetching trait %s", nsn.Name)
 	if err := r.Get(ctx, nsn, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Info("Trait is not found", "trait", nsn)
+			r.Log.Debugf("Trait %s is not found: %v", nsn.Name, err)
 			return nil, nil
 		}
-		r.Log.Info("Failed to fetch trait", "trait", nsn)
+		r.Log.Debugf("Failed to fetch trait %s", nsn.Name)
 		return nil, err
 	}
 	return &trait, nil
@@ -211,7 +211,7 @@ func (r *Reconciler) fetchWorkloadDefinition(ctx context.Context, workload *unst
 	workloadName := convertAPIVersionAndKindToNamespacedName(workloadAPIVer, workloadKind)
 	workloadDef := v1alpha2.WorkloadDefinition{}
 	if err := r.Get(ctx, workloadName, &workloadDef); err != nil {
-		r.Log.Error(err, "Failed to fetch workload definition", "workload", workloadName)
+		r.Log.Errorf("Failed to fetch workload %s definition: %v", workloadName, err)
 		return nil, err
 	}
 	return &workloadDef, nil
@@ -228,7 +228,7 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 
 	// Attempt to fetch workload definition based on the workload GVK.
 	if workloadDefinition, err = r.fetchWorkloadDefinition(ctx, workload); err != nil {
-		r.Log.Info("Workload definition not found")
+		r.Log.Debug("Workload definition not found")
 	}
 	if workloadDefinition != nil {
 		// If the workload definition is found then fetch child resources of the declared child types
@@ -239,11 +239,11 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 		return children, nil
 	} else if workload.GetAPIVersion() == appsv1.SchemeGroupVersion.String() {
 		// Else if this is a native resource then use the workload itself as the child
-		r.Log.Info("Found native workload")
+		r.Log.Debug("Found native workload")
 		return []*unstructured.Unstructured{workload}, nil
 	} else {
 		// Else return an error that the workload type is not supported by this trait.
-		r.Log.Info("Workload not supported by trait")
+		r.Log.Debug("Workload not supported by trait")
 		return nil, fmt.Errorf("Workload not supported by trait")
 	}
 }
@@ -259,19 +259,19 @@ func (r *Reconciler) fetchWorkloadChildren(ctx context.Context, workload *unstru
 // childResKinds - The set of resource kinds a child's resource kind must in to be included in the result.
 func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
 	var childResources []*unstructured.Unstructured
-	r.Log.Info("Fetch child resources")
+	r.Log.Debug("Fetch child resources")
 	for _, childResKind := range childResKinds {
 		resources := unstructured.UnstructuredList{}
 		resources.SetAPIVersion(childResKind.APIVersion)
 		resources.SetKind(childResKind.Kind + "List") // Only required by "fake" client used in tests.
 		if err := r.List(ctx, &resources, client.InNamespace(namespace), client.MatchingLabels(childResKind.Selector)); err != nil {
-			r.Log.Error(err, "Failed listing child resources")
+			r.Log.Errorf("Failed listing child resources: %v", err)
 			return nil, err
 		}
 		for i, item := range resources.Items {
 			for _, owner := range item.GetOwnerReferences() {
 				if owner.UID == parentUID {
-					r.Log.Info(fmt.Sprintf("Found child %s.%s:%s", item.GetAPIVersion(), item.GetKind(), item.GetName()))
+					r.Log.Debugf("Found child %s.%s:%s", item.GetAPIVersion(), item.GetKind(), item.GetName())
 					childResources = append(childResources, &resources.Items[i])
 					break
 				}
@@ -308,7 +308,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	//ensure trait does not specify hosts.  should be moved to ingress trait validating webhook
 	for _, rule := range trait.Spec.Rules {
 		if len(rule.Hosts) != 0 {
-			r.Log.Info("host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
+			r.Log.Debug("Host(s) specified in the trait rules will likely not correlate to the generated certificate CN." +
 				" Please redeploy after removing the hosts or specifying a secret with the given hosts in its SAN list")
 			break
 		}
@@ -323,7 +323,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	}
 	certName, err = buildCertificateNameFromAppName(types.NamespacedName{Namespace: trait.Namespace, Name: appName})
 	if err != nil {
-		r.Log.Error(err, "failed to create certificate name from ingress trait")
+		r.Log.Errorf("Failed to create certificate name from ingress trait: %v", err)
 		status.Errors = append(status.Errors, err)
 		status.Results = append(status.Results, controllerutil.OperationResultNone)
 		return ""
@@ -361,7 +361,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "failed to create or update gateway secret containing certificate")
+		r.Log.Errorf("Failed to create or update gateway secret containing certificate: %v", err)
 		return ""
 	}
 
@@ -417,7 +417,7 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "Failed to create or update gateway.")
+		r.Log.Errorf("Failed to create or update gateway: %v", err)
 	}
 
 	return gateway
@@ -510,7 +510,7 @@ func (r *Reconciler) createOrUpdateVirtualService(ctx context.Context, trait *vz
 	status.Errors = append(status.Errors, err)
 
 	if err != nil {
-		r.Log.Error(err, "Failed to create or update virtual service.")
+		r.Log.Errorf("Failed to create or update virtual service: %v", err)
 	}
 }
 
@@ -574,7 +574,7 @@ func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *v
 		status.Errors = append(status.Errors, err)
 
 		if err != nil {
-			r.Log.Error(err, "Failed to create or update destination rule.")
+			r.Log.Errorf("Failed to create or update destination rule: %v", err)
 		}
 	}
 }
@@ -894,7 +894,7 @@ func (r *Reconciler) extractServicesFromUnstructuredChildren(children []*unstruc
 	}
 
 	// Log that the child service was not found and return a nil service
-	r.Log.Info("No child service found")
+	r.Log.Debug("No child service found")
 	return services, nil
 }
 
