@@ -5,19 +5,19 @@ package verrazzano
 
 import (
 	"fmt"
+	"strconv"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"strconv"
-
-	"go.uber.org/zap"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Reconcile upgrade will upgrade the components as required
-func (r *Reconciler) reconcileUpgrade(log *zap.SugaredLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Debugf("enter reconcileUpgrade")
 
 	// Upgrade version was validated in webhook, see ValidateVersion
@@ -111,6 +111,6 @@ func fmtGeneration(gen int64) string {
 	return "generation:" + s
 }
 
-func postUpgrade(log *zap.SugaredLogger, client clipkg.Client) error {
+func postUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	return nil
 }

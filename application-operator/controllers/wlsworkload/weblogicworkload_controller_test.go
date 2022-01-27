@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
@@ -1440,7 +1441,7 @@ func TestCreateDestinationRuleCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1475,7 +1476,7 @@ func TestCreateDestinationRuleNoCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1491,7 +1492,7 @@ func TestCreateDestinationRuleNoOamLabel(t *testing.T) {
 	namespaceLabels := make(map[string]string)
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
 }
 
@@ -1505,7 +1506,7 @@ func TestCreateDestinationRuleNoIstioLabel(t *testing.T) {
 	reconciler := Reconciler{}
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.NoError(err)
 }
 
@@ -1555,7 +1556,7 @@ func TestCreateRuntimeEncryptionSecretCreate(t *testing.T) {
 
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), ctrl.Log, "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1587,7 +1588,7 @@ func TestCreateRuntimeEncryptionSecretNoCreate(t *testing.T) {
 
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), ctrl.Log, "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1601,7 +1602,7 @@ func TestCreateRuntimeEncryptionSecretNoOamLabel(t *testing.T) {
 
 	reconciler := Reconciler{}
 	workloadLabels := make(map[string]string)
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), ctrl.Log, "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to create owner reference to appconfig", err.Error())
 }
 
@@ -1658,7 +1659,7 @@ func newReconciler(c client.Client) Reconciler {
 	metricsReconciler := &metricstrait.Reconciler{Client: c, Scheme: scheme, Scraper: "verrazzano-system/vmi-system-prometheus-0"}
 	return Reconciler{
 		Client:  c,
-		Log:     ctrl.Log.WithName("test"),
+		Log:     zap.S().With("test"),
 		Scheme:  scheme,
 		Metrics: metricsReconciler,
 	}

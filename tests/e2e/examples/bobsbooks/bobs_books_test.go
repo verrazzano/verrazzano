@@ -130,7 +130,11 @@ func undeployBobsBooksExample() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = t.Describe("Bobs Books test", func() {
+var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
+	"f:app-lcm.helidon-workload",
+	"f:app-lcm.weblogic-workload",
+	"f:app-lcm.coherence-workload"), func() {
+
 	t.It("application deployment.", func() {
 		Eventually(func() bool {
 			expectedPods := []string{
@@ -153,7 +157,7 @@ var _ = t.Describe("Bobs Books test", func() {
 	// GIVEN the Istio gateway for the bobs-books namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		start := time.Now()
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway("bobs-books", "")
@@ -161,7 +165,7 @@ var _ = t.Describe("Bobs Books test", func() {
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	})
-	t.Context("Ingress.", func() {
+	t.Context("Ingress.", Label("f:mesh.ingress"), func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the roberts-books UI is accessed
@@ -209,7 +213,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
-	t.Context("Metrics.", func() {
+	t.Context("Metrics.", Label("f:observability.monitoring.prom"), func() {
 		// Verify application Prometheus scraped metrics
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
@@ -307,7 +311,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			)
 		})
 	})
-	t.Context("WebLogic logging.", func() {
+	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
 		bobsIndexName := "verrazzano-namespace-bobs-books"
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
@@ -529,7 +533,7 @@ var _ = t.Describe("Bobs Books test", func() {
 			},
 		)
 	})
-	t.Context("Coherence logging.", func() {
+	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
 		indexName := "verrazzano-namespace-bobs-books"
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved

@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -7,11 +7,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -50,7 +49,7 @@ func testDefaulter(t *testing.T, componentPath, configPath string, initTraitsSiz
 	assert.Equal(t, 1, len(appConfig.Spec.Components))
 	assert.Equal(t, initTraitsSize, len(appConfig.Spec.Components[0].Traits))
 	defaulter := &MetricsTraitDefaulter{}
-	err = defaulter.Default(appConfig, false)
+	err = defaulter.Default(appConfig, false, zap.S())
 	if err != nil {
 		t.Fatalf("Error in defaulter.Default %v", err)
 	}
@@ -77,7 +76,7 @@ func testMetricsTraitDefaulterCleanup(t *testing.T, configPath string, dryRun bo
 	}
 	assert.Equal(t, 1, len(appConfig.Spec.Components))
 	defaulter := &MetricsTraitDefaulter{}
-	err = defaulter.Cleanup(appConfig, dryRun)
+	err = defaulter.Cleanup(appConfig, dryRun, zap.S())
 	if err != nil {
 		t.Fatalf("Error in defaulter.Default %v", err)
 	}

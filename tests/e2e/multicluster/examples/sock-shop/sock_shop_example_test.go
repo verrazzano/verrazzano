@@ -61,7 +61,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
+var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -128,7 +128,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 		}
 	})
 
-	t.Context("for Logging", func() {
+	t.Context("for Logging", Label("f:observability.logging.es"), func() {
 		indexName := "verrazzano-namespace-mc-sockshop"
 
 		// GIVEN an admin cluster and at least one managed cluster
@@ -145,7 +145,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", func() {
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
 	// this is marked pending until VZ-3760 is fixed
-	PContext("for Prometheus Metrics", func() {
+	PContext("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()

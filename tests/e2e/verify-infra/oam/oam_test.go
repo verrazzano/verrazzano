@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -26,7 +27,7 @@ var t = framework.NewTestFramework("oam")
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verify OAM Infra", func() {
+var _ = t.Describe("Verify OAM Infra", Label("f:infra-lcm"), func() {
 	t.Describe("verrazzano-application-operator pod", func() {
 		t.It("must be running", func() {
 			Eventually(func() (bool, error) {

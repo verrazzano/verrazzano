@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcagent
@@ -32,7 +32,7 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 		if s.isThisCluster(mcSecret.Spec.Placement) {
 			_, err := s.createOrUpdateMCSecret(mcSecret)
 			if err != nil {
-				s.Log.Error(err, "Error syncing object",
+				s.Log.Errorw(fmt.Sprintf("Failed syncing object: %v", err),
 					"MultiClusterSecret",
 					types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 			}
@@ -46,7 +46,7 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 	allLocalMCSecrets := clustersv1alpha1.MultiClusterSecretList{}
 	err = s.LocalClient.List(s.Context, &allLocalMCSecrets, listOptions)
 	if err != nil {
-		s.Log.Error(err, "failed to list MultiClusterSecret on local cluster")
+		s.Log.Errorf("Failed to list MultiClusterSecret on local cluster: %v", err)
 		return nil
 	}
 	for si, mcSecret := range allLocalMCSecrets.Items {
@@ -54,7 +54,7 @@ func (s *Syncer) syncMCSecretObjects(namespace string) error {
 		if !s.secretPlacedOnCluster(&allAdminMCSecrets, mcSecret.Name, mcSecret.Namespace) {
 			err := s.LocalClient.Delete(s.Context, &allLocalMCSecrets.Items[si])
 			if err != nil {
-				s.Log.Error(err, fmt.Sprintf("failed to delete MultiClusterSecret with name %q and namespace %q", mcSecret.Name, mcSecret.Namespace))
+				s.Log.Errorf("Failed to delete MultiClusterSecret with name %q and namespace %q: %v", mcSecret.Name, mcSecret.Namespace, err)
 			}
 		}
 	}

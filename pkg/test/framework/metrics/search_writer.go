@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"github.com/hashicorp/go-retryablehttp"
 	"io"
 	"net/http"
 	"os"
@@ -16,7 +17,7 @@ import (
 
 //SearchWriter writes to a search endpoint, as an io.Writer and zapcore.WriteSyncer S
 type SearchWriter struct {
-	hc    *http.Client
+	hc    *retryablehttp.Client
 	url   string
 	index string
 	auth  string
@@ -36,7 +37,7 @@ func SearchWriterFromEnv(index string) (SearchWriter, error) {
 	}
 
 	return SearchWriter{
-		hc:    &http.Client{},
+		hc:    retryablehttp.NewClient(),
 		url:   uri,
 		index: index,
 		auth:  auth,
@@ -55,8 +56,8 @@ func (s SearchWriter) Sync() error {
 
 //postRecord sends the reader record to the search data store via HTTP Post
 // Basic Authorization is used, if encoded auth is provided for basicAuth
-func postRecord(hc *http.Client, basicAuth, uri string, reader io.Reader) error {
-	req, err := http.NewRequest("POST", uri, reader)
+func postRecord(hc *retryablehttp.Client, basicAuth, uri string, reader io.Reader) error {
+	req, err := retryablehttp.NewRequest("POST", uri, reader)
 	if err != nil {
 		return err
 	}

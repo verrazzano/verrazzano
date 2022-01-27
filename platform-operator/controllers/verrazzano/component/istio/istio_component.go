@@ -12,6 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -19,10 +23,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -61,7 +63,7 @@ type istioComponent struct {
 	monitor installMonitor
 }
 
-type upgradeFuncSig func(log *zap.SugaredLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
+type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
 
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = istio.Upgrade
@@ -74,7 +76,7 @@ func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type restartComponentsFuncSig func(log *zap.SugaredLogger, err error, i istioComponent, client clipkg.Client) error
+type restartComponentsFuncSig func(log vzlog.VerrazzanoLogger, err error, i istioComponent, client clipkg.Client) error
 
 var restartComponentsFunction = restartComponents
 
@@ -183,7 +185,8 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: IstiodDeployment, Namespace: IstioNamespace},
 	}
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // GetDependencies returns the dependencies of this component
@@ -236,7 +239,7 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 
 // restartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func restartComponents(log *zap.SugaredLogger, err error, i istioComponent, client clipkg.Client) error {
+func restartComponents(log vzlog.VerrazzanoLogger, err error, i istioComponent, client clipkg.Client) error {
 
 	// Restart all the deployments in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
@@ -317,7 +320,7 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 		return err
 	}
 	if found {
-		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		_, _, err = helmUninstallFunction(context.Log().GetZapLogger(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
 			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}
@@ -351,7 +354,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func buildImageOverridesString(_ *zap.SugaredLogger) (string, error) {
+func buildImageOverridesString(_ vzlog.VerrazzanoLogger) (string, error) {
 	// Get the image overrides from the BOM
 	var kvs []bom.KeyValue
 	var err error
@@ -410,10 +413,11 @@ func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool
 	deployments := []types.NamespacedName{
 		{Name: "istiod", Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-func buildOverridesString(log *zap.SugaredLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()
 	if err != nil {

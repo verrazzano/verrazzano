@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package containerizedworkload
@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +45,7 @@ func newScheme() *runtime.Scheme {
 func newReconciler(c client.Client) Reconciler {
 	return Reconciler{
 		Client: c,
-		Log:    ctrl.Log.WithName("test"),
+		Log:    zap.S().With("test"),
 		Scheme: newScheme(),
 	}
 }

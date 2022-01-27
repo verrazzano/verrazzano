@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,9 +32,9 @@ var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
 
 // This test checks that the Verrazzano install resource has the expected console URLs.
-var _ = t.Describe("Verify Verrazzano install scripts.", func() {
+var _ = t.Describe("Verify Verrazzano install scripts.", Label("f:platform-lcm.install"), func() {
 
-	t.Context("Check", func() {
+	t.Context("Check", Label("f:ui.console"), func() {
 		t.It("the expected Console URLs are there in the installed Verrazzano resource", func() {
 			// Validation for passed in cluster
 			Eventually(func() bool {

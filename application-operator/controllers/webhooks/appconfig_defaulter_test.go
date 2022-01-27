@@ -6,6 +6,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -29,7 +30,7 @@ func decoder() *admission.Decoder {
 	core.AddToScheme(scheme)
 	decoder, err := admission.NewDecoder(scheme)
 	if err != nil {
-		log.Error(err, "error new decoder")
+		zap.S().Errorf("Failed creating new decoder: %v", err)
 	}
 	return decoder
 }
@@ -116,11 +117,11 @@ func TestAppConfigDefaulterHandleMarshalError(t *testing.T) {
 type mockErrorDefaulter struct {
 }
 
-func (*mockErrorDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool) error {
+func (*mockErrorDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	return fmt.Errorf("mockErrorDefaulter error")
 }
 
-func (*mockErrorDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool) error {
+func (*mockErrorDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	return nil
 }
 
@@ -179,7 +180,7 @@ func readYaml2Json(t *testing.T, path string) []byte {
 	}
 	jsonBytes, err := yaml.YAMLToJSON(yamlBytes)
 	if err != nil {
-		log.Error(err, "Error json marshal")
+		zap.S().Errorf("Failed json marshal: %v", err)
 	}
 	return jsonBytes
 }

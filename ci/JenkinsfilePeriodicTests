@@ -357,6 +357,26 @@ pipeline {
                         }
                     }
                 }
+                stage('OCI Service Integration Tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-oci-integration-tests/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                ], wait: true
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                TESTS_FAILED = true
+                            }
+                        }
+                    }
+                }
             }
         }
 

@@ -123,7 +123,8 @@ func undeployApplication() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
-var _ = t.Describe("console-ingress app test", func() {
+var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
+	"f:app-lcm.weblogic-workload"), func() {
 
 	t.Context("deployment.", func() {
 		// GIVEN the app is deployed
@@ -136,7 +137,8 @@ var _ = t.Describe("console-ingress app test", func() {
 		})
 	})
 
-	t.Context("Ingress.", func() {
+	t.Context("Ingress.", Label("f:mesh.ingress",
+		"f:ui.console"), func() {
 		var host = ""
 		var err error
 		// Get the host from the Istio gateway resource.
