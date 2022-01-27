@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -11,17 +11,15 @@ import (
 	cluv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"go.uber.org/zap"
 	"istio.io/client-go/pkg/apis/security/v1beta1"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const verrazzanoIstioLabel = "verrazzano.io/istio"
-
-var apLogger = ctrl.Log.WithName("webhooks.project.authorization.policy")
 
 // AuthorizationPolicy type for fixing up authorization policies for projects
 type AuthorizationPolicy struct {
@@ -34,7 +32,7 @@ type AuthorizationPolicy struct {
 // are allowed to talk to each other after delete of an appconfig.  This function is called from the appconfig-defaulter
 // webhook when an appconfig resource is deleted. This function will fixup the remaining authorization policies to not
 // reference the deleted appconfig.
-func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace string, appConfigName string) error {
+func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace string, appConfigName string, log *zap.SugaredLogger) error {
 	// Get the list of defined projects
 	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
 	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
@@ -117,7 +115,7 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 			}
 
 			// Update all authorization policies in a project.
-			err = ap.updateAuthorizationPoliciesForProject(authzPolicyList, uniquePrincipals)
+			err = ap.updateAuthorizationPoliciesForProject(authzPolicyList, uniquePrincipals, log)
 			if err != nil {
 				return err
 			}
@@ -131,7 +129,7 @@ func (ap *AuthorizationPolicy) cleanupAuthorizationPoliciesForProjects(namespace
 // fixupAuthorizationPoliciesForProjects updates authorization policies so that all applications within a project
 // are allowed to talk to each other. This function is called by the istio-defaulter webhook when authorization
 // policies are created.
-func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace string) error {
+func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace string, log *zap.SugaredLogger) error {
 	// Get the list of defined projects
 	projectsList := &cluv1alpha1.VerrazzanoProjectList{}
 	listOptions := &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}
@@ -175,7 +173,7 @@ func (ap *AuthorizationPolicy) fixupAuthorizationPoliciesForProjects(namespace s
 			}
 
 			// Update all authorization policies in a project.
-			err = ap.updateAuthorizationPoliciesForProject(authzPolicyList, uniquePrincipals)
+			err = ap.updateAuthorizationPoliciesForProject(authzPolicyList, uniquePrincipals, log)
 			if err != nil {
 				return err
 			}
@@ -209,7 +207,7 @@ func (ap *AuthorizationPolicy) getAuthorizationPoliciesForProject(namespaceList 
 }
 
 // updateAuthorizationPoliciesForProject updates Istio authorization policies for a project, if needed.
-func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicyList []v1beta1.AuthorizationPolicy, uniquePrincipals map[string]bool) error {
+func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicyList []v1beta1.AuthorizationPolicy, uniquePrincipals map[string]bool, log *zap.SugaredLogger) error {
 	for i, authzPolicy := range authzPolicyList {
 		// If the principals specified for the authorization policy do not have the expected principals then
 		// we need to update them.
@@ -219,7 +217,7 @@ func (ap *AuthorizationPolicy) updateAuthorizationPoliciesForProject(authzPolicy
 				principals = append(principals, principal)
 			}
 			authzPolicy.Spec.Rules[0].From[0].Source.Principals = principals
-			apLogger.Info(fmt.Sprintf("Updating project Istio authorization policy: %s:%s", authzPolicy.Namespace, authzPolicy.Name))
+			log.Debugf("Updating project Istio authorization policy: %s:%s", authzPolicy.Namespace, authzPolicy.Name)
 			_, err := ap.IstioClient.SecurityV1beta1().AuthorizationPolicies(authzPolicy.Namespace).Update(context.TODO(), &authzPolicyList[i], metav1.UpdateOptions{})
 			if err != nil {
 				return err

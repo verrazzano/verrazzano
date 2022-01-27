@@ -6,9 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/go-logr/logr"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -18,10 +18,10 @@ import (
 )
 
 // Cleanup cleans up the generated certificates and secrets associated with the given app config
-func Cleanup(appName types.NamespacedName, client client.Client, log logr.Logger) (err error) {
+func Cleanup(appName types.NamespacedName, client client.Client, log *zap.SugaredLogger) (err error) {
 	certName, err := buildCertificateNameFromAppName(appName)
 	if err != nil {
-		log.Error(err, "Error building certificate name", "appName", appName.Name)
+		log.Errorf("Failed building certificate name: %s", err)
 		return err
 	}
 	err = cleanupCert(certName, client, log)
@@ -36,7 +36,7 @@ func Cleanup(appName types.NamespacedName, client client.Client, log logr.Logger
 }
 
 // cleanupCert deletes up the generated certificate for the given app config
-func cleanupCert(certName string, c client.Client, log logr.Logger) (err error) {
+func cleanupCert(certName string, c client.Client, log *zap.SugaredLogger) (err error) {
 	nsn := types.NamespacedName{Name: certName, Namespace: constants.IstioSystemNamespace}
 	cert := &certapiv1alpha2.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -45,23 +45,23 @@ func cleanupCert(certName string, c client.Client, log logr.Logger) (err error) 
 		},
 	}
 	// Delete the cert, ignore not found
-	log.Info("Deleting cert", "cert", nsn)
+	log.Debugf("Deleting cert: %s", nsn.Name)
 	err = c.Delete(context.TODO(), cert, &client.DeleteOptions{})
 	if err != nil {
 		// integration tests do not install cert manager so no match error is generated
 		if k8serrors.IsNotFound(err) || meta.IsNoMatchError(err) {
-			log.Info("NotFound deleting cert", "cert", nsn)
+			log.Debugf("NotFound deleting cert %s", nsn.Name)
 			return nil
 		}
-		log.Error(err, "Error deleting the cert", "cert", nsn)
+		log.Errorf("Failed deleting the cert %s", nsn.Name)
 		return err
 	}
-	log.Info("Ingress certificate deleted", "cert", nsn)
+	log.Debugf("Ingress certificate %s deleted", nsn.Name)
 	return nil
 }
 
 // cleanupSecret deletes up the generated secret for the given app config
-func cleanupSecret(certName string, c client.Client, log logr.Logger) (err error) {
+func cleanupSecret(certName string, c client.Client, log *zap.SugaredLogger) (err error) {
 	secretName := fmt.Sprintf("%s-secret", certName)
 	nsn := types.NamespacedName{Name: secretName, Namespace: constants.IstioSystemNamespace}
 	secret := &corev1.Secret{
@@ -71,17 +71,17 @@ func cleanupSecret(certName string, c client.Client, log logr.Logger) (err error
 		},
 	}
 	// Delete the secret, ignore not found
-	log.Info("Deleting secret", "secret", nsn)
+	log.Debugf("Deleting secret %s", nsn.Name)
 	err = c.Delete(context.TODO(), secret, &client.DeleteOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Info("NotFound deleting secret", "secret", nsn)
+			log.Debugf("NotFound deleting secret %s", nsn)
 			return nil
 		}
-		log.Error(err, "Error deleting the secret", "secret", nsn)
+		log.Errorf("Failed deleting the secret %s: %v", nsn.Name, err)
 		return err
 	}
-	log.Info("Ingress secret deleted", "cert", nsn)
+	log.Debugf("Ingress secret %s deleted", nsn.Name)
 	return nil
 }
 

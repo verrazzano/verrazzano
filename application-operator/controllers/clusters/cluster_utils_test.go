@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -15,6 +15,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	kerr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -99,12 +100,12 @@ func TestGetConditionFromResult(t *testing.T) {
 // WHEN IgnoreNotFoundWithLog is called
 // THEN the error is returned
 func TestIgnoreNotFoundWithLog(t *testing.T) {
-	logger := controllerruntime.Log.WithName("somelogger")
-	err := IgnoreNotFoundWithLog("myResourceType", kerr.NewNotFound(controllerruntime.GroupResource{}, ""), logger)
+	log := zap.S().With("somelogger")
+	err := IgnoreNotFoundWithLog("myResourceType", kerr.NewNotFound(controllerruntime.GroupResource{}, ""), log)
 	asserts.Nil(t, err)
 
 	otherErr := kerr.NewBadRequest("some other error")
-	err = IgnoreNotFoundWithLog("myResourceType", otherErr, logger)
+	err = IgnoreNotFoundWithLog("myResourceType", otherErr, log)
 	asserts.Equal(t, otherErr, err)
 }
 

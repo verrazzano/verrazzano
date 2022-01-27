@@ -4,15 +4,16 @@
 package status
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func TestStatefulsetReady(t *testing.T) {
@@ -75,7 +76,7 @@ func TestStatefulsetReady(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.ready, StatefulsetReady(zap.S(), tt.c, tt.n, 1))
+			assert.Equal(t, tt.ready, StatefulsetReady(vzlog.DefaultLogger(), tt.c, tt.n, 1, ""))
 		})
 	}
 }

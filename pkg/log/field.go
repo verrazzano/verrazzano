@@ -6,5 +6,5 @@ package log
 const (
 	FieldResourceNamespace = "resource_namespace"
 	FieldResourceName      = "resource_name"
-	FieldController
+	FieldController        = "controller"
 )

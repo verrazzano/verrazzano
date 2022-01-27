@@ -17,7 +17,8 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("VMI", func() {
+var _ = t.Describe("VMI", Label("f:infra-lcm",
+	"f:ui.console"), func() {
 	const (
 		waitTimeout     = 5 * time.Minute
 		pollingInterval = 5 * time.Second
@@ -69,7 +70,7 @@ var _ = t.Describe("VMI", func() {
 			}
 		})
 
-		t.It("Access VMI endpoints", func() {
+		t.It("Access VMI endpoints", Label("f:ui.api"), func() {
 			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

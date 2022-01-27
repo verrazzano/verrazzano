@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
-	"github.com/go-logr/logr"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -190,7 +190,7 @@ relabel_configs:
 // Reconciler reconciles a MetricsTrait object
 type Reconciler struct {
 	client.Client
-	Log     logr.Logger
+	Log     *zap.SugaredLogger
 	Scheme  *runtime.Scheme
 	Scraper string
 }
@@ -206,7 +206,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=metricstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=metricstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	r.Log.V(1).Info("Reconcile metrics trait", "trait", req.NamespacedName)
+	r.Log.Infof("Reconcile metrics trait %s", req.Name)
 	ctx := context.Background()
 	var err error
 
@@ -215,7 +215,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if trait, err = vznav.FetchTrait(ctx, r, r.Log, req.NamespacedName); err != nil || trait == nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
-	r.Log.Info("trait fetched", "trait", trait, "finalizers", trait.Finalizers)
+	r.Log.Debugf("Trait %s fetched, finalizer: %s", trait, trait.Finalizers)
 
 	if trait.DeletionTimestamp.IsZero() {
 		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, trait)
@@ -224,7 +224,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		if !supported {
 			// If the workload kind is not supported then delete the trait
-			r.Log.V(1).Info(fmt.Sprintf("deleting trait %s because workload is not supported", trait.Name))
+			r.Log.Debugf("Deleting trait %s because workload is not supported", trait.Name)
 			err = r.Client.Delete(context.TODO(), trait, &client.DeleteOptions{})
 		}
 		return result, err
@@ -295,10 +295,10 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait) error {
 	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
-		r.Log.V(1).Info("Adding finalizer from trait", "trait", traitName)
+		r.Log.Debugf("Adding finalizer from trait %s", traitName)
 		trait.Finalizers = append(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
-			r.Log.Error(err, "failed to add finalizer to trait", "trait", traitName)
+			r.Log.Errorf("Failed to add finalizer to trait %s: %v", traitName, err)
 			return err
 		}
 	}
@@ -310,10 +310,10 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.Me
 func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait) error {
 	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
-		r.Log.Info("Removing finalizer from trait", "trait", traitName)
+		r.Log.Debugf("Removing finalizer from trait %s", traitName)
 		trait.Finalizers = vzstring.RemoveStringFromSlice(trait.Finalizers, finalizerName)
 		if err := r.Update(ctx, trait); err != nil {
-			r.Log.Error(err, "failed to remove finalizer to trait", "trait", traitName)
+			r.Log.Errorf("Failed to remove finalizer to trait %s: %v", traitName, err)
 			return err
 		}
 	}
@@ -373,7 +373,7 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 				update.RecordOutcomeIfError(r.deleteOrUpdateMetricSourceResource(ctx, trait, rel))
 			default:
 				// Don't record an outcome for unknown role relations.
-				r.Log.Info("Skip delete or update of unknown resource role", "role", rel.Role)
+				r.Log.Debugf("Skip delete or update of unknown resource role %s", rel.Role)
 			}
 		}
 	}
@@ -404,7 +404,7 @@ func (r *Reconciler) deleteOrUpdateMetricSourceResource(ctx context.Context, tra
 		return r.updateRelatedPod(ctx, trait, nil, nil, &child)
 	default:
 		// Return a NotFoundError to cause removal the resource relation from the status.
-		r.Log.Info("Skip delete or update of metrics source of unknown kind", "kind", rel.Kind)
+		r.Log.Debugf("Skip delete or update of metrics source of unknown kind %s", rel.Kind)
 		return rel, controllerutil.OperationResultNone, apierrors.NewNotFound(schema.GroupResource{Group: rel.APIVersion, Resource: rel.Kind}, rel.Name)
 	}
 }
@@ -451,9 +451,9 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	existingConfigmap := configmap.DeepCopyObject()
 
 	if configmap.CreationTimestamp.IsZero() {
-		r.Log.V(1).Info("Create Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+		r.Log.Debugf("Create Prometheus configmap %s", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
 	} else {
-		r.Log.V(1).Info("Update Prometheus configmap", "configmap", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
+		r.Log.Debugf("Update Prometheus configmap %s", vznav.GetNamespacedNameFromObjectMeta(configmap.ObjectMeta))
 	}
 	yamlStr, exists := configmap.Data[prometheusConfigKey]
 	if !exists {
@@ -504,7 +504,7 @@ func (r *Reconciler) fetchPrometheusDeploymentFromTrait(ctx context.Context, tra
 	if err != nil {
 		return nil, err
 	}
-	r.Log.V(1).Info("Found Prometheus deployment", "deployment", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
+	r.Log.Debugf("Found Prometheus deployment %s", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta))
 	return deployment, nil
 }
 
@@ -514,7 +514,7 @@ func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment 
 	for _, volume := range volumes {
 		if volume.Name == "config-volume" && volume.ConfigMap != nil && len(volume.ConfigMap.Name) > 0 {
 			name := volume.ConfigMap.Name
-			r.Log.V(1).Info("Found Prometheus configmap name", "configmap", name)
+			r.Log.Debugf("Found Prometheus configmap name %s", name)
 			return name, nil
 		}
 	}
@@ -524,7 +524,7 @@ func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment 
 // updateRelatedDeployment updates the labels and annotations of a related workload deployment.
 // For example containerized workloads produce related deployments.
 func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
-	r.Log.V(1).Info("Update workload deployment", "deployment", vznav.GetNamespacedNameFromUnstructured(child))
+	r.Log.Debugf("Update workload deployment %s", vznav.GetNamespacedNameFromUnstructured(child))
 	ref := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
 	deployment := &k8sapps.Deployment{
 		TypeMeta:   metav1.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
@@ -533,7 +533,7 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, func() error {
 		// If the deployment was not found don't attempt to create or update it.
 		if deployment.CreationTimestamp.IsZero() {
-			r.Log.Info("Workload child deployment not found")
+			r.Log.Debug("Workload child deployment not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: deployment.APIVersion, Resource: deployment.Kind}, deployment.Name)
 		}
 		deployment.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
@@ -541,7 +541,7 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 		return nil
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
-		r.Log.Info("Failed to update workload child deployment", "child", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta), "error", err)
+		r.Log.Errorf("Failed to update workload child deployment %s: %v", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta).Name, err)
 	}
 	return ref, res, err
 }
@@ -549,7 +549,7 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 // updateRelatedStatefulSet updates the labels and annotations of a related workload stateful set.
 // For example coherence workloads produce related stateful sets.
 func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
-	r.Log.Info("Update workload stateful set", "statefulSet", vznav.GetNamespacedNameFromUnstructured(child))
+	r.Log.Debugf("Update workload stateful set %s", vznav.GetNamespacedNameFromUnstructured(child))
 	ref := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
 	statefulSet := &k8sapps.StatefulSet{
 		TypeMeta:   metav1.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
@@ -558,7 +558,7 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, statefulSet, func() error {
 		// If the statefulset was not found don't attempt to create or update it.
 		if statefulSet.CreationTimestamp.IsZero() {
-			r.Log.Info("Workload child statefulset not found")
+			r.Log.Debug("Workload child statefulset not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: statefulSet.APIVersion, Resource: statefulSet.Kind}, statefulSet.Name)
 		}
 		statefulSet.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
@@ -566,7 +566,7 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 		return nil
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
-		r.Log.Info("Failed to update workload child statefulset", "child", vznav.GetNamespacedNameFromObjectMeta(statefulSet.ObjectMeta), "error", err)
+		r.Log.Errorf("Failed to update workload child statefulset %s: %v", vznav.GetNamespacedNameFromObjectMeta(statefulSet.ObjectMeta), err)
 	}
 	return ref, res, err
 }
@@ -574,7 +574,7 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 // updateRelatedPod updates the labels and annotations of a related workload pod.
 // For example WLS workloads produce related pods.
 func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
-	r.Log.Info("Update workload pod", "pod", vznav.GetNamespacedNameFromUnstructured(child))
+	r.Log.Debug("Update workload pod %s", vznav.GetNamespacedNameFromUnstructured(child))
 	rel := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
 	pod := &k8score.Pod{
 		TypeMeta:   metav1.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
@@ -583,7 +583,7 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, pod, func() error {
 		// If the pod was not found don't attempt to create or update it.
 		if pod.CreationTimestamp.IsZero() {
-			r.Log.Info("Workload child pod not found")
+			r.Log.Debug("Workload child pod not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: pod.APIVersion, Resource: pod.Kind}, pod.Name)
 		}
 		pod.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, pod.ObjectMeta.Annotations)
@@ -591,7 +591,7 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 		return nil
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
-		r.Log.Info("Failed to update workload child pod", "pod", vznav.GetNamespacedNameFromObjectMeta(pod.ObjectMeta), "error", err)
+		r.Log.Errorf("Failed to update workload child pod %s: %v", vznav.GetNamespacedNameFromObjectMeta(pod.ObjectMeta), err)
 	}
 	return rel, res, err
 }
@@ -605,15 +605,15 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 	if trait.DeletionTimestamp.IsZero() && updateStatusIfRequired(&trait.Status, results) {
 		err := r.Status().Update(ctx, trait)
 		if err != nil {
-			r.Log.Info("Failed to update metrics trait status", "trait", name)
+			r.Log.Errorf("Failed to update metrics trait %s status: %v", name.Name, err)
 			return reconcile.Result{}, err
 		}
-		r.Log.Info("Updated metrics trait status", "trait", name)
+		r.Log.Debugf("Updated metrics trait %s status", name.Name)
 	}
 
 	// If the results contained errors then requeue immediately.
 	if results.ContainsErrors() {
-		r.Log.Info("Failed to reconciled metrics trait", "trait", name)
+		r.Log.Errorf("Failed to reconciled metrics trait %s: %v", name, results.Errors)
 		return reconcile.Result{Requeue: true}, nil
 	}
 
@@ -622,7 +622,7 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 	// changes but without necessarily updating the trait spec.
 	var seconds = rand.IntnRange(45, 90)
 	var duration = time.Duration(seconds) * time.Second
-	r.Log.V(1).Info("Successfully reconciled metrics trait", "trait", name)
+	r.Log.Infof("Successfully reconciled metrics trait %s", name.Name)
 	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
 }
 
@@ -749,7 +749,7 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 
 	// Log the kind/workload is unsupported and return a nil trait.
 	gvk, _ := vznav.GetAPIVersionKindOfUnstructured(workload)
-	r.Log.V(1).Info(fmt.Sprintf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload)))
+	r.Log.Debugf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload))
 	return nil, false, nil
 }
 

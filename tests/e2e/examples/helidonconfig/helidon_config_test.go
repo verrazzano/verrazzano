@@ -85,7 +85,8 @@ const (
 	ingressServiceName = "istio-ingressgateway"
 )
 
-var _ = t.Describe("Helidon Config OAM App test", func() {
+var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
+	"f:app-lcm.helidon-workload"), func() {
 	// Verify helidon-config-deployment pod is running
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
@@ -102,7 +103,7 @@ var _ = t.Describe("Helidon Config OAM App test", func() {
 	// GIVEN the Istio gateway for the helidon-config namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 			return host, err
@@ -113,7 +114,7 @@ var _ = t.Describe("Helidon Config OAM App test", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	t.Describe("Ingress.", func() {
+	t.Describe("Ingress.", Label("f:mesh.ingress"), func() {
 		t.It("Access /config App Url.", func() {
 			url := fmt.Sprintf("https://%s/config", host)
 			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -128,7 +129,7 @@ var _ = t.Describe("Helidon Config OAM App test", func() {
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	t.Describe("Metrics.", func() {
+	t.Describe("Metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
@@ -144,7 +145,7 @@ var _ = t.Describe("Helidon Config OAM App test", func() {
 		})
 	})
 
-	t.Context("Logging.", func() {
+	t.Context("Logging.", Label("f:observability.logging.es"), func() {
 		indexName := "verrazzano-namespace-helidon-config"
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved

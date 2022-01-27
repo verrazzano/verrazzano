@@ -380,6 +380,12 @@ type OAMComponent struct {
 type VerrazzanoComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+
+	// Arguments for installing Verrazzano
+	// +optional
+	// +patchMergeKey=name
+	// +patchStrategy=merge,retainKeys
+	InstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
 // KialiComponent specifies the Kiali configuration
