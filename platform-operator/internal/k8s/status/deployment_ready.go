@@ -13,19 +13,19 @@ import (
 )
 
 // DeploymentsReady Check that the named deployments have the minimum number of specified replicas ready and available
-func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployments []types.NamespacedName, expectedReplicas int32) bool {
+func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployments []types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	for _, namespacedName := range deployments {
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("Waiting for deployment %v to exist", namespacedName)
+				log.Progressf("%s waiting for deployment %v to exist", prefix, namespacedName)
 				return false
 			}
 			log.Errorf("Failed getting deployment %v: %v", namespacedName, err)
 			return false
 		}
 		if deployment.Status.AvailableReplicas < expectedReplicas {
-			log.Progressf("Waiting for deployment %s to have %v replica(s)", namespacedName, expectedReplicas)
+			log.Progressf("%s waiting for deployment %s to have %v replica(s)", prefix, namespacedName, expectedReplicas)
 			return false
 		}
 	}

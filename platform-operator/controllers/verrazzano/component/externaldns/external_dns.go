@@ -7,10 +7,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
 	"time"
+
+	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -97,7 +98,8 @@ func isReady(compContext spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
 	}
-	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
