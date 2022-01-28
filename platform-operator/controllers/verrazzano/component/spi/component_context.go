@@ -156,7 +156,7 @@ func (c componentContext) Copy() ComponentContext {
 // logger. This makes sure that we get the
 func (c componentContext) Init(compName string) ComponentContext {
 	// Get zap logger, add "with" field for this component name
-	zapLogger := c.log.GetResourceZapLogger().With("component", compName)
+	zapLogger := c.log.GetRootZapLogger().With("component", compName)
 	// Ensure that there is a logger for this component, inject the new zap logger
 	log := c.log.GetContext().EnsureLogger(compName, zapLogger, zapLogger)
 
