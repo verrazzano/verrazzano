@@ -309,7 +309,7 @@ func (v *verrazzanoLogger) SetZapLogger(zap *zap.SugaredLogger) {
 	v.sLogger = zap
 }
 
-// Clone zap logger gets a clone of the zap logger
+// GetZapLogger zap logger gets a clone of the zap logger
 func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
 	return v.zapLogger
 }
