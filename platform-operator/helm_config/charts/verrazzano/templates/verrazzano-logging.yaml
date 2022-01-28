@@ -253,6 +253,18 @@ data:
       </record>
     </filter>
 
+    <filter fluentd.**>
+      @type record_transformer
+      @id fluentd_index_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time}
+      </record>
+      <record>
+        target_index verrazzano-namespace-verrazzano-system
+      </record>
+    </filter>
+
     # parse sidecar stdout
     <filter kubernetes.**_fluentd-stdout-sidecar-**>
       @type parser
@@ -343,7 +355,7 @@ data:
       @log_level info
       log_es_400_reason true
       logstash_format true
-      logstash_prefix verrazzano-logstash
+      logstash_prefix verrazzano-namespace-verrazzano-system
       target_index_key target_index
       include_tag_key true
 
