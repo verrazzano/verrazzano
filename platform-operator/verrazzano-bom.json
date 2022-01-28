@@ -195,8 +195,8 @@
               "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
             },
             {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "1.2.0-20211216213535-ce59978",
+              "image": "verrazzano-monitoring-operator-jenkins",
+              "tag": "1.2.0-20220105173526-c54b601",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -223,8 +223,10 @@
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "kibana",
-              "tag": "7.10.2-20220121142821-1799c88",
+              "registry": "phx.ocir.io",
+              "repository": "odx-sre/sauron",
+              "image": "opensearch-dashboards-mirror",
+              "tag": "1.1.0-2",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -243,8 +245,8 @@
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
-              "image": "console",
-              "tag": "1.2.0-20211216213817-33fe6ee",
+              "image": "console-jenkins",
+              "tag": "1.2.0-20220107001212-8dd20a1",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
