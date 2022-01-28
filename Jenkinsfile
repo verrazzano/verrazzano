@@ -379,9 +379,9 @@ pipeline {
         stage('Scan Image') {
             when {
                allOf {
-		   not { buildingTag() }
-		   expression {PERFORM_SCAN == true}
-	       }
+                   not { buildingTag() }
+                   expression {PERFORM_SCAN == true}
+               }
             }
             steps {
                 script {
