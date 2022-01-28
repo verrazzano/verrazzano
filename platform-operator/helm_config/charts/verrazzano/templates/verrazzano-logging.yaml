@@ -248,7 +248,6 @@ data:
           time_key logtime
           time_format %Y/%m/%d %H:%M:%S
           keep_time_key true
-          multiline true
          </pattern>
          <pattern>
             format none
@@ -261,8 +260,7 @@ data:
       enable_ruby true
       remove_keys remaining,logtime
       <record>
-        # set the timestamp to time in the log record or the current time if no time in the log record
-        @timestamp ${if not record.dig("logtime").nil?; Time.strptime(record["logtime"], '%Y/%m/%d %H:%M:%S').iso8601(3); else; Time.strptime(Time.now.strftime('%Y-%m-%d %H:%M:%S.%L'),'%Y-%m-%d %H:%M:%S.%L').iso8601(3); end;}
+        @timestamp ${Time.strptime(time.strftime('%Y-%m-%dT%H:%M:%S%NZ'),'%Y-%m-%dT%H:%M:%S%NZ').iso8601(3)}
       </record>
     </filter>
 
@@ -281,6 +279,12 @@ data:
           keep_time_key true
          </pattern>
          <pattern>
+          format /^(?<level>.)(?<month>\d{2})(?<day>\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<remaining>([\s\S]*?))\s*$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+          keep_time_key true
+         </pattern>
+         <pattern>
             format none
          </pattern>
       </parse>
@@ -289,11 +293,9 @@ data:
     <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
       @type record_transformer
       enable_ruby true
-      remove_keys remaining,logtime
+      remove_keys month,day,logtime,remaining
       <record>
-        # set the timestamp to time in the log record
-        @timestamp ${if not record.dig("logtime").nil?; Time.strptime(record["logtime"], '%Y-%m-%dT%H:%M:%S.%NZ').iso8601(3); else; Time.strptime(Time.now.strftime('%Y-%m-%d %H:%M:%S.%L'),'%Y-%m-%d %H:%M:%S.%L').iso8601(3); end;}
-        #@timestamp ${Time.strptime(record["logtime"], '%Y-%m-%dT%H:%M:%S.%NZ').iso8601(3)}
+        @timestamp ${Time.strptime(time.strftime('%Y-%m-%dT%H:%M:%S%NZ'),'%Y-%m-%dT%H:%M:%S%NZ').iso8601(3)}
       </record>
     </filter>
 
