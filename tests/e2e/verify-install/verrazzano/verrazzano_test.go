@@ -22,9 +22,25 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
+// Initialized in BeforeSuite
+var isMinVersion110 bool
+var isMinVersion120 bool
+
 var t = framework.NewTestFramework("verrazzano")
 
 var _ = t.AfterEach(func() {})
+
+var _ = t.BeforeSuite(func() {
+	var err error
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		Fail(err.Error())
+	}
+	isMinVersion120, err = pkg.IsVerrazzanoMinVersion("1.2.0")
+	if err != nil {
+		Fail(err.Error())
+	}
+})
 
 var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
@@ -359,55 +375,67 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 	t.Describe("verrazzano-authproxy", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
-			Eventually(func() (bool, error) {
-				return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
 		})
 
 		t.It("has correct number of pods running", func() {
-			// Get the deployment
-			var deployment *appsv1.Deployment
-			Eventually(func() (*appsv1.Deployment, error) {
-				var err error
-				deployment, err = pkg.GetDeployment(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
-				return deployment, err
-			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			if isMinVersion110 {
+				// Get the deployment
+				var deployment *appsv1.Deployment
+				Eventually(func() (*appsv1.Deployment, error) {
+					var err error
+					deployment, err = pkg.GetDeployment(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
+					return deployment, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-			var expectedPods = deployment.Spec.Replicas
-			var pods []corev1.Pod
-			Eventually(func() bool {
-				var err error
-				pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
-				if err != nil {
-					return false
-				}
-				// Compare the number of running pods to the expected number
-				var runningPods int32 = 0
-				for _, pod := range pods {
-					if pod.Status.Phase == corev1.PodRunning {
-						runningPods++
+				var expectedPods = deployment.Spec.Replicas
+				var pods []corev1.Pod
+				Eventually(func() bool {
+					var err error
+					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
+					if err != nil {
+						return false
 					}
-				}
-				return runningPods == *expectedPods
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+					// Compare the number of running pods to the expected number
+					var runningPods int32 = 0
+					for _, pod := range pods {
+						if pod.Status.Phase == corev1.PodRunning {
+							runningPods++
+						}
+					}
+					return runningPods == *expectedPods
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
 		})
 
 		t.It("has affinity configured as expected", func() {
-			// Get the AuthProxy pods
-			var pods []corev1.Pod
-			Eventually(func() error {
-				var err error
-				pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
-				return err
-			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+			if isMinVersion120 {
+				// Get the AuthProxy pods
+				var pods []corev1.Pod
+				Eventually(func() error {
+					var err error
+					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
+					return err
+				}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-			// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
-			for _, pod := range pods {
-				affinity := pod.Spec.Affinity
-				Expect(affinity.PodAffinity).To(BeNil())
-				Expect(affinity.NodeAffinity).To(BeNil())
-				Expect(affinity.PodAntiAffinity).ToNot(BeNil())
-				Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+				// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
+				for _, pod := range pods {
+					affinity := pod.Spec.Affinity
+					Expect(affinity.PodAffinity).To(BeNil())
+					Expect(affinity.NodeAffinity).To(BeNil())
+					Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+					Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+				}
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
 		})
 	})
