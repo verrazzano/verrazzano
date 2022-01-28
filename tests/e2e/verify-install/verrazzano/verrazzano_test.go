@@ -363,6 +363,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 				return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
+
 		t.It("has correct number of pods running", func() {
 			// Get the deployment
 			var deployment *appsv1.Deployment
@@ -389,6 +390,25 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 				}
 				return runningPods == *expectedPods
 			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+
+		t.It("has affinity configured as expected", func() {
+			// Get the AuthProxy pods
+			var pods []corev1.Pod
+			Eventually(func() error {
+				var err error
+				pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
+				return err
+			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+			// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
+			for _, pod := range pods {
+				affinity := pod.Spec.Affinity
+				Expect(affinity.PodAffinity).To(BeNil())
+				Expect(affinity.NodeAffinity).To(BeNil())
+				Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+				Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+			}
 		})
 	})
 })
