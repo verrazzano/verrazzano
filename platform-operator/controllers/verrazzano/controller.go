@@ -86,7 +86,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
-	log, err := vzlog.GetResourceLogger(&vzlog.ResourceConfig{
+	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           vz.Name,
 		Namespace:      vz.Namespace,
 		ID:             string(vz.UID),
