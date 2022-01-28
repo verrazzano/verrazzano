@@ -31,8 +31,8 @@ func TestLog(t *testing.T) {
 	msg := "test1"
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test"
-	rl := GetContext(rKey)
-	l := rl.GetLogger("comp1", &logger, zap.S()).SetFrequency(3)
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(3)
 
 	// 5 calls to log should result in only 2 log messages being written
 	// since the frequency is 3 secs
@@ -53,8 +53,8 @@ func TestLogRepeat(t *testing.T) {
 	msg := "test1"
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test2"
-	rl := GetContext(rKey)
-	l := rl.GetLogger("comp1", &logger, zap.S()).SetFrequency(2)
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(2)
 
 	// Calls to log should result in only 2 log messages being written
 	l.Progress(msg)
@@ -76,8 +76,8 @@ func TestHistory(t *testing.T) {
 	msg2 := "test2"
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test2"
-	rl := GetContext(rKey)
-	l := rl.GetLogger("comp1", &logger, zap.S()).SetFrequency(2)
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(2)
 
 	// Calls to log should result in only 2 log messages being written
 	l.Progress(msg)
@@ -102,8 +102,8 @@ func TestHistoryOnce(t *testing.T) {
 	msg2 := "test2"
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test2"
-	rl := GetContext(rKey)
-	l := rl.GetLogger("comp1", &logger, zap.S())
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S())
 
 	// Calls to log should result in only 2 log messages being written
 	l.Once(msg)
@@ -126,8 +126,8 @@ func TestLogNewMsg(t *testing.T) {
 	msg2 := "test2"
 	logger := fakeLogger{expectedMsg: msg}
 	const rKey = "testns/test2"
-	rl := GetContext(rKey)
-	l := rl.GetLogger("comp1", &logger, zap.S()).SetFrequency(2)
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(2)
 
 	// Calls to log should result in only 2 log messages being written
 	l.Progress(msg)
@@ -150,23 +150,23 @@ func TestLogFormat(t *testing.T) {
 	logger := fakeLogger{}
 	logger.expectedMsg = fmt.Sprintf(template, inStr)
 	const rKey = "testns/test3"
-	rl := GetContext(rKey)
-	l := rl.GetLogger("comp1", &logger, zap.S())
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S())
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
 	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
 	DeleteLogContext(rKey)
 }
 
-// TestMultipleContexts tests the GetContext and DeleteLogContext
-// WHEN GetContext is called multiple times
+// TestMultipleContexts tests the EnsureContext and DeleteLogContext
+// WHEN EnsureContext is called multiple times
 // THEN ensure that the context map has an entry for each context and that
 //   the context map is empty when they the contexts are deleted
 func TestMultipleContexts(t *testing.T) {
 	const rKey1 = "k1"
 	const rKey2 = "k2"
-	c1 := GetContext(rKey1)
-	c2 := GetContext(rKey2)
+	c1 := EnsureContext(rKey1)
+	c2 := EnsureContext(rKey2)
 
 	assert.Equal(t, 2, len(LogContextMap))
 	c1Actual := LogContextMap[rKey1]
@@ -180,7 +180,7 @@ func TestMultipleContexts(t *testing.T) {
 
 // TestZap tests the zap SugaredLogger
 // GIVEN a zap SugaredLogger
-// WHEN GetContext is called with the SugaredLogger
+// WHEN EnsureContext is called with the SugaredLogger
 // THEN ensure that the ProgressMessage can be called
 func TestZap(t *testing.T) {
 	testOpts := kzap.Options{}
@@ -188,7 +188,7 @@ func TestZap(t *testing.T) {
 	testOpts.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
 	log.InitLogs(testOpts)
 	const rKey = "testns/test3"
-	l := GetContext(rKey).GetLogger("test", zap.S(), zap.S())
+	l := EnsureContext(rKey).EnsureLogger("test", zap.S(), zap.S())
 	l.Progress("testmsg")
 	DeleteLogContext(rKey)
 }

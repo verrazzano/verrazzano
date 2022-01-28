@@ -4,12 +4,33 @@
 package vzlog
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+
 	"go.uber.org/zap"
 )
+
+// ResourceConfig is the configuration of a logger for a resource that is being reconciled
+type ResourceConfig struct {
+	// Name is the name of the resource
+	Name string
+
+	// Namespace is the namespace of the resource
+	Namespace string
+
+	// ID is the resource uid
+	ID string
+
+	// Generation is the resource generation
+	Generation int64
+
+	// Controller name is the name of the controller
+	ControllerName string
+}
 
 // LogContextMap contains a map of LogContext objects
 var LogContextMap = make(map[string]*LogContext)
@@ -70,6 +91,9 @@ type VerrazzanoLogger interface {
 type LogContext struct {
 	// loggerMap contains a map of verrazzanoLogger objects
 	loggerMap map[string]*verrazzanoLogger
+
+	// Generation is the generation of the resource being logged
+	Generation int64
 }
 
 // verrazzanoLogger implements the VerrazzanoLogger interface
@@ -109,12 +133,38 @@ type lastLog struct {
 
 // Ensure the default logger exists.  This is typically used for testing
 func DefaultLogger() VerrazzanoLogger {
-	return GetContext("default").GetLogger("default", zap.S(), zap.S())
+	return EnsureContext("default").EnsureLogger("default", zap.S(), zap.S())
 }
 
-// GetContext ensures that a LogContext exists
+// Get a logger for a controller resource
+func GetResourceLogger(config *ResourceConfig) (VerrazzanoLogger, error) {
+	// Build a logger, skipping one call frame so that the correct file/line is displayed in the log
+	zaplog, err := vzlogInit.BuildZapLogger(2)
+	if err != nil {
+		// This is a fatal error which should never happen
+		return nil, errors.New("Failed initializing logger for controller")
+	}
+
+	// Ensure a Verrazzano logger exists, using zap SugaredLogger as the underlying logger.
+	zaplog = zaplog.With(vzlogInit.FieldResourceNamespace, config.Namespace, vzlogInit.FieldResourceName,
+		config.Name, vzlogInit.FieldController, config.ControllerName)
+
+	// Get a log context.  If the generation doesn't match then delete it and
+	// create a new one.  This will ensure we have a new context for a new
+	// generation of a resource
+	context := EnsureContext(config.ID)
+	if context.Generation != 0 && context.Generation != config.Generation {
+		DeleteLogContext(config.ID)
+		context = EnsureContext(config.ID)
+	}
+	context.Generation = config.Generation
+	logger := context.EnsureLogger("default", zaplog, zaplog)
+	return logger, nil
+}
+
+// EnsureContext ensures that a LogContext exists
 // The key must be unique for the process, for example a namespace/name combo.
-func GetContext(key string) *LogContext {
+func EnsureContext(key string) *LogContext {
 	lock.Lock()
 	defer lock.Unlock()
 	log, ok := LogContextMap[key]
@@ -137,8 +187,8 @@ func DeleteLogContext(key string) {
 	}
 }
 
-// GetLogger ensures that a new VerrazzanoLogger exists for the given key
-func (c *LogContext) GetLogger(key string, sLogger SugaredLogger, zap *zap.SugaredLogger) VerrazzanoLogger {
+// EnsureLogger ensures that a new VerrazzanoLogger exists for the given key
+func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.SugaredLogger) VerrazzanoLogger {
 	lock.Lock()
 	defer lock.Unlock()
 	log, ok := c.loggerMap[key]
@@ -244,7 +294,7 @@ func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
 	return v.zapLogger
 }
 
-// GetContext gets the logger context
+// EnsureContext gets the logger context
 func (v *verrazzanoLogger) GetContext() *LogContext {
 	return v.context
 }

@@ -9,14 +9,15 @@
 package mocks
 
 import (
+	http "net/http"
+	reflect "reflect"
+
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
 	record "k8s.io/client-go/tools/record"
-	http "net/http"
-	reflect "reflect"
 	cache "sigs.k8s.io/controller-runtime/pkg/cache"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 	healthz "sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -204,7 +205,7 @@ func (mr *MockManagerMockRecorder) GetFieldIndexer() *gomock.Call {
 // GetLogger mocks base method
 func (m *MockManager) GetLogger() logr.Logger {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetLogger")
+	ret := m.ctrl.Call(m, "EnsureLogger")
 	ret0, _ := ret[0].(logr.Logger)
 	return ret0
 }
@@ -212,7 +213,7 @@ func (m *MockManager) GetLogger() logr.Logger {
 // GetLogger indicates an expected call of GetLogger
 func (mr *MockManagerMockRecorder) GetLogger() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLogger", reflect.TypeOf((*MockManager)(nil).GetLogger))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureLogger", reflect.TypeOf((*MockManager)(nil).GetLogger))
 }
 
 // GetRESTMapper mocks base method

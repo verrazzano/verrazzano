@@ -26,7 +26,7 @@ package vzlog
 // two new calls are Progress and Progressf. The S() method will return the underlying SugaredLogger.
 // The following psuedo-code shows how this should be used:
 //
-//   log := vzlog.GetContext(key).GetLogger("default", zaplog, zaplog)
+//   log := vzlog.EnsureContext(key).EnsureLogger("default", zaplog, zaplog)
 //
 // Display info and errors as usual
 //   p.Errorf(...)
@@ -36,11 +36,11 @@ package vzlog
 //   p.Progress("Reconciling namespace/resource")
 //
 // Display Keycloak progress
-//   cl := l.GetContext().GetLogger("Keycloak")
+//   cl := l.EnsureContext().EnsureLogger("Keycloak")
 //   cl.Progress("Waiting for Verrazzano secret")
 //   cl.Errorf(...)
 //
 // Display Istio progress
-//   cl := l.GetContext().GetLogger("Istio")
+//   cl := l.EnsureContext().EnsureLogger("Istio")
 //   cl.Progress("Waiting for Istio to start")
 //   cl.Errorf(...)

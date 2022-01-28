@@ -18,14 +18,14 @@ func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployme
 		deployment := appsv1.Deployment{}
 		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("%s waiting for deployment %v to exist", prefix, namespacedName)
+				log.Progressf("%s is waiting for deployment %v to exist", prefix, namespacedName)
 				return false
 			}
 			log.Errorf("Failed getting deployment %v: %v", namespacedName, err)
 			return false
 		}
 		if deployment.Status.AvailableReplicas < expectedReplicas {
-			log.Progressf("%s waiting for deployment %s to have %v replica(s)", prefix, namespacedName, expectedReplicas)
+			log.Progressf("%s is waiting for deployment %s to have %v replica(s)", prefix, namespacedName, expectedReplicas)
 			return false
 		}
 	}

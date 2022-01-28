@@ -5,13 +5,13 @@ package verrazzano
 
 import (
 	"context"
-	errors2 "errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	vzlog2 "github.com/verrazzano/verrazzano/pkg/log"
+	"go.uber.org/zap"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
@@ -19,7 +19,6 @@ import (
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -74,18 +73,6 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	// Build a logger, skipping one call frame so that the correct file/line is displayed in the log
-	zaplog, err := vzlog2.BuildZapLogger(2)
-	if err != nil {
-		// This is a fatal error which should never happen
-		return ctrl.Result{}, errors2.New("Failed initilizing logger in Verrazznao Reconcile")
-	}
-
-	// Ensure a Verrazzano logger exists, using zap SugaredLogger as the underlying logger.
-	zaplog = zaplog.With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, "Verrazzano")
-	key := req.Namespace + "/" + req.Name
-	log := vzlog.GetContext(key).GetLogger("default", zaplog, zaplog)
-
 	// Get the Verrazzano resource
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(context.TODO(), req.NamespacedName, vz); err != nil {
@@ -94,28 +81,34 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-
-		zaplog.Errorf("Failed to fetch Verrazzano resource: %v", err)
+		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
 		return newRequeueWithDelay(), nil
 	}
 
-	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)
-	res, err := r.doReconcile(req, log, vz)
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
+	log, err := vzlog.GetResourceLogger(&vzlog.ResourceConfig{
+		Name:           vz.Name,
+		Namespace:      vz.Namespace,
+		ID:             string(vz.UID),
+		Generation:     vz.Generation,
+		ControllerName: "verrazzano",
+	})
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for Verrazzano controller", err)
+	}
 
+	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
+	res, err := r.doReconcile(req, log, vz)
 	if shouldRequeue(res) {
 		return res, nil
 	}
-
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
-
-	// The Verrazzano resource has been reconciled.  Delete the logger context so that a new
-	// one is created the next reconcile cycle.
-	vzlog.DeleteLogContext(key)
-	log.Progressf("Successfully reconciled Verrazzano resource %v", req.NamespacedName)
+	// The Verrazzano resource has been reconciled.
+	log.Oncef("Successfully reconciled Verrazzano resource %v", req.NamespacedName)
 
 	return ctrl.Result{}, nil
 }
@@ -276,7 +269,7 @@ func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Resu
 	if !done || err != nil {
 		return newRequeueWithDelay(), err
 	}
-	log.Progress("Successfully installed Verrazzano")
+	log.Once("Successfully installed Verrazzano")
 	return ctrl.Result{}, nil
 }
 
