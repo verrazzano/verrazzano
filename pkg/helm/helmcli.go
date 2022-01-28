@@ -169,7 +169,7 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		// mask sensitive data before logging
 		cmdStr := maskSensitiveData(cmd.String())
-		log.Infof("Running Helm command, operation %s for release %s", operation, releaseName)
+		log.Infof("Running Helm command for release %s", releaseName)
 
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
