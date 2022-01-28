@@ -6,6 +6,7 @@ package nginx
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -37,7 +38,8 @@ func IsReady(context spi.ComponentContext, name string, namespace string) bool {
 		{Name: ControllerName, Namespace: namespace},
 		{Name: backendName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {

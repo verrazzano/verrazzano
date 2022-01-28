@@ -6,14 +6,15 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -184,7 +185,8 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: IstiodDeployment, Namespace: IstioNamespace},
 	}
-	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // GetDependencies returns the dependencies of this component
@@ -411,7 +413,8 @@ func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool
 	deployments := []types.NamespacedName{
 		{Name: "istiod", Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log().GetZapLogger(), ctx.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {

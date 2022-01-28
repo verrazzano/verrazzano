@@ -45,7 +45,8 @@ func isReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: name, Namespace: namespace},
 	}
-	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides

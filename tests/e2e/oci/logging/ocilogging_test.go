@@ -85,7 +85,7 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("OCI Logging", func() {
+var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 	var systemLogID, defaultAppLogID string
 
 	t.BeforeEach(func() {

@@ -66,7 +66,8 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Verrazzano Web UI,", func() {
+var _ = t.Describe("Verrazzano Web UI,", Label("f:platform-lcm.install",
+	"f:ui.api"), func() {
 	t.When("when configured,", func() {
 		t.It("can be accessed", func() {
 			if !isManagedClusterProfile {

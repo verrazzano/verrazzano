@@ -4,6 +4,7 @@
 package verrazzano_test
 
 import (
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -20,7 +21,7 @@ var t = framework.NewTestFramework("verrazzano")
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("In Verrazzano", func() {
+var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 	vzInstallReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
@@ -110,7 +111,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		t.Entry("verrazzano-monitor should exist", "verrazzano-monitor"),
 	)
 
-	t.Describe("ClusterRole verrazzano-admin", func() {
+	t.Describe("ClusterRole verrazzano-admin", Label("f:security.rbac"), func() {
 		var rules []rbacv1.PolicyRule
 
 		t.BeforeEach(func() {
@@ -147,7 +148,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		)
 	})
 
-	t.Describe("ClusterRole verrazzano-monitor", func() {
+	t.Describe("ClusterRole verrazzano-monitor", Label("f:security.rbac"), func() {
 		var rules []rbacv1.PolicyRule
 
 		t.BeforeEach(func() {
@@ -178,7 +179,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		)
 	})
 
-	t.Describe("ClusterRole verrazzano-project-admin", func() {
+	t.Describe("ClusterRole verrazzano-project-admin", Label("f:security.rbac"), func() {
 		var rules []rbacv1.PolicyRule
 
 		t.BeforeEach(func() {
@@ -210,7 +211,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		)
 	})
 
-	t.Describe("ClusterRole verrazzano-project-monitor", func() {
+	t.Describe("ClusterRole verrazzano-project-monitor", Label("f:security.rbac"), func() {
 		var rules []rbacv1.PolicyRule
 
 		t.BeforeEach(func() {
@@ -239,7 +240,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		)
 	})
 
-	t.Describe("ClusterRoleBinding verrazzano-admin", func() {
+	t.Describe("ClusterRoleBinding verrazzano-admin", Label("f:security.rbac"), func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
@@ -267,7 +268,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		})
 	})
 
-	t.Describe("ClusterRoleBinding verrazzano-admin-k8s", func() {
+	t.Describe("ClusterRoleBinding verrazzano-admin-k8s", Label("f:security.rbac"), func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
@@ -295,7 +296,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		})
 	})
 
-	t.Describe("ClusterRoleBinding verrazzano-monitor", func() {
+	t.Describe("ClusterRoleBinding verrazzano-monitor", Label("f:security.rbac"), func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {
@@ -323,7 +324,7 @@ var _ = t.Describe("In Verrazzano", func() {
 		})
 	})
 
-	t.Describe("ClusterRoleBinding verrazzano-monitor-k8s", func() {
+	t.Describe("ClusterRoleBinding verrazzano-monitor-k8s", Label("f:security.rbac"), func() {
 		t.It("has correct subjects and refs", func() {
 			var crb *rbacv1.ClusterRoleBinding
 			Eventually(func() (*rbacv1.ClusterRoleBinding, error) {

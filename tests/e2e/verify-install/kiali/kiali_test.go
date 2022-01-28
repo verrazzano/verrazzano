@@ -56,7 +56,7 @@ func WhenKialiInstalledIt(description string, f interface{}) {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Kiali", func() {
+var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
 		WhenKialiInstalledIt("should have a monitoring crd", func() {

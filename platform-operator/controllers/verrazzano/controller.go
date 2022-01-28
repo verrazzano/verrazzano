@@ -5,7 +5,9 @@ package verrazzano
 
 import (
 	"context"
+	errors2 "errors"
 	"fmt"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strings"
@@ -26,7 +28,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 
-	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -72,9 +73,15 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	// Build a logger, skipping one call frame so that the correct file/line is displayed in the log
+	zaplog, err := vzlog2.BuildZapLogger(2)
+	if err != nil {
+		// This is a fatal error which should never happen
+		return ctrl.Result{}, errors2.New("Failed initilizing logger in Verrazznao Reconcile")
+	}
 
 	// Ensure a Verrazzano logger exists, using zap SugaredLogger as the underlying logger.
-	zaplog := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, "Verrazzano")
+	zaplog = zaplog.With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, "Verrazzano")
 	key := req.Namespace + "/" + req.Name
 	log := vzlog.EnsureLogContext(key).EnsureLogger("default", zaplog, zaplog)
 	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)

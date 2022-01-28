@@ -161,7 +161,7 @@ func main() {
 	// Setup the validation webhook
 	if config.WebhooksEnabled {
 		log.Debug("Setting up Verrazzano webhook with manager")
-		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
 			log.Errorf("Failed to setup webhook with manager: %v", err)
 			os.Exit(1)
 		}
