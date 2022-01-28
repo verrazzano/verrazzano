@@ -131,12 +131,12 @@ type lastLog struct {
 	msgLogged string
 }
 
-// Ensure the default logger exists.  This is typically used for testing
+// DefaultLogger ensures the default logger exists.  This is typically used for testing
 func DefaultLogger() VerrazzanoLogger {
 	return EnsureContext("default").EnsureLogger("default", zap.S(), zap.S())
 }
 
-// Ensure a logger exists for a specific generation of a Kubernetes resource.
+// EnsureResourceLogger ensures that a logger exists for a specific generation of a Kubernetes resource.
 // When a resource is getting reconciled, the status may frequently get updated during
 // the reconciliation.  This is the case for the Verrazzano resource.  As a result,
 // the controller-runtime queue gets filled with updated instances of a resource that
