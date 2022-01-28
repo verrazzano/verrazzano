@@ -96,7 +96,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 
 		zaplog.Errorf("Failed to fetch Verrazzano resource: %v", err)
-		return reconcile.Result{}, err
+		return newRequeueWithDelay(), nil
 	}
 
 	log.Progressf("Reconciling Verrazzano resource %v", req.NamespacedName)
@@ -1030,6 +1030,8 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
+			// Uninstall is done, all cleanup is finished, and finalizer removed.
+			return ctrl.Result{}, nil
 		}
 	}
 	return newRequeueWithDelay(), nil
