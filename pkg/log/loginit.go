@@ -23,7 +23,7 @@ func InitLogs(opts kzap.Options) {
 	} else {
 		config.Level.SetLevel(zapcore.InfoLevel)
 	}
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"
@@ -55,7 +55,7 @@ func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
 	config.Level.SetLevel(zapcore.InfoLevel)
 
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"
