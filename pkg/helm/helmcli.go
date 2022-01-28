@@ -184,8 +184,6 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %s of %s", operation, releaseName, i+1, maxRetry)
 	}
 
-	//  Log upgrade output
-	log.Infof("Successfully ran Helm command for operation %s on release %s", operation, releaseName)
 	return stdout, stderr, nil
 }
 
