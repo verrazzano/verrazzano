@@ -5,6 +5,8 @@ package verrazzano
 
 import (
 	"context"
+	"strings"
+
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -26,18 +28,17 @@ import (
 //    immediately.
 func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	cr := spiCtx.ActualCR()
-	spiCtx.Log().Progress("Reconciling components")
+	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
-
 		compName := comp.Name()
-		compContext := spiCtx.For(compName).Operation(vzconst.InstallOperation)
+		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 		compLog := compContext.Log()
 
-		compLog.Oncef("Processing install for %s", compName)
+		compLog.Oncef("Component %s is being reconciled", compName)
 
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
@@ -64,7 +65,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			}
 			if !isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), cr.Status.Version) {
 				// User needs to do upgrade before this component can be installed
-				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgrade to at least version %s",
+				compLog.Progressf("Component %s cannot be installed until Verrazzano is upgraded to at least version %s",
 					comp.Name(), comp.GetMinVerrazzanoVersion())
 				continue
 			}
@@ -75,7 +76,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 
 		case vzapi.PreInstalling:
 			if !registry.ComponentDependenciesMet(comp, compContext) {
-				compLog.Progressf("Waiting for for component %s dependencies %v to be ready", comp.Name(), comp.GetDependencies())
+				compLog.Progressf("Component %s waiting for dependencies %v to be ready", comp.Name(), comp.GetDependencies())
 				requeue = true
 				continue
 			}
@@ -86,7 +87,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				continue
 			}
 			// If component is not installed,install it
-			compLog.Oncef("Installing component %s ", compName)
+			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
 				handleError(compLog, err)
 				requeue = true
@@ -108,7 +109,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 					requeue = true
 					continue
 				}
-				compLog.Oncef("Successfully installed component %s", comp.Name())
+				compLog.Oncef("Component %s successfully installed", comp.Name())
 				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
@@ -116,7 +117,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 				continue
 			}
 			// Install of this component is not done, requeue to check status
-			compLog.Progressf("Waiting for component %s to finish installing", compName)
+			compLog.Progressf("Component %s waiting to finish installing", compName)
 			requeue = true
 		}
 	}
@@ -134,12 +135,12 @@ func isVersionOk(log vzlog.VerrazzanoLogger, compVersion string, vzVersion strin
 	}
 	vzSemver, err := semver.NewSemVersion(vzVersion)
 	if err != nil {
-		log.Errorf("Unexpected error getting semver from status")
+		log.Errorf("Failed getting semver from status: %v", err)
 		return false
 	}
 	compSemver, err := semver.NewSemVersion(compVersion)
 	if err != nil {
-		log.Errorf("Unexpected error getting semver from component")
+		log.Errorf("Failed creating new semver for component: %v", err)
 		return false
 	}
 
@@ -152,9 +153,13 @@ func handleError(log vzlog.VerrazzanoLogger, err error) {
 	switch actualErr := err.(type) {
 	case ctrlerrors.RetryableError:
 		if actualErr.HasCause() {
-			log.Errorf("Retryable error occurred, %s", actualErr.Error())
-		} else {
-			log.Debugf("Retryable error returned: %s", actualErr.Error())
+			cause := actualErr.Cause
+			if ctrlerrors.IsUpdateConflict(cause) ||
+				strings.Contains(cause.Error(), "failed calling webhook") {
+				log.Debugf("Failed during install: %v", cause)
+				return
+			}
+			log.Errorf("Failed during install: %v", actualErr.Error())
 		}
 	default:
 		log.Errorf("Unexpected error occurred during install/upgrade: %s", actualErr.Error())

@@ -34,7 +34,7 @@ var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Post upgrade", func() {
+var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
 	MinimumVerrazzanoIt := func(description string, f interface{}) {
@@ -105,7 +105,7 @@ var _ = t.Describe("Post upgrade", func() {
 	})
 })
 
-var _ = t.Describe("Application pods post-upgrade", func() {
+var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrade"), func() {
 	const (
 		bobsBooksNamespace    = "bobs-books"
 		helloHelidonNamespace = "hello-helidon"

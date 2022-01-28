@@ -45,7 +45,8 @@ func isReady(context spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: name, Namespace: namespace},
 	}
-	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
@@ -57,7 +58,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
-	if compContext.For(ComponentName).GetOperation() == vzconst.UpgradeOperation {
+	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
 		secret := &v1.Secret{}
 		nsName := types.NamespacedName{
 			Namespace: vzconst.KeycloakNamespace,
@@ -81,7 +82,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 
 	kvs = append(kvs, bom.KeyValue{Key: mySQLUsernameKey, Value: mySQLUsername})
 
-	if compContext.For(ComponentName).GetOperation() == vzconst.InstallOperation {
+	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
 		mySQLInitFile, err := createMySQLInitFile(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}

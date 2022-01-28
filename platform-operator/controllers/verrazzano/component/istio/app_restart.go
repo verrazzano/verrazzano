@@ -5,16 +5,17 @@ package istio
 
 import (
 	"context"
+	"strings"
+
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
 )
 
 // StopDomainsUsingOldEnvoy stops all the WebLogic domains using Envoy 1.7.3

@@ -154,10 +154,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	err := c.applyManifest(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %v", err)
-		return ctrlerrrors.RetryableError{
-			Source: c.Name(),
-			Cause:  fmt.Errorf("failed to apply the cert-manager manifest: %s", err),
-		}
+		return err
 	}
 	return nil
 }
@@ -175,7 +172,7 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 	isCAValue, err := isCA(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to verify the config type: %s", err)
-		return ctrlerrrors.RetryableError{Source: c.Name()}
+		return err
 	}
 	if !isCAValue {
 		// Create resources needed for Acme certificates
@@ -257,7 +254,8 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 		{Name: cainjectorDeploymentName, Namespace: namespace},
 		{Name: webhookDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(context.Log().GetZapLogger(), context.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 //writeCRD writes out CertManager CRD manifests with OCI DNS specifications added

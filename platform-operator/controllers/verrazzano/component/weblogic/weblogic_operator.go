@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -76,5 +77,6 @@ func IsWeblogicOperatorReady(ctx spi.ComponentContext, _ string, namespace strin
 	deployments := []types.NamespacedName{
 		{Name: wlsOperatorDeploymentName, Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log().GetZapLogger(), ctx.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
