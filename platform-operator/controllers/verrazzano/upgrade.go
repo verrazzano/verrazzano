@@ -40,7 +40,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		compContext := spiCtx.For(compName).Operation(vzconst.UpgradeOperation)
+		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 		compLog := compContext.Log()
 
 		installed, err := comp.IsInstalled(compContext)

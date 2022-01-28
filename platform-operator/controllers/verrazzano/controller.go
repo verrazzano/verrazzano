@@ -697,7 +697,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
-			compContext := newContext.For(comp.Name()).Operation(vzconst.InitializeOperation)
+			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
 			state := installv1alpha1.Disabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
@@ -1010,6 +1010,12 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 	// Remove the finalizer and update the Verrazzano resource if the uninstall has finished.
 	for _, condition := range vz.Status.Conditions {
 		if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
+			if condition.Type == installv1alpha1.UninstallComplete {
+				log.Once("Successfully uninstalled Verrrazzano")
+			} else {
+				log.Once("Failed uninstalling Verraazzano")
+			}
+
 			err := r.cleanup(ctx, log, vz)
 			if err != nil {
 				return newRequeueWithDelay(), err

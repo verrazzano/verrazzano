@@ -6,13 +6,14 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os/exec"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

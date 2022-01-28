@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"

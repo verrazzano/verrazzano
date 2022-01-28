@@ -27,7 +27,8 @@ func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, stateful
 			return false
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for statefulset %s to have %v replica(s)", prefix, namespacedName, expectedReplicas)
+			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current replicas is %v", prefix, namespacedName,
+				expectedReplicas, statefulset.Status.ReadyReplicas)
 			return false
 		}
 	}

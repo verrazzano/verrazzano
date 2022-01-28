@@ -25,7 +25,8 @@ func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployme
 			return false
 		}
 		if deployment.Status.AvailableReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for deployment %s to have %v replica(s)", prefix, namespacedName, expectedReplicas)
+			log.Progressf("%s is waiting for deployment %s replicas to be %v. Current replicas is %v", prefix, namespacedName,
+				expectedReplicas, deployment.Status.AvailableReplicas)
 			return false
 		}
 	}

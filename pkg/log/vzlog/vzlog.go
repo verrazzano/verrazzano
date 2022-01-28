@@ -83,6 +83,7 @@ type VerrazzanoLogger interface {
 	ProgressLogger
 	SetZapLogger(zap *zap.SugaredLogger)
 	GetZapLogger() *zap.SugaredLogger
+	GetResourceZapLogger() *zap.SugaredLogger
 	GetContext() *LogContext
 }
 
@@ -94,6 +95,9 @@ type LogContext struct {
 
 	// Generation is the generation of the resource being logged
 	Generation int64
+
+	// resourceZapLogger is the zap SugaredLogger for the resource. Component lgogers are derived from this.
+	resourceZapLogger *zap.SugaredLogger
 }
 
 // verrazzanoLogger implements the VerrazzanoLogger interface
@@ -168,6 +172,7 @@ func EnsureResourceLogger(config *ResourceConfig) (VerrazzanoLogger, error) {
 		context = EnsureContext(config.ID)
 	}
 	context.Generation = config.Generation
+	context.resourceZapLogger = zaplog
 
 	// Finally, get the logger using this context.
 	logger := context.EnsureLogger("default", zaplog, zaplog)
@@ -301,9 +306,14 @@ func (v *verrazzanoLogger) SetZapLogger(zap *zap.SugaredLogger) {
 	v.sLogger = zap
 }
 
-// GetZapLogger gets the zap logger
+// Clone zap logger gets a clone of the zap logger
 func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
 	return v.zapLogger
+}
+
+// GetResourceZapLogger gets the resource zap logger at the context level
+func (v *verrazzanoLogger) GetResourceZapLogger() *zap.SugaredLogger {
+	return v.context.resourceZapLogger
 }
 
 // EnsureContext gets the logger context
