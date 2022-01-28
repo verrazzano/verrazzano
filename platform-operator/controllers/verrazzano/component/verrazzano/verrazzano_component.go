@@ -3,6 +3,7 @@
 package verrazzano
 
 import (
+	"fmt"
 	"path/filepath"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -73,7 +74,8 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
-	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1) {
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 	return isVerrazzanoSecretReady(ctx)
