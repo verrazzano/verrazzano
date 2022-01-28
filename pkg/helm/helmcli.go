@@ -169,7 +169,7 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		// mask sensitive data before logging
 		cmdStr := maskSensitiveData(cmd.String())
-		log.Infof("Running Helm command for operation %s: %s", cmdStr)
+		log.Infof("Running Helm command, operation %s for release %s", operation, releaseName)
 
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {
@@ -177,8 +177,8 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 			break
 		}
 		if i == 1 || i == maxRetry {
-			log.Errorf("Failed running Helm command for operation %s and release %s: stderr is %s",
-				operation, releaseName, string(stderr))
+			log.Errorf("Failed running Helm command for operation %s and release %s: command %s: stderr %s",
+				operation, releaseName, cmdStr, string(stderr))
 			return stdout, stderr, err
 		}
 		log.Infof("Failed running Helm command for operation %s and release %s. Retrying %s of %s", operation, releaseName, i+1, maxRetry)
