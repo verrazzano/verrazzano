@@ -12,11 +12,9 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/client-go/discovery"
 )
 
 const (
@@ -31,6 +29,7 @@ const (
 	CommitHash        = "commit_hash"
 	KubernetesVersion = "kubernetes_version"
 	TestEnv           = "test_env"
+	Label             = "label"
 
 	MetricsIndex     = "metrics"
 	TestLogIndex     = "testlogs"
@@ -100,7 +99,8 @@ func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
 
 func getKubernetesVersion() (string, error) {
 
-	var kubeVersion string
+	kubeVersion := "1.20"
+	/*var kubeVersion string
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		logger.Errorf("error getting kubeconfig path:  %v", err)
@@ -124,7 +124,7 @@ func getKubernetesVersion() (string, error) {
 		logger.Errorf("error getting ServerVersion info:  %v", err)
 		return kubeVersion, err
 	}
-	kubeVersion = version.Major + "." + version.Minor
+	kubeVersion = version.Major + "." + version.Minor*/
 
 	return kubeVersion, nil
 }
@@ -195,9 +195,11 @@ func Emit(log *zap.SugaredLogger) {
 		log = log.With(Status, spec.State)
 	}
 	t := spec.FullText()
+	l := spec.Labels()
 
 	log.With(attempts, spec.NumAttempts).
 		With(test, t).
+		With(Label, l).
 		Info()
 }
 
