@@ -176,7 +176,7 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
-        K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
+        K8S_VERSION_LABEL = get_k8s_version(params.OKE_CLUSTER_VERSION)
     }
 
     stages {
@@ -976,4 +976,17 @@ def setDisplayName() {
          }
     }
     echo "End setDisplayName"
+}
+
+// Return the Kubernetes version in the format <major version>.<minor version>
+def get_k8s_version(k8sVersion) {
+	if (k8sVersion.startsWith("v")) {
+		count = k8sVersion.count(".")
+		if (count == 2) {
+		  result = k8sVersion.substring(1, k8sVersion.lastIndexOf("."));
+		  return result
+		}
+		return k8sVersion.substring(1)
+	}
+	return k8sVersion
 }
