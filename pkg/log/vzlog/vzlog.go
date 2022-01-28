@@ -4,11 +4,33 @@
 package vzlog
 
 import (
+	"errors"
 	"fmt"
-	"go.uber.org/zap"
 	"sync"
 	"time"
+
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+
+	"go.uber.org/zap"
 )
+
+// ResourceConfig is the configuration of a logger for a resource that is being reconciled
+type ResourceConfig struct {
+	// Name is the name of the resource
+	Name string
+
+	// Namespace is the namespace of the resource
+	Namespace string
+
+	// ID is the resource uid
+	ID string
+
+	// Generation is the resource generation
+	Generation int64
+
+	// Controller name is the name of the controller
+	ControllerName string
+}
 
 // LogContextMap contains a map of LogContext objects
 var LogContextMap = make(map[string]*LogContext)
@@ -61,6 +83,7 @@ type VerrazzanoLogger interface {
 	ProgressLogger
 	SetZapLogger(zap *zap.SugaredLogger)
 	GetZapLogger() *zap.SugaredLogger
+	GetRootZapLogger() *zap.SugaredLogger
 	GetContext() *LogContext
 }
 
@@ -69,6 +92,12 @@ type VerrazzanoLogger interface {
 type LogContext struct {
 	// loggerMap contains a map of verrazzanoLogger objects
 	loggerMap map[string]*verrazzanoLogger
+
+	// Generation is the generation of the resource being logged
+	Generation int64
+
+	// RootZapLogger is the zap SugaredLogger for the resource. Component loggers are derived from this.
+	RootZapLogger *zap.SugaredLogger
 }
 
 // verrazzanoLogger implements the VerrazzanoLogger interface
@@ -90,8 +119,8 @@ type verrazzanoLogger struct {
 	// frequency between logs in seconds
 	frequencySecs int
 
-	// history is a set of log messages for this logger
-	historyMessages map[string]bool
+	// trashMessages is a set of log messages that can never be displayed again
+	trashMessages map[string]bool
 
 	// lastLog keeps track of the last logged message
 	*lastLog
@@ -106,14 +135,53 @@ type lastLog struct {
 	msgLogged string
 }
 
-// Ensure the default logger exists.  This is typically used for testing
+// DefaultLogger ensures the default logger exists.  This is typically used for testing
 func DefaultLogger() VerrazzanoLogger {
-	return EnsureLogContext("default").EnsureLogger("default", zap.S(), zap.S())
+	return EnsureContext("default").EnsureLogger("default", zap.S(), zap.S())
 }
 
-// EnsureLogContext ensures that a LogContext exists
+// EnsureResourceLogger ensures that a logger exists for a specific generation of a Kubernetes resource.
+// When a resource is getting reconciled, the status may frequently get updated during
+// the reconciliation.  This is the case for the Verrazzano resource.  As a result,
+// the controller-runtime queue gets filled with updated instances of a resource that
+// have the same generation. The side-effect is that after a resource is completely reconciled,
+// the controller Reconcile method may still be called many times. In this case, the existing
+// context must be used so that 'once' and 'progress' messages don't start from a new context,
+// causing them to be displayed when they shouldn't.  This mehod ensures that the same
+// logger is used for a given resource and generation.
+func EnsureResourceLogger(config *ResourceConfig) (VerrazzanoLogger, error) {
+	// Build a logger, skipping 2 call frames so that the correct caller file/line is displayed in the log.
+	// If the callerSkip was 0, then you would see the vzlog.go/line# instead of the file/line of the caller
+	// that called the VerrazzanoLogger
+	zaplog, err := vzlogInit.BuildZapLogger(2)
+	if err != nil {
+		// This is a fatal error which should never happen
+		return nil, errors.New("Failed initializing logger for controller")
+	}
+
+	// Ensure a Verrazzano logger exists, using zap SugaredLogger as the underlying logger.
+	zaplog = zaplog.With(vzlogInit.FieldResourceNamespace, config.Namespace, vzlogInit.FieldResourceName,
+		config.Name, vzlogInit.FieldController, config.ControllerName)
+
+	// Get a log context.  If the generation doesn't match then delete it and
+	// create a new one.  This will ensure we have a new context for a new
+	// generation of a resource
+	context := EnsureContext(config.ID)
+	if context.Generation != 0 && context.Generation != config.Generation {
+		DeleteLogContext(config.ID)
+		context = EnsureContext(config.ID)
+	}
+	context.Generation = config.Generation
+	context.RootZapLogger = zaplog
+
+	// Finally, get the logger using this context.
+	logger := context.EnsureLogger("default", zaplog, zaplog)
+	return logger, nil
+}
+
+// EnsureContext ensures that a LogContext exists
 // The key must be unique for the process, for example a namespace/name combo.
-func EnsureLogContext(key string) *LogContext {
+func EnsureContext(key string) *LogContext {
 	lock.Lock()
 	defer lock.Unlock()
 	log, ok := LogContextMap[key]
@@ -143,9 +211,9 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 	log, ok := c.loggerMap[key]
 	if !ok {
 		log = &verrazzanoLogger{
-			context:         c,
-			frequencySecs:   60,
-			historyMessages: make(map[string]bool),
+			context:       c,
+			frequencySecs: 60,
+			trashMessages: make(map[string]bool),
 		}
 		c.loggerMap[key] = log
 	}
@@ -154,6 +222,9 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 	// with clauses
 	log.sLogger = sLogger
 	log.zapLogger = zap
+	if log.context.RootZapLogger == nil {
+		log.context.RootZapLogger = zap
+	}
 
 	return log
 }
@@ -190,31 +261,33 @@ func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 	msg := fmt.Sprint(args...)
 	now := time.Now()
 
-	// If this message is in the history map, that means it has been
-	// logged already, previous to the current message.  This happens
-	// if a controller reconcile loop is called repeatedly.  In this
-	// case we never want to display this message again, so just ignore it.
-	_, ok := v.historyMessages[msg]
+	// If the message is in the trash, that means it should never be logged again.
+	_, ok := v.trashMessages[msg]
 	if ok {
 		return
 	}
 	// Log now if the message changed or wait time exceeded
 	logNow := true
 
+	// If this is log once save in trash so it is never logged again
+	if once {
+		v.trashMessages[msg] = true
+	}
+
+	// If we have already logged a message then ...
 	if v.lastLog != nil {
-		// If "once" is true or the message has changed, then save the old message
-		// in the history so that it is never displayed again
-		if once || msg != v.lastLog.msgLogged {
-			v.historyMessages[v.lastLog.msgLogged] = true
-		} else {
-			// Check if it is time to log since the message didn't change
+		// If message did not change then check if time to log
+		if msg == v.lastLog.msgLogged {
 			waitSecs := time.Duration(v.frequencySecs) * time.Second
 			nextLogTime := v.lastLog.lastLogTime.Add(waitSecs)
 			logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
+		} else {
+			// This is a new message.  Never display the old one again
+			v.trashMessages[v.lastLog.msgLogged] = true
 		}
 	}
 
-	// Log the message if it is time and save the lastLog info
+	// Log the message and save it in lastlog
 	if logNow {
 		v.sLogger.Info(msg)
 		v.lastLog = &lastLog{
@@ -236,12 +309,17 @@ func (v *verrazzanoLogger) SetZapLogger(zap *zap.SugaredLogger) {
 	v.sLogger = zap
 }
 
-// GetZapLogger gets the zap logger
+// GetZapLogger zap logger gets a clone of the zap logger
 func (v *verrazzanoLogger) GetZapLogger() *zap.SugaredLogger {
 	return v.zapLogger
 }
 
-// GetContext gets the logger context
+// GetRootZapLogger gets the root zap logger at the context level
+func (v *verrazzanoLogger) GetRootZapLogger() *zap.SugaredLogger {
+	return v.context.RootZapLogger
+}
+
+// EnsureContext gets the logger context
 func (v *verrazzanoLogger) GetContext() *LogContext {
 	return v.context
 }

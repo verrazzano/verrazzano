@@ -19,7 +19,7 @@ func IngressesPresent(log vzlog.VerrazzanoLogger, client clipkg.Client, ingressN
 		ing := v1.Ingress{}
 		if err := client.Get(context.TODO(), ingName, &ing); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("%s waiting for ingress %v to exist", prefix, ingressNames)
+				log.Progressf("%s is waiting for ingress %v to exist", prefix, ingressNames)
 				// Ingress not found
 				return false
 			}

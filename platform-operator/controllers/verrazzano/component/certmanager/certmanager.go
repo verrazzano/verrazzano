@@ -154,10 +154,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	err := c.applyManifest(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to apply the cert-manager manifest: %v", err)
-		return ctrlerrrors.RetryableError{
-			Source: c.Name(),
-			Cause:  fmt.Errorf("failed to apply the cert-manager manifest: %s", err),
-		}
+		return err
 	}
 	return nil
 }
@@ -175,7 +172,7 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 	isCAValue, err := isCA(compContext)
 	if err != nil {
 		compContext.Log().Errorf("Failed to verify the config type: %s", err)
-		return ctrlerrrors.RetryableError{Source: c.Name()}
+		return err
 	}
 	if !isCAValue {
 		// Create resources needed for Acme certificates
