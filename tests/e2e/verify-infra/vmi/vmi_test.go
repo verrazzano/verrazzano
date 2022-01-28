@@ -7,10 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"time"
-
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -20,9 +16,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
+	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
+	"strings"
+	"time"
 )
 
 const verrazzanoNamespace string = "verrazzano-system"
@@ -255,6 +255,35 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					func() { assertDashboard("Coherence%20Machines%20Summary%20Dashboard") },
 				)
 			})
+
+		t.It("Elasticsearch should be oss flavor", func() {
+			elastic.Connect()
+			Expect(elastic.EsVersion.BuildFlavor).To(Equal("oss"), "elasticsearch should be oss flavor")
+			findLibs, _, _ := pkg.Execute("vmi-system-es-master-0", "es-master", verrazzanoNamespace, []string{"find", ".", "-name", "*x*pack*"})
+			Expect(strings.TrimSpace(findLibs)).To(Equal(""))
+			resp, _ := pkg.PostElasticsearch("_security/api_key", `{
+			  "name": "my-api-key",
+			  "expiration": "1d",   
+			  "role_descriptors": { 
+				"role-a": {
+				  "cluster": ["all"],
+				  "index": [{
+					  "names": ["index-a*"],
+					  "privileges": ["read"]
+				  }]
+				},
+				"role-b": {
+				  "cluster": ["all"],
+				  "index": [{
+					  "names": ["index-b*"],
+					  "privileges": ["all"]
+				  }]
+				}
+			  }
+			}`)
+			//Expect(strings.Contains(resp, "invalid_index_name_exception")).To(BeTrue())
+			Expect(strings.Contains(resp, "xpack")).To(BeFalse())
+		})
 	}
 
 	t.It("Verify the instance info endpoint URLs", Label("f:mesh.ingress"), func() {
