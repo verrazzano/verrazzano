@@ -27,7 +27,7 @@ const (
 
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
 // of the verrazzano-application-operator image when set.
-func AppendApplicationOperatorOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 	if len(envImageOverride) > 0 {
 		kvs = append(kvs, bom.KeyValue{
@@ -58,10 +58,10 @@ func AppendApplicationOperatorOverrides(_ spi.ComponentContext, _ string, _ stri
 		}
 	}
 	if len(fluentdImage) == 0 {
-		return nil, fmt.Errorf("Can not find logging.fluentdImage in BOM")
+		return nil, compContext.Log().LogAndRetErrorf("Failed to find logging.fluentdImage in BOM")
 	}
 	if len(istioProxyImage) == 0 {
-		return nil, fmt.Errorf("Can not find monitoringOperator.istioProxyImage in BOM")
+		return nil, compContext.Log().LogAndRetErrorf("Failed to find monitoringOperator.istioProxyImage in BOM")
 	}
 
 	// fluentdImage for ENV DEFAULT_FLUENTD_IMAGE

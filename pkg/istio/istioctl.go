@@ -4,9 +4,10 @@
 package istio
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os/exec"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 )
@@ -106,11 +107,11 @@ func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, er
 // The operationName field is just used for visibility of operation in logging at the moment
 func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
-	log.Infof("Running command: %s", cmd.String())
+	log.Infof("Running istioctl command")
 
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {
-		log.Errorf("istioctl %s failed: %s", operationName, stderr)
+		log.Errorf("Failed running istioctl command %s: %s", cmd.String(), stderr)
 		return stdout, stderr, err
 	}
 
