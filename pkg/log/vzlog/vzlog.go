@@ -73,8 +73,8 @@ type ProgressLogger interface {
 	// Progress formats a message and logs it periodically at Info log level
 	Progressf(template string, args ...interface{})
 
-	// LogAndRetErrorf formats an error, logs it, then returns the formatted error
-	LogAndRetErrorf(template string, args ...interface{}) error
+	// ErrorfNewErr formats an error, logs it, then returns the formatted error
+	ErrorfNewErr(template string, args ...interface{}) error
 
 	// SetFrequency sets the logging frequency of a progress message
 	SetFrequency(secs int) VerrazzanoLogger
@@ -336,7 +336,7 @@ func (v *verrazzanoLogger) GetContext() *LogContext {
 }
 
 // LogAndRetErrorf formats an error, logs it, then returns it.
-func (v *verrazzanoLogger) LogAndRetErrorf(template string, args ...interface{}) error {
+func (v *verrazzanoLogger) ErrorfNewErr(template string, args ...interface{}) error {
 	err := fmt.Errorf(template, args)
 	v.Error2(err)
 	return err

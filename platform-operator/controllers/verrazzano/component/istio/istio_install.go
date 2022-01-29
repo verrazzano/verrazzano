@@ -124,19 +124,19 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log := args.log
 
 		result := true
-		log.Debugf("Starting istioctl install...")
+		log.Oncef("Component Istio starting istioctl install...")
 		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
 		log.Debugf("istioctl stdout: %s", string(stdout))
 		if err != nil {
 			result = false
-			log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
+			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
 		}
 
 		// Clean up the temp files
 		removeTempFiles(log)
 
 		// Write result
-		log.Debugf("Completed istioctl install, result: %s", result)
+		log.Oncef("Component Istio successfully ran istioctl install, result: %s", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 
@@ -206,8 +206,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	if cr.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
 		if err != nil {
-			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
 
 		// Write the overrides to a tmp file
