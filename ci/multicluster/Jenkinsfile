@@ -184,7 +184,6 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
-        K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh params.OKE_CLUSTER_VERSION').trim()}"
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon-appconf"
@@ -202,7 +201,6 @@ pipeline {
             steps {
                 sh """
                     echo "${NODE_LABELS}"
-                    echo "K8S_VERSION_LABEL ${K8S_VERSION_LABEL}"
                 """
 
                 script {
@@ -286,7 +284,12 @@ pipeline {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
+                    // Derive Kubernetes version, which is one of the labels emitted by the test metrics
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh params.OKE_CLUSTER_VERSION').trim()}"
                 }
+                sh """
+                    echo "K8S_VERSION_LABEL: ${env.K8S_VERSION_LABEL}"
+                """
             }
         }
 
@@ -1100,6 +1103,7 @@ def runGinkgoRandomize(testSuitePath) {
                     clusterName="managed${count-1}"
                 }
                 sh """
+                    echo "K8S_VERSION_LABEL: ${env.K8S_VERSION_LABEL}"
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
