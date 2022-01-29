@@ -212,16 +212,13 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		// Write the overrides to a tmp file
 		userFileCR, err = ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
 		if err != nil {
-			log.Errorf("Failed to create temporary file for Istio install: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
 		}
 		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
-			log.Errorf("Failed to write to temporary file: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
 		}
 		if err := userFileCR.Close(); err != nil {
-			log.Errorf("Failed to close temporary file: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
 		}
 		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
@@ -306,8 +303,7 @@ func createCertSecret(compContext spi.ComponentContext) error {
 		// Secret not found - create it
 		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
 		if _, stderr, err := bashFunc(certScript); err != nil {
-			log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
-			return err
+			return log.ErrorfNewErr("Failed creating Istio certificate secret %s: %s", err, stderr)
 		}
 	}
 	return nil
