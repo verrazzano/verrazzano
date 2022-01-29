@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -337,10 +339,12 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 		if secret.Type == HelmScrtType && !strings.Contains(secretName, IstioCoreDNSReleaseName) {
 			err = client.Delete(context.TODO(), secret)
 			if err != nil {
-				return compContext.Log().ErrorfNewErr("Error deleting helm secret %s: %v", secretName, err)
-			} else {
-				compContext.Log().Debugf("Deleted helm secret %s", secretName)
+				if ctrlerrors.ShouldLog(err) {
+					compContext.Log().Errorf("Error deleting helm secret %s: %v", secretName, err)
+				}
+				return err
 			}
+			compContext.Log().Debugf("Deleted helm secret %s", secretName)
 		}
 	}
 	return nil
