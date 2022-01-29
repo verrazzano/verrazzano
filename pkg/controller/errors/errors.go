@@ -4,8 +4,9 @@ package spi
 
 import (
 	"fmt"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 // RetryableError an error that can be used to indicate to a controller that a requeue is needed, with an optional custom result
