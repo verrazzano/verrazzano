@@ -696,7 +696,7 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType authenticationType) {
 				Key:         string(key),
 			},
 		}
-	case instancePrincipal:
+	default:
 		ociConfig = ociAuth{
 			Auth: authData{
 				AuthType: authType,
