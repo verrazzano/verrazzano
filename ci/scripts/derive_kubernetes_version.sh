@@ -6,7 +6,7 @@
 set -o pipefail
 
 if [ -z $1 ]; then
-    echo "Kubernetes Version is required to be supplied"
+    echo "Kubernetes Version is required"
     exit 1
 fi
 KUBERNETES_VERSION=$1

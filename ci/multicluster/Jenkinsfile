@@ -284,12 +284,9 @@ pipeline {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
-                    // Derive Kubernetes version, which is one of the labels emitted by the test metrics
+                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
                 }
-                sh """
-                    echo "K8S_VERSION_LABEL: ${env.K8S_VERSION_LABEL}"
-                """
             }
         }
 
@@ -1103,7 +1100,6 @@ def runGinkgoRandomize(testSuitePath) {
                     clusterName="managed${count-1}"
                 }
                 sh """
-                    echo "K8S_VERSION_LABEL: ${env.K8S_VERSION_LABEL}"
                     export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                     export CLUSTER_NAME="${clusterName}"
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
@@ -1548,4 +1544,3 @@ def runConsoleTests() {
         KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
    """
 }
-

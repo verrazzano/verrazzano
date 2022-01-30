@@ -101,10 +101,7 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 
 	kubernetesVersion := os.Getenv("K8S_VERSION_LABEL")
 	if kubernetesVersion != "" {
-		logger.Info("Kubernetes Version ", kubernetesVersion)
 		log = log.With(KubernetesVersion, kubernetesVersion)
-	} else {
-		logger.Warn("Not setting the label for Kubernetes version")
 	}
 
 	branchName := os.Getenv("BRANCH_NAME")
