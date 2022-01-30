@@ -319,11 +319,13 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 		if err := validateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
 			return err
 		}
-		if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
-			return err
-		}
 		if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
 			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, userPrincipal, instancePrincipal)
+		}
+		if authProp.Auth.AuthType == userPrincipal {
+			if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
