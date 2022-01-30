@@ -108,7 +108,6 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh params.OKE_CLUSTER_VERSION").trim()
     }
 
     stages {
@@ -173,6 +172,7 @@ pipeline {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
+                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
                 }
             }
         }

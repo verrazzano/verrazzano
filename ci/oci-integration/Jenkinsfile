@@ -146,7 +146,6 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${TEST_ENV}"
-        K8S_VERSION_LABEL = "${params.OKE_CLUSTER_VERSION}"
     }
 
     stages {
@@ -203,7 +202,13 @@ pipeline {
 
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
+
+                    // Derive Kubernetes version, which is one of the labels emitted by the test metrics
+                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
                 }
+                sh """
+                    echo "K8S_VERSION_LABEL: ${env.K8S_VERSION_LABEL}"
+                """
             }
         }
 

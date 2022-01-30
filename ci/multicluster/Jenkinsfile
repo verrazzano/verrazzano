@@ -285,7 +285,7 @@ pipeline {
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
                     // Derive Kubernetes version, which is one of the labels emitted by the test metrics
-                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh params.OKE_CLUSTER_VERSION').trim()}"
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
                 }
                 sh """
                     echo "K8S_VERSION_LABEL: ${env.K8S_VERSION_LABEL}"
