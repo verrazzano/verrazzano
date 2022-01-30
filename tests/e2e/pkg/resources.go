@@ -179,6 +179,7 @@ func createOrUpdateResourceFromBytesInGeneratedNamespace(data []byte, config *re
 			// all resources must have been read
 			return nil
 		}
+		uns.SetNamespace(namespace)
 
 		// Attempt to create the resource.
 		_, err = client.Resource(unsMap.Resource).Namespace(namespace).Create(context.TODO(), uns, metav1.CreateOptions{})
