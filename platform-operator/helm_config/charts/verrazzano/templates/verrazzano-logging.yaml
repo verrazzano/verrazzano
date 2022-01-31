@@ -331,9 +331,6 @@ data:
       @id fluentd_index_transformer
       enable_ruby true
       <record>
-        @timestamp ${time}
-      </record>
-      <record>
         target_index verrazzano-namespace-verrazzano-system
       </record>
     </filter>
