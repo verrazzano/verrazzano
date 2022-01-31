@@ -70,7 +70,7 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 		}
 	}
 	if len(errorList) > 0 {
-		return ctx.Log().ErrorfNewErr(strings.Join(errorList, ";"))
+		return ctx.Log().ErrorfRetFmt(strings.Join(errorList, ";"))
 	}
 	return nil
 

@@ -58,10 +58,10 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 		}
 	}
 	if len(fluentdImage) == 0 {
-		return nil, compContext.Log().ErrorfNewErr("Failed to find logging.fluentdImage in BOM")
+		return nil, compContext.Log().ErrorfRetFmt("Failed to find logging.fluentdImage in BOM")
 	}
 	if len(istioProxyImage) == 0 {
-		return nil, compContext.Log().ErrorfNewErr("Failed to find monitoringOperator.istioProxyImage in BOM")
+		return nil, compContext.Log().ErrorfRetFmt("Failed to find monitoringOperator.istioProxyImage in BOM")
 	}
 
 	// fluentdImage for ENV DEFAULT_FLUENTD_IMAGE

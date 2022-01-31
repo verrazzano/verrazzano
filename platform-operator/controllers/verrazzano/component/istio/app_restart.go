@@ -23,7 +23,7 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
-		return log.ErrorfNewErr("Failed to list appConfigs %v", err)
+		return log.ErrorfRetFmt("Failed to list appConfigs %v", err)
 	}
 
 	// Loop through the WebLogic workloads and stop the ones that need to be stopped
@@ -64,7 +64,7 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 				log.Progressf("StopWebLogicApps: stopping domain for workload %s ", wlName)
 				err := stopDomain(client, appConfig.Namespace, wlName)
 				if err != nil {
-					return log.ErrorfNewErr("Failed annotating VerrazzanoWebLogicWorkload %s to stop the domain", wlName)
+					return log.ErrorfRetFmt("Failed annotating VerrazzanoWebLogicWorkload %s to stop the domain", wlName)
 				}
 				return err
 			}
@@ -96,7 +96,7 @@ func StartDomainsStoppedByUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Clie
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
-		return log.ErrorfNewErr("Failed to list appConfigs %v", err)
+		return log.ErrorfRetFmt("Failed to list appConfigs %v", err)
 	}
 
 	// Loop through the WebLogic workloads and start the ones that were stopped
@@ -144,7 +144,7 @@ func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 	// get all the app configs
 	appConfigs := oam.ApplicationConfigurationList{}
 	if err := client.List(context.TODO(), &appConfigs, &clipkg.ListOptions{}); err != nil {
-		return log.ErrorfNewErr("Failed to listing appConfigs %v", err)
+		return log.ErrorfRetFmt("Failed to listing appConfigs %v", err)
 	}
 
 	for _, appConfig := range appConfigs.Items {

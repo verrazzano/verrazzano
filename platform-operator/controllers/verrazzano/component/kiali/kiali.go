@@ -65,7 +65,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
 		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed building DNS domain name: %v", err)
+			return ctx.Log().ErrorfRetFmt("Failed building DNS domain name: %v", err)
 		}
 		ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 
@@ -119,7 +119,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		return nil
 	})
 	if ctrlerrors.ShouldLog(err) {
-		return ctx.Log().ErrorfNewErr("Failed create/update Kiali ingress: %v", err)
+		return ctx.Log().ErrorfRetFmt("Failed create/update Kiali ingress: %v", err)
 	}
 	return err
 }
@@ -168,7 +168,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		return nil
 	})
 	if ctrlerrors.ShouldLog(err) {
-		return ctx.Log().ErrorfNewErr("Failed create/update Kiali auth policy: %v", err)
+		return ctx.Log().ErrorfRetFmt("Failed create/update Kiali auth policy: %v", err)
 	}
 	return err
 }
