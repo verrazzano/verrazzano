@@ -45,6 +45,20 @@ spec:
         enabled: true
         k8s:
           replicaCount: {{.EgressReplicaCount}}
+		  {{- if .NodeAffinity }}
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
+        {{end}}
     ingressGateways:
     - name: istio-ingressgateway
       enabled: true
@@ -55,12 +69,27 @@ spec:
           externalIPs:
             {{.ExternalIps}}
         {{end}}
+		{{- if .NodeAffinity }}
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - istio-ingressgateway
+                  topologyKey: kubernetes.io/hostname
+        {{end}}
 `
 
 type ReplicaData struct {
 	IngressReplicaCount uint
 	EgressReplicaCount  uint
 	ExternalIps         string
+	NodeAffinity        bool
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
@@ -150,9 +179,11 @@ func configureGateways(profile vzapi.ProfileType, externalIP string) (string, er
 	if profile == vzapi.Dev || profile == vzapi.ManagedCluster {
 		data.IngressReplicaCount = 1
 		data.EgressReplicaCount = 1
+		data.NodeAffinity = false
 	} else {
 		data.IngressReplicaCount = 3
 		data.EgressReplicaCount = 3
+		data.NodeAffinity = true
 	}
 
 	data.ExternalIps = ""
