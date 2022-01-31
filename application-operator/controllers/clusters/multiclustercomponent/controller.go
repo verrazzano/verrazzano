@@ -5,6 +5,7 @@ package multiclustercomponent
 
 import (
 	"context"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -32,13 +33,28 @@ type Reconciler struct {
 // mutates it based on the MultiClusterComponent, and updates the status of the
 // MultiClusterComponent to reflect the success or failure of the changes to the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With("multiclustercomponent", req.NamespacedName)
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the MC component
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "mccomponent")
 	var mcComp clustersv1alpha1.MultiClusterComponent
 	result := reconcile.Result{}
 	ctx := context.Background()
 	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)
 	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterComponent", err, log)
+		return result, clusters.IgnoreNotFoundWithLog(err, log)
 	}
 
 	// delete the wrapped resource since MC is being deleted

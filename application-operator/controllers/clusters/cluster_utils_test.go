@@ -101,11 +101,11 @@ func TestGetConditionFromResult(t *testing.T) {
 // THEN the error is returned
 func TestIgnoreNotFoundWithLog(t *testing.T) {
 	log := zap.S().With("somelogger")
-	err := IgnoreNotFoundWithLog("myResourceType", kerr.NewNotFound(controllerruntime.GroupResource{}, ""), log)
+	err := IgnoreNotFoundWithLog(kerr.NewNotFound(controllerruntime.GroupResource{}, ""), log)
 	asserts.Nil(t, err)
 
 	otherErr := kerr.NewBadRequest("some other error")
-	err = IgnoreNotFoundWithLog("myResourceType", otherErr, log)
+	err = IgnoreNotFoundWithLog(otherErr, log)
 	asserts.Equal(t, otherErr, err)
 }
 

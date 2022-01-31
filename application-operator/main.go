@@ -305,9 +305,14 @@ func main() {
 			&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
 	}
 
+	logger, err := vzlog.BuildZapLogger(0)
+	if err != nil {
+		log.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
+		os.Exit(1)
+	}
 	if err = (&cohworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     log.With("controller", "VerrazzanoCoherenceWorkload"),
+		Log:     logger.With(vzlog.FieldController, "VerrazzanoCoherenceWorkload"),
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
@@ -391,7 +396,7 @@ func main() {
 	}
 	if err = (&loggingtrait.LoggingTraitReconciler{
 		Client: mgr.GetClient(),
-		Log:    log.With("controller", "LoggingTrait"),
+		Log:    log.With(vzlog.FieldController, "LoggingTrait"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create LoggingTrait controller: %v", err)
@@ -399,7 +404,7 @@ func main() {
 	}
 	if err = (&appconfig.Reconciler{
 		Client: mgr.GetClient(),
-		Log:    log.With("controller", "ApplicationConfiguration"),
+		Log:    logger.With("controller", "ApplicationConfiguration"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create ApplicationConfiguration controller: %v", err)
@@ -407,7 +412,7 @@ func main() {
 	}
 	if err = (&containerizedworkload.Reconciler{
 		Client: mgr.GetClient(),
-		Log:    log.With("controller", "ContainerizedWorkload"),
+		Log:    logger.With("controller", "ContainerizedWorkload"),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create ContainerizedWorkload controller: %v", err)
@@ -418,7 +423,7 @@ func main() {
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
-			Log:    log.With("controller", "MetricsBinding"),
+			Log:    logger.With("controller", "MetricsBinding"),
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
 			log.Errorf("Failed to create MetricsBinding controller: %v", err)
@@ -428,7 +433,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	log.Debug("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), agentChannel, log.With("multi-cluster", "agent"))
+	go mcagent.StartAgent(mgr.GetClient(), agentChannel, log)
 
 	log.Info("Starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

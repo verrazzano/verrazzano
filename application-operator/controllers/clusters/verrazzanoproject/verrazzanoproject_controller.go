@@ -6,10 +6,10 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
-
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
@@ -58,10 +58,24 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // It fetches its namespaces if the VerrazzanoProject is in the verrazzano-mc namespace
 // and create namespaces in the local cluster.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With("verrazzanoproject", req.NamespacedName)
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the VZ project
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "verrazzanoproject")
 	var vp clustersv1alpha1.VerrazzanoProject
 	ctx := context.Background()
-	log.Info("Fetching VerrazzanoProject")
 	err := r.Get(ctx, req.NamespacedName, &vp)
 	if err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,

@@ -6,6 +6,7 @@ package multiclusterconfigmap
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,13 +34,28 @@ const finalizerName = "multiclusterconfigmap.verrazzano.io"
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With("multiclusterconfigmap", req.NamespacedName)
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the MC config map
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "mcconfigmap")
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
 	result := reconcile.Result{}
 	ctx := context.Background()
 	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
 	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterConfigMap", err, log)
+		return result, clusters.IgnoreNotFoundWithLog(err, log)
 	}
 
 	// delete the wrapped resource since MC is being deleted

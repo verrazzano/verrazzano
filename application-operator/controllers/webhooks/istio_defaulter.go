@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"net/http"
 	"strings"
 
@@ -47,7 +48,7 @@ type IstioWebhook struct {
 // Handle is the entry point for the mutating webhook.
 // This function is called for any pods that are created in a namespace with the label istio-injection=enabled.
 func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	var log = zap.S().With("webhooks.istio-defaulter")
+	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldWebhook, "istio-defaulter")
 
 	pod := &corev1.Pod{}
 	err := a.Decoder.Decode(req, pod)
