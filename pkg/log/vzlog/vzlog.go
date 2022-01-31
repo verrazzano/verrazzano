@@ -73,6 +73,12 @@ type ProgressLogger interface {
 	// Progress formats a message and logs it periodically at Info log level
 	Progressf(template string, args ...interface{})
 
+	// ErrorNewErr logs and error, then returns the error
+	ErrorNewErr(args ...interface{}) error
+
+	// ErrorfNewErr formats an error, logs it, then returns the formatted error
+	ErrorfNewErr(template string, args ...interface{}) error
+
 	// SetFrequency sets the logging frequency of a progress message
 	SetFrequency(secs int) VerrazzanoLogger
 }
@@ -81,9 +87,17 @@ type ProgressLogger interface {
 type VerrazzanoLogger interface {
 	SugaredLogger
 	ProgressLogger
+
+	// SetZapLogger sets the zap logger
 	SetZapLogger(zap *zap.SugaredLogger)
+
+	// GetZapLogger gets the zap logger
 	GetZapLogger() *zap.SugaredLogger
+
+	// GetRootZapLogger gets the root zap logger
 	GetRootZapLogger() *zap.SugaredLogger
+
+	// GetContext gets the log context
 	GetContext() *LogContext
 }
 
@@ -322,6 +336,21 @@ func (v *verrazzanoLogger) GetRootZapLogger() *zap.SugaredLogger {
 // EnsureContext gets the logger context
 func (v *verrazzanoLogger) GetContext() *LogContext {
 	return v.context
+}
+
+// ErrorNewErr logs an error, then returns it.
+func (v *verrazzanoLogger) ErrorNewErr(args ...interface{}) error {
+	s := fmt.Sprint(args...)
+	err := errors.New(s)
+	v.Error2(err)
+	return err
+}
+
+// ErrorfNewErr formats an error, logs it, then returns it.
+func (v *verrazzanoLogger) ErrorfNewErr(template string, args ...interface{}) error {
+	err := fmt.Errorf(template, args...)
+	v.Error2(err)
+	return err
 }
 
 // Debug is a wrapper for SugaredLogger Debug

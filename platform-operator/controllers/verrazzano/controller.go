@@ -97,7 +97,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller", err)
 	}
 
-	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
+	log.Oncef("Reconciling Verrazzano resource %v, generation %v", req.NamespacedName, vz.Generation)
 	res, err := r.doReconcile(req, log, vz)
 	if shouldRequeue(res) {
 		return res, nil
@@ -873,9 +873,7 @@ func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
 		if len(nginxIngress) == 0 {
 			// In case of OLCNE, need to obtain the External IP from the Spec
 			if len(nginxService.Spec.ExternalIPs) == 0 {
-				err := fmt.Errorf("Failed because NGINX service %s is missing External IP address", nginxService.Name)
-				log.Errorf("%v", err)
-				return "", err
+				return "", log.ErrorfNewErr("Failed because NGINX service %s is missing External IP address", nginxService.Name)
 			}
 			return nginxService.Spec.ExternalIPs[0], nil
 		}

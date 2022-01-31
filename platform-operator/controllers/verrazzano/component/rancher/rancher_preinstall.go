@@ -5,14 +5,14 @@ package rancher
 
 import (
 	"context"
-	"fmt"
+	"net/http"
+
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -65,7 +65,7 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 			return err
 		}
 		if len(defaultSecret.Data[caCert]) < 1 {
-			return fmt.Errorf("%s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCert)
+			return log.ErrorfNewErr("Failed, secret %s/%s does not have a value for %s", defaultSecretNamespace, defaultVerrazzanoName, caCert)
 		}
 		rancherCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
