@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -7,11 +7,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io/ioutil"
-	corev1 "k8s.io/api/core/v1"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,9 +17,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"go.uber.org/zap"
 	k8net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -79,7 +79,7 @@ var rancherHTTPClient requestSender = &httpRequestSender{}
 
 // registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
-func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log *zap.SugaredLogger) (string, error) {
+func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
 	log.Debugf("Registering managed cluster in Rancher with name: %s", clusterName)
 
 	rc := &rancherConfig{baseURL: "https://" + nginxIngressHostName}
@@ -88,7 +88,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	log.Debug("Getting Rancher ingress host name")
 	hostname, err := getRancherIngressHostname(rdr)
 	if err != nil {
-		log.Errorf("Unable to get Rancher ingress host name: %v", err)
+		log.Errorf("Failed to get Rancher ingress host name: %v", err)
 		return "", err
 	}
 	rc.host = hostname
@@ -140,7 +140,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 // the image registry. The Rancher agent image is baked into the primary Rancher image so in order
 // to load Rancher agent from a different registry we replace it here in the generated
 // registration YAML.
-func overrideRancherImageLocation(regYAML string, log *zap.SugaredLogger) string {
+func overrideRancherImageLocation(regYAML string, log vzlog.VerrazzanoLogger) string {
 	// if the Verrazzano installation is using the default image registry, there's nothing to do
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
 	if registry == "" {
@@ -183,7 +183,7 @@ func overrideRancherImageLocation(regYAML string, log *zap.SugaredLogger) string
 
 // importClusterToRancher uses the Rancher API to import the cluster. The cluster will show as "pending" until the registration
 // YAML is applied on the managed cluster.
-func importClusterToRancher(rc *rancherConfig, clusterName string, log *zap.SugaredLogger) (string, error) {
+func importClusterToRancher(rc *rancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
 	action := http.MethodPost
 	payload := `{"type": "cluster",
 		"name":"` + clusterName + `",
@@ -222,7 +222,7 @@ func importClusterToRancher(rc *rancherConfig, clusterName string, log *zap.Suga
 }
 
 // getClusterIDFromRancher attempts to fetch the cluster from Rancher by name and pull out the cluster ID
-func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log *zap.SugaredLogger) (string, error) {
+func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
 	action := http.MethodGet
 
 	reqURL := rc.baseURL + clustersByNamePath + clusterName
@@ -244,7 +244,7 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log *zap.Sug
 
 // getRegistrationYAMLFromRancher creates a registration token in Rancher for the managed cluster and uses the
 // returned token to fetch the registration (manifest) YAML.
-func getRegistrationYAMLFromRancher(rc *rancherConfig, rancherClusterID string, log *zap.SugaredLogger) (string, error) {
+func getRegistrationYAMLFromRancher(rc *rancherConfig, rancherClusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 	action := http.MethodPost
 	payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
 	reqURL := rc.baseURL + clusterRegTokenPath
@@ -300,7 +300,7 @@ func getAdminSecret(rdr client.Reader) (string, error) {
 }
 
 // getAdminTokenFromRancher does a login with Rancher and returns the token from the response
-func getAdminTokenFromRancher(rdr client.Reader, rc *rancherConfig, log *zap.SugaredLogger) (string, error) {
+func getAdminTokenFromRancher(rdr client.Reader, rc *rancherConfig, log vzlog.VerrazzanoLogger) (string, error) {
 	secret, err := getAdminSecret(rdr)
 	if err != nil {
 		return "", err
@@ -331,7 +331,7 @@ func getRancherIngressHostname(rdr client.Reader) (string, error) {
 		Namespace: rancherNamespace,
 		Name:      rancherIngressName}
 	if err := rdr.Get(context.TODO(), nsName, ingress); err != nil {
-		return "", err
+		return "", fmt.Errorf("Failed to get Rancher ingress %v: %v", nsName, err)
 	}
 
 	if len(ingress.Spec.Rules) > 0 {
@@ -339,12 +339,12 @@ func getRancherIngressHostname(rdr client.Reader) (string, error) {
 		return ingress.Spec.Rules[0].Host, nil
 	}
 
-	return "", errors.New("unable to get rancher ingress host name")
+	return "", fmt.Errorf("Failed, Rancher ingress %v is missing host names", nsName)
 }
 
 // sendRequest builds an HTTP request, sends it, and returns the response
 func sendRequest(action string, reqURL string, headers map[string]string, payload string,
-	rc *rancherConfig, log *zap.SugaredLogger) (*http.Response, string, error) {
+	rc *rancherConfig, log vzlog.VerrazzanoLogger) (*http.Response, string, error) {
 
 	req, err := http.NewRequest(action, reqURL, strings.NewReader(payload))
 	if err != nil {
@@ -363,7 +363,7 @@ func sendRequest(action string, reqURL string, headers map[string]string, payloa
 }
 
 // doRequest configures an HTTP transport (including TLS), sends an HTTP request with retries, and returns the response
-func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*http.Response, string, error) {
+func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger) (*http.Response, string, error) {
 	log.Debugf("Attempting HTTP request: %v", req)
 
 	proxyURL := getProxyURL()
@@ -405,7 +405,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 
 		// check for a network error and retry
 		if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
-			log.Warnf("Temporary error executing HTTP request %v : %v, retrying", req, nerr)
+			log.Progressf("Temporary error executing HTTP request %v : %v, retrying", req, nerr)
 			return false, err
 		}
 
@@ -413,7 +413,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 		if err, ok := err.(*url.Error); ok {
 			if err, ok := err.Err.(*net.OpError); ok {
 				if derr, ok := err.Err.(*net.DNSError); ok {
-					log.Warnf("DNS error: %v, retrying", derr)
+					log.Progressf("DNS error: %v, retrying", derr)
 					return false, err
 				}
 			}
@@ -421,7 +421,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 
 		// retry any HTTP 500 errors
 		if resp != nil && resp.StatusCode >= 500 && resp.StatusCode <= 599 {
-			log.Warnf("Got HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
+			log.Progressf("Got HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
 			return false, err
 		}
 
@@ -449,13 +449,13 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 // retry executes the provided function repeatedly, retrying until the function
 // returns done = true, or exceeds the given timeout.
 // errors will be logged, but will not trigger retry to stop
-func retry(backoff wait.Backoff, log *zap.SugaredLogger, fn wait.ConditionFunc) error {
+func retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, fn wait.ConditionFunc) error {
 	var lastErr error
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		done, err := fn()
 		lastErr = err
 		if err != nil {
-			log.Warnf("Retrying after error: %v", err)
+			log.Progressf("Retrying after error: %v", err)
 		}
 		return done, nil
 	})

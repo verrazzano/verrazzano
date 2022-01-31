@@ -98,8 +98,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
-	res, err := r.doReconcile(req, log, vz)
-	if shouldRequeue(res) {
+	res, err := r.doReconcile(log, vz)
+	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
 	// Never return an error since it has already been logged and we don't want the
@@ -114,7 +114,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // doReconcile the Verrazzano CR
-func (r *Reconciler) doReconcile(req ctrl.Request, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	ctx := context.TODO()
 
 	// Add cert-manager components to the scheme
@@ -125,7 +125,7 @@ func (r *Reconciler) doReconcile(req ctrl.Request, log vzlog.VerrazzanoLogger, v
 	if err != nil {
 		return result, err
 	}
-	if shouldRequeue(result) {
+	if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
@@ -186,7 +186,7 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 	result, err := r.initializeComponentStatus(log, actualCR)
 	if err != nil {
 		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
+	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
@@ -199,7 +199,7 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 		}
 		if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 			return newRequeueWithDelay(), err
-		} else if shouldRequeue(result) {
+		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
 		return ctrl.Result{}, nil
@@ -260,7 +260,7 @@ func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Resu
 
 	if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
+	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
@@ -296,7 +296,7 @@ func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Resul
 
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
-	} else if shouldRequeue(result) {
+	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 	// Upgrade should always requeue to ensure that reconciler runs post upgrade to install
@@ -1079,11 +1079,6 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger,
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
-}
-
-// Return true if requeue is needed
-func shouldRequeue(r ctrl.Result) bool {
-	return r.Requeue || r.RequeueAfter > 0
 }
 
 // Watch the jobs in the verrazzano-install for this vz resource.  The reconcile loop will be called

@@ -18,11 +18,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -792,7 +792,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	// fail but the result of syncManifestSecret should be success
 	vmc := clustersapi.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}}
 	reconciler := newVMCReconciler(mock)
-	reconciler.log = zap.S()
+	reconciler.log = vzlog.DefaultLogger()
 
 	err := reconciler.syncManifestSecret(context.TODO(), &vmc)
 
@@ -819,7 +819,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -847,7 +847,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return errors.NewResourceExpired("something bad happened")
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -888,7 +888,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err := registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -931,7 +931,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -986,7 +986,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1054,7 +1054,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, zap.S())
+	regYAML, err = registerManagedClusterWithRancher(mock, testManagedCluster, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1108,7 +1108,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := registerManagedClusterWithRancher(mock, clusterName, zap.S())
+	_, err := registerManagedClusterWithRancher(mock, clusterName, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)

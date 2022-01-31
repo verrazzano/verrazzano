@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -55,7 +55,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	if rancherYAML, err := registerManagedClusterWithRancher(r.Client, vmc.Name, r.log); err != nil {
 		msg := fmt.Sprintf("Registration of managed cluster failed: %v", err)
 		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, msg)
-		r.log.Warn("Unable to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
+		r.log.Info("Unable to register managed cluster with Rancher, manifest secret will not contain Rancher YAML")
 	} else {
 		msg := "Registration of managed cluster completed successfully"
 		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, msg)
