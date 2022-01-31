@@ -5,9 +5,10 @@ package rancher
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"io"
 	"net/http"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 )
 
 const (
@@ -33,7 +34,7 @@ func (c *certBuilder) appendCertWithHTTP(uri string) error {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("error downloading cert from %s: %s", uri, resp.Status)
+		return fmt.Errorf("Failed downloading cert from %s: %s", uri, resp.Status)
 	}
 	bytes, err := io.ReadAll(resp.Body)
 	if err != nil {

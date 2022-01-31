@@ -6,13 +6,14 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -312,14 +313,14 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
-			return nil, fmt.Errorf("Did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
+			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
 		}
 		storageString := storageSpec.Resources.Requests.Storage().String()
 		return &resourceRequestValues{
 			Storage: storageString,
 		}, nil
 	}
-	return nil, fmt.Errorf("Unsupported volume source: %v", defaultVolumeSource)
+	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
 }
 
 func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) {
