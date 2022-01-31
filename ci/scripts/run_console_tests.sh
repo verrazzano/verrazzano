@@ -33,7 +33,7 @@ echo "Using console commit at $console_sha"
 
 # Download/Unzip console repo
 zip_download_name="${console_sha}.zip"
-wget "$zip_download_name"
+wget "https://github.com/verrazzano/console/archive/$zip_download_name"
 unzip "$zip_download_name" -d console
 mv console/*/* console
 cd console
