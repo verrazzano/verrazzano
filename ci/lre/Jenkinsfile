@@ -221,6 +221,11 @@ pipeline {
                         runGinkgo('examples/helidon')
                     }
                 }
+                stage('examples todo') {
+                    steps {
+                        runGinkgo('examples/todo')
+                    }
+                }
             }
             post {
                 always {
