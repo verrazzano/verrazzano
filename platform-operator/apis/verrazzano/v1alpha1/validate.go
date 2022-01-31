@@ -48,7 +48,6 @@ const (
 	fluentdOCISecretPrivateKeyEntry = "key"
 	fluentdExpectedKeyPath          = "/root/.oci/key"
 	fluentdOCIKeyFileEntry          = "key_file=/root/.oci/key"
-	expectedKeyHeader               = "RSA PRIVATE KEY"
 	validateTempFilePattern         = "validate-"
 )
 
@@ -344,7 +343,7 @@ func getInstallSecret(client client.Client, secretName string, secret *corev1.Se
 
 func validatePrivateKey(secretName string, pemData []byte) error {
 	block, _ := pem.Decode(pemData)
-	if block == nil || !strings.Contains(block.Type, expectedKeyHeader) {
+	if block == nil {
 		return fmt.Errorf("Private key in secret \"%s\" is either empty or not a valid key in PEM format", secretName)
 	}
 	return nil
