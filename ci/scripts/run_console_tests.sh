@@ -5,7 +5,7 @@
 #
 
 if [ -z "$KUBECONFIG" ] || [ -z "$GO_REPO_PATH" ] || [ -z "${DOCKER_CREDS_USR}" ] ||
- [ -z "${DOCKER_CREDS_PSW}" ] || [ -z "$CONSOLE_REPO_BRANCH" ]; then
+ [ -z "${DOCKER_CREDS_PSW}" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
