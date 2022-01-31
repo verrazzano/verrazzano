@@ -873,7 +873,7 @@ func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
 		if len(nginxIngress) == 0 {
 			// In case of OLCNE, need to obtain the External IP from the Spec
 			if len(nginxService.Spec.ExternalIPs) == 0 {
-				return "", log.ErrorfRetFmt("Failed because NGINX service %s is missing External IP address", nginxService.Name)
+				return "", log.ErrorfNewErr("Failed because NGINX service %s is missing External IP address", nginxService.Name)
 			}
 			return nginxService.Spec.ExternalIPs[0], nil
 		}

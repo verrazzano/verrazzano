@@ -129,7 +129,7 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log.Debugf("istioctl stdout: %s", string(stdout))
 		if err != nil {
 			result = false
-			err = log.ErrorfRetFmt("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
+			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
 		}
 
 		// Clean up the temp files
@@ -206,19 +206,19 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	if cr.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
 		if err != nil {
-			return log.ErrorfRetFmt("Failed to Build IstioOperator YAML: %v", err)
+			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
 
 		// Write the overrides to a tmp file
 		userFileCR, err = ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
 		if err != nil {
-			return log.ErrorfRetFmt("Failed to create temporary file for Istio install: %v", err)
+			return log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
 		}
 		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
-			return log.ErrorfRetFmt("Failed to write to temporary file: %v", err)
+			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
 		}
 		if err := userFileCR.Close(); err != nil {
-			return log.ErrorfRetFmt("Failed to close temporary file: %v", err)
+			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
 		}
 		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
@@ -303,7 +303,7 @@ func createCertSecret(compContext spi.ComponentContext) error {
 		// Secret not found - create it
 		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
 		if _, stderr, err := bashFunc(certScript); err != nil {
-			return log.ErrorfRetFmt("Failed creating Istio certificate secret %s: %s", err, stderr)
+			return log.ErrorfNewErr("Failed creating Istio certificate secret %v: %s", err, stderr)
 		}
 	}
 	return nil
@@ -345,6 +345,6 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 
 func removeTempFiles(log vzlog.VerrazzanoLogger) {
 	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
-		log.Errorf("Unexpected error removing temp files: %s", err.Error())
+		log.Errorf("Unexpected error removing temp files: %v", err.Error())
 	}
 }

@@ -136,7 +136,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	var tmpFile *os.File
 	tmpFile, err := ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
-		return log.ErrorfRetFmt("Failed to create temporary file: %v", err)
+		return log.ErrorfNewErr("Failed to create temporary file: %v", err)
 	}
 
 	vz := context.EffectiveCR()
@@ -144,16 +144,16 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	if vz.Spec.Components.Istio != nil {
 		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
 		if err != nil {
-			return log.ErrorfRetFmt("Failed to Build IstioOperator YAML: %v", err)
+			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
 
 		if _, err = tmpFile.Write([]byte(istioOperatorYaml)); err != nil {
-			return log.ErrorfRetFmt("Failed to write to temporary file: %v", err)
+			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
 		}
 
 		// Close the file
 		if err := tmpFile.Close(); err != nil {
-			return log.ErrorfRetFmt("Failed to close temporary file: %v", err)
+			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
 		}
 
 		log.Debugf("Created values file from Istio install args: %s", tmpFile.Name())
@@ -162,7 +162,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	// images overrides to get passed into the istioctl command
 	imageOverrides, err := buildImageOverridesString(log)
 	if err != nil {
-		return log.ErrorfRetFmt("Error building image overrides from BOM for Istio: %v", err)
+		return log.ErrorfNewErr("Error building image overrides from BOM for Istio: %v", err)
 	}
 	_, _, err = upgradeFunc(log, imageOverrides, i.ValuesFile, tmpFile.Name())
 	if err != nil {
@@ -248,7 +248,7 @@ func restartComponents(log vzlog.VerrazzanoLogger, err error, i istioComponent, 
 		// Check if deployment is in an Istio injected system namespace
 		if vzString.SliceContainsString(i.InjectedSystemNamespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
-				return log.ErrorfRetFmt("Failed, deployment %v can't be restarted because it is paused", deployment.Name)
+				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
 			}
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
@@ -311,12 +311,12 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
 	if err != nil {
-		return context.Log().ErrorfRetFmt("Failed searching for release: %v", err)
+		return context.Log().ErrorfNewErr("Failed searching for release: %v", err)
 	}
 	if found {
 		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
-			return context.Log().ErrorfRetFmt("Failed trying to uninstall istiocoredns: %v", err)
+			return context.Log().ErrorfNewErr("Failed trying to uninstall istiocoredns: %v", err)
 		}
 	}
 	return err
@@ -331,7 +331,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	listOptions := clipkg.ListOptions{Namespace: constants.IstioSystemNamespace}
 	err := client.List(context.TODO(), &secretList, &listOptions)
 	if err != nil {
-		return compContext.Log().ErrorfRetFmt("Error retrieving list of secrets in the istio-system namespace: %v", err)
+		return compContext.Log().ErrorfNewErr("Error retrieving list of secrets in the istio-system namespace: %v", err)
 	}
 	for index := range secretList.Items {
 		secret := &secretList.Items[index]

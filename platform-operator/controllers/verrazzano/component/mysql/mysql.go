@@ -66,7 +66,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		// Get the mysql secret
 		err := compContext.Client().Get(context.TODO(), nsName, secret)
 		if err != nil {
-			return []bom.KeyValue{}, compContext.Log().ErrorfRetFmt("Failed getting mysql secret: %v", err)
+			return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting mysql secret: %v", err)
 		}
 		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
 		kvs = append(kvs, bom.KeyValue{
@@ -148,11 +148,11 @@ func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
 		mySQLUsername,
 	)))
 	if err != nil {
-		return "", ctx.Log().ErrorfRetFmt("Failed to write to temporary file: %v", err)
+		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
 	}
 	// Close the file
 	if err := file.Close(); err != nil {
-		return "", ctx.Log().ErrorfRetFmt("Failed to close temporary file: %v", err)
+		return "", ctx.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
 	return file.Name(), nil
 }
@@ -161,7 +161,7 @@ func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
 func removeMySQLInitFile(ctx spi.ComponentContext) {
 	files, err := ioutil.ReadDir(os.TempDir())
 	if err != nil {
-		ctx.Log().Errorf("Failed reading temp directory: %s", err.Error())
+		ctx.Log().Errorf("Failed reading temp directory: %v", err)
 	}
 	for _, file := range files {
 		if !file.IsDir() && strings.HasPrefix(file.Name(), mySQLInitFilePrefix) && strings.HasSuffix(file.Name(), ".sql") {
@@ -201,7 +201,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
 		if !found {
-			return kvs, compContext.Log().ErrorfRetFmt("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return kvs, compContext.Log().ErrorfNewErr("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {

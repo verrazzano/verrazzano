@@ -289,18 +289,18 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	var tmpFile *os.File
 	tmpFile, err = ioutil.TempFile(os.TempDir(), "values-*.yaml")
 	if err != nil {
-		return context.Log().ErrorfRetFmt("Failed to create temporary file: %v", err)
+		return context.Log().ErrorfNewErr("Failed to create temporary file: %v", err)
 	}
 
 	defer os.Remove(tmpFile.Name())
 
 	if _, err = tmpFile.Write(stdout); err != nil {
-		return context.Log().ErrorfRetFmt("Failed to write to temporary file: %v", err)
+		return context.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
 	}
 
 	// Close the file
 	if err := tmpFile.Close(); err != nil {
-		return context.Log().ErrorfRetFmt("Failed to close temporary file: %v", err)
+		return context.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
 
 	// Generate a list of component-specified override files if present

@@ -45,10 +45,10 @@ func NewComponent() spi.Component {
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
-		return ctx.Log().ErrorfRetFmt("Failed creating/labeling namespaces for Verrazzano: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
 	}
 	if err := loggingPreInstall(ctx); err != nil {
-		return ctx.Log().ErrorfRetFmt("Failed copying logging secrets for Verrazzano: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
 	return nil
 }

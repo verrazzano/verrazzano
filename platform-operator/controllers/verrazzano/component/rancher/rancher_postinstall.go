@@ -33,13 +33,13 @@ func createAdminSecretIfNotExists(log vzlog.VerrazzanoLogger, c client.Client) e
 	if apierrors.IsNotFound(err) {
 		password, resetPasswordErr := resetAdminPassword(c)
 		if resetPasswordErr != nil {
-			return log.ErrorfRetFmt("Failed to reset Rancher admin password: %v", resetPasswordErr)
+			return log.ErrorfNewErr("Failed to reset Rancher admin password: %v", resetPasswordErr)
 		}
 		log.Debugf("Rancher Post Install: Creating new admin secret")
 		return newAdminSecret(c, password)
 	}
 
-	return log.ErrorfRetFmt("Failed checking Rancher admin secret availability: %v", err)
+	return log.ErrorfNewErr("Failed checking Rancher admin secret availability: %v", err)
 }
 
 // retryResetPassword retries resetting the Rancher admin password using the Rancher shell
@@ -64,7 +64,7 @@ func resetAdminPassword(c client.Client) (string, error) {
 	// Ensure the default rancer admin user is present
 	_, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{ensureAdminCommand})
 	if err != nil {
-		return "", fmt.Errorf("Failed execing into Rancher pod %s: %w", stderr, err)
+		return "", fmt.Errorf("Failed execing into Rancher pod %s: %v", stderr, err)
 	}
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{resetPasswordCommand})
 	if err != nil {

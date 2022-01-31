@@ -102,12 +102,12 @@ func checkDependencies(c spi.Component, context spi.ComponentContext, visited ma
 	log := context.Log()
 	log.Debugf("Checking %s dependencies", compName)
 	if _, wasVisited := visited[compName]; wasVisited {
-		return stateMap, context.Log().ErrorfRetFmt("Failed, illegal state, dependency cycle found for %s", c.Name())
+		return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
 	}
 	visited[compName] = true
 	for _, dependencyName := range c.GetDependencies() {
 		if compName == dependencyName {
-			return stateMap, context.Log().ErrorfRetFmt("Failed, illegal state, dependency cycle found for %s", c.Name())
+			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
 		}
 		if _, ok := stateMap[dependencyName]; ok {
 			// dependency already checked
@@ -116,7 +116,7 @@ func checkDependencies(c spi.Component, context spi.ComponentContext, visited ma
 		}
 		found, dependency := FindComponent(dependencyName)
 		if !found {
-			return stateMap, context.Log().ErrorfRetFmt("Failed, illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
+			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
 		}
 		if trace, err := checkDependencies(dependency, context, visited, stateMap); err != nil {
 			return trace, err

@@ -63,14 +63,14 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 			// Delete the ClusterRoleBinding
 			err = ctx.Client().Delete(clientCtx, &clusterRoleBinding)
 			if err != nil {
-				errorList = append(errorList, fmt.Sprintf("Failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
+				errorList = append(errorList, fmt.Sprintf("Failed to delete ClusterRoleBinding %s, error: %v", vmc.Name, err.Error()))
 			} else {
 				ctx.Log().Debugf("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
 			}
 		}
 	}
 	if len(errorList) > 0 {
-		return ctx.Log().ErrorfRetFmt(strings.Join(errorList, ";"))
+		return ctx.Log().ErrorfNewErr(strings.Join(errorList, ";"))
 	}
 	return nil
 
