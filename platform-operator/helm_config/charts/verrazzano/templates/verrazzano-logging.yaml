@@ -245,7 +245,7 @@ data:
         # the other is just a messsage
         @type multi_format
         <pattern>
-          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) \[(?<level>.*?)\] (?<remaining>([\s\S]*?))\s*$/
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) \[(?<level>.*?)\] ([\s\S]*?)$/
           time_key logtime
           time_format %Y/%m/%d %H:%M:%S
           keep_time_key true
@@ -277,13 +277,13 @@ data:
         # Coherence operator format and a klog format
         @type multi_format
         <pattern>
-          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t(?<remaining>([\s\S]*?))\s*$/
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t([\s\S]*?)$/
           time_key logtime
           time_format %Y-%m-%dT%H:%M:%S.%NZ
           keep_time_key true
         </pattern>
         <pattern>
-          format /^(?<level>.)(?<month>\d{2})(?<day>\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<remaining>([\s\S]*?))\s*$/
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?([\s\S]*?)$/
           time_key logtime
           time_format %H:%M:%S.%N
           keep_time_key true
@@ -297,7 +297,7 @@ data:
     <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
       @type record_transformer
       enable_ruby true
-      remove_keys month,day,logtime,remaining
+      remove_keys logtime
       <record>
         @timestamp ${time.iso8601(3)}
       </record>
