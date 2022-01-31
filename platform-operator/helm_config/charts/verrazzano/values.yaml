@@ -105,6 +105,18 @@ api:
     AuthnStateTTL: "300"
     MaxRequestSize: 65m
     ProxyBufferSize: 8k
+  affinity: |
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - {{ .Values.api.name }}
+            topologyKey: kubernetes.io/hostname
 
 # OCI-related values
 oci:

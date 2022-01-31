@@ -118,6 +118,8 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+
+        K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
     }
 
     stages {

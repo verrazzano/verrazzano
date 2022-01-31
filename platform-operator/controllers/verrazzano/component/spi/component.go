@@ -4,7 +4,7 @@
 package spi
 
 import (
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,8 +24,8 @@ type ComponentContext interface {
 	IsDryRun() bool
 	// Copy returns a copy of the current context
 	Copy() ComponentContext
-	// For returns a copy of the current context with an updated logging component field
-	For(comp string) ComponentContext
+	// Init returns a copy of the current context with an updated logging component field
+	Init(comp string) ComponentContext
 	// Operation specifies the logging operation field
 	Operation(op string) ComponentContext
 	// GetOperation returns the operation object in the context

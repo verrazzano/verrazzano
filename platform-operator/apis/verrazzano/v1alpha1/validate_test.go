@@ -681,18 +681,29 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType authenticationType) {
 	assert.NoError(t, err)
 	client := fake.NewFakeClientWithScheme(scheme)
 
-	key, err := generateTestPrivateKey()
-	assert.NoError(t, err)
-	ociConfig := ociAuth{
-		Auth: authData{
-			Region:      "us-ashburn-1",
-			Tenancy:     "my-tenancy",
-			User:        "my-user",
-			Fingerprint: "a-fingerprint",
-			AuthType:    authType,
-			Key:         string(key),
-		},
+	var ociConfig ociAuth
+	switch authType {
+	case userPrincipal:
+		key, err := generateTestPrivateKey()
+		assert.NoError(t, err)
+		ociConfig = ociAuth{
+			Auth: authData{
+				Region:      "us-ashburn-1",
+				Tenancy:     "my-tenancy",
+				User:        "my-user",
+				Fingerprint: "a-fingerprint",
+				AuthType:    authType,
+				Key:         string(key),
+			},
+		}
+	default:
+		ociConfig = ociAuth{
+			Auth: authData{
+				AuthType: authType,
+			},
+		}
 	}
+
 	secretData, err := yaml.Marshal(&ociConfig)
 	assert.NoError(t, err, "Error marshalling test data")
 

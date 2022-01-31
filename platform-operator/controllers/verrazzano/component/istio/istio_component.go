@@ -13,8 +13,7 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/istio"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -88,7 +87,7 @@ func SetDefaultRestartComponentsFunction() {
 	restartComponentsFunction = restartComponents
 }
 
-type helmUninstallFuncSig func(log *zap.SugaredLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
+type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
 
@@ -142,7 +141,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	vz := context.EffectiveCR()
 	defer os.Remove(tmpFile.Name())
 	if vz.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio, vz.Spec.Profile)
 		if err != nil {
 			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
 			return err
@@ -320,7 +319,7 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 		return err
 	}
 	if found {
-		_, _, err = helmUninstallFunction(context.Log().GetZapLogger(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
+		_, _, err = helmUninstallFunction(context.Log(), IstioCoreDNSReleaseName, constants.IstioSystemNamespace, context.IsDryRun())
 		if err != nil {
 			context.Log().Errorf("Error returned when trying to uninstall istiocoredns: %v", err)
 		}

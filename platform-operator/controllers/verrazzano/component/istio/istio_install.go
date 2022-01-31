@@ -5,11 +5,12 @@ package istio
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -203,7 +204,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio, cr.Spec.Profile)
 		if err != nil {
 			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
 			return err

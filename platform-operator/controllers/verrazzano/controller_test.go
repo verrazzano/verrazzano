@@ -6,9 +6,10 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -755,8 +756,8 @@ func TestUninstallStarted(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUninstallFailed tests the Reconcile method for the following use case
