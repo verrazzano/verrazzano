@@ -19,7 +19,7 @@ func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, stateful
 		statefulset := appsv1.StatefulSet{}
 		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("%s waiting for statefulset %v to exist", prefix, namespacedName)
+				log.Progressf("%s is waiting for statefulset %v to exist", prefix, namespacedName)
 				// StatefulSet not found
 				return false
 			}
@@ -27,7 +27,8 @@ func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, stateful
 			return false
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
-			log.Progressf("%s waiting for statefulset %s to have %v replica(s)", prefix, namespacedName, expectedReplicas)
+			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current replicas is %v", prefix, namespacedName,
+				expectedReplicas, statefulset.Status.ReadyReplicas)
 			return false
 		}
 	}
