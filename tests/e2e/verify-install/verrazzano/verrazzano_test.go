@@ -4,12 +4,17 @@
 package verrazzano_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"time"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -17,9 +22,25 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
+// Initialized in BeforeSuite
+var isMinVersion110 bool
+var isMinVersion120 bool
+
 var t = framework.NewTestFramework("verrazzano")
 
 var _ = t.AfterEach(func() {})
+
+var _ = t.BeforeSuite(func() {
+	var err error
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	if err != nil {
+		Fail(err.Error())
+	}
+	isMinVersion120, err = pkg.IsVerrazzanoMinVersion("1.2.0")
+	if err != nil {
+		Fail(err.Error())
+	}
+})
 
 var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
@@ -338,7 +359,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			Expect(crb.RoleRef.Name == "view").To(BeTrue(),
 				"the roleRef.name should be view")
 			Expect(crb.RoleRef.Kind == "ClusterRole").To(BeTrue(),
-				"the roleRef.kind shoudl be ClusterRole")
+				"the roleRef.kind should be ClusterRole")
 
 			Expect(len(crb.Subjects) == 1).To(BeTrue(),
 				"there should be one subject")
@@ -349,6 +370,73 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 				"the subject's kind should be Group")
 			Expect(s.Name == "verrazzano-monitors").To(BeTrue(),
 				"the subject's name should be verrazzano-monitors")
+		})
+	})
+
+	t.Describe("verrazzano-authproxy", Label("f:platform-lcm.install"), func() {
+		t.It("has expected deployment", func() {
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has correct number of pods running", func() {
+			if isMinVersion110 {
+				// Get the deployment
+				var deployment *appsv1.Deployment
+				Eventually(func() (*appsv1.Deployment, error) {
+					var err error
+					deployment, err = pkg.GetDeployment(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
+					return deployment, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+				var expectedPods = deployment.Spec.Replicas
+				var pods []corev1.Pod
+				Eventually(func() bool {
+					var err error
+					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
+					if err != nil {
+						return false
+					}
+					// Compare the number of running pods to the expected number
+					var runningPods int32 = 0
+					for _, pod := range pods {
+						if pod.Status.Phase == corev1.PodRunning {
+							runningPods++
+						}
+					}
+					return runningPods == *expectedPods
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has affinity configured as expected", func() {
+			if isMinVersion120 {
+				// Get the AuthProxy pods
+				var pods []corev1.Pod
+				Eventually(func() error {
+					var err error
+					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
+					return err
+				}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+				// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
+				for _, pod := range pods {
+					affinity := pod.Spec.Affinity
+					Expect(affinity.PodAffinity).To(BeNil())
+					Expect(affinity.NodeAffinity).To(BeNil())
+					Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+					Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+				}
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+			}
 		})
 	})
 })
