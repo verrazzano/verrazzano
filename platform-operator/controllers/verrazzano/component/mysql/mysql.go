@@ -66,7 +66,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		// Get the mysql secret
 		err := compContext.Client().Get(context.TODO(), nsName, secret)
 		if err != nil {
-			return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting mysql secret: %v", err)
+			return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL secret: %v", err)
 		}
 		// Force mysql to use the initial password and root password during the upgrade, by specifying as helm overrides
 		kvs = append(kvs, bom.KeyValue{

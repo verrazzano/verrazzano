@@ -118,7 +118,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLog(err) {
+	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Kiali ingress: %v", err)
 	}
 	return err
@@ -167,7 +167,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 		}
 		return nil
 	})
-	if ctrlerrors.ShouldLog(err) {
+	if ctrlerrors.ShouldLogKubenetesAPIError(err) {
 		return ctx.Log().ErrorfNewErr("Failed create/update Kiali auth policy: %v", err)
 	}
 	return err

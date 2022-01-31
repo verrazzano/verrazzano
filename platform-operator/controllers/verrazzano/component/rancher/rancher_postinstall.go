@@ -58,7 +58,7 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", err
 	}
 	if len(podList.Items) < 1 {
-		return "", errors.New("Failed, no Rancher pods found")
+		return "", errors.New("Failed to reset Rancher admin secret, no Rancher pods found")
 	}
 	pod := podList.Items[0]
 	// Ensure the default rancer admin user is present

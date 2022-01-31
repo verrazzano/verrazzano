@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
