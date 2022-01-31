@@ -386,8 +386,7 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 		return nil
 	}
 	if err != nil {
-		log.Errorf("Failed to find the fluentd DaemonSet %s, %v", daemonSet.Name, err)
-		return err
+		return log.ErrorfRetFmt("Failed to find the fluentd DaemonSet %s, %v", daemonSet.Name, err)
 	}
 
 	// Find the fluent container and save it's container index
@@ -399,7 +398,7 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 		}
 	}
 	if fluentdIndex == -1 {
-		return fmt.Errorf("fluentd container not found in fluentd daemonset: %s", daemonSet.Name)
+		return log.ErrorfRetFmt("Failed, fluentd container not found in fluentd daemonset: %s", daemonSet.Name)
 	}
 
 	// Check if env variables CLUSTER_NAME and ELASTICSEARCH_URL are using valueFrom.
@@ -431,13 +430,13 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 	// The secret must contain a cluster name
 	clusterName, ok := secret.Data[constants.ClusterNameData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ClusterNameData)
+		return log.ErrorfRetFmt("Failed, the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ClusterNameData)
 	}
 
 	// The secret must contain the Elasticsearch endpoint's URL
 	elasticsearchURL, ok := secret.Data[constants.ElasticsearchURLData]
 	if !ok {
-		return fmt.Errorf("the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ElasticsearchURLData)
+		return log.ErrorfRetFmt("Failed, the secret named %s in namespace %s is missing the required field %s", secret.Name, secret.Namespace, constants.ElasticsearchURLData)
 	}
 
 	// Update the daemonset to use a Value instead of the valueFrom
@@ -566,8 +565,7 @@ func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) erro
 				Cause:  err,
 			}
 		}
-		vzLog.Errorf("The %s secret %s not found in namespace %s", logMsg, secretName, constants.VerrazzanoInstallNamespace)
-		return ctrlerrors.RetryableError{Source: ComponentName}
+		return vzLog.ErrorfRetFmt("Failed, the %s secret %s not found in namespace %s", logMsg, secretName, constants.VerrazzanoInstallNamespace)
 	}
 
 	return nil
@@ -579,7 +577,7 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 		types.NamespacedName{Name: "verrazzano", Namespace: globalconst.VerrazzanoSystemNamespace},
 		&corev1.Secret{}); err != nil {
 		if !errors.IsNotFound(err) {
-			ctx.Log().Error("Unexpected error getting verrazzano secret: %s", err)
+			ctx.Log().Errorf("Failed, unexpected error getting verrazzano secret: %v", err)
 			return false
 		}
 		ctx.Log().Debugf("Verrazzano secret not found")
@@ -591,7 +589,7 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 //cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
-		ctx.Log().Errorf("Error deleting temp files: %s", err.Error())
+		ctx.Log().Errorf("Failed deleting temp files: %v", err.Error())
 	}
 }
 
@@ -610,8 +608,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 	sourceVer, err := semver.NewSemVersion(ctx.ActualCR().Status.Version)
 	if err != nil {
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Invalid source Verrazzano version: %s", err)
-		return err
+		return ctx.Log().ErrorfRetFmt("Failed Elasticsearch post-upgrade: Invalid source Verrazzano version: %v", err)
 	}
 	if sourceVer.IsGreatherThan(ver1_1_0) || sourceVer.IsEqualTo(ver1_1_0) {
 		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary for source Verrazzano version %v.", sourceVer.ToString())
@@ -621,26 +618,20 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
 	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 15*time.Second, 5*time.Minute, containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
 	if err != nil {
-		ctx.Log().Errorf("Failed getting the Elasticsearch pods during post-upgrade: %v", err)
-		return err
+		return ctx.Log().ErrorfRetFmt("Failed getting the Elasticsearch pods during post-upgrade: %v", err)
 	}
 	if len(pods) == 0 {
-		err := fmt.Errorf("no pods found")
-		ctx.Log().Errorf("Failed to find Elasticsearch pods during post-upgrade: %v", err)
-		return err
+		return ctx.Log().ErrorfRetFmt("Failed to find Elasticsearch pods during post-upgrade: %v", err)
 	}
 	pod := pods[0]
 
 	// Find the Elasticsearch HTTP control container port.
 	httpPort, err := getNamedContainerPortOfContainer(pod, containerName, portName)
 	if err != nil {
-		ctx.Log().Errorf("Failed to find HTTP port of Elasticsearch container during post-upgrade: %v", err)
-		return err
+		return ctx.Log().ErrorfRetFmt("Failed to find HTTP port of Elasticsearch container during post-upgrade: %v", err)
 	}
 	if httpPort <= 0 {
-		err := fmt.Errorf("no port found")
-		ctx.Log().Errorf("Failed to find Elasticsearch port during post-upgrade: %v", err)
-		return err
+		return ctx.Log().ErrorfRetFmt("Failed to find Elasticsearch port during post-upgrade: %v", err)
 	}
 
 	// Set the the number of replicas for the Verrazzano indices
@@ -650,8 +641,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		fmt.Sprintf("curl -v -XGET -s -k --fail http://localhost:%d/_cluster/health", httpPort))
 	output, err := getCmd.Output()
 	if err != nil {
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch cluster health: %s", err)
-		return err
+		return ctx.Log().ErrorfRetFmt("Failed in Elasticsearch post upgrade: error getting the Elasticsearch cluster health: %v", err)
 	}
 	ctx.Log().Debugf("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %s", string(output))
 	// If the data node count is seen as 1 then the node is considered as single node cluster
@@ -661,8 +651,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 			fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
 		_, err = putCmd.Output()
 		if err != nil {
-			ctx.Log().Errorf("Elasticsearch Post Upgrade: Error logging into Elasticsearch: %s", err)
-			return err
+			return ctx.Log().ErrorfRetFmt("Failed in Elasticsearch post-upgrade: Error logging into Elasticsearch: %v", err)
 		}
 		ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
 	}
@@ -680,7 +669,7 @@ func getNamedContainerPortOfContainer(pod corev1.Pod, containerName string, port
 			}
 		}
 	}
-	return -1, fmt.Errorf("no port named %s found in container %s of pod %s", portName, containerName, pod.Name)
+	return -1, fmt.Errorf("Failed, no port named %s found in container %s of pod %s", portName, containerName, pod.Name)
 }
 
 func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
