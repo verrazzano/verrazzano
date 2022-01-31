@@ -13,7 +13,7 @@
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 RELEASE_SCRIPT_DIR=${SCRIPT_DIR}/../../release/scripts
 
-if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ]; then
+if [ -z "$JENKINS_URL" ] || [ -z "$WORKSPACE" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OCI_OS_BUCKET" ] || [ -z "$OCI_SCAN_BUCKET" ] || [ -z "$CLEAN_BRANCH_NAME" ]; then
   echo "This script must only be called from Jenkins and requires a number of environment variables are set"
   exit 1
 fi
@@ -50,16 +50,16 @@ function publish_results() {
     zip -r ${WORKSPACE}/${resultName}-details.zip ${resultsDir}
 
     # Push latest
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${BASE_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
 
     # Push to job specific location
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
-    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/verrazzano-bom.json --file ${bomFile}
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated-report.out --file ${resultsDir}/consolidated-report.out
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/consolidated.csv --file ${resultsDir}/consolidated.csv
+    OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_SCAN_BUCKET} --name ${JOB_OBJ_PATH}/${resultName}/details.zip --file ${WORKSPACE}/${resultName}-details.zip
 }
 
 
