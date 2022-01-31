@@ -341,7 +341,7 @@ pipeline {
             when {
                allOf {
                    not { buildingTag() }
-                   expression {PERFORM_SCAN == true}
+                   expression {params.PERFORM_SCAN == true}
                }
             }
             steps {
