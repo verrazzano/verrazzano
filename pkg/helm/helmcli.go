@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Debug is set from a platform-operator arg and sets the helm --debug flag
 var Debug bool
 
 // cmdRunner needed for unit tests
