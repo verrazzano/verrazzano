@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"time"
 
+	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -36,6 +39,17 @@ func preInstall(compContext spi.ComponentContext) error {
 	if compContext.IsDryRun() {
 		compContext.Log().Debug("cert-manager PreInstall dry run")
 		return nil
+	}
+
+	compContext.Log().Debug("Creating namespace %s namespace if necessary", externalDNSNamespace)
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: externalDNSNamespace}}
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
+		return nil
+	}); err != nil {
+		return ctrlerrrors.RetryableError{
+			Source: compContext.GetComponent(),
+			Cause:  fmt.Errorf("Failed to create or update the cert-manager namespace: %v", err),
+		}
 	}
 
 	// Get OCI DNS secret from the verrazzano-install namespace
