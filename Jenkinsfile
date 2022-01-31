@@ -836,43 +836,46 @@ def trimIfGithubNoreplyUser(userIn) {
 
 def getSuspectList(commitList, userMappings) {
     def retValue = ""
+    def suspectList = []
     if (commitList == null || commitList.size() == 0) {
         echo "No commits to form suspect list"
-        return retValue
-    }
-    def suspectList = []
-    for (int i = 0; i < commitList.size(); i++) {
-        def id = commitList[i]
-        try {
-            def gitAuthor = sh(
-                script: "git log --format='%ae' '$id^!'",
-                returnStdout: true
-            ).trim()
-            if (gitAuthor != null) {
-                def author = trimIfGithubNoreplyUser(gitAuthor)
-                echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
-                if (userMappings.containsKey(author)) {
-                    def slackUser = userMappings.get(author)
-                    if (!suspectList.contains(slackUser)) {
-                        echo "Added ${slackUser} as suspect"
-                        retValue += " ${slackUser}"
-                        suspectList.add(slackUser)
+    } else {
+        for (int i = 0; i < commitList.size(); i++) {
+            def id = commitList[i]
+            try {
+                def gitAuthor = sh(
+                    script: "git log --format='%ae' '$id^!'",
+                    returnStdout: true
+                ).trim()
+                if (gitAuthor != null) {
+                    def author = trimIfGithubNoreplyUser(gitAuthor)
+                    echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                    if (userMappings.containsKey(author)) {
+                        def slackUser = userMappings.get(author)
+                        if (!suspectList.contains(slackUser)) {
+                            echo "Added ${slackUser} as suspect"
+                            retValue += " ${slackUser}"
+                            suspectList.add(slackUser)
+                        }
+                    } else {
+                        // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                        if (!suspectList.contains(author)) {
+                            echo "Added ${author} as suspect"
+                            retValue += " ${author}"
+                            suspectList.add(author)
+                        }
                     }
                 } else {
-                    // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                    if (!suspectList.contains(author)) {
-                        echo "Added ${author} as suspect"
-                        retValue += " ${author}"
-                       suspectList.add(author)
-                    }
+                    echo "No author returned from git"
                 }
-            } else {
-                echo "No author returned from git"
+            } catch (Exception e) {
+                echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
             }
-        } catch (Exception e) {
-            echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
         }
     }
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+
     def startedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
     if (startedyUser != null) {
         echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
@@ -893,6 +896,8 @@ def getSuspectList(commitList, userMappings) {
                suspectList.add(author)
             }
         }
+    } else {
+        echo "Build not started by a user, not adding to notification list"
     }
     echo "returning suspect list: ${retValue}"
     return retValue
