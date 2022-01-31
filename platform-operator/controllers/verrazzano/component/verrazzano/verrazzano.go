@@ -17,7 +17,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -86,7 +85,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	//   way we implement Helm calls, but don't depend on that
 	vzkvs, err := appendCustomImageOverrides(kvs)
 	if err != nil {
-		return kvs, err
+		return kvs, ctx.Log().ErrorfRetFmt("Failed to append custom image overrides: %v", err)
 	}
 
 	effectiveCR := ctx.EffectiveCR()
@@ -101,7 +100,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 
 	// Append the simple overrides
 	if err := appendVerrazzanoValues(ctx, &overrides); err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return kvs, ctx.Log().ErrorfRetFmt("Failed appending Verrazzano values: %v", err)
 	}
 	// Append any VMI overrides to the override values object, and any installArgs overrides to the kvs list
 	vzkvs = appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, vzkvs)
@@ -110,7 +109,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	appendFluentdOverrides(effectiveCR, &overrides)
 	// append the security role overrides
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return kvs, ctx.Log().ErrorfRetFmt("Failed appending Verrazzano security overrides: %v", err)
 	}
 
 	// Append any installArgs overrides to the kvs list
@@ -119,7 +118,7 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return kvs, ctx.Log().ErrorfRetFmt("Failed generating Verrazzano overrides file: %v", err)
 	}
 
 	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
@@ -131,12 +130,12 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return kvs, err
 	}
 
 	imageOverrides, err := bomFile.BuildImageOverrides("monitoring-init-images")
 	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return kvs, err
 	}
 
 	kvs = append(kvs, imageOverrides...)
@@ -173,10 +172,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
-		return ctrlerrors.RetryableError{
-			Source: ComponentName,
-			Cause:  err,
-		}
+		return ctx.Log().ErrorfRetFmt("Failed getting DNS suffix: %v", err)
 	}
 
 	if externalDNSEnabled := vzconfig.IsExternalDNSEnabled(effectiveCR); externalDNSEnabled {
@@ -461,7 +457,7 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return err
 	}
 	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctx.Log().ErrorfRetFmt("Failed checking for image pull secret: %v", err)
 	}
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
 		return err
@@ -469,26 +465,26 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if isVMOEnabled(ctx.EffectiveCR()) {
 		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
 		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
-			return err
+			return ctx.Log().ErrorfRetFmt("Failed creating Verrazzano Monitoring namespace: %v", err)
 		}
 		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
-			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			return ctx.Log().ErrorfRetFmt("Failed checking for image pull secret: %v", err)
 		}
 	}
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
-			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			return ctx.Log().ErrorfRetFmt("Failed creating Keycloak namespace: %v", err)
 		}
 	}
 	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
 			true, false); err != nil {
-			return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			return ctx.Log().ErrorfRetFmt("Failed creating Rancher operator system namespace %s: %v", globalconst.RancherOperatorSystemNamespace, err)
 		}
 	}
 	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
 	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctx.Log().ErrorfRetFmt("Failed creating Rancher namespace: %v", err)
 	}
 	return nil
 }
@@ -560,10 +556,7 @@ func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) erro
 	vzLog.Debugf("Copy %s secret result: %s", logMsg, opResult)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			return ctrlerrors.RetryableError{
-				Source: ComponentName,
-				Cause:  err,
-			}
+			return ctx.Log().ErrorfRetFmt("Failed in create/update for copysecret: %v", err)
 		}
 		return vzLog.ErrorfRetFmt("Failed, the %s secret %s not found in namespace %s", logMsg, secretName, constants.VerrazzanoInstallNamespace)
 	}
