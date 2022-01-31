@@ -229,6 +229,11 @@ pipeline {
                         runGinkgo('examples/todo')
                     }
                 }
+                stage('examples bobs') {
+                    steps {
+                        runGinkgo('examples/bobsbooks')
+                    }
+                }
             }
             post {
                 always {
