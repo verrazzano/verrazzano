@@ -12,11 +12,9 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/client-go/discovery"
 )
 
 const (
@@ -31,6 +29,7 @@ const (
 	CommitHash        = "commit_hash"
 	KubernetesVersion = "kubernetes_version"
 	TestEnv           = "test_env"
+	Label             = "label"
 
 	MetricsIndex     = "metrics"
 	TestLogIndex     = "testlogs"
@@ -98,42 +97,10 @@ func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
 	return configureLoggerWithJenkinsEnv(sugaredLogger), nil
 }
 
-func getKubernetesVersion() (string, error) {
-
-	var kubeVersion string
-	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		logger.Errorf("error getting kubeconfig path:  %v", err)
-		return kubeVersion, err
-	}
-	kubeConfig, err := k8sutil.GetKubeConfigGivenPath(kubeConfigPath)
-
-	if err != nil {
-		logger.Errorf("error getting kubeconfig:  %v", err)
-		return kubeVersion, err
-	}
-
-	discover, err := discovery.NewDiscoveryClientForConfig(kubeConfig)
-	if err != nil {
-		logger.Errorf("error getting discovery client:  %v", err)
-		return kubeVersion, err
-	}
-
-	version, err := discover.ServerVersion()
-	if err != nil {
-		logger.Errorf("error getting ServerVersion info:  %v", err)
-		return kubeVersion, err
-	}
-	kubeVersion = version.Major + "." + version.Minor
-
-	return kubeVersion, nil
-}
-
 func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 
-	kubernetesVersion, err := getKubernetesVersion()
-
-	if err == nil {
+	kubernetesVersion := os.Getenv("K8S_VERSION_LABEL")
+	if kubernetesVersion != "" {
 		log = log.With(KubernetesVersion, kubernetesVersion)
 	}
 
@@ -195,9 +162,11 @@ func Emit(log *zap.SugaredLogger) {
 		log = log.With(Status, spec.State)
 	}
 	t := spec.FullText()
+	l := spec.Labels()
 
 	log.With(attempts, spec.NumAttempts).
 		With(test, t).
+		With(Label, l).
 		Info()
 }
 

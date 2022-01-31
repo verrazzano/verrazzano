@@ -14,12 +14,12 @@ import (
 )
 
 // IngressesPresent Check that the named ingresses are present in the cluster
-func IngressesPresent(log vzlog.VerrazzanoLogger, client clipkg.Client, ingressNames []types.NamespacedName) bool {
+func IngressesPresent(log vzlog.VerrazzanoLogger, client clipkg.Client, ingressNames []types.NamespacedName, prefix string) bool {
 	for _, ingName := range ingressNames {
 		ing := v1.Ingress{}
 		if err := client.Get(context.TODO(), ingName, &ing); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("Waiting for ingress %v to exist", ingressNames)
+				log.Progressf("%s is waiting for ingress %v to exist", prefix, ingressNames)
 				// Ingress not found
 				return false
 			}

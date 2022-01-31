@@ -15,12 +15,30 @@ package vzlog
 // is logged, that old message will never be displayed again.  This allows controllers to log
 // informative progress messages, without overwhelming the log files with superfluous information.
 //
-// This logger is initialized with the zap.SugaredLogger and then used instead of the zap logger directly.
+// The 'Once' and 'Progress' logging is done in the context of a reconcile session for a resource change.
+// This means if you change resource foo, and the controller reconciler is called 100 times, A call to log.Once will
+// log the message once.  When the resource foo is finally reconciled (return ctrl.Result{}, nil to controller runtime),
+// then we delete the logging context. So, if you changed the resource foo an hour later,
+// and the same code path is executed, then the message will be displayed once, for the new reconcile session.
+//
+// The main purpose of this package is to provide logging during Kubernetes resource reconcilation.  For that
+// use case, use the EnsureResourceLogger method as follows.  See the function descrition for more details.
+//
+//   	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+//		Name:           vz.Name,
+//		Namespace:      vz.Namespace,
+//		ID:             string(vz.UID),
+//		Generation:     vz.Generation,
+//		ControllerName: "verrazzano",
+//	})
+//
+// For other use cases, you can call the lower level functions to explicitly create a LogContext and VerrazzanoLogger
+// as described here. The logger is initialized with the zap.SugaredLogger and then used instead of the zap logger directly.
 // The same SugaredLogger calls can be made: Debug, Debugf, Info, Infof, Error, and Errorf.  The
 // two new calls are Progress and Progressf. The S() method will return the underlying SugaredLogger.
 // The following psuedo-code shows how this should be used:
 //
-//   log := vzlog.EnsureLogContext(key).EnsureLogger("default", zaplog, zaplog)
+//   log := vzlog.EnsureContext(key).EnsureLogger("default", zaplog, zaplog)
 //
 // Display info and errors as usual
 //   p.Errorf(...)
@@ -30,11 +48,11 @@ package vzlog
 //   p.Progress("Reconciling namespace/resource")
 //
 // Display Keycloak progress
-//   cl := l.GetContext().EnsureLogger("Keycloak")
+//   cl := l.EnsureContext().EnsureLogger("Keycloak")
 //   cl.Progress("Waiting for Verrazzano secret")
 //   cl.Errorf(...)
 //
 // Display Istio progress
-//   cl := l.GetContext().EnsureLogger("Istio")
+//   cl := l.EnsureContext().EnsureLogger("Istio")
 //   cl.Progress("Waiting for Istio to start")
 //   cl.Errorf(...)

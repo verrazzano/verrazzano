@@ -6,10 +6,11 @@ package keycloak
 import (
 	"errors"
 	"fmt"
-	networkv1 "k8s.io/api/networking/v1"
 	"os"
 	"os/exec"
 	"testing"
+
+	networkv1 "k8s.io/api/networking/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
@@ -356,14 +357,14 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
 			"",
 			true,
-			"Error retrieving User Group ID from Keycloak",
+			"Component Keycloak failed; user group ID from Keycloak is zero length",
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
 			"",
 			true,
-			"Error parsing output returned from Users Group",
+			"failed parsing output returned from Users Group",
 		},
 		{
 			"should fail when Verrazzano secret is not present",
@@ -385,7 +386,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			}),
 			"blahblah'id",
 			true,
-			"getSecretPassword: Error retrieving secret verrazzano password",
+			"password field empty in secret",
 		},
 		{
 			"should fail when nginx service is not present",

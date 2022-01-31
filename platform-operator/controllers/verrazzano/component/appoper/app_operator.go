@@ -5,10 +5,11 @@ package appoper
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -83,7 +84,8 @@ func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace
 	deployments := []types.NamespacedName{
 		{Name: "verrazzano-application-operator", Namespace: namespace},
 	}
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {
