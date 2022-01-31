@@ -873,6 +873,27 @@ def getSuspectList(commitList, userMappings) {
             echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
         }
     }
+    def startedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
+    if (startedyUser != null) {
+        echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
+        def author = trimIfGithubNoreplyUser(startedByUser)
+        echo "DEBUG: author: ${startedByUser}, ${author}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
+            }
+        } else {
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+               echo "Added ${author} as suspect"
+               retValue += " ${author}"
+               suspectList.add(author)
+            }
+        }
+    }
     echo "returning suspect list: ${retValue}"
     return retValue
 }
