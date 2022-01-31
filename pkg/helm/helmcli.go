@@ -169,7 +169,7 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		// mask sensitive data before logging
 		cmdStr := maskSensitiveData(cmd.String())
-		if 1 == 1 {
+		if i == 1 {
 			log.Progressf("Running Helm command %s for release %s", cmdStr, releaseName)
 		} else {
 			log.Progressf("Re-running Helm command for release %s", releaseName)

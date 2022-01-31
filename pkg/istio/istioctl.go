@@ -107,7 +107,7 @@ func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, er
 // The operationName field is just used for visibility of operation in logging at the moment
 func runIstioctl(log vzlog.VerrazzanoLogger, cmdArgs []string, operationName string) (stdout []byte, stderr []byte, err error) {
 	cmd := exec.Command("istioctl", cmdArgs...)
-	log.Infof("Running istioctl command")
+	log.Info("Running istioctl command")
 
 	stdout, stderr, err = runner.Run(cmd)
 	if err != nil {

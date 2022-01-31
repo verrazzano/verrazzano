@@ -54,7 +54,7 @@ func ShouldLog(err error) bool {
 	if err == nil {
 		return false
 	}
-	if IsUpdateConflict(err) || strings.Contains(err.Error(), "failed calling webhook") {
+	if IsUpdateConflict(err) {
 		return false
 	}
 	return true
