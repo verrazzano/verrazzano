@@ -873,11 +873,19 @@ def getSuspectList(commitList, userMappings) {
             }
         }
     }
+    def startedByUser = "";
     def causes = currentBuild.getBuildCauses()
     echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
 
-    def startedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
-    if (startedyUser != null) {
+    if (startedByUser.length() > 0) {
         echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
         def author = trimIfGithubNoreplyUser(startedByUser)
         echo "DEBUG: author: ${startedByUser}, ${author}"
