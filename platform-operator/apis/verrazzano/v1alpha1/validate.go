@@ -5,9 +5,16 @@ package v1alpha1
 
 import (
 	"context"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"io/fs"
+	"os"
 	"reflect"
+	"strings"
+
+	"github.com/oracle/oci-go-sdk/v53/common"
 
 	"sigs.k8s.io/yaml"
 
@@ -35,20 +42,36 @@ const (
 	InstancePrincipalDelegationToken authenticationType = "instance_principle_delegation_token"
 	// UnknownAuthenticationType is used for none meaningful auth type
 	UnknownAuthenticationType authenticationType = "unknown_auth_type"
-	ociSecretFileName                            = "oci.yaml"
+
+	ociDNSSecretFileName            = "oci.yaml"
+	fluentdOCISecretConfigEntry     = "config"
+	fluentdOCISecretPrivateKeyEntry = "key"
+	fluentdExpectedKeyPath          = "/root/.oci/key"
+	fluentdOCIKeyFileEntry          = "key_file=/root/.oci/key"
+	expectedKeyHeader               = "RSA PRIVATE KEY"
+	validateTempFilePattern         = "validate-"
 )
 
-// OCI Secret Auth
+// OCI DNS Secret Auth
 type authData struct {
-	Region      string             `yaml:"region"`
-	Tenancy     string             `yaml:"tenancy"`
-	User        string             `yaml:"user"`
-	Key         string             `yaml:"key"`
-	Fingerprint string             `yaml:"fingerprint"`
-	AuthType    authenticationType `yaml:"authtype"`
+	Region      string             `json:"region"`
+	Tenancy     string             `json:"tenancy"`
+	User        string             `json:"user"`
+	Key         string             `json:"key"`
+	Fingerprint string             `json:"fingerprint"`
+	AuthType    authenticationType `json:"authtype"`
 }
+
+// OCI DNS Secret Auth Wrapper
 type ociAuth struct {
-	auth authData `yaml:"auth"`
+	Auth authData `json:"auth"`
+}
+
+func cleanTempFiles(log *zap.SugaredLogger) error {
+	if err := vzos.RemoveTempFiles(log, validateTempFilePattern); err != nil {
+		return fmt.Errorf("Error cleaning temp files: %s", err.Error())
+	}
+	return nil
 }
 
 // GetCurrentBomVersion Get the version string from the bom and return it as a semver object
@@ -95,7 +118,7 @@ func ValidateProfile(requestedProfile ProfileType) error {
 		case Prod, Dev, ManagedCluster:
 			return nil
 		default:
-			return fmt.Errorf("Requested profile %s is invalid.  Valid options are dev, prod, or managed-cluster",
+			return fmt.Errorf("Requested profile %s is invalid, valid options are dev, prod, or managed-cluster",
 				requestedProfile)
 		}
 	}
@@ -181,30 +204,174 @@ func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
 	return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
 }
 
-// ValidateOciDNSSecret makes sure that the OCI DNS secret required by install exists
-func ValidateOciDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
-	if spec.Components.DNS != nil && spec.Components.DNS.OCI != nil {
-		secret := &corev1.Secret{}
-		err := client.Get(context.TODO(), types.NamespacedName{Name: spec.Components.DNS.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, secret)
-		if err != nil {
-			if k8serrors.IsNotFound(err) {
-				return fmt.Errorf("The secret \"%s\" must be created in the %s namespace before installing Verrrazzano for OCI DNS", spec.Components.DNS.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace)
-			}
-			return err
-		}
+// validateOCISecrets - Validate that the OCI DNS and Fluentd OCI secrets required by install exists, if configured
+func validateOCISecrets(client client.Client, spec *VerrazzanoSpec) error {
+	if err := validateOCIDNSSecret(client, spec); err != nil {
+		return err
+	}
+	if err := validateFluentdOCIAuthSecret(client, spec); err != nil {
+		return err
+	}
+	return nil
+}
 
-		// validate auth_type
-		var authProp ociAuth
-		err = yaml.Unmarshal(secret.Data[ociSecretFileName], &authProp)
-		if err != nil {
-			zap.S().Errorf("yaml unmarshalling failed due to %v", err)
+func validateFluentdOCIAuthSecret(client client.Client, spec *VerrazzanoSpec) error {
+	if spec.Components.Fluentd == nil || spec.Components.Fluentd.OCI == nil {
+		return nil
+	}
+	apiSecretName := spec.Components.Fluentd.OCI.APISecret
+	if len(apiSecretName) > 0 {
+		secret := &corev1.Secret{}
+		if err := getInstallSecret(client, apiSecretName, secret); err != nil {
 			return err
 		}
-		if authProp.auth.AuthType != instancePrincipal && authProp.auth.AuthType != userPrincipal && authProp.auth.AuthType != "" {
-			return fmt.Errorf("The authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.auth.AuthType, userPrincipal, instancePrincipal)
+		// validate config secret
+		if err := validateFluentdConfigData(secret); err != nil {
+			return err
+		}
+		// Validate key data exists and is a valid pem format
+		pemData, err := validateSecretKey(secret, fluentdOCISecretPrivateKeyEntry, nil)
+		if err != nil {
+			return err
+		}
+		if err := validatePrivateKey(secret.Name, pemData); err != nil {
+			return err
 		}
 	}
+	return nil
+}
 
+//validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
+func validateFluentdConfigData(secret *corev1.Secret) error {
+	secretName := secret.Name
+	configData, ok := secret.Data[fluentdOCISecretConfigEntry]
+	if !ok {
+		return fmt.Errorf("Did not find OCI configuration in secret \"%s\"", secretName)
+	}
+	// Write the OCI config in the secret to a temp file and use the OCI SDK
+	// ConfigurationProvider API to validate its contents
+	configTemp, err := os.CreateTemp(os.TempDir(), validateTempFilePattern)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		os.Remove(configTemp.Name())
+	}()
+	const ociConfigErrorFormatString = "%s not specified in Fluentd OCI config secret \"%s\""
+	if err := os.WriteFile(configTemp.Name(), configData, fs.ModeAppend); err != nil {
+		return err
+	}
+	provider, err := common.ConfigurationProviderFromFile(configTemp.Name(), "")
+	if err != nil {
+		return err
+	}
+	userOCID, err := provider.UserOCID()
+	if err != nil {
+		return err
+	}
+	if len(userOCID) == 0 {
+		return fmt.Errorf(ociConfigErrorFormatString, "User OCID", secretName)
+	}
+	tenancyOCID, err := provider.TenancyOCID()
+	if err != nil {
+		return err
+	}
+	if len(tenancyOCID) == 0 {
+		return fmt.Errorf(ociConfigErrorFormatString, "Tenancy OCID", secretName)
+	}
+	fingerprint, err := provider.KeyFingerprint()
+	if err != nil {
+		return err
+	}
+	if len(fingerprint) == 0 {
+		return fmt.Errorf(ociConfigErrorFormatString, "Fingerprint", secretName)
+	}
+	region, err := provider.Region()
+	if err != nil {
+		return err
+	}
+	if len(region) == 0 {
+		return fmt.Errorf(ociConfigErrorFormatString, "Region", secretName)
+	}
+	if !strings.Contains(string(configData), fluentdOCIKeyFileEntry) {
+		return fmt.Errorf("Unexpected or missing value for the Fluentd OCI key file location in secret \"%s\", should be \"%s\"",
+			secretName, fluentdExpectedKeyPath)
+	}
+	return nil
+}
+
+func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
+	if spec.Components.DNS == nil || spec.Components.DNS.OCI == nil {
+		return nil
+	}
+	secret := &corev1.Secret{}
+	ociDNSConfigSecret := spec.Components.DNS.OCI.OCIConfigSecret
+	if err := getInstallSecret(client, ociDNSConfigSecret, secret); err != nil {
+		return err
+	}
+	// Verify that the oci secret has one value
+	if len(secret.Data) != 1 {
+		return fmt.Errorf("Secret \"%s\" for OCI DNS should have one data key, found %v", ociDNSConfigSecret, len(secret.Data))
+	}
+	for key := range secret.Data {
+		// validate auth_type
+		var authProp ociAuth
+		if err := validateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
+			return err
+		}
+		if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
+			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, userPrincipal, instancePrincipal)
+		}
+		if authProp.Auth.AuthType == userPrincipal {
+			if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func getInstallSecret(client client.Client, secretName string, secret *corev1.Secret) error {
+	err := client.Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: constants.VerrazzanoInstallNamespace}, secret)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return fmt.Errorf("Secret \"%s\" must be created in the \"%s\" namespace before installing Verrrazzano", secretName, constants.VerrazzanoInstallNamespace)
+		}
+		return err
+	}
+	return nil
+}
+
+func validatePrivateKey(secretName string, pemData []byte) error {
+	block, _ := pem.Decode(pemData)
+	if block == nil || !strings.Contains(block.Type, expectedKeyHeader) {
+		return fmt.Errorf("Private key in secret \"%s\" is either empty or not a valid key in PEM format", secretName)
+	}
+	return nil
+}
+
+func validateSecretKey(secret *corev1.Secret, dataKey string, target interface{}) ([]byte, error) {
+	var secretBytes []byte
+	var ok bool
+	if secretBytes, ok = secret.Data[dataKey]; !ok {
+		return nil, fmt.Errorf("Expected entry \"%s\" not found in secret \"%s\"", dataKey, secret.Name)
+	}
+	if target == nil {
+		return secretBytes, nil
+	}
+	if err := validateSecretContents(secret.Name, secretBytes, target); err != nil {
+		return secretBytes, nil
+	}
+	return secretBytes, nil
+}
+
+func validateSecretContents(secretName string, bytes []byte, target interface{}) error {
+	if len(bytes) == 0 {
+		return fmt.Errorf("Secret \"%s\" data is empty", secretName)
+	}
+	if err := yaml.Unmarshal(bytes, &target); err != nil {
+		return err
+	}
 	return nil
 }
 
