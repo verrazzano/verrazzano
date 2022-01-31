@@ -454,8 +454,7 @@ data:
       @id out_elasticsearch
       @log_level info
       log_es_400_reason true
-      logstash_format true
-      logstash_prefix verrazzano-namespace-verrazzano-system
+      include_timestamp true
       target_index_key target_index
       include_tag_key true
 
