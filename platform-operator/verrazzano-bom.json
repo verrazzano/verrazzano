@@ -196,7 +196,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.2.0-20211216213535-ce59978",
+              "tag": "1.2.0-20220126160853-d83b41e",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -212,7 +212,7 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.21.0-1",
+              "tag": "v2.31.1",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
