@@ -97,7 +97,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller", err)
 	}
 
-	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
+	log.Oncef("Reconciling Verrazzano resource %v, generation %v", req.NamespacedName, vz.Generation)
 	res, err := r.doReconcile(req, log, vz)
 	if shouldRequeue(res) {
 		return res, nil
