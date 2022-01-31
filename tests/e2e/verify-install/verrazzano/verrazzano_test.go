@@ -386,31 +386,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				// Get the deployment
-				var deployment *appsv1.Deployment
-				Eventually(func() (*appsv1.Deployment, error) {
-					var err error
-					deployment, err = pkg.GetDeployment(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
-					return deployment, err
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
-				var expectedPods = deployment.Spec.Replicas
-				var pods []corev1.Pod
-				Eventually(func() bool {
-					var err error
-					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-authproxy"}}, constants.VerrazzanoSystemNamespace)
-					if err != nil {
-						return false
-					}
-					// Compare the number of running pods to the expected number
-					var runningPods int32 = 0
-					for _, pod := range pods {
-						if pod.Status.Phase == corev1.PodRunning {
-							runningPods++
-						}
-					}
-					return runningPods == *expectedPods
-				}, waitTimeout, pollingInterval).Should(BeTrue())
+				validateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
 			} else {
 				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -439,4 +415,108 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			}
 		})
 	})
+
+	t.Describe("istio-ingressgateway", Label("f:platform-lcm.install"), func() {
+		t.It("has expected deployment", func() {
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-ingressgateway")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has correct number of pods running", func() {
+			if isMinVersion110 {
+				validateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has affinity configured as expected", func() {
+			if isMinVersion120 {
+				validateIstioGatewayAffinity("istio-ingressgateway", constants.IstioSystemNamespace)
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+			}
+		})
+	})
+
+	t.Describe("istio-egressgateway", Label("f:platform-lcm.install"), func() {
+		t.It("has expected deployment", func() {
+			if isMinVersion110 {
+				Eventually(func() (bool, error) {
+					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-egressgateway")
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has correct number of pods running", func() {
+			if isMinVersion110 {
+				validateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+			}
+		})
+
+		t.It("has affinity configured as expected", func() {
+			if isMinVersion120 {
+				validateIstioGatewayAffinity("istio-egressgateway", constants.IstioSystemNamespace)
+			} else {
+				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+			}
+		})
+	})
 })
+
+func validateIstioGatewayAffinity(gwName string, gwNamespace string) error {
+	var pods []corev1.Pod
+	Eventually(func() error {
+		var err error
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": gwName}}, gwNamespace)
+		return err
+	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+
+	// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
+	for _, pod := range pods {
+		affinity := pod.Spec.Affinity
+		Expect(affinity.PodAffinity).To(BeNil())
+		Expect(affinity.NodeAffinity).ToNot(BeNil())
+		Expect(affinity.PodAntiAffinity).ToNot(BeNil())
+		Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
+	}
+	return nil
+}
+
+func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) error {
+	// Get the deployment
+	var deployment *appsv1.Deployment
+	Eventually(func() (*appsv1.Deployment, error) {
+		var err error
+		deployment, err = pkg.GetDeployment(nameSpace, deployName)
+		return deployment, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	var expectedPods = deployment.Spec.Replicas
+	var pods []corev1.Pod
+	Eventually(func() bool {
+		var err error
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
+		if err != nil {
+			return false
+		}
+		// Compare the number of running pods to the expected number
+		var runningPods int32 = 0
+		for _, pod := range pods {
+			if pod.Status.Phase == corev1.PodRunning {
+				runningPods++
+			}
+		}
+		return runningPods == *expectedPods
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+	return nil
+}

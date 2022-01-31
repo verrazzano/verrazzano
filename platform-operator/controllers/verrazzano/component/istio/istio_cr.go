@@ -45,7 +45,7 @@ spec:
         enabled: true
         k8s:
           replicaCount: {{.EgressReplicaCount}}
-		  {{- if .NodeAffinity }}
+          {{- if .NodeAffinity }}
           affinity:
             podAntiAffinity:
               preferredDuringSchedulingIgnoredDuringExecution:
@@ -64,12 +64,12 @@ spec:
       enabled: true
       k8s:
         replicaCount: {{.IngressReplicaCount}}
-		{{- if .ExternalIps }}
+        {{- if .ExternalIps }}
         service:
           externalIPs:
             {{.ExternalIps}}
         {{end}}
-		{{- if .NodeAffinity }}
+        {{- if .NodeAffinity }}
         affinity:
           podAntiAffinity:
             preferredDuringSchedulingIgnoredDuringExecution:
