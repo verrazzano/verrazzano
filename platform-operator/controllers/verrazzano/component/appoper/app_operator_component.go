@@ -4,12 +4,12 @@ package appoper
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -63,14 +63,14 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 			// Delete the ClusterRoleBinding
 			err = ctx.Client().Delete(clientCtx, &clusterRoleBinding)
 			if err != nil {
-				errorList = append(errorList, fmt.Sprintf("failed to delete ClusterRoleBinding %s, error: %s", vmc.Name, err.Error()))
+				errorList = append(errorList, fmt.Sprintf("Failed to delete ClusterRoleBinding %s, error: %v", vmc.Name, err.Error()))
 			} else {
 				ctx.Log().Debugf("Deleted ClusterRoleBinding %s", clusterRoleBinding.Name)
 			}
 		}
 	}
 	if len(errorList) > 0 {
-		return errors.New(strings.Join(errorList, "\n"))
+		return ctx.Log().ErrorfNewErr(strings.Join(errorList, ";"))
 	}
 	return nil
 

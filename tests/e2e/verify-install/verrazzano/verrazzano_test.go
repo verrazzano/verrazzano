@@ -429,6 +429,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 				// Check the affinity configuration. Verify only a pod anti-affinity definition exists.
 				for _, pod := range pods {
 					affinity := pod.Spec.Affinity
+					Expect(affinity).ToNot(BeNil())
 					Expect(affinity.PodAffinity).To(BeNil())
 					Expect(affinity.NodeAffinity).To(BeNil())
 					Expect(affinity.PodAntiAffinity).ToNot(BeNil())

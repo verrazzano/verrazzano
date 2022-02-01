@@ -250,6 +250,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	if err := rest.PutServerURL(); err != nil {
+		ctx.Log().Error(err)
 		return err
 	}
 
