@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -138,7 +138,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret() (string, string,
 	vzList := vzapi.VerrazzanoList{}
 	err := r.List(context.TODO(), &vzList, &client.ListOptions{})
 	if err != nil {
-		r.log.Error(err, "Can not list Verrazzano CR")
+		r.log.Errorf("Failed to list Verrazzano CR: %v", err)
 		return url, secret, err
 	}
 	// what to do when there is more than one Verrazzano CR
