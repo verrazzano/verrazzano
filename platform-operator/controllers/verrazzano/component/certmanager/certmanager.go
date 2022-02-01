@@ -215,7 +215,7 @@ func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) er
 	}
 
 	// Apply the CRD Manifest for CertManager
-	if err = k8sutil.NewYAMLApplier(compContext.Client()).ApplyF(outputFile); err != nil {
+	if err = k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(outputFile); err != nil {
 		return err
 	}
 
