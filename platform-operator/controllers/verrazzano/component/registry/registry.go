@@ -48,6 +48,7 @@ func GetComponents() []spi.Component {
 func getComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
 		componentsRegistry = []spi.Component{
+			istio.NewComponent(),
 			nginx.NewComponent(),
 			certmanager.NewComponent(),
 			externaldns.NewComponent(),
@@ -60,7 +61,6 @@ func getComponents() []spi.Component {
 			mysql.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),
-			istio.NewComponent(),
 		}
 	}
 	return componentsRegistry
