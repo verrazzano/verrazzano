@@ -4,8 +4,9 @@ package spi
 
 import (
 	"fmt"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
+
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 // RetryableError an error that can be used to indicate to a controller that a requeue is needed, with an optional custom result
@@ -44,4 +45,17 @@ func (r RetryableError) Error() string {
 // is out of sync with the etc database
 func IsUpdateConflict(err error) bool {
 	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
+}
+
+// ShouldLogKubenetesAPIError returns true if error should be logged.  This is used
+// when calling the Kubernetes API, so conflict and webhook
+// errors are not logged, the controller will just retry.
+func ShouldLogKubenetesAPIError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if IsUpdateConflict(err) {
+		return false
+	}
+	return true
 }

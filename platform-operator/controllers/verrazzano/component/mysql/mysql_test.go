@@ -4,9 +4,10 @@ package mysql
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"os"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -59,7 +60,7 @@ func TestAppendMySQLOverrides(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 	vz := &vzapi.Verrazzano{}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
@@ -92,7 +93,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
@@ -120,7 +121,7 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
@@ -164,7 +165,7 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 			},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
@@ -190,7 +191,7 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 			Profile: vzapi.ProfileType("prod"),
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
@@ -229,7 +230,7 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 			}},
 		},
 	}
-	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).For(ComponentName).Operation(vzconst.InstallOperation)
+	ctx := spi.NewFakeContext(nil, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.InstallOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
@@ -262,7 +263,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 			secret.Data[mySQLKey] = []byte("test-key")
 			return nil
 		})
-	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).For(ComponentName).Operation(vzconst.UpgradeOperation)
+	ctx := spi.NewFakeContext(mock, vz, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)

@@ -5,8 +5,9 @@ package spi
 // Default implementation of the ComponentContext interface
 
 import (
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
@@ -23,6 +24,7 @@ var _ ComponentContext = componentContext{}
 
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
+
 	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := getEffectiveCR(actualCR)
 	if err != nil {
@@ -53,7 +55,7 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		var err error
 		effectiveCR, err = getEffectiveCR(actualCR)
 		if err != nil {
-			log.Errorf("Unexpected error building fake context: %v", err)
+			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
 		}
 	}
@@ -150,9 +152,11 @@ func (c componentContext) Copy() ComponentContext {
 	}
 }
 
-func (c componentContext) For(compName string) ComponentContext {
+// Clone the component context, initializing the zap logger from the resource
+// logger. This makes sure that we get the
+func (c componentContext) Init(compName string) ComponentContext {
 	// Get zap logger, add "with" field for this component name
-	zapLogger := c.log.GetZapLogger().With("component", compName)
+	zapLogger := c.log.GetRootZapLogger().With("component", compName)
 	// Ensure that there is a logger for this component, inject the new zap logger
 	log := c.log.GetContext().EnsureLogger(compName, zapLogger, zapLogger)
 
@@ -171,12 +175,10 @@ func (c componentContext) For(compName string) ComponentContext {
 func (c componentContext) Operation(op string) ComponentContext {
 	// Get zap logger, add "with" field for this component operation
 	zapLogger := c.log.GetZapLogger().With("operation", op)
-	// Ensure that there is a logger for this component, inject the new zap logger
-	log := c.log.GetContext().EnsureLogger(c.component, zapLogger, zapLogger)
-
 	c.log.SetZapLogger(zapLogger)
+
 	return componentContext{
-		log:         log,
+		log:         c.log,
 		client:      c.client,
 		dryRun:      c.dryRun,
 		cr:          c.cr,

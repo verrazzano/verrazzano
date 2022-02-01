@@ -6,7 +6,7 @@ spec:
   profile: "dev"
   environmentName: default
   defaultVolumeSource:
-    emptyDir: {}
+    emptyDir: { }
   components:
     applicationOperator:
       enabled: true

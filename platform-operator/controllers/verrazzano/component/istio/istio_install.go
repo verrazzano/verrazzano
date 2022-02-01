@@ -5,11 +5,12 @@ package istio
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -123,19 +124,19 @@ func (m *installMonitorType) run(args installRoutineParams) {
 		log := args.log
 
 		result := true
-		log.Debugf("Starting istioctl install...")
+		log.Oncef("Component Istio is running istioctl")
 		stdout, stderr, err := installFunc(log, args.overrides, args.fileOverrides...)
 		log.Debugf("istioctl stdout: %s", string(stdout))
 		if err != nil {
 			result = false
-			log.Errorf("Unexpected error %s during install, stderr: %s", err.Error(), string(stderr))
+			err = log.ErrorfNewErr("Failed calling istioctl install: %v stderr: %s", err.Error(), string(stderr))
 		}
 
 		// Clean up the temp files
 		removeTempFiles(log)
 
 		// Write result
-		log.Debugf("Completed istioctl install, result: %s", result)
+		log.Oncef("Component Istio successfully ran istioctl install, result: %s", result)
 		outputCh <- result
 	}(m.inputCh, m.resultCh)
 
@@ -203,25 +204,21 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio, cr.Spec.Profile)
 		if err != nil {
-			log.Errorf("Failed to Build IstioOperator YAML: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
 
 		// Write the overrides to a tmp file
 		userFileCR, err = ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
 		if err != nil {
-			log.Errorf("Failed to create temporary file for Istio install: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
 		}
 		if _, err = userFileCR.Write([]byte(istioOperatorYaml)); err != nil {
-			log.Errorf("Failed to write to temporary file: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to write to temporary file: %v", err)
 		}
 		if err := userFileCR.Close(); err != nil {
-			log.Errorf("Failed to close temporary file: %v", err)
-			return err
+			return log.ErrorfNewErr("Failed to close temporary file: %v", err)
 		}
 		log.Debugf("Created values file from Istio install args: %s", userFileCR.Name())
 	}
@@ -306,8 +303,7 @@ func createCertSecret(compContext spi.ComponentContext) error {
 		// Secret not found - create it
 		certScript := filepath.Join(config.GetInstallDir(), "create-istio-cert.sh")
 		if _, stderr, err := bashFunc(certScript); err != nil {
-			log.Errorf("Failed creating Istio certificate secret %s: %s", err, stderr)
-			return err
+			return log.ErrorfNewErr("Failed creating Istio certificate secret %v: %s", err, stderr)
 		}
 	}
 	return nil
@@ -349,6 +345,6 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 
 func removeTempFiles(log vzlog.VerrazzanoLogger) {
 	if err := os2.RemoveTempFiles(log.GetZapLogger(), istioTmpFileCleanPattern); err != nil {
-		log.Errorf("Unexpected error removing temp files: %s", err.Error())
+		log.Errorf("Unexpected error removing temp files: %v", err.Error())
 	}
 }
