@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"os"
 	"strconv"
 	"strings"
@@ -125,12 +127,26 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanocoherenceworkloads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanocoherenceworkloads/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the coherence workload
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.With("verrazzanocoherenceworkload", req.NamespacedName)
-	log.Info("Reconciling Verrazzano Coherence workload")
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "verrazzanocoherenceworkload")
 
 	// fetch the workload and unwrap the Coherence resource
-	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
+	workload, err := r.fetchWorkload(ctx, req.NamespacedName, log)
 	if err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
@@ -271,13 +287,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // fetchWorkload fetches the VerrazzanoCoherenceWorkload data given a namespaced name
-func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedName) (*vzapi.VerrazzanoCoherenceWorkload, error) {
+func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedName, log *zap.SugaredLogger) (*vzapi.VerrazzanoCoherenceWorkload, error) {
 	var workload vzapi.VerrazzanoCoherenceWorkload
 	if err := r.Get(ctx, name, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Debugf("VerrazzanoCoherenceWorkload %s has been deleted", name.Name)
+			log.Debugf("VerrazzanoCoherenceWorkload %s has been deleted", name.Name)
 		} else {
-			r.Log.Errorf("Failed to fetch VerrazzanoCoherenceWorkload %s", name)
+			log.Errorf("Failed to fetch VerrazzanoCoherenceWorkload %s", name)
 		}
 		return nil, err
 	}

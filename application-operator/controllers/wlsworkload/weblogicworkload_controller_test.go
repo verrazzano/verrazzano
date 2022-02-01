@@ -1293,9 +1293,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Error(err)
-	assert.Equal("an error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestReconcileWorkloadNotFound tests reconciling a VerrazzanoWebLogicWorkload when the workload
@@ -1350,8 +1349,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Equal("an error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestCopyLabelsFailure tests reconciling a VerrazzanoWebLogicWorkload and we are
@@ -1387,8 +1386,8 @@ func TestCopyLabelsFailure(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.EqualError(err, "value cannot be set because .spec is not a map[string]interface{}")
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestCreateDestinationRuleCreate tests creation of a destination rule

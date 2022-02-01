@@ -67,7 +67,7 @@ func (s *Syncer) processStatusUpdates() {
 		case msg := <-s.StatusUpdateChannel:
 			err := s.performAdminStatusUpdate(msg)
 			if err != nil {
-				s.Log.Errorf("processStatusUpdates: failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %v",
+				s.Log.Errorf("Failed to update status on admin cluster for %s/%s from cluster %s after %d retries: %v",
 					msg.Resource.GetNamespace(), msg.Resource.GetName(),
 					msg.NewClusterStatus.Name, retryCount, err)
 			}

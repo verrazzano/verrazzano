@@ -6,14 +6,17 @@ package appconfig
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,9 +48,23 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // restarts applications as needed. When applications are restarted, the previous restart
 // version annotation value is updated.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the application configuration
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.With("applicationconfiguration", req.NamespacedName)
-	log.Info("Reconciling ApplicationConfiguration")
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "applicationconfiguration")
 	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
 
 	// fetch the appconfig
@@ -63,20 +80,21 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// If the application configuration no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if isAppConfigBeingDeleted(&appConfig) {
-		r.Log.Debugf("App Configuration is being deleted %s", nsn.Name)
-		if err := ingresstrait.Cleanup(nsn, r.Client, r.Log); err != nil {
-			return reconcile.Result{}, err
+		log.Debugf("Deleting application configuration %v", nsn)
+		if err := ingresstrait.Cleanup(nsn, r.Client, log); err != nil {
+			// Requeue without error to avoid higher level log message
+			return reconcile.Result{Requeue: true}, nil
 		}
 		// resource cleanup has succeeded, remove the finalizer
-		if err := r.removeFinalizerIfRequired(ctx, &appConfig); err != nil {
-			return reconcile.Result{}, err
+		if err := r.removeFinalizerIfRequired(ctx, &appConfig, log); err != nil {
+			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 		}
 		return reconcile.Result{}, nil
 	}
 
 	// add finalizer
-	if err := r.addFinalizerIfRequired(ctx, &appConfig); err != nil {
-		return reconcile.Result{}, err
+	if err := r.addFinalizerIfRequired(ctx, &appConfig, log); err != nil {
+		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
@@ -89,10 +107,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// restart all workloads in the appconfig
 	log.Debugf("Setting restart version %s for workloads in application %s", restartVersion, appConfig.Name)
 	for _, wlStatus := range appConfig.Status.Workloads {
-		err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log)
-		if err != nil {
-			log.Errorf("Error marking component %s in namespace %s with restart-version %s: %v", wlStatus.ComponentName, appConfig.Namespace, restartVersion, err)
-			return reconcile.Result{}, err
+		if err := r.restartComponent(ctx, appConfig.Namespace, wlStatus, restartVersion, log); err != nil {
+			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 		}
 	}
 	log.Debug("Successfully reconciled ApplicationConfiguration")
@@ -107,6 +123,7 @@ func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, w
 	workload.SetKind(wlStatus.Reference.Kind)
 	err := r.Client.Get(ctx, types.NamespacedName{Name: wlName, Namespace: wlNamespace}, &workload)
 	if err != nil {
+		log.Errorf("Failed getting workload component %s in namespace %s with restart-version %s: %v", wlName, wlNamespace, restartVersion, err)
 		return err
 	}
 	// Set the annotation based on the workload kind
@@ -185,30 +202,27 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 
 // removeFinalizerIfRequired removes the finalizer from the application configuration if required
 // The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
-func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log *zap.SugaredLogger) error {
 	if !appConfig.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		r.Log.Debugf("Removing finalizer from application configuration %s", appName)
+		log.Debugf("Removing finalizer from application configuration %s", appName)
 		appConfig.Finalizers = vzstring.RemoveStringFromSlice(appConfig.Finalizers, finalizerName)
-		if err := r.Update(ctx, appConfig); err != nil {
-			r.Log.Errorf("Failed to remove finalizer from application configuration %s: %v", appName, err)
-			return err
-		}
+		err := r.Update(ctx, appConfig)
+		return vzlog.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, log)
 	}
 	return nil
 }
 
 // addFinalizerIfRequired adds the finalizer to the app config if required
 // The finalizer is only added if the app config is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log *zap.SugaredLogger) error {
 	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
-		r.Log.Debugf("Adding finalizer for appConfig %s", appName)
+		log.Debugf("Adding finalizer for appConfig %s", appName)
 		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
-		if err := r.Update(ctx, appConfig); err != nil {
-			r.Log.Errorf("Failed to add finalizer to appConfig %s", appName)
-			return err
-		}
+		err := r.Update(ctx, appConfig)
+		_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, log)
+		return err
 	}
 	return nil
 }
@@ -227,11 +241,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 		}
 		return nil
 	})
-	if err != nil {
-		log.Errorf("Error updating deployment %s/%s: %v", deployment.Namespace, deployment.Name, err)
-		return err
-	}
-	return nil
+	return vzlog.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, log)
 }
 
 func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log *zap.SugaredLogger) error {
@@ -245,11 +255,7 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 		}
 		return nil
 	})
-	if err != nil {
-		log.Errorf("Error updating statefulSet %s/%s: %v", statefulSet.Namespace, statefulSet.Name, err)
-		return err
-	}
-	return nil
+	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating statefulSet %s/%s:", statefulSet.Namespace, statefulSet.Name), err, log)
 }
 
 func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log *zap.SugaredLogger) error {
@@ -263,11 +269,7 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 		}
 		return nil
 	})
-	if err != nil {
-		log.Errorf("Error updating daemonSet %s/%s: %v", daemonSet.Namespace, daemonSet.Name, err)
-		return err
-	}
-	return nil
+	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating daemonSet %s/%s:", daemonSet.Namespace, daemonSet.Name), err, log)
 }
 
 // Update the workload annotation with the restart version. This will cause the workload to be restarted if the version changed
@@ -279,7 +281,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 	_, err := controllerutil.CreateOrUpdate(ctx, client, u, func() error {
 		annotations, found, err := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
 		if err != nil {
-			log.Errorf("Error getting NestedStringMap for workload %s: %v", u.GetName(), err)
+			log.Errorf("Failed getting NestedStringMap for workload %s: %v", u.GetName(), err)
 			return err
 		}
 		if !found {
@@ -288,11 +290,12 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		err = unstructured.SetNestedStringMap(u.Object, annotations, metaAnnotationFields...)
 		if err != nil {
-			log.Errorf("Error setting NestedStringMap for workload %s: %v", u.GetName(), err)
+			log.Errorf("Failed setting NestedStringMap for workload %s: %v", u.GetName(), err)
 			return err
 		}
 		return nil
 	})
+	err = vzlog.ConflictWithLog(fmt.Sprintf("Failed to update restart version for workload %s/%s", u.GetNamespace(), u.GetName()), err, log)
 	return err
 }
 
