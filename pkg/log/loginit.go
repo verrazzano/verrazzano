@@ -23,7 +23,7 @@ func InitLogs(opts kzap.Options) {
 	} else {
 		config.Level.SetLevel(zapcore.InfoLevel)
 	}
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02T15:04:05.000Z")
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"
@@ -55,7 +55,7 @@ func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
 	config.Level.SetLevel(zapcore.InfoLevel)
 
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02T15:04:05.000Z")
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"
@@ -66,3 +66,18 @@ func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
 	l := logger.WithOptions(zap.AddCallerSkip(callerSkip))
 	return l.Sugar(), nil
 }
+
+//// ISO8601TimeEncoder serializes a time.Time to an ISO8601-formatted string
+//// with millisecond precision and Z timezone.
+//func ISO8601TimeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+//
+//
+//	enc := zapcore.TimeEncoderOfLayout("2006-01-02T15:04:05.000Z")
+//	TimeEncoder {
+//		return func(t time.Time, enc PrimitiveArrayEncoder) {
+//		encodeTimeLayout(t, layout, enc)
+//	}
+//	}
+//
+//	encodeTimeLayout(t, "2006-01-02T15:04:05.000Z", enc)
+//}
