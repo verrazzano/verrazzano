@@ -450,7 +450,7 @@ func TestDeleteAssociatedResource(t *testing.T) {
 // GIVEN a need for a requeue result
 // WHEN NewRequeueWithDelay is called
 // THEN the returned result indicates a requeue with a requeueAfter time greaater than or equal to 2 seconds
-func TestRequeueWithDelay (t *testing.T) {
+func TestRequeueWithDelay(t *testing.T) {
 	result := NewRequeueWithDelay()
 	asserts.True(t, result.Requeue)
 	asserts.GreaterOrEqual(t, result.RequeueAfter.Seconds(), time.Duration(2).Seconds())
