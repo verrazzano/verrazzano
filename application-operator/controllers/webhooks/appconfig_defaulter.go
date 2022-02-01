@@ -54,7 +54,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 	appConfig := &oamv1.ApplicationConfiguration{}
 	//This json can be used to curl -X POST the webhook endpoint
 	log.Debugw("admission.Request", "request", req)
-	log.Infow("Handling appconfig default",
+	log.Debugw("Handling appconfig default",
 		"request.Operation", req.Operation, "request.Name", req.Name)
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
