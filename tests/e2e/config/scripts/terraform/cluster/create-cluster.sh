@@ -8,9 +8,23 @@
 . ./init.sh
 
 $SCRIPT_DIR/terraform init -no-color -reconfigure
-$SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -no-color
 
 set -o pipefail
+
+# retry 3 times, 30 seconds apart
+tries=0
+MAX_TRIES=3
+while true; do
+   tries=$((tries+1))
+   echo "terraform plan iteration ${tries}"
+   $SCRIPT_DIR/terraform plan -var-file=$TF_VAR_nodepool_config.tfvars -var-file=$TF_VAR_region.tfvars -no-color && break
+   if [ "$tries" -ge "$MAX_TRIES" ];
+   then
+      echo "Terraform plan tries exceeded.  Cluster creation has failed!"
+      exit 1
+   fi
+   sleep 30
+done
 
 # retry 3 times, 30 seconds apart
 tries=0
