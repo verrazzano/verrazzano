@@ -164,6 +164,6 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 			Name:      ComponentName,
 		},
 	}
-	prefix := fmt.Sprintf("Component %s", ComponentName)
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
 }

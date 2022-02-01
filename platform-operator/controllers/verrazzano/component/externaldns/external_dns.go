@@ -89,7 +89,7 @@ func isReady(compContext spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
 	}
-	prefix := fmt.Sprintf("Component %s", ComponentName)
+	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
 	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
 }
 
