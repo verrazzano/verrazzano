@@ -3,10 +3,10 @@
 package verrazzano
 
 import (
+	"fmt"
 	"path/filepath"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -45,10 +45,10 @@ func NewComponent() spi.Component {
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
 	}
 	if err := loggingPreInstall(ctx); err != nil {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
 	return nil
 }
@@ -73,7 +73,8 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
-	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1) {
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 	return isVerrazzanoSecretReady(ctx)

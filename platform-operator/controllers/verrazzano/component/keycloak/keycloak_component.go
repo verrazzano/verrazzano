@@ -4,7 +4,12 @@ package keycloak
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -64,7 +69,13 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		Name:      constants.Verrazzano,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving Verrazzano password: %s", err)
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the Verrazzano password %s/%s to exist",
+				constants.VerrazzanoSystemNamespace, constants.Verrazzano)
+			return ctrlerrors.RetryableError{Source: ComponentName}
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the Verrazzano password %s/%s: %v",
+			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
 	// Check MySQL Secret. return error which will cause reque
@@ -74,7 +85,11 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 		Name:      mysql.ComponentName,
 	}, secret)
 	if err != nil {
-		ctx.Log().Errorf("Keycloak PreInstall: Error retrieving MySQL password: %s", err)
+		if errors.IsNotFound(err) {
+			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
+			return ctrlerrors.RetryableError{Source: ComponentName}
+		}
+		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
 		return err
 	}
 
@@ -139,7 +154,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Waiting for Keycloak Certificate: %s to exist", secretName)
+		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
 		return false
 	}
 
@@ -149,5 +164,6 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 			Name:      ComponentName,
 		},
 	}
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
 }

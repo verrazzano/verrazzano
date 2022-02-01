@@ -65,6 +65,7 @@ data:
     @include kubernetes-input.conf
 
     # Parsing/Filtering
+    @include components-filter.conf
     @include systemd-filter.conf
     @include kubernetes-filter.conf
 
@@ -230,6 +231,108 @@ data:
       </parse>
     </source>
 
+  components-filter.conf: |
+    # filter to parse authproxy container log files
+    <filter kubernetes.**verrazzano-authproxy**verrazzano-authproxy**>
+      @type parser
+      @id authproxy
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # authproxy has two formats for log records
+        # one has a timestamp, log level and other fields
+        # the other is just a messsage
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2}) \[(?<level>.*?)\] ([\s\S]*?)$/
+          time_key logtime
+          time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**verrazzano-authproxy**verrazzano-authproxy**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time.iso8601(3)}
+      </record>
+    </filter>
+
+    # filter to parse Coherence operator container log files
+    <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
+      @type parser
+      @id coh-operator
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Coherence operator has two formats for log records
+        # Coherence operator format and a klog format
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t([\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?([\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time.iso8601(3)}
+      </record>
+    </filter>
+
+    # filter to parse oam-kubernetes-runtime container log files
+    <filter kubernetes.**oam-kubernetes-runtime**verrazzano-system_oam-kubernetes-runtime**>
+      @type parser
+      @id oam-kubernetes-runtime
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # oam-kubernetes-runtime has two formats for log records
+        # oam-kubernetes-runtime format and a klog format
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t([\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?([\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**oam-kubernetes-runtime**verrazzano-system_oam-kubernetes-runtime**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time.iso8601(3)}
+      </record>
+    </filter>
+
   kubernetes-filter.conf: |
     # Query the API for extra metadata.
     <filter kubernetes.**>
@@ -250,6 +353,18 @@ data:
       </record>
       <record>
         kubernetes_namespace_container_name ${record["kubernetes"]["namespace_name"]}.${record["kubernetes"]["container_name"]}
+      </record>
+    </filter>
+
+    <filter fluentd.**>
+      @type record_transformer
+      @id fluentd_index_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time}
+      </record>
+      <record>
+        target_index verrazzano-namespace-verrazzano-system
       </record>
     </filter>
 
@@ -343,7 +458,7 @@ data:
       @log_level info
       log_es_400_reason true
       logstash_format true
-      logstash_prefix verrazzano-logstash
+      logstash_prefix verrazzano-namespace-verrazzano-system
       target_index_key target_index
       include_tag_key true
 

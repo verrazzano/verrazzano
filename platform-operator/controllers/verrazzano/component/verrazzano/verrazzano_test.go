@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -18,6 +17,8 @@ import (
 	"testing"
 	"text/template"
 	"time"
+
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/stretchr/testify/assert"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -137,7 +138,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 
 	// should return error that fluentd container is missing
 	err = fixupFluentdDaemonset(log, client, defNs)
-	assert.EqualError(err, "fluentd container not found in fluentd daemonset: fluentd")
+	assert.Contains(err.Error(), "fluentd container not found in fluentd daemonset: fluentd")
 
 	daemonSet.Spec.Template.Spec.Containers[0].Name = "fluentd"
 	err = client.Update(context.TODO(), &daemonSet)

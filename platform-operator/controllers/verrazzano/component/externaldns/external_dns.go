@@ -5,12 +5,11 @@ package externaldns
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strconv"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -45,26 +44,20 @@ func preInstall(compContext spi.ComponentContext) error {
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
-		return ctrlerrrors.RetryableError{
-			Source: compContext.GetComponent(),
-			Cause:  fmt.Errorf("Failed to create or update the cert-manager namespace: %v", err),
-		}
+		return compContext.Log().ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
 	}
 
 	// Get OCI DNS secret from the verrazzano-install namespace
 	dns := compContext.EffectiveCR().Spec.Components.DNS
 	dnsSecret := v1.Secret{}
 	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: dns.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, &dnsSecret); err != nil {
-		compContext.Log().Errorf("Could not find secret %s in the %s namespace: %s", dns.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace, err)
-		return err
+		return compContext.Log().ErrorfNewErr("Failed to find secret %s in the %s namespace: %v", dns.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace, err)
 	}
 
 	//check if scope value is valid
 	scope := dns.OCI.DNSScope
 	if scope != dnsGlobal && scope != dnsPrivate && scope != "" {
-		message := fmt.Sprintf("Invalid OCI DNS scope value: %s. If set, value can only be 'GLOBAL' or 'PRIVATE", dns.OCI.DNSScope)
-		compContext.Log().Errorf(message)
-		return errors.New(message)
+		return compContext.Log().ErrorfNewErr("Failed, invalid OCI DNS scope value: %s. If set, value can only be 'GLOBAL' or 'PRIVATE", dns.OCI.DNSScope)
 	}
 
 	// Attach compartment field to secret and apply it in the external DNS namespace
@@ -77,7 +70,7 @@ func preInstall(compContext spi.ComponentContext) error {
 
 		// Verify that the oci secret has one value
 		if len(dnsSecret.Data) != 1 {
-			return fmt.Errorf("OCI secret for OCI DNS should be created from one file")
+			return compContext.Log().ErrorNewErr("Failed, OCI secret for OCI DNS should be created from one file")
 		}
 
 		// Extract data and create secret in the external DNS namespace
@@ -87,8 +80,7 @@ func preInstall(compContext spi.ComponentContext) error {
 
 		return nil
 	}); err != nil {
-		compContext.Log().Errorf("Failed to create or update the external DNS secret: %s", err)
-		return err
+		return compContext.Log().ErrorfNewErr("Failed to create or update the external DNS secret: %v", err)
 	}
 	return nil
 }
@@ -97,7 +89,8 @@ func isReady(compContext spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
 	}
-	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1)
+	prefix := fmt.Sprintf("Component %s", ComponentName)
+	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
