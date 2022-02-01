@@ -229,11 +229,6 @@ pipeline {
                         runGinkgo('examples/helidon')
                     }
                 }
-                stage('examples helidon') {
-                    steps {
-                        runGinkgo('examples/helidon')
-                    }
-                }
                 stage('examples helidonconfig') {
                     steps {
                         runGinkgo('examples/helidonconfig')
