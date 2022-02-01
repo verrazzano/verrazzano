@@ -80,7 +80,7 @@ func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// If the application configuration no longer exists or is being deleted then cleanup the associated cert and secret resources
 	if isAppConfigBeingDeleted(&appConfig) {
-		log.Debugf("Deleting application configuration %s", nsn.Name)
+		log.Debugf("Deleting application configuration %v", nsn)
 		if err := ingresstrait.Cleanup(nsn, r.Client, log); err != nil {
 			// Requeue without error to avoid higher level log message
 			return reconcile.Result{Requeue: true}, nil

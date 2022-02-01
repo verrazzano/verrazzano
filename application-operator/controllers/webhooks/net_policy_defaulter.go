@@ -104,7 +104,7 @@ func (n *NetPolicyDefaulter) ensureNamespaceLabel(namespace string, log *zap.Sug
 
 		_, err = n.NamespaceClient.Update(context.TODO(), ns, metav1.UpdateOptions{})
 		if err != nil {
-			_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add label to namespace %s: %v", namespace, err), err, log)
+			vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add label to namespace %s: %v", namespace, err), err, log)
 			return err
 		}
 	}

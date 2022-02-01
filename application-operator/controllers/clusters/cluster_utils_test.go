@@ -6,6 +6,7 @@ package clusters
 import (
 	"context"
 	"errors"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
 	"time"
 
@@ -442,6 +443,31 @@ func TestDeleteAssociatedResource(t *testing.T) {
 	asserts.NotNil(t, err)
 
 	mocker.Finish()
+}
+
+// TestRequeueWithDelay tests that when a result is requested it has requeue set to true and a requeue after greater
+// than 2 seconds
+// GIVEN a need for a requeue result
+// WHEN NewRequeueWithDelay is called
+// THEN the returned result indicates a requeue with a requeueAfter time greaater than or equal to 2 seconds
+func TestRequeueWithDelay (t *testing.T) {
+	result := NewRequeueWithDelay()
+	asserts.True(t, result.Requeue)
+	asserts.GreaterOrEqual(t, result.RequeueAfter.Seconds(), time.Duration(2).Seconds())
+}
+
+// GIVEN a need for a testing a result for requeueing
+// WHEN ShouldRequeue is called
+// THEN a value of true is returned if Requeue is set to true or the RequeueAfter time is greater than 0, false otherwise
+func TestShouldRequeue(t *testing.T) {
+	val := ShouldRequeue(reconcile.Result{Requeue: true})
+	asserts.True(t, val)
+	val = ShouldRequeue(reconcile.Result{Requeue: false})
+	asserts.False(t, val)
+	val = ShouldRequeue(reconcile.Result{RequeueAfter: time.Duration(2)})
+	asserts.True(t, val)
+	val = ShouldRequeue(reconcile.Result{RequeueAfter: time.Duration(0)})
+	asserts.False(t, val)
 }
 
 func expectGetAndDeleteAppConfig(t *testing.T, cli *mocks.MockClient, name types.NamespacedName, deleteErr error) {
