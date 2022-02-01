@@ -229,6 +229,28 @@ pipeline {
                         runGinkgo('examples/helidon')
                     }
                 }
+                stage('examples helidon') {
+                    steps {
+                        runGinkgo('examples/helidon')
+                    }
+                }
+                stage('examples helidonconfig') {
+                    steps {
+                        runGinkgo('examples/helidonconfig')
+                    }
+                }
+                stage('examples springboot') {
+                    steps {
+                        runGinkgo('examples/springboot')
+                    }
+                }
+		stage('examples socks') {
+                    steps {
+                        runSocksVariant('helidon')
+                        runSocksVariant('micronaut')
+                        runSocksVariant('spring')
+                    }
+                }
                 stage('examples todo') {
                     steps {
                         runGinkgo('examples/todo')
@@ -264,6 +286,15 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/...
+        """
+    }
+}
+
+def runSocksVariant(variant) {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color examples/socks/...
         """
     }
 }

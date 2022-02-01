@@ -23,12 +23,15 @@ var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 15 * time.Minute
 var longPollingInterval = 20 * time.Second
 
-var t = framework.NewTestFramework("springboot")
+var (
+	t = framework.NewTestFramework("springboot")
+	generatedNamespace = pkg.GenerateNamespace("springboot")
+)
 
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeploySpringBootApplication()
+		pkg.DeploySpringBootApplication(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -44,7 +47,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeploySpringBootApplication()
+		pkg.UndeploySpringBootApplication(namespace)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -58,7 +61,7 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	t.Context("expected pods", func() {
 		t.It("are running", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(pkg.SpringbootNamespace, expectedPodsSpringBootApp)
+				return pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
 			}, longWaitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -71,7 +74,7 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(pkg.SpringbootNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -95,7 +98,7 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-springboot"
+		indexName := "verrazzano-namespace-" + namespace
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
