@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -75,7 +75,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
 	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
 	if err != nil {
-		r.log.Warn(fmt.Sprintf("unable to add Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err))
+		r.log.Infof("Failed adding Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
 		return nil
 	}
 
@@ -194,7 +194,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguratio
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
 	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
 	if err != nil {
-		r.log.Warn(fmt.Sprintf("unable to delete Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err))
+		r.log.Infof("Failed deleting Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
 		return nil
 	}
 
