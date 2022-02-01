@@ -1120,16 +1120,6 @@ func runTestFluentdOCIConfig(t *testing.T, ociConfigBytes string, errorMsg ...st
 	}
 }
 
-// TestValidateFluentdOCISecretInvalidKeyType tests validateOCISecrets
-// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that has an invalid key type
-// WHEN validateOCISecrets is called
-// THEN an error is returned from validateOCISecrets
-func TestValidateFluentdOCISecretInvalidKeyType(t *testing.T) {
-	key, err := generateTestPrivateKeyWithType("INVALID KEY TYPE")
-	assert.NoError(t, err)
-	runFluentdInvalidKeyTest(t, key, "not a valid key")
-}
-
 // TestValidateFluentdOCISecretInvalidKeyFormat tests validateOCISecrets
 // GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret with a key not in PEM format
 // WHEN validateOCISecrets is called
