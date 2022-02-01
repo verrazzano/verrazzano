@@ -557,7 +557,8 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 		return nil
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
-		log.Errorf("Failed to update workload child deployment %s: %v", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta).Name, err)
+		_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to update workload child deployment %s: %v", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta).Name, err),
+			err, log)
 	}
 	return ref, res, err
 }

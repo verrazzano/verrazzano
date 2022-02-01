@@ -6,6 +6,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -71,7 +72,7 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 func (n *NetPolicyDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	if !dryRun {
 		// delete the network policy
-		log.Infow("Deleting Istio network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+		log.Debugw("Deleting Istio network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 		netpol := newNetworkPolicy(appConfig)
 		err := n.Client.Delete(context.TODO(), &netpol, &client.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
@@ -103,7 +104,7 @@ func (n *NetPolicyDefaulter) ensureNamespaceLabel(namespace string, log *zap.Sug
 
 		_, err = n.NamespaceClient.Update(context.TODO(), ns, metav1.UpdateOptions{})
 		if err != nil {
-			log.Errorf("Failed to add label to namespace %s: %v", namespace, err)
+			_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add label to namespace %s: %v", namespace, err), err, log)
 			return err
 		}
 	}
