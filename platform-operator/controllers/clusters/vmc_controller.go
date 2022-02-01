@@ -155,7 +155,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncServiceAccount(vmc *clustersv1a
 	// Does the VerrazzanoManagedCluster object contain the service account name?
 	saName := generateManagedResourceName(vmc.Name)
 	if vmc.Spec.ServiceAccount != saName {
-		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
+		r.log.Infof("Updating ServiceAccount from %s to %s", vmc.Spec.ServiceAccount, saName)
 		vmc.Spec.ServiceAccount = saName
 		err = r.Update(context.TODO(), vmc)
 		if err != nil {

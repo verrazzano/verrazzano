@@ -27,5 +27,6 @@ func IngressesPresent(log vzlog.VerrazzanoLogger, client clipkg.Client, ingressN
 			return false
 		}
 	}
+	log.Oncef("%s has all the required ingresses %v", prefix, ingressNames)
 	return true
 }
