@@ -54,7 +54,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-		zap.S().Errorf("Failed to fetch Verrazzano resource: %v", err)
+		zap.S().Errorf("Failed to fetch VerrazzanoManagedCluster resource: %v", err)
 		return newRequeueWithDelay(), nil
 	}
 
@@ -67,7 +67,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 		ControllerName: "multicluster",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Verrazzano controller", err)
+		zap.S().Errorf("Failed to create controller logger for VerrazzanoManagedCluster controller", err)
 	}
 
 	r.log = log
@@ -76,13 +76,21 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
 	}
+
 	// Never return an error since it has already been logged and we don't want the
 	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
 		return newRequeueWithDelay(), nil
 	}
-	// The Verrazzano resource has been reconciled.
-	log.Oncef("Successfully reconciled Verrazzano resource %v", req.NamespacedName)
+
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return newRequeueWithDelay(), nil
+	}
+
+	// The resource has been reconciled.
+	log.Oncef("Successfully reconciled VerrazzanoManagedCluster resource %v", req.NamespacedName)
 
 	return ctrl.Result{}, nil
 }
@@ -184,7 +192,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncServiceAccount(vmc *clustersv1a
 	// Does the VerrazzanoManagedCluster object contain the service account name?
 	saName := generateManagedResourceName(vmc.Name)
 	if vmc.Spec.ServiceAccount != saName {
-		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
+		r.log.Oncef("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
 		vmc.Spec.ServiceAccount = saName
 		err = r.Update(context.TODO(), vmc)
 		if err != nil {

@@ -80,7 +80,7 @@ var rancherHTTPClient requestSender = &httpRequestSender{}
 // registerManagedClusterWithRancher registers a managed cluster with Rancher and returns a chunk of YAML that
 // must be applied on the managed cluster to complete the registration.
 func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
-	log.Debugf("Registering managed cluster in Rancher with name: %s", clusterName)
+	log.Oncef("Registering managed cluster in Rancher with name: %s", clusterName)
 
 	rc := &rancherConfig{baseURL: "https://" + nginxIngressHostName}
 
@@ -96,7 +96,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	log.Debug("Getting Rancher TLS root CA")
 	caCert, err := common.GetRootCA(rdr)
 	if err != nil {
-		log.Errorf("Unable to get Rancher TLS root CA: %v", err)
+		log.Errorf("Failed to get Rancher TLS root CA: %v", err)
 		return "", err
 	}
 	rc.certificateAuthorityData = caCert
@@ -104,30 +104,29 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	log.Debugf("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
 	additionalCA, err := common.GetAdditionalCA(rdr)
 	if err != nil {
-		log.Errorf("Unable to check Rancher for additional CA: %v", err)
-		return "", err
+		return "", log.ErrorfNewErr("Failed getting Rancher additional CA: %v", err)
 	}
 	rc.additionalCA = additionalCA
 
-	log.Debug("Getting admin token from Rancher")
+	log.Once("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
 	if err != nil {
-		log.Errorf("Unable to get admin token from Rancher: %v", err)
+		log.Errorf("Failed to get admin token from Rancher: %v", err)
 		return "", err
 	}
 	rc.apiAccessToken = adminToken
 
-	log.Debug("Importing cluster to Rancher")
+	log.Oncef("Importing cluster %s into to Rancher", clusterName)
 	clusterID, err := importClusterToRancher(rc, clusterName, log)
 	if err != nil {
-		log.Errorf("Unable to import cluster to Rancher: %v", err)
+		log.Errorf("Failed to import cluster to Rancher: %v", err)
 		return "", err
 	}
 
-	log.Debug("Getting registration YAML from Rancher")
+	log.Once("Getting registration YAML from Rancher")
 	regYAML, err := getRegistrationYAMLFromRancher(rc, clusterID, log)
 	if err != nil {
-		log.Errorf("Unable to get registration YAML from Rancher: %v", err)
+		log.Errorf("Failed to get registration YAML from Rancher: %v", err)
 		return "", err
 	}
 
@@ -175,7 +174,7 @@ func overrideRancherImageLocation(regYAML string, log vzlog.VerrazzanoLogger) st
 	imagePath = imagePath + "/" + image
 
 	// imagePath now looks like: myreg.io/myrepo/verrazzano/rancher-agent:tag
-	log.Infof("Replacing Rancher agent image in registration YAML with: %s", imagePath)
+	log.Oncef("Replacing Rancher agent image in registration YAML with: %s", imagePath)
 
 	// replace the image in the regYAML with the new image path
 	return strings.Replace(regYAML, match[1], imagePath, 1)
@@ -216,7 +215,7 @@ func importClusterToRancher(rc *rancherConfig, clusterName string, log vzlog.Ver
 	if err != nil {
 		return "", err
 	}
-	log.Infof("Successfully registered managed cluster in Rancher with name: %s", clusterName)
+	log.Oncef("Successfully registered managed cluster in Rancher with name: %s", clusterName)
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "id", "unable to find cluster id in Rancher response")
 }
@@ -405,7 +404,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 
 		// check for a network error and retry
 		if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
-			log.Progressf("Temporary error executing HTTP request %v : %v, retrying", req, nerr)
+			log.Infof("Temporary error executing HTTP request %v : %v, retrying", req, nerr)
 			return false, err
 		}
 
@@ -413,7 +412,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 		if err, ok := err.(*url.Error); ok {
 			if err, ok := err.Err.(*net.OpError); ok {
 				if derr, ok := err.Err.(*net.DNSError); ok {
-					log.Progressf("DNS error: %v, retrying", derr)
+					log.Infof("DNS error: %v, retrying", derr)
 					return false, err
 				}
 			}
@@ -421,7 +420,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 
 		// retry any HTTP 500 errors
 		if resp != nil && resp.StatusCode >= 500 && resp.StatusCode <= 599 {
-			log.Progressf("Got HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
+			log.Infof("HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
 			return false, err
 		}
 
@@ -455,7 +454,7 @@ func retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, fn wait.ConditionFu
 		done, err := fn()
 		lastErr = err
 		if err != nil {
-			log.Progressf("Retrying after error: %v", err)
+			log.Infof("Retrying after error: %v", err)
 		}
 		return done, nil
 	})

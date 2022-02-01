@@ -75,7 +75,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
 	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
 	if err != nil {
-		r.log.Infof("unable to add Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
+		r.log.Infof("Failed adding Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
 		return nil
 	}
 
@@ -194,7 +194,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterPrometheusConfiguratio
 	// Get the Prometheus configuration.  The ConfigMap may not exist if this delete is being called during an uninstall of Verrazzano.
 	promConfigMap, err := r.getPrometheusConfig(ctx, vmc)
 	if err != nil {
-		r.log.Infof("unable to delete Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
+		r.log.Infof("Failed deleting Prometheus configuration for managed cluster %s: %v", vmc.ClusterName, err)
 		return nil
 	}
 

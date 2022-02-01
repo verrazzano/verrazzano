@@ -138,7 +138,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret() (string, string,
 	vzList := vzapi.VerrazzanoList{}
 	err := r.List(context.TODO(), &vzList, &client.ListOptions{})
 	if err != nil {
-		r.log.Error(err, "Can not list Verrazzano CR")
+		r.log.Errorf("Failed to list Verrazzano CR: %v", err)
 		return url, secret, err
 	}
 	// what to do when there is more than one Verrazzano CR

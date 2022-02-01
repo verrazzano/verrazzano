@@ -559,10 +559,9 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 
 	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
-	asserts.NotNil(err)
-	asserts.Contains(err.Error(), "failing syncServiceAccount")
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Nil(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestCreateVMCSyncRoleBindingFailed tests the Reconcile method for the following use case
@@ -596,10 +595,9 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 
 	// Validate the results - there should have been an error returned
 	mocker.Finish()
-	asserts.NotNil(err)
-	asserts.Contains(err.Error(), "failing syncRoleBinding")
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Nil(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestDeleteVMC tests the Reconcile method for the following use case
@@ -767,7 +765,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster) error {
 			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
-			asserts.Equal("Registration of managed cluster failed: unable to get rancher ingress host name", vmc.Status.RancherRegistration.Message)
+			asserts.Equal("Failed to register managed cluster: Failed, Rancher ingress cattle-system/rancher is missing host names", vmc.Status.RancherRegistration.Message)
 			return nil
 		})
 
