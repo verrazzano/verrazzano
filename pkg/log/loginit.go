@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const timeFormat = "2006-01-02T15:04:05.000Z"
+
 // InitLogs initializes logs with Time and Global Level of Logs set at Info
 func InitLogs(opts kzap.Options) {
 	var config zap.Config
@@ -27,7 +29,7 @@ func InitLogs(opts kzap.Options) {
 	} else {
 		config.Level.SetLevel(zapcore.InfoLevel)
 	}
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(timeFormat)
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"
@@ -87,7 +89,7 @@ func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
 	config.Level.SetLevel(zapcore.InfoLevel)
 
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(timeFormat)
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"
