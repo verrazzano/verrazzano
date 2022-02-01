@@ -65,6 +65,13 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
+		for _, workload := range workloads {
+			// If we have an owner ref that is an OAM ApplicationConfiguration resource then we don't want
+			// to label the pod to have the app.verrazzano.io/workload label
+			if workload.GetKind() == "ApplicationConfiguration" && workload.GetAPIVersion() == "core.oam.dev/v1alpha2" {
+				return admission.Allowed(constants.StatusReasonSuccess)
+			}
+		}
 		if len(workloads) > 1 {
 			err = fmt.Errorf("multiple workload resources found for %s, Verrazzano metrics cannot be enabled", pod.Name)
 			log.Errorf("Failed identifying workload resource: %v", err)
