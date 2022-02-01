@@ -82,7 +82,7 @@ func (nc *NamespaceController) doReconcile(req ctrl.Request) (ctrl.Result, error
 	ns := corev1.Namespace{}
 	if err := nc.Client.Get(ctx, req.NamespacedName, &ns); err != nil {
 		if k8serrors.IsNotFound(err) {
-			log.Infow("Failed to find namespace", namespaceField, req.Name)
+			log.Debugw("Failed to find namespace", namespaceField, req.Name)
 		} else {
 			log.Errorf("Failed to fetch namespace %s: %v", req.Name, err)
 		}

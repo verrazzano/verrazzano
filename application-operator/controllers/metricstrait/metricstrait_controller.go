@@ -638,7 +638,7 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 	// changes but without necessarily updating the trait spec.
 	var seconds = rand.IntnRange(45, 90)
 	var duration = time.Duration(seconds) * time.Second
-	log.Infof("Reconciled metrics trait %s successfully", name.Name)
+	log.Debugf("Reconciled metrics trait %s successfully", name.Name)
 	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
 }
 

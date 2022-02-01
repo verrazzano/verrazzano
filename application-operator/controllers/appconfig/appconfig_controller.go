@@ -65,7 +65,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "applicationconfiguration")
-	log.Info("Reconciling ApplicationConfiguration")
 	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
 
 	// fetch the appconfig
