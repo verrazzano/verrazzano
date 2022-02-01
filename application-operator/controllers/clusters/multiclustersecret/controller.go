@@ -6,6 +6,7 @@ package multiclustersecret
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,13 +33,28 @@ const finalizerName = "multiclustersecret.verrazzano.io"
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With("multiclustersecret", req.NamespacedName)
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the MC secret
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "mcsecret")
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	result := reconcile.Result{}
 	ctx := context.Background()
 	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
 	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterSecret", err, log)
+		return result, clusters.IgnoreNotFoundWithLog(err, log)
 	}
 
 	// delete the wrapped resource since MC is being deleted

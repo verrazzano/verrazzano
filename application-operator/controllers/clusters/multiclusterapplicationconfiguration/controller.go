@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,13 +37,28 @@ const finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
 // of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
 // the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With("multiclusterapplicationconfiguration", req.NamespacedName)
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the MC application configuration
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "mcapplicationconfiguration")
 	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
 	result := reconcile.Result{}
 	ctx := context.Background()
 	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
 	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog("MultiClusterApplicationConfiguration", err, log)
+		return result, clusters.IgnoreNotFoundWithLog(err, log)
 	}
 
 	if !mcAppConfig.ObjectMeta.DeletionTimestamp.IsZero() {

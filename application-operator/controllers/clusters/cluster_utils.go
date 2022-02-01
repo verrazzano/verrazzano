@@ -6,6 +6,7 @@ package clusters
 import (
 	"context"
 	"fmt"
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"time"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -216,11 +217,11 @@ func IsPlacedInThisCluster(ctx context.Context, rdr client.Reader, placement clu
 
 // IgnoreNotFoundWithLog returns nil if err is a "Not Found" error, and if not, logs an error
 // message that the resource could not be fetched and returns the original error
-func IgnoreNotFoundWithLog(resourceType string, err error, log *zap.SugaredLogger) error {
+func IgnoreNotFoundWithLog(err error, log *zap.SugaredLogger) error {
 	if apierrors.IsNotFound(err) {
 		return nil
 	}
-	log.Debugw("Failed to fetch resource", "type", resourceType, "err", err)
+	log.Debugw("Failed to fetch resource", "err", err)
 	return err
 }
 
@@ -366,4 +367,13 @@ func GetRandomRequeueDelay() time.Duration {
 	// get a jittered delay to use for requeueing reconcile
 	var seconds = rand.IntnRange(2, 8)
 	return time.Duration(seconds) * time.Second
+}
+
+func NewRequeueWithDelay() reconcile.Result {
+	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
+}
+
+// Return true if requeue is needed
+func ShouldRequeue(r reconcile.Result) bool {
+	return r.Requeue || r.RequeueAfter > 0
 }
