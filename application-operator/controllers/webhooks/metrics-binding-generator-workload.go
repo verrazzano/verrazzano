@@ -11,12 +11,11 @@ import (
 	"reflect"
 	"strings"
 
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	"go.uber.org/zap"
-
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -50,7 +49,7 @@ func (a *GeneratorWorkloadWebhook) Handle(ctx context.Context, req admission.Req
 	case "pod", "deployment", "replicaset", "statefulset", "domain", "coherence":
 		return a.handleWorkloadResource(ctx, req, log)
 	default:
-		log.Infof("unsupported kind %s", req.Kind.Kind)
+		log.Infof("Unsupported kind %s", req.Kind.Kind)
 		return admission.Allowed("not implemented yet")
 	}
 }
@@ -175,7 +174,7 @@ func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.U
 func (a *GeneratorWorkloadWebhook) createOrUpdateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate, log *zap.SugaredLogger) error {
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
-		log.Infof("Prometheus target config map not specified %s:%s", template.Namespace, template.Name)
+		log.Infof("Prometheus target config map %s:%s not specified", template.Namespace, template.Name)
 		return nil
 	}
 
@@ -246,7 +245,7 @@ func (a *GeneratorWorkloadWebhook) findMatchingTemplate(ctx context.Context, uns
 	for _, template := range templateList.Items {
 		// If the template workload selector was not specified then don't try to match this template
 		if reflect.DeepEqual(template.Spec.WorkloadSelector, vzapp.WorkloadSelector{}) {
-			log.Infof("Metrics template workloadSelector not specified for %s:%s- no workload match checking performed", template.Namespace, template.Name)
+			log.Infof("Metrics template %s:%s workloadSelector not specified - no workload match checking performed", template.Namespace, template.Name)
 			continue
 		}
 		found, err := ws.DoesWorkloadMatch(unst,
