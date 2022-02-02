@@ -163,8 +163,8 @@ rules:
   - apiGroups:
       - coherence.oracle.com
     resources:
-      - coherence
-      - coherence/status
+      - coherences
+      - coherences/status
     verbs:
       - create
       - delete
