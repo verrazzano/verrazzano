@@ -108,7 +108,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return newRequeueWithDelay(), nil
 	}
 	// The Verrazzano resource has been reconciled.
-	log.Oncef("Successfully reconciled Verrazzano resource %v", req.NamespacedName)
+	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 
 	return ctrl.Result{}, nil
 }

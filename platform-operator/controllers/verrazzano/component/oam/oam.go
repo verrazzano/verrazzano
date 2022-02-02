@@ -21,6 +21,6 @@ func IsOAMReady(context spi.ComponentContext, _ string, namespace string) bool {
 	deployments := []types.NamespacedName{
 		{Name: oamOperatorDeploymentName, Namespace: namespace},
 	}
-	prefix := fmt.Sprintf("Component %s", ComponentName)
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }

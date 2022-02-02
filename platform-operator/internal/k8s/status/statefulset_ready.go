@@ -32,5 +32,6 @@ func StatefulsetReady(log vzlog.VerrazzanoLogger, client client.Client, stateful
 			return false
 		}
 	}
+	log.Oncef("%s has enough replicas for statefulsets %v", prefix, statefulsets)
 	return true
 }
