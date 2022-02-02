@@ -24,7 +24,7 @@ const (
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
 )
 
-var t = framework.NewTestFramework("deploymentworkload")
+var t = framework.NewTestFramework("helidonoverride")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
