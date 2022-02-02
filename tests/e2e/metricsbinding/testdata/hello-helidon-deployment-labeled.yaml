@@ -6,7 +6,7 @@ kind: Deployment
 metadata:
   name: hello-helidon-deployment
   namespace: hello-helidon-namespace
-  labels:
+  annotations:
     app.verrazzano.io/metrics: standard-k8s-metrics-template
 spec:
   selector:
