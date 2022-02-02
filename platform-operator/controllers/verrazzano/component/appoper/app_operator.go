@@ -90,6 +90,6 @@ func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace
 
 func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {
 	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
-	yamlApplier := k8sutil.NewYAMLApplier(c)
+	yamlApplier := k8sutil.NewYAMLApplier(c, "")
 	return yamlApplier.ApplyD(path)
 }
