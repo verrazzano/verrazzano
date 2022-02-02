@@ -64,7 +64,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "job", promConfigJobName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 			Eventually(func() bool {
-				return pkg.MetricsExist("test_namespace", "test_namespace", "hello-helidon-namespace-test")
+				return pkg.MetricsExist("base_jvm_uptime_seconds", "test_namespace", "hello-helidon-namespace-test")
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 		})
 	})
