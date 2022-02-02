@@ -32,7 +32,7 @@ var (
 var _ = BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		deployBobsBooksExample()
+		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -57,7 +57,7 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-func deployBobsBooksExample() {
+func deployBobsBooksExample(namespace string) {
 	pkg.Log(pkg.Info, "Deploy BobsBooks example")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
@@ -92,7 +92,7 @@ func deployBobsBooksExample() {
 
 	pkg.Log(pkg.Info, "Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}
+		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql." + namespace + ".svc.cluster.local:3306/books"}
 		return pkg.CreateCredentialsSecretFromMap(namespace, "mysql-credentials", m, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
@@ -114,12 +114,12 @@ func undeployBobsBooksExample() {
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete namespace")
@@ -316,7 +316,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
-		bobsIndexName := "verrazzano-namespace" + namespace
+		bobsIndexName := "verrazzano-namespace-" + namespace
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -538,7 +538,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		)
 	})
 	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace" + namespace
+		indexName := "verrazzano-namespace-" + namespace
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
