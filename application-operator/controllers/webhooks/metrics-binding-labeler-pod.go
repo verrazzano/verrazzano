@@ -39,7 +39,7 @@ type LabelerPodWebhook struct {
 func (a *LabelerPodWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldWebhook, "metrics-binding-labeler-pod")
 
-	log.Info("metrics-binding-labeler-pod webhook called", "namespace", req.Namespace, "name", req.Name)
+	log.Infow("metrics-binding-labeler-pod webhook called", "namespace", req.Namespace, "name", req.Name)
 	return a.handlePodResource(req, log)
 }
 

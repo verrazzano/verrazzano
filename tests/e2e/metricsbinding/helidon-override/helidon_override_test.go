@@ -20,7 +20,7 @@ const (
 	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment.yaml"
-	templatePath         = "tests/e2e/metricsbinding/testdata/hello-helidon-metrics-template"
+	templatePath         = "tests/e2e/metricsbinding/testdata/hello-helidon-metrics-template.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
 )
 

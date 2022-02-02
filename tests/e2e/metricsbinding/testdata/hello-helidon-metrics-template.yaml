@@ -4,13 +4,13 @@
 apiVersion: app.verrazzano.io/v1alpha1
 kind: MetricsTemplate
 metadata:
-  name: standard-k8s-metrics-template
+  name: test-metrics-template
   namespace: hello-helidon-namespace
 spec:
   workloadSelector:
-    apiGroups: ["apps", ""]
+    apiGroups: ["apps"]
     apiVersions: ["v1"]
-    resources: ["deployment", "statefulset", "replicaset", "pod"]
+    resources: ["deployment"]
   prometheusConfig:
     targetConfigMap:
       namespace: verrazzano-system
