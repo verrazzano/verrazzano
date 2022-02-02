@@ -6,6 +6,8 @@ kind: Deployment
 metadata:
   name: hello-helidon-deployment
   namespace: hello-helidon-namespace
+  labels:
+    app.verrazzano.io/metrics: standard-k8s-metrics-template
 spec:
   selector:
     matchLabels:
@@ -17,13 +19,13 @@ spec:
         app: hello-helidon-application
     spec:
       containers:
-        - name: hello-helidon-container
-          image: ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20210728181814-eb1e622
-          imagePullPolicy: IfNotPresent
-          ports:
-            - name: web
-              containerPort: 8080
-              protocol: TCP
+      - name: hello-helidon-container
+        image: ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20210728181814-eb1e622
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: web
+          containerPort: 8080
+          protocol: TCP
 ---
 apiVersion: v1
 kind: Service
@@ -35,6 +37,6 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-    - port: 8080
+  - port: 8080
   selector:
     app: hello-helidon-application

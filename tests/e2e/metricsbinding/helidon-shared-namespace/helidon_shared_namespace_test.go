@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonoverride
+package helidonsharednamespace
 
 import (
 	"time"
@@ -19,12 +19,12 @@ const (
 	longPollingInterval  = 20 * time.Second
 	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
-	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment.yaml"
+	yamlPath             = "application-operator/internal/app/resources/workloads/hello-helidon-deployment.yaml"
 	templatePath         = "tests/e2e/metricsbinding/testdata/hello-helidon-metrics-template.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
 )
 
-var t = framework.NewTestFramework("helidonoverride")
+var t = framework.NewTestFramework("helidonsharednamespace")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
