@@ -83,7 +83,7 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 	}
 	labels[constants.MetricsWorkloadLabel] = workloadLabel
 	pod.SetLabels(labels)
-	log.Debugw(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsWorkloadLabel, workloadLabel), "namespace", req.Namespace, "name", req.Name)
+	log.Infow(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsWorkloadLabel, workloadLabel), "namespace", req.Namespace, "name", req.Name)
 
 	marshaledPodResource, err := json.Marshal(pod)
 	if err != nil {

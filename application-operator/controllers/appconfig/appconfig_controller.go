@@ -12,6 +12,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -48,7 +49,15 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // restarts applications as needed. When applications are restarted, the previous restart
 // version annotation value is updated.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	res, err := r.doReconcile(req)
+	var appConfig oamv1.ApplicationConfiguration
+	log, err := clusters.GetResourceAndLogger("applicationconfiguration", req.NamespacedName, &appConfig, r.Client)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for application configuration controller", err)
+		return ctrl.Result{}, nil
+	}
+	log.Oncef("Reconciling application configuration resource %v, generation %v", req.NamespacedName, appConfig.Generation)
+
+	res, err := r.doReconcile(&appConfig, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -58,42 +67,32 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	// The Verrazzano resource has been reconciled.
+	log.Oncef("Finished reconciling application configuration %v", req.NamespacedName)
+
 	return ctrl.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the application configuration
-func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) doReconcile(appConfig *oamv1.ApplicationConfiguration, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "applicationconfiguration")
-	nsn := types.NamespacedName{Name: req.Name, Namespace: req.Namespace}
-
-	// fetch the appconfig
-	var appConfig oamv1.ApplicationConfiguration
-	if err := r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {
-		if k8serrors.IsNotFound(err) {
-			log.Debug("ApplicationConfiguration has been deleted")
-		} else {
-			log.Errorf("Failed to fetch ApplicationConfiguration: %v", err)
-		}
-		return reconcile.Result{}, client.IgnoreNotFound(err)
-	}
 
 	// If the application configuration no longer exists or is being deleted then cleanup the associated cert and secret resources
-	if isAppConfigBeingDeleted(&appConfig) {
-		log.Debugf("Deleting application configuration %v", nsn)
-		if err := ingresstrait.Cleanup(nsn, r.Client, log); err != nil {
+	if isAppConfigBeingDeleted(appConfig) {
+		log.Debugf("Deleting application configuration %v", appConfig)
+		if err := ingresstrait.Cleanup(types.NamespacedName{Namespace: appConfig.Namespace, Name: appConfig.Name}, r.Client, log.GetZapLogger()); err != nil {
 			// Requeue without error to avoid higher level log message
 			return reconcile.Result{Requeue: true}, nil
 		}
 		// resource cleanup has succeeded, remove the finalizer
-		if err := r.removeFinalizerIfRequired(ctx, &appConfig, log); err != nil {
+		if err := r.removeFinalizerIfRequired(ctx, appConfig, log); err != nil {
 			return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 		}
 		return reconcile.Result{}, nil
 	}
 
 	// add finalizer
-	if err := r.addFinalizerIfRequired(ctx, &appConfig, log); err != nil {
+	if err := r.addFinalizerIfRequired(ctx, appConfig, log); err != nil {
 		return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 	}
 
@@ -115,7 +114,7 @@ func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, wlStatus oamv1.WorkloadStatus, restartVersion string, log *zap.SugaredLogger) error {
+func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, wlStatus oamv1.WorkloadStatus, restartVersion string, log vzlog2.VerrazzanoLogger) error {
 	// Get the workload as an unstructured object
 	var wlName = wlStatus.Reference.Name
 	var workload unstructured.Unstructured
@@ -155,7 +154,7 @@ func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, w
 	return nil
 }
 
-func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion string, name, namespace string, log *zap.SugaredLogger) error {
+func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion, name, namespace string, log vzlog2.VerrazzanoLogger) error {
 	var deployment = appsv1.Deployment{}
 	deploymentKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(ctx, deploymentKey, &deployment); err != nil {
@@ -167,10 +166,10 @@ func (r *Reconciler) restartDeployment(ctx context.Context, restartVersion strin
 		}
 	}
 	log.Debugf("Marking deployment %s in namespace %s with restart-version %s", name, namespace, restartVersion)
-	return DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log)
+	return DoRestartDeployment(ctx, r.Client, restartVersion, &deployment, log.GetZapLogger())
 }
 
-func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion string, name, namespace string, log *zap.SugaredLogger) error {
+func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion, name, namespace string, log vzlog2.VerrazzanoLogger) error {
 	var statefulSet = appsv1.StatefulSet{}
 	statefulSetKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(ctx, statefulSetKey, &statefulSet); err != nil {
@@ -185,7 +184,7 @@ func (r *Reconciler) restartStatefulSet(ctx context.Context, restartVersion stri
 	return DoRestartStatefulSet(ctx, r.Client, restartVersion, &statefulSet, log)
 }
 
-func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string, name, namespace string, log *zap.SugaredLogger) error {
+func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion, name, namespace string, log vzlog2.VerrazzanoLogger) error {
 	var daemonSet = appsv1.DaemonSet{}
 	daemonSetKey := types.NamespacedName{Name: name, Namespace: namespace}
 	if err := r.Get(ctx, daemonSetKey, &daemonSet); err != nil {
@@ -202,26 +201,26 @@ func (r *Reconciler) restartDaemonSet(ctx context.Context, restartVersion string
 
 // removeFinalizerIfRequired removes the finalizer from the application configuration if required
 // The finalizer is only removed if the application configuration is being deleted and the finalizer had been added
-func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log *zap.SugaredLogger) error {
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log vzlog2.VerrazzanoLogger) error {
 	if !appConfig.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
 		log.Debugf("Removing finalizer from application configuration %s", appName)
 		appConfig.Finalizers = vzstring.RemoveStringFromSlice(appConfig.Finalizers, finalizerName)
 		err := r.Update(ctx, appConfig)
-		return vzlog.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, log)
+		return vzlog.ConflictWithLog(fmt.Sprintf("Failed to remove finalizer from application configuration %s", appName), err, log.GetZapLogger())
 	}
 	return nil
 }
 
 // addFinalizerIfRequired adds the finalizer to the app config if required
 // The finalizer is only added if the app config is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log *zap.SugaredLogger) error {
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, appConfig *oamv1.ApplicationConfiguration, log vzlog2.VerrazzanoLogger) error {
 	if appConfig.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(appConfig.Finalizers, finalizerName) {
 		appName := vznav.GetNamespacedNameFromObjectMeta(appConfig.ObjectMeta)
 		log.Debugf("Adding finalizer for appConfig %s", appName)
 		appConfig.Finalizers = append(appConfig.Finalizers, finalizerName)
 		err := r.Update(ctx, appConfig)
-		_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, log)
+		_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to add finalizer to appConfig %s", appName), err, log.GetZapLogger())
 		return err
 	}
 	return nil
@@ -244,7 +243,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 	return vzlog.ConflictWithLog(fmt.Sprintf("Failed updating deployment %s/%s", deployment.Namespace, deployment.Name), err, log)
 }
 
-func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log *zap.SugaredLogger) error {
+func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVersion string, statefulSet *appsv1.StatefulSet, log vzlog2.VerrazzanoLogger) error {
 	log.Debugf("The statefulSet %s/%s restart version is set to %s", statefulSet.Namespace, statefulSet.Name, restartVersion)
 	_, err := controllerutil.CreateOrUpdate(ctx, client, statefulSet, func() error {
 		if len(restartVersion) > 0 {
@@ -255,10 +254,10 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 		}
 		return nil
 	})
-	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating statefulSet %s/%s:", statefulSet.Namespace, statefulSet.Name), err, log)
+	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating statefulSet %s/%s:", statefulSet.Namespace, statefulSet.Name), err, log.GetZapLogger())
 }
 
-func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log *zap.SugaredLogger) error {
+func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersion string, daemonSet *appsv1.DaemonSet, log vzlog2.VerrazzanoLogger) error {
 	log.Debugf("The daemonSet %s/%s restart version is set to %s", daemonSet.Namespace, daemonSet.Name, restartVersion)
 	_, err := controllerutil.CreateOrUpdate(ctx, client, daemonSet, func() error {
 		if len(restartVersion) > 0 {
@@ -269,11 +268,11 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 		}
 		return nil
 	})
-	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating daemonSet %s/%s:", daemonSet.Namespace, daemonSet.Name), err, log)
+	return vzlog.ConflictWithLog(fmt.Sprintf("Conflict updating daemonSet %s/%s:", daemonSet.Namespace, daemonSet.Name), err, log.GetZapLogger())
 }
 
 // Update the workload annotation with the restart version. This will cause the workload to be restarted if the version changed
-func updateRestartVersion(ctx context.Context, client client.Client, u *unstructured.Unstructured, restartVersion string, log *zap.SugaredLogger) error {
+func updateRestartVersion(ctx context.Context, client client.Client, u *unstructured.Unstructured, restartVersion string, log vzlog2.VerrazzanoLogger) error {
 	const metadataField = "metadata"
 	var metaAnnotationFields = []string{metadataField, "annotations"}
 
@@ -295,7 +294,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		}
 		return nil
 	})
-	err = vzlog.ConflictWithLog(fmt.Sprintf("Failed to update restart version for workload %s/%s", u.GetNamespace(), u.GetName()), err, log)
+	err = vzlog.ConflictWithLog(fmt.Sprintf("Failed to update restart version for workload %s/%s", u.GetNamespace(), u.GetName()), err, log.GetZapLogger())
 	return err
 }
 

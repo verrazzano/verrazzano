@@ -201,7 +201,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 			},
 		}
 
-		log.Debugf("Creating Istio authorization policy: %s:%s", namespace, ownerRef.Name)
+		log.Infof("Creating Istio authorization policy: %s:%s", namespace, ownerRef.Name)
 		_, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace).Create(context.TODO(), ap, metav1.CreateOptions{})
 		return err
 	} else if err != nil {
@@ -283,14 +283,14 @@ func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, name
 
 		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
-			log.Debugf("Failed getting the Dynamic API: %v", err)
-			return nil, nil
+			log.Errorf("Failed getting the Dynamic API: %v", err)
+			return nil, err
 		}
 
 		if len(unst.GetOwnerReferences()) != 0 {
 			list, err = a.flattenOwnerReferences(list, namespace, unst.GetOwnerReferences(), log)
 			if err != nil {
-				return nil, nil
+				return nil, err
 			}
 		}
 	}

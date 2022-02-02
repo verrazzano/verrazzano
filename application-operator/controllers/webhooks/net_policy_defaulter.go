@@ -32,7 +32,7 @@ type NetPolicyDefaulter struct {
 // the network policy can match the namespace with a selector.
 func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	if appConfig.DeletionTimestamp != nil {
-		log.Debug("App config is being deleted, nothing to do", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+		log.Info("App config is being deleted, nothing to do", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 		return nil
 	}
 
@@ -51,7 +51,7 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 		}
 
 		// create/update the network policy
-		log.Debugw("Ensuring Istio network policy exists", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+		log.Infow("Ensuring Istio network policy exists", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 		netpol := newNetworkPolicy(appConfig)
 
 		_, err := controllerutil.CreateOrUpdate(context.TODO(), n.Client, &netpol, func() error {
@@ -72,7 +72,7 @@ func (n *NetPolicyDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, 
 func (n *NetPolicyDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	if !dryRun {
 		// delete the network policy
-		log.Debugw("Deleting Istio network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
+		log.Infow("Deleting Istio network policy", "namespace", appConfig.Namespace, "app config name", appConfig.Name)
 		netpol := newNetworkPolicy(appConfig)
 		err := n.Client.Delete(context.TODO(), &netpol, &client.DeleteOptions{})
 		if err != nil && !k8serrors.IsNotFound(err) {
@@ -99,7 +99,7 @@ func (n *NetPolicyDefaulter) ensureNamespaceLabel(namespace string, log *zap.Sug
 
 	val, exists := ns.ObjectMeta.Labels[constants.LabelVerrazzanoNamespace]
 	if !exists || val != namespace {
-		log.Debugw("Updating namespace with Verrazzano namespace label", "namespace", namespace)
+		log.Infow("Updating namespace with Verrazzano namespace label", "namespace", namespace)
 		ns.ObjectMeta.Labels[constants.LabelVerrazzanoNamespace] = namespace
 
 		_, err = n.NamespaceClient.Update(context.TODO(), ns, metav1.UpdateOptions{})

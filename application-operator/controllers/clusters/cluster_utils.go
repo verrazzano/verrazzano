@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -376,4 +377,23 @@ func NewRequeueWithDelay() reconcile.Result {
 // Return true if requeue is needed
 func ShouldRequeue(r reconcile.Result) bool {
 	return r.Requeue || r.RequeueAfter > 0
+}
+
+func GetResourceAndLogger(controller string, namespacedName types.NamespacedName, obj controllerutil.Object, c client.Client) (vzlog.VerrazzanoLogger, error) {
+	if err := c.Get(context.TODO(), namespacedName, obj); err != nil {
+		return nil, err
+	}
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
+	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           namespacedName.Name,
+		Namespace:      namespacedName.Namespace,
+		ID:             string(obj.GetUID()),
+		Generation:     obj.GetGeneration(),
+		ControllerName: controller,
+	})
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for %v: %v", namespacedName, err)
+	}
+
+	return log, err
 }
