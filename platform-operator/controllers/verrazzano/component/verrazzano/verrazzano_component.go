@@ -73,7 +73,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
-	prefix := fmt.Sprintf("Component %s", ComponentName)
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}

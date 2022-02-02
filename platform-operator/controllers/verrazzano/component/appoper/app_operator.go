@@ -84,12 +84,12 @@ func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace
 	deployments := []types.NamespacedName{
 		{Name: "verrazzano-application-operator", Namespace: namespace},
 	}
-	prefix := fmt.Sprintf("Component %s", ComponentName)
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {
 	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
-	yamlApplier := k8sutil.NewYAMLApplier(c)
+	yamlApplier := k8sutil.NewYAMLApplier(c, "")
 	return yamlApplier.ApplyD(path)
 }

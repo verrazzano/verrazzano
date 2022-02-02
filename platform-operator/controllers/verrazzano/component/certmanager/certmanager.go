@@ -200,8 +200,9 @@ func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) er
 	}
 
 	// Apply the CRD Manifest for CertManager
-	if err = k8sutil.NewYAMLApplier(compContext.Client()).ApplyF(outputFile); err != nil {
+	if err = k8sutil.NewYAMLApplier(compContext.Client(), "").ApplyF(outputFile); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed applying CRD Manifests for CertManager: %v", err)
+
 	}
 
 	// Clean up the files written out. This may be different than the files applied
@@ -242,7 +243,7 @@ func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
 		{Name: cainjectorDeploymentName, Namespace: namespace},
 		{Name: webhookDeploymentName, Namespace: namespace},
 	}
-	prefix := fmt.Sprintf("Component %s", ComponentName)
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 

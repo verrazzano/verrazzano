@@ -210,7 +210,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 				Namespace: common.CattleSystem,
 			},
 		}
-		prefix := fmt.Sprintf("Component %s", ComponentName)
+		prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 		return status.DeploymentsReady(log, c, rancherDeploy, 1, prefix)
 	}
 
