@@ -22,7 +22,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - name: web
-              containerPort: 8090
+              containerPort: 8080
               protocol: TCP
 ---
 apiVersion: v1
@@ -35,6 +35,6 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-    - port: 8090
+    - port: 8080
   selector:
     app: hello-helidon-application

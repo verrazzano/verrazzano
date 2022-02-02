@@ -29,14 +29,14 @@ spec:
           source_labels: null
           target_label: verrazzano_cluster
         - action: keep
-          regex: {{index .workload.metadata.labels "app.verrazzano.io/workload"}};8090
+          regex: {{index .workload.metadata.labels "app.verrazzano.io/workload"}};8080
           source_labels:
             - __meta_kubernetes_pod_label_app_verrazzano_io_workload
             - __meta_kubernetes_pod_container_port_number
         - action: replace
           regex: ([^:]+)(?::\d+)?;(\d+)
           # Hardcoded Port
-          replacement: $1:8090
+          replacement: $1:8080
           source_labels:
             - __address__
           target_label: __address__
@@ -60,6 +60,12 @@ spec:
           source_labels:
             - name
           target_label: webapp
+      - action: replace
+          regex: (.*)
+          replacement: $1-test
+          source_labels:
+            - __meta_kubernetes_namespace
+          target_label: test_namespace
       scheme: https
       {{ if eq ( index .namespace.metadata.labels "istio-injection" ) "enabled" }}
       tls_config:
