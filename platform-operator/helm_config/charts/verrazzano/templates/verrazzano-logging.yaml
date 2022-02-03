@@ -243,6 +243,7 @@ data:
         # istio-proxy has two formats for log records
         # one has a timestamp, log level and other fields
         # the other is just a messsage
+        @type multi_format
         <pattern>
           format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z)\t(?<level>.*?)\t([\s\S]*?)$/
           time_key logtime
