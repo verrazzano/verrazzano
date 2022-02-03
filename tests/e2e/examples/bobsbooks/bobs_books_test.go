@@ -174,7 +174,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s", host)
 				return pkg.GetWebPage(url, host)
-			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
+			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
@@ -248,7 +248,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -258,7 +258,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
