@@ -266,7 +266,7 @@ data:
     # filter to parse kiali container log files
     <filter kubernetes.**vmi-system-kiali**verrazzano-system_vmi-system-kiali**>
       @type parser
-      @id kiali
+      @id vmi-system-kiali
       key_name log
       reserve_data true
       emit_invalid_record_to_error true
