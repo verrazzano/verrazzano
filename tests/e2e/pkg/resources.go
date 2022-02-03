@@ -258,12 +258,12 @@ func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	return deleteResourceFromBytes(bytes, kubeconfigPath, "")
+	return deleteResourceFromBytes(bytes, kubeconfigPath)
 }
 
 // deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
 // This is intended to be equivalent to `kubectl delete`
-func deleteResourceFromBytes(data []byte, kubeconfigPath string, namespace string) error {
+func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
@@ -284,7 +284,7 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string, namespace strin
 		uns := &unstructured.Unstructured{
 			Object: map[string]interface{}{},
 		}
-		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, namespace)
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, "")
 		if err != nil {
 			return fmt.Errorf("failed to read resource from bytes: %w", err)
 		}
@@ -294,9 +294,9 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string, namespace strin
 		}
 
 		// Delete the resource.
-		err = client.Resource(unsMap.Resource).Namespace(namespace).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
+		err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			fmt.Printf("Failed to delete %s/%v", namespace, uns.GroupVersionKind())
+			fmt.Printf("Failed to delete %s/%v", uns.GetNamespace(), uns.GroupVersionKind())
 		}
 	}
 }
@@ -324,7 +324,48 @@ func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfig
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	return deleteResourceFromBytes(bytes, kubeconfigPath, namespace)
+	return deleteResourceFromBytesInGeneratedNamespace(bytes, kubeconfigPath, namespace)
+}
+
+
+// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// This is intended to be equivalent to `kubectl delete`
+func deleteResourceFromBytesInGeneratedNamespace(data []byte, kubeconfigPath string, namespace string) error {
+        config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+        if err != nil {
+                return fmt.Errorf("failed to get kube config: %w", err)
+        }
+        client, err := dynamic.NewForConfig(config)
+        if err != nil {
+                return fmt.Errorf("failed to create dynamic client: %w", err)
+        }
+        disco, err := discovery.NewDiscoveryClientForConfig(config)
+        if err != nil {
+                return fmt.Errorf("failed to create discovery client: %w", err)
+        }
+        mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
+
+        reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+        for {   
+                // Unmarshall the YAML bytes into an Unstructured.
+                uns := &unstructured.Unstructured{
+                        Object: map[string]interface{}{},
+                }
+                unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, namespace)
+                if err != nil {
+                        return fmt.Errorf("failed to read resource from bytes: %w", err)
+                }
+                if unsMap == nil {
+                        // all resources must have been read
+                        return nil
+                }
+
+                // Delete the resource.
+                err = client.Resource(unsMap.Resource).Namespace(namespace).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
+                if err != nil && !errors.IsNotFound(err) {
+                        fmt.Printf("Failed to delete %s/%v", namespace, uns.GroupVersionKind())
+                }
+        }
 }
 
 // PatchResourceFromFileInCluster patches a Kubernetes resource from a given patch file in the specified cluster
