@@ -314,7 +314,7 @@ func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) e
 }
 
 // DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
-// // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
+// it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
 	found, err := FindTestDataFile(file)
 	if err != nil {
@@ -327,45 +327,44 @@ func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfig
 	return deleteResourceFromBytesInGeneratedNamespace(bytes, kubeconfigPath, namespace)
 }
 
-
 // deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
 // This is intended to be equivalent to `kubectl delete`
 func deleteResourceFromBytesInGeneratedNamespace(data []byte, kubeconfigPath string, namespace string) error {
-        config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-        if err != nil {
-                return fmt.Errorf("failed to get kube config: %w", err)
-        }
-        client, err := dynamic.NewForConfig(config)
-        if err != nil {
-                return fmt.Errorf("failed to create dynamic client: %w", err)
-        }
-        disco, err := discovery.NewDiscoveryClientForConfig(config)
-        if err != nil {
-                return fmt.Errorf("failed to create discovery client: %w", err)
-        }
-        mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create discovery client: %w", err)
+	}
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
 
-        reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
-        for {   
-                // Unmarshall the YAML bytes into an Unstructured.
-                uns := &unstructured.Unstructured{
-                        Object: map[string]interface{}{},
-                }
-                unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, namespace)
-                if err != nil {
-                        return fmt.Errorf("failed to read resource from bytes: %w", err)
-                }
-                if unsMap == nil {
-                        // all resources must have been read
-                        return nil
-                }
+	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+	for {
+		// Unmarshall the YAML bytes into an Unstructured.
+		uns := &unstructured.Unstructured{
+			Object: map[string]interface{}{},
+		}
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to read resource from bytes: %w", err)
+		}
+		if unsMap == nil {
+			// all resources must have been read
+			return nil
+		}
 
-                // Delete the resource.
-                err = client.Resource(unsMap.Resource).Namespace(namespace).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
-                if err != nil && !errors.IsNotFound(err) {
-                        fmt.Printf("Failed to delete %s/%v", namespace, uns.GroupVersionKind())
-                }
-        }
+		// Delete the resource.
+		err = client.Resource(unsMap.Resource).Namespace(namespace).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
+		if err != nil && !errors.IsNotFound(err) {
+			fmt.Printf("Failed to delete %s/%v", namespace, uns.GroupVersionKind())
+		}
+	}
 }
 
 // PatchResourceFromFileInCluster patches a Kubernetes resource from a given patch file in the specified cluster
