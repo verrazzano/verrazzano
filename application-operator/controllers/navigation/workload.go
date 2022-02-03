@@ -162,7 +162,7 @@ func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log 
 // there is no associated metrics trait for the workload. If there is an associated metrics trait and the lookup of the
 // trait fails, an error is returned and the reconcile should be retried.
 func MetricsTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.MetricsTrait, error) {
-	log.Info(fmt.Sprintf("Getting metrics trait from OAM labels: %v", workloadMeta.Labels))
+	log.Debug(fmt.Sprintf("Getting metrics trait from OAM labels: %v", workloadMeta.Labels))
 	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, workloadMeta.Labels)
 	if err != nil {
 		return nil, err

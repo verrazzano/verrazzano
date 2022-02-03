@@ -30,5 +30,6 @@ func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployme
 			return false
 		}
 	}
+	log.Oncef("%s has enough replicas for deployments %v", prefix, deployments)
 	return true
 }

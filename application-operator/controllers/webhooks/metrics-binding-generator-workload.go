@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	"net/http"
 	"reflect"
@@ -39,7 +40,7 @@ type GeneratorWorkloadWebhook struct {
 
 // Handle - handler for the mutating webhook
 func (a *GeneratorWorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	log := zap.S().With("webhooks.metrics-binding-generator-workload")
+	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldWebhook, "metrics-binding-generator-workload")
 
 	log.Debugf("group: %s, version: %s, kind: %s, namespace: %s, name: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace, req.Name)
 

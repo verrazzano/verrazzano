@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"math/big"
 	"os"
 	"reflect"
@@ -221,12 +223,26 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanoweblogicworkloads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanoweblogicworkloads/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the weblogic workload
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.With("verrazzanoweblogicworkload", req.NamespacedName)
-	log.Info("Reconciling Verrazzano WebLogic workload")
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "verrazzanoweblogicworkload")
 
 	// fetch the workload and unwrap the WebLogic resource
-	workload, err := r.fetchWorkload(ctx, req.NamespacedName)
+	workload, err := r.fetchWorkload(ctx, req.NamespacedName, log)
 	if err != nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
@@ -292,7 +308,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Add the Fluentd sidecar container required for logging to the Domain.  If the image is old, update it
-	if err = r.addLogging(ctx, log, workload, u, &existingDomain); err != nil {
+	if err = r.addLogging(ctx, log, workload, u, log); err != nil {
 		return reconcile.Result{}, err
 	}
 
@@ -379,13 +395,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // fetchWorkload fetches the VerrazzanoWebLogicWorkload data given a namespaced name
-func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedName) (*vzapi.VerrazzanoWebLogicWorkload, error) {
+func (r *Reconciler) fetchWorkload(ctx context.Context, name types.NamespacedName, log *zap.SugaredLogger) (*vzapi.VerrazzanoWebLogicWorkload, error) {
 	var workload vzapi.VerrazzanoWebLogicWorkload
 	if err := r.Get(ctx, name, &workload); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Debugf("VerrazzanoWebLogicWorkload %s has been deleted", name.Name)
+			log.Debugf("VerrazzanoWebLogicWorkload %s has been deleted", name.Name)
 		} else {
-			r.Log.Errorf("Failed to fetch VerrazzanoWebLogicWorkload %s: %v", name.Name, err)
+			log.Errorf("Failed to fetch VerrazzanoWebLogicWorkload %s: %v", name.Name, err)
 		}
 		return nil, err
 	}
@@ -454,7 +470,7 @@ func copyLabels(log *zap.SugaredLogger, workloadLabels map[string]string, weblog
 
 // addLogging adds a FLUENTD sidecar and updates the WebLogic spec if there is an associated LogInfo
 // If the Fluentd image changed during an upgrade, then the new image will be used
-func (r *Reconciler) addLogging(ctx context.Context, log *zap.SugaredLogger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured, existingDomain *wls.Domain) error {
+func (r *Reconciler) addLogging(ctx context.Context, log *zap.SugaredLogger, workload *vzapi.VerrazzanoWebLogicWorkload, weblogic *unstructured.Unstructured, logger *zap.SugaredLogger) error {
 	// extract just enough of the WebLogic data into concrete types so we can merge with
 	// the FLUENTD data
 	var extracted containersMountsVolumes
@@ -479,7 +495,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log *zap.SugaredLogger, wor
 		HandlerEnv:   getWlsSpecificContainerEnv(name),
 	}
 	fluentdManager := &logging.Fluentd{Context: ctx,
-		Log:                    r.Log,
+		Log:                    logger,
 		Client:                 r.Client,
 		ParseRules:             WlsFluentdParsingRules,
 		StorageVolumeName:      storageVolumeName,

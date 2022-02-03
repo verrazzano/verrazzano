@@ -5,7 +5,9 @@ package containerizedworkload
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
@@ -38,9 +40,23 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile checks restart version annotations on an ContainerizedWorkload and
 // restarts as needed.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the ContainerizedWorkload
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.With("containerizedworkload", req.NamespacedName)
-	log.Info("Reconciling ContainerizedWorkload")
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "containerizedworkload")
 
 	// fetch the ContainerizedWorkload
 	var workload oamv1.ContainerizedWorkload

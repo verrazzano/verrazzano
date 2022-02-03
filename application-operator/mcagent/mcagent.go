@@ -6,6 +6,7 @@ package mcagent
 import (
 	"context"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"io/ioutil"
 	"os"
 	"time"
@@ -35,6 +36,7 @@ const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log *zap.SugaredLogger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
 	// for connecting to a managed cluster.
+	log = log.With(vzlog.FieldAgent, "multi-cluster")
 	log.Info("Starting multi-cluster agent")
 
 	// Initialize the syncer object
@@ -72,7 +74,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	// Get the secret
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
 	if err != nil {
-		if clusters.IgnoreNotFoundWithLog("secret", err, s.Log) == nil && s.AgentSecretFound {
+		if clusters.IgnoreNotFoundWithLog(err, s.Log) == nil && s.AgentSecretFound {
 			s.Log.Debugf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
 			s.AgentSecretFound = false
 			s.AgentSecretValid = false
@@ -250,7 +252,7 @@ func (s *Syncer) updateDeployment(name string) {
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
-		if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
+		if clusters.IgnoreNotFoundWithLog(regErr, s.Log) != nil {
 			return
 		}
 	} else {
@@ -283,7 +285,7 @@ func (s *Syncer) configureLogging() {
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
-		if clusters.IgnoreNotFoundWithLog("secret", regErr, s.Log) != nil {
+		if clusters.IgnoreNotFoundWithLog(regErr, s.Log) != nil {
 			return
 		}
 	}

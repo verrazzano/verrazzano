@@ -39,6 +39,7 @@ pipeline {
         booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
         booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
+        booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
@@ -56,9 +57,6 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         IS_PERIODIC_PIPELINE = "false"
 
-        DOCKER_ANALYSIS_CI_IMAGE_NAME = 'verrazzano-analysis-jenkins'
-        DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME = 'verrazzano-analysis'
-        DOCKER_ANALYSIS_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_ANALYSIS_PUBLISH_IMAGE_NAME : env.DOCKER_ANALYSIS_CI_IMAGE_NAME}"
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
@@ -379,12 +377,16 @@ pipeline {
         }
 
         stage('Scan Image') {
-            when { not { buildingTag() } }
+            when {
+               allOf {
+                   not { buildingTag() }
+                   expression {params.PERFORM_SCAN == true}
+               }
+            }
             steps {
                 script {
                     scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_ANALYSIS_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     if (SCAN_IMAGE_PATCH_OPERATOR == true) {
                         scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     }
@@ -697,7 +699,7 @@ def buildImages(dockerImageTag) {
         (cd application-operator; make check-repo-clean)
         (cd image-patch-operator; make check-repo-clean)
         echo 'Now build...'
-        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} VERRAZZANO_ANALYSIS_IMAGE_NAME=${DOCKER_ANALYSIS_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
         ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
     """
@@ -834,42 +836,76 @@ def trimIfGithubNoreplyUser(userIn) {
 
 def getSuspectList(commitList, userMappings) {
     def retValue = ""
+    def suspectList = []
     if (commitList == null || commitList.size() == 0) {
         echo "No commits to form suspect list"
-        return retValue
-    }
-    def suspectList = []
-    for (int i = 0; i < commitList.size(); i++) {
-        def id = commitList[i]
-        try {
-            def gitAuthor = sh(
-                script: "git log --format='%ae' '$id^!'",
-                returnStdout: true
-            ).trim()
-            if (gitAuthor != null) {
-                def author = trimIfGithubNoreplyUser(gitAuthor)
-                echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
-                if (userMappings.containsKey(author)) {
-                    def slackUser = userMappings.get(author)
-                    if (!suspectList.contains(slackUser)) {
-                        echo "Added ${slackUser} as suspect"
-                        retValue += " ${slackUser}"
-                        suspectList.add(slackUser)
+    } else {
+        for (int i = 0; i < commitList.size(); i++) {
+            def id = commitList[i]
+            try {
+                def gitAuthor = sh(
+                    script: "git log --format='%ae' '$id^!'",
+                    returnStdout: true
+                ).trim()
+                if (gitAuthor != null) {
+                    def author = trimIfGithubNoreplyUser(gitAuthor)
+                    echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                    if (userMappings.containsKey(author)) {
+                        def slackUser = userMappings.get(author)
+                        if (!suspectList.contains(slackUser)) {
+                            echo "Added ${slackUser} as suspect"
+                            retValue += " ${slackUser}"
+                            suspectList.add(slackUser)
+                        }
+                    } else {
+                        // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                        if (!suspectList.contains(author)) {
+                            echo "Added ${author} as suspect"
+                            retValue += " ${author}"
+                            suspectList.add(author)
+                        }
                     }
                 } else {
-                    // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                    if (!suspectList.contains(author)) {
-                        echo "Added ${author} as suspect"
-                        retValue += " ${author}"
-                       suspectList.add(author)
-                    }
+                    echo "No author returned from git"
                 }
-            } else {
-                echo "No author returned from git"
+            } catch (Exception e) {
+                echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
             }
-        } catch (Exception e) {
-            echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
         }
+    }
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+
+    if (startedByUser.length() > 0) {
+        echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
+        def author = trimIfGithubNoreplyUser(startedByUser)
+        echo "DEBUG: author: ${startedByUser}, ${author}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
+            }
+        } else {
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+               echo "Added ${author} as suspect"
+               retValue += " ${author}"
+               suspectList.add(author)
+            }
+        }
+    } else {
+        echo "Build not started by a user, not adding to notification list"
     }
     echo "returning suspect list: ${retValue}"
     return retValue

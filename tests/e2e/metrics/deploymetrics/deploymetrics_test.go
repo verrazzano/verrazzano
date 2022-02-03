@@ -4,9 +4,10 @@
 package deploymetrics
 
 import (
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,8 +26,8 @@ var waitTimeout = 10 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
-var longWaitTimeout = 10 * time.Minute
-var longPollingInterval = 20 * time.Second
+var longWaitTimeout = 15 * time.Minute
+var longPollingInterval = 30 * time.Second
 
 var t = framework.NewTestFramework("deploymetrics")
 
@@ -85,7 +86,7 @@ func undeployMetricsApplication() {
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	}, longWaitTimeout, longPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
 		ns, err := pkg.GetNamespace(testNamespace)

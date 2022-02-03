@@ -16,6 +16,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// Debug is set from a platform-operator arg and sets the helm --debug flag
+var Debug bool
+
 // cmdRunner needed for unit tests
 var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
@@ -149,6 +152,9 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 	if len(chartDir) > 0 {
 		cmdArgs = append(cmdArgs, chartDir)
 	}
+	if Debug {
+		cmdArgs = append(cmdArgs, "--debug")
+	}
 	if dryRun {
 		cmdArgs = append(cmdArgs, "--dry-run")
 	}
@@ -169,7 +175,11 @@ func runHelm(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		// mask sensitive data before logging
 		cmdStr := maskSensitiveData(cmd.String())
-		log.Infof("Running Helm for release %s, command: %s", releaseName, cmdStr)
+		if i == 1 {
+			log.Progressf("Running Helm command %s for release %s", cmdStr, releaseName)
+		} else {
+			log.Progressf("Re-running Helm command for release %s", releaseName)
+		}
 
 		stdout, stderr, err = runner.Run(cmd)
 		if err == nil {

@@ -184,7 +184,6 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
-        K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : params.OKE_CLUSTER_VERSION}"
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon-appconf"
@@ -285,6 +284,8 @@ pipeline {
                         // derive the prefix for the OKE cluster
                         OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
                     }
+                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                    env.K8S_VERSION_LABEL = "${params.TEST_ENV == 'kind' ? params.KIND_CLUSTER_VERSION : sh(returnStdout: true, script: '${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}').trim()}"
                 }
             }
         }

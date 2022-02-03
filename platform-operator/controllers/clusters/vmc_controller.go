@@ -6,6 +6,10 @@ package clusters
 import (
 	"context"
 	"fmt"
+	"time"
+
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -31,7 +35,7 @@ const finalizerName = "managedcluster.verrazzano.io"
 type VerrazzanoManagedClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	log    *zap.SugaredLogger
+	log    vzlog.VerrazzanoLogger
 }
 
 // bindingParams used to mutate the RoleBinding
@@ -41,26 +45,59 @@ type bindingParams struct {
 	serviceAccountName string
 }
 
-// Reconcile reconciles a VerrazzanoManagedCluster object
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.TODO()
-	log := zap.S().With("resource", fmt.Sprintf("%s:%s", req.Namespace, req.Name))
-	r.log = log
-	log.Info("Reconciler called")
-	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{}
-
-	err := r.Get(ctx, req.NamespacedName, vmc)
-	if err != nil {
+	// Get the  resource
+	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
+	if err := r.Get(context.TODO(), req.NamespacedName, cr); err != nil {
 		// If the resource is not found, that means all of the finalizers have been removed,
 		// and the Verrazzano resource has been deleted, so there is nothing left to do.
 		if errors.IsNotFound(err) {
 			return reconcile.Result{}, nil
 		}
-
-		// Error getting the VerrazzanoManagedCluster resource
-		log.Errorf("Failed to fetch resource: %v", err)
-		return reconcile.Result{}, err
+		zap.S().Errorf("Failed to fetch VerrazzanoManagedCluster resource: %v", err)
+		return newRequeueWithDelay(), nil
 	}
+
+	// Get the resource logger needed to log message using 'progress' and 'once' methods
+	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+		Name:           cr.Name,
+		Namespace:      cr.Namespace,
+		ID:             string(cr.UID),
+		Generation:     cr.Generation,
+		ControllerName: "multicluster",
+	})
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for VerrazzanoManagedCluster controller", err)
+	}
+
+	r.log = log
+	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
+	res, err := r.doReconcile(log, cr)
+	if vzctrl.ShouldRequeue(res) {
+		return res, nil
+	}
+
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return newRequeueWithDelay(), nil
+	}
+
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return newRequeueWithDelay(), nil
+	}
+
+	// The resource has been reconciled.
+	log.Oncef("Successfully reconciled VerrazzanoManagedCluster resource %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// Reconcile reconciles a VerrazzanoManagedCluster object
+func (r *VerrazzanoManagedClusterReconciler) doReconcile(log vzlog.VerrazzanoLogger, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (ctrl.Result, error) {
+	ctx := context.TODO()
 
 	if !vmc.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Finalizer is present, so lets do the cluster deletion
@@ -91,7 +128,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(req ctrl.Request) (ctrl.R
 
 	// Sync the service account
 	log.Debugf("Syncing the ServiceAccount for VMC %s", vmc.Name)
-	err = r.syncServiceAccount(vmc)
+	err := r.syncServiceAccount(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the ServiceAccount", err, log)
 		return ctrl.Result{}, err
@@ -155,7 +192,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncServiceAccount(vmc *clustersv1a
 	// Does the VerrazzanoManagedCluster object contain the service account name?
 	saName := generateManagedResourceName(vmc.Name)
 	if vmc.Spec.ServiceAccount != saName {
-		r.log.Infof("Updating ServiceAccount from %q to %q", vmc.Spec.ServiceAccount, saName)
+		r.log.Oncef("Updating ServiceAccount from %s to %s", vmc.Spec.ServiceAccount, saName)
 		vmc.Spec.ServiceAccount = saName
 		err = r.Update(context.TODO(), vmc)
 		if err != nil {
@@ -250,7 +287,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatusReady(ctx context.Conte
 	return r.updateStatus(ctx, vmc, clustersv1alpha1.Condition{Status: corev1.ConditionTrue, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now})
 }
 
-func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string, err error, log *zap.SugaredLogger) {
+func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string, err error, log vzlog.VerrazzanoLogger) {
 	fullMsg := fmt.Sprintf("%s: %v", msg, err)
 	log.Errorf(fullMsg)
 	statusErr := r.updateStatusNotReady(ctx, vmc, fullMsg)
@@ -305,4 +342,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	}
 	r.log.Debugf("Updating Status of VMC %s with condition type %s = %s: %v", vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	return r.Status().Update(ctx, vmc)
+}
+
+// Create a new Result that will cause a reconcile requeue after a short delay
+func newRequeueWithDelay() ctrl.Result {
+	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
 }

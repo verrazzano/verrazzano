@@ -8,7 +8,9 @@ import (
 	"errors"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"reflect"
@@ -65,9 +67,23 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile reconciles a VerrazzanoHelidonWorkload resource. It fetches the embedded DeploymentSpec, mutates it to add
 // scopes and traits, and then writes out the apps/Deployment (or deletes it if the workload is being deleted).
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the VerrazzanoHelidonWorkload
+func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.With("verrazzanohelidonworkload", req.NamespacedName)
-	log.Info("Reconciling VerrazzanoHelidonWorkload")
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "verrazzanohelidonworkload")
 
 	// fetch the workload
 	var workload vzapi.VerrazzanoHelidonWorkload
@@ -89,7 +105,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// unwrap the apps/DeploymentSpec and meta/ObjectMeta
-	deploy, err := r.convertWorkloadToDeployment(&workload)
+	deploy, err := r.convertWorkloadToDeployment(&workload, log)
 	if err != nil {
 		log.Errorf("Failed to convert workload to deployment: %v", err)
 		return reconcile.Result{}, err
@@ -127,7 +143,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// create a service for the workload
-	service, err := r.createServiceFromDeployment(&workload, deploy)
+	service, err := r.createServiceFromDeployment(&workload, deploy, log)
 	if err != nil {
 		log.Errorf("Failed to get service from a deployment: %v", err)
 		return reconcile.Result{}, err
@@ -178,8 +194,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // convertWorkloadToDeployment converts a VerrazzanoHelidonWorkload into a Deployment.
-func (r *Reconciler) convertWorkloadToDeployment(
-	workload *vzapi.VerrazzanoHelidonWorkload) (*appsv1.Deployment, error) {
+func (r *Reconciler) convertWorkloadToDeployment(workload *vzapi.VerrazzanoHelidonWorkload, log *zap.SugaredLogger) (*appsv1.Deployment, error) {
 
 	d := &appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -216,18 +231,17 @@ func (r *Reconciler) convertWorkloadToDeployment(
 	passLabelAndAnnotation(workload, d)
 
 	if y, err := yaml.Marshal(d); err != nil {
-		r.Log.Errorf("Failed to convert deployment to yaml: %v", err)
-		r.Log.Debugf("Deployment in json format: %s ", d)
+		log.Errorf("Failed to convert deployment to yaml: %v", err)
+		log.Debugf("Deployment in json format: %s ", d)
 	} else {
-		r.Log.Debugf("Deployment in yaml format: %s", string(y))
+		log.Debugf("Deployment in yaml format: %s", string(y))
 	}
 
 	return d, nil
 }
 
 // createServiceFromDeployment creates a service for the deployment
-func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload,
-	deploy *appsv1.Deployment) (*corev1.Service, error) {
+func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelidonWorkload, deploy *appsv1.Deployment, log *zap.SugaredLogger) (*corev1.Service, error) {
 
 	// We don't add a Service if there are no containers for the Deployment.
 	// This should never happen in practice.
@@ -268,16 +282,16 @@ func (r *Reconciler) createServiceFromDeployment(workload *vzapi.VerrazzanoHelid
 						TargetPort: intstr.FromInt(int(port.ContainerPort)),
 						Protocol:   protocol,
 					}
-					r.Log.Debugf("Appending port %s to service", servicePort)
+					log.Debugf("Appending port %s to service", servicePort)
 					s.Spec.Ports = append(s.Spec.Ports, servicePort)
 				}
 			}
 		}
 		if y, err := yaml.Marshal(s); err != nil {
-			r.Log.Errorf("Failed to convert service to yaml: %v", err)
-			r.Log.Debugf("Service in json format: %s", s)
+			log.Errorf("Failed to convert service to yaml: %v", err)
+			log.Debugf("Service in json format: %s", s)
 		} else {
-			r.Log.Debugf("Service in yaml format: %s", string(y))
+			log.Debugf("Service in yaml format: %s", string(y))
 		}
 		return s, nil
 	}

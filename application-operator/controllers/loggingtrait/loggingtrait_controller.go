@@ -6,6 +6,8 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"os"
 	"strings"
 
@@ -53,12 +55,27 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
 func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	res, err := r.doReconcile(req)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the logging trait
+func (r *LoggingTraitReconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 	var err error
 	ctx := context.Background()
-	log := r.Log.With("loggingtrait", req.NamespacedName)
+	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "loggingtrait")
 
 	var trait *oamv1alpha1.LoggingTrait
-	if trait, err = r.fetchTrait(ctx, req.NamespacedName); err != nil || trait == nil {
+	if trait, err = r.fetchTrait(ctx, req.NamespacedName, log); err != nil || trait == nil {
 		return reconcile.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -229,15 +246,15 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log *
 
 // fetchTrait attempts to get a trait given a namespaced name.
 // Will return nil for the trait and no error if the trait does not exist.
-func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.NamespacedName) (*oamv1alpha1.LoggingTrait, error) {
+func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.NamespacedName, log *zap.SugaredLogger) (*oamv1alpha1.LoggingTrait, error) {
 	var trait oamv1alpha1.LoggingTrait
-	r.Log.Debugw("Fetch trait", "trait", name)
+	log.Debugw("Fetch trait", "trait", name)
 	if err := r.Get(ctx, name, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Debug("Trait has been deleted")
+			log.Debug("Trait has been deleted")
 			return nil, nil
 		}
-		r.Log.Debug("Failed to fetch trait")
+		log.Debug("Failed to fetch trait")
 		return nil, err
 	}
 	return &trait, nil

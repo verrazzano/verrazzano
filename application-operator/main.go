@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"flag"
+	"go.uber.org/zap"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -36,7 +37,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
-	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -119,7 +119,7 @@ func main() {
 
 	if err = (&ingresstrait.Reconciler{
 		Client: mgr.GetClient(),
-		Log:    log.With("controller", "IngressTrait"),
+		Log:    log,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create IngressTrait controller: %v", err)
@@ -127,7 +127,7 @@ func main() {
 	}
 	metricsReconciler := &metricstrait.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     log.With("controller", "MetricsTrait"),
+		Log:     log,
 		Scheme:  mgr.GetScheme(),
 		Scraper: defaultMetricsScraper,
 	}
@@ -287,7 +287,7 @@ func main() {
 		// MultiClusterConfigMap validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.MultiClusterConfigMapName)
 		if err != nil {
-			log.Errorf("unable to update multiclusterconfigmap validation webhook configuration: %v", err)
+			log.Errorf("Failed to update multiclusterconfigmap validation webhook configuration: %v", err)
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().Register(
@@ -305,9 +305,14 @@ func main() {
 			&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
 	}
 
+	logger, err := vzlog.BuildZapLogger(0)
+	if err != nil {
+		log.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
+		os.Exit(1)
+	}
 	if err = (&cohworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     log.With("controller", "VerrazzanoCoherenceWorkload"),
+		Log:     logger,
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
@@ -316,7 +321,7 @@ func main() {
 	}
 	wlsWorkloadReconciler := &wlsworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     log.With("controller", "VerrazzanoWeblogicWorkload"),
+		Log:     log,
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}
@@ -326,11 +331,11 @@ func main() {
 	}
 	if err = (&helidonworkload.Reconciler{
 		Client:  mgr.GetClient(),
-		Log:     log.With("controller", "VerrazzanoHelidonWorkload"),
+		Log:     log,
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("unable to create VerrazzanoHelidonWorkload controller: %v", err)
+		log.Errorf("Failed to create VerrazzanoHelidonWorkload controller: %v", err)
 		os.Exit(1)
 	}
 	// Setup the namespace reconciler
@@ -344,7 +349,7 @@ func main() {
 
 	if err = (&multiclustersecret.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          log.With("controller", clustersv1alpha1.MultiClusterSecretKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
@@ -353,7 +358,7 @@ func main() {
 	}
 	if err = (&multiclustercomponent.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          log.With("controller", clustersv1alpha1.MultiClusterComponentKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
@@ -362,7 +367,7 @@ func main() {
 	}
 	if err = (&multiclusterconfigmap.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          log.With("controller", clustersv1alpha1.MultiClusterConfigMapKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
@@ -371,7 +376,7 @@ func main() {
 	}
 	if err = (&multiclusterapplicationconfiguration.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          log.With("controller", clustersv1alpha1.MultiClusterAppConfigKind),
+		Log:          log,
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
@@ -382,7 +387,7 @@ func main() {
 	vmcclient.AddToScheme(scheme)
 	if err = (&verrazzanoproject.Reconciler{
 		Client:       mgr.GetClient(),
-		Log:          log.With("controller", clustersv1alpha1.VerrazzanoProjectKind),
+		Log:          log,
 		Scheme:       scheme,
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
@@ -391,7 +396,7 @@ func main() {
 	}
 	if err = (&loggingtrait.LoggingTraitReconciler{
 		Client: mgr.GetClient(),
-		Log:    log.With("controller", "LoggingTrait"),
+		Log:    log,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create LoggingTrait controller: %v", err)
@@ -399,7 +404,7 @@ func main() {
 	}
 	if err = (&appconfig.Reconciler{
 		Client: mgr.GetClient(),
-		Log:    log.With("controller", "ApplicationConfiguration"),
+		Log:    logger,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create ApplicationConfiguration controller: %v", err)
@@ -407,7 +412,7 @@ func main() {
 	}
 	if err = (&containerizedworkload.Reconciler{
 		Client: mgr.GetClient(),
-		Log:    log.With("controller", "ContainerizedWorkload"),
+		Log:    logger,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create ContainerizedWorkload controller: %v", err)
@@ -418,7 +423,7 @@ func main() {
 	if err == nil {
 		if err = (&metricsbinding.Reconciler{
 			Client: mgr.GetClient(),
-			Log:    log.With("controller", "MetricsBinding"),
+			Log:    logger,
 			Scheme: mgr.GetScheme(),
 		}).SetupWithManager(mgr); err != nil {
 			log.Errorf("Failed to create MetricsBinding controller: %v", err)
@@ -428,7 +433,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	log.Debug("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), agentChannel, log.With("multi-cluster", "agent"))
+	go mcagent.StartAgent(mgr.GetClient(), agentChannel, log)
 
 	log.Info("Starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

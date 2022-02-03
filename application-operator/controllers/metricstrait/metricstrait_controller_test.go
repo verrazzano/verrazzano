@@ -820,9 +820,8 @@ func TestFetchTraitError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	assert.Error(err)
-	assert.Equal("test-error", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestWorkloadFetchError tests failing to fetch the workload during reconcile.
@@ -873,9 +872,8 @@ func TestWorkloadFetchError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	assert.Error(err)
-	assert.Equal("test-error", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestDeploymentUpdateError testing failing to update a workload child deployment during reconcile.
