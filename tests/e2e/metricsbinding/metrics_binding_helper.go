@@ -61,7 +61,7 @@ func UndeployApplication(namespace string, yamlPath string, promConfigJobName st
 	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
 
-func DeployApplicationAndTemplate(namespace string, appYamlPath string, templateYamlPath string) {
+func DeployApplicationAndTemplate(namespace string, appYamlPath string, templateYamlPath string, nsAnnotations map[string]string) {
 	pkg.Log(pkg.Info, "Deploy test application")
 	// Wait for namespace to finish deletion possibly from a prior run.
 	gomega.Eventually(func() bool {
@@ -74,7 +74,7 @@ func DeployApplicationAndTemplate(namespace string, appYamlPath string, template
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace(namespace, nsLabels)
+		return pkg.CreateNamespaceWithAnnotations(namespace, nsLabels, nsAnnotations)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
 	pkg.Log(pkg.Info, "Create template resource")

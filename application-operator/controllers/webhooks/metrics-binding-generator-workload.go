@@ -16,6 +16,7 @@ import (
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -76,7 +77,15 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		return admission.Allowed(constants.StatusReasonSuccess)
 	}
 
-	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
+	// Get the workload Namespace for annotation processing
+	workloadNamespace := &corev1.Namespace{}
+	err = a.Client.Get(context.TODO(), types.NamespacedName{Name: unst.GetNamespace()}, workloadNamespace)
+	if err != nil {
+		log.Errorw(fmt.Sprintf("Failed getting workload namespace: %v", err), "Namespace", unst.GetNamespace())
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this workload has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
 		if metricsTemplateAnnotation == "none" {
 			log.Debugf("%s is set to none - opting out of metrics", MetricsAnnotation)
@@ -84,8 +93,16 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		}
 	}
 
+	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
+	if metricsTemplateAnnotation, ok := workloadNamespace.GetAnnotations()[MetricsAnnotation]; ok {
+		if metricsTemplateAnnotation == "none" {
+			log.Debugf("%s is set to none - opting out of metrics", MetricsAnnotation)
+			return admission.Allowed(constants.StatusReasonSuccess)
+		}
+	}
+
 	// Process the app.verrazzano.io/metrics annotation and get the metrics template, if specified.
-	metricsTemplate, err := a.processMetricsAnnotation(unst, log)
+	metricsTemplate, err := a.processMetricsAnnotation(unst, workloadNamespace, log)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -138,35 +155,40 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 
 // processMetricsAnnotation checks the workload resource for the "app.verrazzano.io/metrics" annotation and returns the
 // metrics template referenced in the annotation
-func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.Unstructured, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
-	if metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
-		// Look for the metrics template in the namespace of the workload resource
-		template := &vzapp.MetricsTemplate{}
-		namespacedName := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsTemplate}
-		err := a.Client.Get(context.TODO(), namespacedName, template)
-		if err != nil {
-			// If we don't find the metrics template in the namespace of the workload resource then
-			// look in the verrazzano-system namespace
-			if apierrors.IsNotFound(err) {
-				namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: metricsTemplate}
-				err := a.Client.Get(context.TODO(), namespacedName, template)
-				if err != nil {
-					log.Errorw(fmt.Sprintf("Failed getting metrics template: %v", err), "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
-					return nil, err
-				}
-				log.Debugw("Found matching metrics template", "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
-				return template, nil
-			}
-
-			log.Errorw(fmt.Sprintf("Failed getting metrics template: %v", err), "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
-			return nil, err
+func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.Unstructured, workloadNamespace *corev1.Namespace, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
+	// Check workload, then namespace for annotation
+	metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]
+	if !ok {
+		metricsTemplate, ok = workloadNamespace.GetAnnotations()[MetricsAnnotation]
+		if !ok {
+			return nil, nil
 		}
-
-		log.Debugw("Found matching metrics template", "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
-		return template, nil
 	}
 
-	return nil, nil
+	// Look for the metrics template in the namespace of the workload resource
+	template := &vzapp.MetricsTemplate{}
+	namespacedName := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsTemplate}
+	err := a.Client.Get(context.TODO(), namespacedName, template)
+	if err != nil {
+		// If we don't find the metrics template in the namespace of the workload resource then
+		// look in the verrazzano-system namespace
+		if apierrors.IsNotFound(err) {
+			namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: metricsTemplate}
+			err := a.Client.Get(context.TODO(), namespacedName, template)
+			if err != nil {
+				log.Errorw(fmt.Sprintf("Failed getting metrics template: %v", err), "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
+				return nil, err
+			}
+			log.Debugw("Found matching metrics template", "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
+			return template, nil
+		}
+
+		log.Errorw(fmt.Sprintf("Failed getting metrics template: %v", err), "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
+		return nil, err
+	}
+
+	log.Debugw("Found matching metrics template", "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
+	return template, nil
 }
 
 // createOrUpdateMetricBinding creates/updates a metricsBinding resource and

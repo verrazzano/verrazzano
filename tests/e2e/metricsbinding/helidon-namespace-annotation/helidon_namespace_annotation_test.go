@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonsharednamespace
+package helidonnamespaceannotation
 
 import (
 	"time"
@@ -24,11 +24,11 @@ const (
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
 )
 
-var t = framework.NewTestFramework("helidonsharednamespace")
+var t = framework.NewTestFramework("helidonnamespaceannotation")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, nil)
+	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, map[string]string{"app.verrazzano.io/metrics": "standard-k8s-metrics-template"})
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -65,7 +65,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "test_namespace", "hello-helidon-namespace-test")
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
+			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected not to find Prometheus scraped metrics for Helidon application.")
 		})
 	})
 })
