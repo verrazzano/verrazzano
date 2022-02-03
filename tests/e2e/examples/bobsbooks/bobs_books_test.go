@@ -92,7 +92,7 @@ func deployBobsBooksExample(namespace string) {
 
 	pkg.Log(pkg.Info, "Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql." + namespace + ".svc.cluster.local:3306/books"}
+		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql:3306/books"}
 		return pkg.CreateCredentialsSecretFromMap(namespace, "mysql-credentials", m, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
