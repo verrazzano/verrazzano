@@ -69,7 +69,8 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 		for _, workload := range workloads {
 			// If we have an owner ref that is an OAM ApplicationConfiguration resource then we don't want
 			// to label the pod to have the app.verrazzano.io/workload label
-			if workload.GetKind() == "ApplicationConfiguration" && workload.GetAPIVersion() == "core.oam.dev/v1alpha2" {
+			group, _ := controllers.ConvertAPIVersionToGroupAndVersion(workload.GetAPIVersion())
+			if workload.GetKind() == "ApplicationConfiguration" && group == "core.oam.dev" {
 				return admission.Allowed(constants.StatusReasonSuccess)
 			}
 		}
