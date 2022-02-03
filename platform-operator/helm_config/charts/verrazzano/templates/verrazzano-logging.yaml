@@ -279,13 +279,15 @@ data:
           time_format %Y-%m-%dT%H:%M:%SZ
           keep_time_key true
         </pattern>
+        <pattern>
+          format none
+        </pattern>
       </parse>
     </filter>
 
     <filter kubernetes.**vmi-system-kiali**verrazzano-system_vmi-system-kiali**>
       @type record_transformer
       enable_ruby true
-      remove_keys remaining,logtime
       <record>
         @timestamp ${time.iso8601(3)}
       </record>
