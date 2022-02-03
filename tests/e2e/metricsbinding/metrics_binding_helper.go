@@ -60,3 +60,30 @@ func UndeployApplication(namespace string, yamlPath string, promConfigJobName st
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 }
+
+func DeployApplicationAndTemplate(namespace string, appYamlPath string, templateYamlPath string, nsAnnotations map[string]string) {
+	pkg.Log(pkg.Info, "Deploy test application")
+	// Wait for namespace to finish deletion possibly from a prior run.
+	gomega.Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+
+	pkg.Log(pkg.Info, "Create namespace")
+	gomega.Eventually(func() (*v1.Namespace, error) {
+		nsLabels := map[string]string{
+			"verrazzano-managed": "true",
+			"istio-injection":    "enabled"}
+		return pkg.CreateNamespaceWithAnnotations(namespace, nsLabels, nsAnnotations)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
+
+	pkg.Log(pkg.Info, "Create template resource")
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile(templateYamlPath)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+
+	pkg.Log(pkg.Info, "Create helidon resources")
+	gomega.Eventually(func() error {
+		return pkg.CreateOrUpdateResourceFromFile(appYamlPath)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
+}
