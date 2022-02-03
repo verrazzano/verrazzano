@@ -174,7 +174,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Robert's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
@@ -184,7 +184,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end/", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
 		})
 		// Verify the application endpoint is working even without trailing slash.
 		// GIVEN the Bobs Books app is deployed
@@ -194,7 +194,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobbys-front-end", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bobby's Books")))
 		})
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
@@ -204,13 +204,13 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/orders", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 		t.It("Verify bobs-orders UI endpoint for books is working.", func() {
 			Eventually(func() (*pkg.HTTPResponse, error) {
 				url := fmt.Sprintf("https://%s/bobs-bookstore-order-manager/books", host)
 				return pkg.GetWebPage(url, host)
-			}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
+			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
 	t.Context("Metrics.", Label("f:observability.monitoring.prom"), func() {
@@ -223,17 +223,17 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "bobbys-helidon-stock-application")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "robert-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "bobby-helidon")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -248,7 +248,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -258,7 +258,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -268,7 +268,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "roberts-coherence")
-					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
 		})
