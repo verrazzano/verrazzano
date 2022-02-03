@@ -18,9 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/restmapper"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -32,9 +30,9 @@ const (
 // LabelerPodWebhook type for the mutating webhook
 type LabelerPodWebhook struct {
 	client.Client
-	Decoder         *admission.Decoder
-	DynamicClient   dynamic.Interface
-	DiscoveryClient discovery.DiscoveryInterface
+	Decoder       *admission.Decoder
+	DynamicClient dynamic.Interface
+	RestMapper    meta.RESTMapper
 }
 
 // Handle is the handler for the mutating webhook
@@ -64,13 +62,7 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 
 	// Get the workload resource for the given pod if there are owner references
 	if len(pod.OwnerReferences) != 0 {
-		//mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(a.DiscoveryClient))
-		gr, err := restmapper.GetAPIGroupResources(a.DiscoveryClient)
-		if err != nil {
-			return admission.Errored(http.StatusBadRequest, err)
-		}
-		mapper := restmapper.NewDiscoveryRESTMapper(gr)
-		workloads, err := a.getWorkloadResource(nil, req.Namespace, pod.OwnerReferences, mapper, log)
+		workloads, err := a.getWorkloadResource(nil, req.Namespace, pod.OwnerReferences, a.RestMapper, log)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}

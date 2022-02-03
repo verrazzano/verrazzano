@@ -45,6 +45,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -218,6 +219,12 @@ func main() {
 			log.Errorf("Failed to create Kubernetes discovery client: %v", err)
 			os.Exit(1)
 		}
+		gr, err := restmapper.GetAPIGroupResources(discoveryClient)
+		if err != nil {
+			log.Errorf("Failed to get rest mapper: %v", err)
+			os.Exit(1)
+		}
+		mapper := restmapper.NewDiscoveryRESTMapper(gr)
 
 		// Register the metrics binding mutating webhooks for plain old kubernetes objects workloads
 		mgr.GetWebhookServer().Register(
@@ -233,9 +240,9 @@ func main() {
 			webhooks.MetricsBindingLabelerPodPath,
 			&webhook.Admission{
 				Handler: &webhooks.LabelerPodWebhook{
-					Client:          mgr.GetClient(),
-					DynamicClient:   dynamicClient,
-					DiscoveryClient: discoveryClient,
+					Client:        mgr.GetClient(),
+					DynamicClient: dynamicClient,
+					RestMapper:    mapper,
 				},
 			},
 		)

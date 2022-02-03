@@ -19,6 +19,7 @@ import (
 	discofake "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/restmapper"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -54,10 +55,11 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 			},
 		},
 	}
+	gr, _ := restmapper.GetAPIGroupResources(discoveryClient)
 	v := LabelerPodWebhook{
-		Client:          cli,
-		DynamicClient:   fake.NewSimpleDynamicClient(runtime.NewScheme()),
-		DiscoveryClient: discoveryClient,
+		Client:        cli,
+		DynamicClient: fake.NewSimpleDynamicClient(runtime.NewScheme()),
+		RestMapper:    restmapper.NewDiscoveryRESTMapper(gr),
 	}
 	v.InjectDecoder(decoder)
 	return v
