@@ -27,17 +27,16 @@ import (
 	// Never, ever remove the line with "/ginkgo". Without it,
 	// the ginkgo test runner will not detect that this
 	// directory contains a Ginkgo test suite.
-	// See https://github.com/kubernetes/kubernetes/issues/74827
 	// "github.com/onsi/ginkgo"
 
-	//"k8s.io/component-base/version"
+	"github.com/verrazzano/verrazzano/component-base/version"
 	//conformancetestdata "k8s.io/kubernetes/test/conformance/testdata"
 	"github.com/verrazzano/verrazzano/tests/e2e/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/framework/config"
-	//"k8s.io/kubernetes/test/e2e/framework/testfiles"
+	"github.com/verrazzano/verrazzano/tests/e2e/framework/testfiles"
 	//e2etestingmanifests "k8s.io/kubernetes/test/e2e/testing-manifests"
 	//testfixtures "k8s.io/kubernetes/test/fixtures"
-	//"k8s.io/kubernetes/test/utils/image"
+	"github.com/verrazzano/verrazzano/tests/utils/image"
 
 	// test sources
 	//_ "k8s.io/kubernetes/test/e2e/apimachinery"
