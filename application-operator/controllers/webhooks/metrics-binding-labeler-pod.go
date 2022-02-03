@@ -14,11 +14,11 @@ import (
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
-	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/restmapper"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,9 +61,15 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 	}
 
 	var workloadLabel string
+
 	// Get the workload resource for the given pod if there are owner references
 	if len(pod.OwnerReferences) != 0 {
-		mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(a.DiscoveryClient))
+		//mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(a.DiscoveryClient))
+		gr, err := restmapper.GetAPIGroupResources(a.DiscoveryClient)
+		if err != nil {
+			return admission.Errored(http.StatusBadRequest, err)
+		}
+		mapper := restmapper.NewDiscoveryRESTMapper(gr)
 		workloads, err := a.getWorkloadResource(nil, req.Namespace, pod.OwnerReferences, mapper, log)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
@@ -104,7 +110,7 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 
 // getWorkloadResource traverses a nested array of owner references and returns a list of resources
 // that have no owner references.  Most likely, the list will have only one resource
-func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstructured, namespace string, ownerRefs []metav1.OwnerReference, mapper *restmapper.DeferredDiscoveryRESTMapper, log *zap.SugaredLogger) ([]*unstructured.Unstructured, error) {
+func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstructured, namespace string, ownerRefs []metav1.OwnerReference, mapper meta.RESTMapper, log *zap.SugaredLogger) ([]*unstructured.Unstructured, error) {
 	for _, ownerRef := range ownerRefs {
 		// Find preferred GroupVersionResource
 		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
