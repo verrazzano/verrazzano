@@ -110,13 +110,17 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	}
 
 	buildURL := os.Getenv("BUILD_URL")
-
-	//Build number is retrieved from the Build url.
 	if buildURL != "" {
 		buildURL = strings.Replace(buildURL, "%252F", "/", 1)
-		buildAPIURL, _ := neturl.Parse(buildURL)
-		jenkinsJob := buildAPIURL.Path[5:]
-		log = log.With(BuildURL, buildURL).With(JenkinsJob, jenkinsJob)
+		log = log.With(BuildURL, buildURL)
+	}
+
+	jobName := os.Getenv("JOB_NAME")
+	if jobName != "" {
+		jobName = strings.Replace(jobName, "%252F", "/", 1)
+		jobNameSplit := strings.Split(jobName, "/")
+		jobPipeline := jobNameSplit[0]
+		log = log.With(JenkinsJob, jobPipeline)
 	}
 
 	gitCommit := os.Getenv("GIT_COMMIT")
