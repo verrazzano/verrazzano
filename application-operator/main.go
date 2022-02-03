@@ -41,6 +41,7 @@ import (
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/discovery"
+	memory "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -219,12 +220,7 @@ func main() {
 			log.Errorf("Failed to create Kubernetes discovery client: %v", err)
 			os.Exit(1)
 		}
-		gr, err := restmapper.GetAPIGroupResources(discoveryClient)
-		if err != nil {
-			log.Errorf("Failed to get rest mapper: %v", err)
-			os.Exit(1)
-		}
-		mapper := restmapper.NewDiscoveryRESTMapper(gr)
+		mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(discoveryClient))
 
 		// Register the metrics binding mutating webhooks for plain old kubernetes objects workloads
 		mgr.GetWebhookServer().Register(
