@@ -223,17 +223,17 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "bobbys-helidon-stock-application")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "robert-helidon")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "bobby-helidon")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -248,7 +248,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", "bobs-bookstore")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -258,7 +258,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", "bobs-bookstore")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
@@ -268,7 +268,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(func() bool {
 						return pkg.MetricsExist("vendor:coherence_cluster_size", "coherenceCluster", "roberts-coherence")
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 				},
 			)
 		})
