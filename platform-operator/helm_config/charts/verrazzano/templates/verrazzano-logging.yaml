@@ -356,15 +356,6 @@ data:
       </record>
     </filter>
 
-    <filter fluentd.**>
-      @type record_transformer
-      @id fluentd_index_transformer
-      enable_ruby true
-      <record>
-        target_index verrazzano-namespace-verrazzano-system
-      </record>
-    </filter>
-
     # parse sidecar stdout
     <filter kubernetes.**_fluentd-stdout-sidecar-**>
       @type parser
@@ -454,9 +445,9 @@ data:
       @id out_elasticsearch
       @log_level info
       log_es_400_reason true
-      logstash_format true
-      logstash_prefix verrazzano-namespace-verrazzano-system
+      include_timestamp true
       target_index_key target_index
+      index_name verrazzano-namespace-verrazzano-system
       include_tag_key true
 
       template_file /fluentd/etc/elasticsearch-template-verrazzano.json
