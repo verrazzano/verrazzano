@@ -64,7 +64,7 @@ func TestNoOwnerReferences(t *testing.T) {
 	res := a.Handle(context.TODO(), req)
 
 	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
+	assert.Len(t, res.Patches, 2)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
@@ -112,7 +112,7 @@ func TestOwnerReference(t *testing.T) {
 	res := a.Handle(context.TODO(), req)
 
 	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
+	assert.Len(t, res.Patches, 2)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
@@ -179,7 +179,7 @@ func TestMultipleOwnerReference(t *testing.T) {
 	res := a.Handle(context.TODO(), req)
 
 	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
+	assert.Len(t, res.Patches, 2)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
@@ -295,36 +295,6 @@ func TestPodPrometheusAnnotations(t *testing.T) {
 
 	assert.True(t, res.Allowed)
 	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
-}
-
-// TestPodPrometheusNoAnnotations tests the default annotation of a Pod resource
-// GIVEN a call to the webhook Handle function
-// WHEN the pod does not have the Prometheus annotations
-// THEN the Handle function should populate annotations
-func TestPodPrometheusNoAnnotations(t *testing.T) {
-	a := newLabelerPodWebhook()
-
-	// Test data
-	pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test",
-			Namespace: "default",
-		},
-	}
-	assert.NoError(t, a.Client.Create(context.TODO(), &pod))
-
-	req := admission.Request{}
-	req.Namespace = "default"
-	marshaledPod, err := json.Marshal(pod)
-	assert.NoError(t, err, "Unexpected error marshaling pod")
-	req.Object = runtime.RawExtension{Raw: marshaledPod}
-	res := a.Handle(context.TODO(), req)
-
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 2)
 	assert.Equal(t, "add", res.Patches[0].Operation)
 	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
 	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
