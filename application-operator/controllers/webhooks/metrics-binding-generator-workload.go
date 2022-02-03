@@ -43,14 +43,14 @@ type GeneratorWorkloadWebhook struct {
 func (a *GeneratorWorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldWebhook, "metrics-binding-generator-workload")
 
-	log.Debugf("group: %s, version: %s, kind: %s, namespace: %s, name: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace, req.Name)
+	log.Debugf("group: %s, version: %s, kind: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind)
 
 	// Check the type of resource in the admission request
 	switch strings.ToLower(req.Kind.Kind) {
 	case "pod", "deployment", "replicaset", "statefulset", "domain", "coherence":
 		return a.handleWorkloadResource(ctx, req, log)
 	default:
-		log.Debugf("unsupported kind %s", req.Kind.Kind)
+		log.Infof("Unsupported kind %s", req.Kind.Kind)
 		return admission.Allowed("not implemented yet")
 	}
 }
@@ -87,16 +87,16 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 
 	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this workload has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
-		if metricsTemplateAnnotation == "none" {
-			log.Debugf("%s is set to none - opting out of metrics", MetricsAnnotation)
+		if strings.ToLower(metricsTemplateAnnotation) == "none" {
+			log.Infof("%s is set to none in the workload - opting out of metrics", MetricsAnnotation)
 			return admission.Allowed(constants.StatusReasonSuccess)
 		}
 	}
 
 	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
 	if metricsTemplateAnnotation, ok := workloadNamespace.GetAnnotations()[MetricsAnnotation]; ok {
-		if metricsTemplateAnnotation == "none" {
-			log.Debugf("%s is set to none - opting out of metrics", MetricsAnnotation)
+		if strings.ToLower(metricsTemplateAnnotation) == "none" {
+			log.Infof("%s is set to none in the namespace - opting out of metrics", MetricsAnnotation)
 			return admission.Allowed(constants.StatusReasonSuccess)
 		}
 	}
