@@ -63,11 +63,7 @@ func TestNoOwnerReferences(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 2)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestOwnerReference tests the handling of a Pod resource
@@ -111,11 +107,7 @@ func TestOwnerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 2)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestMultipleOwnerReference tests the handling of a Pod resource
@@ -178,11 +170,7 @@ func TestMultipleOwnerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 2)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestMultipleOwnerReferenceAndWorkloadResources tests the handling of a Pod resource
@@ -293,9 +281,14 @@ func TestPodPrometheusAnnotations(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
+	verifyResponse(t, res, 1)
+}
+
+func verifyResponse(t *testing.T, res admission.Response, len int) {
 	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	assert.Len(t, res.Patches, len)
+	for _, patch := range res.Patches {
+		assert.Equal(t, "add", patch.Operation)
+		assert.True(t, patch.Path == "/metadata/labels" || patch.Path == "/metadata/annotations")
+	}
 }
