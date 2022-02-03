@@ -26,6 +26,14 @@ import (
 
 const (
 	MetricsBindingLabelerPodPath = "/metrics-binding-labeler-pod"
+
+	PrometheusPortAnnotation   = "prometheus.io/port"
+	PrometheusPathAnnotation   = "prometheus.io/path"
+	PrometheusScrapeAnnotation = "prometheus.io/scrape"
+
+	PrometheusPortDefault   = "8080"
+	PrometheusPathDefault   = "/metrics"
+	PrometheusScrapeDefault = "true"
 )
 
 // LabelerPodWebhook type for the mutating webhook
@@ -85,6 +93,9 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 	pod.SetLabels(labels)
 	log.Debugw(fmt.Sprintf("Setting pod label %s to %s", constants.MetricsWorkloadLabel, workloadLabel), "namespace", req.Namespace, "name", req.Name)
 
+	// Set the Prometheus annotations if not present
+	a.setPrometheusAnnotations(pod, log)
+
 	marshaledPodResource, err := json.Marshal(pod)
 	if err != nil {
 		log.Errorf("Failed marshalling pod resource: %v", err)
@@ -121,4 +132,26 @@ func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstru
 	}
 
 	return resources, nil
+}
+
+func (a *LabelerPodWebhook) setPrometheusAnnotations(pod *corev1.Pod, log *zap.SugaredLogger) {
+	log.Debug("Setting Prometheus annotations for workload pod")
+	podAnnotations := pod.GetAnnotations()
+	if podAnnotations == nil {
+		podAnnotations = map[string]string{}
+		pod.Annotations = podAnnotations
+	}
+
+	// Set port default if not present
+	if _, ok := podAnnotations[PrometheusPortAnnotation]; !ok {
+		pod.Annotations[PrometheusPortAnnotation] = PrometheusPortDefault
+	}
+	// Set path default if not present
+	if _, ok := podAnnotations[PrometheusPathAnnotation]; !ok {
+		pod.Annotations[PrometheusPathAnnotation] = PrometheusPathDefault
+	}
+	// Set scrape default if not present
+	if _, ok := podAnnotations[PrometheusScrapeAnnotation]; !ok {
+		pod.Annotations[PrometheusScrapeAnnotation] = PrometheusScrapeDefault
+	}
 }
