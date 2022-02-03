@@ -45,7 +45,6 @@ var t = framework.NewTestFramework("logging")
 
 var springbootNamespace = pkg.GenerateNamespace("springboot-logging")
 var helidonNamespace = pkg.GenerateNamespace("helidon-logging")
-var yamlApplier = k8sutil.YAMLApplier{}
 
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
