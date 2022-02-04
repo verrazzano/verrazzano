@@ -302,13 +302,18 @@ data:
       reserve_data true
       emit_invalid_record_to_error true
       <parse>
-        # Kiali has a format of timestamp, loglevel, msg
+        # Kiali has two formats for log records
+        # Kiali format and a klog format
         @type multi_format
         <pattern>
           format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) (?<level>.*?) ([\s\S]*?)$/
           time_key logtime
           time_format %Y-%m-%dT%H:%M:%SZ
-          keep_time_key true
+        </pattern>
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?([\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
         </pattern>
         <pattern>
           format none
