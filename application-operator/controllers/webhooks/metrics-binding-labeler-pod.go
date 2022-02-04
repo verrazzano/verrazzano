@@ -8,13 +8,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,7 +33,6 @@ type LabelerPodWebhook struct {
 	client.Client
 	Decoder       *admission.Decoder
 	DynamicClient dynamic.Interface
-	RestMapper    meta.RESTMapper
 }
 
 // Handle is the handler for the mutating webhook
@@ -62,7 +62,7 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 
 	// Get the workload resource for the given pod if there are owner references
 	if len(pod.OwnerReferences) != 0 {
-		workloads, err := a.getWorkloadResource(nil, req.Namespace, pod.OwnerReferences, a.RestMapper, log)
+		workloads, err := a.getWorkloadResource(nil, req.Namespace, pod.OwnerReferences, log)
 		if err != nil {
 			return admission.Errored(http.StatusInternalServerError, err)
 		}
@@ -103,17 +103,22 @@ func (a *LabelerPodWebhook) handlePodResource(req admission.Request, log *zap.Su
 
 // getWorkloadResource traverses a nested array of owner references and returns a list of resources
 // that have no owner references.  Most likely, the list will have only one resource
-func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstructured, namespace string, ownerRefs []metav1.OwnerReference, mapper meta.RESTMapper, log *zap.SugaredLogger) ([]*unstructured.Unstructured, error) {
+func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstructured, namespace string, ownerRefs []metav1.OwnerReference, log *zap.SugaredLogger) ([]*unstructured.Unstructured, error) {
 	for _, ownerRef := range ownerRefs {
-		// Find preferred GroupVersionResource
 		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
-		mapping, err := mapper.RESTMapping(schema.GroupKind{Group: group, Kind: ownerRef.Kind}, version)
-		if err != nil {
-			log.Errorf("Failed getting resource mapping: %v", err)
-			return nil, err
+		resource := schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
 		}
 
-		unst, err := a.DynamicClient.Resource(mapping.Resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+		// The Coherence resource has the same singular and plural values.  Force singular for Coherence.
+		// Note: Coherence seems to be an outlier.
+		if resource.Resource == "coherences" {
+			resource.Resource = "coherence"
+		}
+
+		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
 			log.Errorf("Failed getting the Dynamic API: %v", err)
 			return nil, err
@@ -122,7 +127,7 @@ func (a *LabelerPodWebhook) getWorkloadResource(resources []*unstructured.Unstru
 		if len(unst.GetOwnerReferences()) == 0 {
 			resources = append(resources, unst)
 		} else {
-			resources, err = a.getWorkloadResource(resources, namespace, unst.GetOwnerReferences(), mapper, log)
+			resources, err = a.getWorkloadResource(resources, namespace, unst.GetOwnerReferences(), log)
 			if err != nil {
 				return nil, err
 			}
