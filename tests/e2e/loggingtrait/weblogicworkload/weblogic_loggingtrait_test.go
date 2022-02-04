@@ -21,7 +21,7 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 20 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
 	namespace            = "weblogic-logging-trait"
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
