@@ -263,6 +263,36 @@ data:
       </record>
     </filter>
 
+    # filter to parse kiali container log files
+    <filter kubernetes.**vmi-system-kiali**verrazzano-system_vmi-system-kiali**>
+      @type parser
+      @id vmi-system-kiali
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Kiali has a format of timestamp, loglevel, msg
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z) (?<level>.*?) ([\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%SZ
+          keep_time_key true
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**vmi-system-kiali**verrazzano-system_vmi-system-kiali**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time.iso8601(3)}
+      </record>
+    </filter>
+
     # filter to parse Coherence operator container log files
     <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
       @type parser
@@ -356,15 +386,6 @@ data:
       </record>
     </filter>
 
-    <filter fluentd.**>
-      @type record_transformer
-      @id fluentd_index_transformer
-      enable_ruby true
-      <record>
-        target_index verrazzano-namespace-verrazzano-system
-      </record>
-    </filter>
-
     # parse sidecar stdout
     <filter kubernetes.**_fluentd-stdout-sidecar-**>
       @type parser
@@ -454,9 +475,9 @@ data:
       @id out_elasticsearch
       @log_level info
       log_es_400_reason true
-      logstash_format true
-      logstash_prefix verrazzano-namespace-verrazzano-system
+      include_timestamp true
       target_index_key target_index
+      index_name verrazzano-namespace-verrazzano-system
       include_tag_key true
 
       template_file /fluentd/etc/elasticsearch-template-verrazzano.json
