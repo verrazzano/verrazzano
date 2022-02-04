@@ -632,7 +632,7 @@ webhooks:
       - operations: ["CREATE","UPDATE"]
         apiGroups: ["*"]
         apiVersions: ["*"]
-        resources: ["deployments","coherences","domains","pods","replicasets","statefulsets"]
+        resources: ["deployments","pods","replicasets","statefulsets"]
         scope: "Namespaced"
     sideEffects: None
     failurePolicy: Fail
