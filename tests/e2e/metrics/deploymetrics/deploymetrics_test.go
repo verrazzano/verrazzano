@@ -90,13 +90,7 @@ func undeployMetricsApplication() {
 
 	pkg.Log(pkg.Info, "Waiting for namespace deletion")
 	Eventually(func() bool {
-		ns, err := pkg.GetNamespace(testNamespace)
-		if err == nil {
-			finalizeErr := pkg.RemoveNamespaceFinalizers(ns)
-			if finalizeErr != nil {
-				return false
-			}
-		}
+		_, err := pkg.GetNamespace(testNamespace)
 		return err != nil && errors.IsNotFound(err)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
