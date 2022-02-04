@@ -4,6 +4,7 @@
 package helidonpodannotation
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
@@ -32,7 +33,7 @@ const (
 	PrometheusScrapeOverride = "false"
 )
 
-var t = framework.NewTestFramework("helidonnamespaceannotation")
+var t = framework.NewTestFramework("helidonpodannotation")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -68,14 +69,17 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 			Eventually(func() bool {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 					return false
 				}
 				clientset, err := pkg.GetKubernetesClientsetForCluster(kubeconfigPath)
 				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error creating clientset from kubeconfig, error: %v", err))
 					return false
 				}
 				pods, err := pkg.ListPodsInCluster("hello-helidon-namespace", clientset)
 				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods in the namespace hello-helidon-namespace, error: %v", err))
 					return false
 				}
 				podItems := pods.Items
