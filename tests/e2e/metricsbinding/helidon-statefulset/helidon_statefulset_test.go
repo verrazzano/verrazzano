@@ -4,13 +4,14 @@
 package statefulsetworkload
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/metricsbinding"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 )
 
 const (
@@ -18,7 +19,7 @@ const (
 	longPollingInterval  = 20 * time.Second
 	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-statefulset-"
-	yamlPath             = "application-operator/internal/app/resources/workloads/hello-helidon-statefulset.yaml"
+	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-statefulset.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-statefulset_apps_v1_StatefulSet"
 )
 

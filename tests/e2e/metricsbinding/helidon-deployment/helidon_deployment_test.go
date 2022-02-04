@@ -19,7 +19,7 @@ const (
 	longPollingInterval  = 20 * time.Second
 	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
-	yamlPath             = "application-operator/internal/app/resources/workloads/hello-helidon-deployment.yaml"
+	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
 )
 
