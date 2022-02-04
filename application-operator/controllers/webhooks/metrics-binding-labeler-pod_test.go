@@ -8,18 +8,17 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/application-operator/constants"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	discofake "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/dynamic/fake"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/restmapper"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -33,33 +32,9 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 	vzapp.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewFakeClientWithScheme(scheme)
-	clientset := k8sfake.NewSimpleClientset()
-	discoveryClient := clientset.Discovery()
-	fakeDiscovery := clientset.Discovery().(*discofake.FakeDiscovery)
-	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
-		{
-			GroupVersion: "apps/v1",
-			APIResources: []metav1.APIResource{
-				{
-					Name:         "replicasets",
-					SingularName: "replicaset",
-					Kind:         "ReplicaSet",
-					Namespaced:   true,
-				},
-				{
-					Name:         "deployments",
-					SingularName: "deployment",
-					Kind:         "Deployment",
-					Namespaced:   true,
-				},
-			},
-		},
-	}
-	gr, _ := restmapper.GetAPIGroupResources(discoveryClient)
 	v := LabelerPodWebhook{
 		Client:        cli,
 		DynamicClient: fake.NewSimpleDynamicClient(runtime.NewScheme()),
-		RestMapper:    restmapper.NewDiscoveryRESTMapper(gr),
 	}
 	v.InjectDecoder(decoder)
 	return v
