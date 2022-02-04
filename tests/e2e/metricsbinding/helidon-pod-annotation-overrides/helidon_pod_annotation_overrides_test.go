@@ -86,7 +86,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 				return podAnnotations[PrometheusPortAnnotation] == PrometheusPortDefault &&
 					podAnnotations[PrometheusPathAnnotation] == PrometheusPathDefault &&
 					podAnnotations[PrometheusScrapeAnnotation] == PrometheusScrapeOverride
-			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected to find Prometheus scraped metrics for Helidon application.")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app_verrazzano_io_workload", "hello-helidon-deployment-apps-v1-deployment")
 			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected to find Prometheus scraped metrics for Helidon application.")
