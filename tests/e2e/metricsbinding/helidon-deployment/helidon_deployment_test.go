@@ -17,6 +17,8 @@ import (
 const (
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
+	shortWaitTimeout     = 10 * time.Minute
+	shortPollingInterval = 10 * time.Second
 	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment.yaml"
@@ -58,10 +60,10 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 		t.It("Retrieve Prometheus scraped metrics for 'hello-helidon-deployment' Pod", func() {
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app_verrazzano_io_workload", "hello-helidon-deployment-apps-v1-deployment")
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "job", promConfigJobName)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 		})
 	})
 })

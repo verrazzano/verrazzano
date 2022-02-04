@@ -33,8 +33,8 @@ metadata:
   labels:
     app: hello-helidon-application
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
-  - port: 8080
+    - port: 8080
   selector:
     app: hello-helidon-application
