@@ -223,7 +223,9 @@ func IgnoreNotFoundWithLog(err error, log *zap.SugaredLogger) (reconcile.Result,
 		log.Debug("Resource has been deleted")
 		return reconcile.Result{}, nil
 	}
-	log.Errorf("Failed to fetch resource: %v", err)
+	if err != nil {
+		log.Errorf("Failed to fetch resource: %v", err)
+	}
 	return NewRequeueWithDelay(), nil
 }
 
