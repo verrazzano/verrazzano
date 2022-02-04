@@ -5,12 +5,11 @@ package verify
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -49,33 +48,6 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.1.0", description))
 		}
 	}
-
-	// GIVEN the verrazzano-system namespace
-	// WHEN the annotations from the pods are retrieved
-	// THEN verify that the have the verrazzano.io/restartedAt annotations
-	MinimumVerrazzanoIt("pods in verrazzano-system restarted", func() {
-		Eventually(func() bool {
-			return pkg.PodsHaveAnnotation(constants.VerrazzanoSystemNamespace, vzconst.VerrazzanoRestartAnnotation)
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in verrazzano-system")
-	})
-
-	// GIVEN the ingress-nginx namespace
-	// WHEN the annotations from the pods are retrieved
-	// THEN verify that the have the verrazzano.io/restartedAt annotations
-	MinimumVerrazzanoIt("pods in ingress-nginx restarted", func() {
-		Eventually(func() bool {
-			return pkg.PodsHaveAnnotation(constants.IngressNginxNamespace, vzconst.VerrazzanoRestartAnnotation)
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in ingress-nginx")
-	})
-
-	// GIVEN the keycloak namespace
-	// WHEN the annotations from the pods are retrieved
-	// THEN verify that the have the verrazzano.io/restartedAt annotations
-	MinimumVerrazzanoIt("pods in keycloak restarted", func() {
-		Eventually(func() bool {
-			return pkg.PodsHaveAnnotation(constants.KeycloakNamespace, vzconst.VerrazzanoRestartAnnotation)
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find restart annotation in keycloak")
-	})
 
 	// GIVEN the verrazzano-system namespace
 	// WHEN the container images are retrieved
