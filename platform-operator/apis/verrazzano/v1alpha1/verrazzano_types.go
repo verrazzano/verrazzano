@@ -85,7 +85,7 @@ type VerrazzanoSpec struct {
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
-// CommonKubernetesSpec - kubernetes resources that are common to a subgroup of components
+// CommonKubernetesSpec - Kubernetes resources that are common to a subgroup of components
 type CommonKubernetesSpec struct {
 	// Replicas specifies the number of pod instances to run
 	// +optional
