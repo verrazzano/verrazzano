@@ -88,6 +88,7 @@ func undeployMetricsApplication() {
 		return pkg.DeleteNamespace(testNamespace)
 	}, longWaitTimeout, longPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Waiting for namespace deletion")
 	Eventually(func() bool {
 		ns, err := pkg.GetNamespace(testNamespace)
 		if err == nil {
@@ -97,7 +98,7 @@ func undeployMetricsApplication() {
 			}
 		}
 		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
