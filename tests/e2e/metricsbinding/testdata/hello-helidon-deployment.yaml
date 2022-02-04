@@ -35,6 +35,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
+    - name: web
+      port: 8080
   selector:
     app: hello-helidon-application

@@ -28,8 +28,8 @@ func DeployApplication(namespace string, yamlPath string) {
 	pkg.Log(pkg.Info, "Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
+			"verrazzano-managed": "true"}
+		//			"istio-injection":    "enabled"}
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
