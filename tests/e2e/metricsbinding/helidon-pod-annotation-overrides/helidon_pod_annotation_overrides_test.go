@@ -61,8 +61,8 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	})
 
 	// GIVEN the Helidon app is deployed and the pods are running
-	// WHEN the Prometheus metrics in the app namespace are scraped
-	// THEN the Helidon application metrics should exist using the default metrics template for deployments
+	// WHEN the Prometheus metrics in the app namespace are scraped with the scrape endpoint set to false
+	// THEN the Helidon application metrics should not exist
 	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Retrieve Prometheus scraped metrics for 'hello-helidon-deployment' Pod", func() {
 			Eventually(func() bool {

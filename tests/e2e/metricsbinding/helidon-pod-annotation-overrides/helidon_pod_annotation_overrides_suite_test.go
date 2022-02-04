@@ -11,7 +11,7 @@ import (
 )
 
 // TestHelidonPodAnnotationOverride tests a helidon deployment workload for Prometheus metric scraping with a pod annotation preventing metrics scraping
-func TestHelidonDeploymentNamespaceAnnotation(t *testing.T) {
+func TestHelidonDeploymentPodAnnotation(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Helidon Deployment Workload with Namespace Template Annotation Test Suite")
+	ginkgo.RunSpecs(t, "Helidon Deployment Workload with Pod Prometheus Annotation Test Suite")
 }
