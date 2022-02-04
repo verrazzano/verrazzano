@@ -245,6 +245,7 @@ func (mr *MockStatusWriterMockRecorder) Update(arg0, arg1 interface{}, arg2 ...i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockStatusWriter)(nil).Update), varargs...)
 }
 
+// AddRestartMocks adds the EXPECT calls necessary to mock the restarting of the system components
 func (mock *MockClient) AddRestartMocks() {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
