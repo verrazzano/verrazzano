@@ -218,12 +218,13 @@ func IsPlacedInThisCluster(ctx context.Context, rdr client.Reader, placement clu
 
 // IgnoreNotFoundWithLog returns nil if err is a "Not Found" error, and if not, logs an error
 // message that the resource could not be fetched and returns the original error
-func IgnoreNotFoundWithLog(err error, log *zap.SugaredLogger) error {
+func IgnoreNotFoundWithLog(err error, log *zap.SugaredLogger) (reconcile.Result, error) {
 	if apierrors.IsNotFound(err) {
-		return nil
+		log.Debug("Resource has been deleted")
+		return reconcile.Result{}, nil
 	}
-	log.Debugw("Failed to fetch resource", "err", err)
-	return err
+	log.Errorf("Failed to fetch resource: %v", err)
+	return NewRequeueWithDelay(), nil
 }
 
 // GetClusterName returns the cluster name for a this cluster, empty string if the cluster
@@ -370,19 +371,18 @@ func GetRandomRequeueDelay() time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
+// NewRequeueWithDelay retruns a result set to requeue in 2 to 3 seconds
 func NewRequeueWithDelay() reconcile.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
 }
 
-// Return true if requeue is needed
+// ShouldRequeue returns true if requeue is needed
 func ShouldRequeue(r reconcile.Result) bool {
 	return r.Requeue || r.RequeueAfter > 0
 }
 
-func GetResourceAndLogger(controller string, namespacedName types.NamespacedName, obj controllerutil.Object, c client.Client) (vzlog.VerrazzanoLogger, error) {
-	if err := c.Get(context.TODO(), namespacedName, obj); err != nil {
-		return nil, err
-	}
+// GetResourceLogger will return the controller logger associated with the resource
+func GetResourceLogger(controller string, namespacedName types.NamespacedName, obj controllerutil.Object) (vzlog.VerrazzanoLogger, error) {
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           namespacedName.Name,

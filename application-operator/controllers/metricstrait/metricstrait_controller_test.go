@@ -616,8 +616,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
@@ -700,8 +699,7 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
@@ -794,8 +792,7 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 // TestFetchTraitError tests a failure to fetch the trait during reconcile.
@@ -1266,8 +1263,7 @@ func TestNoUpdatesRequired(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 func expectVerrazzanoClusterNameCalls(mock *mocks.MockClient) {
@@ -1487,8 +1483,7 @@ func TestSSLNoUpdatesRequired(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 // TestMetricsTraitCreatedForWLSWorkload tests creation of a metrics trait related to a WLS workload.
@@ -1672,8 +1667,7 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 // TestMetricsTraitDeletedForWLSWorkload tests reconciling a deleted metrics trait related to a WLS workload.
@@ -1793,8 +1787,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 // TestMetricsTraitCreatedForCOHWorkload tests the creation of a metrics trait related to a Coherence workload.
@@ -2037,8 +2030,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	assert.NoError(err)
-	assert.Equal(true, result.Requeue)
-	assert.GreaterOrEqual(result.RequeueAfter.Seconds(), 45.0)
+	assert.False(result.Requeue)
 }
 
 // TestUseHTTPSForScrapeTargetFalseConditions tests that false is returned for the following conditions
