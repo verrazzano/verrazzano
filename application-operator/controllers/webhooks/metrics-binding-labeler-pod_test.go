@@ -8,15 +8,13 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/fake"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
