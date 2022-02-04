@@ -21,7 +21,6 @@ const (
 	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment-pod-annotated.yaml"
-	templatePath         = "tests/e2e/metricsbinding/testdata/hello-helidon-metrics-template.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
 
 	PrometheusPortAnnotation   = "prometheus.io/port"
@@ -37,7 +36,7 @@ var t = framework.NewTestFramework("helidonnamespaceannotation")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, map[string]string{"app.verrazzano.io/metrics": "standard-k8s-metrics-template"})
+	metricsbinding.DeployApplication(namespace, yamlPath)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
