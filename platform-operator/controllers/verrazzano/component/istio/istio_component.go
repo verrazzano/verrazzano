@@ -77,18 +77,6 @@ func SetDefaultIstioUpgradeFunction() {
 	upgradeFunc = istio.Upgrade
 }
 
-type restartComponentsFuncSig func(log vzlog.VerrazzanoLogger, err error, i istioComponent, client clipkg.Client) error
-
-var restartComponentsFunction = restartComponents
-
-func SetRestartComponentsFunction(fn restartComponentsFuncSig) {
-	restartComponentsFunction = fn
-}
-
-func SetDefaultRestartComponentsFunction() {
-	restartComponentsFunction = restartComponents
-}
-
 type helmUninstallFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error)
 
 var helmUninstallFunction helmUninstallFuncSig = helm.Uninstall
@@ -169,11 +157,6 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	err = restartComponentsFunction(log, err, i, context.Client())
-	if err != nil {
-		return err
-	}
-
 	return err
 }
 
@@ -233,12 +216,12 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 	return []types.NamespacedName{}
 }
 
-// restartComponents restarts all the deployments, StatefulSets, and DaemonSets
+// RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func restartComponents(log vzlog.VerrazzanoLogger, err error, i istioComponent, client clipkg.Client) error {
+func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
 	// Restart all the deployments in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
-	err = client.List(context.TODO(), &deploymentList)
+	err := client.List(context.TODO(), &deploymentList)
 	if err != nil {
 		return err
 	}
@@ -246,7 +229,7 @@ func restartComponents(log vzlog.VerrazzanoLogger, err error, i istioComponent, 
 		deployment := &deploymentList.Items[index]
 
 		// Check if deployment is in an Istio injected system namespace
-		if vzString.SliceContainsString(i.InjectedSystemNamespaces, deployment.Namespace) {
+		if vzString.SliceContainsString(namespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
 			}
@@ -271,7 +254,7 @@ func restartComponents(log vzlog.VerrazzanoLogger, err error, i istioComponent, 
 		statefulSet := &statefulSetList.Items[index]
 
 		// Check if StatefulSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(i.InjectedSystemNamespaces, statefulSet.Namespace) {
+		if vzString.SliceContainsString(namespaces, statefulSet.Namespace) {
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
@@ -293,7 +276,7 @@ func restartComponents(log vzlog.VerrazzanoLogger, err error, i istioComponent, 
 		daemonSet := &daemonSetList.Items[index]
 
 		// Check if DaemonSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(i.InjectedSystemNamespaces, daemonSet.Namespace) {
+		if vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
