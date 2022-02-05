@@ -623,6 +623,10 @@ webhooks:
     namespaceSelector:
       matchLabels:
         verrazzano-managed: "true"
+    objectSelector:
+      matchExpressions:
+        - key: app.oam.dev/component
+          operator: DoesNotExist
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -632,7 +636,7 @@ webhooks:
       - operations: ["CREATE","UPDATE"]
         apiGroups: ["*"]
         apiVersions: ["*"]
-        resources: ["deployments","coherences","domains","pods","replicasets","statefulsets"]
+        resources: ["deployments","pods","replicasets","statefulsets"]
         scope: "Namespaced"
     sideEffects: None
     failurePolicy: Fail
@@ -645,6 +649,10 @@ webhooks:
     namespaceSelector:
       matchLabels:
         verrazzano-managed: "true"
+    objectSelector:
+      matchExpressions:
+        - key: app.oam.dev/component
+          operator: DoesNotExist
     clientConfig:
       service:
         name: {{ .Values.name }}
