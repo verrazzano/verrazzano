@@ -533,7 +533,16 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png', allowEmptyArchive: true
+
+            sh """
+                cd ${GO_REPO_PATH}/verrazzano
+                echo "Find out all the test-result.xml"
+                find ./ -name "*test-result.xml"
+                mkdir ${WORKSPACE}/junit_reports
+                find . -name '*-test-result.xml' | cpio -pdm ${WORKSPACE}/junit_reports
+                echo "------------------------------------------"
+            """
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/*-test-result.xml', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
