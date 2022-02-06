@@ -97,7 +97,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		}
 		ingress.Spec.TLS = []v1.IngressTLS{
 			{
-				Hosts:      []string{kialiHostName},
+				Hosts:      []string{"*." + dnsSubDomain},
 				SecretName: constants.VerrazzanoSystemTLSSecretName,
 			},
 		}

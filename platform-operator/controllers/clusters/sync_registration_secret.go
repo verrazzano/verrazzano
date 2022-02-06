@@ -223,5 +223,5 @@ func (r *VerrazzanoManagedClusterReconciler) getKeycloakURL() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", "keycloak", "keycloak", err)
 	}
-	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }
