@@ -449,7 +449,7 @@ pipeline {
                 }
                 stage('examples socks') {
                     steps {
-                        runGinkgoNamespace('examples/socks', "true", "false" "sockshop")
+                        runGinkgoNamespace('examples/socks', "true", "false", "sockshop")
                     }
                 }
                 stage('examples spring') {
