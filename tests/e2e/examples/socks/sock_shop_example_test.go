@@ -32,14 +32,13 @@ const (
 	longWaitTimeout      = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
 	sockshopAppName      = "sockshop-appconfig"
-	//sockshopNamespace    = "sockshop"
 )
 
 var sockShop SockShop
 var username, password string
 
 var (
-	t = framework.NewTestFramework("socks")
+	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
 )
 
@@ -60,11 +59,11 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/" + variant + "/sock-shop-comp.yaml", namespace)
+			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/" + variant + "/sock-shop-app.yaml", namespace)
+			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
@@ -274,12 +273,12 @@ var _ = clusterDump.AfterSuite(func() {
 		pkg.Log(pkg.Info, "Delete application")
 
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/" + variant + "/sock-shop-app.yaml", namespace)
+			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/" + variant + "/sock-shop-comp.yaml", namespace)
+			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
