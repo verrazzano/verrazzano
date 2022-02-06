@@ -1436,8 +1436,8 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []networkingv1.IngressTLS{{
-				Hosts: []string{"keycloak"},
+			ingress.Spec.Rules = []k8net.IngressRule{{
+				Host: "keycloak",
 			}}
 			return nil
 		})

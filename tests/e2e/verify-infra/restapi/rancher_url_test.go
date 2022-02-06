@@ -47,7 +47,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					if err != nil {
 						return err
 					}
-					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+					rancherURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 					t.Logs.Info(fmt.Sprintf("Found ingress URL: %s", rancherURL))
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
