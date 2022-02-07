@@ -4,14 +4,12 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: springboot-component
-  namespace: springboot
 spec:
   workload:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
       name: springboot-workload
-      namespace: springboot
       labels:
         app: springboot
         version: v1
