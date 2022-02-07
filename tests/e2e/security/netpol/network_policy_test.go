@@ -11,7 +11,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -58,7 +57,6 @@ var (
 	shortWaitTimeout     = 30 * time.Second
 	shortPollingInterval = 10 * time.Second
 	generatedNamespace   = pkg.GenerateNamespace("hello-helidon")
-	yamlApplier          = k8sutil.YAMLApplier{}
 )
 
 var t = framework.NewTestFramework("netpol")
@@ -75,7 +73,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.DeployHelloHelidonApplication(&yamlApplier, namespace, "")
+	pkg.DeployHelloHelidonApplication(namespace, "")
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -93,7 +91,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.UndeployHelloHelidonApplication(&yamlApplier, namespace)
+	pkg.UndeployHelloHelidonApplication(namespace)
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
