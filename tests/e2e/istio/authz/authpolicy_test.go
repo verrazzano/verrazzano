@@ -35,7 +35,7 @@ const prometheusHTTPSScheme string = "scheme: https"
 
 var expectedPodsFoo = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
 var expectedPodsBar = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
-var waitTimeout = 10 * time.Minute
+var waitTimeout = 15 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
 
