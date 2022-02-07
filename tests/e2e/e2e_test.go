@@ -4,13 +4,20 @@
 package e2e
 
 import (
+	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"testing"
-	// import test sources
+	"time"
+
+	//import tests
+	_ "github.com/verrazzano/verrazzano/tests/e2e/examples/add"
 )
 
 func TestMain(m *testing.M) {
 
+	// define framework.TestContext.RepoRoot then uncomment below
+	//testfiles.AddFileSource(testfiles.RootFileSource{Root: framework.TestContext.RepoRoot})
+	rand.Seed(time.Now().UnixNano())
 	os.Exit(m.Run())
 }
 

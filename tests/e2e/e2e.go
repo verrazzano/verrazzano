@@ -4,9 +4,7 @@
 package e2e
 
 import (
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"testing"
 )
@@ -29,15 +27,6 @@ func RunE2ETests(t *testing.T) {
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	// Disable skipped tests unless they are explicitly requested.
-	if config.GinkgoConfig.SkipStrings != nil {
-		//add some skip strings or whatever
-	}
 
-	//setup reports
-	var r []ginkgo.Reporter
-	//this reporter
-	r = append(r, reporters.NewJUnitReporter("somedir/somefile"))
-	//that reporter
-
-	ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "Verrazzano e2e tests", r)
+	ginkgo.RunSpecs(t, "Verrazzano e2e tests")
 }
