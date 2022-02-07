@@ -283,7 +283,9 @@ func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, name
 
 		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
-			log.Errorf("Failed getting the Dynamic API: %v", err)
+			if errors.IsNotFound(err) {
+				log.Errorf("Failed getting the Dynamic API: %v", err)
+			}
 			return nil, err
 		}
 
