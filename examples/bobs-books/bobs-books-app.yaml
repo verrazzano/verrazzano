@@ -5,7 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: bobs-books
-  namespace: bobs-books
   annotations:
     version: v1.0.0
     description: "Bob's Books"
