@@ -89,34 +89,7 @@ console:
 
 api:
   name: verrazzano-authproxy
-  replicas: 1
-  # NOTE: The nginx-ingress-controller image now comes from the bill of materials file (verrazzano-bom.json).
-  pullPolicy: IfNotPresent
   port: 8775
-  impersonatorRoleName: impersonate-api-user
-  proxy:
-    OidcRealm: verrazzano-system
-    PKCEClientID: verrazzano-pkce
-    PGClientID: verrazzano-pg
-    RequiredRealmRole: vz_api_access
-    OidcCallbackPath: /_authentication_callback
-    OidcLogoutCallbackPath: /_logout
-    OidcSingleLogoutCallbackPath: /_single_logout
-    AuthnStateTTL: "300"
-    MaxRequestSize: 65m
-    ProxyBufferSize: 8k
-  affinity: |
-    podAntiAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-        - weight: 100
-          podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                    - {{ .Values.api.name }}
-            topologyKey: kubernetes.io/hostname
 
 # OCI-related values
 oci:
@@ -133,7 +106,7 @@ oci:
 
 config:
   envName:
-  dnsSuffix: verrazzano.io
+  dnsSuffix:
   enableMonitoringStorage: true
 
 security:

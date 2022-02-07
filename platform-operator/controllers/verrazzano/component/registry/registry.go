@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -54,6 +55,7 @@ func getComponents() []spi.Component {
 			externaldns.NewComponent(),
 			rancher.NewComponent(),
 			verrazzano.NewComponent(),
+			authproxy.NewComponent(),
 			coherence.NewComponent(),
 			weblogic.NewComponent(),
 			oam.NewComponent(),

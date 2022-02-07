@@ -64,9 +64,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if !c.HelmComponent.IsReady(ctx) {
 		return false
 	}
-	deployments := []types.NamespacedName{
-		{Name: "verrazzano-authproxy", Namespace: globalconst.VerrazzanoSystemNamespace},
-	}
+	deployments := []types.NamespacedName{}
 	if isVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, []types.NamespacedName{
 			{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
