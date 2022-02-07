@@ -1,24 +1,38 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package authproxy
 
 import (
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"io/fs"
+	"io/ioutil"
+	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 )
 
-// IsReady checks if the application operator deployment is ready
+const (
+	tmpFilePrefix        = "verrazzano-overrides-"
+	tmpSuffix            = "yaml"
+	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
+)
+
+var (
+	// For Unit test purposes
+	writeFileFunc = ioutil.WriteFile
+)
+
+// IsReady checks if the AuthProxy deployment is ready
 func IsReady(ctx spi.ComponentContext, name string, namespace string) bool {
 	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+		{Name: name, Namespace: namespace},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
@@ -28,42 +42,83 @@ func IsReady(ctx spi.ComponentContext, name string, namespace string) bool {
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := ctx.EffectiveCR()
 
-	// Environment name
-	kvs = append(kvs, bom.KeyValue{Key: "config.envName", Value: vzconfig.GetEnvName(effectiveCR)})
+	// Overrides object to store any user overrides
+	overrides := authProxyValues{}
 
-	// Full image name
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return nil, err
+	// Environment name
+	overrides.Config = &configSettings{
+		EnvName: vzconfig.GetEnvName(effectiveCR),
 	}
-	images, err := bomFile.BuildImageOverrides("verrazzano")
-	if err != nil {
-		return nil, err
-	}
-	imageName := ""
-	imageVersion := ""
-	for _, image := range images {
-		if image.Key == "api.imageName" {
-			imageName = image.Value
-		} else if image.Key == "api.imageVersion" {
-			imageVersion = image.Value
-		}
-	}
-	if len(imageName) == 0 {
-		return nil, ctx.Log().ErrorNewErr("Failed to find api.imageName in BOM")
-	}
-	if len(imageVersion) == 0 {
-		return nil, ctx.Log().ErrorNewErr("Failed to find api.imageVersion in BOM")
-	}
-	kvs = append(kvs, bom.KeyValue{Key: "imageName", Value: imageName})
-	kvs = append(kvs, bom.KeyValue{Key: "imageVersion", Value: imageVersion})
 
 	// DNS Suffix
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
-		return kvs, err
+		return nil, err
 	}
-	kvs = append(kvs, bom.KeyValue{Key: "config.dnsSuffix", Value: dnsSuffix})
+	overrides.Config.DnsSuffix = dnsSuffix
+
+	// Image name and version
+	err = getImageSettings(ctx, &overrides)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write the overrides file to a temp dir and add a helm file override argument
+	overridesFileName, err := generateOverridesFile(ctx, &overrides)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed generating AuthProxy overrides file: %v", err)
+	}
+
+	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
+	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	return kvs, nil
+}
+
+// getImageSettings sets the override values for the image name and version
+func getImageSettings(ctx spi.ComponentContext, overrides *authProxyValues) error {
+	// Full image name
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return err
+	}
+	images, err := bomFile.BuildImageOverrides("verrazzano")
+	if err != nil {
+		return err
+	}
+
+	for _, image := range images {
+		if image.Key == "api.imageName" {
+			overrides.ImageName = image.Value
+		} else if image.Key == "api.imageVersion" {
+			overrides.ImageVersion = image.Value
+		}
+	}
+	if len(overrides.ImageName) == 0 {
+		return ctx.Log().ErrorNewErr("Failed to find api.imageName in BOM")
+	}
+	if len(overrides.ImageVersion) == 0 {
+		return ctx.Log().ErrorNewErr("Failed to find api.imageVersion in BOM")
+	}
+
+	return nil
+}
+
+// TODO: move this to a common package?
+func generateOverridesFile(ctx spi.ComponentContext, overrides interface{}) (string, error) {
+	bytes, err := yaml.Marshal(overrides)
+	if err != nil {
+		return "", err
+	}
+	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
+	if err != nil {
+		return "", err
+	}
+
+	overridesFileName := file.Name()
+	if err := writeFileFunc(overridesFileName, bytes, fs.ModeAppend); err != nil {
+		return "", err
+	}
+	ctx.Log().Debugf("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
+	return overridesFileName, nil
 }
