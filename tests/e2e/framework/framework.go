@@ -36,7 +36,9 @@ const (
 	// DefaultNamespaceDeletionTimeout is timeout duration for waiting for a namespace deletion.
 	DefaultNamespaceDeletionTimeout = 5 * time.Minute
 )
-// Time related declartations have been taken from a yet to exist e2e/framework/timeouts.go
+
+// TODO Refactor time structs
+// Time related declarations have been taken from a yet to exist e2e/framework/timeouts.go
 // Storing in this file for simplicity for the time being
 const (
 	// Default timeouts to be used in TimeoutContext
@@ -144,8 +146,6 @@ type Framework struct {
 	UniqueName string
 
 	clientConfig                     *rest.Config
-	ClientSet                        clientset.Interface
-	KubemarkExternalClusterClientSet clientset.Interface
 
 	DynamicClient dynamic.Interface
 
