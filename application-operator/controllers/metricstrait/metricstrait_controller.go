@@ -636,7 +636,12 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 
 	// If the results contained errors then requeue immediately.
 	if results.ContainsErrors() {
-		log.Errorf("Failed to reconcile metrics trait %s: %v", name, results.Errors)
+		// if there is only one conflict error don't output an error message
+		if len(results.Errors) == 1 {
+			vzlog.ConflictWithLog(fmt.Sprintf("Failed to reconcile metrics trait %s:", name), results.Errors[0], zap.S())
+		} else {
+			log.Errorf("Failed to reconcile metrics trait %s: %v", name, results.Errors)
+		}
 		return reconcile.Result{Requeue: true}, nil
 	}
 
