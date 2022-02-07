@@ -22,8 +22,8 @@ import (
 const (
 	systemNamespace = "verrazzano-system"
 	kiali           = "vmi-system-kiali"
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 5 * time.Second
+	waitTimeout     = 15 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var (
