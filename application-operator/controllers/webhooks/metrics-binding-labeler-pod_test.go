@@ -16,10 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	discofake "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/dynamic/fake"
-	k8sfake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/restmapper"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -33,33 +30,9 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 	vzapp.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewFakeClientWithScheme(scheme)
-	clientset := k8sfake.NewSimpleClientset()
-	discoveryClient := clientset.Discovery()
-	fakeDiscovery := clientset.Discovery().(*discofake.FakeDiscovery)
-	fakeDiscovery.Fake.Resources = []*metav1.APIResourceList{
-		{
-			GroupVersion: "apps/v1",
-			APIResources: []metav1.APIResource{
-				{
-					Name:         "replicasets",
-					SingularName: "replicaset",
-					Kind:         "ReplicaSet",
-					Namespaced:   true,
-				},
-				{
-					Name:         "deployments",
-					SingularName: "deployment",
-					Kind:         "Deployment",
-					Namespaced:   true,
-				},
-			},
-		},
-	}
-	gr, _ := restmapper.GetAPIGroupResources(discoveryClient)
 	v := LabelerPodWebhook{
 		Client:        cli,
 		DynamicClient: fake.NewSimpleDynamicClient(runtime.NewScheme()),
-		RestMapper:    restmapper.NewDiscoveryRESTMapper(gr),
 	}
 	v.InjectDecoder(decoder)
 	return v
@@ -88,11 +61,7 @@ func TestNoOwnerReferences(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestOwnerReference tests the handling of a Pod resource
@@ -136,11 +105,7 @@ func TestOwnerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestMultipleOwnerReference tests the handling of a Pod resource
@@ -203,11 +168,7 @@ func TestMultipleOwnerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestMultipleOwnerReferenceAndWorkloadResources tests the handling of a Pod resource
@@ -288,4 +249,44 @@ func TestMultipleOwnerReferenceAndWorkloadResources(t *testing.T) {
 
 	assert.False(t, res.Allowed)
 	assert.Equal(t, "multiple workload resources found for test, Verrazzano metrics cannot be enabled", res.Result.Message)
+}
+
+// TestPodPrometheusAnnotations tests the annotation of a Pod resource
+// GIVEN a call to the webhook Handle function
+// WHEN the pod has Prometheus annotations
+// THEN the Handle function should not overwrite those annotations
+func TestPodPrometheusAnnotations(t *testing.T) {
+	a := newLabelerPodWebhook()
+
+	// Test data
+	pod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+			Annotations: map[string]string{
+				PrometheusPortAnnotation:   PrometheusPortDefault,
+				PrometheusPathAnnotation:   PrometheusPathAnnotation,
+				PrometheusScrapeAnnotation: PrometheusScrapeAnnotation,
+			},
+		},
+	}
+	assert.NoError(t, a.Client.Create(context.TODO(), &pod))
+
+	req := admission.Request{}
+	req.Namespace = "default"
+	marshaledPod, err := json.Marshal(pod)
+	assert.NoError(t, err, "Unexpected error marshaling pod")
+	req.Object = runtime.RawExtension{Raw: marshaledPod}
+	res := a.Handle(context.TODO(), req)
+
+	verifyResponse(t, res, 1)
+}
+
+func verifyResponse(t *testing.T, res admission.Response, len int) {
+	assert.True(t, res.Allowed)
+	assert.Len(t, res.Patches, len)
+	for _, patch := range res.Patches {
+		assert.Equal(t, "add", patch.Operation)
+		assert.True(t, patch.Path == "/metadata/labels" || patch.Path == "/metadata/annotations")
+	}
 }
