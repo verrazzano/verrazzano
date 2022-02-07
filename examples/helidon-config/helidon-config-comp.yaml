@@ -4,6 +4,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: helidon-config-cm
+  namespace: helidon-config
 data:
   config-properties.yaml: |
     app.greeting: Hello
@@ -13,6 +14,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: helidon-config-component
+  namespace: helidon-config
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1

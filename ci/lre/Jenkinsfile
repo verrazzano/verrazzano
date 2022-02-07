@@ -43,9 +43,6 @@ pipeline {
         OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
         NO_PROXY = ".nip.io"
-
-	WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
     }
 
     stages {
@@ -184,11 +181,6 @@ pipeline {
                         ls -ls ${KUBECONFIG}
                         sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
                         cat ${KUBECONFIG}
-
-			# updating kubeconfig with sa
-                        cd ${GO_REPO_PATH}/verrazzano/
-                        ci/scripts/update_lre_kubeconfig.sh
-
                         echo "run kubectl get nodes"
                         kubectl get nodes
                         echo "run kubectl get pods"
@@ -229,33 +221,6 @@ pipeline {
                         runGinkgo('examples/helidon')
                     }
                 }
-                stage('examples helidonconfig') {
-                    steps {
-                        runGinkgo('examples/helidonconfig')
-                    }
-                }
-                stage('examples springboot') {
-                    steps {
-                        runGinkgo('examples/springboot')
-                    }
-                }
-		        stage('examples socks') {
-                    steps {
-                        runSocksVariant('helidon')
-                        runSocksVariant('micronaut')
-                        runSocksVariant('spring')
-                    }
-                }
-                stage('examples todo') {
-                    steps {
-                        runGinkgo('examples/todo')
-                    }
-                }
-                stage('examples bobs') {
-                    steps {
-                        runGinkgo('examples/bobsbooks')
-                    }
-                }
             }
             post {
                 always {
@@ -281,15 +246,6 @@ def runGinkgo(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/...
-        """
-    }
-}
-
-def runSocksVariant(variant) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color examples/socks/...
         """
     }
 }

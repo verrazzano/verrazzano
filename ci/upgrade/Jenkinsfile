@@ -261,7 +261,7 @@ pipeline {
                 }
                 stage('examples spring') {
                     steps {
-                        runGinkgoNamespace('examples/springboot', "false", "true", "springboot")
+                        runGinkgo('examples/springboot', "false", "true")
                     }
                 }
                 stage('examples helidon') {
@@ -271,7 +271,7 @@ pipeline {
                 }
                 stage('examples socks') {
                     steps {
-                        runGinkgoNamespace('examples/socks', "false", "true", "sockshop")
+                        runGinkgo('examples/socks', "false", "true")
                     }
                 }
             }
@@ -449,12 +449,12 @@ pipeline {
                 }
                 stage('examples socks') {
                     steps {
-                        runGinkgoNamespace('examples/socks', "true", "false", "sockshop")
+                        runGinkgo('examples/socks', "true", "false")
                     }
                 }
                 stage('examples spring') {
                     steps {
-                        runGinkgoNamespace('examples/springboot', "true", "false", "springboot")
+                        runGinkgo('examples/springboot', "true", "false")
                     }
                 }
                 stage('examples helidon') {
@@ -464,12 +464,12 @@ pipeline {
                 }
                 stage('examples todo') {
                     steps {
-                        runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
+                        runGinkgo('examples/todo', "false", "true")
                     }
                 }
                 stage('examples bobs-books') {
                     steps {
-                        runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
+                        runGinkgo('examples/bobsbooks', "false", "true")
                     }
                 }
             }
