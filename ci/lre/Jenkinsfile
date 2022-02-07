@@ -239,7 +239,7 @@ pipeline {
                         runGinkgo('examples/springboot')
                     }
                 }
-		stage('examples socks') {
+		        stage('examples socks') {
                     steps {
                         runSocksVariant('helidon')
                         runSocksVariant('micronaut')
