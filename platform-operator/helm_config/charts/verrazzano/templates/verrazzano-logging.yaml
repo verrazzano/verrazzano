@@ -232,6 +232,78 @@ data:
     </source>
 
   components-filter.conf: |
+    # filter to parse Verrazzano platform operator webhook init container log files
+    <filter kubernetes.**verrazzano-platform-operator**webhook-init**>
+      @type parser
+      @id verrazzano-platform-webhook-init
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # The Verrazzano platform operator has two formats for log records
+        # one is json and the other is a klog messsage
+        @type multi_format
+        <pattern>
+          format json
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          # From https://github.com/kubernetes/klog/blob/main/klog.go#L586
+          # Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
+          format /^(?<level>.)(?<logtime>\d{2}\d{2}\s\d{2}:\d{2}:\d{2}.\d{6})\s+(?<thread>[^\s]+)\s+(?<caller>.+)\]\s+(?<message>.*)$/
+          time_key logtime
+          time_format %m%d %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**verrazzano-platform-operator**webhook-init**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time.iso8601(3)}
+      </record>
+    </filter>
+
+    # filter to parse Verrazzano platform operator container log files
+    <filter kubernetes.**verrazzano-platform-operator**verrazzano-platform-operator**>
+      @type parser
+      @id verrazzano-platform-operator
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # The Verrazzano platform operator has two formats for log records
+        # one is json and the other is a klog messsage
+        @type multi_format
+        <pattern>
+          format json
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          # From https://github.com/kubernetes/klog/blob/main/klog.go#L586
+          # Lmmdd hh:mm:ss.uuuuuu threadid file:line] msg...
+          format /^(?<level>.)(?<logtime>\d{2}\d{2}\s\d{2}:\d{2}:\d{2}.\d{6})\s+(?<thread>[^\s]+)\s+(?<caller>.+)\]\s+(?<message>.*)$/
+          time_key logtime
+          time_format %m%d %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**verrazzano-platform-operator**verrazzano-platform-operator**>
+      @type record_transformer
+      enable_ruby true
+      <record>
+        @timestamp ${time.iso8601(3)}
+      </record>
+    </filter>
+
     # filter to parse authproxy container log files
     <filter kubernetes.**verrazzano-authproxy**verrazzano-authproxy**>
       @type parser

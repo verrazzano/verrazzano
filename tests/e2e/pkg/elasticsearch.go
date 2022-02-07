@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -285,6 +285,36 @@ func findHits(searchResult map[string]interface{}, after *time.Time) bool {
 	return false
 }
 
+// ElasticsearchHit is the type used for a Elasticsearch hit returned in a search query result
+type ElasticsearchHit map[string]interface{}
+
+// ElasticsearchHitValidator is a function that validates a hit returned in a search query result
+type ElasticsearchHitValidator func(hit ElasticsearchHit) bool
+
+// ValidateElasticsearchHits invokes the HitValidator on every hit in the searchResults.
+// The first invalid hit found will return in false being returned.
+// Otherwise true will be returned.
+func ValidateElasticsearchHits(searchResults map[string]interface{}, hitValidator ElasticsearchHitValidator) bool {
+	hits := Jq(searchResults, "hits", "hits")
+	if hits == nil {
+		Log(Info, "Expected to find hits in log record query results")
+		return false
+	}
+	Log(Info, fmt.Sprintf("Found %d records", len(hits.([]interface{}))))
+	if len(hits.([]interface{})) == 0 {
+		Log(Info, "Expected log record query results to contain at least one hit")
+		return false
+	}
+	for _, h := range hits.([]interface{}) {
+		hit := h.(map[string]interface{})
+		src := hit["_source"]
+		if !hitValidator(src.(map[string]interface{})) {
+			return false
+		}
+	}
+	return true
+}
+
 // FindLog returns true if a recent log record can be found in the index with matching filters.
 func FindLog(index string, match []Match, mustNot []Match) bool {
 	after := time.Now().Add(-24 * time.Hour)
@@ -387,26 +417,27 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 	return result
 }
 
-// POST the request entity body to Elasticsearch API path
-func PostElasticsearch(path string, body string) (string, error) {
+// PostElasticsearch POST the request entity body to Elasticsearch API path
+// The provided path is appended to the Elasticsearch base URL
+func PostElasticsearch(path string, body string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-		return "", err
+		return nil, err
 	}
 	url := fmt.Sprintf("%s/%s", getElasticSearchURL(kubeconfigPath), path)
 	configPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error retrieving kubeconfig, error=%v", err))
-		return "", err
+		return nil, err
 	}
 	username, password, err := getElasticSearchUsernamePassword(configPath)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
 	resp, err := postElasticSearchWithBasicAuth(url, body, username, password, configPath)
-	return string(resp.Body), err
+	return resp, err
 }
 
 // ElasticQuery describes an Elasticsearch Query
