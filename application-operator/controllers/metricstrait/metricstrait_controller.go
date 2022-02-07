@@ -23,12 +23,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strconv"
+	"time"
 )
 
 const (
@@ -638,7 +640,13 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	return reconcile.Result{}, nil
+	// If the status has not change and there are no errors
+	// requeue with a jittered delay to account for situations where a workload
+	// changes but without necessarily updating the trait spec.
+	var seconds = rand.IntnRange(45, 90)
+	var duration = time.Duration(seconds) * time.Second
+	log.Debugf("Reconciled metrics trait %s successfully", name.Name)
+	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
 }
 
 // fetchWLSDomainCredentialsSecretName fetches the credentials from the WLS workload resource (i.e. domain).
