@@ -16,7 +16,7 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/gertd/go-pluralize"
 	ptypes "github.com/gogo/protobuf/types"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -47,7 +47,7 @@ const (
 	gatewayKind               = "Gateway"
 	virtualServiceAPIVersion  = "networking.istio.io/v1alpha3"
 	virtualServiceKind        = "VirtualService"
-	certificateAPIVersion     = "cert-manager.io/v1alpha2"
+	certificateAPIVersion     = "cert-manager.io/v1"
 	certificateKind           = "Certificate"
 	serviceAPIVersion         = "v1"
 	serviceKind               = "Service"
@@ -359,7 +359,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		return ""
 	}
 	secretName = fmt.Sprintf("%s-secret", certName)
-	certificate := &certapiv1alpha2.Certificate{
+	certificate := &certapiv1.Certificate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       certificateKind,
 			APIVersion: certificateAPIVersion,
@@ -374,7 +374,7 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		if err != nil {
 			return err
 		}
-		certificate.Spec = certapiv1alpha2.CertificateSpec{
+		certificate.Spec = certapiv1.CertificateSpec{
 			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
 			SecretName: secretName,
 			IssuerRef: certv1.ObjectReference{

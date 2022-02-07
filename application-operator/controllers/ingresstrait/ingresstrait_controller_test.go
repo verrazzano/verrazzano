@@ -9,19 +9,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os"
 	"testing"
 	"text/template"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -159,7 +160,7 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the certificate related to the ingress trait
@@ -755,7 +756,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -862,7 +863,7 @@ func TestFailureToGetWorkload(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the certificate related to the ingress trait
@@ -955,7 +956,7 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the certificate related to the ingress trait
@@ -1113,7 +1114,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the Verrazzano ingress and return the ingress.
@@ -2817,7 +2818,7 @@ func newScheme() *runtime.Scheme {
 	k8sapps.AddToScheme(scheme)
 	vzapi.AddToScheme(scheme)
 	k8score.AddToScheme(scheme)
-	certapiv1alpha2.AddToScheme(scheme)
+	certapiv1.AddToScheme(scheme)
 	k8net.AddToScheme(scheme)
 	istioclient.AddToScheme(scheme)
 	return scheme
@@ -3111,7 +3112,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the Verrazzano ingress and return the ingress.
