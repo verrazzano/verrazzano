@@ -66,6 +66,26 @@ func TestAppendOverrides(t *testing.T) {
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
+		{
+			name:         "OverrideReplicas",
+			description:  "Test override of replica count",
+			expectedYAML: "testdata/authProxyValuesOverrideReplicas.yaml",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							Kubernetes: &vzapi.AuthProxyKubernetesSection{
+								vzapi.CommonKubernetesSpec{
+									Replicas: 3,
+								},
+							},
+						},
+					},
+				},
+			},
+			numKeyValues: 1,
+			expectedErr:  nil,
+		},
 	}
 	defer resetWriteFileFunc()
 	for _, test := range tests {

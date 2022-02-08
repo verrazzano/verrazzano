@@ -63,6 +63,12 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return nil, err
 	}
 
+	// Kubernetes settings
+	err = getKubernetesSettings(ctx, &overrides)
+	if err != nil {
+		return nil, err
+	}
+
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
 	if err != nil {
@@ -101,6 +107,23 @@ func getImageSettings(ctx spi.ComponentContext, overrides *authProxyValues) erro
 		return ctx.Log().ErrorNewErr("Failed to find api.imageVersion in BOM")
 	}
 
+	return nil
+}
+
+// getKubernetesSettings sets the override values for Kubernetes settings
+func getKubernetesSettings(ctx spi.ComponentContext, overrides *authProxyValues) error {
+	effectiveCR := ctx.EffectiveCR()
+	authProxyComponent := effectiveCR.Spec.Components.AuthProxy
+
+	if authProxyComponent != nil {
+		kubernetesSettings := authProxyComponent.Kubernetes
+		if kubernetesSettings != nil {
+			// Replicas
+			if kubernetesSettings.Replicas > 0 {
+				overrides.Replicas = kubernetesSettings.Replicas
+			}
+		}
+	}
 	return nil
 }
 

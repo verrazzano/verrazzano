@@ -9,6 +9,7 @@ type authProxyValues struct {
 	ImageName            string          `json:"imageName,omitempty"`
 	ImageVersion         string          `json:"imageVersion,omitempty"`
 	PullPolicy           string          `json:"pullPolicy,omitempty"`
+	Replicas             uint32          `json:"replicas,omitempty"`
 	Port                 int             `json:"port,omitempty"`
 	ImpersonatorRoleName string          `json:"impersonatorRoleName,omitempty"`
 	Proxy                *proxySettings  `json:"proxy,omitempty"`
