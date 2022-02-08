@@ -23,7 +23,6 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 )
 
@@ -42,14 +41,14 @@ type Framework struct {
 	// test multiple times in parallel.
 	UniqueName string
 
-	clientConfig			*rest.Config
-	ClientSet               clientset.Interface
+	clientConfig *rest.Config
+	ClientSet    clientset.Interface
 
-	DynamicClient 			dynamic.Interface
+	DynamicClient dynamic.Interface
 
-	SkipNamespaceCreation    bool            // Whether to skip creating a namespace
-	Namespace                *v1.Namespace   // Every test has at least one namespace unless creation is skipped
-	namespacesToDelete       []*v1.Namespace // Some tests have more than one.
+	SkipNamespaceCreation bool            // Whether to skip creating a namespace
+	Namespace             *v1.Namespace   // Every test has at least one namespace unless creation is skipped
+	namespacesToDelete    []*v1.Namespace // Some tests have more than one.
 
 	// afterEaches is a map of name to function to be called after each test.  These are not
 	// cleared.  The call order is randomized so that no dependencies can grow between
@@ -72,8 +71,8 @@ func NewDefaultFramework(baseName string) *Framework {
 // NewFramework creates a test framework.
 func NewFramework(baseName string, client clientset.Interface) *Framework {
 	f := &Framework{
-		BaseName:                 baseName,
-		ClientSet:                client,
+		BaseName:  baseName,
+		ClientSet: client,
 	}
 
 	f.AddAfterEach("dumpNamespaceInfo", func(f *Framework, failed bool) {
@@ -136,15 +135,4 @@ func (f *Framework) ClientConfig() *rest.Config {
 	ret.ContentType = runtime.ContentTypeJSON
 	ret.AcceptContentTypes = runtime.ContentTypeJSON
 	return ret
-}
-
-// ExpectNoError checks if "err" is set, and if so, fails assertion while logging the error.
-func ExpectNoError(err error, explain ...interface{}) {
-	ExpectNoErrorWithOffset(1, err, explain...)
-}
-
-// ExpectNoErrorWithOffset checks if "err" is set, and if so, fails assertion while logging the error at "offset" levels above its caller
-// (for example, for call chain f -> g -> ExpectNoErrorWithOffset(1, ...) error would be logged for "f").
-func ExpectNoErrorWithOffset(offset int, err error, explain ...interface{}) {
-	gomega.ExpectWithOffset(1+offset, err).NotTo(gomega.HaveOccurred(), explain...)
 }
