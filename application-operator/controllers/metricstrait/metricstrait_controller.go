@@ -628,8 +628,7 @@ func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.Metrics
 	if trait.DeletionTimestamp.IsZero() && updateStatusIfRequired(&trait.Status, results) {
 		err := r.Status().Update(ctx, trait)
 		if err != nil {
-			log.Errorf("Failed to update metrics trait %s status: %v", name.Name, err)
-			return reconcile.Result{}, err
+			return vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to update metrics trait %s status", name.Name), err, zap.S())
 		}
 		log.Debugf("Updated metrics trait %s status", name.Name)
 	}
