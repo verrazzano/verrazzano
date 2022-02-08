@@ -610,3 +610,135 @@ webhooks:
     admissionReviewVersions:
       - v1beta1
       - v1
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: verrazzano-application-metrics-binding
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: metrics-binding-generator-workload.verrazzano.io
+    namespaceSelector:
+      matchLabels:
+        verrazzano-managed: "true"
+    objectSelector:
+      matchExpressions:
+        - key: app.oam.dev/component
+          operator: DoesNotExist
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/metrics-binding-generator-workload"
+    rules:
+      - operations: ["CREATE","UPDATE"]
+        apiGroups: ["*"]
+        apiVersions: ["*"]
+        resources: ["deployments","pods","replicasets","statefulsets"]
+        scope: "Namespaced"
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
+  - name: metrics-binding-labeler-pod.verrazzano.io
+    namespaceSelector:
+      matchLabels:
+        verrazzano-managed: "true"
+    objectSelector:
+      matchExpressions:
+        - key: app.oam.dev/component
+          operator: DoesNotExist
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/metrics-binding-labeler-pod"
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+        scope: "Namespaced"
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
+---
+apiVersion: app.verrazzano.io/v1alpha1
+kind: MetricsTemplate
+metadata:
+  name: standard-k8s-metrics-template
+  namespace: {{ .Values.namespace }}
+spec:
+  workloadSelector:
+    apiGroups: ["apps", ""]
+    apiVersions: ["v1"]
+    resources: ["deployment", "statefulset", "replicaset", "pod"]
+  prometheusConfig:
+    targetConfigMap:
+      namespace: {{ .Values.namespace }}
+      name: vmi-system-prometheus-config
+    scrapeConfigTemplate: |
+      kubernetes_sd_configs:
+        - namespaces:
+            names:
+            - {{`{{.workload.metadata.namespace}}`}}
+          role: pod
+      relabel_configs:
+        - action: replace
+          replacement: local
+          source_labels: null
+          target_label: verrazzano_cluster
+        - action: keep
+          regex: {{`{{index .workload.metadata.labels "app.verrazzano.io/workload"}}`}};true
+          source_labels:
+            - __meta_kubernetes_pod_label_app_verrazzano_io_workload
+            - __meta_kubernetes_pod_annotation_prometheus_io_scrape
+        - action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          source_labels:
+            - __address__
+            - __meta_kubernetes_pod_annotation_prometheus_io_port
+          target_label: __address__
+        - action: replace
+          regex: (.*)
+          source_labels:
+            - __meta_kubernetes_pod_annotation_prometheus_io_path
+          target_label: __metrics_path__
+        - action: replace
+          regex: (.*)
+          replacement: $1
+          source_labels:
+            - __meta_kubernetes_namespace
+          target_label: namespace
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_name
+          target_label: pod_name
+        - action: labeldrop
+          regex: (controller_revision_hash)
+        - action: replace
+          regex: .*/(.*)$
+          replacement: $1
+          source_labels:
+            - name
+          target_label: webapp
+      scheme: https
+      {{`{{ if eq ( index .namespace.metadata.labels "istio-injection" ) "enabled" }}`}}
+      tls_config:
+        ca_file: /etc/istio-certs/root-cert.pem
+        cert_file: /etc/istio-certs/cert-chain.pem
+        insecure_skip_verify: true
+        key_file: /etc/istio-certs/key.pem
+      {{`{{ end }}`}}

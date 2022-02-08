@@ -28,7 +28,7 @@ func newGeneratorWorkloadWebhook() GeneratorWorkloadWebhook {
 	scheme := newScheme()
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
-	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{})
+	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{}, &corev1.Namespace{})
 	vzapp.AddToScheme(scheme)
 	decoder, _ := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewFakeClientWithScheme(scheme)
@@ -62,7 +62,7 @@ func TestHandlePod(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", nil)
+	v.createNamespace(t, "test", nil, nil)
 	testPod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -84,7 +84,7 @@ func TestHandleDeployment(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", nil)
+	v.createNamespace(t, "test", nil, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testDeployment",
@@ -106,7 +106,7 @@ func TestHandleReplicaSet(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", nil)
+	v.createNamespace(t, "test", nil, nil)
 	testReplicaSet := appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testReplicaSet",
@@ -128,7 +128,7 @@ func TestHandleStatefulSet(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", nil)
+	v.createNamespace(t, "test", nil, nil)
 	testStatefulSet := appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testStatefulSet",
@@ -150,7 +150,7 @@ func TestHandleOwnerRefs(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", nil)
+	v.createNamespace(t, "test", nil, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testDeployment",
@@ -181,7 +181,7 @@ func TestHandleMetricsNone(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testDeployment",
@@ -189,6 +189,32 @@ func TestHandleMetricsNone(t *testing.T) {
 			Annotations: map[string]string{
 				"app.verrazzano.io/metrics": "none",
 			},
+		},
+	}
+	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
+
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	res := v.Handle(context.TODO(), req)
+	assert.True(t, res.Allowed)
+	assert.Nil(t, res.Patches, "expected no changes to workload resource")
+
+	// validate that metrics binding was not created as expected
+	v.validateNoMetricsBinding(t)
+}
+
+// TestHandleMetricsNoneNamespace tests the handling of a namespace with "app.verrazzano.io/metrics": "none"
+// GIVEN a call to the webhook Handle function
+// WHEN the workload resource has  "app.verrazzano.io/metrics": "none"
+// THEN the Handle function should succeed and the metricsBinding is not created
+func TestHandleMetricsNoneNamespace(t *testing.T) {
+	v := newGeneratorWorkloadWebhook()
+
+	// Test data
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, map[string]string{"app.verrazzano.io/metrics": "none"})
+	testDeployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testDeployment",
+			Namespace: "test",
 		},
 	}
 	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
@@ -211,7 +237,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testDeployment",
@@ -238,7 +264,7 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
 	v.createConfigMap(t, "test", "testPromConfigMap")
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -293,8 +319,8 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+	v.createNamespace(t, "verrazzano-system", nil, nil)
 	v.createConfigMap(t, "test", "testPromConfigMap")
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -349,7 +375,7 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
 	testDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -393,8 +419,8 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+	v.createNamespace(t, "verrazzano-system", nil, nil)
 	v.createConfigMap(t, "test", "testPromConfigMap")
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -456,8 +482,8 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+	v.createNamespace(t, "verrazzano-system", nil, nil)
 	v.createConfigMap(t, "test", "testPromConfigMap")
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -519,8 +545,8 @@ func TestHandleMatchNotFound(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+	v.createNamespace(t, "verrazzano-system", nil, nil)
 	v.createConfigMap(t, "test", "testPromConfigMap")
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -579,8 +605,8 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+	v.createNamespace(t, "verrazzano-system", nil, nil)
 	v.createConfigMap(t, "test", "testPromConfigMap")
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
@@ -628,8 +654,8 @@ func TestHandleNoConfigMap(t *testing.T) {
 	v := newGeneratorWorkloadWebhook()
 
 	// Test data
-	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"})
-	v.createNamespace(t, "verrazzano-system", nil)
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, nil)
+	v.createNamespace(t, "verrazzano-system", nil, nil)
 	testDeployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -663,14 +689,84 @@ func TestHandleNoConfigMap(t *testing.T) {
 	v.validateNoMetricsBinding(t)
 }
 
-func (v *GeneratorWorkloadWebhook) createNamespace(t *testing.T, name string, labels map[string]string) {
-	ns := &corev1.Namespace{
+// TestHandleNamespaceAnnotation tests the handling of a namespace that specifies a template
+// GIVEN a call to the webhook Handle function
+// WHEN the namespace has a metrics template reference
+// THEN the Handle function should succeed and a metricsBinding is created
+func TestHandleNamespaceAnnotation(t *testing.T) {
+	v := newGeneratorWorkloadWebhook()
+
+	// Test data
+	v.createNamespace(t, "test", map[string]string{"verrazzano-managed": "true"}, map[string]string{"app.verrazzano.io/metrics": "testTemplateDifferentNamespace"})
+	v.createNamespace(t, constants.VerrazzanoSystemNamespace, nil, nil)
+	v.createConfigMap(t, "test", "testPromConfigMap")
+	testDeployment := appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name:      "testDeployment",
+			Namespace: "test",
 		},
 	}
-	_, err := v.KubeClient.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
+	assert.NoError(t, v.Client.Create(context.TODO(), &testDeployment))
+	testTemplate := vzapp.MetricsTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "testTemplateDifferentNamespace",
+		},
+		Spec: vzapp.MetricsTemplateSpec{
+			WorkloadSelector: vzapp.WorkloadSelector{},
+			PrometheusConfig: vzapp.PrometheusConfig{
+				TargetConfigMap: vzapp.TargetConfigMap{
+					Namespace: "test",
+					Name:      "testPromConfigMap",
+				},
+			},
+		},
+	}
+	extraTemplate := vzapp.MetricsTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "testWrongTemplate",
+		},
+		Spec: vzapp.MetricsTemplateSpec{
+			WorkloadSelector: vzapp.WorkloadSelector{},
+			PrometheusConfig: vzapp.PrometheusConfig{
+				TargetConfigMap: vzapp.TargetConfigMap{
+					Namespace: "test",
+					Name:      "testPromConfigMap",
+				},
+			},
+		},
+	}
+	assert.NoError(t, v.Client.Create(context.TODO(), &testTemplate))
+	assert.NoError(t, v.Client.Create(context.TODO(), &extraTemplate))
+
+	req := newGeneratorWorkloadRequest(admissionv1beta1.Create, "Deployment", testDeployment)
+	res := v.Handle(context.TODO(), req)
+	assert.True(t, res.Allowed)
+	assert.Len(t, res.Patches, 1)
+	assert.Equal(t, "add", res.Patches[0].Operation)
+	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
+	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+
+	// validate that metrics binding was created as expected
+	v.validateMetricsBinding(t, "verrazzano-system", "testTemplateDifferentNamespace")
+}
+
+func (v *GeneratorWorkloadWebhook) createNamespace(t *testing.T, name string, labels map[string]string, annotations map[string]string) {
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Labels:      labels,
+			Annotations: annotations,
+		},
+	}
+	err := v.Client.Create(context.TODO(), ns)
+	assert.NoError(t, err, "unexpected error creating namespace")
+	_, err = v.KubeClient.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
 	assert.NoError(t, err, "unexpected error creating namespace")
 }
 

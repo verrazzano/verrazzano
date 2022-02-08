@@ -495,6 +495,9 @@ func TestUpgradeCompleted(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
+
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
@@ -586,6 +589,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
+
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -877,6 +883,9 @@ func TestUpgradeComponent(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
+
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
@@ -967,6 +976,9 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
