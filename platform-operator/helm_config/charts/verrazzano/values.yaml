@@ -20,7 +20,7 @@ elasticSearch:
       requests:
         memory: 1.4Gi
     data:
-      replicas: 2
+      replicas: 3
       requests:
         memory: 4.8Gi
         storage: 50Gi
