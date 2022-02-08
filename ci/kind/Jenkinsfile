@@ -493,7 +493,7 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metricsbinding"
                             }
                             steps {
-                                runGinkgo('metricsbinding/helidon-deployment')
+                                runGinkgo('metricsbinding/...')
                             }
                         }
                     }
