@@ -6,17 +6,17 @@ package authproxy
 import (
 	"testing"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
+	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
+
+const profilesRelativePath = "../../../../manifests/profiles"
 
 // TestIsReady tests the AuthProxy IsReady call
 // GIVEN a AuthProxy component
@@ -24,9 +24,9 @@ import (
 //  THEN true or false is returned
 func TestIsReady(t *testing.T) {
 	tests := []struct {
-		name      string
-		client    client.Client
-		wantError bool
+		name       string
+		client     client.Client
+		expectTrue bool
 	}{
 		{
 			name: "Test IsReady when AuthProxy is successfully deployed",
@@ -43,7 +43,7 @@ func TestIsReady(t *testing.T) {
 						UnavailableReplicas: 0,
 					},
 				}),
-			wantError: false,
+			expectTrue: true,
 		},
 		{
 			name: "Test IsReady when AuthProxy deployment is not ready",
@@ -60,21 +60,63 @@ func TestIsReady(t *testing.T) {
 						UnavailableReplicas: 1,
 					},
 				}),
-			wantError: true,
+			expectTrue: false,
 		},
 		{
-			name:      "Test IsReady when AuthProxy deployment does not exist",
-			client:    fake.NewFakeClientWithScheme(testScheme),
-			wantError: true,
+			name:       "Test IsReady when AuthProxy deployment does not exist",
+			client:     fake.NewFakeClientWithScheme(testScheme),
+			expectTrue: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
-			if tt.wantError {
-				assert.False(t, NewComponent().IsReady(ctx))
-			} else {
+			if tt.expectTrue {
 				assert.True(t, NewComponent().IsReady(ctx))
+			} else {
+				assert.False(t, NewComponent().IsReady(ctx))
+			}
+		})
+	}
+}
+
+// TestIsEnabled tests the AuthProxy IsEnabled call
+// GIVEN a AuthProxy component
+//  WHEN I call IsEnabled when all requirements are met
+//  THEN true or false is returned
+func TestIsEnabled(t *testing.T) {
+	falseValue := false
+	tests := []struct {
+		name       string
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+	}{
+		{
+			name:       "Test IsEnabled when using default Verrazzano CR",
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: true,
+		},
+		{
+			name: "Test IsEnabled when using AuthProxy component set to disabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: false,
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
+			if tt.expectTrue {
+				assert.True(t, NewComponent().IsEnabled(ctx))
+			} else {
+				assert.False(t, NewComponent().IsEnabled(ctx))
 			}
 		})
 	}
