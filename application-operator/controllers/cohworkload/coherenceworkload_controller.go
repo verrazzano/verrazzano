@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	log2 "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strconv"
@@ -269,8 +270,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 		return unstructured.SetNestedField(u.Object, specCopy, specField)
 	})
 	if err != nil {
-		log.Errorf("Failed creating or updating Coherence CR: %v", err)
-		return reconcile.Result{}, err
+		return reconcile.Result{}, log2.ConflictWithLog("Failed creating or updating Coherence CR", err, zap.S())
 	}
 
 	// Get the namespace resource that the VerrazzanoCoherenceWorkload resource is deployed to
