@@ -122,6 +122,14 @@ func getKubernetesSettings(ctx spi.ComponentContext, overrides *authProxyValues)
 			if kubernetesSettings.Replicas > 0 {
 				overrides.Replicas = kubernetesSettings.Replicas
 			}
+			// Affinity
+			if kubernetesSettings.Affinity != nil {
+				yaml, err := yaml.Marshal(kubernetesSettings.Affinity)
+				if err != nil {
+					return err
+				}
+				overrides.Affinity = string(yaml)
+			}
 		}
 	}
 	return nil

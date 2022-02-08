@@ -14,6 +14,7 @@ type authProxyValues struct {
 	ImpersonatorRoleName string          `json:"impersonatorRoleName,omitempty"`
 	Proxy                *proxySettings  `json:"proxy,omitempty"`
 	Config               *configSettings `json:"config,omitempty"`
+	Affinity             string          `json:"affinity,omitempty"`
 }
 
 type proxySettings struct {
