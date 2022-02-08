@@ -5,6 +5,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: carts
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -49,6 +50,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: catalog
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -92,6 +94,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: orders
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -136,6 +139,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: payment
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -183,6 +187,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: shipping
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -230,6 +235,7 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: users
+  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1

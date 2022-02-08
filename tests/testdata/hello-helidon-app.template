@@ -3,29 +3,27 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
-  name: springboot-appconf
-  namespace: springboot
+  name: hello-helidon-appconf
+  namespace: {{.Namespace}}
   annotations:
     version: v1.0.0
-    description: "Spring Boot application"
+    description: "Hello Helidon application"
 spec:
   components:
-    - componentName: springboot-component
+    - componentName: hello-helidon-component
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
             spec:
-              scraper: verrazzano-system/vmi-system-prometheus-0
-              path: "/actuator/prometheus"
+                scraper: verrazzano-system/vmi-system-prometheus-0
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
             metadata:
-              name: springboot-ingress
+              name: {{.Namespace}}-hello-helidon-ingress
             spec:
               rules:
                 - paths:
-                    - path: "/"
+                    - path: "/greet"
                       pathType: Prefix
-

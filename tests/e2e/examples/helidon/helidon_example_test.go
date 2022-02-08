@@ -30,14 +30,14 @@ const (
 var (
 	t                        = framework.NewTestFramework("helidon")
 	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
-	//yamlApplier              = k8sutil.YAMLApplier{}
+	yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
 
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
-		pkg.DeployHelloHelidonApplication(namespace, "")
+		pkg.DeployHelloHelidonApplication(&yamlApplier, namespace, "")
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
@@ -53,7 +53,7 @@ var _ = t.AfterSuite(func() {
 	}
 	if !skipUndeploy {
 		start := time.Now()
-		pkg.UndeployHelloHelidonApplication(namespace)
+		pkg.UndeployHelloHelidonApplication(&yamlApplier, namespace)
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })

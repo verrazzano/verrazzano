@@ -43,8 +43,8 @@ var failed = false
 
 var t = framework.NewTestFramework("logging")
 
-var springbootNamespace = pkg.GenerateNamespace("springboot-logging")
 var helidonNamespace = pkg.GenerateNamespace("helidon-logging")
+var yamlApplier = k8sutil.YAMLApplier{}
 
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
@@ -72,12 +72,12 @@ var _ = t.AfterSuite(func() {
 	pkg.Concurrently(
 		func() {
 			start := time.Now()
-			pkg.UndeploySpringBootApplication(springbootNamespace)
+			pkg.UndeploySpringBootApplication()
 			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 		},
 		func() {
 			start := time.Now()
-			pkg.UndeployHelloHelidonApplication(helidonNamespace)
+			pkg.UndeployHelloHelidonApplication(&yamlApplier, helidonNamespace)
 			metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 		},
 	)
@@ -149,11 +149,11 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 		t.It("the default app log object has recent log records", func() {
 
 			start := time.Now()
-			pkg.DeploySpringBootApplication(springbootNamespace)
+			pkg.DeploySpringBootApplication()
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 			Eventually(func() (int, error) {
-				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, springbootNamespace)
+				logs, err := getLogRecordsFromOCI(&logSearchClient, compartmentID, logGroupID, defaultAppLogID, pkg.SpringbootNamespace)
 				if err != nil {
 					return 0, err
 				}
@@ -170,7 +170,7 @@ var _ = t.Describe("OCI Logging", Label("f:oci-integration.logging"), func() {
 		t.It("the namespace-specific app log object has recent log records", func() {
 
 			start := time.Now()
-			pkg.DeployHelloHelidonApplication(helidonNamespace, nsLogID)
+			pkg.DeployHelloHelidonApplication(&yamlApplier, helidonNamespace, nsLogID)
 			metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 			Eventually(func() (int, error) {
