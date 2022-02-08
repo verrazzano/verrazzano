@@ -9,6 +9,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	log2 "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -173,8 +174,7 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 				return nil
 			})
 			if err != nil {
-				log.Errorf("Failed to create or update namespace %s due to error: %v. result: %v", nsTemplate.Metadata.Name, err, opResult)
-				return err
+				return log2.ConflictWithLog(fmt.Sprintf("Failed to create or update namespace %s. result: %v", nsTemplate.Metadata.Name, opResult), err, zap.S())
 			}
 
 			if err = r.createOrUpdateRoleBindings(ctx, nsTemplate.Metadata.Name, vp, log); err != nil {
