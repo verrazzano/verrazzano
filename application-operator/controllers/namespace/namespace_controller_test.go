@@ -41,7 +41,7 @@ import (
 )
 
 var testScheme = newScheme()
-var logger = vzlog.DefaultLogger().GetZapLogger()
+var logger = vzlog.DefaultLogger()
 
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {

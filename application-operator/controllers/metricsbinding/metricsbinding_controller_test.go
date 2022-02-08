@@ -74,7 +74,7 @@ func TestGetMetricsTemplate(t *testing.T) {
 			return nil
 		})
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	template, err := reconciler.getMetricsTemplate(localMetricsBinding, log)
 	assert.NoError(err, "Expected no error getting the MetricsTemplate from the MetricsBinding")
 	assert.NotNil(template)
@@ -144,7 +144,7 @@ func TestCreateScrapeConfig(t *testing.T) {
 			return nil
 		})
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding, configMap, log)
 	assert.NoError(err, "Expected no error creating the scrape config")
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
@@ -210,7 +210,7 @@ func TestUpdateScrapeConfig(t *testing.T) {
 		})
 
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding, configMap, log)
 	assert.NoError(err, "Expected no error updating the scrape config")
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
@@ -255,7 +255,7 @@ func TestDeleteScrapeConfig(t *testing.T) {
 		})
 
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.deleteScrapeConfig(localMetricsBinding, configMap, log)
 	assert.NoError(err, "Expected no error deleting the scrape config")
 	assert.False(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
@@ -299,7 +299,7 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil)).Return(nil)
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.mutatePrometheusScrapeConfig(context.TODO(), localMetricsBinding, reconciler.deleteScrapeConfig, log)
 	assert.NoError(err, "Expected no error mutating the scrape config")
 }
@@ -365,7 +365,7 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(nil)
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	controllerResult, err := reconciler.reconcileBindingCreateOrUpdate(context.TODO(), localMetricsBinding, log)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})
@@ -414,7 +414,7 @@ func TestReconcileBindingDelete(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	controllerResult, err := reconciler.reconcileBindingDelete(context.TODO(), localMetricsBinding, log)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})

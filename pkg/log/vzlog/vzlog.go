@@ -46,17 +46,26 @@ type SugaredLogger interface {
 	// Debugf formats a message and logs it once at Debug log level
 	Debugf(template string, args ...interface{})
 
+	// Debugw formats a message and logs it once at Debug log level
+	Debugw(msg string, args ...interface{})
+
 	// Info logs a message at Info log level
 	Info(args ...interface{})
 
 	// Infof formats a message and logs it once at Info log level
 	Infof(template string, args ...interface{})
 
+	// Infow formats a message and logs it once at Info log level
+	Infow(msg string, keysAndValues ...interface{})
+
 	// Error logs a message at Error log level
 	Error(args ...interface{})
 
 	// Errorf formats a message and logs it once at Error log level
 	Errorf(template string, args ...interface{})
+
+	// Errorw formats a message and logs it once at Error log level
+	Errorw(msg string, keysAndValues ...interface{})
 }
 
 // ProgressLogger is a logger interface that provides Verrazzano base and progress logging
@@ -363,6 +372,11 @@ func (v *verrazzanoLogger) Debugf(template string, args ...interface{}) {
 	v.Debugf2(template, args...)
 }
 
+// Debugw is a wrapper for SugaredLogger Debugw
+func (v *verrazzanoLogger) Debugw(msg string, keysAndValues ...interface{}) {
+	v.Debugw2(msg, keysAndValues...)
+}
+
 // Info is a wrapper for SugaredLogger Info
 func (v *verrazzanoLogger) Info(args ...interface{}) {
 	v.Info2(args...)
@@ -371,6 +385,11 @@ func (v *verrazzanoLogger) Info(args ...interface{}) {
 // Infof is a wrapper for SugaredLogger Infof
 func (v *verrazzanoLogger) Infof(template string, args ...interface{}) {
 	v.Infof2(template, args...)
+}
+
+// Infow is a wrapper for SugaredLogger Infow
+func (v *verrazzanoLogger) Infow(msg string, keysAndValues ...interface{}) {
+	v.Infow2(msg, keysAndValues...)
 }
 
 // Error is a wrapper for SugaredLogger Error
@@ -383,6 +402,11 @@ func (v *verrazzanoLogger) Errorf(template string, args ...interface{}) {
 	v.Errorf2(template, args...)
 }
 
+// Errorw is a wrapper for SugaredLogger Errorw
+func (v *verrazzanoLogger) Errorw(msg string, keysAndValues ...interface{}) {
+	v.Errorw2(msg, keysAndValues...)
+}
+
 // Debug is a wrapper for SugaredLogger Debug
 func (v *verrazzanoLogger) Debug2(args ...interface{}) {
 	v.sLogger.Debug(args...)
@@ -391,6 +415,11 @@ func (v *verrazzanoLogger) Debug2(args ...interface{}) {
 // Debugf is a wrapper for SugaredLogger Debugf
 func (v *verrazzanoLogger) Debugf2(template string, args ...interface{}) {
 	v.sLogger.Debugf(template, args...)
+}
+
+// Debugw2 is a wrapper for SugaredLogger Debugw
+func (v *verrazzanoLogger) Debugw2(msg string, keysAndValues ...interface{}) {
+	v.sLogger.Debugw(msg, keysAndValues...)
 }
 
 // Info is a wrapper for SugaredLogger Info
@@ -403,6 +432,11 @@ func (v *verrazzanoLogger) Infof2(template string, args ...interface{}) {
 	v.sLogger.Infof(template, args...)
 }
 
+// Infow2 is a wrapper for SugaredLogger Infow
+func (v *verrazzanoLogger) Infow2(msg string, keysAndValues ...interface{}) {
+	v.sLogger.Infow(msg, keysAndValues...)
+}
+
 // Error is a wrapper for SugaredLogger Error
 func (v *verrazzanoLogger) Error2(args ...interface{}) {
 	v.sLogger.Error(args...)
@@ -411,4 +445,9 @@ func (v *verrazzanoLogger) Error2(args ...interface{}) {
 // Errorf is a wrapper for SugaredLogger Errorf
 func (v *verrazzanoLogger) Errorf2(template string, args ...interface{}) {
 	v.sLogger.Errorf(template, args...)
+}
+
+// Errorw2 is a wrapper for SugaredLogger Errorw
+func (v *verrazzanoLogger) Errorw2(msg string, keysAndValues ...interface{}) {
+	v.sLogger.Errorw(msg, keysAndValues...)
 }

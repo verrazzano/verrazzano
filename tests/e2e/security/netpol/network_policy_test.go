@@ -52,13 +52,14 @@ type accessCheckConfig struct {
 }
 
 var (
-	expectedPods         = []string{"netpol-test"}
-	waitTimeout          = 15 * time.Minute
-	pollingInterval      = 30 * time.Second
-	shortWaitTimeout     = 30 * time.Second
-	shortPollingInterval = 10 * time.Second
-	generatedNamespace   = pkg.GenerateNamespace("hello-helidon")
-	yamlApplier          = k8sutil.YAMLApplier{}
+	expectedPods             = []string{"netpol-test"}
+	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	waitTimeout              = 15 * time.Minute
+	pollingInterval          = 30 * time.Second
+	shortWaitTimeout         = 30 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
+	yamlApplier              = k8sutil.YAMLApplier{}
 )
 
 var t = framework.NewTestFramework("netpol")
@@ -106,6 +107,18 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 		t.It("and waiting for expected pod must be running", func() {
 			Eventually(func() bool {
 				return pkg.PodsRunning(testNamespace, expectedPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		})
+	})
+
+	// Verify hello-helidon pod is running
+	// GIVEN hello-helidon is deployed
+	// WHEN the pod is created
+	// THEN the expected pod must be running in the hello-helidon namespace
+	t.Describe("Verify hello-helidon pod is running", func() {
+		t.It("and waiting for expected pod must be running", func() {
+			Eventually(func() bool {
+				return pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
