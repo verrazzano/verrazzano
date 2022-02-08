@@ -6,6 +6,7 @@ package navigation
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -67,7 +68,7 @@ func GetAPIVersionKindOfUnstructured(u *unstructured.Unstructured) (string, erro
 // namespace - The namespace to search for children objects
 // parentUID - The parent UID a child must have to be included in the result.
 // childResKinds - The set of resource kinds a child's resource kind must in to be included in the result.
-func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
+func FetchUnstructuredChildResourcesByAPIVersionKinds(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, namespace string, parentUID types.UID, childResKinds []v1alpha2.ChildResourceKind) ([]*unstructured.Unstructured, error) {
 	var childResources []*unstructured.Unstructured
 	log.Debugf("Fetch children, parent: %s", parentUID)
 	for _, childResKind := range childResKinds {

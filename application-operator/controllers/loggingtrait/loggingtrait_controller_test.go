@@ -6,6 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 	"time"
 
@@ -230,7 +231,7 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 		})
 
 	reconciler := newLoggingTraitReconciler(mock, t)
-	result, err := reconciler.reconcileTraitDelete(context.TODO(), zap.S(), &trait)
+	result, err := reconciler.reconcileTraitDelete(context.TODO(), vzlog.DefaultLogger(), &trait)
 
 	// Validate the results
 	mocker.Finish()

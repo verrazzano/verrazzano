@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -40,7 +40,19 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
 // No kubebuilder annotations are used as the application RBAC for the application operator is now manually managed.
 func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
-	res, err := r.doReconcile(req)
+	ctx := context.Background()
+	metricsBinding := vzapi.MetricsBinding{}
+	if err := r.Client.Get(context.TODO(), req.NamespacedName, &metricsBinding); err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("metricsbinding", req.NamespacedName, &metricsBinding)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for metrics binding", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling metrics binding resource %v, generation %v", req.NamespacedName, metricsBinding.Generation)
+
+	res, err := r.doReconcile(ctx, metricsBinding, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -50,20 +62,13 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	log.Oncef("Finished reconciling metrics binding %v", req.NamespacedName)
+
 	return k8scontroller.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the ingress trait
-func (r *Reconciler) doReconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
-	ctx := context.Background()
-	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "metricsbinding")
-
-	// Fetch requested resource into MetricsBinding
-	metricsBinding := vzapi.MetricsBinding{}
-	if err := r.Client.Get(context.TODO(), req.NamespacedName, &metricsBinding); err != nil {
-		return k8scontroller.Result{}, k8sclient.IgnoreNotFound(err)
-	}
-
+func (r *Reconciler) doReconcile(ctx context.Context, metricsBinding vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (k8scontroller.Result, error) {
 	// Reconcile based on the status of the deletion timestamp
 	if metricsBinding.GetDeletionTimestamp().IsZero() {
 		return r.reconcileBindingCreateOrUpdate(ctx, &metricsBinding, log)
@@ -72,7 +77,7 @@ func (r *Reconciler) doReconcile(req k8scontroller.Request) (k8scontroller.Resul
 }
 
 // reconcileBindingDelete completes the reconcile process for an object that is being deleted
-func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log *zap.SugaredLogger) (k8scontroller.Result, error) {
+func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (k8scontroller.Result, error) {
 	log.Debugw("Reconcile for deleted object", "resource", metricsBinding.GetName())
 
 	// Mutate the scrape config by deleting the entry
@@ -93,7 +98,7 @@ func (r *Reconciler) reconcileBindingDelete(ctx context.Context, metricsBinding 
 }
 
 // reconcileBindingCreateOrUpdate completes the reconcile process for an object that is being created or updated
-func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log *zap.SugaredLogger) (k8scontroller.Result, error) {
+func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (k8scontroller.Result, error) {
 	log.Debugw("Reconcile for created or updated object", "resource", metricsBinding.GetName())
 
 	// Mutate the MetricsBinding before the scrape config
@@ -111,7 +116,7 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 	return k8scontroller.Result{}, nil
 }
 
-func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, log *zap.SugaredLogger) error {
+func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
 	// Add the finalizer
 	controllerutil.AddFinalizer(metricsBinding, finalizerName)
 
@@ -146,7 +151,7 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 
 // mutatePrometheusScrapeConfig takes the resource and a mutate function that determines the mutations of the scrape config
 // mutations are dependant upon the status of the deletion timestamp
-func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBinding *vzapi.MetricsBinding, mutateFn func(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log *zap.SugaredLogger) error, log *zap.SugaredLogger) error {
+func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBinding *vzapi.MetricsBinding, mutateFn func(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error, log vzlog.VerrazzanoLogger) error {
 	log.Debugw("Mutating the Prometheus Scrape Config", "resource", metricsBinding.GetName())
 
 	var configMap = r.getPromConfigMap(metricsBinding) // Apply the updated configmap
@@ -161,7 +166,7 @@ func (r *Reconciler) mutatePrometheusScrapeConfig(ctx context.Context, metricsBi
 }
 
 // deleteScrapeConfig is a mutation function that deletes the scrape config data from the Prometheus ConfigMap
-func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log *zap.SugaredLogger) error {
+func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error {
 	log.Debugw("Scrape Config is being deleted from the Prometheus Config", "resource", metricsBinding.GetName())
 
 	// Get data from the configmap
@@ -200,7 +205,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 }
 
 // createOrUpdateScrapeConfig is a mutation function that creates or updates the scrape config data within the given Prometheus ConfigMap
-func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log *zap.SugaredLogger) error {
+func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBinding, configMap *k8scorev1.ConfigMap, log vzlog.VerrazzanoLogger) error {
 	log.Debugw("Scrape Config is being created or update in the Prometheus config", "resource", metricsBinding.GetName())
 
 	// Get the MetricsTemplate from the MetricsBinding
@@ -301,7 +306,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 }
 
 // getMetricsTemplate returns the MetricsTemplate given in the MetricsBinding
-func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding, log *zap.SugaredLogger) (*vzapi.MetricsTemplate, error) {
+func (r *Reconciler) getMetricsTemplate(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) (*vzapi.MetricsTemplate, error) {
 	template := vzapi.MetricsTemplate{
 		TypeMeta: k8smetav1.TypeMeta{
 			Kind:       metricsTemplateKind,
