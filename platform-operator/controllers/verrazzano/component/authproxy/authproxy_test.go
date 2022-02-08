@@ -46,6 +46,7 @@ func init() {
 }
 
 func TestAppendOverrides(t *testing.T) {
+	falseValue := false
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
@@ -79,6 +80,22 @@ func TestAppendOverrides(t *testing.T) {
 									Replicas: 3,
 								},
 							},
+						},
+					},
+				},
+			},
+			numKeyValues: 1,
+			expectedErr:  nil,
+		},
+		{
+			name:         "DisableAuthProxy",
+			description:  "Test overriding AuthProxy to be disabled",
+			expectedYAML: "testdata/authProxyValuesOverrideEnabled.yaml",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							Enabled: &falseValue,
 						},
 					},
 				},
