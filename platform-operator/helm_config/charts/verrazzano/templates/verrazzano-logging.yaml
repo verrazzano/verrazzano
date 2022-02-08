@@ -263,76 +263,6 @@ data:
       </record>
     </filter>
 
-    # filter to parse Coherence operator container log files
-    <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
-      @type parser
-      @id coh-operator
-      key_name log
-      reserve_data true
-      emit_invalid_record_to_error true
-      <parse>
-        # Coherence operator has two formats for log records
-        # Coherence operator format and a klog format
-        @type multi_format
-        <pattern>
-          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t([\s\S]*?)$/
-          time_key logtime
-          time_format %Y-%m-%dT%H:%M:%S.%NZ
-        </pattern>
-        <pattern>
-          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?([\s\S]*?)$/
-          time_key logtime
-          time_format %H:%M:%S.%N
-        </pattern>
-        <pattern>
-          format none
-        </pattern>
-      </parse>
-    </filter>
-
-    <filter kubernetes.**coherence-operator**verrazzano-system_manager**>
-      @type record_transformer
-      enable_ruby true
-      <record>
-        @timestamp ${time.iso8601(3)}
-      </record>
-    </filter>
-
-    # filter to parse oam-kubernetes-runtime container log files
-    <filter kubernetes.**oam-kubernetes-runtime**verrazzano-system_oam-kubernetes-runtime**>
-      @type parser
-      @id oam-kubernetes-runtime
-      key_name log
-      reserve_data true
-      emit_invalid_record_to_error true
-      <parse>
-        # oam-kubernetes-runtime has two formats for log records
-        # oam-kubernetes-runtime format and a klog format
-        @type multi_format
-        <pattern>
-          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\t(?<level>.*?)\t([\s\S]*?)$/
-          time_key logtime
-          time_format %Y-%m-%dT%H:%M:%S.%NZ
-        </pattern>
-        <pattern>
-          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?([\s\S]*?)$/
-          time_key logtime
-          time_format %H:%M:%S.%N
-        </pattern>
-        <pattern>
-          format none
-        </pattern>
-      </parse>
-    </filter>
-
-    <filter kubernetes.**oam-kubernetes-runtime**verrazzano-system_oam-kubernetes-runtime**>
-      @type record_transformer
-      enable_ruby true
-      <record>
-        @timestamp ${time.iso8601(3)}
-      </record>
-    </filter>
-
   kubernetes-filter.conf: |
     # Query the API for extra metadata.
     <filter kubernetes.**>
@@ -406,6 +336,18 @@ data:
           format /^(?<level>.)(?<logtime>\d{2}\d{2}\s\d{2}:\d{2}:\d{2}.\d{6})\s+(?<thread>[^\s]+)\s+(?<caller>.+)\]\s+(?<message>.*)$/
           time_key logtime
           time_format %m%d %H:%M:%S.%N
+        </pattern>
+        # Verrazzano auth proxy format
+        <pattern>
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}\:\d{2}\:\d{2})\s+\[(?<level>.*?)\]\s+(?<message>.*)$/
+          time_key logtime
+          time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        # OAM oam-kubernetes-runtime format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)\s+(?<level>\S+)\s+(\S+)\s+(?<message>.*)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
         </pattern>
         <pattern>
           format none

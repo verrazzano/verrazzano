@@ -305,14 +305,15 @@ func ValidateElasticsearchHits(searchResults map[string]interface{}, hitValidato
 		Log(Info, "Expected log record query results to contain at least one hit")
 		return false
 	}
+	valid := true
 	for _, h := range hits.([]interface{}) {
 		hit := h.(map[string]interface{})
 		src := hit["_source"]
 		if !hitValidator(src.(map[string]interface{})) {
-			return false
+			valid = false
 		}
 	}
-	return true
+	return valid
 }
 
 // FindLog returns true if a recent log record can be found in the index with matching filters.
