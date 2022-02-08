@@ -75,7 +75,7 @@ func TestAppendOverrides(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						AuthProxy: &vzapi.AuthProxyComponent{
 							Kubernetes: &vzapi.AuthProxyKubernetesSection{
-								vzapi.CommonKubernetesSpec{
+								CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
 									Replicas: 3,
 								},
 							},
