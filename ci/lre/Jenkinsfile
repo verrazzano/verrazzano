@@ -44,7 +44,7 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
         NO_PROXY = ".nip.io"
 
-	WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+	    WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
     }
 
