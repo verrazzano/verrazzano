@@ -43,7 +43,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return nil, err
 	}
-	overrides.Config.DnsSuffix = dnsSuffix
+	overrides.Config.DNSSuffix = dnsSuffix
 
 	// Image name and version
 	err = getImageSettings(ctx, &overrides)

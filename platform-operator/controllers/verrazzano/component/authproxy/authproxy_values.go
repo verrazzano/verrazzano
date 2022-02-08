@@ -32,5 +32,5 @@ type proxySettings struct {
 
 type configSettings struct {
 	EnvName   string `json:"envName,omitempty"`
-	DnsSuffix string `json:"dnsSuffix,omitempty"`
+	DNSSuffix string `json:"dnsSuffix,omitempty"`
 }
