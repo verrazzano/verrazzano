@@ -16,14 +16,15 @@ package framework
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 )
 
 //const (
@@ -57,6 +58,11 @@ type Framework struct {
 
 	// beforeEachStarted indicates that BeforeEach has started
 	beforeEachStarted bool
+
+	// fields associated with metrics + logging
+	Pkg     string
+	Metrics *zap.SugaredLogger
+	Logs    *zap.SugaredLogger
 }
 
 // AfterEachActionFunc is a function that can be called after each test
@@ -64,15 +70,21 @@ type AfterEachActionFunc func(f *Framework, failed bool)
 
 // NewDefaultFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
-func NewDefaultFramework(baseName string) *Framework {
-	return NewFramework(baseName, nil)
+func NewDefaultFramework(baseName string, pkg string) *Framework {
+	return NewFramework(baseName, pkg, nil)
 }
 
 // NewFramework creates a test framework.
-func NewFramework(baseName string, client clientset.Interface) *Framework {
+func NewFramework(baseName string, pkg string, client clientset.Interface) *Framework {
+	metricsIndex, _ := metrics.NewLogger(pkg, metrics.MetricsIndex)
+	logIndex, _ := metrics.NewLogger(pkg, metrics.TestLogIndex)
+
 	f := &Framework{
 		BaseName:  baseName,
 		ClientSet: client,
+		Pkg:       pkg,
+		Metrics:   metricsIndex,
+		Logs:      logIndex,
 	}
 
 	f.AddAfterEach("dumpNamespaceInfo", func(f *Framework, failed bool) {
