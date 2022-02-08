@@ -8,8 +8,8 @@ import (
 )
 
 // EventuallyBeTrue expects the condition to be true
-func EventuallyBeTrue(actual interface{}, intervals ...interface{}, explain ...interface{}) {
-	gomega.EventuallyWithOffset(1, actual, intervals).Should(gomega.BeTrue(), explain)
+func EventuallyBeTrue(actual interface{}, interval1 interface{}, interval2 interface{}, explain ...interface{}) {
+	gomega.EventuallyWithOffset(1, actual, interval1, interval2).Should(gomega.BeTrue(), explain)
 }
 
 // EventuallyEqual expects the specified two are the same, otherwise an exception raises
@@ -54,6 +54,6 @@ func EventuallyEmpty(actual interface{}, explain ...interface{}) {
 }
 
 // EventuallyNotEmpty expects actual is not empty
-func EventuallyNotEmpty(actual interface, intervals ...interface{}, explain ...interface{}) {
-	gomega.EventuallyWithOffset(1, actual, intervals).ShouldNot(gomega.BeEmpty(), explain)
+func EventuallyNotEmpty(actual interface{}, interval1 interface{}, interval2 interface{}, explain ...interface{}) {
+	gomega.EventuallyWithOffset(1, actual, interval1, interval2).ShouldNot(gomega.BeEmpty(), explain)
 }

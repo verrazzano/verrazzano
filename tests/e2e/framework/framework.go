@@ -19,13 +19,13 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"strings"
 )
 
@@ -71,7 +71,7 @@ type AfterEachActionFunc func(f *Framework, failed bool)
 
 // NewDefaultFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
-func NewDefaultFramework(baseName string pkg string) *Framework {
+func NewDefaultFramework(baseName string) *Framework {
 	return NewFramework(baseName, nil)
 }
 

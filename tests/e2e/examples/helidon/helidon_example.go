@@ -17,7 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
-	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2"
 )
 
 const (
@@ -34,48 +34,47 @@ var namespace string
 func init() {
 	flag.BoolVar(&skipDeploy, "skipDeploy", false, "skipDeploy skips the call to install the application")
 	flag.BoolVar(&skipUndeploy, "skipUndeploy", false, "skipUndeploy skips the call to install the application")
-	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+	flag.StringVar(&namespace, "namespace", f.UniqueName, "namespace is the app namespace")
 }
 
 var (
 	f                        = framework.NewDefaultFramework("helidon")
-	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
 	yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 )
 
-var _ = BeforeSuite(func() {
+var _ = ginkgo.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
 		pkg.DeployHelloHelidonApplication(&yamlApplier, namespace, "")
-		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+		metrics.Emit(f.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
 var failed = false
-var _ = AfterEach(func() {
-	failed = failed || CurrentSpecReport().Failed()
+var _ = ginkgo.AfterEach(func() {
+	failed = failed || ginkgo.CurrentSpecReport().Failed()
 })
 
-var _ = AfterSuite(func() {
+var _ = ginkgo.AfterSuite(func() {
 	if failed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {
 		start := time.Now()
 		pkg.UndeployHelloHelidonApplication(&yamlApplier, namespace)
-		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+		metrics.Emit(f.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
-var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
+var _ = ginkgo.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	Describe("hello-helidon-deployment pod", func() {
-		It("is running", func() {
+	ginkgo.Describe("hello-helidon-deployment pod", func() {
+		ginkgo.It("is running", func() {
 			framework.EventuallyBeTrue(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval)
 		})
 	})
@@ -86,7 +85,7 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// GIVEN the Istio gateway for the hello-helidon namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	It("Get host from gateway.", Label("f:mesh.ingress"), func() {
+	ginkgo.It("Get host from gateway.", ginkgo.Label("f:mesh.ingress"), func() {
 		framework.EventuallyNotEmpty(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
@@ -97,8 +96,8 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	Describe("for Ingress.", Label("f:mesh.ingress"), func() {
-		It("Access /greet App Url.", func() {
+	ginkgo.Describe("for Ingress.", ginkgo.Label("f:mesh.ingress"), func() {
+		ginkgo.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			framework.EventuallyBeTrue(func() bool {
 				return appEndpointAccessible(url, host)
@@ -110,8 +109,8 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	Describe("for Metrics.", Label("f:observability.monitoring.prom"), func() {
-		It("Retrieve Prometheus scraped metrics", func() {
+	ginkgo.Describe("for Metrics.", ginkgo.Label("f:observability.monitoring.prom"), func() {
+		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					framework.EventuallyBeTrue(appMetricsExists, longWaitTimeout, longPollingInterval)
@@ -132,14 +131,14 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 	})
 
-	Describe("Logging.", Label("f:observability.logging.es"), func() {
+	ginkgo.Describe("Logging.", ginkgo.Label("f:observability.logging.es"), func() {
 
 		indexName := "verrazzano-namespace-" + namespace
 
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		It("Verify Elasticsearch index exists", func() {
+		ginkgo.It("Verify Elasticsearch index exists", func() {
 			framework.EventuallyBeTrue(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval, "Expected to find log index for hello helidon")
@@ -148,7 +147,7 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		It("Verify recent Elasticsearch log record exists", func() {
+		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
 			framework.EventuallyBeTrue(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
