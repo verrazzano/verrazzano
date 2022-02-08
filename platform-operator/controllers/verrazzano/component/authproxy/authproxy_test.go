@@ -44,7 +44,6 @@ func init() {
 }
 
 func TestAppendOverrides(t *testing.T) {
-	falseValue := false
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
 		config.SetDefaultBomFilePath("")
@@ -53,7 +52,7 @@ func TestAppendOverrides(t *testing.T) {
 		name         string
 		description  string
 		expectedYAML string
-		actualCR     vzapi.Verrazzano
+		actualCR     string
 		numKeyValues int
 		expectedErr  error
 	}{
@@ -61,7 +60,7 @@ func TestAppendOverrides(t *testing.T) {
 			name:         "DefaultConfig",
 			description:  "Test default configuration of AuthProxy with no overrides",
 			expectedYAML: "testdata/authProxyValuesNoOverrides.yaml",
-			actualCR:     vzapi.Verrazzano{},
+			actualCR:     "testdata/vzDefault.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
@@ -69,19 +68,7 @@ func TestAppendOverrides(t *testing.T) {
 			name:         "OverrideReplicas",
 			description:  "Test override of replica count",
 			expectedYAML: "testdata/authProxyValuesOverrideReplicas.yaml",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						AuthProxy: &vzapi.AuthProxyComponent{
-							Kubernetes: &vzapi.AuthProxyKubernetesSection{
-								CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-									Replicas: 3,
-								},
-							},
-						},
-					},
-				},
-			},
+			actualCR:     "testdata/vzOverrideReplicas.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
@@ -89,53 +76,53 @@ func TestAppendOverrides(t *testing.T) {
 			name:         "OverrideAffinity",
 			description:  "Test override of affinity configuration for AuthProxy",
 			expectedYAML: "testdata/authProxyValuesOverrideAffinity.yaml",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						AuthProxy: &vzapi.AuthProxyComponent{
-							Kubernetes: &vzapi.AuthProxyKubernetesSection{
-								CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-									Affinity: &corev1.Affinity{
-										PodAntiAffinity: &corev1.PodAntiAffinity{
-											PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-												{
-													Weight: 80,
-													PodAffinityTerm: corev1.PodAffinityTerm{
-														Namespaces:  []string{"test1", "test2"},
-														TopologyKey: "kubernetes.io/hostname",
-													},
-												},
-											},
-										},
-										PodAffinity: &corev1.PodAffinity{
-											RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-												{
-													Namespaces:  []string{"test3", "test4"},
-													TopologyKey: "kubernetes.io/hostname",
-												},
-											},
-										},
-										NodeAffinity: &corev1.NodeAffinity{
-											RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-												NodeSelectorTerms: []corev1.NodeSelectorTerm{
-													{
-														MatchFields: []corev1.NodeSelectorRequirement{
-															{
-																Key:      "key1",
-																Operator: corev1.NodeSelectorOpDoesNotExist,
-															},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
+			//actualCR: vzapi.Verrazzano{
+			//	Spec: vzapi.VerrazzanoSpec{
+			//		Components: vzapi.ComponentSpec{
+			//			AuthProxy: &vzapi.AuthProxyComponent{
+			//				Kubernetes: &vzapi.AuthProxyKubernetesSection{
+			//					CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+			//						Affinity: &corev1.Affinity{
+			//							PodAntiAffinity: &corev1.PodAntiAffinity{
+			//								PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+			//									{
+			//										Weight: 80,
+			//										PodAffinityTerm: corev1.PodAffinityTerm{
+			//											Namespaces:  []string{"test1", "test2"},
+			//											TopologyKey: "kubernetes.io/hostname",
+			//										},
+			//									},
+			//								},
+			//							},
+			//							PodAffinity: &corev1.PodAffinity{
+			//								RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+			//									{
+			//										Namespaces:  []string{"test3", "test4"},
+			//										TopologyKey: "kubernetes.io/hostname",
+			//									},
+			//								},
+			//							},
+			//							NodeAffinity: &corev1.NodeAffinity{
+			//								RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+			//									NodeSelectorTerms: []corev1.NodeSelectorTerm{
+			//										{
+			//											MatchFields: []corev1.NodeSelectorRequirement{
+			//												{
+			//													Key:      "key1",
+			//													Operator: corev1.NodeSelectorOpDoesNotExist,
+			//												},
+			//											},
+			//										},
+			//									},
+			//								},
+			//							},
+			//						},
+			//					},
+			//				},
+			//			},
+			//		},
+			//	},
+			//},
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
@@ -143,15 +130,7 @@ func TestAppendOverrides(t *testing.T) {
 			name:         "DisableAuthProxy",
 			description:  "Test overriding AuthProxy to be disabled",
 			expectedYAML: "testdata/authProxyValuesOverrideEnabled.yaml",
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						AuthProxy: &vzapi.AuthProxyComponent{
-							Enabled: &falseValue,
-						},
-					},
-				},
-			},
+			actualCR:     "testdata/vzOverrideEnabled.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
@@ -162,8 +141,15 @@ func TestAppendOverrides(t *testing.T) {
 			asserts := assert.New(t)
 			t.Log(test.description)
 
+			// Read the Verrazzano CR into a struct
+			testCR := vzapi.Verrazzano{}
+			yamlFile, err := ioutil.ReadFile(test.actualCR)
+			asserts.NoError(err)
+			err = yaml.Unmarshal(yamlFile, &testCR)
+			asserts.NoError(err)
+
 			fakeClient := createFakeClientWithIngress()
-			fakeContext := spi.NewFakeContext(fakeClient, &test.actualCR, false, profileDir)
+			fakeContext := spi.NewFakeContext(fakeClient, &testCR, false, profileDir)
 
 			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
 				if test.expectedErr != nil {
@@ -193,7 +179,7 @@ func TestAppendOverrides(t *testing.T) {
 			}
 
 			var kvs []bom.KeyValue
-			kvs, err := AppendOverrides(fakeContext, "", "", "", kvs)
+			kvs, err = AppendOverrides(fakeContext, "", "", "", kvs)
 			if test.expectedErr != nil {
 				asserts.Error(err)
 				asserts.Equal([]bom.KeyValue{}, kvs)
