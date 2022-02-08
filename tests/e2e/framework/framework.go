@@ -25,6 +25,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"strings"
 )
 
 //const (
@@ -60,7 +62,6 @@ type Framework struct {
 	beforeEachStarted bool
 
 	// fields associated with metrics + logging
-	Pkg     string
 	Metrics *zap.SugaredLogger
 	Logs    *zap.SugaredLogger
 }
@@ -70,22 +71,22 @@ type AfterEachActionFunc func(f *Framework, failed bool)
 
 // NewDefaultFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
-func NewDefaultFramework(baseName string, pkg string) *Framework {
-	return NewFramework(baseName, pkg, nil)
+func NewDefaultFramework(baseName string pkg string) *Framework {
+	return NewFramework(baseName, nil)
 }
 
 // NewFramework creates a test framework.
-func NewFramework(baseName string, pkg string, client clientset.Interface) *Framework {
-	metricsIndex, _ := metrics.NewLogger(pkg, metrics.MetricsIndex)
-	logIndex, _ := metrics.NewLogger(pkg, metrics.TestLogIndex)
+func NewFramework(baseName string, client clientset.Interface) *Framework {
+	metricsIndex, _ := metrics.NewLogger(baseName, metrics.MetricsIndex)
+	logIndex, _ := metrics.NewLogger(baseName, metrics.TestLogIndex)
 
 	f := &Framework{
-		BaseName:  baseName,
+		BaseName:  strings.ToLower(baseName),
 		ClientSet: client,
-		Pkg:       pkg,
 		Metrics:   metricsIndex,
 		Logs:      logIndex,
 	}
+	f.UniqueName = pkg.GenerateNamespace(strings.ToLower(baseName))
 
 	f.AddAfterEach("dumpNamespaceInfo", func(f *Framework, failed bool) {
 		if !failed {
