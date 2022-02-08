@@ -152,26 +152,14 @@ type consoleValues struct {
 }
 
 type apiValues struct {
-	Name                 string         `json:"name,omitempty"`
-	PullPolicy           string         `json:"pullPolicy,omitempty"`
-	Port                 int            `json:"port,omitempty"`
-	ImpersonatorRoleName string         `json:"impersonatorRoleName,omitempty"`
-	Proxy                *proxySettings `json:"proxy,omitempty"`
+	Name  string         `json:"name,omitempty"`
+	Port  int            `json:"port,omitempty"`
+	Proxy *proxySettings `json:"proxy,omitempty"`
 }
 
 type proxySettings struct {
-	OidcRealm                    string `json:"OidcRealm,omitempty"`
-	PKCEClientID                 string `json:"PKCEClientID,omitempty"`
-	PGClientID                   string `json:"PGClientID,omitempty"`
-	RequiredRealmRole            string `json:"RequiredRealmRole,omitempty"`
-	OidcCallbackPath             string `json:"OidcCallbackPath,omitempty"`
-	OidcLogoutCallbackPath       string `json:"OidcLogoutCallbackPath,omitempty"`
-	OidcSingleLogoutCallbackPath string `json:"OidcSingleLogoutCallbackPath,omitempty"`
-	OidcProviderHost             string `json:"OidcProviderHost,omitempty"`
-	OidcProviderHostInCluster    string `json:"OidcProviderHostInCluster,omitempty"`
-	AuthnStateTTL                string `json:"AuthnStateTTL,omitempty"`
-	MaxRequestSize               string `json:"MaxRequestSize,omitempty"`
-	ProxyBufferSize              string `json:"ProxyBufferSize,omitempty"`
+	OidcProviderHost          string `json:"OidcProviderHost,omitempty"`
+	OidcProviderHostInCluster string `json:"OidcProviderHostInCluster,omitempty"`
 }
 
 type ociValues struct {

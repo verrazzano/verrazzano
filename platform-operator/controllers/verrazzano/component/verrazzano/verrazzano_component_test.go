@@ -6,13 +6,12 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
@@ -230,7 +229,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano IsReady call
 // GIVEN a Verrazzano component with all VMI components disabled
 //  WHEN I call IsReady
-//  THEN false is returned if only the verrazzano-authproxy is not available
+//  THEN true is returned
 func TestNotReadyDeploymentVMIDisabled(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -261,7 +260,7 @@ func TestNotReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(client, vz, false)
-	assert.False(t, NewComponent().IsReady(ctx))
+	assert.True(t, NewComponent().IsReady(ctx))
 }
 
 // TestPreInstall tests the Verrazzano PreInstall call

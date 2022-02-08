@@ -4,7 +4,11 @@
 package authproxy
 
 import (
+	"fmt"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -39,7 +43,6 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			ReadyStatusFunc:         IsReady,
 			Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
 		},
 	}
@@ -52,4 +55,13 @@ func (c authProxyComponent) IsEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// IsReady checks if the AuthProxy deployment is ready
+func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
+	deployments := []types.NamespacedName{
+		{Name: ComponentName, Namespace: ComponentNamespace},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }

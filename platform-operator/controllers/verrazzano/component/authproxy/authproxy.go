@@ -4,7 +4,6 @@
 package authproxy
 
 import (
-	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -12,9 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -28,15 +25,6 @@ var (
 	// For Unit test purposes
 	writeFileFunc = ioutil.WriteFile
 )
-
-// IsReady checks if the AuthProxy deployment is ready
-func IsReady(ctx spi.ComponentContext, name string, namespace string) bool {
-	deployments := []types.NamespacedName{
-		{Name: name, Namespace: namespace},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
-}
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
