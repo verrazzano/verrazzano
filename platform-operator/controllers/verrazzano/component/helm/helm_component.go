@@ -90,6 +90,9 @@ type HelmComponent struct {
 // Verify that HelmComponent implements Component
 //var _ spi.Component = &HelmComponent{}
 
+var _ spi.ComponentInstaller = &HelmComponent{}
+var _ spi.ComponentUpgrader = &HelmComponent{}
+
 // preInstallFuncSig is the signature for the optional function to run before installing; any KeyValue pairs should be prepended to the Helm overrides list
 type preInstallFuncSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string) error
 

@@ -135,7 +135,7 @@ func TestPreInstall(t *testing.T) {
 	caSecret := createCASecret()
 	c := fake.NewFakeClientWithScheme(getScheme(), &caSecret)
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, false)
-	assert.Nil(t, NewComponent().PreInstall(ctx))
+	assert.Nil(t, NewComponent().(spi.ComponentInternal).PreInstall(ctx))
 }
 
 // TestIsReady verifies that a ready-state Rancher shows as ready
@@ -360,8 +360,8 @@ func TestPostInstall(t *testing.T) {
 	}
 
 	component := NewComponent()
-	assert.IsType(t, spi2.RetryableError{}, component.PostInstall(ctxWithoutIngress))
-	assert.Nil(t, component.PostInstall(ctxWithIngress))
+	assert.IsType(t, spi2.RetryableError{}, component.(spi.ComponentInternal).PostInstall(ctxWithoutIngress))
+	assert.Nil(t, component.(spi.ComponentInternal).PostInstall(ctxWithIngress))
 }
 
 func Test_rancherComponent_ValidateUpdate(t *testing.T) {

@@ -78,7 +78,7 @@ func TestPreUpgrade(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	client := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	err := NewComponent().PreInstall(ctx)
+	err := NewComponent().(spi.ComponentInternal).PreInstall(ctx)
 	assert.NoError(t, err)
 }
 
@@ -158,7 +158,7 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 	vzComp := NewComponent()
 
 	// PostInstall will fail because the expected VZ ingresses are not present in cluster
-	err := vzComp.PostInstall(ctx)
+	err := vzComp.(spi.ComponentInternal).PostInstall(ctx)
 	assert.IsType(t, spi2.RetryableError{}, err)
 
 	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds

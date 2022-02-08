@@ -55,14 +55,6 @@ type ComponentInfo interface {
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
 }
-
-// ComponentInstaller interface defines installs operations for components that support it
-type ComponentInstaller interface {
-	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-	// - scaffolding while we move components from the scripts to the operator
-	IsOperatorInstallSupported() bool
-}
-
 // ComponentInstaller interface defines installs operations for components that support it
 type ComponentInstaller interface {
 	// IsInstalled Indicates whether or not the component is installed
@@ -73,7 +65,11 @@ type ComponentInstaller interface {
 	Install(context ComponentContext) error
 	// PostInstall allows components to perform any post-processing required after initial install
 	PostInstall(context ComponentContext) error
+	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
+	// - scaffolding while we move components from the scripts to the operator
+	IsOperatorInstallSupported() bool
 }
+
 
 // ComponentUpgrader interface defines upgrade operations for components that support it
 type ComponentUpgrader interface {
@@ -100,14 +96,8 @@ type ComponentValidator interface {
 type Component interface {
 	ComponentInfo
 	ComponentInstaller
-	ComponentUpgrader
+	ComponentUpgrader // This should move to ComponentInternal once Upgrade moves to the Reconcile method/op
 	ComponentValidator
-
-	// IsReady Indicates whether or not a component is available and ready
-	IsReady(context ComponentContext) bool
-
-	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(context ComponentContext) bool
 
 	Reconcile(ctx ComponentContext) error
 }

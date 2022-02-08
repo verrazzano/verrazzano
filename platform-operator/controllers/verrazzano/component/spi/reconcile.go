@@ -20,29 +20,35 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 	cr := compContext.ActualCR()
 	compLog := compContext.Log()
 
-	//compContext := ctx.Init(compName).Operation(vzconst.InstallOperation)
-	compLog.Debugf("processing install for %s", compName)
-
 	if !comp.IsOperatorInstallSupported() {
 		compLog.Debugf("component based install not supported for %s", compName)
 		return nil
 	}
+
+	//compContext := ctx.Init(compName).Operation(vzconst.InstallOperation)
+	compLog.Debugf("processing install for %s", compName)
 
 	componentStatus, statusFound := compContext.ActualCR().Status.Components[comp.Name()]
 	if !statusFound {
 		return fmt.Errorf("did not find status details in map for component %s", comp.Name())
 	}
 
+	// Internal lifecycle interfaces
+	var compInternal ComponentInternal = nil
+	if implementsComponentInternal(comp) {
+		compInternal = comp.(ComponentInternal)
+	}
+
 	switch componentStatus.State {
 	case vzapi.Ready:
 		// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 		compLog.Oncef("component %s is ready", compName)
-		if implementsComponentInternal(comp) {
-			var comp interface{} = comp
-			if err := comp.(ComponentInternal).ReconcileSteadyState(compContext); err != nil {
-				return err
-			}
-		}
+		//if compInternal != nil {
+		//	var comp interface{} = comp
+		//	if err := comp.(ComponentInternal).ReconcileSteadyState(compContext); err != nil {
+		//		return err
+		//	}
+		//}
 		return nil
 	case vzapi.Disabled:
 		if !comp.IsEnabled(compContext) {
@@ -74,14 +80,16 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 				Result:    ctrl.Result{},
 			}
 		}
-		compLog.Progressf("Component %s pre-install is running ", compName)
-		if err := comp.PreInstall(compContext); err != nil {
-			return err
-		}
-		// If component is not installed,install it
-		compLog.Oncef("Component %s install started ", compName)
-		if err := comp.Install(compContext); err != nil {
-			return err
+		if compInternal != nil {
+			compLog.Progressf("Component %s pre-install is running ", compName)
+			if err := compInternal.PreInstall(compContext); err != nil {
+				return err
+			}
+			// If component is not installed,install it
+			compLog.Oncef("Component %s install started ", compName)
+			if err := compInternal.Install(compContext); err != nil {
+				return err
+			}
 		}
 		if err := updateComponentStatus(compContext, "Install started", vzapi.InstallStarted); err != nil {
 			return err
@@ -96,9 +104,11 @@ func Reconcile(compContext ComponentContext, comp Component) error {
 		// If component is enabled -- need to replicate scripts' config merging logic here
 		// If component is in deployed state, continue
 		if comp.IsReady(compContext) {
-			compLog.Progressf("Component %s post-install is running ", compName)
-			if err := comp.PostInstall(compContext); err != nil {
-				return err
+			if compInternal != nil {
+				compLog.Progressf("Component %s post-install is running ", compName)
+				if err := compInternal.PostInstall(compContext); err != nil {
+					return err
+				}
 			}
 			compLog.Oncef("Component %s successfully installed", compName)
 			if err := updateComponentStatus(compContext, "Install complete", vzapi.InstallComplete); err != nil {

@@ -24,8 +24,37 @@ type ComponentInfoImpl struct {
 
 var _ ComponentInfo = &ComponentInfoImpl{}
 
+// ComponentInstaller interface defines installs operations for components that support it
+type ComponentInstaller interface {
+	// PreInstall allows components to perform any pre-processing required prior to initial install
+	PreInstall(context ComponentContext) error
+	// Install performs the initial install of a component
+	Install(context ComponentContext) error
+	// PostInstall allows components to perform any post-processing required after initial install
+	PostInstall(context ComponentContext) error
+}
+
+// ComponentUpgrader interface defines upgrade operations for components that support it
+type ComponentUpgrader interface {
+	// PreUpgrade allows components to perform any pre-processing required prior to upgrading
+	PreUpgrade(context ComponentContext) error
+	// Upgrade will upgrade the Verrazzano component specified in the CR.Version field
+	Upgrade(context ComponentContext) error
+	// PostUpgrade allows components to perform any post-processing required after upgrading
+	PostUpgrade(context ComponentContext) error
+}
+
+// ComponentInternal - Common internal component lifecycle operations
+//
+// TODO:
+// 	- some or all of these operations/interfaces may go away, and have each component manage itself.  Reconcile() is the
+//    main entry point for the controller into components, and whatever happens internally is up to the component
+// 	- There may be some benefit to a structured internal lifecycle, but we'll need to evaluate that based on what the truly
+//    common aspects are and what are unique to each component
 type ComponentInternal interface {
-	ReconcileSteadyState(ctx ComponentContext) error
+	ComponentInstaller
+
+	//ReconcileSteadyState(ctx ComponentContext) error
 }
 
 func (d *ComponentInfoImpl) GetMinVerrazzanoVersion() string {

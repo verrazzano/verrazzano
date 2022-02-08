@@ -124,7 +124,7 @@ func TestPreinstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, testVZ, false)
-			err := NewComponent().PreInstall(ctx)
+			err := NewComponent().(spi.ComponentInternal).PreInstall(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
 			} else {

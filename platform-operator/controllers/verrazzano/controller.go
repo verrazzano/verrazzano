@@ -814,7 +814,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *v
 	}
 
 	statusUpdated := false
-	for _, comp := range registry.GetComponents() {
+	for _, comp := range r.Registry.GetComponents() {
 		if status, ok := cr.Status.Components[comp.Name()]; ok {
 			if status.LastReconciledGeneration == 0 {
 				status.LastReconciledGeneration = cr.Generation
@@ -822,6 +822,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *v
 			// Skip components that have already been processed
 			continue
 		}
+		// TODO: Remove this check?  We should probably do it internally via IsInstalled()
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
