@@ -10,12 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -23,9 +17,13 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
+	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
@@ -107,7 +105,7 @@ func TestAppendOverrides(t *testing.T) {
 	defer resetWriteFileFunc()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			asserts := assert.New(t)
 			t.Log(test.description)
 
 			fakeClient := createFakeClientWithIngress()
@@ -118,43 +116,43 @@ func TestAppendOverrides(t *testing.T) {
 					return test.expectedErr
 				}
 				if err := ioutil.WriteFile(filename, data, perm); err != nil {
-					assert.Failf("Failure writing file %s: %s", filename, err)
+					asserts.Failf("Failure writing file %s: %s", filename, err)
 					return err
 				}
-				assert.FileExists(filename)
+				asserts.FileExists(filename)
 
 				// Unmarshal the actual generated helm values from code under test
 				actualValues := authProxyValues{}
 				err := yaml.Unmarshal(data, &actualValues)
-				assert.NoError(err)
+				asserts.NoError(err)
 
 				// read in the expected results' data from a file and unmarshal it into a values object
 				expectedData, err := ioutil.ReadFile(test.expectedYAML)
-				assert.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
+				asserts.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 				expectedValues := authProxyValues{}
 				err = yaml.Unmarshal(expectedData, &expectedValues)
-				assert.NoError(err)
+				asserts.NoError(err)
 
 				// Compare the actual and expected values objects
-				assert.Equal(expectedValues, actualValues)
+				asserts.Equal(expectedValues, actualValues)
 				return nil
 			}
 
 			var kvs []bom.KeyValue
 			kvs, err := AppendOverrides(fakeContext, "", "", "", kvs)
 			if test.expectedErr != nil {
-				assert.Error(err)
-				assert.Equal([]bom.KeyValue{}, kvs)
+				asserts.Error(err)
+				asserts.Equal([]bom.KeyValue{}, kvs)
 				return
 			}
-			assert.NoError(err)
-			assert.Equal(test.numKeyValues, len(kvs))
+			asserts.NoError(err)
+			asserts.Equal(test.numKeyValues, len(kvs))
 
 			// Check Temp file
-			assert.True(kvs[0].IsFile, "Expected generated AuthProxy overrides first in list of helm args")
+			asserts.True(kvs[0].IsFile, "Expected generated AuthProxy overrides first in list of helm args")
 			tempFilePath := kvs[0].Value
 			_, err = os.Stat(tempFilePath)
-			assert.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
+			asserts.NoError(err, "Unexpected error checking for temp file %s: %s", tempFilePath, err)
 			cleanTempFiles(fakeContext)
 		})
 	}
