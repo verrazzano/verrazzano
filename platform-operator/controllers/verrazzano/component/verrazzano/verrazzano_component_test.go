@@ -96,18 +96,6 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-authproxy",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
 				Name:      "verrazzano-monitoring-operator",
 			},
 			Status: appsv1.DeploymentStatus{
@@ -149,18 +137,6 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-authproxy",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
 				Name:      "verrazzano-monitoring-operator",
 			},
 			Status: appsv1.DeploymentStatus{
@@ -192,25 +168,13 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano IsReady call
 // GIVEN a Verrazzano component with all VMI components disabled
 //  WHEN I call IsReady
-//  THEN true is returned if only the verrazzano-authproxy is deployed
+//  THEN true is returned
 func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-authproxy",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: globalconst.VerrazzanoSystemNamespace}},
 	)
@@ -236,18 +200,6 @@ func TestNotReadyDeploymentVMIDisabled(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-authproxy",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 0,
-			},
-		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: globalconst.VerrazzanoSystemNamespace}},
 	)
