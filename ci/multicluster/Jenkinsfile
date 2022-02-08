@@ -486,7 +486,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-install")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
                     }
                 }
             }
@@ -514,7 +514,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-verify-upgrade")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
                     }
                 }
             }
