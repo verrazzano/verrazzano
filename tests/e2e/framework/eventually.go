@@ -7,6 +7,11 @@ import (
 	"github.com/onsi/gomega"
 )
 
+// EventuallyBeTrue expects the condition to be true
+func EventuallyBeTrue(actual interface{}, intervals ...interface{}, explain ...interface{}) {
+	gomega.EventuallyWithOffset(1, actual, intervals).Should(gomega.BeTrue(), explain)
+}
+
 // EventuallyEqual expects the specified two are the same, otherwise an exception raises
 func EventuallyEqual(actual interface{}, extra interface{}, explain ...interface{}) {
 	gomega.EventuallyWithOffset(1, actual).Should(gomega.Equal(extra), explain...)
@@ -46,4 +51,9 @@ func EventuallyHaveKey(actual interface{}, key interface{}, explain ...interface
 // EventuallyEmpty expects actual is empty
 func EventuallyEmpty(actual interface{}, explain ...interface{}) {
 	gomega.EventuallyWithOffset(1, actual).Should(gomega.BeEmpty(), explain...)
+}
+
+// EventuallyNotEmpty expects actual is not empty
+func EventuallyNotEmpty(actual interface, intervals ...interface{}, explain ...interface{}) {
+	gomega.EventuallyWithOffset(1, actual, intervals).ShouldNot(gomega.BeEmpty(), explain)
 }

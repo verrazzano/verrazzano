@@ -13,12 +13,11 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -39,7 +38,7 @@ func init() {
 }
 
 var (
-	t                        = framework.NewTestFramework("helidon")
+	f                        = framework.NewDefaultFramework("helidon")
 	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
 	yamlApplier              = k8sutil.YAMLApplier{}
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
@@ -77,7 +76,7 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN the expected pod must be running in the test namespace
 	Describe("hello-helidon-deployment pod", func() {
 		It("is running", func() {
-			Eventually(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			framework.EventuallyBeTrue(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval)
 		})
 	})
 
@@ -88,10 +87,10 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	It("Get host from gateway.", Label("f:mesh.ingress"), func() {
-		Eventually(func() (string, error) {
+		framework.EventuallyNotEmpty(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
-		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
+		}, shortWaitTimeout, shortPollingInterval)
 	})
 
 	// Verify Hello Helidon app is working
@@ -101,9 +100,9 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	Describe("for Ingress.", Label("f:mesh.ingress"), func() {
 		It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
-			Eventually(func() bool {
+			framework.EventuallyBeTrue(func() bool {
 				return appEndpointAccessible(url, host)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+			}, longWaitTimeout, longPollingInterval)
 		})
 	})
 
@@ -115,19 +114,19 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(appMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					framework.EventuallyBeTrue(appMetricsExists, longWaitTimeout, longPollingInterval)
 				},
 				func() {
-					Eventually(appComponentMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					framework.EventuallyBeTrue(appComponentMetricsExists, longWaitTimeout, longPollingInterval)
 				},
 				func() {
-					Eventually(appConfigMetricsExists, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					framework.EventuallyBeTrue(appConfigMetricsExists, longWaitTimeout, longPollingInterval)
 				},
 				func() {
-					Eventually(nodeExporterProcsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					framework.EventuallyBeTrue(nodeExporterProcsRunning, longWaitTimeout, longPollingInterval)
 				},
 				func() {
-					Eventually(nodeExporterDiskIoNow, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					framework.EventuallyBeTrue(nodeExporterDiskIoNow, longWaitTimeout, longPollingInterval)
 				},
 			)
 		})
@@ -141,28 +140,28 @@ var _ = Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
 		It("Verify Elasticsearch index exists", func() {
-			Eventually(func() bool {
+			framework.EventuallyBeTrue(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
+			}, longWaitTimeout, longPollingInterval, "Expected to find log index for hello helidon")
 		})
 
 		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
 		It("Verify recent Elasticsearch log record exists", func() {
-			Eventually(func() bool {
+			framework.EventuallyBeTrue(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",
 					"kubernetes.container_name":            "hello-helidon-container",
 				})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-			Eventually(func() bool {
+			}, longWaitTimeout, longPollingInterval, "Expected to find a recent log record")
+			framework.EventuallyBeTrue(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
 					"kubernetes.labels.app_oam_dev\\/name":      "hello-helidon-appconf",
 					"kubernetes.container_name":                 "hello-helidon-container",
 				})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+			}, longWaitTimeout, longPollingInterval, "Expected to find a recent log record")
 		})
 	})
 })
