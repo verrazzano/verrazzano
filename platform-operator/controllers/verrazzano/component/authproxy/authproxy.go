@@ -4,6 +4,7 @@
 package authproxy
 
 import (
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -16,15 +17,21 @@ import (
 )
 
 const (
+	keycloakInClusterURL = "keycloak-http.keycloak.svc.cluster.local"
 	tmpFilePrefix        = "verrazzano-overrides-"
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
+	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
 var (
 	// For Unit test purposes
 	writeFileFunc = ioutil.WriteFile
 )
+
+func resetWriteFileFunc() {
+	writeFileFunc = ioutil.WriteFile
+}
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -44,6 +51,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return nil, err
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
+
+	overrides.Proxy = &proxySettings{
+		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
+		OidcProviderHostInCluster: keycloakInClusterURL,
+	}
 
 	// Image name and version
 	err = getImageSettings(ctx, &overrides)

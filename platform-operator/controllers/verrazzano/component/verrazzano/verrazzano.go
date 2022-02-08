@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -40,7 +39,6 @@ import (
 
 const (
 	ComponentName           = "verrazzano"
-	keycloakInClusterURL    = "keycloak-http.keycloak.svc.cluster.local"
 	esHelmValuePrefixFormat = "elasticSearch.%s"
 
 	workloadName  = "system-es-master"
@@ -192,12 +190,6 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.Console = &consoleValues{Enabled: vzconfig.IsConsoleEnabled(effectiveCR)}
 	overrides.VerrazzanoOperator = &voValues{Enabled: isVMOEnabled(effectiveCR)}
 	overrides.MonitoringOperator = &vmoValues{Enabled: isVMOEnabled(effectiveCR)}
-	overrides.API = &apiValues{
-		Proxy: &proxySettings{
-			OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", envName, dnsSuffix),
-			OidcProviderHostInCluster: keycloakInClusterURL,
-		},
-	}
 	return nil
 }
 

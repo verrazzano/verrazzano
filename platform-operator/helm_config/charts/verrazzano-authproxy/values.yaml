@@ -20,6 +20,8 @@ proxy:
   OidcCallbackPath: /_authentication_callback
   OidcLogoutCallbackPath: /_logout
   OidcSingleLogoutCallbackPath: /_single_logout
+  OidcProviderHost:
+  OidcProviderHostInCluster:
   AuthnStateTTL: "300"
   MaxRequestSize: 65m
   ProxyBufferSize: 8k
