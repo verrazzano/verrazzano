@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -294,7 +295,7 @@ type ElasticsearchHitValidator func(hit ElasticsearchHit) bool
 // ValidateElasticsearchHits invokes the HitValidator on every hit in the searchResults.
 // The first invalid hit found will return in false being returned.
 // Otherwise true will be returned.
-func ValidateElasticsearchHits(searchResults map[string]interface{}, hitValidator ElasticsearchHitValidator) bool {
+func ValidateElasticsearchHits(searchResults map[string]interface{}, hitValidator ElasticsearchHitValidator, exceptions []*regexp.Regexp) bool {
 	hits := Jq(searchResults, "hits", "hits")
 	if hits == nil {
 		Log(Info, "Expected to find hits in log record query results")
@@ -308,12 +309,27 @@ func ValidateElasticsearchHits(searchResults map[string]interface{}, hitValidato
 	valid := true
 	for _, h := range hits.([]interface{}) {
 		hit := h.(map[string]interface{})
-		src := hit["_source"]
-		if !hitValidator(src.(map[string]interface{})) {
-			valid = false
+		src := hit["_source"].(map[string]interface{})
+		log := src["log"].(string)
+		if isException(log, exceptions) {
+			Log(Debug, fmt.Sprintf("Exception: %s", log))
+		} else {
+			if !hitValidator(src) {
+				// valid = false
+				return false
+			}
 		}
 	}
 	return valid
+}
+
+func isException(log string, exceptions []*regexp.Regexp) bool {
+	for _, re := range exceptions {
+		if re.MatchString(log) {
+			return true
+		}
+	}
+	return false
 }
 
 // FindLog returns true if a recent log record can be found in the index with matching filters.
