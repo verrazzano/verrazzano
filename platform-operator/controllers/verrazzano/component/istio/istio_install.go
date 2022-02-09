@@ -9,15 +9,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	istiosec "istio.io/api/security/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -151,7 +152,7 @@ func (i istioComponent) IsOperatorInstallSupported() bool {
 // IsInstalled checks if Istio is installed by looking for the Istio control plane deployment
 func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, error) {
 	deployment := appsv1.Deployment{}
-	nsn := types.NamespacedName{Name: IstiodDeployment, Namespace: IstioNamespace}
+	nsn := types.NamespacedName{Name: IstiodDeployment, Namespace: constants.IstioSystemNamespace}
 	if err := compContext.Client().Get(context.TODO(), nsn, &deployment); err != nil {
 		if errors.IsNotFound(err) {
 			return false, nil
@@ -224,7 +225,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	}
 
 	// check for global image pull secret
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, client, IstioNamespace, kvs, imagePullSecretHelmKey)
+	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(log, client, constants.IstioSystemNamespace, kvs, imagePullSecretHelmKey)
 	if err != nil {
 		return err
 	}
@@ -232,7 +233,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	// Build comma separated string of overrides that will be passed to
 	// isioctl as --set values.
 	// This include BOM image overrides as well as other overrides
-	overrideStrings, err := buildOverridesString(log, client, IstioNamespace, kvs...)
+	overrideStrings, err := buildOverridesString(log, client, constants.IstioSystemNamespace, kvs...)
 	if err != nil {
 		return err
 	}
@@ -294,7 +295,7 @@ func createCertSecret(compContext spi.ComponentContext) error {
 
 	// Create the cert used by Istio MTLS if it doesn't exist
 	var secret v1.Secret
-	nsn := types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}
+	nsn := types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: IstioCertSecret}
 	if err := compContext.Client().Get(context.TODO(), nsn, &secret); err != nil {
 		if !errors.IsNotFound(err) {
 			// Unexpected error
@@ -312,12 +313,12 @@ func createCertSecret(compContext spi.ComponentContext) error {
 // labelNamespace adds the label needed by network polices
 func labelNamespace(compContext spi.ComponentContext) error {
 	// Ensure Istio namespace exists and label it for network policies
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: IstioNamespace}}
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: constants.IstioSystemNamespace}}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = IstioNamespace
+		ns.Labels["verrazzano.io/namespace"] = constants.IstioSystemNamespace
 		return nil
 	}); err != nil {
 		return err
@@ -330,7 +331,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 	peer := istioclisec.PeerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "default",
-			Namespace: IstioNamespace,
+			Namespace: constants.IstioSystemNamespace,
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &peer, func() error {

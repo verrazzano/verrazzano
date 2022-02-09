@@ -100,7 +100,7 @@ func getIsInstalledMock(t *testing.T) *mocks.MockClient {
 
 	// Expect a call to create the PeerAuthentication
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstiodDeployment}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: IstiodDeployment}, gomock.Not(gomock.Nil())).
 		Return(nil)
 	return mock
 }
@@ -124,8 +124,8 @@ func getIsNotInstalledMock(t *testing.T) *mocks.MockClient {
 
 	// Expect a call to create the PeerAuthentication
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstiodDeployment}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Deployment"}, IstiodDeployment))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: IstiodDeployment}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.IstioSystemNamespace, Resource: "Deployment"}, IstiodDeployment))
 	return mock
 }
 
@@ -308,8 +308,8 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.DefaultNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.IstioSystemNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
 
 	return mock
 }
@@ -338,8 +338,8 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.DefaultNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: IstioCertSecret}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Secret"}, IstioCertSecret))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: IstioCertSecret}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.IstioSystemNamespace, Resource: "Secret"}, IstioCertSecret))
 
 	return mock
 }
@@ -361,8 +361,8 @@ func createPeerAuthenticationMock(t *testing.T) *mocks.MockClient {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: IstioNamespace, Name: "default"}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "PeerAuthentication"}, "default"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: "default"}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.IstioSystemNamespace, Resource: "PeerAuthentication"}, "default"))
 
 	// Expect a call to create the PeerAuthentication
 	mock.EXPECT().
@@ -394,15 +394,15 @@ func labelNamespaceMock(t *testing.T) *mocks.MockClient {
 	mock := mocks.NewMockClient(mocker)
 
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: IstioNamespace}, gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: IstioNamespace, Resource: "Namespace"}, IstioNamespace))
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: constants.IstioSystemNamespace}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: constants.IstioSystemNamespace, Resource: "Namespace"}, constants.IstioSystemNamespace))
 
 	// Expect a call to create the NameSpace
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, ns *corev1.Namespace, opts ...client.CreateOption) error {
 			if ns.ObjectMeta.Labels == nil {
-				ns.ObjectMeta.Labels["verrazzano.io/namespace"] = IstioNamespace
+				ns.ObjectMeta.Labels["verrazzano.io/namespace"] = constants.IstioSystemNamespace
 			}
 			return nil
 		})

@@ -224,7 +224,7 @@ func TestIsReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: IstioNamespace,
+			Namespace: constants.IstioSystemNamespace,
 			Name:      IstiodDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
