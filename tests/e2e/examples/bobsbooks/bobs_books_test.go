@@ -24,11 +24,16 @@ const (
 	longPollingInterval  = 20 * time.Second
 )
 
-var t = framework.NewTestFramework("bobsbooks")
+var (
+	t = framework.NewTestFramework("bobsbooks")
+	generatedNamespace = pkg.GenerateNamespace("bobs-books")
+)
 
 var _ = BeforeSuite(func() {
 	if !skipDeploy {
-		deployBobsBooksExample()
+		start := time.Now()
+		deployBobsBooksExample(namespace)
+		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
 
@@ -39,7 +44,6 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if failed {
-		namespace := "bobs-books"
 		// bobbys frontend
 		pkg.DumpContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
 		pkg.DumpContainerLogs(namespace, "bobbys-front-end-managed-server1", "weblogic-server", "/scratch/logs/bobbys-front-end")
@@ -53,7 +57,7 @@ var _ = t.AfterSuite(func() {
 	}
 })
 
-func deployBobsBooksExample() {
+func deployBobsBooksExample(namespace string) {
 	pkg.Log(pkg.Info, "Deploy BobsBooks example")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
@@ -68,39 +72,39 @@ func deployBobsBooksExample() {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace("bobs-books", nsLabels)
+		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Docker repository secret")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateDockerSecret("bobs-books", "bobs-books-repo-credentials", regServ, regUser, regPass)
+		return pkg.CreateDockerSecret(namespace, "bobs-books-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Bobbys front end WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("bobs-books", "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecret(namespace, "bobbys-front-end-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create Bobs Bookstore WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		return pkg.CreateCredentialsSecret("bobs-books", "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
+		return pkg.CreateCredentialsSecret(namespace, "bobs-bookstore-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	pkg.Log(pkg.Info, "Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
-		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql.bobs-books.svc.cluster.local:3306/books"}
-		return pkg.CreateCredentialsSecretFromMap("bobs-books", "mysql-credentials", m, nil)
+		m := map[string]string{"password": dbPass, "username": wlsUser, "url": "jdbc:mysql://mysql:3306/books"}
+		return pkg.CreateCredentialsSecretFromMap(namespace, "mysql-credentials", m, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	pkg.Log(pkg.Info, "Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
@@ -110,21 +114,21 @@ func undeployBobsBooksExample() {
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-app.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("examples/bobs-books/bobs-books-comp.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
-		return pkg.DeleteNamespace("bobs-books")
+		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		_, err := pkg.GetNamespace("bobs-books")
+		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -147,7 +151,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				"robert-helidon",
 				"mysql",
 			}
-			return pkg.PodsRunning("bobs-books", expectedPods)
+			return pkg.PodsRunning(namespace, expectedPods)
 		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 	})
 
@@ -160,7 +164,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		start := time.Now()
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway("bobs-books", "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
@@ -312,7 +316,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
-		bobsIndexName := "verrazzano-namespace-bobs-books"
+		bobsIndexName := "verrazzano-namespace-" + namespace
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -534,7 +538,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		)
 	})
 	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-bobs-books"
+		indexName := "verrazzano-namespace-" + namespace
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
