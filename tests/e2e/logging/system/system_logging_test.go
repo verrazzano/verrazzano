@@ -173,7 +173,7 @@ func validateKialiLogs() bool {
 func validateVPOLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		"verrazzano-namespace-verrazzano-install",
+		installIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-platform-operator",
 		searchTimeWindow,
