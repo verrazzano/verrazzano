@@ -5,6 +5,7 @@ package navigation
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"reflect"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -36,7 +37,7 @@ func FetchTrait(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, 
 // The trait's workload reference is populated by the OAM runtime when the trait resource
 // is created.  This provides a way for the trait's controller to locate the workload resource
 // that was generated from the common applicationconfiguration resource.
-func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, trait oam.Trait) (*unstructured.Unstructured, error) {
+func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, trait oam.Trait) (*unstructured.Unstructured, error) {
 	var workload = &unstructured.Unstructured{}
 	workload.SetAPIVersion(trait.GetWorkloadReference().APIVersion)
 	workload.SetKind(trait.GetWorkloadReference().Kind)

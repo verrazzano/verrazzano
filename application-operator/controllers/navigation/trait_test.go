@@ -6,6 +6,7 @@ package navigation
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
@@ -108,7 +109,7 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 			obj.SetName(key.Name)
 			return nil
 		})
-	uns, err = FetchWorkloadFromTrait(ctx, cli, zap.S(), trait)
+	uns, err = FetchWorkloadFromTrait(ctx, cli, vzlog.DefaultLogger(), trait)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.NotNil(uns)
@@ -130,7 +131,7 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
 			return fmt.Errorf("test-error")
 		})
-	uns, err = FetchWorkloadFromTrait(ctx, cli, zap.S(), trait)
+	uns, err = FetchWorkloadFromTrait(ctx, cli, vzlog.DefaultLogger(), trait)
 	mocker.Finish()
 	assert.Nil(uns)
 	assert.Error(err)
@@ -182,7 +183,7 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 			return nil
 		})
 
-	uns, err = FetchWorkloadFromTrait(ctx, cli, zap.S(), trait)
+	uns, err = FetchWorkloadFromTrait(ctx, cli, vzlog.DefaultLogger(), trait)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -208,7 +209,7 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 			obj.SetName(key.Name)
 			return nil
 		})
-	uns, err = FetchWorkloadFromTrait(ctx, cli, zap.S(), trait)
+	uns, err = FetchWorkloadFromTrait(ctx, cli, vzlog.DefaultLogger(), trait)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.NotNil(uns)

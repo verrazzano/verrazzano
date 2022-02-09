@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -163,7 +164,7 @@ func TestGetUnstructuredChildResourcesByAPIVersionKindsPositive(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid"}}}})
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, zap.S(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)
@@ -189,7 +190,7 @@ func TestFetchUnstructuredChildResourcesByAPIVersionKindsNegative(t *testing.T) 
 		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, namespace client.InNamespace, labels client.MatchingLabels) error {
 			return fmt.Errorf("test-error")
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, zap.S(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())
@@ -228,7 +229,7 @@ func TestGetUnstructuredChildResourcesByDeploymentPositive(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "wrong-workload-uid"}}}})
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, zap.S(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)

@@ -102,12 +102,14 @@ func TestGetConditionFromResult(t *testing.T) {
 // THEN the error is returned
 func TestIgnoreNotFoundWithLog(t *testing.T) {
 	log := zap.S().With("somelogger")
-	err := IgnoreNotFoundWithLog(kerr.NewNotFound(controllerruntime.GroupResource{}, ""), log)
+	result, err := IgnoreNotFoundWithLog(kerr.NewNotFound(controllerruntime.GroupResource{}, ""), log)
 	asserts.Nil(t, err)
+	asserts.False(t, result.Requeue)
 
 	otherErr := kerr.NewBadRequest("some other error")
-	err = IgnoreNotFoundWithLog(otherErr, log)
-	asserts.Equal(t, otherErr, err)
+	result, err = IgnoreNotFoundWithLog(otherErr, log)
+	asserts.Nil(t, err)
+	asserts.True(t, result.Requeue)
 }
 
 // TestIsPlacedInThisCluster tests the IsPlacedInThisCluster function

@@ -207,7 +207,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.2.1-2",
+              "tag": "v7.5.11",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -242,7 +242,7 @@
             },
             {
               "image": "console",
-              "tag": "1.2.0-20220204151623-ce5b0e2",
+              "tag": "1.2.0-20220207205006-c441ea3",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
