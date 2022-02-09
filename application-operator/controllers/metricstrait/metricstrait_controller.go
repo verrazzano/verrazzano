@@ -470,7 +470,6 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 		// the Verrazzano Monitoring Operator
 		return rel, controllerutil.OperationResultNone, client.IgnoreNotFound(err)
 	}
-	log.Infof("get config map, generation %d", configmap.Generation)
 
 	existingConfigmap := configmap.DeepCopyObject()
 
@@ -510,7 +509,6 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 	if err != nil {
 		return rel, controllerutil.OperationResultNone, err
 	}
-	log.Infof("update config map, generation %d", configmap.Generation)
 	return rel, controllerutil.OperationResultUpdated, nil
 }
 
