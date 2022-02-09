@@ -315,8 +315,7 @@ func ValidateElasticsearchHits(searchResults map[string]interface{}, hitValidato
 			Log(Debug, fmt.Sprintf("Exception: %s", log))
 		} else {
 			if !hitValidator(src) {
-				// valid = false
-				return false
+				valid = false
 			}
 		}
 	}
