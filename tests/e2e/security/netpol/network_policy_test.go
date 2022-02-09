@@ -76,7 +76,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.DeployHelloHelidonApplication(&yamlApplier, namespace, "")
+	pkg.DeployHelloHelidonApplication(namespace, "")
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -94,7 +94,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	start = time.Now()
-	pkg.UndeployHelloHelidonApplication(&yamlApplier, namespace)
+	pkg.UndeployHelloHelidonApplication(namespace)
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
