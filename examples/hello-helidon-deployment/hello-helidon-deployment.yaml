@@ -36,7 +36,7 @@ spec:
     - port: 8080
       name: https
   selector:
-    app: productpage
+    app: hello-helidon-application
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -86,7 +86,6 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: hello-helidon-authpolicy
-  namespace: hello-helidon
   labels:
     verrazzano.io/istio: hello-helidon
 spec:
