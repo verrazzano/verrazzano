@@ -38,9 +38,6 @@ const IstiodDeployment = "istiod"
 
 const istioGlobalHubKey = "global.hub"
 
-// IstioNamespace is the default Istio namespace
-const IstioNamespace = "istio-system"
-
 // IstioCoreDNSReleaseName is the name of the istiocoredns release
 const IstioCoreDNSReleaseName = "istiocoredns"
 
