@@ -1,0 +1,103 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-helidon-deployment
+spec:
+  selector:
+    matchLabels:
+      app: hello-helidon-application
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-helidon-application
+    spec:
+      containers:
+        - name: hello-helidon-container
+          image: ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20210728181814-eb1e622
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: web
+              containerPort: 8080
+              protocol: TCP
+---
+apiVersion: apps/v1
+kind: Service
+metadata:
+  name: hello-helidon-service
+  labels:
+    app: hello-helidon-application
+    service: hello-helidon-service
+spec:
+  ports:
+    - port: 8080
+      name: https
+  selector:
+    app: productpage
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hello-helidon-service-account
+  labels:
+    account: hello-helidon-service
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: hello-helidon-gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      hosts:
+        - "*"
+      tls:
+        credentialName: hello-helidon-cert-secret
+        mode: SIMPLE
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: bookinfo
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - hello-helidon-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /greet
+      route:
+        - destination:
+            host: hello-helidon-deployment
+            port:
+              number: 8080
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: hello-helidon-authpolicy
+  namespace: hello-helidon
+  labels:
+    verrazzano.io/istio: hello-helidon
+spec:
+  rules:
+  - from:
+    - source:
+        principals:
+          - cluster.local/ns/hello-helidon/sa/hello-helidon-service-account
+          - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
+          - cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator
+  selector:
+    matchLabels:
+      verrazzano.io/istio: hello-helidon
+
