@@ -330,6 +330,14 @@ pipeline {
                                 }
                             }
                         }
+                        stage('poko metricsbinding') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metricsbinding"
+                            }
+                            steps {
+                                runGinkgo('metricsbinding')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -471,14 +479,6 @@ pipeline {
                             }
                             steps {
                                 runGinkgo('loggingtrait/coherenceworkload')
-                            }
-                        }
-                        stage('poko metricsbinding') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metricsbinding"
-                            }
-                            steps {
-                                runGinkgo('metricsbinding')
                             }
                         }
                     }
