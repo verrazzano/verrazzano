@@ -655,6 +655,14 @@ pipeline {
                     }
                 }
             }
+            post {
+                failure {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
+                    }
+                }
+            }
         }
     }
     post {
