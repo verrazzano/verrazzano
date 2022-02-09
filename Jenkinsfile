@@ -151,21 +151,6 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
                 moveContentToGoRepoPath()
 
                 script {

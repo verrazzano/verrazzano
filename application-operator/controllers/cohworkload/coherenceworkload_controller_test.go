@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
 
@@ -1265,7 +1266,7 @@ func TestCreateUpdateDestinationRuleCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1327,7 +1328,7 @@ func TestCreateUpdateDestinationRuleUpdate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1343,7 +1344,7 @@ func TestCreateUpdateDestinationRuleNoOamLabel(t *testing.T) {
 	namespaceLabels := make(map[string]string)
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
 }
 
@@ -1357,7 +1358,7 @@ func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
 	reconciler := Reconciler{}
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
-	err := reconciler.createOrUpdateDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createOrUpdateDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.NoError(err)
 }
 

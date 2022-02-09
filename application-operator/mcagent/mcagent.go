@@ -74,7 +74,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	// Get the secret
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
 	if err != nil {
-		if clusters.IgnoreNotFoundWithLog(err, s.Log) == nil && s.AgentSecretFound {
+		if client.IgnoreNotFound(err) == nil && s.AgentSecretFound {
 			s.Log.Debugf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
 			s.AgentSecretFound = false
 			s.AgentSecretValid = false
@@ -252,7 +252,7 @@ func (s *Syncer) updateDeployment(name string) {
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
-		if clusters.IgnoreNotFoundWithLog(regErr, s.Log) != nil {
+		if client.IgnoreNotFound(regErr) != nil {
 			return
 		}
 	} else {
@@ -285,7 +285,7 @@ func (s *Syncer) configureLogging() {
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
-		if clusters.IgnoreNotFoundWithLog(regErr, s.Log) != nil {
+		if client.IgnoreNotFound(regErr) != nil {
 			return
 		}
 	}

@@ -70,6 +70,14 @@ func ConflictWithLog(message string, err error, log *zap.SugaredLogger) error {
 	return err
 }
 
+// ResultErrorsWithLog logs an error message for any error that is not a conflict error.  Conflict errors are logged
+// with debug level messages.
+func ResultErrorsWithLog(message string, errors []error, log *zap.SugaredLogger) {
+	for _, err := range errors {
+		ConflictWithLog(message, err, log)
+	}
+}
+
 // IgnoreConflictWithLog ignores conflict error and logs a message
 // Returned is a result and an error
 func IgnoreConflictWithLog(message string, err error, log *zap.SugaredLogger) (reconcile.Result, error) {

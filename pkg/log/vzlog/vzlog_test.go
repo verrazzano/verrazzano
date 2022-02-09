@@ -41,7 +41,7 @@ func TestLog(t *testing.T) {
 		time.Sleep(time.Duration(1) * time.Second)
 	}
 	assert.Equal(t, 2, logger.count)
-	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
+	assert.Equal(t, logger.expectedMsg, logger.actualMsg)
 	DeleteLogContext(rKey)
 }
 
@@ -63,7 +63,7 @@ func TestLogRepeat(t *testing.T) {
 	l.Progress(msg)
 	l.Progress(msg)
 	assert.Equal(t, 1, logger.count)
-	assert.Equal(t, logger.actualMsg, msg)
+	assert.Equal(t, msg, logger.actualMsg)
 	DeleteLogContext(rKey)
 }
 
@@ -89,7 +89,7 @@ func TestHistory(t *testing.T) {
 	l.Progress(msg2)
 	l.Progress(msg)
 	assert.Equal(t, 2, logger.count)
-	assert.Equal(t, logger.actualMsg, msg2)
+	assert.Equal(t, msg2, logger.actualMsg)
 	DeleteLogContext(rKey)
 }
 
@@ -113,7 +113,7 @@ func TestHistoryOnce(t *testing.T) {
 	l.Once(msg2)
 	l.Once(msg)
 	assert.Equal(t, 2, logger.count)
-	assert.Equal(t, logger.actualMsg, msg2)
+	assert.Equal(t, msg2, logger.actualMsg)
 	DeleteLogContext(rKey)
 }
 
@@ -136,7 +136,7 @@ func TestLogNewMsg(t *testing.T) {
 	l.Progress(msg2)
 	l.Progress(msg2)
 	assert.Equal(t, 2, logger.count)
-	assert.Equal(t, logger.actualMsg, msg2)
+	assert.Equal(t, msg2, logger.actualMsg)
 	DeleteLogContext(rKey)
 }
 
@@ -154,7 +154,7 @@ func TestLogFormat(t *testing.T) {
 	l := rl.EnsureLogger("comp1", &logger, zap.S())
 	l.Progressf(template, inStr)
 	assert.Equal(t, 1, logger.count)
-	assert.Equal(t, logger.actualMsg, logger.expectedMsg)
+	assert.Equal(t, logger.expectedMsg, logger.actualMsg)
 	DeleteLogContext(rKey)
 }
 
@@ -215,6 +215,12 @@ func (l *fakeLogger) Infof(template string, args ...interface{}) {
 	l.Info(s)
 }
 
+// Infow formats a message and logs it
+func (l *fakeLogger) Infow(msg string, keysAndValues ...interface{}) {
+	s := fmt.Sprintf("%s %v", msg, keysAndValues)
+	l.Info(s)
+}
+
 // Debug is a wrapper for SugaredLogger Debug
 func (l *fakeLogger) Debug(args ...interface{}) {
 }
@@ -223,10 +229,18 @@ func (l *fakeLogger) Debug(args ...interface{}) {
 func (l *fakeLogger) Debugf(template string, args ...interface{}) {
 }
 
+// Debugw formats a message and logs it
+func (l *fakeLogger) Debugw(msg string, keysAndValues ...interface{}) {
+}
+
 // Error is a wrapper for SugaredLogger Error
 func (l *fakeLogger) Error(args ...interface{}) {
 }
 
 // Errorf is a wrapper for SugaredLogger Errorf
 func (l *fakeLogger) Errorf(template string, args ...interface{}) {
+}
+
+// Errorw formats a message and logs it
+func (l *fakeLogger) Errorw(msg string, keysAndValues ...interface{}) {
 }

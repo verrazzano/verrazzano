@@ -9,14 +9,14 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	log2 "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,8 +34,6 @@ const (
 	projectMonitorK8sRole       = "view"
 	projectMonitorGroupTemplate = "verrazzano-project-%s-monitors"
 	finalizerName               = "project.verrazzano.io"
-	keyPolicyName               = "policy-name"
-	keyNamespace                = "namespace"
 	managedClusterRole          = "verrazzano-managed-cluster"
 )
 
@@ -58,7 +56,22 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // It fetches its namespaces if the VerrazzanoProject is in the verrazzano-mc namespace
 // and create namespaces in the local cluster.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	res, err := r.doReconcile(req)
+	ctx := context.Background()
+	var vp clustersv1alpha1.VerrazzanoProject
+	err := r.Get(ctx, req.NamespacedName, &vp)
+	if err != nil {
+		// If the resource is not found, that means all of the finalizers have been removed,
+		// and the Verrazzano resource has been deleted, so there is nothing left to do.
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("mcconfigmap", req.NamespacedName, &vp)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for Verrazzano project", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling Verrazzano project resource %v, generation %v", req.NamespacedName, vp.Generation)
+
+	res, err := r.doReconcile(ctx, vp, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -68,26 +81,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	log.Oncef("Finished reconciling Verrazzano project %v", req.NamespacedName)
+
 	return ctrl.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the VZ project
-func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "verrazzanoproject")
-	var vp clustersv1alpha1.VerrazzanoProject
-	ctx := context.Background()
-	err := r.Get(ctx, req.NamespacedName, &vp)
-	if err != nil {
-		// If the resource is not found, that means all of the finalizers have been removed,
-		// and the Verrazzano resource has been deleted, so there is nothing left to do.
-		if errors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-
-		log.Errorf("Failed to fetch VerrazzanoProject: %v", err)
-		return reconcile.Result{}, err
-	}
-
+func (r *Reconciler) doReconcile(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	// Check if the project is being deleted
 	if !vp.ObjectMeta.DeletionTimestamp.IsZero() {
 		// If finalizer is present, delete the network policies in the project namespaces
@@ -119,7 +119,7 @@ func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Use OperationResultCreated by default since we don't really know what happened to individual resources
 	opResult := controllerutil.OperationResultCreated
-	err = r.syncAll(ctx, vp, log)
+	err := r.syncAll(ctx, vp, log)
 	if err != nil {
 		opResult = controllerutil.OperationResultNone
 	}
@@ -148,7 +148,7 @@ func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // Sync all the project resources, return immediately with error if failure
-func (r *Reconciler) syncAll(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, log *zap.SugaredLogger) error {
+func (r *Reconciler) syncAll(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
 	err := r.createOrUpdateNamespaces(ctx, vp, log)
 	if err != nil {
 		return err
@@ -162,10 +162,10 @@ func (r *Reconciler) syncAll(ctx context.Context, vp clustersv1alpha1.Verrazzano
 	return nil
 }
 
-func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, log *zap.SugaredLogger) error {
+func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
 	if vp.Namespace == constants.VerrazzanoMultiClusterNamespace {
 		for _, nsTemplate := range vp.Spec.Template.Namespaces {
-			log.Debugw("create or update with underlying namespace", "namespace", nsTemplate.Metadata.Name)
+			log.Debug("create or update with underlying namespace %s", nsTemplate.Metadata.Name)
 			var namespace corev1.Namespace
 			namespace.Name = nsTemplate.Metadata.Name
 
@@ -174,8 +174,7 @@ func (r *Reconciler) createOrUpdateNamespaces(ctx context.Context, vp clustersv1
 				return nil
 			})
 			if err != nil {
-				log.Errorw(fmt.Sprintf("Failed to create or update namespace: %v", err), "namespace", nsTemplate.Metadata.Name, "opResult", opResult)
-				return err
+				return log2.ConflictWithLog(fmt.Sprintf("Failed to create or update namespace %s. result: %v", nsTemplate.Metadata.Name, opResult), err, zap.S())
 			}
 
 			if err = r.createOrUpdateRoleBindings(ctx, nsTemplate.Metadata.Name, vp, log); err != nil {
@@ -211,8 +210,8 @@ func (r *Reconciler) mutateNamespace(nsTemplate clustersv1alpha1.NamespaceTempla
 
 // createOrUpdateRoleBindings creates project role bindings if there are security subjects specified in
 // the project spec
-func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace string, vp clustersv1alpha1.VerrazzanoProject, log *zap.SugaredLogger) error {
-	log.Debugw("Create or update role bindings", "namespace", namespace)
+func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace string, vp clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
+	log.Oncef("Create or update role bindings for namespace %s", namespace)
 
 	// get the default binding subjects
 	adminSubjects, monitorSubjects := r.getDefaultRoleBindingSubjects(vp)
@@ -262,8 +261,8 @@ func (r *Reconciler) createOrUpdateRoleBindings(ctx context.Context, namespace s
 }
 
 // createOrUpdateRoleBinding creates or updates a role binding
-func (r *Reconciler) createOrUpdateRoleBinding(ctx context.Context, roleBinding *rbacv1.RoleBinding, log *zap.SugaredLogger) error {
-	log.Debugw("Create or update role binding", "roleName", roleBinding.ObjectMeta.Name)
+func (r *Reconciler) createOrUpdateRoleBinding(ctx context.Context, roleBinding *rbacv1.RoleBinding, log vzlog2.VerrazzanoLogger) error {
+	log.Oncef("Create or update role binding for roleName %s", roleBinding.ObjectMeta.Name)
 
 	// deep copy the rolebinding so we can use the data in the mutate function
 	rbCopy := roleBinding.DeepCopy()
@@ -345,7 +344,7 @@ func (r *Reconciler) getDefaultRoleBindingSubjects(vp clustersv1alpha1.Verrazzan
 }
 
 // syncNetworkPolices syncs the NetworkPolicies specified in the project
-func (r *Reconciler) syncNetworkPolices(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log *zap.SugaredLogger) error {
+func (r *Reconciler) syncNetworkPolices(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
 	// Create or update policies that are in the project spec
 	// The project webhook validates that the network policies use project namespaces
 	desiredPolicySet := make(map[string]bool)
@@ -373,7 +372,7 @@ func (r *Reconciler) createOrUpdateNetworkPolicy(ctx context.Context, desiredPol
 	})
 }
 
-func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log *zap.SugaredLogger) error {
+func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, log vzlog2.VerrazzanoLogger) error {
 	// Get the list of VerrazzanoProject resources
 	vpList := clustersv1alpha1.VerrazzanoProjectList{}
 	if err := r.List(ctx, &vpList, client.InNamespace(constants.VerrazzanoMultiClusterNamespace)); err != nil {
@@ -418,7 +417,7 @@ func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1
 					continue
 				}
 				// This is an orphaned rolebinding so we delete it
-				log.Debugw("Deleting rolebinding for project", "namespace", rb.ObjectMeta.Namespace, "roleName", rb.ObjectMeta.Name)
+				log.Debugf("Deleting rolebinding %s in namespace %s from project", "namespace", rb.ObjectMeta.Name, rb.ObjectMeta.Namespace)
 				if err := r.Delete(ctx, &rb); err != nil {
 					return err
 				}
@@ -430,7 +429,7 @@ func (r *Reconciler) deleteRoleBindings(ctx context.Context, project *clustersv1
 }
 
 // deleteNetworkPolicies deletes policies that exist in the project namespaces, but are not defined in the project spec
-func (r *Reconciler) deleteNetworkPolicies(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, desiredPolicySet map[string]bool, log *zap.SugaredLogger) error {
+func (r *Reconciler) deleteNetworkPolicies(ctx context.Context, project *clustersv1alpha1.VerrazzanoProject, desiredPolicySet map[string]bool, log vzlog2.VerrazzanoLogger) error {
 	for _, ns := range project.Spec.Template.Namespaces {
 		// Get the list of policies in the namespace
 		policies := netv1.NetworkPolicyList{}
@@ -448,8 +447,8 @@ func (r *Reconciler) deleteNetworkPolicies(ctx context.Context, project *cluster
 
 			// Found a policy in the namespace that is not specified in the project.  Delete it
 			if err := r.Delete(ctx, &policies.Items[pi], &client.DeleteOptions{}); err != nil {
-				log.Errorw(fmt.Sprintf("Failed to delete NetworkPolicy during cleanup of project: %v", err),
-					keyNamespace, policy.Namespace, keyPolicyName, policy.Name)
+				log.Errorf("Failed to delete NetworkPolicy %s from namespace %s during cleanup of project: %v", policy.Name,
+					policy.Namespace, err)
 			}
 		}
 	}
