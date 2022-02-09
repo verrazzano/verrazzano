@@ -386,7 +386,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(compContext.Client(), compContext.EffectiveCR())
 	if err != nil {
-		compContext.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %s", err)
+		compContext.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
 		return nil, err
 	}
 	compContext.Log().Debugf("AppendKeycloakOverrides: DNSDomain returned %s", dnsSubDomain)
@@ -479,7 +479,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
 		return err
 	}
 	ctx.Log().Debugf("Keycloak Post Upgrade: DNSDomain returned %s", dnsSubDomain)
@@ -487,7 +487,7 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 	// Call the Script and Update the URIs
 	scriptName := filepath.Join(config.GetInstallDir(), "update-kiali-redirect-uris.sh")
 	if _, stderr, err := bashFunc(scriptName, id, dnsSubDomain); err != nil {
-		ctx.Log().Errorf("Component Keycloak failed updating KeyCloak URIs %s: %s", err, stderr)
+		ctx.Log().Errorf("Component Keycloak failed updating KeyCloak URIs %v: %s", err, stderr)
 		return err
 	}
 	ctx.Log().Debug("Component Keycloak successfully updated Keycloak URIs")
@@ -967,7 +967,7 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
 		return err
 	}
 	ctx.Log().Debugf("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
@@ -1093,7 +1093,7 @@ func getKeycloakGroups(ctx spi.ComponentContext) (KeycloakGroups, error) {
 	}
 	err = json.Unmarshal(out, &keycloakGroups)
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %v", err)
 		return nil, err
 	}
 
@@ -1145,7 +1145,7 @@ func getKeycloakRoles(ctx spi.ComponentContext) (KeycloakRoles, error) {
 	}
 	err = json.Unmarshal(out, &keycloakRoles)
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling groups json: %v", err)
 		return nil, err
 	}
 
@@ -1178,7 +1178,7 @@ func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
 	}
 	err = json.Unmarshal(out, &keycloakUsers)
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed ummarshalling users json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling users json: %v", err)
 		return nil, err
 	}
 	return keycloakUsers, nil
@@ -1210,7 +1210,7 @@ func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	}
 	err = json.Unmarshal(out, &keycloakClients)
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed ummarshalling client json: %s", err)
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling client json: %v", err)
 		return nil, err
 	}
 	return keycloakClients, nil

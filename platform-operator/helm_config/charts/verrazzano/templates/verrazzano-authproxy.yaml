@@ -88,6 +88,10 @@ spec:
                   - key: reload.sh
                     path: reload.sh
                     mode: 0755
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- tpl . $ | nindent 8 }}
+      {{- end }}
       containers:
       - image: {{ .Values.api.imageName }}:{{ .Values.api.imageVersion }}
         imagePullPolicy: {{ .Values.api.pullPolicy }}

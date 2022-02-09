@@ -1,16 +1,16 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: app.verrazzano.io/v1alpha1
 kind: MetricsTemplate
 metadata:
-  name: standard-k8s-metrics-template
-  namespace: verrazzano-system
+  name: test-metrics-template
+  namespace: hello-helidon-namespace
 spec:
   workloadSelector:
-    apiGroups: ["apps", ""]
+    apiGroups: ["apps"]
     apiVersions: ["v1"]
-    resources: ["deployment", "statefulset", "replicaset", "pod"]
+    resources: ["deployment"]
   prometheusConfig:
     targetConfigMap:
       namespace: verrazzano-system
@@ -60,6 +60,12 @@ spec:
           source_labels:
             - name
           target_label: webapp
+        - action: replace
+          regex: (.*)
+          replacement: $1-test
+          source_labels:
+            - __meta_kubernetes_namespace
+          target_label: test_namespace
       scheme: https
       {{ if eq ( index .namespace.metadata.labels "istio-injection" ) "enabled" }}
       tls_config:

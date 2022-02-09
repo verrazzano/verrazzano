@@ -10,28 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 )
 
-func PodsHaveAnnotation(namespace string, annotation string) bool {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting clientset, error: %v", err))
-		return false
-	}
-	pods, err := ListPodsInCluster(namespace, clientset)
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-		return false
-	}
-	for _, pod := range pods.Items {
-		_, hasAnnotation := pod.Annotations[annotation]
-		if !hasAnnotation &&
-			!strings.Contains(pod.Name, "vmi-system-kiali") &&
-			!strings.Contains(pod.Name, "vmi-system-es-data") {
-			return false
-		}
-	}
-	return true
-}
-
 // CheckPodsForEnvoySidecar checks if a pods which have Envoy sidecars, have the specified image
 func CheckPodsForEnvoySidecar(namespace string, imageName string) bool {
 	clientset, err := k8sutil.GetKubernetesClientset()

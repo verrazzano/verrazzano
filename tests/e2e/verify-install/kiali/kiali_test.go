@@ -6,6 +6,8 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -15,14 +17,13 @@ import (
 	networking "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 const (
 	systemNamespace = "verrazzano-system"
 	kiali           = "vmi-system-kiali"
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 5 * time.Second
+	waitTimeout     = 15 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var (
@@ -85,10 +86,11 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 			)
 
 			BeforeEach(func() {
-				ingress, kialiErr = client.NetworkingV1().
-					Ingresses(systemNamespace).
-					Get(context.TODO(), kiali, v1.GetOptions{})
-				Expect(kialiErr).ToNot(HaveOccurred())
+				Eventually(func() (*networking.Ingress, error) {
+					var err error
+					ingress, err = client.NetworkingV1().Ingresses(systemNamespace).Get(context.TODO(), kiali, v1.GetOptions{})
+					return ingress, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 				rules := ingress.Spec.Rules
 				Expect(len(rules)).To(Equal(1))
 				Expect(rules[0].Host).To(ContainSubstring("kiali.vmi.system"))
