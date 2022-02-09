@@ -55,7 +55,7 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		var err error
 		effectiveCR, err = getEffectiveCR(actualCR)
 		if err != nil {
-			log.Errorf("Unexpected error building fake context: %v", err)
+			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
 		}
 	}

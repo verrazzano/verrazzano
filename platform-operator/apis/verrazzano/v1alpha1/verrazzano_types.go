@@ -85,6 +85,16 @@ type VerrazzanoSpec struct {
 	VolumeClaimSpecTemplates []VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
+// CommonKubernetesSpec - Kubernetes resources that are common to a subgroup of components
+type CommonKubernetesSpec struct {
+	// Replicas specifies the number of pod instances to run
+	// +optional
+	Replicas uint32 `json:"replicas,omitempty"`
+	// Affinity specifies the group of affinity scheduling rules
+	// +optional
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+}
+
 // SecuritySpec defines the security configuration for Verrazzano
 type SecuritySpec struct {
 	// AdminSubjects specifies subjects that should be bound to the verrazzano-admin role
@@ -252,6 +262,10 @@ type ComponentSpec struct {
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
 
+	// AuthProxy configuration
+	// +optional
+	AuthProxy *AuthProxyComponent `json:"authProxy,omitempty"`
+
 	// OAM configuration
 	// +optional
 	OAM *OAMComponent `json:"oam,omitempty"`
@@ -368,6 +382,19 @@ type ApplicationOperatorComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// AuthProxyKubernetesSection specifies the Kubernetes resources that can be customized for AuthProxy.
+type AuthProxyKubernetesSection struct {
+	CommonKubernetesSpec `json:",inline"`
+}
+
+// AuthProxyComponent specifies the AuthProxy configuration
+type AuthProxyComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// +optional
+	Kubernetes *AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
+}
+
 // OAMComponent specifies the OAM configuration
 type OAMComponent struct {
 	// +optional
@@ -427,6 +454,11 @@ type IngressNginxComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// IstioKubernetesSection specifies the Kubernetes resources that can be customized for Istio.
+type IstioKubernetesSection struct {
+	CommonKubernetesSpec `json:",inline"`
+}
+
 // IstioComponent specifies the Istio configuration
 type IstioComponent struct {
 	// Arguments for installing Istio
@@ -436,6 +468,8 @@ type IstioComponent struct {
 	IstioInstallArgs []InstallArgs `json:"istioInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// +optional
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration

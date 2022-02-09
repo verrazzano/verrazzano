@@ -6,6 +6,8 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strings"
 
@@ -53,15 +55,36 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
 func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	var err error
 	ctx := context.Background()
-	log := r.Log.With("loggingtrait", req.NamespacedName)
-
+	var err error
 	var trait *oamv1alpha1.LoggingTrait
-	if trait, err = r.fetchTrait(ctx, req.NamespacedName); err != nil || trait == nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
+	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil || trait == nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("loggingtrait", req.NamespacedName, trait)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for logging trait", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling logging trait resource %v, generation %v", req.NamespacedName, trait.Generation)
+
+	res, err := r.doReconcile(ctx, trait, log)
+	if clusters.ShouldRequeue(res) {
+		return res, nil
+	}
+	// Never return an error since it has already been logged and we don't want the
+	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
+	if err != nil {
+		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	log.Oncef("Finished reconciling logging trait %v", req.NamespacedName)
+
+	return ctrl.Result{}, nil
+}
+
+// doReconcile performs the reconciliation operations for the logging trait
+func (r *LoggingTraitReconciler) doReconcile(ctx context.Context, trait *oamv1alpha1.LoggingTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	if trait.DeletionTimestamp.IsZero() {
 		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, log, trait)
 		if err != nil {
@@ -81,7 +104,7 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 }
 
 // reconcileTraitDelete reconciles a logging trait that is being deleted.
-func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log *zap.SugaredLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, error) {
+func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log vzlog.VerrazzanoLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, error) {
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)
 	if err != nil || workload == nil {
@@ -229,23 +252,21 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log *
 
 // fetchTrait attempts to get a trait given a namespaced name.
 // Will return nil for the trait and no error if the trait does not exist.
-func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.NamespacedName) (*oamv1alpha1.LoggingTrait, error) {
+func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.NamespacedName, log *zap.SugaredLogger) (*oamv1alpha1.LoggingTrait, error) {
 	var trait oamv1alpha1.LoggingTrait
-	r.Log.Debugw("Fetch trait", "trait", name)
+	log.Debugw("Fetch trait", "trait", name)
 	if err := r.Get(ctx, name, &trait); err != nil {
 		if k8serrors.IsNotFound(err) {
-			r.Log.Debug("Trait has been deleted")
+			log.Debug("Trait has been deleted")
 			return nil, nil
 		}
-		r.Log.Debug("Failed to fetch trait")
+		log.Debug("Failed to fetch trait")
 		return nil, err
 	}
 	return &trait, nil
 }
 
-func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
-	ctx context.Context, log *zap.SugaredLogger, trait *oamv1alpha1.LoggingTrait) (
-	ctrl.Result, bool, error) {
+func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(ctx context.Context, log vzlog.VerrazzanoLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, bool, error) {
 
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)

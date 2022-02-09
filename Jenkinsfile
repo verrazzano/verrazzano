@@ -151,21 +151,6 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
                 moveContentToGoRepoPath()
 
                 script {
@@ -617,10 +602,10 @@ pipeline {
                 rm archive.zip
             """
             script {
-                if (isPagerDutyEnabled() && env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*") {
+                if (isPagerDutyEnabled() && (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*")) {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                 }
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-*" || env.BRANCH_NAME ==~ "mark/*") {
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
@@ -836,42 +821,76 @@ def trimIfGithubNoreplyUser(userIn) {
 
 def getSuspectList(commitList, userMappings) {
     def retValue = ""
+    def suspectList = []
     if (commitList == null || commitList.size() == 0) {
         echo "No commits to form suspect list"
-        return retValue
-    }
-    def suspectList = []
-    for (int i = 0; i < commitList.size(); i++) {
-        def id = commitList[i]
-        try {
-            def gitAuthor = sh(
-                script: "git log --format='%ae' '$id^!'",
-                returnStdout: true
-            ).trim()
-            if (gitAuthor != null) {
-                def author = trimIfGithubNoreplyUser(gitAuthor)
-                echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
-                if (userMappings.containsKey(author)) {
-                    def slackUser = userMappings.get(author)
-                    if (!suspectList.contains(slackUser)) {
-                        echo "Added ${slackUser} as suspect"
-                        retValue += " ${slackUser}"
-                        suspectList.add(slackUser)
+    } else {
+        for (int i = 0; i < commitList.size(); i++) {
+            def id = commitList[i]
+            try {
+                def gitAuthor = sh(
+                    script: "git log --format='%ae' '$id^!'",
+                    returnStdout: true
+                ).trim()
+                if (gitAuthor != null) {
+                    def author = trimIfGithubNoreplyUser(gitAuthor)
+                    echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                    if (userMappings.containsKey(author)) {
+                        def slackUser = userMappings.get(author)
+                        if (!suspectList.contains(slackUser)) {
+                            echo "Added ${slackUser} as suspect"
+                            retValue += " ${slackUser}"
+                            suspectList.add(slackUser)
+                        }
+                    } else {
+                        // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                        if (!suspectList.contains(author)) {
+                            echo "Added ${author} as suspect"
+                            retValue += " ${author}"
+                            suspectList.add(author)
+                        }
                     }
                 } else {
-                    // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
-                    if (!suspectList.contains(author)) {
-                        echo "Added ${author} as suspect"
-                        retValue += " ${author}"
-                       suspectList.add(author)
-                    }
+                    echo "No author returned from git"
                 }
-            } else {
-                echo "No author returned from git"
+            } catch (Exception e) {
+                echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
             }
-        } catch (Exception e) {
-            echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
         }
+    }
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+
+    if (startedByUser.length() > 0) {
+        echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
+        def author = trimIfGithubNoreplyUser(startedByUser)
+        echo "DEBUG: author: ${startedByUser}, ${author}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
+            }
+        } else {
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+               echo "Added ${author} as suspect"
+               retValue += " ${author}"
+               suspectList.add(author)
+            }
+        }
+    } else {
+        echo "Build not started by a user, not adding to notification list"
     }
     echo "returning suspect list: ${retValue}"
     return retValue

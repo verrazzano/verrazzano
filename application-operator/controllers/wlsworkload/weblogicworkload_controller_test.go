@@ -5,6 +5,7 @@ package wlsworkload
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
 
@@ -1293,9 +1294,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Error(err)
-	assert.Equal("an error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestReconcileWorkloadNotFound tests reconciling a VerrazzanoWebLogicWorkload when the workload
@@ -1350,8 +1350,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Equal("an error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestCopyLabelsFailure tests reconciling a VerrazzanoWebLogicWorkload and we are
@@ -1387,8 +1387,8 @@ func TestCopyLabelsFailure(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.EqualError(err, "value cannot be set because .spec is not a map[string]interface{}")
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.Equal(true, result.Requeue)
 }
 
 // TestCreateDestinationRuleCreate tests creation of a destination rule
@@ -1441,7 +1441,7 @@ func TestCreateDestinationRuleCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1476,7 +1476,7 @@ func TestCreateDestinationRuleNoCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1492,7 +1492,7 @@ func TestCreateDestinationRuleNoOamLabel(t *testing.T) {
 	namespaceLabels := make(map[string]string)
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
 }
 
@@ -1506,7 +1506,7 @@ func TestCreateDestinationRuleNoIstioLabel(t *testing.T) {
 	reconciler := Reconciler{}
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.NoError(err)
 }
 
@@ -1556,7 +1556,7 @@ func TestCreateRuntimeEncryptionSecretCreate(t *testing.T) {
 
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), vzlog.DefaultLogger(), "test-namespace", "test-secret", workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1588,7 +1588,7 @@ func TestCreateRuntimeEncryptionSecretNoCreate(t *testing.T) {
 
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), vzlog.DefaultLogger(), "test-namespace", "test-secret", workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1602,7 +1602,7 @@ func TestCreateRuntimeEncryptionSecretNoOamLabel(t *testing.T) {
 
 	reconciler := Reconciler{}
 	workloadLabels := make(map[string]string)
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), vzlog.DefaultLogger(), "test-namespace", "test-secret", workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to create owner reference to appconfig", err.Error())
 }
 

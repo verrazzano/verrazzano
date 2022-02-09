@@ -122,8 +122,8 @@ func TestReconcileFetchWorkloadError(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Equal("An error has occurred", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestReconcileWorkloadMissingData tests reconciling a VerrazzanoHelidonWorkload when the workload
@@ -182,8 +182,8 @@ func TestReconcileWorkloadMissingData(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.Equal("VerrazzanoHelidonWorkload is missing required spec.deploymentTemplate.metadata.name", err.Error())
-	assert.Equal(false, result.Requeue)
+	assert.Nil(err)
+	assert.True(result.Requeue)
 }
 
 // TestReconcileCreateHelidon tests the basic happy path of reconciling a VerrazzanoHelidonWorkload. We

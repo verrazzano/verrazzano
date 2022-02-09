@@ -8,15 +8,13 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/stretchr/testify/assert"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/fake"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -63,11 +61,7 @@ func TestNoOwnerReferences(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestOwnerReference tests the handling of a Pod resource
@@ -111,11 +105,7 @@ func TestOwnerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestMultipleOwnerReference tests the handling of a Pod resource
@@ -178,11 +168,7 @@ func TestMultipleOwnerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := a.Handle(context.TODO(), req)
 
-	assert.True(t, res.Allowed)
-	assert.Len(t, res.Patches, 1)
-	assert.Equal(t, "add", res.Patches[0].Operation)
-	assert.Equal(t, "/metadata/labels", res.Patches[0].Path)
-	assert.Contains(t, res.Patches[0].Value, constants.MetricsWorkloadLabel)
+	verifyResponse(t, res, 2)
 }
 
 // TestMultipleOwnerReferenceAndWorkloadResources tests the handling of a Pod resource
@@ -263,4 +249,44 @@ func TestMultipleOwnerReferenceAndWorkloadResources(t *testing.T) {
 
 	assert.False(t, res.Allowed)
 	assert.Equal(t, "multiple workload resources found for test, Verrazzano metrics cannot be enabled", res.Result.Message)
+}
+
+// TestPodPrometheusAnnotations tests the annotation of a Pod resource
+// GIVEN a call to the webhook Handle function
+// WHEN the pod has Prometheus annotations
+// THEN the Handle function should not overwrite those annotations
+func TestPodPrometheusAnnotations(t *testing.T) {
+	a := newLabelerPodWebhook()
+
+	// Test data
+	pod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: "default",
+			Annotations: map[string]string{
+				PrometheusPortAnnotation:   PrometheusPortDefault,
+				PrometheusPathAnnotation:   PrometheusPathAnnotation,
+				PrometheusScrapeAnnotation: PrometheusScrapeAnnotation,
+			},
+		},
+	}
+	assert.NoError(t, a.Client.Create(context.TODO(), &pod))
+
+	req := admission.Request{}
+	req.Namespace = "default"
+	marshaledPod, err := json.Marshal(pod)
+	assert.NoError(t, err, "Unexpected error marshaling pod")
+	req.Object = runtime.RawExtension{Raw: marshaledPod}
+	res := a.Handle(context.TODO(), req)
+
+	verifyResponse(t, res, 1)
+}
+
+func verifyResponse(t *testing.T, res admission.Response, len int) {
+	assert.True(t, res.Allowed)
+	assert.Len(t, res.Patches, len)
+	for _, patch := range res.Patches {
+		assert.Equal(t, "add", patch.Operation)
+		assert.True(t, patch.Path == "/metadata/labels" || patch.Path == "/metadata/annotations")
+	}
 }

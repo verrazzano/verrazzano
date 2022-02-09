@@ -4,11 +4,17 @@
 package log
 
 import (
+	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/log"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"time"
 )
+
+const timeFormat = "2006-01-02T15:04:05.000Z"
 
 // InitLogs initializes logs with Time and Global Level of Logs set at Info
 func InitLogs(opts kzap.Options) {
@@ -23,7 +29,7 @@ func InitLogs(opts kzap.Options) {
 	} else {
 		config.Level.SetLevel(zapcore.InfoLevel)
 	}
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(timeFormat)
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"
@@ -50,12 +56,48 @@ func InitLogs(opts kzap.Options) {
 	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))
 }
 
+// ConflictWithLog returns a conflict error and logs a message
+// Returned is an error
+func ConflictWithLog(message string, err error, log *zap.SugaredLogger) error {
+	if err == nil {
+		return nil
+	}
+	if k8serrors.IsConflict(err) {
+		log.Debugf("%s: %v", message, err)
+	} else {
+		log.Errorf("%s: %v", message, err)
+	}
+	return err
+}
+
+// ResultErrorsWithLog logs an error message for any error that is not a conflict error.  Conflict errors are logged
+// with debug level messages.
+func ResultErrorsWithLog(message string, errors []error, log *zap.SugaredLogger) {
+	for _, err := range errors {
+		ConflictWithLog(message, err, log)
+	}
+}
+
+// IgnoreConflictWithLog ignores conflict error and logs a message
+// Returned is a result and an error
+func IgnoreConflictWithLog(message string, err error, log *zap.SugaredLogger) (reconcile.Result, error) {
+	if err == nil {
+		return reconcile.Result{}, nil
+	}
+	if k8serrors.IsConflict(err) {
+		log.Debugf("%s: %v", message, err)
+	} else {
+		log.Errorf("%s: %v", message, err)
+	}
+	return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
+}
+
 // BuildZapLogger initializes zap logger
 func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
 	config.Level.SetLevel(zapcore.InfoLevel)
 
-	config.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(timeFormat)
 	config.EncoderConfig.TimeKey = "@timestamp"
 	config.EncoderConfig.MessageKey = "message"
 	config.EncoderConfig.CallerKey = "caller"

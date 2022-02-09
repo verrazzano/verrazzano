@@ -184,6 +184,9 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon-appconf"
@@ -250,21 +253,6 @@ pipeline {
                         }
                     }
 	            }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -291,11 +279,6 @@ pipeline {
         }
 
         stage('Install and Configure') {
-            environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
             when {
                 allOf {
                     not { buildingTag() }
@@ -617,45 +600,6 @@ pipeline {
                         verifyDeregisterManagedClusters()
                     }
                 }
-                stage('Uninstall Verrazzano') {
-                    steps {
-                        script {
-                            // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
-                            // - the first one will always be the Admin cluster
-                            // - clusters 2-max are managed clusters
-                            def verrazzanoUninstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for (int count = 1; count <= clusterCount; count++) {
-                                def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
-                                def key = "vz-mgd-${count - 1}"
-                                if (count == 1) {
-                                    key = "vz-admin"
-                                }
-                                verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
-                            }
-                            parallel verrazzanoUninstallStages
-                        }
-                    }
-                }
-                stage("Verify Uninstall") {
-                    steps {
-                        script {
-                            // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
-                            // - the first one will always be the Admin cluster
-                            // - clusters 2-max are managed clusters
-                            def verifyUninstallStages = [:]
-                            int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-                            for (int count = 1; count <= clusterCount; count++) {
-                                def key = "vz-mgd-${count - 1}"
-                                if (count == 1) {
-                                    key = "vz-admin"
-                                }
-                                verifyUninstallStages["${key}"] = verifyUninstall(count)
-                            }
-                            parallel verifyUninstallStages
-                        }
-                    }
-                }
             }
         }
     }
@@ -687,6 +631,39 @@ pipeline {
             }
             archiveArtifacts artifacts: '**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*-cluster-dump*/**,**/test-cluster-dumps/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
+            script {
+                 // Create a dictionary of Verrazzano uninstall steps to be executed in parallel
+                 // - the first one will always be the Admin cluster
+                 // - clusters 2-max are managed clusters
+                 def verrazzanoUninstallStages = [:]
+                 int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                 for (int count = 1; count <= clusterCount; count++) {
+                     def installerPath = "${KUBECONFIG_DIR}/${count}/${installerFileName}"
+                     def key = "vz-mgd-${count - 1}"
+                     if (count == 1) {
+                         key = "vz-admin"
+                     }
+                     verrazzanoUninstallStages["${key}"] = uninstallVerrazzano(count, installerPath)
+                 }
+                 parallel verrazzanoUninstallStages
+            }
+
+            script {
+                // Create a dictionary of Verrazzano verify uninstall steps to be executed in parallel
+                // - the first one will always be the Admin cluster
+                // - clusters 2-max are managed clusters
+                def verifyUninstallStages = [:]
+                int clusterCount = params.TOTAL_CLUSTERS.toInteger()
+                for (int count = 1; count <= clusterCount; count++) {
+                    def key = "vz-mgd-${count - 1}"
+                    if (count == 1) {
+                        key = "vz-admin"
+                    }
+                    verifyUninstallStages["${key}"] = verifyUninstall(count)
+                }
+                parallel verifyUninstallStages
+            }
 
             script {
                 if (params.EMIT_METRICS) {

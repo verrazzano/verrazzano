@@ -8,7 +8,7 @@ import (
 	"fmt"
 	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"go.uber.org/zap"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -18,7 +18,7 @@ import (
 )
 
 // Cleanup cleans up the generated certificates and secrets associated with the given app config
-func Cleanup(appName types.NamespacedName, client client.Client, log *zap.SugaredLogger) (err error) {
+func Cleanup(appName types.NamespacedName, client client.Client, log vzlog.VerrazzanoLogger) (err error) {
 	certName, err := buildCertificateNameFromAppName(appName)
 	if err != nil {
 		log.Errorf("Failed building certificate name: %s", err)
@@ -36,7 +36,7 @@ func Cleanup(appName types.NamespacedName, client client.Client, log *zap.Sugare
 }
 
 // cleanupCert deletes up the generated certificate for the given app config
-func cleanupCert(certName string, c client.Client, log *zap.SugaredLogger) (err error) {
+func cleanupCert(certName string, c client.Client, log vzlog.VerrazzanoLogger) (err error) {
 	nsn := types.NamespacedName{Name: certName, Namespace: constants.IstioSystemNamespace}
 	cert := &certapiv1alpha2.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -61,7 +61,7 @@ func cleanupCert(certName string, c client.Client, log *zap.SugaredLogger) (err 
 }
 
 // cleanupSecret deletes up the generated secret for the given app config
-func cleanupSecret(certName string, c client.Client, log *zap.SugaredLogger) (err error) {
+func cleanupSecret(certName string, c client.Client, log vzlog.VerrazzanoLogger) (err error) {
 	secretName := fmt.Sprintf("%s-secret", certName)
 	nsn := types.NamespacedName{Name: secretName, Namespace: constants.IstioSystemNamespace}
 	secret := &corev1.Secret{

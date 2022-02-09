@@ -213,8 +213,7 @@ func TestReconcileCreateConfigMapFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	// expect an error and requeue upon failure
-	assert.NotNil(err)
+	assert.Nil(err)
 	assert.Equal(true, result.Requeue)
 }
 
@@ -261,7 +260,7 @@ func TestReconcileUpdateConfigMapFailed(t *testing.T) {
 	result, err := reconciler.Reconcile(request)
 
 	mocker.Finish()
-	assert.NotNil(err)
+	assert.Nil(err)
 	assert.Equal(true, result.Requeue)
 }
 
