@@ -20,7 +20,7 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-	searchTimeWindow     = "15m"
+	searchTimeWindow     = "1h"
 	systemIndex          = "verrazzano-namespace-verrazzano-system"
 	installIndex         = "verrazzano-namespace-verrazzano-install"
 	certMgrIndex         = "verrazzano-namespace-cert-manager"
