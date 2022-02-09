@@ -59,78 +59,32 @@ func TestAppendOverrides(t *testing.T) {
 		{
 			name:         "DefaultConfig",
 			description:  "Test default configuration of AuthProxy with no overrides",
-			expectedYAML: "testdata/authProxyValuesNoOverrides.yaml",
-			actualCR:     "testdata/vzDefault.yaml",
+			expectedYAML: "testdata/noOverrideValues.yaml",
+			actualCR:     "testdata/noOverrideVz.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
 		{
 			name:         "OverrideReplicas",
 			description:  "Test override of replica count",
-			expectedYAML: "testdata/authProxyValuesOverrideReplicas.yaml",
-			actualCR:     "testdata/vzOverrideReplicas.yaml",
+			expectedYAML: "testdata/replicasOverrideValues.yaml",
+			actualCR:     "testdata/replicasOverrideVz.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
 		{
 			name:         "OverrideAffinity",
 			description:  "Test override of affinity configuration for AuthProxy",
-			expectedYAML: "testdata/authProxyValuesOverrideAffinity.yaml",
-			//actualCR: vzapi.Verrazzano{
-			//	Spec: vzapi.VerrazzanoSpec{
-			//		Components: vzapi.ComponentSpec{
-			//			AuthProxy: &vzapi.AuthProxyComponent{
-			//				Kubernetes: &vzapi.AuthProxyKubernetesSection{
-			//					CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-			//						Affinity: &corev1.Affinity{
-			//							PodAntiAffinity: &corev1.PodAntiAffinity{
-			//								PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-			//									{
-			//										Weight: 80,
-			//										PodAffinityTerm: corev1.PodAffinityTerm{
-			//											Namespaces:  []string{"test1", "test2"},
-			//											TopologyKey: "kubernetes.io/hostname",
-			//										},
-			//									},
-			//								},
-			//							},
-			//							PodAffinity: &corev1.PodAffinity{
-			//								RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-			//									{
-			//										Namespaces:  []string{"test3", "test4"},
-			//										TopologyKey: "kubernetes.io/hostname",
-			//									},
-			//								},
-			//							},
-			//							NodeAffinity: &corev1.NodeAffinity{
-			//								RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-			//									NodeSelectorTerms: []corev1.NodeSelectorTerm{
-			//										{
-			//											MatchFields: []corev1.NodeSelectorRequirement{
-			//												{
-			//													Key:      "key1",
-			//													Operator: corev1.NodeSelectorOpDoesNotExist,
-			//												},
-			//											},
-			//										},
-			//									},
-			//								},
-			//							},
-			//						},
-			//					},
-			//				},
-			//			},
-			//		},
-			//	},
-			//},
+			expectedYAML: "testdata/affinityOverrideValues.yaml",
+			actualCR:     "testdata/affinityOverrideVz.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
 		{
 			name:         "DisableAuthProxy",
 			description:  "Test overriding AuthProxy to be disabled",
-			expectedYAML: "testdata/authProxyValuesOverrideEnabled.yaml",
-			actualCR:     "testdata/vzOverrideEnabled.yaml",
+			expectedYAML: "testdata/enabledOverrideValues.yaml",
+			actualCR:     "testdata/enabledOverrideVz.yaml",
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
