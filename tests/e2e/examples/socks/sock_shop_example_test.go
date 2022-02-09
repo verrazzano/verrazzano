@@ -29,7 +29,7 @@ const (
 	shortWaitTimeout     = 7 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 10 * time.Minute
-	longWaitTimeout      = 15 * time.Minute
+	longWaitTimeout      = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
 	sockshopAppName      = "sockshop-appconfig"
 	sockshopNamespace    = "sockshop"
@@ -306,7 +306,7 @@ var _ = clusterDump.AfterSuite(func() {
 				pkg.Log(pkg.Info, fmt.Sprintf("Error getting sockshop namespace: %v\n", err.Error()))
 			}
 			return false
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+		}, longWaitTimeout, pollingInterval).Should(BeTrue())
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })

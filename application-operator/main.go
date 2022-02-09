@@ -4,9 +4,7 @@
 package main
 
 import (
-	"context"
 	"flag"
-	"go.uber.org/zap"
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -37,16 +35,15 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
+	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -190,19 +187,13 @@ func main() {
 			"/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject",
 			&webhook.Admission{Handler: &webhooks.VerrazzanoProjectValidator{}})
 
-		// Get a Kubernetes dynamic client.
-		restConfig, err := clientcmd.BuildConfigFromFlags("", "")
-		if err != nil {
-			log.Errorf("Failed to build kube config: %v", err)
-			os.Exit(1)
-		}
-		dynamicClient, err := dynamic.NewForConfig(restConfig)
+		dynamicClient, err := dynamic.NewForConfig(config)
 		if err != nil {
 			log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
 			os.Exit(1)
 		}
 
-		istioClientSet, err := istioversionedclient.NewForConfig(restConfig)
+		istioClientSet, err := istioversionedclient.NewForConfig(config)
 		if err != nil {
 			log.Errorf("Failed to create istio client: %v", err)
 			os.Exit(1)
@@ -221,32 +212,29 @@ func main() {
 			},
 		)
 
-		// Register the mutating webhook for plain old kubernetes objects workloads when the object exists
-		_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
-		if err == nil {
-			mgr.GetWebhookServer().Register(
-				webhooks.MetricsBindingGeneratorWorkloadPath,
-				&webhook.Admission{
-					Handler: &webhooks.GeneratorWorkloadWebhook{
-						Client:     mgr.GetClient(),
-						KubeClient: kubeClient,
-					},
+		// Register the metrics binding mutating webhooks for plain old kubernetes objects workloads
+		mgr.GetWebhookServer().Register(
+			webhooks.MetricsBindingGeneratorWorkloadPath,
+			&webhook.Admission{
+				Handler: &webhooks.GeneratorWorkloadWebhook{
+					Client:     mgr.GetClient(),
+					KubeClient: kubeClient,
 				},
-			)
-			mgr.GetWebhookServer().Register(
-				webhooks.MetricsBindingLabelerPodPath,
-				&webhook.Admission{
-					Handler: &webhooks.LabelerPodWebhook{
-						Client:        mgr.GetClient(),
-						DynamicClient: dynamicClient,
-					},
+			},
+		)
+		mgr.GetWebhookServer().Register(
+			webhooks.MetricsBindingLabelerPodPath,
+			&webhook.Admission{
+				Handler: &webhooks.LabelerPodWebhook{
+					Client:        mgr.GetClient(),
+					DynamicClient: dynamicClient,
 				},
-			)
-			err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.MetricsBindingWebhookName)
-			if err != nil {
-				log.Errorf("Failed to update %s mutating webhook configuration: %v", certificates.MetricsBindingWebhookName, err)
-				os.Exit(1)
-			}
+			},
+		)
+		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.MetricsBindingWebhookName)
+		if err != nil {
+			log.Errorf("Failed to update %s mutating webhook configuration: %v", certificates.MetricsBindingWebhookName, err)
+			os.Exit(1)
 		}
 
 		mgr.GetWebhookServer().CertDir = certDir
@@ -256,10 +244,6 @@ func main() {
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
 				&webhooks.MetricsTraitDefaulter{},
-				&webhooks.NetPolicyDefaulter{
-					Client:          mgr.GetClient(),
-					NamespaceClient: kubeClient.CoreV1().Namespaces(),
-				},
 			},
 		}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
@@ -419,17 +403,15 @@ func main() {
 		os.Exit(1)
 	}
 	// Register the metrics workload controller
-	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), certificates.MetricsBindingWebhookName, metav1.GetOptions{})
-	if err == nil {
-		if err = (&metricsbinding.Reconciler{
-			Client: mgr.GetClient(),
-			Log:    logger,
-			Scheme: mgr.GetScheme(),
-		}).SetupWithManager(mgr); err != nil {
-			log.Errorf("Failed to create MetricsBinding controller: %v", err)
-			os.Exit(1)
-		}
+	if err = (&metricsbinding.Reconciler{
+		Client: mgr.GetClient(),
+		Log:    logger,
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Errorf("Failed to create MetricsBinding controller: %v", err)
+		os.Exit(1)
 	}
+
 	// +kubebuilder:scaffold:builder
 
 	log.Debug("Starting agent for syncing multi-cluster objects")

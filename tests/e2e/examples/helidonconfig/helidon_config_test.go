@@ -93,7 +93,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// THEN the expected pod must be running in the test namespace
 	t.Describe("helidon-config-deployment pod", func() {
 		t.It("is running", func() {
-			Eventually(helidonConfigPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
 
