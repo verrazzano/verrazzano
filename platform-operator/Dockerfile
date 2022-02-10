@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
@@ -25,9 +25,10 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 RUN yum update -y \
     && yum install -y openssl jq patch \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
+    && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
     && yum install -y kubectl-1.20.11-4.el7 \
-    && yum install -y helm-3.5.4-1.el7 \
-    && yum install -y istio-istioctl-1.10.4-3.el7 \
+    && yum install -y helm-3.8.0-1.el7 \
+    && yum install -y istio-istioctl-1.10.4-6.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum
 
