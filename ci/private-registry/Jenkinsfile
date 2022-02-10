@@ -311,12 +311,15 @@ pipeline {
                     environment {
                         TEST_ENV = "KIND"
                     }
-                    parallel {
+
+                    steps {
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
                             }
                         }
+                    }
+                    parallel {
                         stage('verify-infra restapi') {
                             steps {
                                 runGinkgoRandomize('verify-infra/restapi')

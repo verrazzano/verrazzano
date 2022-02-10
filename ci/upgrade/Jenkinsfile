@@ -216,6 +216,7 @@ pipeline {
                 }
             }
         }
+
         stage('Pre-upgrade Acceptance Tests') {
             environment {
                 TEST_ENV = "KIND"
@@ -224,12 +225,15 @@ pipeline {
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
-            parallel {
+            steps {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
                     }
                 }
+            }
+
+            parallel {
                 stage('verify-infra restapi') {
                     steps {
                         runGinkgoRandomize('verify-infra/restapi')
@@ -388,6 +392,13 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
+
+            stage('verify-install') {
+                steps {
+                    runGinkgoRandomize('verify-install')
+                }
+            }
+
             parallel {
                 stage("Validate BOM") {
                     when {
@@ -408,11 +419,7 @@ pipeline {
                         """
                     }
                 }
-                stage('verify-install') {
-                    steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                }
+
                 stage('verify-infra restapi') {
                     steps {
                         runGinkgoRandomize('verify-infra/restapi')
