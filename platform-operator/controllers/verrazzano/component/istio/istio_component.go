@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"image"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -36,6 +35,9 @@ const ComponentName = "istio"
 
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
+
+// IstioProxyImageName is the name of the istio proxy image
+const IstioProxyImageName = "proxyv2"
 
 const istioGlobalHubKey = "global.hub"
 
@@ -215,33 +217,45 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
 func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
+	// get the istio version from the bom
 	istioVersion, err := getIstioVersion()
 	if err != nil {
 		return err
 	}
 
-	// Restart all the deployments in the injected system namespaces
+	// get all the deployments and pods
 	var deploymentList appsv1.DeploymentList
-	err = client.List(context.TODO(), &deploymentList)
-	if err != nil {
+	if err = client.List(context.TODO(), &deploymentList); err != nil {
 		return err
 	}
+	var podList v1.PodList
+	if err = client.List(context.TODO(), &podList); err != nil {
+		return err
+	}
+
+	// iterate through deployments
 	for index := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
-
-		deployment.Spec.
 
 		// Check if deployment is in an Istio injected system namespace
 		if vzString.SliceContainsString(namespaces, deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
 			}
-			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), deployment); err != nil {
-				return err
+
+			// check if the deployment needs to be restarted
+			deploymentContainers := deployment.Spec.Template.Spec.Containers
+			if needsRestart(bom.BuildBOMImageFromString(deploymentContainers[0].Image), podList, istioVersion) {
+				// annotate the deployment to restart
+				if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+					deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+				}
+				deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+				err := client.Update(context.TODO(), deployment)
+				if err != nil {
+					log.Errorf("Failed to update the annotations for deployment %s: %v", deployment.Name, err)
+					return err
+				}
 			}
 		}
 	}
@@ -453,33 +467,33 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-func needsRestart(deployment appsv1.Deployment, allPods v1.PodList) bool {
-	var _ bool
-	deploymentContainers := deployment.Spec.Template.Spec.Containers
-	deploymentImage := deploymentContainers[0].Image
-	var pods []v1.Pod
+func needsRestart(resourceImage bom.BomImage, allPods v1.PodList, istioVersion string) bool {
+	var matchesResource bool
 	for _, pod := range allPods.Items {
-		podContainers := pod.Spec.Containers
-		for _, container := range podContainers {
-			if container.Image == deploymentImage {
-				pods = append(pods, pod)
-				container.
+		// if the pod and the resource contain the same image
+		for _, bomImage := range podImages(pod) {
+			if bomImage.ImageName == resourceImage.ImageName {
+				matchesResource = true
+				break
 			}
-
+		}
+		// see if the resource needs to be restarted
+		if matchesResource {
+			for _, bomImage := range podImages(pod) {
+				if bomImage.ImageName == IstioProxyImageName && bomImage.ImageTag != istioVersion {
+					return true
+				}
+			}
 		}
 	}
-
-	//for _, pod = range pods {
-	//
-	//}
+	return false
 }
 
-func podImage(pod v1.Pod) []string {
-	var images []string
+func podImages(pod v1.Pod) []bom.BomImage {
+	var images []bom.BomImage
 	podContainers := pod.Spec.Containers
 	for _, container := range podContainers {
-		images = append(images, container.Image)
+		images = append(images, bom.BuildBOMImageFromString(container.Image))
 	}
 	return images
 }
-

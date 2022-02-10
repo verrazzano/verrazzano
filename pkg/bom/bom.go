@@ -321,3 +321,13 @@ func FindKV(kvs []KeyValue, key string) string {
 	}
 	return ""
 }
+
+func BuildBOMImageFromString(image string) BomImage {
+	var bomImage BomImage
+	colon := strings.LastIndex(image, ":")
+	slash := strings.LastIndex(image, "/")
+	bomImage.ImageTag = image[(colon + 1):]
+	bomImage.ImageName = image[(slash + 1):colon]
+	bomImage.Repository = image[:slash]
+	return bomImage
+}

@@ -264,3 +264,17 @@ func TestBomImageOverrides(t *testing.T) {
 	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, img))
 	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, img))
 }
+
+func TestBuildBOMImageFromString(t *testing.T) {
+	proxyImage := "ghcr.io/verrazzano/proxyv2:1.7.3"
+	proxyBOM := BuildBOMImageFromString(proxyImage)
+	assert.Equal(t, "1.7.3", proxyBOM.ImageTag, "Image tag is not correct")
+	assert.Equal(t, "proxyv2", proxyBOM.ImageName, "Image name is not correct")
+	assert.Equal(t, "ghcr.io/verrazzano", proxyBOM.Repository, "Repository is not correct")
+
+	vmoImage := "ghcr.io/verrazzano/verrazzano-monitoring-operator:0.15.0-20210521020822-9b87485"
+	vmoBOM := BuildBOMImageFromString(vmoImage)
+	assert.Equal(t, "0.15.0-20210521020822-9b87485", vmoBOM.ImageTag, "Image tag is not correct")
+	assert.Equal(t, "verrazzano-monitoring-operator", vmoBOM.ImageName, "Image name is not correct")
+	assert.Equal(t, "ghcr.io/verrazzano", vmoBOM.Repository, "Repository is not correct")
+}
