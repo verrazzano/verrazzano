@@ -6,8 +6,9 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/url"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -164,7 +165,7 @@ func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(localClient client
 	// Verify the state is install complete
 	if len(verrazzano.Items) > 0 {
 		for _, cond := range verrazzano.Items[0].Status.Conditions {
-			if cond.Type == v1alpha1.InstallComplete {
+			if cond.Type == v1alpha1.CondInstallComplete {
 				return nil
 			}
 		}
