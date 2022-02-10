@@ -49,7 +49,7 @@ pipeline {
         booleanParam (description: 'Whether to enable debug logging of the istio envoy in the VZ API pod', name: 'ENABLE_API_ENVOY_LOGGING', defaultValue: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
-                description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
+                description: 'A comma separate`d list of build tags for tests that should be executed (e.g. unstable_test). Default:',
                 trim: true)
         string (name: 'INCLUDED_TESTS',
                 defaultValue: '.*',
