@@ -372,6 +372,14 @@ pipeline {
                                 runGinkgo('metrics/deploymetrics')
                             }
                         }
+                        stage('system logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/system')
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
