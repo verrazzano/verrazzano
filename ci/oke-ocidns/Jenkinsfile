@@ -484,7 +484,7 @@ pipeline {
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
-            steps {
+            stages {
                 stage('verify-install') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {

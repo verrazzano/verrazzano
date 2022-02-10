@@ -225,7 +225,7 @@ pipeline {
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
-            steps {
+            stages {
                 stage('verify-install') {
                     steps {
                         runGinkgoRandomize('verify-install')
@@ -393,9 +393,11 @@ pipeline {
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
-            stage('verify-install') {
-                steps {
-                    runGinkgoRandomize('verify-install')
+            stages {
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
                 }
             }
 

@@ -312,7 +312,7 @@ pipeline {
                         TEST_ENV = "KIND"
                     }
 
-                    steps {
+                    stages {
                         stage('verify-install') {
                             steps {
                                 runGinkgoRandomize('verify-install')
