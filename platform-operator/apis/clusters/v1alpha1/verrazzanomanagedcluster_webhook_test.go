@@ -26,7 +26,7 @@ var verrazzanoList = &v1alpha1.VerrazzanoList{
 			Status: v1alpha1.VerrazzanoStatus{
 				Conditions: []v1alpha1.Condition{
 					{
-						Type: v1alpha1.InstallComplete,
+						Type: v1alpha1.CondInstallComplete,
 					},
 				},
 			},
@@ -229,7 +229,7 @@ func TestCreateVerrazzanoNotInstalled(t *testing.T) {
 				Status: v1alpha1.VerrazzanoStatus{
 					Conditions: []v1alpha1.Condition{
 						{
-							Type: v1alpha1.InstallStarted,
+							Type: v1alpha1.CondInstallStarted,
 						},
 					},
 				},
