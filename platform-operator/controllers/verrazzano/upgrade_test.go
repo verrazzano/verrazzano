@@ -7,11 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -69,10 +70,10 @@ func TestUpgradeNoVersion(t *testing.T) {
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State: vzapi.VzStateReady,
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 				},
 			}
@@ -156,11 +157,11 @@ func TestUpgradeSameVersion(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "1.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:   vzapi.Ready,
+				State:   vzapi.VzStateReady,
 				Version: "1.2.0",
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 				},
 			}
@@ -248,10 +249,10 @@ func TestUpgradeInitComponents(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "1.1.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State: vzapi.VzStateReady,
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 				},
 			}
@@ -321,10 +322,10 @@ func TestUpgradeStarted(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State: vzapi.VzStateReady,
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 				},
 				Components: makeVerrazzanoComponentStatusMap(),
@@ -346,7 +347,7 @@ func TestUpgradeStarted(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.UpgradeStarted)
+			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.CondUpgradeStarted)
 			return nil
 		})
 
@@ -400,33 +401,33 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.Ready,
+				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 					{
-						Type:    vzapi.UpgradeFailed,
+						Type:    vzapi.CondUpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type:    vzapi.UpgradeFailed,
+						Type:    vzapi.CondUpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type:    vzapi.UpgradeFailed,
+						Type:    vzapi.CondUpgradeFailed,
 						Message: "Upgrade failed generation:1",
 					},
 					{
-						Type: vzapi.UpgradeComplete,
+						Type: vzapi.CondUpgradeComplete,
 					},
 					{
-						Type:    vzapi.UpgradeFailed,
+						Type:    vzapi.CondUpgradeFailed,
 						Message: "Upgrade failed generation:2",
 					},
 					{
-						Type:    vzapi.UpgradeFailed,
+						Type:    vzapi.CondUpgradeFailed,
 						Message: "Upgrade failed generation:2",
 					},
 				},
@@ -448,7 +449,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 8, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[7].Type, vzapi.UpgradeStarted)
+			asserts.Equal(verrazzano.Status.Conditions[7].Type, vzapi.CondUpgradeStarted)
 			return nil
 		})
 
@@ -512,14 +513,14 @@ func TestUpgradeCompleted(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.Ready,
+				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeStarted,
+						Type: vzapi.CondUpgradeStarted,
 					},
 				},
 			}
@@ -540,7 +541,7 @@ func TestUpgradeCompleted(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(vzapi.UpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
+			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
 		})
 
@@ -607,14 +608,14 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.Ready,
+				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeStarted,
+						Type: vzapi.CondUpgradeStarted,
 					},
 				},
 			}
@@ -635,7 +636,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeComplete, "Incorrect conditions")
+			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.CondUpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
 		})
 
@@ -699,14 +700,14 @@ func TestUpgradeHelmError(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.Ready,
+				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.InstallComplete,
+						Type: vzapi.CondInstallComplete,
 					},
 					{
-						Type: vzapi.UpgradeStarted,
+						Type: vzapi.CondUpgradeStarted,
 					},
 				},
 			}
@@ -727,7 +728,7 @@ func TestUpgradeHelmError(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.UpgradeFailed, "Incorrect condition")
+			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.CondUpgradeFailed, "Incorrect condition")
 			return nil
 		})
 
@@ -774,10 +775,10 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "0.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Upgrading,
+		State: vzapi.VzStateUpgrading,
 		Conditions: []vzapi.Condition{
 			{
-				Type: vzapi.UpgradeStarted,
+				Type: vzapi.CondUpgradeStarted,
 			},
 		},
 		Components: makeVerrazzanoComponentStatusMap(),
@@ -852,10 +853,10 @@ func TestUpgradeComponent(t *testing.T) {
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "0.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Upgrading,
+		State: vzapi.VzStateUpgrading,
 		Conditions: []vzapi.Condition{
 			{
-				Type: vzapi.UpgradeStarted,
+				Type: vzapi.CondUpgradeStarted,
 			},
 		},
 		Components: makeVerrazzanoComponentStatusMap(),
@@ -891,8 +892,8 @@ func TestUpgradeComponent(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.UpgradeComplete, "Incorrect condition")
-			assert.Equal(t, vzapi.Ready, verrazzano.Status.State)
+			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.CondUpgradeComplete, "Incorrect condition")
+			assert.Equal(t, vzapi.VzStateReady, verrazzano.Status.State)
 			return nil
 		}).Times(1)
 
@@ -937,10 +938,10 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	vz.Spec = vzapi.VerrazzanoSpec{
 		Version: "0.2.0"}
 	vz.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Upgrading,
+		State: vzapi.VzStateUpgrading,
 		Conditions: []vzapi.Condition{
 			{
-				Type: vzapi.UpgradeStarted,
+				Type: vzapi.CondUpgradeStarted,
 			},
 		},
 		Components: makeVerrazzanoComponentStatusMap(),
@@ -985,8 +986,8 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.UpgradeComplete, "Incorrect condition")
-			assert.Equal(t, vzapi.Ready, verrazzano.Status.State)
+			asserts.Equal(verrazzano.Status.Conditions[1].Type, vzapi.CondUpgradeComplete, "Incorrect condition")
+			assert.Equal(t, vzapi.VzStateReady, verrazzano.Status.State)
 			return nil
 		}).Times(1)
 
@@ -1041,10 +1042,10 @@ func TestRetryUpgrade(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Failed,
+				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.UpgradeFailed,
+						Type: vzapi.CondUpgradeFailed,
 					},
 				},
 				Components: makeVerrazzanoComponentStatusMap(),
@@ -1075,7 +1076,7 @@ func TestRetryUpgrade(t *testing.T) {
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			asserts.Len(verrazzano.Status.Conditions, 1, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.State, vzapi.Ready, "Incorrect State")
+			asserts.Equal(verrazzano.Status.State, vzapi.VzStateReady, "Incorrect State")
 			return nil
 		})
 
@@ -1132,10 +1133,10 @@ func TestDontRetryUpgrade(t *testing.T) {
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Failed,
+				State: vzapi.VzStateFailed,
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.UpgradeFailed,
+						Type: vzapi.CondUpgradeFailed,
 					},
 				},
 				Components: makeVerrazzanoComponentStatusMap(),
@@ -1169,7 +1170,7 @@ func TestDontRetryUpgrade(t *testing.T) {
 // THEN ensure that false
 func TestIsLastConditionNone(t *testing.T) {
 	asserts := assert.New(t)
-	asserts.False(isLastCondition(vzapi.VerrazzanoStatus{}, vzapi.UpgradeComplete), "isLastCondition should have returned false")
+	asserts.False(isLastCondition(vzapi.VerrazzanoStatus{}, vzapi.CondUpgradeComplete), "isLastCondition should have returned false")
 }
 
 // TestIsLastConditionFalse tests the isLastCondition method for the following use case
@@ -1181,14 +1182,14 @@ func TestIsLastConditionFalse(t *testing.T) {
 	st := vzapi.VerrazzanoStatus{
 		Conditions: []vzapi.Condition{
 			{
-				Type: vzapi.UpgradeComplete,
+				Type: vzapi.CondUpgradeComplete,
 			},
 			{
-				Type: vzapi.InstallFailed,
+				Type: vzapi.CondInstallFailed,
 			},
 		},
 	}
-	asserts.False(isLastCondition(st, vzapi.UpgradeComplete), "isLastCondition should have returned false")
+	asserts.False(isLastCondition(st, vzapi.CondUpgradeComplete), "isLastCondition should have returned false")
 }
 
 // TestIsLastConditionTrue tests the isLastCondition method for the following use case
@@ -1200,14 +1201,14 @@ func TestIsLastConditionTrue(t *testing.T) {
 	st := vzapi.VerrazzanoStatus{
 		Conditions: []vzapi.Condition{
 			{
-				Type: vzapi.UpgradeComplete,
+				Type: vzapi.CondUpgradeComplete,
 			},
 			{
-				Type: vzapi.InstallFailed,
+				Type: vzapi.CondInstallFailed,
 			},
 		},
 	}
-	asserts.True(isLastCondition(st, vzapi.InstallFailed), "isLastCondition should have returned true")
+	asserts.True(isLastCondition(st, vzapi.CondInstallFailed), "isLastCondition should have returned true")
 }
 
 func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
