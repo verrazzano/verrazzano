@@ -3,7 +3,7 @@
 
 package poc
 
-import "github.com/onsi/ginkgo"
+import "github.com/onsi/ginkgo/v2"
 
 // Describe annotates the test with the SIG label.
 func Describe(text string, body func()) bool {
