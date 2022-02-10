@@ -7,3 +7,6 @@ spec:
       installArgs:
         - name: api.replicas
           value: "2"
+    istio:
+      kubernetes:
+        replicas: 2

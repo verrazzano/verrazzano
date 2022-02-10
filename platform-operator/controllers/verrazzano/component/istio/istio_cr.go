@@ -6,6 +6,7 @@ package istio
 import (
 	"bytes"
 	"fmt"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
 
@@ -45,57 +46,42 @@ spec:
         enabled: true
         k8s:
           replicaCount: {{.EgressReplicaCount}}
+{{- if .Affinity }}
           affinity:
-            podAntiAffinity:
-              preferredDuringSchedulingIgnoredDuringExecution:
-                - weight: 100
-                  podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
-                        - key: app
-                          operator: In
-                          values:
-                            - istio-egressgateway
-                    topologyKey: kubernetes.io/hostname
+{{ format .Affinity }}
+{{- end}}
     ingressGateways:
-    - name: istio-ingressgateway
-      enabled: true
-      k8s:
-        replicaCount: {{.IngressReplicaCount}}
-        {{- if .ExternalIps }}
-        service:
-          externalIPs:
-            {{.ExternalIps}}
-        {{end}}
-        affinity:
-          podAntiAffinity:
-            preferredDuringSchedulingIgnoredDuringExecution:
-              - weight: 100
-                podAffinityTerm:
-                  labelSelector:
-                    matchExpressions:
-                      - key: app
-                        operator: In
-                        values:
-                          - istio-ingressgateway
-                  topologyKey: kubernetes.io/hostname
+      - name: istio-ingressgateway
+        enabled: true
+        k8s:
+          replicaCount: {{.IngressReplicaCount}}
+          {{- if .ExternalIps }}
+          service:
+            externalIPs:
+              {{.ExternalIps}}
+          {{- end}}
+{{- if .Affinity }}
+          affinity:
+{{ format .Affinity }}
+{{- end}}
 `
 
 type ReplicaData struct {
-	IngressReplicaCount uint
-	EgressReplicaCount  uint
+	IngressReplicaCount uint32
+	EgressReplicaCount  uint32
 	ExternalIps         string
+	Affinity            string
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
-func BuildIstioOperatorYaml(comp *vzapi.IstioComponent, profile vzapi.ProfileType) (string, error) {
+func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// All generated YAML will be indented 6 spaces
 	const leftMargin = 0
 	const leftMarginExtIP = 12
 
 	var externalIPYAMLTemplateValue string = ""
-
+	fmt.Printf("CDD Istio Component = %+v\n", *comp)
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
 	for _, arg := range comp.IstioInstallArgs {
@@ -127,13 +113,15 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent, profile vzapi.ProfileTyp
 			expandedYamls = append(expandedYamls, yaml)
 		}
 	}
-	gatewayYaml, err := configureGateways(profile, fixExternalIPYaml(externalIPYAMLTemplateValue))
+	gatewayYaml, err := configureGateways(comp.Kubernetes, fixExternalIPYaml(externalIPYAMLTemplateValue))
 	if err != nil {
 		return "", err
 	}
+	//	expandedYamls = append(expandedYamls, gatewayYaml)
 	expandedYamls = append(expandedYamls, gatewayYaml)
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
+	//	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
 	if err != nil {
 		return "", err
@@ -160,25 +148,23 @@ func fixExternalIPYaml(yaml string) string {
 }
 
 // value replicas and create Istio gateway yaml
-func configureGateways(profile vzapi.ProfileType, externalIP string) (string, error) {
-	data := ReplicaData{}
+func configureGateways(k8sConfig *vzapi.IstioKubernetesSection, externalIP string) (string, error) {
+	var data = ReplicaData{}
+	fmt.Printf("CDD Istio Component Kubernetes = %+v\n", k8sConfig)
+	fmt.Printf("CDD Istio Component Kubernetes Replicas = %d\n", k8sConfig.Replicas)
 
-	/*
-			Coding Requirements frown upon hardcoding profile.
-			The issue is that configurable overrides based on profile functionality exists only for the Verrazzano CR
-			but not the Istio CR. That functionality would have to be written and would most
-		    likely be temporary one the new CR is in place.
+	data.IngressReplicaCount = k8sConfig.Replicas
+	data.EgressReplicaCount = k8sConfig.Replicas
 
-			Below is temporary until the new standard Verrazzano CR is created
-	*/
-	if profile == vzapi.Dev || profile == vzapi.ManagedCluster {
-		data.IngressReplicaCount = 1
-		data.EgressReplicaCount = 1
-	} else {
-		data.IngressReplicaCount = 2
-		data.EgressReplicaCount = 2
+	if k8sConfig.Affinity != nil {
+		//		yml, err := yaml.Marshal(k8sConfig.Affinity.PodAntiAffinity)
+		yml, err := yaml.Marshal(k8sConfig.Affinity)
+		if err != nil {
+			return "", err
+		}
+		data.Affinity = string(yml)
+		fmt.Printf("CDD Affinity Yaml = %s\n", yml)
 	}
-
 	data.ExternalIps = ""
 	if externalIP != "" {
 		data.ExternalIps = externalIP
@@ -186,11 +172,20 @@ func configureGateways(profile vzapi.ProfileType, externalIP string) (string, er
 
 	// use template to get populate template with data
 	var b bytes.Buffer
-	t, err := template.New("istioGateways").Parse(istioGatewayTemplate)
+	t, err := template.New("istioGateways").Funcs(template.FuncMap{
+		"format": func(aff string) string {
+			const indent = "            " // 12 spaces
+			lines := strings.SplitAfter(aff, "\n")
+			for i, line := range lines {
+				lines[i] = indent + line
+			}
+			return strings.Join(lines[:], "")
+		},
+	}).Parse(istioGatewayTemplate)
 	if err != nil {
 		return "", err
 	}
-	//
+
 	err = t.Execute(&b, &data)
 	if err != nil {
 		return "", err
