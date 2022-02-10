@@ -23,7 +23,10 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 )
 
-var t = framework.NewTestFramework("helidonconfig")
+var (
+	t = framework.NewTestFramework("helidonconfig")
+	generatedNamespace = pkg.GenerateNamespace("helidon-config")
+)
 
 var _ = t.BeforeSuite(func() {
 	if !skipDeploy {
@@ -32,15 +35,15 @@ var _ = t.BeforeSuite(func() {
 			nsLabels := map[string]string{
 				"verrazzano-managed": "true",
 				"istio-injection":    "enabled"}
-			return pkg.CreateNamespace("helidon-config", nsLabels)
+			return pkg.CreateNamespace(namespace, nsLabels)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
+			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
+			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
@@ -59,15 +62,15 @@ var _ = t.AfterSuite(func() {
 		start := time.Now()
 		// undeploy the application here
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-app.yaml")
+			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/helidon-config/helidon-config-comp.yaml")
+			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.DeleteNamespace("helidon-config")
+			return pkg.DeleteNamespace(namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
@@ -80,7 +83,7 @@ var (
 )
 
 const (
-	testNamespace      = "helidon-config"
+	//testNamespace      = "helidon-config"
 	istioNamespace     = "istio-system"
 	ingressServiceName = "istio-ingressgateway"
 )
@@ -105,7 +108,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// THEN return the host name found in the gateway.
 	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -146,7 +149,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-helidon-config"
+		indexName := "verrazzano-namespace-" + namespace
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -172,7 +175,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 })
 
 func helidonConfigPodsRunning() bool {
-	return pkg.PodsRunning(testNamespace, expectedPodsHelidonConfig)
+	return pkg.PodsRunning(namespace, expectedPodsHelidonConfig)
 }
 
 func appMetricsExists() bool {

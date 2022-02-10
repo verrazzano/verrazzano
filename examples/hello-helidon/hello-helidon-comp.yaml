@@ -4,7 +4,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: hello-helidon-component
-  namespace: hello-helidon
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
