@@ -35,6 +35,21 @@ var _ = BeforeSuite(func() {
 		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
+	Eventually(func() bool {
+		expectedPods := []string{
+			"bobbys-front-end-adminserver",
+			"bobs-bookstore-adminserver",
+			"bobbys-coherence-0",
+			"roberts-coherence-0",
+			"roberts-coherence-1",
+			"bobbys-helidon-stock-application",
+			"robert-helidon",
+			"mysql",
+		}
+		return pkg.PodsRunning(namespace, expectedPods)
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 })
 
 var failed = false
@@ -138,22 +153,6 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload",
 	"f:app-lcm.weblogic-workload",
 	"f:app-lcm.coherence-workload"), func() {
-
-	t.It("application deployment.", func() {
-		Eventually(func() bool {
-			expectedPods := []string{
-				"bobbys-front-end-adminserver",
-				"bobs-bookstore-adminserver",
-				"bobbys-coherence-0",
-				"roberts-coherence-0",
-				"roberts-coherence-1",
-				"bobbys-helidon-stock-application",
-				"robert-helidon",
-				"mysql",
-			}
-			return pkg.PodsRunning(namespace, expectedPods)
-		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
-	})
 
 	var host = ""
 	var err error
