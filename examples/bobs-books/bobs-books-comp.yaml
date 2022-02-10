@@ -5,7 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: robert-coh
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -14,7 +13,6 @@ spec:
       template:
         metadata:
           name: roberts-coherence
-          namespace: bobs-books
         spec:
           labels:
             app: robert-coh
@@ -28,7 +26,7 @@ spec:
             - name: BACKEND_PORT
               value: "8001"
             - name: BACKEND_HOSTNAME
-              value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+              value: bobs-bookstore-cluster-cluster-1
             - name: TRACING_HOST
               value: "jaeger-collector"
             - name: JAEGER_SAMPLER_TYPE
@@ -53,7 +51,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: robert-helidon
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -89,7 +86,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobby-coh
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -98,7 +94,6 @@ spec:
       template:
         metadata:
           name: bobbys-coherence
-          namespace: bobs-books
         spec:
           labels:
             app: bobbys-coh
@@ -133,7 +128,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobby-helidon
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -159,7 +153,7 @@ spec:
                 - name: BACKEND_PORT
                   value: "8001"
                 - name: BACKEND_HOSTNAME
-                  value: bobs-bookstore-cluster-cluster-1.bobs-books.svc.cluster.local
+                  value: bobs-bookstore-cluster-cluster-1
                 - name: COH_CLUSTER
                   value: bobbys-coherence
                 - name: COH_CACHE_CONFIG
@@ -173,7 +167,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobby-wls
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -182,7 +175,6 @@ spec:
       template:
         metadata:
           name: bobbys-front-end
-          namespace: bobs-books
           labels:
             weblogic.resourceVersion: domain-v8
             weblogic.domainUID: bobbys-front-end
@@ -246,7 +238,7 @@ spec:
               - name: USER_MEM_ARGS
                 value: "-Djava.security.egd=file:/dev/./urandom"
               - name: HELIDON_HOSTNAME
-                value: "bobbys-helidon-stock-application.bobs-books.svc.cluster.local"
+                value: "bobbys-helidon-stock-application"
               - name: HELIDON_PORT
                 value: "8080"
               - name: WL_HOME
@@ -258,14 +250,12 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobs-mysql-configmap
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: mysql-initdb-config
-      namespace: bobs-books
     data:
       initdb.sql: |
         create table `orders` (
@@ -298,14 +288,12 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobs-mysql-service
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: v1
     kind: Service
     metadata:
       name: mysql
-      namespace: bobs-books
     spec:
       ports:
         - port: 3306
@@ -317,14 +305,12 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobs-mysql-deployment
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: mysql
-      namespace: bobs-books
     spec:
       progressDeadlineSeconds: 600
       replicas: 1
@@ -390,7 +376,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobs-orders-configmap
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: v1
@@ -399,7 +384,6 @@ spec:
       labels:
         weblogic.domainUID: bobs-bookstore
       name: bobs-bookstore-wdt-config-map
-      namespace: bobs-books
     data:
       datasource.yaml: |
         resources:
@@ -433,7 +417,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: bobs-orders-wls
-  namespace: bobs-books
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -442,7 +425,6 @@ spec:
       template:
         metadata:
           name: bobs-orders-wls
-          namespace: bobs-books
           labels:
             weblogic.resourceVersion: domain-v8
             weblogic.domainUID: bobs-bookstore
