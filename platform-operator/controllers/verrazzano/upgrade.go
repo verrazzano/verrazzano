@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -115,5 +114,5 @@ func fmtGeneration(gen int64) string {
 }
 
 func postUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
-	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
+	return istio.RestartComponents(log, client)
 }

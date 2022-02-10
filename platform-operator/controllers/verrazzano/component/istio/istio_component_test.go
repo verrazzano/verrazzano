@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -301,71 +300,69 @@ func TestGetIstioVersion(t *testing.T) {
 	assert.Equal(t, "1.10.4", istioVersion, "the istio proxyv2 image tag should match the one in test_bom.json")
 }
 
-func TestNeedsRestart(t *testing.T) {
-	podList := v1.PodList{
-		Items: []v1.Pod{
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/verrazzano-application-operator:1.1.1-20220113154451-786cfd27",
-						},
-					},
-				},
-			},
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/configmap-reload:0.3-20211202193501-64d77e0",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
-						},
-						{
-							Image: "ghcr.io/verrazzano/prometheus:v2.21.0-1",
-						},
-					},
-				},
-			},
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
-						},
-					},
-				},
-			},
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
-						},
-						{
-							Image: "ghcr.io/verrazzano/kibana-oss:7.10.2-20211213083528-4463f4c",
-						},
-					},
-				},
-			},
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.7.3",
-						},
-					},
-				},
-			},
-		},
-	}
-	promDeployment := bom.BuildBOMImageFromString("ghcr.io/verrazzano/prometheus:v2.21.0-1")
-
-}
+//func TestNeedsRestart(t *testing.T) {
+//	PodList := v1.PodList{
+//		Items: []v1.Pod{
+//			{
+//				Spec: v1.PodSpec{
+//					Containers: []v1.Container{
+//						{
+//							Image: "ghcr.io/verrazzano/verrazzano-application-operator:1.1.1-20220113154451-786cfd27",
+//						},
+//					},
+//				},
+//			},
+//			{
+//				Spec: v1.PodSpec{
+//					Containers: []v1.Container{
+//						{
+//							Image: "ghcr.io/verrazzano/configmap-reload:0.3-20211202193501-64d77e0",
+//						},
+//						{
+//							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
+//						},
+//						{
+//							Image: "ghcr.io/verrazzano/prometheus:v2.21.0-1",
+//						},
+//					},
+//				},
+//			},
+//			{
+//				Spec: v1.PodSpec{
+//					Containers: []v1.Container{
+//						{
+//							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
+//						},
+//						{
+//							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
+//						},
+//					},
+//				},
+//			},
+//			{
+//				Spec: v1.PodSpec{
+//					Containers: []v1.Container{
+//						{
+//							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
+//						},
+//						{
+//							Image: "ghcr.io/verrazzano/kibana-oss:7.10.2-20211213083528-4463f4c",
+//						},
+//					},
+//				},
+//			},
+//			{
+//				Spec: v1.PodSpec{
+//					Containers: []v1.Container{
+//						{
+//							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
+//						},
+//						{
+//							Image: "ghcr.io/verrazzano/proxyv2:1.7.3",
+//						},
+//					},
+//				},
+//			},
+//		},
+//	}
+//}
