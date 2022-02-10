@@ -378,78 +378,77 @@ pipeline {
                         }
                     }
                 }
+                stage("Private Registry") {
+                    when {
+                        allOf {
+                            expression {TESTS_FAILED == false}
+                        }
+                    }
+                    stages {
+                        stage("Upload Periodic Run Artifacts") {
+                            steps {
+                                sh """
+                                    ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
+                                """
+                            }
+                        }
+                        stage('Private Registry Tests') {
+                            when {
+                                allOf {
+                                    not { buildingTag() }
+                                    anyOf {
+                                        branch 'master';
+                                        branch 'release-*';
+                                    }
+                                }
+                            }
+                            steps {
+                                script {
+                                    build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
+                                        parameters: [
+                                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                            string(name: 'ZIPFILE_LOCATION', value: storeLocation)
+                                        ], wait: true
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        stage('Push to OCIR') {
+            environment {
+                OCI_CLI_AUTH="api_key"
+                OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                OCI_CLI_REGION = "us-ashburn-1"
+                OCI_REGION = "${env.OCI_CLI_REGION}"
+            }
+            steps {
+                script {
+                    sh """
+                        echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
+                        ci/scripts/push_to_ocir.sh
+                    """
+                }
             }
         }
 
-        stage("Private Registry") {
-            when {
-                allOf {
-                    expression {TESTS_FAILED == false}
-                }
-            }
-            stages {
-                stage("Upload Periodic Run Artifacts") {
-                    steps {
-                        sh """
-                            ci/scripts/update_periodic_on_success.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${tarfilePrefix}
-                        """
-                    }
-                }
-                stage('Private Registry Tests') {
-                    when {
-                        allOf {
-                            not { buildingTag() }
-                            anyOf {
-                                branch 'master';
-                                branch 'release-*';
-                            }
-                        }
-                    }
-                    steps {
-                        script {
-                            build job: "verrazzano-private-registry/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
-                                ], wait: true
-                        }
-                    }
-                }
-                stage('Push to OCIR') {
-                    environment {
-                        OCI_CLI_AUTH="api_key"
-                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
-                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
-                        OCI_CLI_REGION = "us-ashburn-1"
-                        OCI_REGION = "${env.OCI_CLI_REGION}"
-                    }
-                    steps {
-                        script {
-                            sh """
-                                echo "Pushing images to OCIR, these are treated as the latest scan results for ${CLEAN_BRANCH_NAME}"
-                                ci/scripts/push_to_ocir.sh
-                            """
-                        }
-                    }
-                }
-
-                stage('Release Candidate Validation Checks') {
-                    steps {
-                        script {
-                            def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
-                                ], wait: true, propagate: false
-                            println("Result of verrazzano-prerelease-check is ${built.result}")
-                            dir ("${WORKSPACE}") {
-                                copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
-                                        selector: specific("${built.number}"));
-                                def releaseStatus = readFile file: "release_status.out"
-                                currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
-                            }
-                        }
+        stage('Release Candidate Validation Checks') {
+            steps {
+                script {
+                    def built = build job: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                        parameters: [
+                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT)
+                        ], wait: true, propagate: false
+                    println("Result of verrazzano-prerelease-check is ${built.result}")
+                    dir ("${WORKSPACE}") {
+                        copyArtifacts(projectName: "verrazzano-prerelease-check/${CLEAN_BRANCH_NAME}",
+                                selector: specific("${built.number}"));
+                        def releaseStatus = readFile file: "release_status.out"
+                        currentBuild.displayName = "${currentBuild.displayName} : ${releaseStatus}"
                     }
                 }
             }
