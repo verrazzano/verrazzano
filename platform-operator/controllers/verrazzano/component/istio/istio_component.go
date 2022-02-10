@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"image"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -214,14 +215,21 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
 func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
+	istioVersion, err := getIstioVersion()
+	if err != nil {
+		return err
+	}
+
 	// Restart all the deployments in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
-	err := client.List(context.TODO(), &deploymentList)
+	err = client.List(context.TODO(), &deploymentList)
 	if err != nil {
 		return err
 	}
 	for index := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
+
+		deployment.Spec.
 
 		// Check if deployment is in an Istio injected system namespace
 		if vzString.SliceContainsString(namespaces, deployment.Namespace) {
@@ -444,3 +452,24 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 	}
 	return kvs, nil
 }
+
+func needsRestart(deployment appsv1.Deployment, allPods v1.PodList) bool {
+	var _ bool
+	deploymentContainers := deployment.Spec.Template.Spec.Containers
+	deploymentImage := deploymentContainers[0].Image
+	var pods []v1.Pod
+	for _, pod := range allPods.Items {
+		podContainers := pod.Spec.Containers
+		for _, container := range podContainers {
+			if container.Image == deploymentImage {
+				pods = append(pods, pod)
+			}
+
+		}
+	}
+
+	//for _, pod = range pods {
+
+	}
+}
+

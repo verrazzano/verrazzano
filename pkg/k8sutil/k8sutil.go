@@ -208,3 +208,7 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 
 	return stdout.String(), stderr.String(), nil
 }
+
+func ListPodImages(pod v1.Pod) []string {
+
+}
