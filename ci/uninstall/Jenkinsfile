@@ -209,9 +209,6 @@ pipeline {
         }
 
         stage('Install Verrazzano') {
-            options {
-                timeout(time: 2, unit: "MINUTES")
-            }
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
