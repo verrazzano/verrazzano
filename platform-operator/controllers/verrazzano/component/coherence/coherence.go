@@ -21,6 +21,6 @@ func IsCoherenceOperatorReady(ctx spi.ComponentContext, _ string, namespace stri
 	deployments := []types.NamespacedName{
 		{Name: coherenceOperatorDeploymentName, Namespace: namespace},
 	}
-	prefix := fmt.Sprintf("Component %s", ComponentName)
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }

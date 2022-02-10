@@ -6,6 +6,7 @@ package navigation
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
 
@@ -15,7 +16,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +40,7 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 	// THEN expect an error
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	definition, err = FetchWorkloadDefinition(ctx, cli, zap.S(), nil)
+	definition, err = FetchWorkloadDefinition(ctx, cli, vzlog.DefaultLogger(), nil)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Nil(definition)
@@ -59,7 +59,7 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 		})
 	workload = unstructured.Unstructured{}
 	workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
-	definition, err = FetchWorkloadDefinition(ctx, cli, zap.S(), &workload)
+	definition, err = FetchWorkloadDefinition(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.NotNil(definition)
@@ -77,7 +77,7 @@ func TestFetchWorkloadDefinition(t *testing.T) {
 		})
 	workload = unstructured.Unstructured{}
 	workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
-	definition, err = FetchWorkloadDefinition(ctx, cli, zap.S(), &workload)
+	definition, err = FetchWorkloadDefinition(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())
@@ -100,7 +100,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	// THEN verify an error is returned
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	children, err = FetchWorkloadChildren(ctx, cli, zap.S(), nil)
+	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), nil)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Len(children, 0)
@@ -141,7 +141,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	workload.SetNamespace("test-namespace")
 	workload.SetName("test-workload-name")
 	workload.SetUID("test-workload-uid")
-	children, err = FetchWorkloadChildren(ctx, cli, zap.S(), &workload)
+	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)
@@ -170,7 +170,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 	workload.SetNamespace("test-namespace")
 	workload.SetName("test-workload-name")
 	workload.SetUID("test-workload-uid")
-	children, err = FetchWorkloadChildren(ctx, cli, zap.S(), &workload)
+	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), &workload)
 	mocker.Finish()
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())

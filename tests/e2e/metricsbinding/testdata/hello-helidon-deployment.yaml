@@ -2,9 +2,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: apps/v1
-kind: ReplicaSet
+kind: Deployment
 metadata:
-  name: hello-helidon-replicaset
+  name: hello-helidon-deployment
   namespace: hello-helidon-namespace
 spec:
   selector:
@@ -33,7 +33,7 @@ metadata:
   labels:
     app: hello-helidon-application
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
   - port: 8080
   selector:

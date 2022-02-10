@@ -399,6 +399,65 @@ func TestReconcileDeploymentRestart(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
+func TestFailedReconcileDeploymentRestart(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = testNamespace
+			appConfig.Name = testAppConfigName
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testDeploymentName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.DeploymentWorkloadKind,
+					Name:       testDeploymentName,
+				},
+			}}
+			return nil
+		})
+
+	// Expect a call to update the app config resource with a finalizer.
+	cli.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+			assert.Equal(testNamespace, appConfig.Namespace)
+			assert.Equal(testAppConfigName, appConfig.Name)
+			assert.Len(appConfig.Finalizers, 1)
+			assert.Equal(finalizerName, appConfig.Finalizers[0])
+			return nil
+		})
+
+	// expect a call to fetch the workload
+	cli.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, component *unstructured.Unstructured) error {
+			return nil
+		})
+
+	// expect a call to fetch the deployment
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: testDeploymentName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deploy *appsv1.Deployment) error {
+			return fmt.Errorf("Could not return %s in namespace %s", testDeploymentName, testNamespace)
+		})
+
+	// create a request and reconcile it
+	request := newRequest(testNamespace, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+}
+
 func TestReconcileDeploymentNoRestart(t *testing.T) {
 	assert := asserts.New(t)
 

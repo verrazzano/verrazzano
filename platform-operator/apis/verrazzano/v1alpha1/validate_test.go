@@ -10,10 +10,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"go.uber.org/zap"
 
 	"sigs.k8s.io/yaml"
 
@@ -527,22 +528,22 @@ func TestValidateInProgress(t *testing.T) {
 	vzOld := Verrazzano{}
 	vzNew := Verrazzano{}
 
-	vzOld.Status.State = Ready
+	vzOld.Status.State = VzStateReady
 	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
 
-	vzOld.Status.State = Installing
+	vzOld.Status.State = VzStateInstalling
 	err := ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 
-	vzOld.Status.State = Uninstalling
+	vzOld.Status.State = VzStateUninstalling
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 
-	vzOld.Status.State = Upgrading
+	vzOld.Status.State = VzStateUpgrading
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
@@ -593,21 +594,21 @@ func TestValidateEnable(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			vzNew := Verrazzano{}
-			test.vzOld.Status.State = Ready
+			test.vzOld.Status.State = VzStateReady
 			err := ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
-			test.vzOld.Status.State = Installing
+			test.vzOld.Status.State = VzStateInstalling
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
-			test.vzOld.Status.State = Upgrading
+			test.vzOld.Status.State = VzStateUpgrading
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
 				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 			}
 
-			test.vzOld.Status.State = Uninstalling
+			test.vzOld.Status.State = VzStateUninstalling
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
 				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
@@ -681,18 +682,29 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType authenticationType) {
 	assert.NoError(t, err)
 	client := fake.NewFakeClientWithScheme(scheme)
 
-	key, err := generateTestPrivateKey()
-	assert.NoError(t, err)
-	ociConfig := ociAuth{
-		Auth: authData{
-			Region:      "us-ashburn-1",
-			Tenancy:     "my-tenancy",
-			User:        "my-user",
-			Fingerprint: "a-fingerprint",
-			AuthType:    authType,
-			Key:         string(key),
-		},
+	var ociConfig ociAuth
+	switch authType {
+	case userPrincipal:
+		key, err := generateTestPrivateKey()
+		assert.NoError(t, err)
+		ociConfig = ociAuth{
+			Auth: authData{
+				Region:      "us-ashburn-1",
+				Tenancy:     "my-tenancy",
+				User:        "my-user",
+				Fingerprint: "a-fingerprint",
+				AuthType:    authType,
+				Key:         string(key),
+			},
+		}
+	default:
+		ociConfig = ociAuth{
+			Auth: authData{
+				AuthType: authType,
+			},
+		}
 	}
+
 	secretData, err := yaml.Marshal(&ociConfig)
 	assert.NoError(t, err, "Error marshalling test data")
 
@@ -1107,16 +1119,6 @@ func runTestFluentdOCIConfig(t *testing.T, ociConfigBytes string, errorMsg ...st
 	} else {
 		assert.NoError(t, err)
 	}
-}
-
-// TestValidateFluentdOCISecretInvalidKeyType tests validateOCISecrets
-// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that has an invalid key type
-// WHEN validateOCISecrets is called
-// THEN an error is returned from validateOCISecrets
-func TestValidateFluentdOCISecretInvalidKeyType(t *testing.T) {
-	key, err := generateTestPrivateKeyWithType("INVALID KEY TYPE")
-	assert.NoError(t, err)
-	runFluentdInvalidKeyTest(t, key, "not a valid key")
 }
 
 // TestValidateFluentdOCISecretInvalidKeyFormat tests validateOCISecrets

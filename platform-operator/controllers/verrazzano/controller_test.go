@@ -6,9 +6,10 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -107,7 +108,7 @@ func TestSuccessfulInstall(t *testing.T) {
 		Labels:    labels}
 	verrazzanoToUse.Spec.Components.DNS = &vzapi.DNSComponent{External: &vzapi.External{Suffix: "mydomain.com"}}
 
-	verrazzanoToUse.Status.State = vzapi.Ready
+	verrazzanoToUse.Status.State = vzapi.VzStateReady
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Sample bom file for version validation functions
@@ -186,7 +187,7 @@ func TestInstallInitComponents(t *testing.T) {
 		Namespace: namespace,
 		Name:      name,
 		Labels:    labels}
-	verrazzanoToUse.Status.State = vzapi.Ready
+	verrazzanoToUse.Status.State = vzapi.VzStateReady
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -334,7 +335,7 @@ func TestCreateVerrazzano(t *testing.T) {
 		Labels:    labels}
 
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
-	vzToUse.Status.State = vzapi.Ready
+	vzToUse.Status.State = vzapi.VzStateReady
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -422,11 +423,11 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 				Name: comp.Name(),
 				Conditions: []vzapi.Condition{
 					{
-						Type:   vzapi.InstallComplete,
+						Type:   vzapi.CondInstallComplete,
 						Status: corev1.ConditionTrue,
 					},
 				},
-				State: vzapi.Ready,
+				State: vzapi.CompStateReady,
 			}
 		}
 	}
@@ -466,7 +467,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 		},
 	}
 	vzToUse.Status.Components = makeVerrazzanoComponentStatusMap()
-	vzToUse.Status.State = vzapi.Ready
+	vzToUse.Status.State = vzapi.VzStateReady
 
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -601,11 +602,11 @@ func TestUninstallComplete(t *testing.T) {
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.Ready,
+				State:      vzapi.VzStateReady,
 				Components: makeVerrazzanoComponentStatusMap(),
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.UninstallComplete,
+						Type: vzapi.CondUninstallComplete,
 					},
 				},
 			}
@@ -681,7 +682,7 @@ func TestUninstallStarted(t *testing.T) {
 	labels := map[string]string{"label1": "test"}
 	var verrazzanoToUse vzapi.Verrazzano
 
-	verrazzanoToUse.Status.State = vzapi.Ready
+	verrazzanoToUse.Status.State = vzapi.VzStateReady
 
 	deleteTime := metav1.Time{
 		Time: time.Now(),
@@ -707,10 +708,10 @@ func TestUninstallStarted(t *testing.T) {
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready,
+				State: vzapi.VzStateReady,
 				Conditions: []vzapi.Condition{
 					{
-						Type: vzapi.UninstallStarted,
+						Type: vzapi.CondUninstallStarted,
 					},
 				},
 			}
@@ -755,8 +756,8 @@ func TestUninstallStarted(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.NotEqual(time.Duration(0), result.RequeueAfter)
 }
 
 // TestUninstallFailed tests the Reconcile method for the following use case
@@ -793,7 +794,7 @@ func TestUninstallFailed(t *testing.T) {
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready}
+				State: vzapi.VzStateReady}
 			return nil
 		})
 
@@ -894,7 +895,7 @@ func TestUninstallSucceeded(t *testing.T) {
 				DeletionTimestamp: &deleteTime,
 				Finalizers:        []string{finalizerName}}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State: vzapi.Ready}
+				State: vzapi.VzStateReady}
 			return nil
 		})
 
@@ -1047,7 +1048,7 @@ func TestServiceAccountGetError(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Ready}
+		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1093,7 +1094,7 @@ func TestServiceAccountCreateError(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Ready}
+		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1144,7 +1145,7 @@ func TestClusterRoleBindingGetError(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Ready}
+		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1193,7 +1194,7 @@ func TestClusterRoleBindingCreateError(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Ready}
+		State: vzapi.VzStateReady}
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -1247,7 +1248,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Ready}
+		State: vzapi.VzStateReady}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the Verrazzano resource.
@@ -1304,7 +1305,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 		Name:      name,
 		Labels:    labels}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Ready}
+		State: vzapi.VzStateReady}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the Verrazzano resource.
@@ -1374,7 +1375,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 		},
 	}
 	verrazzanoToUse.Status = vzapi.VerrazzanoStatus{
-		State: vzapi.Ready}
+		State: vzapi.VzStateReady}
 	verrazzanoToUse.Status.Components = makeVerrazzanoComponentStatusMap()
 
 	// Expect a call to get the Verrazzano resource.

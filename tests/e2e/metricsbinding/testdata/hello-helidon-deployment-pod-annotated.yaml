@@ -1,0 +1,44 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-helidon-deployment
+  namespace: hello-helidon-namespace
+  annotations:
+    app.verrazzano.io/metrics: standard-k8s-metrics-template
+spec:
+  selector:
+    matchLabels:
+      app: hello-helidon-application
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hello-helidon-application
+      annotations:
+        prometheus.io/scrape: "false"
+    spec:
+      containers:
+      - name: hello-helidon-container
+        image: ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20210728181814-eb1e622
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: web
+          containerPort: 8080
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-helidon-service
+  namespace: hello-helidon-namespace
+  labels:
+    app: hello-helidon-application
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+  selector:
+    app: hello-helidon-application

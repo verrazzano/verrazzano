@@ -7,4 +7,6 @@ const (
 	FieldResourceNamespace = "resource_namespace"
 	FieldResourceName      = "resource_name"
 	FieldController        = "controller"
+	FieldWebhook           = "webhook"
+	FieldAgent             = "agent"
 )

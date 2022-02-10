@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -33,7 +34,7 @@ var workloadToContainedGVKMap = map[string]schema.GroupVersionKind{
 // for example core.oam.dev/v1alpha2.ContainerizedWorkload would be converted to
 // containerizedworkloads.core.oam.dev.  Workload definitions are always found in the default
 // namespace.
-func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, workload *unstructured.Unstructured) (*oamv1.WorkloadDefinition, error) {
+func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, workload *unstructured.Unstructured) (*oamv1.WorkloadDefinition, error) {
 	if workload == nil {
 		return nil, fmt.Errorf("invalid workload reference")
 	}
@@ -53,7 +54,7 @@ func FetchWorkloadDefinition(ctx context.Context, cli client.Reader, log *zap.Su
 // Finding children is done by first looking to the workflow definition of the provided workload.
 // The workload definition contains a set of child resource types supported by the workload.
 // The namespace of the workload is then searched for child resources of the supported types.
-func FetchWorkloadChildren(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, workload *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
+func FetchWorkloadChildren(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, workload *unstructured.Unstructured) ([]*unstructured.Unstructured, error) {
 	var err error
 	var workloadDefinition *oamv1.WorkloadDefinition
 
@@ -106,7 +107,7 @@ func ComponentFromWorkloadLabels(ctx context.Context, cli client.Reader, namespa
 // LoggingTraitFromWorkloadLabels returns the LoggingTrait object associated with the workload or nil if
 // there is no associated logging trait for the workload. If there is an associated logging trait and the lookup of the
 // trait fails, an error is returned and the reconcile should be retried.
-func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.LoggingTrait, error) {
+func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.LoggingTrait, error) {
 	log.Debugf("Getting logging trait from OAM labels: %v", workloadMeta.Labels)
 	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, workloadMeta.Labels)
 	if err != nil {
@@ -162,7 +163,7 @@ func LoggingTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log 
 // there is no associated metrics trait for the workload. If there is an associated metrics trait and the lookup of the
 // trait fails, an error is returned and the reconcile should be retried.
 func MetricsTraitFromWorkloadLabels(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, namespace string, workloadMeta v1.ObjectMeta) (*vzapi.MetricsTrait, error) {
-	log.Info(fmt.Sprintf("Getting metrics trait from OAM labels: %v", workloadMeta.Labels))
+	log.Debug(fmt.Sprintf("Getting metrics trait from OAM labels: %v", workloadMeta.Labels))
 	component, err := ComponentFromWorkloadLabels(ctx, cli, namespace, workloadMeta.Labels)
 	if err != nil {
 		return nil, err

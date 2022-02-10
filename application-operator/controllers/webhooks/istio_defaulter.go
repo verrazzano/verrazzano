@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"net/http"
 	"strings"
 
@@ -47,7 +48,7 @@ type IstioWebhook struct {
 // Handle is the entry point for the mutating webhook.
 // This function is called for any pods that are created in a namespace with the label istio-injection=enabled.
 func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	var log = zap.S().With("webhooks.istio-defaulter")
+	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "istio-defaulter")
 
 	pod := &corev1.Pod{}
 	err := a.Decoder.Decode(req, pod)
@@ -200,7 +201,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 			},
 		}
 
-		log.Debugf("Creating Istio authorization policy: %s:%s", namespace, ownerRef.Name)
+		log.Infof("Creating Istio authorization policy: %s:%s", namespace, ownerRef.Name)
 		_, err := a.IstioClient.SecurityV1beta1().AuthorizationPolicies(namespace).Create(context.TODO(), ap, metav1.CreateOptions{})
 		return err
 	} else if err != nil {
@@ -282,14 +283,16 @@ func (a *IstioWebhook) flattenOwnerReferences(list []metav1.OwnerReference, name
 
 		unst, err := a.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
 		if err != nil {
-			log.Errorf("Failed getting the Dynamic API: %v", err)
-			return nil, nil
+			if !errors.IsNotFound(err) {
+				log.Errorf("Failed getting the Dynamic API: %v", err)
+			}
+			return nil, err
 		}
 
 		if len(unst.GetOwnerReferences()) != 0 {
 			list, err = a.flattenOwnerReferences(list, namespace, unst.GetOwnerReferences(), log)
 			if err != nil {
-				return nil, nil
+				return nil, err
 			}
 		}
 	}

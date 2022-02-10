@@ -8,11 +8,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io/fs"
 	"os"
 	"reflect"
 	"strings"
+
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 
 	"github.com/oracle/oci-go-sdk/v53/common"
 
@@ -48,7 +49,6 @@ const (
 	fluentdOCISecretPrivateKeyEntry = "key"
 	fluentdExpectedKeyPath          = "/root/.oci/key"
 	fluentdOCIKeyFileEntry          = "key_file=/root/.oci/key"
-	expectedKeyHeader               = "RSA PRIVATE KEY"
 	validateTempFilePattern         = "validate-"
 )
 
@@ -189,11 +189,11 @@ func ValidateActiveInstall(client client.Client) error {
 
 // ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
 func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
-	if old.Status.State == "" || old.Status.State == Ready || old.Status.State == Failed {
+	if old.Status.State == "" || old.Status.State == VzStateReady || old.Status.State == VzStateFailed {
 		return nil
 	}
 	// Allow enable component during install
-	if old.Status.State == Installing {
+	if old.Status.State == VzStateInstalling {
 		if isCoherenceEnabled(new.Spec.Components.CoherenceOperator) && !isCoherenceEnabled(old.Spec.Components.CoherenceOperator) {
 			return nil
 		}
@@ -319,11 +319,13 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 		if err := validateSecretContents(secret.Name, secret.Data[key], &authProp); err != nil {
 			return err
 		}
-		if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
-			return err
-		}
 		if authProp.Auth.AuthType != instancePrincipal && authProp.Auth.AuthType != userPrincipal && authProp.Auth.AuthType != "" {
 			return fmt.Errorf("Authtype \"%v\" in OCI secret must be either '%s' or '%s'", authProp.Auth.AuthType, userPrincipal, instancePrincipal)
+		}
+		if authProp.Auth.AuthType == userPrincipal {
+			if err := validatePrivateKey(secret.Name, []byte(authProp.Auth.Key)); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -342,7 +344,7 @@ func getInstallSecret(client client.Client, secretName string, secret *corev1.Se
 
 func validatePrivateKey(secretName string, pemData []byte) error {
 	block, _ := pem.Decode(pemData)
-	if block == nil || !strings.Contains(block.Type, expectedKeyHeader) {
+	if block == nil {
 		return fmt.Errorf("Private key in secret \"%s\" is either empty or not a valid key in PEM format", secretName)
 	}
 	return nil

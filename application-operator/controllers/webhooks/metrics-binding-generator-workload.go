@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"net/http"
 	"reflect"
 	"strings"
@@ -15,6 +14,9 @@ import (
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/workloadselector"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,18 +41,9 @@ type GeneratorWorkloadWebhook struct {
 
 // Handle - handler for the mutating webhook
 func (a *GeneratorWorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	log := zap.S().With("webhooks.metrics-binding-generator-workload")
-
-	log.Debugf("group: %s, version: %s, kind: %s, namespace: %s, name: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind, req.Namespace, req.Name)
-
-	// Check the type of resource in the admission request
-	switch strings.ToLower(req.Kind.Kind) {
-	case "pod", "deployment", "replicaset", "statefulset", "domain", "coherence":
-		return a.handleWorkloadResource(ctx, req, log)
-	default:
-		log.Debugf("unsupported kind %s", req.Kind.Kind)
-		return admission.Allowed("not implemented yet")
-	}
+	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "metrics-binding-generator-workload")
+	log.Debugf("group: %s, version: %s, kind: %s", req.Kind.Group, req.Kind.Version, req.Kind.Kind)
+	return a.handleWorkloadResource(ctx, req, log)
 }
 
 // InjectDecoder injects the decoder.
@@ -75,16 +68,32 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 		return admission.Allowed(constants.StatusReasonSuccess)
 	}
 
-	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
+	// Get the workload Namespace for annotation processing
+	workloadNamespace := &corev1.Namespace{}
+	err = a.Client.Get(context.TODO(), types.NamespacedName{Name: unst.GetNamespace()}, workloadNamespace)
+	if err != nil {
+		log.Errorf("Failed getting workload namespace %s: %v", unst.GetNamespace(), err)
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this workload has opted out of metrics.
 	if metricsTemplateAnnotation, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
-		if metricsTemplateAnnotation == "none" {
-			log.Debugf("%s is set to none - opting out of metrics", MetricsAnnotation)
+		if strings.ToLower(metricsTemplateAnnotation) == "none" {
+			log.Infof("%s is set to none in the workload - opting out of metrics", MetricsAnnotation)
+			return admission.Allowed(constants.StatusReasonSuccess)
+		}
+	}
+
+	// If "none" is specified for annotation "app.verrazzano.io/metrics" then this namespace has opted out of metrics.
+	if metricsTemplateAnnotation, ok := workloadNamespace.GetAnnotations()[MetricsAnnotation]; ok {
+		if strings.ToLower(metricsTemplateAnnotation) == "none" {
+			log.Infof("%s is set to none in the namespace - opting out of metrics", MetricsAnnotation)
 			return admission.Allowed(constants.StatusReasonSuccess)
 		}
 	}
 
 	// Process the app.verrazzano.io/metrics annotation and get the metrics template, if specified.
-	metricsTemplate, err := a.processMetricsAnnotation(unst, log)
+	metricsTemplate, err := a.processMetricsAnnotation(unst, workloadNamespace, log)
 	if err != nil {
 		return admission.Errored(http.StatusInternalServerError, err)
 	}
@@ -137,35 +146,40 @@ func (a *GeneratorWorkloadWebhook) handleWorkloadResource(ctx context.Context, r
 
 // processMetricsAnnotation checks the workload resource for the "app.verrazzano.io/metrics" annotation and returns the
 // metrics template referenced in the annotation
-func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.Unstructured, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
-	if metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]; ok {
-		// Look for the metrics template in the namespace of the workload resource
-		template := &vzapp.MetricsTemplate{}
-		namespacedName := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsTemplate}
-		err := a.Client.Get(context.TODO(), namespacedName, template)
-		if err != nil {
-			// If we don't find the metrics template in the namespace of the workload resource then
-			// look in the verrazzano-system namespace
-			if apierrors.IsNotFound(err) {
-				namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: metricsTemplate}
-				err := a.Client.Get(context.TODO(), namespacedName, template)
-				if err != nil {
-					log.Errorw(fmt.Sprintf("Failed getting metrics template: %v", err), "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
-					return nil, err
-				}
-				log.Debugw("Found matching metrics template", "Namespace", constants.VerrazzanoSystemNamespace, "Name", metricsTemplate)
-				return template, nil
-			}
-
-			log.Errorw(fmt.Sprintf("Failed getting metrics template: %v", err), "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
-			return nil, err
+func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.Unstructured, workloadNamespace *corev1.Namespace, log *zap.SugaredLogger) (*vzapp.MetricsTemplate, error) {
+	// Check workload, then namespace for annotation
+	metricsTemplate, ok := unst.GetAnnotations()[MetricsAnnotation]
+	if !ok {
+		metricsTemplate, ok = workloadNamespace.GetAnnotations()[MetricsAnnotation]
+		if !ok {
+			return nil, nil
 		}
-
-		log.Debugw("Found matching metrics template", "Namespace", unst.GetNamespace(), "Name", metricsTemplate)
-		return template, nil
 	}
 
-	return nil, nil
+	// Look for the metrics template in the namespace of the workload resource
+	template := &vzapp.MetricsTemplate{}
+	namespacedName := types.NamespacedName{Namespace: unst.GetNamespace(), Name: metricsTemplate}
+	err := a.Client.Get(context.TODO(), namespacedName, template)
+	if err != nil {
+		// If we don't find the metrics template in the namespace of the workload resource then
+		// look in the verrazzano-system namespace
+		if apierrors.IsNotFound(err) {
+			namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: metricsTemplate}
+			err := a.Client.Get(context.TODO(), namespacedName, template)
+			if err != nil {
+				log.Errorf("Failed getting metrics template %s/%s: %v", constants.VerrazzanoSystemNamespace, metricsTemplate, err)
+				return nil, err
+			}
+			log.Infof("Found matching metrics template %s/%s", constants.VerrazzanoSystemNamespace, metricsTemplate)
+			return template, nil
+		}
+
+		log.Errorf("Failed getting metrics template %s/%s: %v", unst.GetNamespace(), metricsTemplate, err)
+		return nil, err
+	}
+
+	log.Infof("Found matching metrics template %s/%s", unst.GetNamespace(), metricsTemplate)
+	return template, nil
 }
 
 // createOrUpdateMetricBinding creates/updates a metricsBinding resource and
@@ -173,13 +187,13 @@ func (a *GeneratorWorkloadWebhook) processMetricsAnnotation(unst *unstructured.U
 func (a *GeneratorWorkloadWebhook) createOrUpdateMetricBinding(ctx context.Context, unst *unstructured.Unstructured, template *vzapp.MetricsTemplate, log *zap.SugaredLogger) error {
 	// When the Prometheus target config map was not specified in the metrics template then there is nothing to do.
 	if reflect.DeepEqual(template.Spec.PrometheusConfig.TargetConfigMap, vzapp.TargetConfigMap{}) {
-		log.Debugw("Prometheus target config map not specified", "Namespace", template.Namespace, "Name", template.Name)
+		log.Infof("Prometheus target config map %s/%s not specified", template.Namespace, template.Name)
 		return nil
 	}
 
 	_, err := a.KubeClient.CoreV1().ConfigMaps(template.Spec.PrometheusConfig.TargetConfigMap.Namespace).Get(ctx, template.Spec.PrometheusConfig.TargetConfigMap.Name, metav1.GetOptions{})
 	if err != nil {
-		log.Errorw(fmt.Sprintf("Failed getting Prometheus target config map: %v", err), "Namespace", template.Namespace, "Name", template.Name)
+		log.Errorf("Failed getting Prometheus target config map %s/%s: %v", template.Namespace, template.Name, err)
 		return err
 	}
 
@@ -232,7 +246,7 @@ func (a *GeneratorWorkloadWebhook) findMatchingTemplate(ctx context.Context, uns
 	templateList := &vzapp.MetricsTemplateList{}
 	err := a.Client.List(ctx, templateList, &client.ListOptions{Namespace: namespace})
 	if err != nil {
-		log.Errorw(fmt.Sprintf("Failed getting list of metrics templates: %v", err), "Namespace", namespace)
+		log.Errorf("Failed getting list of metrics templates in namespace %s: %v", namespace, err)
 		return nil, err
 	}
 
@@ -244,7 +258,7 @@ func (a *GeneratorWorkloadWebhook) findMatchingTemplate(ctx context.Context, uns
 	for _, template := range templateList.Items {
 		// If the template workload selector was not specified then don't try to match this template
 		if reflect.DeepEqual(template.Spec.WorkloadSelector, vzapp.WorkloadSelector{}) {
-			log.Debugw("workloadSelector not specified - no workload match checking performed", "Namespace", template.Namespace, "Name", template.Name)
+			log.Infof("Metrics template %s/%s workloadSelector not specified - no workload match checking performed", template.Namespace, template.Name)
 			continue
 		}
 		found, err := ws.DoesWorkloadMatch(unst,
@@ -259,7 +273,7 @@ func (a *GeneratorWorkloadWebhook) findMatchingTemplate(ctx context.Context, uns
 		}
 		// Found a match, return the matching metrics template
 		if found {
-			log.Debugw("found matching metrics template", "Namespace", namespace, "Name", template.Name)
+			log.Infof("Found matching metrics template %s/%s", namespace, template.Name)
 			return &template, nil
 		}
 	}

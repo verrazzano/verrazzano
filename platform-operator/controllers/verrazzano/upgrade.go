@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -18,20 +21,20 @@ import (
 
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	log.Debugf("enter reconcileUpgrade")
+	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
 	// Only write the upgrade started message once
-	if !isLastCondition(cr.Status, installv1alpha1.UpgradeStarted) {
+	if !isLastCondition(cr.Status, installv1alpha1.CondUpgradeStarted) {
 		err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
-			installv1alpha1.UpgradeStarted)
+			installv1alpha1.CondUpgradeStarted)
 		// Always requeue to get a fresh copy of status and avoid potential conflict
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
-	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
+	spiCtx, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -40,31 +43,32 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		log.Infof("Upgrading %s", compName)
-		upgradeContext := newContext.For(compName).Operation(vzconst.UpgradeOperation)
-		installed, err := comp.IsInstalled(upgradeContext)
+		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
+		compLog := compContext.Log()
+
+		installed, err := comp.IsInstalled(compContext)
 		if err != nil {
 			return newRequeueWithDelay(), err
 		}
 		if !installed {
-			log.Infof("Skip upgrade for %s, not installed", compName)
+			compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
 			continue
 		}
-		log.Infof("Running pre-upgrade for %s", compName)
-		if err := comp.PreUpgrade(upgradeContext); err != nil {
+		compLog.Oncef("Component %s pre-upgrade running", compName)
+		if err := comp.PreUpgrade(compContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
-		log.Infof("Running upgrade for %s", compName)
-		if err := comp.Upgrade(upgradeContext); err != nil {
-			log.Errorf("Error upgrading component %s: %v", compName, err)
+		compLog.Oncef("Component %s upgrade running", compName)
+		if err := comp.Upgrade(compContext); err != nil {
+			compLog.Errorf("Error upgrading component %s: %v", compName, err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", compName,
 				fmtGeneration(cr.Generation), err.Error())
-			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
+			err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeFailed)
 			return ctrl.Result{}, err
 		}
-		log.Infof("Running post-upgrade for %s", compName)
-		if err := comp.PostUpgrade(upgradeContext); err != nil {
+		compLog.Oncef("Component %s post-upgrade running", compName)
+		if err := comp.PostUpgrade(compContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
 			return ctrl.Result{}, err
 		}
@@ -77,10 +81,10 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
-	msg := fmt.Sprintf("Verrazzano upgraded to version %s successfully", cr.Spec.Version)
+	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	if err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
+	if err = r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -90,7 +94,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 // Return true if Verrazzano is installed
 func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
 	for _, cond := range st.Conditions {
-		if cond.Type == installv1alpha1.InstallComplete {
+		if cond.Type == installv1alpha1.CondInstallComplete {
 			return true
 		}
 	}
@@ -112,5 +116,5 @@ func fmtGeneration(gen int64) string {
 }
 
 func postUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
-	return nil
+	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
 }
