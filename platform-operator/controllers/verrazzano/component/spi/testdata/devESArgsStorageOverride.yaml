@@ -53,6 +53,21 @@ spec:
       type: LoadBalancer
     istio:
       enabled: true
+      kubernetes:
+        replicas: 1
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - istio-ingressgateway
+                          - istio-egressgateway
+                  topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
     keycloak:

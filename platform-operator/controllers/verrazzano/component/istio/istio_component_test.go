@@ -57,6 +57,38 @@ var crInstall = &installv1alpha1.Verrazzano{
 					Name:  "arg1",
 					Value: "val1",
 				}},
+				Kubernetes: &installv1alpha1.IstioKubernetesSection{
+					CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+						Replicas: 2,
+						Affinity: &v1.Affinity{
+							PodAntiAffinity: &v1.PodAntiAffinity{
+								RequiredDuringSchedulingIgnoredDuringExecution: nil,
+								PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+									{
+										Weight: 100,
+										PodAffinityTerm: v1.PodAffinityTerm{
+											LabelSelector: &metav1.LabelSelector{
+												MatchLabels: nil,
+												MatchExpressions: []metav1.LabelSelectorRequirement{
+													{
+														Key:      "app",
+														Operator: "In",
+														Values: []string{
+															"istio-ingressgateway",
+															"istio-egressgateway",
+														},
+													},
+												},
+											},
+											Namespaces:  nil,
+											TopologyKey: "kubernetes.io/hostname",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},

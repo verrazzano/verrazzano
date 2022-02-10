@@ -65,6 +65,21 @@ spec:
         - name: gateways.istio-ingressgateway.externalIPs
           valueList:
             - 11.22.33.44
+      kubernetes:
+        replicas: 2
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - istio-ingressgateway
+                          - istio-egressgateway
+                  topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
     keycloak:
