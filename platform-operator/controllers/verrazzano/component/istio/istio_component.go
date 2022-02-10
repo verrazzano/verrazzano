@@ -285,6 +285,19 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	return nil
 }
 
+func getIstioVersion() (string, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return "", err
+	}
+	subComponentImages, err := bomFile.GetSubcomponentImages(IstiodDeployment)
+	if err != nil {
+		return "", err
+	}
+	proxyImage := subComponentImages[1]
+	return proxyImage.ImageTag, err
+}
+
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
@@ -411,8 +424,7 @@ func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, name
 
 // Get the image overrides from the BOM
 func getImageOverrides() ([]bom.KeyValue, error) {
-	const subcompIstiod = "istiod"
-	subComponentNames := []string{subcompIstiod}
+	subComponentNames := []string{IstiodDeployment}
 
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())

@@ -291,3 +291,11 @@ func TestIsDisableExplicit(t *testing.T) {
 func getBoolPtr(b bool) *bool {
 	return &b
 }
+
+func TestGetIstioVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath("")
+	istioVersion, err := getIstioVersion()
+	assert.Nil(t, err, "getIstioVersion should not return an error")
+	assert.Equal(t, "1.7.3", istioVersion, "the istio proxyv2 image tag should match the one in test_bom.json")
+}
