@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-var _ = Describe("Verify Verrazzano [Feature:Client]", func() {
+var _ = ginkgo.Describe("Verify Verrazzano [Feature:Client]", func() {
 
-	f := framework.NewDefaultFramework("kubernetes test")
+	f := framework.NewDefaultFramework("client-test")
 
 	ginkgo.It("Should check that the kubernetes client is reachable", func() {
 		ginkgo.By("seeing if the verrazzano-system namespace is reachable.")
