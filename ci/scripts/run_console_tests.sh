@@ -33,9 +33,11 @@ echo "Using console commit at $console_sha"
 
 # Download/Unzip console repo
 zip_download_name="${console_sha}.zip"
-wget "https://github.com/verrazzano/console/archive/$zip_download_name"
-unzip "$zip_download_name" -d console
-mv console/*/* console
+if [ ! -d console ]; then
+  wget "https://github.com/verrazzano/console/archive/$zip_download_name"
+  unzip "$zip_download_name" -d console
+  mv console/*/* console
+fi
 cd console
 
 # Run the basic UI tests, and if they fail make sure to exit with a fail status
