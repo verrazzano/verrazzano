@@ -48,7 +48,7 @@ spec:
           replicaCount: {{.EgressReplicaCount}}
 {{- if .Affinity }}
           affinity:
-{{ format .Affinity }}
+{{ multiLineIndent 12 .Affinity }}
 {{- end}}
     ingressGateways:
       - name: istio-ingressgateway
@@ -62,7 +62,7 @@ spec:
           {{- end}}
 {{- if .Affinity }}
           affinity:
-{{ format .Affinity }}
+{{ multiLineIndent 12 .Affinity }}
 {{- end}}
 `
 
@@ -173,11 +173,15 @@ func configureGateways(k8sConfig *vzapi.IstioKubernetesSection, externalIP strin
 	// use template to get populate template with data
 	var b bytes.Buffer
 	t, err := template.New("istioGateways").Funcs(template.FuncMap{
-		"format": func(aff string) string {
+		"multiLineIndent": func(indentNum int, aff string) string {
+			var b = make([]byte, indentNum)
+			for i := 0; i < indentNum; i++ {
+				b[i] = 32
+			}
 			const indent = "            " // 12 spaces
 			lines := strings.SplitAfter(aff, "\n")
 			for i, line := range lines {
-				lines[i] = indent + line
+				lines[i] = string(b) + line
 			}
 			return strings.Join(lines[:], "")
 		},
