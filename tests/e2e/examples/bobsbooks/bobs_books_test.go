@@ -36,8 +36,7 @@ var _ = BeforeSuite(func() {
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
-	expectedPodsRunning := false
-	pkg.Log(pkg.Info, "application deployment.")
+	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
 	Eventually(func() bool {
 		expectedPods := []string{
 			"bobbys-front-end-adminserver",
@@ -49,13 +48,8 @@ var _ = BeforeSuite(func() {
 			"robert-helidon",
 			"mysql",
 		}
-		expectedPodsRunning = pkg.PodsRunning(namespace, expectedPods)
-		return expectedPodsRunning
+		return pkg.PodsRunning(namespace, expectedPods)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
-
-	if !expectedPodsRunning {
-		AbortSuite("Aborting test suite since Bobs Books Application Failed to Deploy")
-	}
 })
 
 var failed = false
