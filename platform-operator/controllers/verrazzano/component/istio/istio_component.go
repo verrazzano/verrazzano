@@ -463,13 +463,23 @@ func needsRestart(deployment appsv1.Deployment, allPods v1.PodList) bool {
 		for _, container := range podContainers {
 			if container.Image == deploymentImage {
 				pods = append(pods, pod)
+				container.
 			}
 
 		}
 	}
 
 	//for _, pod = range pods {
+	//
+	//}
+}
 
+func podImage(pod v1.Pod) []string {
+	var images []string
+	podContainers := pod.Spec.Containers
+	for _, container := range podContainers {
+		images = append(images, container.Image)
 	}
+	return images
 }
 
