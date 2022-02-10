@@ -701,20 +701,20 @@ data:
       - action: keep
         regex: true;todo;todo-wls
         source_labels:
-        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled
+        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled0
         - __meta_kubernetes_pod_label_app_oam_dev_name
         - __meta_kubernetes_pod_label_app_oam_dev_component
       - action: replace
         regex: (.+)
         source_labels:
-        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath
+        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath0
         target_label: __metrics_path__
       - action: replace
         regex: ([^:]+)(?::\d+)?;(\d+)
         replacement: $1:$2
         source_labels:
         - __address__
-        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort
+        - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort0
         target_label: __address__
       - action: replace
         regex: (.*)
@@ -736,7 +736,7 @@ data:
         source_labels:
         - name
         target_label: webapp
-    - job_name: test-oam-app-name_default_test-namespace_test-oam-comp-name
+    - job_name: test-oam-app-name_default_test-namespace_test-oam-comp-name_0
 kind: ConfigMap
 metadata:
   creationTimestamp: "2020-11-23T15:11:41Z"

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -61,9 +62,10 @@ const (
 	prometheusPathAnnotation = "prometheus.io/path"
 
 	// Annotation names for metrics set by the controller
-	verrazzanoMetricsPortAnnotation    = "verrazzano.io/metricsPort"
-	verrazzanoMetricsPathAnnotation    = "verrazzano.io/metricsPath"
-	verrazzanoMetricsEnabledAnnotation = "verrazzano.io/metricsEnabled"
+	verrazzanoMetricsAnnotationPrefix  = "verrazzano.io/metrics"
+	verrazzanoMetricsPortAnnotation    = "verrazzano.io/metricsPort%d"
+	verrazzanoMetricsPathAnnotation    = "verrazzano.io/metricsPath%d"
+	verrazzanoMetricsEnabledAnnotation = "verrazzano.io/metricsEnabled%d"
 
 	// Label names for the OAM application and component references
 	appObjectMetaLabel  = "app.oam.dev/name"
@@ -80,6 +82,7 @@ const (
 	appNameHolder       = "##APP_NAME##"
 	compNameHolder      = "##COMP_NAME##"
 	jobNameHolder       = "##JOB_NAME##"
+	portOrderHolder     = "##PORT_ORDER##"
 	namespaceHolder     = "##NAMESPACE##"
 	sslProtocolHolder   = "##SSL_PROTOCOL##"
 	vzClusterNameHolder = "##VERRAZZANO_CLUSTER_NAME##"
@@ -113,14 +116,14 @@ relabel_configs:
   target_label: ` + prometheusClusterNameLabel + `
   replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
-  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
+  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled##PORT_ORDER##,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
   regex: true;##APP_NAME##;##COMP_NAME##
 - action: replace
-  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath]
+  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath##PORT_ORDER##]
   target_label: __metrics_path__
   regex: (.+)
 - action: replace
-  source_labels: [__address__, __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort]
+  source_labels: [__address__, __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort##PORT_ORDER##]
   target_label: __address__
   regex: ([^:]+)(?::\d+)?;(\d+)
   replacement: $1:$2
@@ -558,7 +561,7 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 			log.Debug("Workload child deployment not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: deployment.APIVersion, Resource: deployment.Kind}, deployment.Name)
 		}
-		deployment.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
+		deployment.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
 		deployment.Spec.Template.ObjectMeta.Labels = MutateLabels(trait, workload, deployment.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
@@ -584,7 +587,7 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 			log.Debug("Workload child statefulset not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: statefulSet.APIVersion, Resource: statefulSet.Kind}, statefulSet.Name)
 		}
-		statefulSet.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
+		statefulSet.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
 		statefulSet.Spec.Template.ObjectMeta.Labels = MutateLabels(trait, workload, statefulSet.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
@@ -609,7 +612,7 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 			log.Debug("Workload child pod not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: pod.APIVersion, Resource: pod.Kind}, pod.Name)
 		}
-		pod.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, pod.ObjectMeta.Annotations)
+		pod.ObjectMeta.Annotations = MutateAnnotations(trait, traitDefaults, pod.ObjectMeta.Annotations)
 		pod.ObjectMeta.Labels = MutateLabels(trait, workload, pod.ObjectMeta.Labels)
 		return nil
 	})
@@ -785,7 +788,9 @@ func (r *Reconciler) NewTraitDefaultsForWLSDomainWorkload(ctx context.Context, w
 		return nil, err
 	}
 	return &vzapi.MetricsTraitSpec{
-		Port:    &port,
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+		}},
 		Path:    &path,
 		Secret:  secret,
 		Scraper: &r.Scraper}, nil
@@ -810,7 +815,10 @@ func (r *Reconciler) NewTraitDefaultsForCOHWorkload(ctx context.Context, workloa
 		}
 	}
 	return &vzapi.MetricsTraitSpec{
-		Port:    &port,
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
 		Path:    &path,
 		Secret:  secret,
 		Scraper: &r.Scraper}, nil
@@ -821,7 +829,10 @@ func (r *Reconciler) NewTraitDefaultsForGenericWorkload() (*vzapi.MetricsTraitSp
 	port := defaultScrapePort
 	path := defaultScrapePath
 	return &vzapi.MetricsTraitSpec{
-		Port:    &port,
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
 		Path:    &path,
 		Secret:  nil,
 		Scraper: &r.Scraper}, nil
@@ -848,73 +859,94 @@ func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcile
 func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (*gabs.Container, error) {
 	oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
 	prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
-	newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(ctx, trait, traitDefaults, secret, workload, c)
-	if err != nil {
-		return prometheusScrapeConfig, err
+	ports := trait.Spec.Ports
+	if len(ports) == 0 {
+		// create a port spec from the existing port
+		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
 	}
-	existingReplaced := false
-	for _, oldScrapeConfig := range oldScrapeConfigs {
-		oldScrapeJob := oldScrapeConfig.Search(prometheusJobNameLabel).Data()
-		if newScrapeJob == oldScrapeJob {
-			// If the scrape config should be removed then skip adding it to the result slice.
-			// This will occur in two situations.
-			// 1. The trait is being deleted.
-			// 2. The trait scraper has been changed and the old scrape config is being updated.
-			//    In this case the traitDefaults and newScrapeConfig will be nil.
-			if trait.DeletionTimestamp.IsZero() && traitDefaults != nil && newScrapeConfig != nil {
-				prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
-			}
-			existingReplaced = true
-		} else {
-			prometheusScrapeConfig.ArrayAppendP(oldScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+
+	for i := range ports {
+		newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(ctx, trait, i, secret, workload, c)
+		if err != nil {
+			return prometheusScrapeConfig, err
 		}
-	}
-	// If an existing config was not replaced and there is new config (i.e. newScrapeConfig != nil) then add the new config.
-	if !existingReplaced && newScrapeConfig != nil {
-		prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+		existingReplaced := false
+		for _, oldScrapeConfig := range oldScrapeConfigs {
+			oldScrapeJob := oldScrapeConfig.Search(prometheusJobNameLabel).Data()
+			if newScrapeJob == oldScrapeJob {
+				// If the scrape config should be removed then skip adding it to the result slice.
+				// This will occur in two situations.
+				// 1. The trait is being deleted.
+				// 2. The trait scraper has been changed and the old scrape config is being updated.
+				//    In this case the traitDefaults and newScrapeConfig will be nil.
+				if trait.DeletionTimestamp.IsZero() && traitDefaults != nil && newScrapeConfig != nil {
+					prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+				}
+				existingReplaced = true
+			} else {
+				prometheusScrapeConfig.ArrayAppendP(oldScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+			}
+		}
+		// If an existing config was not replaced and there is new config (i.e. newScrapeConfig != nil) then add the new config.
+		if !existingReplaced && newScrapeConfig != nil {
+			prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+		}
 	}
 	return prometheusScrapeConfig, nil
 }
 
 // MutateAnnotations mutates annotations with values used by the scraper config.
 // Annotations are either set or removed depending on the state of the trait.
-func MutateAnnotations(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, annotations map[string]string) map[string]string {
+func MutateAnnotations(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, annotations map[string]string) map[string]string {
 	mutated := annotations
+
+	ports := trait.Spec.Ports
+	if len(ports) == 0 {
+		// create a port spec from the existing port
+		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
+	}
 
 	// If the trait is being deleted, remove the annotations.
 	if !trait.DeletionTimestamp.IsZero() {
-		delete(mutated, verrazzanoMetricsEnabledAnnotation)
-		delete(mutated, verrazzanoMetricsPathAnnotation)
-		delete(mutated, verrazzanoMetricsPortAnnotation)
+		for k := range mutated {
+			if strings.HasPrefix(k, verrazzanoMetricsAnnotationPrefix) {
+				delete(mutated, k)
+			}
+		}
 		return mutated
 	}
 
-	mutated = updateStringMap(mutated, verrazzanoMetricsEnabledAnnotation, strconv.FormatBool(true))
-
 	// Merge trait, default and existing value.
 	var found bool
-	var path string
-	if trait.Spec.Path != nil {
-		path = *trait.Spec.Path
-	} else {
-		path, found = annotations[prometheusPathAnnotation]
-		if !found {
-			path = *traitDefaults.Path
-		}
-	}
-	mutated = updateStringMap(mutated, verrazzanoMetricsPathAnnotation, path)
-
-	// Merge trait, default and existing value.
 	var port string
-	if trait.Spec.Port != nil {
-		port = strconv.Itoa(*trait.Spec.Port)
-	} else {
-		port, found = annotations[prometheusPortAnnotation]
-		if !found {
-			port = strconv.Itoa(*traitDefaults.Port)
+	for i, portSpec := range ports {
+
+		mutated = updateStringMap(mutated, fmt.Sprintf(verrazzanoMetricsEnabledAnnotation, i), strconv.FormatBool(true))
+
+		if portSpec.Port != nil {
+			port = strconv.Itoa(*portSpec.Port)
+		} else {
+			port, found = annotations[prometheusPortAnnotation]
+			if !found {
+				port = strconv.Itoa(*traitDefaults.Ports[0].Port)
+			}
 		}
+		mutated = updateStringMap(mutated, fmt.Sprintf(verrazzanoMetricsPortAnnotation, i), port)
+
+		// Merge trait, default and existing value.
+		var path string
+		if portSpec.Path != nil {
+			path = *portSpec.Path
+		} else {
+			path, found = annotations[prometheusPathAnnotation]
+			if !found {
+				if traitDefaults.Ports[0].Path != nil {
+					path = *traitDefaults.Ports[0].Path
+				}
+			}
+		}
+		mutated = updateStringMap(mutated, fmt.Sprintf(verrazzanoMetricsPathAnnotation, i), path)
 	}
-	mutated = updateStringMap(mutated, verrazzanoMetricsPortAnnotation, port)
 
 	return mutated
 }
@@ -948,7 +980,7 @@ func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.
 
 // createPrometheusScrapeConfigMapJobName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
-func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, error) {
+func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
 	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	app, found := trait.Labels[appObjectMetaLabel]
@@ -959,16 +991,17 @@ func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, 
 	if !found {
 		return "", fmt.Errorf("metrics trait missing component name label")
 	}
-	return fmt.Sprintf("%s_%s_%s_%s", app, cluster, namespace, comp), nil
+	return fmt.Sprintf("%s_%s_%s_%s_%d", app, cluster, namespace, comp, portNum), nil
 }
 
 // createScrapeConfigFromTrait creates Prometheus scrape config for a trait.
 // This populates the Prometheus scrape config template.
 // The job name is returned.
 // The YAML container populated from the Prometheus scrape config template is returned.
-func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
+func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, portOrder int, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
 
-	job, err := createPrometheusScrapeConfigMapJobName(trait)
+	// TODO: see if we can create a scrape job per port within this method. change name to createScrapeConfigsFromTrait
+	job, err := createPrometheusScrapeConfigMapJobName(trait, portOrder)
 	if err != nil {
 		return "", nil, err
 	}
@@ -980,6 +1013,7 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 			appNameHolder:       trait.Labels[appObjectMetaLabel],
 			compNameHolder:      trait.Labels[compObjectMetaLabel],
 			jobNameHolder:       job,
+			portOrderHolder:     strconv.Itoa(portOrder),
 			namespaceHolder:     trait.Namespace,
 			sslProtocolHolder:   httpProtocol,
 			vzClusterNameHolder: clusters.GetClusterName(ctx, c)}

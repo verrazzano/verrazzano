@@ -736,7 +736,7 @@ data:
         source_labels:
         - name
         target_label: webapp
-    - job_name: deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment
+    - job_name: deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment_0
 kind: ConfigMap
 metadata:
   creationTimestamp: "2020-11-23T15:11:41Z"

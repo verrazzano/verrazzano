@@ -36,8 +36,11 @@ type MetricsTrait struct {
 
 // MetricsTraitSpec specifies the desired state of a metrics trait.
 type MetricsTraitSpec struct {
-	// The HTTP port for the related metrics endpoint. Defaults to 8080.
+	// The HTTP port for the related metrics trait. Defaults to 8080.
 	Port *int `json:"port,omitempty"`
+
+	// The HTTP ports for the related metrics trait. Defaults to 8080.
+	Ports []PortSpec `json:"ports,omitempty"`
 
 	// The HTTP path for the related metrics endpoint. Defaults to /metrics.
 	Path *string `json:"path,omitempty"`
@@ -51,6 +54,14 @@ type MetricsTraitSpec struct {
 
 	// A reference to the workload used to generate this metrics trait.
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
+}
+
+type PortSpec struct {
+	// The HTTP port for the related metrics trait. Defaults to 8080.
+	Port *int `json:"port,omitempty"`
+
+	// The HTTP path for the related metrics endpoint. Defaults to /metrics.
+	Path *string `json:"path,omitempty"`
 }
 
 // MetricsTraitStatus defines the observed state of MetricsTrait and related resources.

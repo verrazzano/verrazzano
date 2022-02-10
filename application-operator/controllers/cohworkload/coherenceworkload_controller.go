@@ -444,7 +444,7 @@ func (r *Reconciler) addMetrics(ctx context.Context, log vzlog2.VerrazzanoLogger
 		metricLabels = map[string]string{}
 	}
 
-	finalAnnotations := metricstrait.MutateAnnotations(metricsTrait, coherence, traitDefaults, metricAnnotations)
+	finalAnnotations := metricstrait.MutateAnnotations(metricsTrait, traitDefaults, metricAnnotations)
 	log.Debugf("Setting annotations on %s: %v", workload.Name, finalAnnotations)
 	err = unstructured.SetNestedStringMap(coherence.Object, finalAnnotations, specAnnotationsFields...)
 	if err != nil {
