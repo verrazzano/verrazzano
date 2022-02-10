@@ -67,6 +67,17 @@ func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
+// GetIngressNames - gets the names of the ingresses associated with this component
+func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+	ingressNames := []types.NamespacedName{
+		{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.VzConsoleIngress,
+		},
+	}
+	return ingressNames
+}
+
 // PreInstall - actions to perform prior to installing this component
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Info("AuthProxy pre-install")
@@ -77,13 +88,14 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	// installing the AuthProxy helm chart.  This avoids Helm errors in the log of resources being
 	// referenced by more than one chart.
 	authProxySA := corev1.ServiceAccount{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}, &authProxySA)
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &authProxySA)
 	if err != nil && !errors.IsNotFound(err) {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	} else if err == nil {
 		// Service account still exists, keep retrying
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf("")}
 	}
+	// Continuing because expected condition of "ServiceAccount for AuthProxy not found" met
 
 	return nil
 }

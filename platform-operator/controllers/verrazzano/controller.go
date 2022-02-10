@@ -188,16 +188,18 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		// If the version is specified and different than the current version of the installation
+		// If the version is specified and different from the current version of the installation
 		// then proceed with upgrade
 		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
 			result, err := r.reconcileUpgrade(log, actualCR)
+			// Keep retrying the upgrade until it completes.
 			if err != nil {
 				return newRequeueWithDelay(), err
 			} else if vzctrl.ShouldRequeue(result) {
 				return result, nil
 			}
 		}
+		// Keep retrying to reconcile components until it completes
 		if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {

@@ -116,12 +116,7 @@ func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
 
 // GetIngressNames - gets the names of the ingresses associated with this component
 func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	ingressNames := []types.NamespacedName{
-		{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.VzConsoleIngress,
-		},
-	}
+	var ingressNames []types.NamespacedName
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
