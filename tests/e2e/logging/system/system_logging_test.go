@@ -78,6 +78,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateIstioProxyLogs() && valid
 		valid = validateKialiLogs() && valid
 		valid = validateCertManagerLogs() && valid
+		valid = validateKeycloakLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -188,6 +189,16 @@ func validateVPOLogs() bool {
 }
 
 func validateCertManagerLogs() bool {
+	return validateElasticsearchRecords(
+		basicElasticsearchRecordValidator,
+		certMgrIndex,
+		"kubernetes.labels.app_kubernetes_io/instance",
+		"cert-manager",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateKeycloakLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
 		certMgrIndex,
