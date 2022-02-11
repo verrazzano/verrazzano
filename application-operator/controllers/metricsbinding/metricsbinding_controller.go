@@ -59,12 +59,9 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
-	// Never return an error since it has already been logged and we don't want the
-	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
-		return clusters.NewRequeueWithDelay(), nil
+		return clusters.NewRequeueWithDelay(), err
 	}
-
 	log.Oncef("Finished reconciling metrics binding %v", req.NamespacedName)
 
 	return k8scontroller.Result{}, nil
