@@ -211,7 +211,7 @@ func IsAppInPromConfig(configAppName string) bool {
 	}
 	found := strings.Contains(promConfig.Data[dataKey], configAppName)
 	if !found {
-		Log(Info, fmt.Sprintf("scrap target %s not found in Prometheus configmap", configAppName))
+		Log(Error, fmt.Sprintf("scrap target %s not found in Prometheus configmap", configAppName))
 	}
 	return found
 }
