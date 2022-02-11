@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmi
@@ -24,8 +24,8 @@ type Elastic struct {
 
 // ElasticVersion contains information about the version of Elasticsearch instance
 type ElasticVersion struct {
-	Number      string `json:"number"`
-	BuildFlavor string `json:"build_flavor"`
+	Number       string `json:"number"`
+	Distribution string `json:"distribution"`
 }
 
 // GetElastic gets Elastic representing the elasticsearch cluster with the binding name

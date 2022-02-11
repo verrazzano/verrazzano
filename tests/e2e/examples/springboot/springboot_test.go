@@ -34,6 +34,14 @@ var _ = t.BeforeSuite(func() {
 		pkg.DeploySpringBootApplication(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	// Verify springboot-workload pod is running
+	// GIVEN springboot app is deployed
+	// WHEN the component and appconfig are created
+	// THEN the expected pod must be running in the test namespace
+	Eventually(func() bool {
+		return pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
+	}, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
 
 var failed = false
