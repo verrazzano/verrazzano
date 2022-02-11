@@ -6,16 +6,20 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/golang/mock/gomock"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,12 +27,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
-	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -92,29 +93,8 @@ func TestUpgrade(t *testing.T) {
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer SetDefaultIstioUpgradeFunction()
 
-	err := comp.Upgrade(spi.NewFakeContext(getMock(t), crInstall, false))
+	err := comp.Upgrade(spi.NewFakeContext(upgradeMocks(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
-}
-
-// fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
-	if len(overridesFiles) != 2 {
-		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
-	}
-	if overridesFiles[0] != "test-values-file.yaml" {
-		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
-	}
-	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
-		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
-	}
-	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
-	if err != nil {
-		return []byte("error"), []byte(""), fmt.Errorf("unable to read install args overrides file")
-	}
-	if !strings.Contains(string(installArgsFromFile), "val1") {
-		return []byte("error"), []byte(""), fmt.Errorf("install args overrides file does not contain install args")
-	}
-	return []byte("success"), []byte(""), nil
 }
 
 func TestPostUpgrade(t *testing.T) {
@@ -127,52 +107,8 @@ func TestPostUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, false))
+	err := comp.PostUpgrade(spi.NewFakeContext(upgradeMocks(t), crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
-}
-
-func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
-	if releaseName != "istiocoredns" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
-	}
-	if releaseName != "istio-system" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
-	}
-	return []byte("success"), []byte(""), nil
-}
-
-func getMock(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-
-	mock.EXPECT().
-		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {
-			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
-			return nil
-		})
-
-	mock.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
-			return nil
-		}).Times(2)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oam.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).Times(2)
-
-	return mock
-}
-
-// fakeRunner overrides the istio run command
-func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
 }
 
 // TestAppendIstioOverrides tests the Istio override for the global hub
@@ -366,3 +302,116 @@ func TestGetIstioVersion(t *testing.T) {
 //		},
 //	}
 //}
+
+func upgradeMocks(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
+			deployList.Items = []appsv1.Deployment{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
+			ssList.Items = []appsv1.StatefulSet{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
+			dsList.Items = []appsv1.DaemonSet{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, podList *v1.PodList, option client.ListOption) error {
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
+			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			deploy.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
+			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			ss.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
+			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			ds.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {
+			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
+			return nil
+		})
+
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
+			return nil
+		}).Times(2)
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1alpha2.ApplicationConfigurationList, opts ...client.ListOption) error {
+			return nil
+		}).Times(2)
+
+	return mock
+}
+
+// fakeRunner overrides the istio run command
+func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
+}
+
+// fakeUpgrade verifies that the correct parameter values are passed to upgrade
+func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	if len(overridesFiles) != 2 {
+		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
+	}
+	if overridesFiles[0] != "test-values-file.yaml" {
+		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
+	}
+	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
+		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
+	}
+	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
+	if err != nil {
+		return []byte("error"), []byte(""), fmt.Errorf("unable to read install args overrides file")
+	}
+	if !strings.Contains(string(installArgsFromFile), "val1") {
+		return []byte("error"), []byte(""), fmt.Errorf("install args overrides file does not contain install args")
+	}
+	return []byte("success"), []byte(""), nil
+}
+
+func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	if releaseName != "istiocoredns" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
+	}
+	if releaseName != "istio-system" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
+	}
+	return []byte("success"), []byte(""), nil
+}

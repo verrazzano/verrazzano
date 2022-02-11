@@ -297,11 +297,8 @@ func Test_forkInstallFailure(t *testing.T) {
 }
 
 func getIstioInstallMock(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	mock := upgradeMocks(t)
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
@@ -327,11 +324,8 @@ func TestCreateCertSecret(t *testing.T) {
 }
 
 func createCertSecretMock(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	mock := upgradeMocks(t)
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).

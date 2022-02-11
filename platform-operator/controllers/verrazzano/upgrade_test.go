@@ -8,11 +8,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	v12 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
+	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -496,7 +499,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer registry.ResetGetComponentsFn()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	addRestartMocks(mock)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -591,7 +594,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	addRestartMocks(mock)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -884,7 +887,7 @@ func TestUpgradeComponent(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	addRestartMocks(mock)
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -978,7 +981,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	addRestartMocks(mock)
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -1216,4 +1219,58 @@ func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 
 func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte(""), []byte("failure"), errors.New("Helm Error")
+}
+
+// AddRestartMocks adds the EXPECT calls necessary to mock the restarting of the system components
+func addRestartMocks(mock *mocks.MockClient) {
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deployList *v12.DeploymentList) error {
+			deployList.Items = []v12.Deployment{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ssList *v12.StatefulSetList) error {
+			ssList.Items = []v12.StatefulSet{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, dsList *v12.DaemonSetList) error {
+			dsList.Items = []v12.DaemonSet{{}}
+			return nil
+		})
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, podList *v1.PodList, option client.ListOption) error {
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, deploy *v12.Deployment) error {
+			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			deploy.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ss *v12.StatefulSet) error {
+			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			ss.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
+			return nil
+		}).AnyTimes()
+
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, ds *v12.DaemonSet) error {
+			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			ds.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
+			return nil
+		}).AnyTimes()
 }

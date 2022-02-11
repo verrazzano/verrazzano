@@ -289,7 +289,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	log.Info("Restarted system Statefulsets in istio injected namespaces")
 
 	// Restart all the StatefulSet in the injected system namespaces
-	daemonSetList := appsv1.StatefulSetList{}
+	daemonSetList := appsv1.DaemonSetList{}
 	err = client.List(context.TODO(), &daemonSetList)
 	if err != nil {
 		return err
