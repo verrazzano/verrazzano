@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/stretchr/testify/assert"
-	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -307,56 +306,7 @@ func upgradeMocks(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deployList *appsv1.DeploymentList) error {
-			deployList.Items = []appsv1.Deployment{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ssList *appsv1.StatefulSetList) error {
-			ssList.Items = []appsv1.StatefulSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, dsList *appsv1.DaemonSetList) error {
-			dsList.Items = []appsv1.DaemonSet{{}}
-			return nil
-		})
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, podList *v1.PodList, option client.ListOption) error {
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, deploy *appsv1.Deployment) error {
-			deploy.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			deploy.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ss *appsv1.StatefulSet) error {
-			ss.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ss.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
-			return nil
-		}).AnyTimes()
-
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, ds *appsv1.DaemonSet) error {
-			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			ds.Spec.Template.ObjectMeta.Annotations[pkgconst.VerrazzanoRestartAnnotation] = "some time"
-			return nil
-		}).AnyTimes()
+	mocks.RestartMocks(mock)
 
 	mock.EXPECT().
 		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
