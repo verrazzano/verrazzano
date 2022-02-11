@@ -115,7 +115,7 @@ func PodsRunningReturnError(namespace string, namePrefixes []string) (bool, erro
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return false, err
 	}
-	result, err := PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
+	result, err := PodsRunningInClusterReturnError(namespace, namePrefixes, kubeconfigPath)
 	return result, err
 }
 
@@ -126,12 +126,41 @@ func PodsRunning(namespace string, namePrefixes []string) bool {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return false
 	}
-	result, _ := PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
-	return result
+	return PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
 }
 
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
-func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
+func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
+		return false
+	}
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+	missing, err := notRunning(pods.Items, namePrefixes...)
+	if err != nil {
+		return false
+	}
+
+	if len(missing) > 0 {
+		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
+		for _, pod := range pods.Items {
+			if isReadyAndRunning(pod) {
+				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
+			} else {
+				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+			}
+		}
+	}
+	return len(missing) == 0
+}
+
+// PodsRunning is same as PodsRunningInCluster, except that it returns an error in the event of CrashLoopBackOff
+func PodsRunningInClusterReturnError(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
