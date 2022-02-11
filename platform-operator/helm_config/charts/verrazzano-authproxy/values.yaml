@@ -42,3 +42,7 @@ affinity: |
 config:
   envName:
   dnsSuffix:
+
+dns:
+  wildcard:
+    domain:

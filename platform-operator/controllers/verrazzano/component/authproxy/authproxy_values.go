@@ -5,19 +5,20 @@ package authproxy
 
 // authProxyValues struct representing the Helm chart values for this component
 type authProxyValues struct {
-	Name                 string          `json:"name,omitempty"`
-	ImageName            string          `json:"imageName,omitempty"`
-	ImageVersion         string          `json:"imageVersion,omitempty"`
-	PullPolicy           string          `json:"pullPolicy,omitempty"`
-	Replicas             uint32          `json:"replicas,omitempty"`
-	Port                 int             `json:"port,omitempty"`
-	ImpersonatorRoleName string          `json:"impersonatorRoleName,omitempty"`
-	Proxy                *proxySettings  `json:"proxy,omitempty"`
-	Config               *configSettings `json:"config,omitempty"`
-	Affinity             string          `json:"affinity,omitempty"`
+	Name                 string        `json:"name,omitempty"`
+	ImageName            string        `json:"imageName,omitempty"`
+	ImageVersion         string        `json:"imageVersion,omitempty"`
+	PullPolicy           string        `json:"pullPolicy,omitempty"`
+	Replicas             uint32        `json:"replicas,omitempty"`
+	Port                 int           `json:"port,omitempty"`
+	ImpersonatorRoleName string        `json:"impersonatorRoleName,omitempty"`
+	Proxy                *proxyValues  `json:"proxy,omitempty"`
+	Config               *configValues `json:"config,omitempty"`
+	DNS                  *dnsValues    `json:"dns,omitempty"`
+	Affinity             string        `json:"affinity,omitempty"`
 }
 
-type proxySettings struct {
+type proxyValues struct {
 	OidcRealm                    string `json:"OidcRealm,omitempty"`
 	PKCEClientID                 string `json:"PKCEClientID,omitempty"`
 	PGClientID                   string `json:"PGClientID,omitempty"`
@@ -32,7 +33,15 @@ type proxySettings struct {
 	ProxyBufferSize              string `json:"ProxyBufferSize,omitempty"`
 }
 
-type configSettings struct {
+type configValues struct {
 	EnvName   string `json:"envName,omitempty"`
 	DNSSuffix string `json:"dnsSuffix,omitempty"`
+}
+
+type dnsValues struct {
+	Wildcard *wildcardDNSValues `json:"wildcard,omitempty"`
+}
+
+type wildcardDNSValues struct {
+	Domain string `json:"domain,omitempty"`
 }

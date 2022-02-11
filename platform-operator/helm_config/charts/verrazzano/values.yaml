@@ -133,7 +133,3 @@ kubernetes:
 
 externaldns:
   enabled: false
-
-dns:
-  wildcard:
-    domain:

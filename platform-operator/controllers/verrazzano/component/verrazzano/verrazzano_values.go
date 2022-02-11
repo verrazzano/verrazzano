@@ -38,7 +38,6 @@ type verrazzanoValues struct {
 	Security           *securityRoleBindingValues `json:"security,omitempty"`
 	Kubernetes         *kubernetesValues          `json:"kubernetes,omitempty"`
 	Externaldns        *externalDNSValues         `json:"externaldns,omitempty"`
-	DNS                *dnsValues                 `json:"dns,omitempty"`
 }
 
 type subject struct {
@@ -177,14 +176,6 @@ type configValues struct {
 	EnvName                 string `json:"envName,omitempty"`
 	DNSSuffix               string `json:"dnsSuffix,omitempty"`
 	EnableMonitoringStorage bool   `json:"enableMonitoringStorage,omitempty"`
-}
-
-type wildcardDNSSettings struct {
-	Domain string `json:"domain,omitempty"`
-}
-
-type dnsValues struct {
-	Wildcard *wildcardDNSSettings `json:"wildcard,omitempty"`
 }
 
 type externalDNSValues struct {

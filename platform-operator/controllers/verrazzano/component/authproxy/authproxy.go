@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -41,7 +42,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	overrides := authProxyValues{}
 
 	// Environment name
-	overrides.Config = &configSettings{
+	overrides.Config = &configValues{
 		EnvName: vzconfig.GetEnvName(effectiveCR),
 	}
 
@@ -52,7 +53,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
 
-	overrides.Proxy = &proxySettings{
+	overrides.Proxy = &proxyValues{
 		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
 		OidcProviderHostInCluster: keycloakInClusterURL,
 	}
@@ -61,6 +62,15 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	err = getImageSettings(ctx, &overrides)
 	if err != nil {
 		return nil, err
+	}
+
+	// DNS Values
+	if isWildcardDNS, domain := getWildcardDNS(&effectiveCR.Spec); isWildcardDNS {
+		overrides.DNS = &dnsValues{
+			Wildcard: &wildcardDNSValues{
+				Domain: domain,
+			},
+		}
 	}
 
 	// Kubernetes settings
@@ -124,11 +134,11 @@ func getKubernetesSettings(ctx spi.ComponentContext, overrides *authProxyValues)
 			}
 			// Affinity
 			if kubernetesSettings.Affinity != nil {
-				yaml, err := yaml.Marshal(kubernetesSettings.Affinity)
+				affinityYaml, err := yaml.Marshal(kubernetesSettings.Affinity)
 				if err != nil {
 					return err
 				}
-				overrides.Affinity = string(yaml)
+				overrides.Affinity = string(affinityYaml)
 			}
 		}
 	}
@@ -152,4 +162,11 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides interface{}) (str
 	}
 	ctx.Log().Debugf("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
 	return overridesFileName, nil
+}
+
+func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
+	if vz.Components.DNS != nil && vz.Components.DNS.Wildcard != nil {
+		return true, vz.Components.DNS.Wildcard.Domain
+	}
+	return false, ""
 }
