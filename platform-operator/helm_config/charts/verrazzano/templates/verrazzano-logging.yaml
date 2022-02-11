@@ -232,15 +232,15 @@ data:
     </source>
 
   components-filter.conf: |
-    # filter to parse istio-proxy sidecar container log files
-    <filter kubernetes.**istio-proxy**>
+    # filter to parse istio-proxy and istiod container log files
+    <filter kubernetes.**istio-proxy** kubernetes.**istiod**istio-system_discovery**>
       @type parser
-      @id istio-proxy
+      @id istio
       key_name log
       reserve_data true
       emit_invalid_record_to_error true
       <parse>
-        # istio-proxy has two formats for log records
+        # istio containers have two formats for log records
         # one has a timestamp, log level and other fields
         # the other is just a messsage
         @type multi_format
