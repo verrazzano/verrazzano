@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -120,4 +121,15 @@ func TestIsEnabled(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestGetIngressNames tests the AuthProxy GetIngressNames call
+// GIVEN a AuthProxy component
+//  WHEN I call GetIngressNames
+//  THEN the correct list of names is returned
+func TestGetIngressNames(t *testing.T) {
+	ingressNames := NewComponent().GetIngressNames(nil)
+	assert.True(t, len(ingressNames) == 1)
+	assert.Equal(t, constants.VzConsoleIngress, ingressNames[0].Name)
+	assert.Equal(t, ComponentNamespace, ingressNames[0].Namespace)
 }
