@@ -92,7 +92,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 				var sysVmiHTTPClient *retryablehttp.Client
 				Eventually(func() (*retryablehttp.Client, error) {
 					var err error
-					sysVmiHTTPClient, err = pkg.GetSystemVmiHTTPClient()
+					sysVmiHTTPClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 					return sysVmiHTTPClient, err
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Unable to get system VMI HTTP client")
 

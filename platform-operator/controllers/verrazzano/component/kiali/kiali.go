@@ -95,7 +95,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Spec.TLS = []v1.IngressTLS{
 			{
 				Hosts:      []string{kialiHostName},
-				SecretName: constants.VerrazzanoSystemTLSSecretName,
+				SecretName: getTLSSecretName(ctx.EffectiveCR().Spec.EnvironmentName),
 			},
 		}
 		ingress.Spec.Rules = []v1.IngressRule{ingRule}
@@ -180,4 +180,18 @@ func getKialiHostName(context spi.ComponentContext) (string, error) {
 
 func buildKialiHostnameForDomain(dnsDomain string) string {
 	return fmt.Sprintf("%s.%s", kialiHostName, dnsDomain)
+}
+
+// getTLSSecretName returns expected TLS secret name
+func getTLSSecretName(envName string) string {
+	return fmt.Sprintf("%s-secret", getEnvironmentName(envName))
+}
+
+// getEnvironmentName returns the name of the Verrazzano install environment
+func getEnvironmentName(envName string) string {
+	if envName == "" {
+		return constants.DefaultEnvironmentName
+	}
+
+	return envName
 }
