@@ -6,6 +6,7 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -18,9 +19,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	k8scontroller "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 )
 
@@ -113,7 +116,12 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.createOrUpdateScrapeConfig, log); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
-	return k8scontroller.Result{}, nil
+
+	// Requeue with a delay to account for situations where the scrape config
+	// has changed but without the Metricsinding changing.
+	var seconds = rand.IntnRange(45, 90)
+	var duration = time.Duration(seconds) * time.Second
+	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
 }
 
 func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {
