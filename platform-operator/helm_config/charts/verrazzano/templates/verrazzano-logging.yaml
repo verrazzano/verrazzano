@@ -407,7 +407,7 @@ data:
       </parse>
     </filter>
     
-    # filter to parse keycloak container log files
+    # filter to parse Keycloak container log files
     <filter kubernetes.**keycloak**keycloak_keycloak**>
       @type parser
       @id keycloak
