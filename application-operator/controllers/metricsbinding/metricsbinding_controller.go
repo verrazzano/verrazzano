@@ -115,7 +115,7 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 	}
 
 	// Requeue with a delay to account for situations where the scrape config
-	// has changed but without the Metricsinding changing.
+	// has changed but without the MetricsBinding changing.
 	var seconds = rand.IntnRange(45, 90)
 	var duration = time.Duration(seconds) * time.Second
 	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
