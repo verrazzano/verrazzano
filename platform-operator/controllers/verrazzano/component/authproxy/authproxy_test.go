@@ -81,6 +81,14 @@ func TestAppendOverrides(t *testing.T) {
 			expectedErr:  nil,
 		},
 		{
+			name:         "OverrideDNSWildcardDomain",
+			description:  "Test overriding DNS wildcard domain",
+			expectedYAML: "testdata/dnsWildcardDomainOverrideValues.yaml",
+			actualCR:     "testdata/dnsWildcardDomainOverrideVz.yaml",
+			numKeyValues: 1,
+			expectedErr:  nil,
+		},
+		{
 			name:         "DisableAuthProxy",
 			description:  "Test overriding AuthProxy to be disabled",
 			expectedYAML: "testdata/enabledOverrideValues.yaml",
