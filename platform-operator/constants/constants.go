@@ -122,8 +122,8 @@ const VerrazzanoVersion1_0_0 = "1.0.0"
 // VerrazzanoVersion1_1_0 is the Verrazzano version string for 1.1.0
 const VerrazzanoVersion1_1_0 = "1.1.0"
 
-// VerrazzanoVersion1_2_0 is the Verrazzano version string for 1.2.0
-const VerrazzanoVersion1_2_0 = "1.2.0"
+// VerrazzanoVersion1_3_0 is the Verrazzano version string for 1.2.0
+const VerrazzanoVersion1_3_0 = "1.3.0"
 
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"
