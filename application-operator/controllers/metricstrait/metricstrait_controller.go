@@ -63,9 +63,9 @@ const (
 
 	// Annotation names for metrics set by the controller
 	verrazzanoMetricsAnnotationPrefix  = "verrazzano.io/metrics"
-	verrazzanoMetricsPortAnnotation    = "verrazzano.io/metricsPort%d"
-	verrazzanoMetricsPathAnnotation    = "verrazzano.io/metricsPath%d"
-	verrazzanoMetricsEnabledAnnotation = "verrazzano.io/metricsEnabled%d"
+	verrazzanoMetricsPortAnnotation    = "verrazzano.io/metricsPort%s"
+	verrazzanoMetricsPathAnnotation    = "verrazzano.io/metricsPath%s"
+	verrazzanoMetricsEnabledAnnotation = "verrazzano.io/metricsEnabled%s"
 
 	// Label names for the OAM application and component references
 	appObjectMetaLabel  = "app.oam.dev/name"
@@ -921,7 +921,7 @@ func MutateAnnotations(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTr
 	var port string
 	for i, portSpec := range ports {
 
-		mutated = updateStringMap(mutated, fmt.Sprintf(verrazzanoMetricsEnabledAnnotation, i), strconv.FormatBool(true))
+		mutated = updateStringMap(mutated, formatMetric(verrazzanoMetricsEnabledAnnotation, i), strconv.FormatBool(true))
 
 		if portSpec.Port != nil {
 			port = strconv.Itoa(*portSpec.Port)
@@ -931,7 +931,7 @@ func MutateAnnotations(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTr
 				port = strconv.Itoa(*traitDefaults.Ports[0].Port)
 			}
 		}
-		mutated = updateStringMap(mutated, fmt.Sprintf(verrazzanoMetricsPortAnnotation, i), port)
+		mutated = updateStringMap(mutated, formatMetric(verrazzanoMetricsPortAnnotation, i), port)
 
 		// Merge trait, default and existing value.
 		var path string
@@ -945,10 +945,18 @@ func MutateAnnotations(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTr
 				}
 			}
 		}
-		mutated = updateStringMap(mutated, fmt.Sprintf(verrazzanoMetricsPathAnnotation, i), path)
+		mutated = updateStringMap(mutated, formatMetric(verrazzanoMetricsPathAnnotation, i), path)
 	}
 
 	return mutated
+}
+
+func formatMetric(format string, i int) string {
+	suffix := ""
+	if i > 0 {
+		suffix = strconv.Itoa(i)
+	}
+	return fmt.Sprintf(format, suffix)
 }
 
 // MutateLabels mutates the labels associated with a related resources.
@@ -991,17 +999,21 @@ func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait, portNum i
 	if !found {
 		return "", fmt.Errorf("metrics trait missing component name label")
 	}
-	return fmt.Sprintf("%s_%s_%s_%s_%d", app, cluster, namespace, comp, portNum), nil
+	portStr := ""
+	if portNum > 0 {
+		portStr = fmt.Sprintf("_%d", portNum)
+	}
+	return fmt.Sprintf("%s_%s_%s_%s%s", app, cluster, namespace, comp, portStr), nil
 }
 
 // createScrapeConfigFromTrait creates Prometheus scrape config for a trait.
 // This populates the Prometheus scrape config template.
 // The job name is returned.
 // The YAML container populated from the Prometheus scrape config template is returned.
-func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, portOrder int, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
+func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, portIncrement int, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
 
 	// TODO: see if we can create a scrape job per port within this method. change name to createScrapeConfigsFromTrait
-	job, err := createPrometheusScrapeConfigMapJobName(trait, portOrder)
+	job, err := createPrometheusScrapeConfigMapJobName(trait, portIncrement)
 	if err != nil {
 		return "", nil, err
 	}
@@ -1009,11 +1021,15 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 	// If workload is nil then the trait is being deleted so no config is required
 	if workload != nil {
 		// Populate the Prometheus scrape config template
+		portOrderStr := ""
+		if portIncrement > 0 {
+			portOrderStr = strconv.Itoa(portIncrement)
+		}
 		context := map[string]string{
 			appNameHolder:       trait.Labels[appObjectMetaLabel],
 			compNameHolder:      trait.Labels[compObjectMetaLabel],
 			jobNameHolder:       job,
-			portOrderHolder:     strconv.Itoa(portOrder),
+			portOrderHolder:     portOrderStr,
 			namespaceHolder:     trait.Namespace,
 			sslProtocolHolder:   httpProtocol,
 			vzClusterNameHolder: clusters.GetClusterName(ctx, c)}

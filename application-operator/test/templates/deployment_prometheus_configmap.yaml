@@ -1,4 +1,4 @@
-# Copyright (C) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (C) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
 data:
@@ -736,7 +736,7 @@ data:
         source_labels:
         - name
         target_label: webapp
-    - job_name: deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment_0
+    - job_name: deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment
 kind: ConfigMap
 metadata:
   creationTimestamp: "2020-11-23T15:11:41Z"

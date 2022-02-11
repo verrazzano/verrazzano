@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 scrape_configs:
 - job_name: ##JOB_NAME##
@@ -15,20 +15,20 @@ scrape_configs:
   - action: keep
     regex: true;##APP_NAME##;##COMP_NAME##
     source_labels:
-    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled0
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled
     - __meta_kubernetes_pod_label_app_oam_dev_name
     - __meta_kubernetes_pod_label_app_oam_dev_component
   - action: replace
     regex: (.+)
     source_labels:
-    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath0
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPath
     target_label: __metrics_path__
   - action: replace
     regex: ([^:]+)(?::\d+)?;(\d+)
     replacement: $1:$2
     source_labels:
     - __address__
-    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort0
+    - __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort
     target_label: __address__
   - action: replace
     regex: (.*)

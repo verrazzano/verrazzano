@@ -181,13 +181,13 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.Deployment, opts ...client.UpdateOption) error {
-			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled0"]
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
 			assert.Equal("true", scrape)
-			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath0"]
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
 			assert.True(ok)
 			assert.Equal("/metrics", target)
-			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort0"]
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
 			assert.True(ok)
 			assert.Equal("8080", port)
 			return nil
@@ -351,13 +351,13 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.Deployment, opts ...client.UpdateOption) error {
-			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled0"]
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
 			assert.Equal("true", scrape)
-			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath0"]
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
 			assert.True(ok)
 			assert.Equal("/metrics", target)
-			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort0"]
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
 			assert.True(ok)
 			assert.Equal("9612", port)
 			return nil
@@ -492,13 +492,13 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.Deployment, opts ...client.UpdateOption) error {
-			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled0"]
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
 			assert.Equal("true", scrape)
-			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath0"]
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
 			assert.True(ok)
 			assert.Equal("/metrics", target)
-			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort0"]
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
 			assert.True(ok)
 			assert.Equal("8080", port)
 			return nil
@@ -566,18 +566,18 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 		assert.Equal("test-namespace", name.Namespace)
 		assert.Equal("test-workload-name", name.Name)
 		assert.NoError(updateObjectFromYAMLTemplate(obj, "test/templates/containerized_workload_deployment.yaml", params))
-		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled0")
-		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath0")
-		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort0")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort")
 		return nil
 	})
 	// 3. Expect a call to update the child resource to remove the annotations
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.Deployment) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-workload-name", obj.Name)
-		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled0")
-		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath0")
-		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort0")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort")
 		return nil
 	})
 	// 6. Expect a call to get the prometheus deployment.
@@ -744,18 +744,18 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 		assert.Equal("deploymetrics", name.Namespace)
 		assert.Equal("deploymetrics-workload", name.Name)
 		assert.NoError(updateObjectFromYAMLTemplate(obj, "test/templates/containerized_workload_deployment.yaml", params))
-		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled0")
-		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath0")
-		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort0")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath")
+		assert.Contains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort")
 		return nil
 	})
 	// 3. Expect a call to update the child resource to remove the annotations
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8sapps.Deployment) error {
 		assert.Equal("deploymetrics", obj.Namespace)
 		assert.Equal("deploymetrics-workload", obj.Name)
-		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled0")
-		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath0")
-		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort0")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsEnabled")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPath")
+		assert.NotContains(obj.Spec.Template.Annotations, "verrazzano.io/metricsPort")
 		return nil
 	})
 	// 6. Expect a call to get the prometheus deployment.
@@ -1101,9 +1101,9 @@ func TestNoUpdatesRequired(t *testing.T) {
 		appObjectMetaLabel:  "test-app-name",
 		compObjectMetaLabel: "test-comp-name"}
 	annotations := map[string]string{
-		"verrazzano.io/metricsEnabled0": "true",
-		"verrazzano.io/metricsPort0":    "8080",
-		"verrazzano.io/metricsPath0":    "/metrics"}
+		"verrazzano.io/metricsEnabled": "true",
+		"verrazzano.io/metricsPort":    "8080",
+		"verrazzano.io/metricsPath":    "/metrics"}
 	testDeployment.Spec.Template.ObjectMeta.Annotations = annotations
 
 	testNamespace := k8score.Namespace{
@@ -1233,7 +1233,7 @@ func TestNoUpdatesRequired(t *testing.T) {
 			configmap.Namespace = name.Namespace
 			configmap.Name = name.Name
 			params := map[string]string{
-				jobNameHolder:       "test-app-name_default_test-namespace_test-comp-name_0",
+				jobNameHolder:       "test-app-name_default_test-namespace_test-comp-name",
 				namespaceHolder:     "test-namespace",
 				appNameHolder:       "test-app-name",
 				compNameHolder:      "test-comp-name",
@@ -1319,9 +1319,9 @@ func TestSSLNoUpdatesRequired(t *testing.T) {
 		appObjectMetaLabel:  "test-app-name",
 		compObjectMetaLabel: "test-comp-name"}
 	annotations := map[string]string{
-		"verrazzano.io/metricsEnabled0": "true",
-		"verrazzano.io/metricsPort0":    "8080",
-		"verrazzano.io/metricsPath0":    "/metrics"}
+		"verrazzano.io/metricsEnabled": "true",
+		"verrazzano.io/metricsPort":    "8080",
+		"verrazzano.io/metricsPath":    "/metrics"}
 	testDeployment.Spec.Template.ObjectMeta.Annotations = annotations
 
 	testNamespace := k8score.Namespace{
@@ -1455,7 +1455,7 @@ func TestSSLNoUpdatesRequired(t *testing.T) {
 			configmap.Namespace = name.Namespace
 			configmap.Name = name.Name
 			params := map[string]string{
-				jobNameHolder:       "test-app-name_default_test-namespace_test-comp-name_0",
+				jobNameHolder:       "test-app-name_default_test-namespace_test-comp-name",
 				namespaceHolder:     "test-namespace",
 				appNameHolder:       "test-app-name",
 				compNameHolder:      "test-comp-name",
@@ -1914,13 +1914,13 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
-			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled0"]
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
 			assert.Equal("true", scrape)
-			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath0"]
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
 			assert.True(ok)
 			assert.Equal("/metrics", target)
-			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort0"]
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
 			assert.True(ok)
 			assert.Equal("9612", port)
 			return nil
@@ -2074,13 +2074,13 @@ func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, deployment *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
-			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled0"]
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
 			assert.True(ok)
 			assert.Equal("true", scrape)
-			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath0"]
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
 			assert.True(ok)
 			assert.Equal("/metrics", target)
-			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort0"]
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
 			assert.True(ok)
 			assert.Equal("8080", port)
 			scrape, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled1"]
