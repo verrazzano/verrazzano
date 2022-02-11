@@ -32,13 +32,15 @@ const (
 	longWaitTimeout      = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
 	sockshopAppName      = "sockshop-appconfig"
-	sockshopNamespace    = "sockshop"
 )
 
 var sockShop SockShop
 var username, password string
 
-var t = framework.NewTestFramework("socks")
+var (
+	t                  = framework.NewTestFramework("socks")
+	generatedNamespace = pkg.GenerateNamespace("sockshop")
+)
 
 // creates the sockshop namespace and applies the components and application yaml
 var _ = t.BeforeSuite(func() {
@@ -53,18 +55,21 @@ var _ = t.BeforeSuite(func() {
 		start := time.Now()
 		// deploy the application here
 		Eventually(func() (*v1.Namespace, error) {
-			return pkg.CreateNamespace("sockshop", map[string]string{"verrazzano-managed": "true"})
+			return pkg.CreateNamespace(namespace, map[string]string{"verrazzano-managed": "true"})
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
+			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
+			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	// checks that all pods are up and running
+	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
 
 // the list of expected pods
@@ -92,16 +97,11 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 	"f:app-lcm.spring-workload",
 	"f:app-lcm.coherence-workload"), func() {
 
-	t.It("application deployment.", func() {
-		// checks that all pods are up and running
-		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
-	})
-
 	var hostname = ""
 	var err error
 	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		Eventually(func() (string, error) {
-			hostname, err = k8sutil.GetHostnameFromGateway("sockshop", "")
+			hostname, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return hostname, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -271,17 +271,17 @@ var _ = clusterDump.AfterSuite(func() {
 		pkg.Log(pkg.Info, "Delete application")
 
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
+			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
+			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for sockshop application to be deleted")
 		Eventually(func() bool {
-			_, err := pkg.GetAppConfig(sockshopNamespace, sockshopAppName)
+			_, err := pkg.GetAppConfig(namespace, sockshopAppName)
 			if err != nil && errors.IsNotFound(err) {
 				return true
 			}
@@ -293,12 +293,12 @@ var _ = clusterDump.AfterSuite(func() {
 
 		pkg.Log(pkg.Info, "Delete namespace")
 		Eventually(func() error {
-			return pkg.DeleteNamespace(sockshopNamespace)
+			return pkg.DeleteNamespace(namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for sockshop namespace to be deleted")
 		Eventually(func() bool {
-			_, err := pkg.GetNamespace(sockshopNamespace)
+			_, err := pkg.GetNamespace(namespace)
 			if err != nil && errors.IsNotFound(err) {
 				return true
 			}
@@ -318,7 +318,7 @@ func isSockShopServiceReady(name string) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("Could not get Kubernetes clientset: %v\n", err.Error()))
 		return false
 	}
-	svc, err := clientset.CoreV1().Services("sockshop").Get(context.TODO(), name, metav1.GetOptions{})
+	svc, err := clientset.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Could not get services %v in sockshop: %v\n", name, err.Error()))
 		return false
@@ -331,7 +331,7 @@ func isSockShopServiceReady(name string) bool {
 
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
-	return pkg.PodsRunning("sockshop", expectedPods)
+	return pkg.PodsRunning(namespace, expectedPods)
 }
 
 // appMetricsExists checks whether app related metrics are available
