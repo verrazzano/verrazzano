@@ -81,7 +81,6 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	const leftMarginExtIP = 12
 
 	var externalIPYAMLTemplateValue string = ""
-	fmt.Printf("CDD Istio Component = %+v\n", *comp)
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
 	expandedYamls := []string{}
 	for _, arg := range comp.IstioInstallArgs {
@@ -150,8 +149,6 @@ func fixExternalIPYaml(yaml string) string {
 // value replicas and create Istio gateway yaml
 func configureGateways(k8sConfig *vzapi.IstioKubernetesSection, externalIP string) (string, error) {
 	var data = ReplicaData{}
-	fmt.Printf("CDD Istio Component Kubernetes = %+v\n", k8sConfig)
-	fmt.Printf("CDD Istio Component Kubernetes Replicas = %d\n", k8sConfig.Replicas)
 
 	data.IngressReplicaCount = k8sConfig.Replicas
 	data.EgressReplicaCount = k8sConfig.Replicas
@@ -163,8 +160,8 @@ func configureGateways(k8sConfig *vzapi.IstioKubernetesSection, externalIP strin
 			return "", err
 		}
 		data.Affinity = string(yml)
-		fmt.Printf("CDD Affinity Yaml = %s\n", yml)
 	}
+
 	data.ExternalIps = ""
 	if externalIP != "" {
 		data.ExternalIps = externalIP
