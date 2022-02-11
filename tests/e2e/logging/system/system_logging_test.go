@@ -202,8 +202,8 @@ func validateKeycloakLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
 		certMgrIndex,
-		"kubernetes.labels.app_kubernetes_io/instance",
-		"cert-manager",
+		"kubernetes.labels.app.kubernetes.io/name",
+		"keycloak",
 		searchTimeWindow,
 		noExceptions)
 }
