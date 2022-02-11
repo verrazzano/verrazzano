@@ -24,6 +24,7 @@ const (
 	systemIndex          = "verrazzano-namespace-verrazzano-system"
 	installIndex         = "verrazzano-namespace-verrazzano-install"
 	certMgrIndex         = "verrazzano-namespace-cert-manager"
+	keycloakIndex        = "verrazzano-namespace-keycloak"
 )
 
 var (
@@ -78,7 +79,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateIstioProxyLogs() && valid
 		valid = validateKialiLogs() && valid
 		valid = validateCertManagerLogs() && valid
-		valid = validateKeycloakLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -118,6 +118,26 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in cert-manager index")
+		}
+	})
+
+	t.It("contains valid keycloak index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the keycloak namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound("kubernetes.labels.app.kubernetes.io/name")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-install")
+
+		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-keycloak index
+		// With field kubernetes.labels.app.kubernetes.io/name=keycloak
+		// WHEN Log messages are retrieved from Elasticsearch
+		// THEN Verify there are valid log records
+		valid := true
+		valid = validateKeycloakLogs() && valid
+		if !valid {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in verrazzano-namespace-keycloak index")
 		}
 	})
 })
@@ -201,7 +221,7 @@ func validateCertManagerLogs() bool {
 func validateKeycloakLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		certMgrIndex,
+		keycloakIndex,
 		"kubernetes.labels.app.kubernetes.io/name",
 		"keycloak",
 		searchTimeWindow,
