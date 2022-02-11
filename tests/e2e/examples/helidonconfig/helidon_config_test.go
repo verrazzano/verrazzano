@@ -47,6 +47,12 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	// Verify helidon-config-deployment pod is running
+	// GIVEN OAM helidon-config app is deployed
+	// WHEN the component and appconfig are created
+	// THEN the expected pod must be running in the test namespace
+	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
 var failed = false
@@ -90,15 +96,6 @@ const (
 
 var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
-	// Verify helidon-config-deployment pod is running
-	// GIVEN OAM helidon-config app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	t.Describe("helidon-config-deployment pod", func() {
-		t.It("is running", func() {
-			Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
 
 	var host = ""
 	var err error

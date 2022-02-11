@@ -37,6 +37,13 @@ var _ = t.BeforeSuite(func() {
 		deployToDoListExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	// GIVEN the ToDoList app is deployed
+	// WHEN the running pods are checked
+	// THEN the tododomain-adminserver and mysql pods should be found running
+	Eventually(func() bool {
+		return pkg.PodsRunning(namespace, []string{"mysql", "tododomain-adminserver"})
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
 var clusterDump = pkg.NewClusterDumpWrapper()
@@ -149,14 +156,6 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload"), func() {
 
 	t.Context("application Deployment.", func() {
-		// GIVEN the ToDoList app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and mysql pods should be found running
-		t.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", "tododomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
 		// GIVEN the ToDoList app is deployed
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist

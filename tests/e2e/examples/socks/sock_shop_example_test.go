@@ -67,6 +67,9 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	// checks that all pods are up and running
+	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
 
 // the list of expected pods
@@ -93,11 +96,6 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload",
 	"f:app-lcm.spring-workload",
 	"f:app-lcm.coherence-workload"), func() {
-
-	t.It("application deployment.", func() {
-		// checks that all pods are up and running
-		Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
-	})
 
 	var hostname = ""
 	var err error

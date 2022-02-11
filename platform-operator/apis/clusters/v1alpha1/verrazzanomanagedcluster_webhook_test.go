@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -26,7 +26,7 @@ var verrazzanoList = &v1alpha1.VerrazzanoList{
 			Status: v1alpha1.VerrazzanoStatus{
 				Conditions: []v1alpha1.Condition{
 					{
-						Type: v1alpha1.InstallComplete,
+						Type: v1alpha1.CondInstallComplete,
 					},
 				},
 			},
@@ -229,7 +229,7 @@ func TestCreateVerrazzanoNotInstalled(t *testing.T) {
 				Status: v1alpha1.VerrazzanoStatus{
 					Conditions: []v1alpha1.Condition{
 						{
-							Type: v1alpha1.InstallStarted,
+							Type: v1alpha1.CondInstallStarted,
 						},
 					},
 				},

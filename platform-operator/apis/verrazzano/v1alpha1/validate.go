@@ -8,11 +8,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io/fs"
 	"os"
 	"reflect"
 	"strings"
+
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 
 	"github.com/oracle/oci-go-sdk/v53/common"
 
@@ -188,11 +189,11 @@ func ValidateActiveInstall(client client.Client) error {
 
 // ValidateInProgress makes sure there is not an install, uninstall or upgrade in progress
 func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
-	if old.Status.State == "" || old.Status.State == Ready || old.Status.State == Failed {
+	if old.Status.State == "" || old.Status.State == VzStateReady || old.Status.State == VzStateFailed {
 		return nil
 	}
 	// Allow enable component during install
-	if old.Status.State == Installing {
+	if old.Status.State == VzStateInstalling {
 		if isCoherenceEnabled(new.Spec.Components.CoherenceOperator) && !isCoherenceEnabled(old.Spec.Components.CoherenceOperator) {
 			return nil
 		}
