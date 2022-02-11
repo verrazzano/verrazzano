@@ -121,13 +121,13 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
-	t.It("contains valid keycloak index with valid records", func() {
+	t.It("contains valid Keycloak index with valid records", func() {
 		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the keycloak namespace is retrieved
+		// WHEN the Elasticsearch index for the Keycloak namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
 			return pkg.LogIndexFound(keycloakIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-install")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-namepace-keycloak")
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-keycloak index
 		// With field kubernetes.labels.app.kubernetes.io/name=keycloak
@@ -137,7 +137,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateKeycloakLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in verrazzano-namespace-keycloak index")
+			t.Logs.Info("Found problems with log records in Keycloak index")
 		}
 	})
 })
