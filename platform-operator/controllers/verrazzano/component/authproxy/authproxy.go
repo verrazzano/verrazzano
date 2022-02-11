@@ -59,7 +59,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Image name and version
-	err = getImageSettings(ctx, &overrides)
+	err = loadImageSettings(ctx, &overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	}
 
 	// Kubernetes settings
-	err = getKubernetesSettings(ctx, &overrides)
+	err = loadKubernetesSettings(ctx, &overrides)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +91,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-// getImageSettings sets the override values for the image name and version
-func getImageSettings(ctx spi.ComponentContext, overrides *authProxyValues) error {
+// loadImageSettings loads the override values for the image name and version
+func loadImageSettings(ctx spi.ComponentContext, overrides *authProxyValues) error {
 	// Full image name
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -120,8 +120,8 @@ func getImageSettings(ctx spi.ComponentContext, overrides *authProxyValues) erro
 	return nil
 }
 
-// getKubernetesSettings sets the override values for Kubernetes settings
-func getKubernetesSettings(ctx spi.ComponentContext, overrides *authProxyValues) error {
+// loadKubernetesSettings loads the override values for Kubernetes settings
+func loadKubernetesSettings(ctx spi.ComponentContext, overrides *authProxyValues) error {
 	effectiveCR := ctx.EffectiveCR()
 	authProxyComponent := effectiveCR.Spec.Components.AuthProxy
 
