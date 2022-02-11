@@ -126,7 +126,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the keycloak namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("kubernetes.labels.app.kubernetes.io/name")
+			return pkg.LogIndexFound(keycloakIndex)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-install")
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-keycloak index
