@@ -203,8 +203,13 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 				},
 				func() {
 					if !isManagedClusterProfile {
-						Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
-							Should(BeTrue())
+						Eventually(func() bool {
+							result, err := pkg.PodsRunningReturnError("keycloak", expectedPodsKeycloak)
+							if err != nil {
+								AbortSuite("Aborting the test suite as Keycloak pod entered CrashLoopBackOff state")
+							}
+							return result
+						}, waitTimeout, pollingInterval).Should(BeTrue())
 					}
 				},
 				func() {
