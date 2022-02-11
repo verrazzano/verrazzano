@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -43,6 +42,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendOverrides,
+			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_2_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{verrazzano.ComponentName},
 		},
@@ -80,7 +80,7 @@ func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.Na
 
 // PreInstall - actions to perform prior to installing this component
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
-	ctx.Log().Info("AuthProxy pre-install")
+	ctx.Log().Debug("AuthProxy pre-install")
 
 	// The AuthProxy helm chart was separated out of the Verrazzano helm chart in release 1.2.
 	// During an upgrade from 1.1 to 1.2, there is a period of time when AuthProxy is being un-deployed
@@ -89,11 +89,9 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	// referenced by more than one chart.
 	authProxySA := corev1.ServiceAccount{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &authProxySA)
-	if err != nil && !errors.IsNotFound(err) {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	} else if err == nil {
-		// Service account still exists, keep retrying
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf("")}
+	if (err == nil) || (err != nil && !errors.IsNotFound(err)) {
+		ctx.Log().Progressf("Component %s is waiting for pre-install conditions to be met", ComponentName)
+		return fmt.Errorf("Waiting for ServiceAccount %s to not exist", ComponentName)
 	}
 	// Continuing because expected condition of "ServiceAccount for AuthProxy not found" met
 

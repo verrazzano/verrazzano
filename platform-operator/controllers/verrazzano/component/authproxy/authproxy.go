@@ -145,7 +145,6 @@ func getKubernetesSettings(ctx spi.ComponentContext, overrides *authProxyValues)
 	return nil
 }
 
-// TODO: move this to a common package?
 func generateOverridesFile(ctx spi.ComponentContext, overrides interface{}) (string, error) {
 	bytes, err := yaml.Marshal(overrides)
 	if err != nil {
