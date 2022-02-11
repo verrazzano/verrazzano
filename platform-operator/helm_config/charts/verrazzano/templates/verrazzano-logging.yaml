@@ -533,6 +533,7 @@ data:
 
       data_stream_name verrazzano-system
       data_stream_template_name verrazzano-data-stream
+      template_file /fluentd/etc/opensearch-template-verrazzano.json
 
       time_precision 9
 
@@ -574,6 +575,7 @@ data:
 
       data_stream_name verrazzano-application
       data_stream_template_name verrazzano-data-stream
+      template_file /fluentd/etc/opensearch-template-verrazzano.json
 
       time_precision 9
       # Prevent reloading connections to Elasticsearch
@@ -642,46 +644,53 @@ data:
     </match>
 {{- end }}
 
-  elasticsearch-template-verrazzano.json: |
+  opensearch-template-verrazzano.json: |
     {
-      "index_patterns":"verrazzano-*",
+      "index_patterns":[
+          "verrazzano-system",
+          "verrazzano-application*"
+      ],
       "version":60001,
-      "settings":{
-        "index.refresh_interval":"5s",
-        "index.mapping.total_fields.limit":"2000",
-        "number_of_shards":5,
-        "index.number_of_replicas":0,
-        "index.auto_expand_replicas":"0-1"
-      },
-      "mappings":{
-        "dynamic_templates":[
-          {
-            "message_field":{
-              "path_match":"message",
-              "match_mapping_type":"string",
-              "mapping":{
-                "type":"text",
-                "norms":false
+      "priority": 100,
+      "data_stream": {},
+      "template": {
+        "settings":{
+          "index.refresh_interval":"5s",
+          "index.mapping.total_fields.limit":"2000",
+          "number_of_shards":5,
+          "index.number_of_replicas":0,
+          "index.auto_expand_replicas":"0-1"
+        },
+        "mappings":{
+          "dynamic_templates":[
+            {
+              "message_field":{
+                "path_match":"message",
+                "match_mapping_type":"string",
+                "mapping":{
+                  "type":"text",
+                  "norms":false
+                }
               }
-            }
-          },
-          {
-            "string_fields":{
-              "match":"*",
-              "match_mapping_type":"string",
-              "mapping":{
-                "type":"text",
-                "norms":false,
-                "fields":{
-                  "keyword":{
-                    "type":"keyword",
-                    "ignore_above":256
+            },
+            {
+              "string_fields":{
+                "match":"*",
+                "match_mapping_type":"string",
+                "mapping":{
+                  "type":"text",
+                  "norms":false,
+                  "fields":{
+                    "keyword":{
+                      "type":"keyword",
+                      "ignore_above":256
+                    }
                   }
                 }
               }
             }
-          }
-        ]
+          ]
+        }
       }
     }
 ---

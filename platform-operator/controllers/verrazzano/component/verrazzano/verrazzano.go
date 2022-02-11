@@ -847,8 +847,9 @@ func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 		return err
 	}
 
-	putTemplatePayload := fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)
-	return doPUT(cfg, cli, pod, putTemplatePayload)
+	return nil
+	//putTemplatePayload := fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)
+	//return doPUT(cfg, cli, pod, putTemplatePayload)
 }
 
 func putRetententionPolicy(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, retentionPolicy vzapi.RetentionPolicy, policyName, template string) error {
