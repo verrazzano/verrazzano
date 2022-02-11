@@ -80,7 +80,7 @@ pipeline {
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', description: 'Whether to dump k8s cluster on success (off by default, can be useful to capture for comparing to failed cluster)', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
@@ -471,7 +471,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-install")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-dump")
                     }
                 }
             }
@@ -499,7 +499,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-acceptance-tests-cluster-verify-upgrade")
+                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
                     }
                 }
             }
@@ -598,6 +598,14 @@ pipeline {
                 stage('verify deregister') {
                     steps {
                         verifyDeregisterManagedClusters()
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
+                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-dump")
                     }
                 }
             }
