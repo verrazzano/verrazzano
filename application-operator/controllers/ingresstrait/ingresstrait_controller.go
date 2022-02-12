@@ -155,7 +155,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 		rules = []vzapi.IngressRule{{}}
 	}
 	for index, rule := range rules {
-		secretName := r.createOrUseGatewaySecret(ctx, trait, &status, log)
+		secretName := r.createOrUseGatewaySecret(ctx, trait, rule, &status, log)
 		if secretName != "" {
 			gwName, err := getGatewayName(trait)
 			if err != nil {
@@ -313,13 +313,13 @@ func (r *Reconciler) fetchChildResourcesByAPIVersionKinds(ctx context.Context, n
 
 // createOrUseGatewaySecret will create a certificate that will be embedded in an secret or leverage an existing secret
 // if one is configured in the ingress.
-func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
+func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	var secretName string
 
 	if trait.Spec.TLS != (vzapi.IngressSecurity{}) {
 		secretName = r.validateConfiguredSecret(trait, status)
 	} else {
-		secretName = r.createGatewayCertificate(ctx, trait, status, log)
+		secretName = r.createGatewayCertificate(ctx, trait, rule, status, log)
 	}
 
 	return secretName
@@ -330,7 +330,7 @@ func (r *Reconciler) createOrUseGatewaySecret(ctx context.Context, trait *vzapi.
 // There will be one gateway generated per application.  The generated virtual services will be routed via the
 // application-wide gateway.  This implementation addresses a known Istio traffic management issue
 // (see https://istio.io/v1.7/docs/ops/common-problems/network-issues/#404-errors-occur-when-multiple-gateways-configured-with-same-tls-certificate)
-func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
+func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) string {
 	var secretName string
 	var err error
 	var certName string
@@ -370,12 +370,12 @@ func (r *Reconciler) createGatewayCertificate(ctx context.Context, trait *vzapi.
 		}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, certificate, func() error {
-		appDomainName, err := buildNamespacedDomainName(r, trait)
+		hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
 		if err != nil {
 			return err
 		}
 		certificate.Spec = certapiv1.CertificateSpec{
-			DNSNames:   []string{fmt.Sprintf("*.%s", appDomainName)},
+			DNSNames:   hosts,
 			SecretName: secretName,
 			IssuerRef: certv1.ObjectReference{
 				Name: verrazzanoClusterIssuer,
