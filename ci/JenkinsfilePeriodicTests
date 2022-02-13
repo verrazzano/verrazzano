@@ -509,7 +509,7 @@ def isPagerDutyEnabled() {
 }
 
 def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
+    if (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.equals("release-1.2")) {
         return "H */2 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-1")) {
         return "@daily"
