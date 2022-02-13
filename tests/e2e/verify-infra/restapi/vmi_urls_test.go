@@ -70,7 +70,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 			}
 		})
 
-		t.It("Access VMI endpoints", Label("f:ui.api"), func() {
+		t.It("Access VMI endpoints", ginkgo.FlakeAttempts(5), Label("f:ui.api"), func() {
 			if !isManagedClusterProfile {
 				var api *pkg.APIEndpoint
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
