@@ -5,9 +5,10 @@ package verrazzano
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -26,9 +27,9 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	targetVersion := cr.Spec.Version
 
 	// Only write the upgrade started message once
-	if !isLastCondition(cr.Status, installv1alpha1.UpgradeStarted) {
+	if !isLastCondition(cr.Status, installv1alpha1.CondUpgradeStarted) {
 		err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
-			installv1alpha1.UpgradeStarted)
+			installv1alpha1.CondUpgradeStarted)
 		// Always requeue to get a fresh copy of status and avoid potential conflict
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
@@ -63,7 +64,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			compLog.Errorf("Error upgrading component %s: %v", compName, err)
 			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", compName,
 				fmtGeneration(cr.Generation), err.Error())
-			err := r.updateStatus(log, cr, msg, installv1alpha1.UpgradeFailed)
+			err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeFailed)
 			return ctrl.Result{}, err
 		}
 		compLog.Oncef("Component %s post-upgrade running", compName)
@@ -83,7 +84,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
 	log.Info(msg)
 	cr.Status.Version = targetVersion
-	if err = r.updateStatus(log, cr, msg, installv1alpha1.UpgradeComplete); err != nil {
+	if err = r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
 	}
 
@@ -93,7 +94,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 // Return true if Verrazzano is installed
 func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
 	for _, cond := range st.Conditions {
-		if cond.Type == installv1alpha1.InstallComplete {
+		if cond.Type == installv1alpha1.CondInstallComplete {
 			return true
 		}
 	}

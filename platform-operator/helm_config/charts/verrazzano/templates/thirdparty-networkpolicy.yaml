@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
 # Network policy for WebLogic operator
@@ -540,6 +540,7 @@ spec:
 ---
 # Network policy for Istiod
 # Ingress: allow ingress to port 15012 from verrazzano-system prometheus and keycloak (for Istio proxy sidecar)
+#          allow ingress to port 15012 for application namespaces
 #          allow port 15017 for webhooks
 #          allow port 15014 from system-prometheus to scrape metrics
 # Egress: allow all
@@ -559,6 +560,10 @@ spec:
         - port: 15012
           protocol: TCP
       from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano-managed: "true"
+              istio-injection: enabled
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: {{ .Release.Namespace }}

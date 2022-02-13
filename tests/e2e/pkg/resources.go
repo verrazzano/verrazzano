@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -87,7 +87,7 @@ func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 		uns := &unstructured.Unstructured{
 			Object: map[string]interface{}{},
 		}
-		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns)
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, "")
 		if err != nil {
 			return fmt.Errorf("failed to read resource from bytes: %w", err)
 		}
@@ -116,9 +116,95 @@ func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 	// no return since you can't get here
 }
 
-func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.DeferredDiscoveryRESTMapper, client dynamic.Interface, uns *unstructured.Unstructured) (*meta.RESTMapping, error) {
+// CreateOrUpdateResourceFromFileInGeneratedNamespace creates or updates a Kubernetes resources from a YAML test data file.
+// The test data file is found using the FindTestDataFile function.
+// Namespaces are not in the resource yaml files. They are generated and passed in
+// Resources will be created in the namespace that is passed in
+// This is intended to be equivalent to `kubectl apply`
+// The cluster used is the one set by default in the environment
+func CreateOrUpdateResourceFromFileInGeneratedNamespace(file string, namespace string) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return err
+	}
+
+	return CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, namespace)
+}
+
+// CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace is identical to CreateOrUpdateResourceFromFileInGeneratedNamespace, except that
+// it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
+func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
+	found, err := FindTestDataFile(file)
+	if err != nil {
+		return fmt.Errorf("failed to find test data file: %w", err)
+	}
+	bytes, err := ioutil.ReadFile(found)
+	if err != nil {
+		return fmt.Errorf("failed to read test data file: %w", err)
+	}
+	Log(Info, fmt.Sprintf("Found resource: %s", found))
+
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
+	return createOrUpdateResourceFromBytesInGeneratedNamespace(bytes, config, namespace)
+}
+
+// createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
+// This is intended to be equivalent to `kubectl apply`
+func createOrUpdateResourceFromBytesInGeneratedNamespace(data []byte, config *rest.Config, namespace string) error {
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create discovery client: %w", err)
+	}
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
+
+	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+	for {
+		// Unmarshall the YAML bytes into an Unstructured.
+		uns := &unstructured.Unstructured{
+			Object: map[string]interface{}{},
+		}
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to read resource from bytes: %w", err)
+		}
+		if unsMap == nil {
+			// all resources must have been read
+			return nil
+		}
+		uns.SetNamespace(namespace)
+
+		// Attempt to create the resource.
+		_, err = client.Resource(unsMap.Resource).Namespace(namespace).Create(context.TODO(), uns, metav1.CreateOptions{})
+		if err != nil && errors.IsAlreadyExists(err) {
+			// Get, read the resource version, and then update the resource.
+			resource, err := client.Resource(unsMap.Resource).Namespace(namespace).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to get resource for update: %w", err)
+			}
+			uns.SetResourceVersion(resource.GetResourceVersion())
+			_, err = client.Resource(unsMap.Resource).Namespace(namespace).Update(context.TODO(), uns, metav1.UpdateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to update resource: %w", err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("failed to create resource: %w", err)
+		}
+	}
+	// no return since you can't get here
+}
+
+func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.DeferredDiscoveryRESTMapper, client dynamic.Interface, uns *unstructured.Unstructured, namespace string) (*meta.RESTMapping, error) {
 	// Read one section of the YAML
 	buf, err := reader.Read()
+
 	// Return success if the whole file has been read.
 	if err == io.EOF {
 		return nil, nil
@@ -130,8 +216,12 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 		return nil, fmt.Errorf("failed to unmarshal resource: %w", err)
 	}
 
+	// If namespace is nil, then get it from uns
+	if namespace == "" {
+		namespace = uns.GetNamespace()
+	}
 	// Check to make sure the namespace of the resource exists.
-	_, err = client.Resource(nsGvr).Get(context.TODO(), uns.GetNamespace(), metav1.GetOptions{})
+	_, err = client.Resource(nsGvr).Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to find resource namespace: %w", err)
 	}
@@ -194,7 +284,7 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 		uns := &unstructured.Unstructured{
 			Object: map[string]interface{}{},
 		}
-		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns)
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, "")
 		if err != nil {
 			return fmt.Errorf("failed to read resource from bytes: %w", err)
 		}
@@ -207,6 +297,72 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 		err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
 			fmt.Printf("Failed to delete %s/%v", uns.GetNamespace(), uns.GroupVersionKind())
+		}
+	}
+}
+
+// DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
+// This is intended to be equivalent to `kubectl delete`
+// The test data file is found using the FindTestDataFile function.
+func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return err
+	}
+	return DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, namespace)
+}
+
+// DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
+// it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
+func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
+	found, err := FindTestDataFile(file)
+	if err != nil {
+		return fmt.Errorf("failed to find test data file: %w", err)
+	}
+	bytes, err := ioutil.ReadFile(found)
+	if err != nil {
+		return fmt.Errorf("failed to read test data file: %w", err)
+	}
+	return deleteResourceFromBytesInGeneratedNamespace(bytes, kubeconfigPath, namespace)
+}
+
+// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// This is intended to be equivalent to `kubectl delete`
+func deleteResourceFromBytesInGeneratedNamespace(data []byte, kubeconfigPath string, namespace string) error {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return fmt.Errorf("failed to get kube config: %w", err)
+	}
+	client, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create dynamic client: %w", err)
+	}
+	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to create discovery client: %w", err)
+	}
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(disco))
+
+	reader := utilyaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(data)))
+	for {
+		// Unmarshall the YAML bytes into an Unstructured.
+		uns := &unstructured.Unstructured{
+			Object: map[string]interface{}{},
+		}
+		unsMap, err := readNextResourceFromBytes(reader, mapper, client, uns, namespace)
+		if err != nil {
+			return fmt.Errorf("failed to read resource from bytes: %w", err)
+		}
+		if unsMap == nil {
+			// all resources must have been read
+			return nil
+		}
+
+		// Delete the resource.
+		err = client.Resource(unsMap.Resource).Namespace(namespace).Delete(context.TODO(), uns.GetName(), metav1.DeleteOptions{})
+		if err != nil && !errors.IsNotFound(err) {
+			fmt.Printf("Failed to delete %s/%v", namespace, uns.GroupVersionKind())
 		}
 	}
 }

@@ -244,10 +244,6 @@ func main() {
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
 				&webhooks.MetricsTraitDefaulter{},
-				&webhooks.NetPolicyDefaulter{
-					Client:          mgr.GetClient(),
-					NamespaceClient: kubeClient.CoreV1().Namespaces(),
-				},
 			},
 		}
 		mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})

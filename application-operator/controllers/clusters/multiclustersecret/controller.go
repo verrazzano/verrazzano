@@ -5,8 +5,9 @@ package multiclustersecret
 
 import (
 	"context"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,9 +15,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 )
 
 // Reconciler reconciles a MultiClusterSecret object
@@ -33,7 +31,20 @@ const finalizerName = "multiclustersecret.verrazzano.io"
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	res, err := r.doReconcile(req)
+	ctx := context.Background()
+	var mcSecret clustersv1alpha1.MultiClusterSecret
+	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
+	if err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("mcsecret", req.NamespacedName, &mcSecret)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for multi-cluster secret", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling multi-cluster secret resource %v, generation %v", req.NamespacedName, mcSecret.Generation)
+
+	res, err := r.doReconcile(ctx, mcSecret, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -43,23 +54,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	log.Oncef("Finished reconciling multi-cluster secret %v", req.NamespacedName)
+
 	return ctrl.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the MC secret
-func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "mcsecret")
-	var mcSecret clustersv1alpha1.MultiClusterSecret
-	result := reconcile.Result{}
-	ctx := context.Background()
-	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
-	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog(err, log)
-	}
-
+func (r *Reconciler) doReconcile(ctx context.Context, mcSecret clustersv1alpha1.MultiClusterSecret, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	// delete the wrapped resource since MC is being deleted
 	if !mcSecret.ObjectMeta.DeletionTimestamp.IsZero() {
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 		if err != nil {
 			log.Errorf("Failed to delete associated secret and finalizer: %v", err)
 		}
@@ -72,17 +76,17 @@ func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 			// This must be done whether the resource is placed in this cluster or not, because we
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
-			err = r.Status().Update(ctx, &mcSecret)
+			err := r.Status().Update(ctx, &mcSecret)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 		// if this mc secret is no longer placed on this cluster, remove the associated secret
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcSecret, finalizerName, &corev1.Secret{}, types.NamespacedName{Namespace: mcSecret.Namespace, Name: mcSecret.Name})
 		return ctrl.Result{}, err
 	}
 
-	log.Debugw("MultiClusterSecret create or update with underlying secret",
+	log.Debug("MultiClusterSecret create or update with underlying secret",
 		"secret", mcSecret.Spec.Template.Metadata.Name,
 		"placement", mcSecret.Spec.Placement.Clusters[0].Name)
 	opResult, err := r.createOrUpdateSecret(ctx, mcSecret)

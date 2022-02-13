@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.10.4",
+              "tag": "1.10.4-2",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.4",
+              "tag": "1.10.4-2",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -196,18 +196,18 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.2.0-20220131204315-c976ec4",
+              "tag": "1.2.0-20220209203427-95ad7e7",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.4",
+              "tag": "1.10.4-2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
               "image": "grafana",
-              "tag": "v7.2.1-2",
+              "tag": "v7.5.11",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -216,13 +216,13 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "elasticsearch",
-              "tag": "7.10.2-20211220140552-8bd728ed",
+              "image": "opensearch",
+              "tag": "1.2.3-20220207214930-833b159de83",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
-              "image": "kibana",
-              "tag": "7.10.2-20220121142821-1799c88",
+              "image": "opensearch-dashboards",
+              "tag": "1.2.0-20220209174907-c1f2500d38",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -242,7 +242,7 @@
             },
             {
               "image": "console",
-              "tag": "1.2.0-20220204151623-ce5b0e2",
+              "tag": "1.2.0-20220209203857-5478c38",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -351,7 +351,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.34.1",
+              "tag": "v1.34.1-1",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -397,7 +397,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220128192225-140df53584",
+              "tag": "15.0.2-20220209090418-a7c16adfc3",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -42,7 +42,7 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
@@ -168,21 +168,6 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-	            }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -730,19 +715,7 @@ def getEffectiveDumpOnSuccess() {
 // Called in parallel Stage console of Stage Run Acceptance Tests
 def acceptanceTestsConsole(dumpRoot) {
     try {
-        sh """
-            # Temporarily clone the console repo until it is moved to the Verrazzano repo
-            export DUMP_DIRECTORY=${dumpRoot}/console
-            cd ${GO_REPO_PATH}
-            if [ ! -d console ]; then
-                git clone https://${DOCKER_CREDS_USR}:${DOCKER_CREDS_PSW}@github.com/verrazzano/console.git
-            fi
-            cd console
-            git checkout ${params.CONSOLE_REPO_BRANCH}
-            git pull origin ${params.CONSOLE_REPO_BRANCH}
-            # Run the tests
-            make run-ui-tests
-        """
+        sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
     } catch (err) {
         saveConsoleScreenShots()
         error "${err}"
