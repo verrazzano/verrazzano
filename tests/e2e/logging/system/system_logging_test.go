@@ -104,6 +104,35 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
+	t.It("contains valid verrazzano-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-system")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
+
+		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-system index
+		// With field
+		//	kubernetes.labels.app.keyword==verrazzano-application-operator,
+		//  kubernetes.labels.app.keyword==verrazzano-monitoring-operator,
+		//  kubernetes.labels.app.keyword==verrazzano-operator
+		// WHEN Log messages are retrieved from Elasticsearch
+		// THEN Verify there are valid log records
+		if !validateVAOLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with Verrazzano Application Operator log records in verrazzano-system index")
+		}
+		if !validateVMOLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with Verrazzano Monitoring Operator log records in verrazzano-system index")
+		}
+		if !validateVOLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with Verrazzano Operator log records in verrazzano-system index")
+		}
+	})
+
 	t.It("contains cert-manager index with valid records", func() {
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cert-manager namespace is retrieved
