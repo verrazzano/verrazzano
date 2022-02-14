@@ -24,6 +24,7 @@ const (
 	systemIndex          = "verrazzano-namespace-verrazzano-system"
 	installIndex         = "verrazzano-namespace-verrazzano-install"
 	certMgrIndex         = "verrazzano-namespace-cert-manager"
+	keycloakIndex        = "verrazzano-namespace-keycloak"
 )
 
 var (
@@ -119,6 +120,26 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			t.Logs.Info("Found problems with log records in cert-manager index")
 		}
 	})
+
+	t.It("contains valid Keycloak index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the Keycloak namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(keycloakIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-namepace-keycloak")
+
+		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-keycloak index
+		// With field kubernetes.labels.app.kubernetes.io/name=keycloak
+		// WHEN Log messages are retrieved from Elasticsearch
+		// THEN Verify there are valid log records
+		valid := true
+		valid = validateKeycloakLogs() && valid
+		if !valid {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in Keycloak index")
+		}
+	})
 })
 
 func validateAuthProxyLogs() bool {
@@ -193,6 +214,16 @@ func validateCertManagerLogs() bool {
 		certMgrIndex,
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateKeycloakLogs() bool {
+	return validateElasticsearchRecords(
+		basicElasticsearchRecordValidator,
+		keycloakIndex,
+		"kubernetes.labels.app.kubernetes.io/name",
+		"keycloak",
 		searchTimeWindow,
 		noExceptions)
 }
