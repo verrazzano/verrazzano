@@ -105,7 +105,7 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
 	})
 
-	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
+	t.Context("for Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
 		indexName := "verrazzano-namespace-" + namespace
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {

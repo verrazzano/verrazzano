@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	t = framework.NewTestFramework("bobsbooks")
+	t                  = framework.NewTestFramework("bobsbooks")
 	generatedNamespace = pkg.GenerateNamespace("bobs-books")
 )
 
@@ -168,7 +168,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	})
-	t.Context("Ingress.", Label("f:mesh.ingress"), func() {
+	t.Context("Ingress.", Label("f:mesh.ingress"), FlakeAttempts(5), func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the roberts-books UI is accessed
@@ -216,7 +216,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
-	t.Context("Metrics.", Label("f:observability.monitoring.prom"), func() {
+	t.Context("Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		// Verify application Prometheus scraped metrics
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
