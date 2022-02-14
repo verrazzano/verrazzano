@@ -184,7 +184,6 @@ pipeline {
                         kubectl get nodes
                         echo "run kubectl get pods"
                         kubectl get pods
-                        kubectl create ns mytest-ns
                     '''
                 }
             }
