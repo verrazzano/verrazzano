@@ -130,7 +130,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	vz := context.EffectiveCR()
 	defer os.Remove(tmpFile.Name())
 	if vz.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio, vz.Spec.Profile)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
