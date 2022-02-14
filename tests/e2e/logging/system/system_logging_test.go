@@ -187,6 +187,36 @@ func validateVPOLogs() bool {
 		noExceptions)
 }
 
+func validateVAOLogs() bool {
+	return validateElasticsearchRecords(
+		basicElasticsearchRecordValidator,
+		installIndex,
+		"kubernetes.labels.app.keyword",
+		"verrazzano-application-operator",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateVMOLogs() bool {
+	return validateElasticsearchRecords(
+		basicElasticsearchRecordValidator,
+		installIndex,
+		"kubernetes.labels.app.keyword",
+		"verrazzano-monitoring-operator",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateVOLogs() bool {
+	return validateElasticsearchRecords(
+		basicElasticsearchRecordValidator,
+		installIndex,
+		"kubernetes.labels.app.keyword",
+		"verrazzano-operator",
+		searchTimeWindow,
+		noExceptions)
+}
+
 func validateCertManagerLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
