@@ -141,14 +141,14 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	t.Context("Logging", func() {
-		indexName := "verrazzano-application"
+		indexName := "verrazzano-namespace-hello-helidon-dep"
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		t.It("Verify Elasticsearch index exists on admin cluster", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFoundInCluster(".ds-verrazzano-application-000001", adminKubeconfig)
+				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
 		})
 

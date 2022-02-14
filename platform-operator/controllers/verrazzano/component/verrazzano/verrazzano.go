@@ -4,17 +4,13 @@
 package verrazzano
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -24,14 +20,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/fs"
 	"io/ioutil"
-
 	appsv1 "k8s.io/api/apps/v1"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	neturl "net/url"
 	"os"
 	"os/exec"
@@ -39,7 +33,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 	"strings"
-	"text/template"
 	"time"
 )
 
@@ -61,163 +54,6 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
-)
-
-const indexTemplatePayload = `{
-    "index_patterns":[
-		"verrazzano-system",
-		"verrazzano-application*"
-    ],
-    "version":60001,
-    "priority": 100,
-    "data_stream": {},
-    "template": {
-        "settings":{
-            "index.refresh_interval":"5s",
-            "index.mapping.total_fields.limit":"2000",
-            "number_of_shards":5,
-            "index.number_of_replicas":0,
-            "index.auto_expand_replicas":"0-1"
-        },
-        "mappings":{
-            "dynamic_templates":[
-            {
-                "message_field":{
-                "path_match":"message",
-                "match_mapping_type":"string",
-                "mapping":{
-                    "type":"text",
-                    "norms":false
-                }
-                }
-            },
-            {
-                "string_fields":{
-                "match":"*",
-                "match_mapping_type":"string",
-                "mapping":{
-                    "type":"text",
-                    "norms":false,
-                    "fields":{
-                    "keyword":{
-                        "type":"keyword",
-                        "ignore_above":256
-                    }
-                    }
-                }
-                }
-            }
-            ]
-        }
-    }
-}`
-
-const (
-	minIndexAge        = "min_index_age"
-	defaultMinIndexAge = "7d"
-)
-
-const systemISMPayloadTemplate = `{
-    "policy": {
-        "policy_id": "system_ingest_delete",
-        "description": "Verrazzano Index policy to rollover and delete system indices",
-        "schema_version": 12,
-        "error_notification": null,
-        "default_state": "ingest",
-        "states": [
-            {
-                "name": "ingest",
-                "actions": [
-                    {
-                        "rollover": {
-                            "min_index_age": "1d"
-                        }
-                    }
-                ],
-                "transitions": [
-                    {
-                        "state_name": "delete",
-                        "conditions": {
-                            "min_index_age": "{{ .min_index_age }}"
-                        }
-                    }
-                ]
-            },
-            {
-                "name": "delete",
-                "actions": [
-                    {
-                        "delete": {}
-                    }
-                ],
-                "transitions": []
-            }
-        ],
-        "ism_template": {
-          "index_patterns": [
-            "verrazzano-system"
-          ],
-          "priority": 1
-        }
-    }
-}`
-
-const applicationISMPayloadTemplate = `{
-    "policy": {
-        "policy_id": "application_ingest_delete",
-        "description": "Verrazzano Index policy to rollover and delete application indices",
-        "schema_version": 12,
-        "error_notification": null,
-        "default_state": "ingest",
-        "states": [
-            {
-                "name": "ingest",
-                "actions": [
-                    {
-                        "rollover": {
-                            "min_index_age": "1d"
-                        }
-                    }
-                ],
-                "transitions": [
-                    {
-                        "state_name": "delete",
-                        "conditions": {
-                            "min_index_age": "{{ .min_index_age }}"
-                        }
-                    }
-                ]
-            },
-            {
-                "name": "delete",
-                "actions": [
-                    {
-                        "delete": {}
-                    }
-                ],
-                "transitions": []
-            }
-        ],
-        "ism_template": {
-          "index_patterns": [
-            "verrazzano-application*"
-          ],
-          "priority": 1
-        }
-    }
-}`
-
-type (
-	ISMPolicy struct {
-		PrimaryTerm    int `json:"_primary_term"`
-		SequenceNumber int `json:"_seq_no"`
-		Status         int `json:"status"`
-	}
-	uriComponents struct {
-		host   string
-		port   string
-		scheme string
-	}
 )
 
 var (
@@ -568,6 +404,85 @@ func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
 	return false, ""
 }
 
+func createAndLabelNamespaces(ctx spi.ComponentContext) error {
+	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
+		return err
+	}
+	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
+		return err
+	}
+	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
+	}
+	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
+		return err
+	}
+	if isVMOEnabled(ctx.EffectiveCR()) {
+		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
+		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating Verrazzano Monitoring namespace: %v", err)
+		}
+		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
+		}
+	}
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
+		}
+	}
+	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
+			true, false); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating Rancher operator system namespace %s: %v", globalconst.RancherOperatorSystemNamespace, err)
+		}
+	}
+	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
+	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed creating Rancher namespace: %v", err)
+	}
+	return nil
+}
+
+// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
+func LabelKubeSystemNamespace(client clipkg.Client) error {
+	const KubeSystemNamespace = "kube-system"
+	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
+		if ns.Labels == nil {
+			ns.Labels = make(map[string]string)
+		}
+		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
+func loggingPreInstall(ctx spi.ComponentContext) error {
+	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
+		// If fluentd is enabled, copy any custom secrets
+		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
+		if fluentdConfig != nil {
+			// Copy the external Elasticsearch secret
+			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.DefaultElasticsearchSecretName {
+				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
+					return err
+				}
+			}
+			// Copy the OCI API secret
+			if fluentdConfig.OCI != nil && len(fluentdConfig.OCI.APISecret) > 0 {
+				if err := copySecret(ctx, fluentdConfig.OCI.APISecret, "OCI API"); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
 // ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
@@ -648,85 +563,6 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 	return err
 }
 
-func createAndLabelNamespaces(ctx spi.ComponentContext) error {
-	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if err := namespace.CreateVerrazzanoSystemNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoSystemNamespace); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
-	}
-	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if isVMOEnabled(ctx.EffectiveCR()) {
-		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
-		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Verrazzano Monitoring namespace: %v", err)
-		}
-		if _, err := secret.CheckImagePullSecret(ctx.Client(), globalconst.VerrazzanoMonitoringNamespace); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed checking for image pull secret: %v", err)
-		}
-	}
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateKeycloakNamespace(ctx.Client()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
-		}
-	}
-	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
-			true, false); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Rancher operator system namespace %s: %v", globalconst.RancherOperatorSystemNamespace, err)
-		}
-	}
-	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
-	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating Rancher namespace: %v", err)
-	}
-	return nil
-}
-
-// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
-func LabelKubeSystemNamespace(client clipkg.Client) error {
-	const KubeSystemNamespace = "kube-system"
-	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
-		if ns.Labels == nil {
-			ns.Labels = make(map[string]string)
-		}
-		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
-		return nil
-	}); err != nil {
-		return err
-	}
-	return nil
-}
-
-// loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
-func loggingPreInstall(ctx spi.ComponentContext) error {
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		// If fluentd is enabled, copy any custom secrets
-		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
-		if fluentdConfig != nil {
-			// Copy the external Elasticsearch secret
-			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.DefaultElasticsearchSecretName {
-				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
-					return err
-				}
-			}
-			// Copy the OCI API secret
-			if fluentdConfig.OCI != nil && len(fluentdConfig.OCI.APISecret) > 0 {
-				if err := copySecret(ctx, fluentdConfig.OCI.APISecret, "OCI API"); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
 // copySecret copies a secret from the verrazzano-install namespace to the verrazzano-system namespace. If
 // the target secret already exists, then it will be updated if necessary.
 func copySecret(ctx spi.ComponentContext, secretName string, logMsg string) error {
@@ -778,224 +614,6 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 	return true
 }
 
-//cleanTempFiles - Clean up the override temp files in the temp dir
-func cleanTempFiles(ctx spi.ComponentContext) {
-	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
-		ctx.Log().Errorf("Failed deleting temp files: %v", err)
-	}
-}
-
-func isOpenSearchReady(ctx spi.ComponentContext, namespace string) ([]corev1.Pod, bool) {
-	pods, err := getPodsWithReadyContainer(ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
-	if err != nil {
-		return nil, false
-	}
-	if len(pods) < 1 {
-		return nil, false
-	}
-	return pods, true
-}
-
-func makeBashCommand(command string) []string {
-	return []string{
-		"bash",
-		"-c",
-		command,
-	}
-}
-
-func doPUT(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, cmd string) error {
-	command := "curl -X PUT -H 'Content-Type: application/json' localhost:9200/" + cmd
-	_, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, makeBashCommand(command))
-	return err
-}
-
-var ConfigureIndexManagement = func(ctx spi.ComponentContext, namespace string) error {
-	cr := ctx.EffectiveCR()
-	log := ctx.Log()
-	if !vzconfig.IsElasticsearchEnabled(cr) {
-		log.Debug("Skipping DataStream setup, backend is disabled")
-		return nil
-	}
-	pods, ok := isOpenSearchReady(ctx, namespace)
-	if !ok {
-		return fmt.Errorf("cannot create data stream, %s container is not ready yet", containerName)
-	}
-	pod := &pods[0]
-	return doSetupViaOpenSearchAPI(ctx, pod)
-}
-
-//doSetupViaOpenSearchAPI creates the ISM Policy and Index Template
-func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
-	cfg, cli, err := k8sutil.ClientConfig()
-	if err != nil {
-		return err
-	}
-
-	var policies = vzapi.RetentionPolicies{}
-	cr := ctx.EffectiveCR()
-	if cr.Spec.Components.Elasticsearch != nil {
-		policies = cr.Spec.Components.Elasticsearch.RetentionPolicies
-	}
-
-	// Create Retention Policy for Verrazzano Applications
-	if err := putRetententionPolicy(cfg, cli, pod, policies.Application, "verrazzano-application", applicationISMPayloadTemplate); err != nil {
-		return err
-	}
-	// Create ISM Policy for Verrazzano System
-	if err := putRetententionPolicy(cfg, cli, pod, policies.System, "verrazzano-system", systemISMPayloadTemplate); err != nil {
-		return err
-	}
-
-	return nil
-	//putTemplatePayload := fmt.Sprintf("_index_template/verrazzano-data-stream -d '%s'", indexTemplatePayload)
-	//return doPUT(cfg, cli, pod, putTemplatePayload)
-}
-
-func putRetententionPolicy(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, retentionPolicy vzapi.RetentionPolicy, policyName, template string) error {
-	// Skip ISM Creation if disabled
-	if retentionPolicy.Enabled != nil && !*retentionPolicy.Enabled {
-		return nil
-	}
-	// Check if Policy exists or not
-	getCommand := makeBashCommand(fmt.Sprintf("curl 'localhost:9200/_plugins/_ism/policies/%s'", policyName))
-	getResponse, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, getCommand)
-	if err != nil {
-		return err
-	}
-	serverPolicy := &ISMPolicy{}
-	if err := json.Unmarshal([]byte(getResponse), serverPolicy); err != nil {
-		return err
-	}
-
-	// Create payload for updating ISM Policy
-	payload, err := formatISMPayload(retentionPolicy, template)
-	if err != nil {
-		return err
-	}
-
-	// If Policy doesn't exist, PUT it. If Policy exists, POST it.
-	var cmd string
-	if serverPolicy.Status == notFound {
-		cmd = fmt.Sprintf("curl -X PUT -H 'Content-Type: application/json' 'localhost:9200/_plugins/_ism/policies/%s' -d '%s'", policyName, payload)
-	} else {
-		cmd = fmt.Sprintf("curl -X POST -H 'Content-Type: application/json' 'localhost:9200/_plugins/_ism/policies/%s?if_seq_no=%d&if_primary_term=%d' -d '%s'",
-			policyName,
-			serverPolicy.SequenceNumber,
-			serverPolicy.PrimaryTerm,
-			payload,
-		)
-	}
-	containerCommand := makeBashCommand(cmd)
-	_, _, err = k8sutil.ExecPod(cli, cfg, pod, containerName, containerCommand)
-	return err
-}
-
-func formatISMPayload(retentionPolicy vzapi.RetentionPolicy, payload string) (string, error) {
-	tmpl, err := template.New("lifecycleManagement").
-		Option("missingkey=error").
-		Parse(payload)
-	if err != nil {
-		return "", err
-	}
-	values := make(map[string]string)
-	putOrDefault := func(value *string, key, defaultValue string) {
-		if value == nil {
-			values[key] = defaultValue
-		} else {
-			values[key] = *value
-		}
-	}
-	putOrDefault(retentionPolicy.MinAge, minIndexAge, defaultMinIndexAge)
-	buffer := &bytes.Buffer{}
-	if err := tmpl.Execute(buffer, values); err != nil {
-		return "", err
-	}
-	return buffer.String(), nil
-}
-
-// fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
-func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
-	// Only apply this fix to clusters with Elasticsearch enabled.
-	if !vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary on managed cluster.")
-		return nil
-	}
-
-	// Only apply this fix to clusters being upgraded from a source version before 1.1.0.
-	ver1_1_0, err := semver.NewSemVersion("v1.1.0")
-	if err != nil {
-		return err
-	}
-	sourceVer, err := semver.NewSemVersion(ctx.ActualCR().Status.Version)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed Elasticsearch post-upgrade: Invalid source Verrazzano version: %v", err)
-	}
-	if sourceVer.IsGreatherThan(ver1_1_0) || sourceVer.IsEqualTo(ver1_1_0) {
-		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary for source Verrazzano version %v.", sourceVer.ToString())
-		return nil
-	}
-
-	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
-	pods, err := waitForReadyESContainers(ctx, namespace)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed getting the Elasticsearch pods during post-upgrade: %v", err)
-	}
-	if len(pods) == 0 {
-		return ctx.Log().ErrorfNewErr("Failed to find Elasticsearch pods during post-upgrade: %v", err)
-	}
-	pod := pods[0]
-
-	// Find the Elasticsearch HTTP control container port.
-	httpPort, err := getNamedContainerPortOfContainer(pod, containerName, portName)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to find HTTP port of Elasticsearch container during post-upgrade: %v", err)
-	}
-	if httpPort <= 0 {
-		return ctx.Log().ErrorfNewErr("Failed to find Elasticsearch port during post-upgrade: %v", err)
-	}
-
-	// Set the the number of replicas for the Verrazzano indices
-	// to something valid in single node Elasticsearch cluster
-	ctx.Log().Debug("Elasticsearch Post Upgrade: Getting the health of the Elasticsearch cluster")
-	getCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
-		fmt.Sprintf("curl -v -XGET -s -k --fail http://localhost:%d/_cluster/health", httpPort))
-	output, err := getCmd.Output()
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post upgrade: error getting the Elasticsearch cluster health: %v", err)
-	}
-	ctx.Log().Debugf("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %s", string(output))
-	// If the data node count is seen as 1 then the node is considered as single node cluster
-	if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
-		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
-		putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
-			fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
-		_, err = putCmd.Output()
-		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post-upgrade: Error logging into Elasticsearch: %v", err)
-		}
-		ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
-	}
-	ctx.Log().Debug("Elasticsearch Post Upgrade: Completed successfully")
-	return nil
-}
-
-func waitForReadyESContainers(ctx spi.ComponentContext, namespace string) ([]corev1.Pod, error) {
-	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
-	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 15*time.Second, 5*time.Minute, containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
-	if err != nil {
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Error getting the Elasticsearch pods: %s", err)
-		return nil, err
-	}
-	if len(pods) == 0 {
-		err := fmt.Errorf("no pods found")
-		ctx.Log().Errorf("Elasticsearch Post Upgrade: Failed to find Elasticsearch pods: %s", err)
-		return nil, err
-	}
-
-	return pods, nil
-}
-
 func getNamedContainerPortOfContainer(pod corev1.Pod, containerName string, portName string) (int32, error) {
 	for _, container := range pod.Spec.Containers {
 		if container.Name == containerName {
@@ -1037,5 +655,12 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 			return pods, err
 		}
 		time.Sleep(retryDelay)
+	}
+}
+
+//cleanTempFiles - Clean up the override temp files in the temp dir
+func cleanTempFiles(ctx spi.ComponentContext) {
+	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Failed deleting temp files: %v", err)
 	}
 }

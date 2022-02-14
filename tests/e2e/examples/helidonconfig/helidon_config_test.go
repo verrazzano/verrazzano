@@ -152,7 +152,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
+				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for helidon config")
 		})
 

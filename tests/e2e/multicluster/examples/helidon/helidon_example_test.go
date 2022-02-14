@@ -62,7 +62,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.Describe("In Multi-cluster, verify hello-helidon", func() {
+var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -129,15 +129,15 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", func() {
 		}
 	})
 
-	t.Context("for Logging", func() {
-		indexName := "verrazzano-application"
+	t.Context("for Logging", Label("f:observability.logging.es"), func() {
+		indexName := "verrazzano-namespace-hello-helidon"
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
 		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
 		t.It("Verify Elasticsearch index exists on admin cluster", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFoundInCluster(".ds-verrazzano-application-000001", adminKubeconfig)
+				return pkg.LogIndexFoundInCluster(indexName, adminKubeconfig)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello helidon")
 		})
 
@@ -158,7 +158,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", func() {
 	// GIVEN an admin cluster and at least one managed cluster
 	// WHEN the example application has been deployed to the admin cluster
 	// THEN expect Prometheus metrics for the app to exist in Prometheus on the admin cluster
-	t.Context("for Prometheus Metrics", func() {
+	t.Context("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()

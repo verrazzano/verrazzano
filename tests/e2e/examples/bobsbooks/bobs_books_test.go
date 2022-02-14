@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	t                  = framework.NewTestFramework("bobsbooks")
+	t = framework.NewTestFramework("bobsbooks")
 	generatedNamespace = pkg.GenerateNamespace("bobs-books")
 )
 
@@ -160,7 +160,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 	// GIVEN the Istio gateway for the bobs-books namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", func() {
+	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
 		start := time.Now()
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
@@ -168,7 +168,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	})
-	t.Context("Ingress.", func() {
+	t.Context("Ingress.", Label("f:mesh.ingress"), func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the roberts-books UI is accessed
@@ -216,7 +216,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
-	t.Context("Metrics.", func() {
+	t.Context("Metrics.", Label("f:observability.monitoring.prom"), func() {
 		// Verify application Prometheus scraped metrics
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait
@@ -321,7 +321,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
+				return pkg.LogIndexFound(bobsIndexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+bobsIndexName)
 		})
 		pkg.Concurrently(
@@ -543,7 +543,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		// THEN verify that it is found
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
+				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
 		})
 		pkg.Concurrently(

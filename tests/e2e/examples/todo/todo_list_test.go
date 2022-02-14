@@ -152,13 +152,14 @@ func undeployToDoListExample() {
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("ToDo List test", func() {
+var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
+	"f:app-lcm.weblogic-workload"), func() {
 
 	t.Context("application Deployment.", func() {
 		// GIVEN the ToDoList app is deployed
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist
-		t.It("Verify 'todo-list-todo-appconf-cert-secret' has been created", func() {
+		t.It("Verify 'todo-list-todo-appconf-cert-secret' has been created", Label("f:cert-mgmt"), func() {
 			Eventually(func() (*v1.Secret, error) {
 				return pkg.GetSecret("istio-system", namespace+"-todo-appconf-cert-secret")
 			}, longWaitTimeout, longPollingInterval).ShouldNot(BeNil())
@@ -182,7 +183,7 @@ var _ = t.Describe("ToDo List test", func() {
 
 	})
 
-	t.Context("Ingress.", func() {
+	t.Context("Ingress.", Label("f:mesh.ingress"), func() {
 		var host = ""
 		var err error
 		// Get the host from the Istio gateway resource.
@@ -224,7 +225,7 @@ var _ = t.Describe("ToDo List test", func() {
 		})
 	})
 
-	t.Context("Metrics.", func() {
+	t.Context("Metrics.", Label("f:observability.monitoring.prom"), func() {
 		// Verify Prometheus scraped metrics
 		// GIVEN a deployed WebLogic application
 		// WHEN the application configuration uses a default metrics trait
@@ -253,7 +254,7 @@ var _ = t.Describe("ToDo List test", func() {
 		// THEN verify that it is found
 		It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
-				return pkg.LogIndexFound(".ds-verrazzano-application-000001")
+				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for todo-list")
 		})
 

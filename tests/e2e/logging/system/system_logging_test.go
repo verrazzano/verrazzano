@@ -24,7 +24,6 @@ const (
 	systemIndex          = "verrazzano-namespace-verrazzano-system"
 	installIndex         = "verrazzano-namespace-verrazzano-install"
 	certMgrIndex         = "verrazzano-namespace-cert-manager"
-	keycloakIndex        = "verrazzano-namespace-keycloak"
 )
 
 var (
@@ -105,35 +104,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
-	t.It("contains valid verrazzano-system index with valid records", func() {
-		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
-		// THEN verify that it is found
-		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-system")
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
-
-		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-system index
-		// With field
-		//	kubernetes.labels.app.keyword==verrazzano-application-operator,
-		//  kubernetes.labels.app.keyword==verrazzano-monitoring-operator,
-		//  kubernetes.labels.app.keyword==verrazzano-operator
-		// WHEN Log messages are retrieved from Elasticsearch
-		// THEN Verify there are valid log records
-		if !validateVAOLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with Verrazzano Application Operator log records in verrazzano-system index")
-		}
-		if !validateVMOLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with Verrazzano Monitoring Operator log records in verrazzano-system index")
-		}
-		if !validateVOLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with Verrazzano Operator log records in verrazzano-system index")
-		}
-	})
-
 	t.It("contains cert-manager index with valid records", func() {
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cert-manager namespace is retrieved
@@ -147,27 +117,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in cert-manager index")
-		}
-	})
-
-	t.It("contains valid Keycloak index with valid records", func() {
-		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the Keycloak namespace is retrieved
-		// THEN verify that it is found
-		Eventually(func() bool {
-			return pkg.LogIndexFound(keycloakIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-namepace-keycloak")
-
-		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-keycloak index
-		// With field kubernetes.labels.app.kubernetes.io/name=keycloak
-		// WHEN Log messages are retrieved from Elasticsearch
-		// THEN Verify there are valid log records
-		valid := true
-		valid = validateKeycloakLogs() && valid
-		valid = validateKeycloakMySQLLogs() && valid
-		if !valid {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in Keycloak index")
 		}
 	})
 })
@@ -238,62 +187,12 @@ func validateVPOLogs() bool {
 		noExceptions)
 }
 
-func validateVAOLogs() bool {
-	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
-		installIndex,
-		"kubernetes.labels.app.keyword",
-		"verrazzano-application-operator",
-		searchTimeWindow,
-		noExceptions)
-}
-
-func validateVMOLogs() bool {
-	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
-		installIndex,
-		"kubernetes.labels.app.keyword",
-		"verrazzano-monitoring-operator",
-		searchTimeWindow,
-		noExceptions)
-}
-
-func validateVOLogs() bool {
-	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
-		installIndex,
-		"kubernetes.labels.app.keyword",
-		"verrazzano-operator",
-		searchTimeWindow,
-		noExceptions)
-}
-
 func validateCertManagerLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
 		certMgrIndex,
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
-		searchTimeWindow,
-		noExceptions)
-}
-
-func validateKeycloakLogs() bool {
-	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
-		keycloakIndex,
-		"kubernetes.labels.app.kubernetes.io/name",
-		"keycloak",
-		searchTimeWindow,
-		noExceptions)
-}
-
-func validateKeycloakMySQLLogs() bool {
-	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
-		keycloakIndex,
-		"app",
-		"mysql",
 		searchTimeWindow,
 		noExceptions)
 }
