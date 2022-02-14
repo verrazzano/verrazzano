@@ -430,19 +430,19 @@ func logLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 	if val, ok := hit["level"]; !ok || len(val.(string)) == 0 {
 		pkg.Log(pkg.Info, "Log record has missing or empty level field")
 		return false
-	} else {
-		//level := val.(string)
-		// Put this validation back in when the OAM logging is fixed.
-		// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
-		// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
-		// 	valid = false
-		// }
-		// There is an Istio proxy error that causes this to fail.
-		// Put this validation back in when that is addressed.
-		//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
-		//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
-		//	valid = false
-		//}
 	}
+	//level := val.(string)
+	// Put this validation back in when the OAM logging is fixed.
+	// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
+	// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
+	// 	valid = false
+	// }
+	// There is an Istio proxy error that causes this to fail.
+	// Put this validation back in when that is addressed.
+	//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
+	//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
+	//	valid = false
+	//}
+
 	return true
 }
