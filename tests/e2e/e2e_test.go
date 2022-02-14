@@ -12,6 +12,8 @@ import (
 	//import tests
 	_ "github.com/verrazzano/verrazzano/tests/e2e/examples/add"
 	_ "github.com/verrazzano/verrazzano/tests/e2e/examples/helidon"
+	_ "github.com/verrazzano/verrazzano/tests/e2e/poc"
+
 )
 
 func TestMain(m *testing.M) {
