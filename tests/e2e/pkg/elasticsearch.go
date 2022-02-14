@@ -469,6 +469,23 @@ func PostElasticsearch(path string, body string) (*HTTPResponse, error) {
 	return resp, err
 }
 
+func ISMPolicyExists(policyName string) (bool, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return false, err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getElasticSearchURL(kubeconfigPath), policyName)
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	return resp.StatusCode == 200, nil
+}
+
 // ElasticQuery describes an Elasticsearch Query
 type ElasticQuery struct {
 	Filters []Match
