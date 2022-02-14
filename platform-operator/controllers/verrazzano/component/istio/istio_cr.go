@@ -117,11 +117,9 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	//	expandedYamls = append(expandedYamls, gatewayYaml)
 	expandedYamls = append(expandedYamls, gatewayYaml)
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
-	//	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
 	if err != nil {
 		return "", err
@@ -155,7 +153,6 @@ func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) 
 	data.EgressReplicaCount = istioComponent.Egress.Kubernetes.Replicas
 
 	if istioComponent.Ingress.Kubernetes.Affinity != nil {
-		//		yml, err := yaml.Marshal(k8sConfig.Affinity.PodAntiAffinity)
 		yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
 		if err != nil {
 			return "", err
@@ -164,7 +161,6 @@ func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) 
 	}
 
 	if istioComponent.Egress.Kubernetes.Affinity != nil {
-		//		yml, err := yaml.Marshal(k8sConfig.Affinity.PodAntiAffinity)
 		yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Affinity)
 		if err != nil {
 			return "", err
