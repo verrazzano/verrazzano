@@ -312,6 +312,7 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             echo in runGinkgoRandomize ${KUBECONFIG}
+            cat ${KUBECONFIG}
             ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
     }
