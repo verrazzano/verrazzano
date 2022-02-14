@@ -462,7 +462,7 @@ data:
       reserve_data true
       emit_invalid_record_to_error true
       <parse>
-        # Grafana has two formats for log records
+        # Grafana has one formats for log records
         @type multi_format
         <pattern>
           format /^t=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\+\d{4} lvl=(?<@level>\S+) msg="(?<@message>.*?)".*?$/
@@ -475,7 +475,7 @@ data:
       </parse>
     </filter>
     
-    # filter to parse Grafana container log files
+    # filter to apply a record transformer Grafana container log files in JSON format
     <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
       @type record_transformer
       @id grafana-json
