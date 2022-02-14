@@ -176,8 +176,7 @@ pipeline {
                         ls -ls ${KUBECONFIG}
                         sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
                         cat ${KUBECONFIG}
-
-			# updating kubeconfig with sa
+                        # updating kubeconfig with sa
                         cd ${GO_REPO_PATH}/verrazzano/
                         ci/scripts/update_lre_kubeconfig.sh
 
@@ -185,6 +184,7 @@ pipeline {
                         kubectl get nodes
                         echo "run kubectl get pods"
                         kubectl get pods
+                        kubectl create ns mytest-ns
                     '''
                 }
             }
@@ -199,7 +199,7 @@ pipeline {
                         kubectl get nodes
                         echo "run kubectl get pods"
                         kubectl get pods
-                        '''
+                    '''
                 }
             }
         }
@@ -219,15 +219,6 @@ pipeline {
                 stage('istio authorization policy') {
                     steps {
                         runGinkgo('istio/authz')
-                    }
-                }
-                stage('security network policies') {
-                    steps {
-                        script {
-                            if (params.CREATE_CLUSTER_USE_CALICO == true) {
-                                runGinkgo('security/netpol')
-                            }
-                        }
                     }
                 }
                 stage('security role based access') {
@@ -318,7 +309,8 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
+            echo ${KUBECONFIG}
+            ginkgo -p --kubeconfig=${KUBECONFIG} --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
     }
 }
@@ -327,7 +319,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color ${testSuitePath}/...
+            ginkgo -v --kubeconfig=${KUBECONFIG} --keep-going --no-color ${testSuitePath}/...
         """
     }
 }
@@ -336,7 +328,7 @@ def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color examples/socks/...
+            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --kubeconfig=${KUBECONFIG} --keep-going --no-color examples/socks/...
         """
     }
 }
