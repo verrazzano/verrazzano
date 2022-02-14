@@ -168,7 +168,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 		t.It("Elasticsearch verrazzano-system Index should be accessible", Label("f:observability.logging.es"),
 			func() {
-				indexName := "verrazzano-namespace-verrazzano-system"
+				indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-system", "verrazzano-system")
 				pkg.Concurrently(
 					func() {
 						Eventually(func() bool {

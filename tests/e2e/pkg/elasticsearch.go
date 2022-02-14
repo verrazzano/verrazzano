@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/ginkgo/v2"
 	"html/template"
 	"net/http"
 	"os"
@@ -25,6 +26,19 @@ const (
 	// ISO8601Layout defines the timestamp format
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
+
+func GetOpenSearchIndex(oldIndex, newIndex string) string {
+	isVersion1_3_0, err := IsVerrazzanoMinVersion("1.3.0")
+	if err != nil {
+		ginkgo.Fail(err.Error())
+		return ""
+	}
+
+	if isVersion1_3_0 {
+		return newIndex
+	}
+	return oldIndex
+}
 
 func UseExternalElasticsearch() bool {
 	return os.Getenv("EXTERNAL_ELASTICSEARCH") == "true"

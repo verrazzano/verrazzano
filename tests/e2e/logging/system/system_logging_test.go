@@ -68,7 +68,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-system")
+			indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-system", "verrazzano-system")
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
 
 		valid := true
@@ -89,7 +90,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the verrazzano-install namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-install")
+			indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-install", "verrazzano-system")
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-install")
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-install index
@@ -109,7 +111,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the cert-manager namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-cert-manager")
+			indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-cert-manager", "verrazzano-system")
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cert-manager")
 
 		valid := true

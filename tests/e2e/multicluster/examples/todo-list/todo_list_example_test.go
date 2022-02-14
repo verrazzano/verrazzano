@@ -197,7 +197,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 	})
 
 	t.Context("for Logging", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-mc-todo-list"
+		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-mc-todo-list", "verrazzano-application")
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster

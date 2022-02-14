@@ -247,7 +247,7 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-" + namespace
+		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-" + namespace, "verrazzano-application")
 
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
