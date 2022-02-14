@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	t = framework.NewTestFramework("bobsbooks")
+	t                  = framework.NewTestFramework("bobsbooks")
 	generatedNamespace = pkg.GenerateNamespace("bobs-books")
 )
 
@@ -315,7 +315,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
-		bobsIndexName := pkg.GetOpenSearchIndex("verrazzano-namespace-" + namespace, "verrazzano-application")
+		bobsIndexName := pkg.GetOpenSearchIndex("verrazzano-namespace-"+namespace, "verrazzano-application")
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -537,7 +537,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		)
 	})
 	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-" + namespace, "verrazzano-application")
+		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-"+namespace, "verrazzano-application")
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found

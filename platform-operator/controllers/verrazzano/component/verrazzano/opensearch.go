@@ -119,7 +119,7 @@ const applicationISMPayloadTemplate = `{
 
 type (
 	ISMPolicy struct {
-		Id             string `json:"_id"`
+		ID             string `json:"_id"`
 		PrimaryTerm    int    `json:"_primary_term"`
 		SequenceNumber int    `json:"_seq_no"`
 		Status         int    `json:"status"`
@@ -236,7 +236,7 @@ func putRetententionPolicy(cfg *rest.Config, cli kubernetes.Interface, pod *core
 	// which could be due to timing.
 	addPolicyCmd := fmt.Sprintf(`curl -X POST -H 'Content-Type: application/json' 'localhost:9200/_plugins/_ism/add/%s' -d '{"policy_id": "%s"}'`,
 		policyIndexPattern,
-		createdPolicy.Id)
+		createdPolicy.ID)
 	_, _, err = k8sutil.ExecPod(cli, cfg, pod, containerName, makeBashCommand(addPolicyCmd))
 	return err
 }
