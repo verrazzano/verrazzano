@@ -464,7 +464,7 @@ data:
       <parse>
         # Prometheus has two formats for log records
         # One with a level and msg
-        # One with a level but not message
+        # One with a level but not msg
         @type multi_format
         <pattern>
           format /^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (.*?)msg="(?<message>.*?)"([\s\S]*?)$/
