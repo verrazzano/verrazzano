@@ -462,7 +462,8 @@ data:
       reserve_data true
       emit_invalid_record_to_error true
       <parse>
-        # Grafana has one formats for log records
+        # Grafana has two formats for log records
+        # one for json logs and one for string logs
         @type multi_format
         <pattern>
           format json
@@ -489,8 +490,8 @@ data:
       emit_invalid_record_to_error true
       enable_ruby
       <record>
-        message ${record["@message"] ? record["@message"] : record["message"]}
-        level ${record["@level"] ? record["@level"] : record["level"]}
+        message ${record["@message"] ? record["@message"] : record["message"] ? record["message"] : ""}
+        level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}
       </record>
     </filter>
   
