@@ -1015,6 +1015,10 @@ func (r *Reconciler) procDelete(ctx context.Context, log *zap.SugaredLogger, vz 
 					return newRequeueWithDelay(), err
 				}
 			}
+
+			delete(initializedSet, vz.Name)
+			// Uninstall is done, all cleanup is finished, and finalizer removed.
+			return ctrl.Result{}, nil
 		}
 	}
 	return reconcile.Result{}, nil
