@@ -245,13 +245,16 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(coherenceMetricExists(), waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appComponentMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appConfigMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 			)
 		})
@@ -334,18 +337,22 @@ func sockshopPodsRunning() bool {
 	return pkg.PodsRunning(namespace, expectedPods)
 }
 
-// appMetricsExists checks whether app related metrics are available
-func appMetricsExists() bool {
+// appMetricExists checks whether app related metrics are available
+func appMetricExists() bool {
 	return pkg.MetricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
 }
 
-// appComponentMetricsExists checks whether component related metrics are available
-func appComponentMetricsExists() bool {
+func coherenceMetricExists() bool {
+	return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "Orders")
+}
+
+// appComponentMetricExists checks whether component related metrics are available
+func appComponentMetricExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
 }
 
-// appConfigMetricsExists checks whether config metrics are available
-func appConfigMetricsExists() bool {
+// appConfigMetricExists checks whether config metrics are available
+func appConfigMetricExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
 
