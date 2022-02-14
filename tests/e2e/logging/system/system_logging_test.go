@@ -283,7 +283,7 @@ func validateGrafanaLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
 		systemIndex,
-		"app",
+		"kubernetes.labels.app.keyword",
 		"system-grafana",
 		searchTimeWindow,
 		noExceptions)
@@ -303,7 +303,7 @@ func validateKeycloakMySQLLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
 		keycloakIndex,
-		"app",
+		"kubernetes.labels.app.keyword",
 		"mysql",
 		searchTimeWindow,
 		noExceptions)
