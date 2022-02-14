@@ -6,7 +6,6 @@ package metricstrait
 import (
 	"context"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"regexp"
 	"strconv"
 	"time"
@@ -16,6 +15,8 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
@@ -207,32 +208,36 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=metricstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=metricstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	res, err := r.doReconcile(req)
+	ctx := context.Background()
+	// Fetch the trait.
+	var err error
+	var trait *vzapi.MetricsTrait
+	if trait, err = vznav.FetchTrait(ctx, r, zap.S(), req.NamespacedName); err != nil || trait == nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+
+	log, err := clusters.GetResourceLogger("metricstrait", req.NamespacedName, trait)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for metrics trait", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling metrics trait resource %v, generation %v", req.NamespacedName, trait.Generation)
+
+	res, err := r.doReconcile(ctx, trait, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
-	// Never return an error since it has already been logged and we don't want the
-	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
-		return clusters.NewRequeueWithDelay(), nil
+		return clusters.NewRequeueWithDelay(), err
 	}
+
+	log.Oncef("Finished reconciling metrics trait %v", req.NamespacedName)
 
 	return ctrl.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the metrics trait
-func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "metricstrait")
-	var err error
-
-	// Fetch the trait.
-	var trait *vzapi.MetricsTrait
-	if trait, err = vznav.FetchTrait(ctx, r, log, req.NamespacedName); err != nil || trait == nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
-	}
-	log.Debugf("Trait %s fetched, finalizer: %s", trait, trait.Finalizers)
-
+func (r *Reconciler) doReconcile(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	if trait.DeletionTimestamp.IsZero() {
 		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, trait, log)
 		if err != nil {
@@ -249,7 +254,7 @@ func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 // reconcileTraitDelete reconciles a metrics trait that is being deleted.
-func (r *Reconciler) reconcileTraitDelete(ctx context.Context, trait *vzapi.MetricsTrait, log *zap.SugaredLogger) (ctrl.Result, error) {
+func (r *Reconciler) reconcileTraitDelete(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) (ctrl.Result, error) {
 	status := r.deleteOrUpdateObsoleteResources(ctx, trait, &reconcileresults.ReconcileResults{}, log)
 	// Only remove the finalizer if all related resources were successfully updated.
 	if !status.ContainsErrors() {
@@ -259,7 +264,7 @@ func (r *Reconciler) reconcileTraitDelete(ctx context.Context, trait *vzapi.Metr
 }
 
 // reconcileTraitCreateOrUpdate reconciles a metrics trait that is being created or updated.
-func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vzapi.MetricsTrait, log *zap.SugaredLogger) (ctrl.Result, bool, error) {
+func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) (ctrl.Result, bool, error) {
 	var err error
 
 	// Add finalizer if required.
@@ -308,7 +313,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 
 // addFinalizerIfRequired adds the finalizer to the trait if required
 // The finalizer is only added if the trait is not being deleted and the finalizer has not previously been added
-func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, log *zap.SugaredLogger) error {
+func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) error {
 	if trait.GetDeletionTimestamp().IsZero() && !vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
 		log.Debugf("Adding finalizer from trait %s", traitName)
@@ -323,7 +328,7 @@ func (r *Reconciler) addFinalizerIfRequired(ctx context.Context, trait *vzapi.Me
 
 // removeFinalizerIfRequired removes the finalizer from the trait if required
 // The finalizer is only removed if the trait is being deleted and the finalizer had been added
-func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, log *zap.SugaredLogger) error {
+func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) error {
 	if !trait.DeletionTimestamp.IsZero() && vzstring.SliceContainsString(trait.Finalizers, finalizerName) {
 		traitName := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
 		log.Debugf("Removing finalizer from trait %s", traitName)
@@ -338,7 +343,7 @@ func (r *Reconciler) removeFinalizerIfRequired(ctx context.Context, trait *vzapi
 
 // createOrUpdateRelatedResources creates or updates resources related to this trait
 // The related resources are the workload children and the Prometheus config
-func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, deployment *k8sapps.Deployment, children []*unstructured.Unstructured, log *zap.SugaredLogger) *reconcileresults.ReconcileResults {
+func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, deployment *k8sapps.Deployment, children []*unstructured.Unstructured, log vzlog2.VerrazzanoLogger) *reconcileresults.ReconcileResults {
 	status := reconcileresults.ReconcileResults{}
 	for _, child := range children {
 		switch child.GroupVersionKind() {
@@ -371,7 +376,7 @@ func (r *Reconciler) createOrUpdateRelatedResources(ctx context.Context, trait *
 // deleteOrUpdateObsoleteResources deletes or updates resources that should no longer be related to this trait.
 // This includes previous scrapers when the scraper has changed.
 // This also includes previous workload children that are no longer referenced.
-func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait *vzapi.MetricsTrait, status *reconcileresults.ReconcileResults, log *zap.SugaredLogger) *reconcileresults.ReconcileResults {
+func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait *vzapi.MetricsTrait, status *reconcileresults.ReconcileResults, log vzlog2.VerrazzanoLogger) *reconcileresults.ReconcileResults {
 	// For each reference in the trait status references but not in the reconcile status
 	//   For references of role "scraper" attempt to remove the scrape config
 	//   For references of role "source" attempt to remove the scrape annotations
@@ -405,7 +410,7 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 // deleteOrUpdateMetricSourceResource deletes or updates the related resources that are the source of metrics.
 // These are the children of the workloads.  For example for containerized workloads these are deployments.
 // For WLS workloads these are pods.
-func (r *Reconciler) deleteOrUpdateMetricSourceResource(ctx context.Context, trait *vzapi.MetricsTrait, rel vzapi.QualifiedResourceRelation, log *zap.SugaredLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) deleteOrUpdateMetricSourceResource(ctx context.Context, trait *vzapi.MetricsTrait, rel vzapi.QualifiedResourceRelation, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	child := unstructured.Unstructured{}
 	child.SetAPIVersion(rel.APIVersion)
 	child.SetKind(rel.Kind)
@@ -427,7 +432,7 @@ func (r *Reconciler) deleteOrUpdateMetricSourceResource(ctx context.Context, tra
 
 // deleteOrUpdateScraperConfigMap cleans up a scraper (i.e. Prometheus) configmap.
 // The scraper config for the trait is removed if present.
-func (r *Reconciler) deleteOrUpdateScraperConfigMap(ctx context.Context, trait *vzapi.MetricsTrait, rel vzapi.QualifiedResourceRelation, log *zap.SugaredLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) deleteOrUpdateScraperConfigMap(ctx context.Context, trait *vzapi.MetricsTrait, rel vzapi.QualifiedResourceRelation, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	deployment := &k8sapps.Deployment{}
 	err := r.Get(ctx, client.ObjectKey{Namespace: rel.Namespace, Name: rel.Name}, deployment)
 	if err != nil {
@@ -442,7 +447,7 @@ func (r *Reconciler) deleteOrUpdateScraperConfigMap(ctx context.Context, trait *
 // trait - The trait to update scrape_config rules for.
 // traitDefaults - Default to use for values not provided in the trait.
 // deployment - The Prometheus deployment.
-func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, deployment *k8sapps.Deployment, log *zap.SugaredLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, deployment *k8sapps.Deployment, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	rel := vzapi.QualifiedResourceRelation{APIVersion: deployment.APIVersion, Kind: deployment.Kind, Name: deployment.Name, Namespace: deployment.Namespace, Role: scraperRole}
 
 	// Fetch the secret by name if it is provided in either the trait or the trait defaults.
@@ -506,7 +511,7 @@ func (r *Reconciler) updatePrometheusScraperConfigMap(ctx context.Context, trait
 }
 
 // fetchPrometheusDeploymentFromTrait fetches the Prometheus deployment from information in the trait.
-func (r *Reconciler) fetchPrometheusDeploymentFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, log *zap.SugaredLogger) (*k8sapps.Deployment, error) {
+func (r *Reconciler) fetchPrometheusDeploymentFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, log vzlog2.VerrazzanoLogger) (*k8sapps.Deployment, error) {
 	scraperRef := trait.Spec.Scraper
 	if scraperRef == nil {
 		scraperRef = traitDefaults.Scraper
@@ -525,7 +530,7 @@ func (r *Reconciler) fetchPrometheusDeploymentFromTrait(ctx context.Context, tra
 }
 
 // findPrometheusScrapeConfigMapNameFromDeployment finds the Prometheus configmap name from the Prometheus deployment.
-func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment *k8sapps.Deployment, log *zap.SugaredLogger) (string, error) {
+func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment *k8sapps.Deployment, log vzlog2.VerrazzanoLogger) (string, error) {
 	volumes := deployment.Spec.Template.Spec.Volumes
 	for _, volume := range volumes {
 		if volume.Name == "config-volume" && volume.ConfigMap != nil && len(volume.ConfigMap.Name) > 0 {
@@ -539,7 +544,7 @@ func (r *Reconciler) findPrometheusScrapeConfigMapNameFromDeployment(deployment 
 
 // updateRelatedDeployment updates the labels and annotations of a related workload deployment.
 // For example containerized workloads produce related deployments.
-func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured, log *zap.SugaredLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	log.Debugf("Update workload deployment %s", vznav.GetNamespacedNameFromUnstructured(child))
 	ref := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
 	deployment := &k8sapps.Deployment{
@@ -558,14 +563,14 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 	})
 	if err != nil && !apierrors.IsNotFound(err) {
 		_, err = vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to update workload child deployment %s: %v", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta).Name, err),
-			err, log)
+			err, zap.S())
 	}
 	return ref, res, err
 }
 
 // updateRelatedStatefulSet updates the labels and annotations of a related workload stateful set.
 // For example coherence workloads produce related stateful sets.
-func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured, log *zap.SugaredLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	log.Debugf("Update workload stateful set %s", vznav.GetNamespacedNameFromUnstructured(child))
 	ref := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
 	statefulSet := &k8sapps.StatefulSet{
@@ -590,7 +595,7 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 
 // updateRelatedPod updates the labels and annotations of a related workload pod.
 // For example WLS workloads produce related pods.
-func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured, log *zap.SugaredLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, child *unstructured.Unstructured, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	log.Debug("Update workload pod %s", vznav.GetNamespacedNameFromUnstructured(child))
 	rel := vzapi.QualifiedResourceRelation{APIVersion: child.GetAPIVersion(), Kind: child.GetKind(), Namespace: child.GetNamespace(), Name: child.GetName(), Role: sourceRole}
 	pod := &k8score.Pod{
@@ -615,22 +620,21 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 
 // updateTraitStatus updates the trait's status conditions and resources if they have changed.
 // The return value can be used as the result of the Reconcile method.
-func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.MetricsTrait, results *reconcileresults.ReconcileResults, log *zap.SugaredLogger) (reconcile.Result, error) {
+func (r *Reconciler) updateTraitStatus(ctx context.Context, trait *vzapi.MetricsTrait, results *reconcileresults.ReconcileResults, log vzlog2.VerrazzanoLogger) (reconcile.Result, error) {
 	name := vznav.GetNamespacedNameFromObjectMeta(trait.ObjectMeta)
 
 	// If the status content has changed persist the updated status.
 	if trait.DeletionTimestamp.IsZero() && updateStatusIfRequired(&trait.Status, results) {
 		err := r.Status().Update(ctx, trait)
 		if err != nil {
-			log.Errorf("Failed to update metrics trait %s status: %v", name.Name, err)
-			return reconcile.Result{}, err
+			return vzlog.IgnoreConflictWithLog(fmt.Sprintf("Failed to update metrics trait %s status", name.Name), err, zap.S())
 		}
 		log.Debugf("Updated metrics trait %s status", name.Name)
 	}
 
 	// If the results contained errors then requeue immediately.
 	if results.ContainsErrors() {
-		log.Errorf("Failed to reconcile metrics trait %s: %v", name, results.Errors)
+		vzlog.ResultErrorsWithLog(fmt.Sprintf("Failed to reconcile metrics trait %s", name), results.Errors, zap.S())
 		return reconcile.Result{Requeue: true}, nil
 	}
 
@@ -729,7 +733,7 @@ func (r *Reconciler) fetchSourceCredentialsSecretIfRequired(ctx context.Context,
 
 // fetchTraitDefaults fetches metrics trait default values.
 // These default values are workload type dependent.
-func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructured.Unstructured, log *zap.SugaredLogger) (*vzapi.MetricsTraitSpec, bool, error) {
+func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructured.Unstructured, log vzlog2.VerrazzanoLogger) (*vzapi.MetricsTraitSpec, bool, error) {
 	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
 	if err != nil {
 		return nil, true, err

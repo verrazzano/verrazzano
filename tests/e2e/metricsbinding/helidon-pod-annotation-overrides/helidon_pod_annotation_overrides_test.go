@@ -1,13 +1,15 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helidonsharednamespace
+package helidonpodannotation
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/metricsbinding"
@@ -21,16 +23,23 @@ const (
 	shortPollingInterval = 10 * time.Second
 	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
-	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment.yaml"
-	templatePath         = "tests/e2e/metricsbinding/testdata/hello-helidon-metrics-template.yaml"
+	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment-pod-annotated.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
+
+	PrometheusPortAnnotation   = "prometheus.io/port"
+	PrometheusPathAnnotation   = "prometheus.io/path"
+	PrometheusScrapeAnnotation = "prometheus.io/scrape"
+
+	PrometheusPortDefault    = "8080"
+	PrometheusPathDefault    = "/metrics"
+	PrometheusScrapeOverride = "false"
 )
 
-var t = framework.NewTestFramework("helidonsharednamespace")
+var t = framework.NewTestFramework("helidonpodannotation")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, nil)
+	metricsbinding.DeployApplication(namespace, yamlPath)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -55,8 +64,8 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	})
 
 	// GIVEN the Helidon app is deployed and the pods are running
-	// WHEN the Prometheus metrics in the app namespace are scraped
-	// THEN the Helidon application metrics should exist using the default metrics template for deployments
+	// WHEN the Prometheus metrics in the app namespace are scraped with the scrape endpoint set to false
+	// THEN the Helidon application metrics should not exist
 	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Check Prometheus config map for scrape target", func() {
 			Eventually(func() bool {
@@ -65,11 +74,36 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 		})
 		t.It("Retrieve Prometheus scraped metrics for 'hello-helidon-deployment' Pod", func() {
 			Eventually(func() bool {
+				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+					return false
+				}
+				clientset, err := pkg.GetKubernetesClientsetForCluster(kubeconfigPath)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error creating clientset from kubeconfig, error: %v", err))
+					return false
+				}
+				pods, err := pkg.ListPodsInCluster("hello-helidon-namespace", clientset)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods in the namespace hello-helidon-namespace, error: %v", err))
+					return false
+				}
+				podItems := pods.Items
+				if len(podItems) != 1 {
+					return false
+				}
+				podAnnotations := podItems[0].GetAnnotations()
+				return podAnnotations[PrometheusPortAnnotation] == PrometheusPortDefault &&
+					podAnnotations[PrometheusPathAnnotation] == PrometheusPathDefault &&
+					podAnnotations[PrometheusScrapeAnnotation] == PrometheusScrapeOverride
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Prometheus annotations in the pod.")
+			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app_verrazzano_io_workload", "hello-helidon-deployment-apps-v1-deployment")
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
+			}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), "Expected not to find Prometheus scraped metrics for Helidon application.")
 			Eventually(func() bool {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "test_namespace", "hello-helidon-namespace-test")
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
+			}, shortWaitTimeout, shortPollingInterval).Should(BeFalse(), "Expected not to find Prometheus scraped metrics for Helidon application.")
 		})
 	})
 })

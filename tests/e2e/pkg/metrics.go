@@ -207,8 +207,11 @@ func DoesMetricsTemplateExist(namespacedName types.NamespacedName) bool {
 func IsAppInPromConfig(configAppName string) bool {
 	promConfig, err := GetConfigMap(promConfigmap, constants.VerrazzanoSystemNamespace)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Prometheus configmap, error: %v", err))
 		return false
 	}
-	return strings.Contains(promConfig.Data[dataKey], configAppName)
+	found := strings.Contains(promConfig.Data[dataKey], configAppName)
+	if !found {
+		Log(Error, fmt.Sprintf("scrap target %s not found in Prometheus configmap", configAppName))
+	}
+	return found
 }

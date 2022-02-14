@@ -142,7 +142,7 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 	// Init the state to Ready if this CR has never been processed
 	// Always requeue to update cache, ignore error since requeue anyway
 	if len(vz.Status.State) == 0 {
-		r.updateState(log, vz, installv1alpha1.Ready)
+		r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		return reconcile.Result{Requeue: true}, nil
 	}
 
@@ -154,15 +154,15 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 
 	// Process CR based on state
 	switch vz.Status.State {
-	case installv1alpha1.Failed:
+	case installv1alpha1.VzStateFailed:
 		return r.ProcFailedState(spiContext)
-	case installv1alpha1.Installing:
+	case installv1alpha1.VzStateInstalling:
 		return r.ProcInstallingState(spiContext)
-	case installv1alpha1.Ready:
+	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(spiContext)
-	case installv1alpha1.Uninstalling:
+	case installv1alpha1.VzStateUninstalling:
 		return r.ProcUninstallingState(spiContext)
-	case installv1alpha1.Upgrading:
+	case installv1alpha1.VzStateUpgrading:
 		return r.ProcUpgradingState(spiContext)
 	default:
 		panic("Invalid Verrazzano contoller state")
@@ -319,9 +319,9 @@ func (r *Reconciler) ProcFailedState(spiCtx spi.ComponentContext) (ctrl.Result, 
 	}
 
 	if retry {
-		// Log the retry and set the StateType to ready, then requeue
+		// Log the retry and set the CompStateType to ready, then requeue
 		log.Debugf("Restart Version annotation has changed, retrying upgrade")
-		err = r.updateState(log, vz, installv1alpha1.Ready)
+		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
@@ -440,10 +440,10 @@ func (r *Reconciler) checkInstallComplete(spiCtx spi.ComponentContext) (bool, er
 	if !ready {
 		return false, nil
 	}
-	// Set install complete IFF all subcomponent status' are "Ready"
+	// Set install complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano install completed successfully"
 	// Status update must be performed on the actual CR read from K8S
-	return true, r.updateStatus(log, actualCR, message, installv1alpha1.InstallComplete)
+	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
 }
 
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
@@ -562,15 +562,15 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 	cr.Status.Conditions = append(cr.Status.Conditions, condition)
 
 	// Set the state of resource
-	cr.Status.State = checkCondtitionType(conditionType)
+	cr.Status.State = conditionToVzState(conditionType)
 	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
 	// Update the status
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
-// updateState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.StateType) error {
+// updateVzState updates the status state in the Verrazzano CR
+func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.VzStateType) error {
 	// Set the state of resource
 	cr.Status.State = state
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
@@ -604,7 +604,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 		}
 		cr.Status.Components[componentName] = componentStatus
 	}
-	if conditionType == installv1alpha1.InstallComplete {
+	if conditionType == installv1alpha1.CondInstallComplete {
 		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
 	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
@@ -626,23 +626,41 @@ func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv
 	return append(compStatus.Conditions, newCondition)
 }
 
-func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.StateType {
+func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
 	switch currentCondition {
-	case installv1alpha1.PreInstall:
-		return installv1alpha1.PreInstalling
-	case installv1alpha1.InstallStarted:
-		return installv1alpha1.Installing
-	case installv1alpha1.UninstallStarted:
-		return installv1alpha1.Uninstalling
-	case installv1alpha1.UpgradeStarted:
-		return installv1alpha1.Upgrading
-	case installv1alpha1.UninstallComplete:
-		return installv1alpha1.Ready
-	case installv1alpha1.InstallFailed, installv1alpha1.UpgradeFailed, installv1alpha1.UninstallFailed:
-		return installv1alpha1.Failed
+	case installv1alpha1.CondPreInstall:
+		return installv1alpha1.CompStatePreInstalling
+	case installv1alpha1.CondInstallStarted:
+		return installv1alpha1.CompStateInstalling
+	case installv1alpha1.CondUninstallStarted:
+		return installv1alpha1.CompStateUninstalling
+	case installv1alpha1.CondUpgradeStarted:
+		return installv1alpha1.CompStateUpgrading
+	case installv1alpha1.CondUninstallComplete:
+		return installv1alpha1.CompStateReady
+	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
+		return installv1alpha1.CompStateFailed
 	}
-	// Return ready for installv1alpha1.InstallComplete, installv1alpha1.UpgradeComplete
-	return installv1alpha1.Ready
+	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
+	return installv1alpha1.CompStateReady
+}
+
+// Convert a condition to a VZ State
+func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv1alpha1.VzStateType {
+	switch currentCondition {
+	case installv1alpha1.CondInstallStarted:
+		return installv1alpha1.VzStateInstalling
+	case installv1alpha1.CondUninstallStarted:
+		return installv1alpha1.VzStateUninstalling
+	case installv1alpha1.CondUpgradeStarted:
+		return installv1alpha1.VzStateUpgrading
+	case installv1alpha1.CondUninstallComplete:
+		return installv1alpha1.VzStateReady
+	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
+		return installv1alpha1.VzStateFailed
+	}
+	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
+	return installv1alpha1.VzStateReady
 }
 
 // setInstallStartedCondition
@@ -654,15 +672,15 @@ func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv
 	}
 
 	vz.Status.Version = bomSemVer.ToString()
-	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.InstallStarted)
+	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted)
 }
 
-// checkComponentReadyState returns true if all component-level status' are "Ready" for enabled components
+// checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
 func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (bool, error) {
 	cr := context.ActualCR()
 	if unitTesting {
 		for _, compStatus := range cr.Status.Components {
-			if compStatus.State != installv1alpha1.Disabled && compStatus.State != installv1alpha1.Ready {
+			if compStatus.State != installv1alpha1.CompStateDisabled && compStatus.State != installv1alpha1.CompStateReady {
 				return false, nil
 			}
 		}
@@ -671,7 +689,7 @@ func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (boo
 
 	// Return false if any enabled component is not ready
 	for _, comp := range registry.GetComponents() {
-		if comp.IsEnabled(context) && cr.Status.Components[comp.Name()].State != installv1alpha1.Ready {
+		if comp.IsEnabled(context) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
 			return false, nil
 		}
 	}
@@ -698,7 +716,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
-			state := installv1alpha1.Disabled
+			state := installv1alpha1.CompStateDisabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
@@ -706,7 +724,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 					return newRequeueWithDelay(), err
 				}
 				if installed {
-					state = installv1alpha1.Ready
+					state = installv1alpha1.CompStateReady
 				}
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
@@ -724,7 +742,7 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, job *batc
 	// If the job has succeeded or failed add the appropriate condition
 	if job.Status.Succeeded != 0 || job.Status.Failed != 0 {
 		for _, condition := range vz.Status.Conditions {
-			if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
+			if condition.Type == installv1alpha1.CondUninstallComplete || condition.Type == installv1alpha1.CondUninstallFailed {
 				return nil
 			}
 		}
@@ -743,11 +761,11 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, job *batc
 		var conditionType installv1alpha1.ConditionType
 		if job.Status.Succeeded == 1 {
 			message = "Successfullly uninstalled Verrazzano"
-			conditionType = installv1alpha1.UninstallComplete
+			conditionType = installv1alpha1.CondUninstallComplete
 			log.Info(message)
 		} else {
 			message = "Failed to uninstall Verrazzano"
-			conditionType = installv1alpha1.UninstallFailed
+			conditionType = installv1alpha1.CondUninstallFailed
 			log.Error(message)
 		}
 		return r.updateStatus(log, vz, message, conditionType)
@@ -755,12 +773,12 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, job *batc
 
 	// Add the uninstall started condition if not already added
 	for _, condition := range vz.Status.Conditions {
-		if condition.Type == installv1alpha1.UninstallStarted {
+		if condition.Type == installv1alpha1.CondUninstallStarted {
 			return nil
 		}
 	}
 
-	return r.updateStatus(log, vz, "Installing Verrazzano", installv1alpha1.UninstallStarted)
+	return r.updateStatus(log, vz, "CompStateInstalling Verrazzano", installv1alpha1.CondUninstallStarted)
 }
 
 // getInternalConfigMap Convenience method for getting the saved install ConfigMap
@@ -1007,8 +1025,8 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 
 	// Remove the finalizer and update the Verrazzano resource if the uninstall has finished.
 	for _, condition := range vz.Status.Conditions {
-		if condition.Type == installv1alpha1.UninstallComplete || condition.Type == installv1alpha1.UninstallFailed {
-			if condition.Type == installv1alpha1.UninstallComplete {
+		if condition.Type == installv1alpha1.CondUninstallComplete || condition.Type == installv1alpha1.CondUninstallFailed {
+			if condition.Type == installv1alpha1.CondUninstallComplete {
 				log.Once("Successfully uninstalled Verrrazzano")
 			} else {
 				log.Once("Failed uninstalling Verraazzano")
@@ -1027,6 +1045,8 @@ func (r *Reconciler) procDelete(ctx context.Context, log vzlog.VerrazzanoLogger,
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
+
+			delete(initializedSet, vz.Name)
 			// Uninstall is done, all cleanup is finished, and finalizer removed.
 			return ctrl.Result{}, nil
 		}

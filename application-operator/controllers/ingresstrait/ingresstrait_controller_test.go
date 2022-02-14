@@ -2214,7 +2214,7 @@ func TestExtractServicesOnlyOneService(t *testing.T) {
 	children := []*unstructured.Unstructured{&u}
 	var extractedServices []*k8score.Service
 	reconciler := Reconciler{}
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children, log)
 	assert.NoError(err)
 	assert.NotNil(extractedServices)
@@ -2246,7 +2246,7 @@ func TestExtractServicesMultipleServices(t *testing.T) {
 	children := []*unstructured.Unstructured{&u1, &u2, &u3}
 	var extractedServices []*k8score.Service
 	reconciler := Reconciler{}
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	extractedServices, err = reconciler.extractServicesFromUnstructuredChildren(children, log)
 	assert.NoError(err)
 	assert.NotNil(extractedServices)

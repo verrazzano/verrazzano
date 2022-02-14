@@ -17,6 +17,8 @@ spec:
     metadata:
       labels:
         app: hello-helidon-application
+      annotations:
+        prometheus.io/scrape: "false"
     spec:
       containers:
       - name: hello-helidon-container

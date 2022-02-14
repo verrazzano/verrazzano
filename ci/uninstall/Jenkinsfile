@@ -172,22 +172,6 @@ pipeline {
                     }
                 }
 
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-                }
-
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -235,53 +219,51 @@ pipeline {
                     VZ_TEST_METRIC = metricJobName('')
                     metricTimerStart("${VZ_TEST_METRIC}")
                 }
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        # Create image pull secret for Verrazzano docker images
-                        cd ${GO_REPO_PATH}/verrazzano
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                sh """
+                    # Create image pull secret for Verrazzano docker images
+                    cd ${GO_REPO_PATH}/verrazzano
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
 
-                        echo "Install Platform Operator"
-                        cd ${GO_REPO_PATH}/verrazzano
-                        if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                            echo "Using operator.yaml from object storage"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                            cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                        else
-                            echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                            env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-                        fi
-                        kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+                    echo "Install Platform Operator"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                        echo "Using operator.yaml from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+                    else
+                        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+                    fi
+                    kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
 
-                        # make sure ns exists
-                        ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+                    # make sure ns exists
+                    ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
-                        # create secret in verrazzano-install ns
-                        ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+                    # create secret in verrazzano-install ns
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
+                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
 
-                        ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
+                    ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
 
-                        echo "Waiting for Operator to be ready"
-                        cd ${GO_REPO_PATH}/verrazzano
-                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                    echo "Waiting for Operator to be ready"
+                    cd ${GO_REPO_PATH}/verrazzano
+                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
-                        echo "Installing Verrazzano on OKE"
-                        kubectl apply -f ${INSTALL_CONFIG_FILE}
+                    echo "Installing Verrazzano on OKE"
+                    kubectl apply -f ${INSTALL_CONFIG_FILE}
 
-                        # wait for Verrazzano install to complete
-                        ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
+                    # wait for Verrazzano install to complete
+                    ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
-                        ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
-                        ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                        echo "----------Test config file:-------------"
-                        cat ${TEST_CONFIG_FILE}
-                        echo "----------------------------------------"
-                    """
-                }
+                    ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
+                    ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
+                    echo "----------Test config file:-------------"
+                    cat ${TEST_CONFIG_FILE}
+                    echo "----------------------------------------"
+                """
             }
             post {
                 always {
@@ -331,19 +313,15 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
+            stages {
                 stage('verify-install') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-install')
-                        }
+                        runGinkgo('verify-install')
                     }
                 }
                 stage('verify-infra restapi') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-infra/restapi')
-                        }
+                        runGinkgo('verify-infra/restapi')
                     }
                 }
             }
@@ -364,11 +342,9 @@ pipeline {
 
         stage('Uninstall Verrazzano') {
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        kubectl delete verrazzano my-verrazzano
-                    """
-                }
+                sh """
+                    kubectl delete verrazzano my-verrazzano
+                """
             }
             post {
                 always {
@@ -481,19 +457,15 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
+            stages {
                 stage('verify-install') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-install')
-                        }
+                        runGinkgo('verify-install')
                     }
                 }
                 stage('verify-infra restapi') {
                     steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            runGinkgo('verify-infra/restapi')
-                        }
+                        runGinkgo('verify-infra/restapi')
                     }
                 }
             }
