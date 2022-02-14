@@ -452,25 +452,40 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
-                // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
-                //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
-                // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
-                // and put a host header in the corresponding calls to the app.
-                stage('generic-springboot') {
-                    environment {
-                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
-                    }
+
+            stages {
+                stage('verify-install') {
                     steps {
-                        script {
-                            runGinkgo('examples/springboot')
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                cd ${WORKSPACE}/tests/e2e
+                                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                            """
                         }
                     }
-                    post {
-                        always {
-                            dumpGenericSpringbootObjects()
-                            dumpGenericSpringbootLogs()
+                }
+                stage('springboot') {
+                    parallel {
+                        // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
+                        //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
+                        // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
+                        // and put a host header in the corresponding calls to the app.
+                        stage('generic-springboot') {
+                            environment {
+                                DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
+                            }
+                            steps {
+                                script {
+                                    runGinkgo('examples/springboot')
+                                }
+                            }
+                            post {
+                                always {
+                                    dumpGenericSpringbootObjects()
+                                    dumpGenericSpringbootLogs()
+                                }
+                            }
                         }
                     }
                 }
@@ -485,17 +500,6 @@ pipeline {
             }
 
             stages {
-                stage('verify-install') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                cd ${WORKSPACE}/tests/e2e
-                                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
-                            """
-                        }
-                    }
-                }
-
                 stage('run-acceptance-tests') {
                     parallel {
                         stage('metrics') {

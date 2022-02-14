@@ -393,7 +393,7 @@ pipeline {
                 failure {
                     script {
                         if (fileExists(env.TESTS_EXECUTED_FILE)) {
-                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
+                            dumpK8sCluster('upgrade-failure-cluster-dump')
                         }
                     }
                 }
