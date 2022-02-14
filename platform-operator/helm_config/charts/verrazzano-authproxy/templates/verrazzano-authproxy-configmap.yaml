@@ -8,11 +8,11 @@ metadata:
   name: verrazzano-authproxy-config
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Values.api.name }}
+    app: {{ .Values.name }}
 data:
   conf.lua: |
     local clusterHostSuffix = '{{ .Values.config.envName }}'..'.'..'{{ .Values.config.dnsSuffix }}'
-{{- with .Values.api.proxy }}
+{{- with .Values.proxy }}
     local ingressHost = ngx.req.get_headers()["x-forwarded-host"]
     if not ingressHost then
       ingressHost = ngx.req.get_headers()["host"]
