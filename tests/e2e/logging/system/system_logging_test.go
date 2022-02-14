@@ -69,7 +69,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-system")
+			return pkg.LogIndexFound(pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-system", "verrazzano-system"))
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
 
 		valid := true
@@ -90,7 +90,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the verrazzano-install namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-install")
+			return pkg.LogIndexFound(pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-install", "verrazzano-system"))
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-install")
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-install index
@@ -110,7 +110,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-system")
+			return pkg.LogIndexFound(pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-system", "verrazzano-system"))
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-system index
@@ -139,7 +139,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the cert-manager namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-cert-manager")
+			return pkg.LogIndexFound(pkg.GetOpenSearchIndex("verrazzano-namespace-cert-manager", "verrazzano-system"))
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cert-manager")
 
 		valid := true
@@ -155,7 +155,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the Keycloak namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound(keycloakIndex)
+			return pkg.LogIndexFound(pkg.GetOpenSearchIndex(keycloakIndex, "verrazzano-system"))
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-namepace-keycloak")
 
 		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-keycloak index
@@ -180,7 +180,7 @@ func validateAuthProxyLogs() bool {
 	exceptions = append(exceptions, istioExceptions...)
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, "verrazzano-system"),
 		"kubernetes.labels.app.keyword",
 		"verrazzano-authproxy",
 		searchTimeWindow,
@@ -190,7 +190,7 @@ func validateAuthProxyLogs() bool {
 func validateCoherenceLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, "verrazzano-system"),
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"coherence-operator",
 		searchTimeWindow,
@@ -200,7 +200,7 @@ func validateCoherenceLogs() bool {
 func validateOAMLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, "verrazzano-system"),
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"oam-kubernetes-runtime",
 		searchTimeWindow,
@@ -211,7 +211,7 @@ func validateOAMLogs() bool {
 func validateIstioProxyLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, "verrazzano-system"),
 		"kubernetes.container_name",
 		"istio-proxy",
 		searchTimeWindow,
@@ -221,7 +221,7 @@ func validateIstioProxyLogs() bool {
 func validateKialiLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, "verrazzano-system"),
 		"kubernetes.labels.app_kubernetes_io/part-of",
 		"kiali",
 		searchTimeWindow,
@@ -231,7 +231,7 @@ func validateKialiLogs() bool {
 func validateVPOLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		installIndex,
+		pkg.GetOpenSearchIndex(installIndex, "verrazzano-system"),
 		"kubernetes.labels.app.keyword",
 		"verrazzano-platform-operator",
 		searchTimeWindow,
@@ -241,7 +241,7 @@ func validateVPOLogs() bool {
 func validateVAOLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		installIndex,
+		pkg.GetOpenSearchIndex(installIndex, "verrazzano-system"),
 		"kubernetes.labels.app.keyword",
 		"verrazzano-application-operator",
 		searchTimeWindow,
@@ -251,7 +251,7 @@ func validateVAOLogs() bool {
 func validateVMOLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		installIndex,
+		pkg.GetOpenSearchIndex(installIndex, "verrazzano-system"),
 		"kubernetes.labels.app.keyword",
 		"verrazzano-monitoring-operator",
 		searchTimeWindow,
@@ -261,7 +261,7 @@ func validateVMOLogs() bool {
 func validateVOLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		installIndex,
+		pkg.GetOpenSearchIndex(installIndex, "verrazzano-system"),
 		"kubernetes.labels.app.keyword",
 		"verrazzano-operator",
 		searchTimeWindow,
@@ -271,7 +271,7 @@ func validateVOLogs() bool {
 func validateCertManagerLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		certMgrIndex,
+		pkg.GetOpenSearchIndex(certMgrIndex, "verrazzano-system"),
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
 		searchTimeWindow,
@@ -281,7 +281,7 @@ func validateCertManagerLogs() bool {
 func validateKeycloakLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		keycloakIndex,
+		pkg.GetOpenSearchIndex(keycloakIndex, "verrazzano-system"),
 		"kubernetes.labels.app.kubernetes.io/name",
 		"keycloak",
 		searchTimeWindow,
@@ -291,7 +291,7 @@ func validateKeycloakLogs() bool {
 func validateKeycloakMySQLLogs() bool {
 	return validateElasticsearchRecords(
 		basicElasticsearchRecordValidator,
-		keycloakIndex,
+		pkg.GetOpenSearchIndex(keycloakIndex, "verrazzano-system"),
 		"app",
 		"mysql",
 		searchTimeWindow,

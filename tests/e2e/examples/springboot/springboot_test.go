@@ -24,7 +24,7 @@ var longWaitTimeout = 15 * time.Minute
 var longPollingInterval = 20 * time.Second
 
 var (
-	t = framework.NewTestFramework("springboot")
+	t                  = framework.NewTestFramework("springboot")
 	generatedNamespace = pkg.GenerateNamespace("springboot")
 )
 
@@ -106,7 +106,7 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-namespace-" + namespace
+		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-"+namespace, "verrazzano-application")
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
