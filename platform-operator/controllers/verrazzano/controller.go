@@ -704,7 +704,6 @@ func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (boo
 // via the operator, and when we're done installing.
 func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	if cr.Status.Components == nil {
-		log.Progress("initializeComponentStatus for all components")
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	}
 

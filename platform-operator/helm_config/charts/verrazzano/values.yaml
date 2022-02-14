@@ -87,6 +87,9 @@ console:
   name: verrazzano-console
   # NOTE: The console image now comes from the bill of materials file (verrazzano-bom.json).
 
+# NOTE: Eventually this api section should not be required by the Verrazzano component.
+# Removing them may involve moving some helm templates out of this component (e.g. authorizationpolicy)
+# and there may be upgrade issues to resolve (e.g. making sure the AuthorizationPolicy objects remain in effect).
 api:
   name: verrazzano-authproxy
   port: 8775
