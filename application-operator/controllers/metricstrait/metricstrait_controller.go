@@ -859,8 +859,6 @@ func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcile
 // mutatePrometheusScrapeConfig mutates the Prometheus scrape configuration.
 // Scrap configuration rules will be added, updated, deleted depending on the state of the trait.
 func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (*gabs.Container, error) {
-	oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
-	prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
 	ports := trait.Spec.Ports
 	if len(ports) == 0 {
 		// create a port spec from the existing port
@@ -868,6 +866,8 @@ func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait
 	}
 
 	for i := range ports {
+		oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
+		prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
 		newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(ctx, trait, i, secret, workload, c)
 		if err != nil {
 			return prometheusScrapeConfig, err
