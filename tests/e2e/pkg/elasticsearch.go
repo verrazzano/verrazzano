@@ -33,7 +33,6 @@ func GetOpenSearchIndex(oldIndex, newIndex string) string {
 		ginkgo.Fail(err.Error())
 		return ""
 	}
-
 	if isVersion1_3_0 {
 		return newIndex
 	}
