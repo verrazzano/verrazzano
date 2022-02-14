@@ -76,6 +76,23 @@
       ]
     },
     {
+      "name": "cert-manager-ocidns",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "cert-manager-ocidns",
+          "images": [
+            {
+              "image": "cert-manager-ocidns-provider-jenkins",
+              "tag": "1.1.0-20220228152203-d5fb888",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "external-dns",
       "subcomponents": [
         {

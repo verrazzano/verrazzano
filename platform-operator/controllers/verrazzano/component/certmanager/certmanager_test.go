@@ -96,7 +96,7 @@ func TestIsOCIDNS(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.ocidns, isOCIDNS(tt.vz))
+			assert.Equal(t, tt.ocidns, IsOCIDNS(tt.vz))
 		})
 	}
 }
@@ -209,7 +209,7 @@ func TestIsCertManagerNotReady(t *testing.T) {
 // THEN an error is returned
 func TestIsCANil(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	_, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
+	_, err := IsCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false))
 	assert.Error(t, err)
 }
 
@@ -219,7 +219,7 @@ func TestIsCANil(t *testing.T) {
 // THEN true is returned
 func TestIsCANilWithProfile(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	isCAValue, err := isCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profileDir))
+	isCAValue, err := IsCA(spi.NewFakeContext(client, &vzapi.Verrazzano{}, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -232,7 +232,7 @@ func TestIsCATrue(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	isCAValue, err := IsCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Nil(t, err)
 	assert.True(t, isCAValue)
 }
@@ -245,7 +245,7 @@ func TestIsCAFalse(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	isCAValue, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	isCAValue, err := IsCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Nil(t, err)
 	assert.False(t, isCAValue)
 }
@@ -259,7 +259,7 @@ func TestIsCABothPopulated(t *testing.T) {
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	_, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
+	_, err := IsCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Error(t, err)
 }
 

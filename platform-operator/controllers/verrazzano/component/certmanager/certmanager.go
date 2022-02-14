@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -26,20 +25,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/yaml"
 )
 
 const (
 	certManagerDeploymentName = "cert-manager"
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
-
-	letsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
-	letsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
 
 	caSelfSignedIssuerName = "verrazzano-selfsigned-issuer"
 	caCertificateName      = "verrazzano-ca-certificate"
@@ -52,27 +46,6 @@ const (
 
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
 )
-
-// Template for ClusterIssuer for Acme certificates
-const clusterIssuerTemplate = `
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: verrazzano-cluster-issuer
-spec:
-  acme:
-    email: {{.Email}}
-    server: "{{.Server}}"
-    privateKeySecretRef:
-      name: verrazzano-cert-acme-secret
-    solvers:
-      - dns01:
-          ocidns:
-            useInstancePrincipals: false
-            serviceAccountSecretRef:
-              name: {{.SecretName}}
-              key: "oci.yaml"
-            ocizonename: {{.OCIZoneName}}`
 
 const snippetSubstring = "rfc2136:\n"
 
@@ -104,14 +77,6 @@ var ociDNSSnippet = strings.Split(`ocidns:
   required:
     - ocizonename
   type: object`, "\n")
-
-// Template data for ClusterIssuer
-type templateData struct {
-	Email       string
-	Server      string
-	SecretName  string
-	OCIZoneName string
-}
 
 // CertIssuerType identifies the certificate issuer type
 type CertIssuerType string
@@ -163,17 +128,12 @@ func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) erro
 		return nil
 	}
 
-	isCAValue, err := isCA(compContext)
+	isCAValue, err := IsCA(compContext)
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 	}
-	if !isCAValue {
-		// Create resources needed for Acme certificates
-		err := createAcmeResources(compContext)
-		if err != nil {
-			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
-		}
-	} else {
+	//!isCAValue: certmanagerocidns component will create ClusterIssuer through cert-manager-ocidns-provider
+	if isCAValue {
 		// Create resources needed for CA certificates
 		err := createCAResources(compContext)
 		if err != nil {
@@ -193,7 +153,7 @@ func (c certManagerComponent) applyManifest(compContext spi.ComponentContext) er
 	outputFile := filepath.Join(crdManifestDir, crdOutputFile)
 
 	// Write out CRD Manifests for CertManager
-	err := writeCRD(inputFile, outputFile, isOCIDNS(compContext.EffectiveCR()))
+	err := writeCRD(inputFile, outputFile, IsOCIDNS(compContext.EffectiveCR()))
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed writing CRD Manifests for CertManager: %v", err)
 	}
@@ -217,14 +177,15 @@ func cleanTempFiles(tempFiles ...string) error {
 	return nil
 }
 
-func isOCIDNS(vz *vzapi.Verrazzano) bool {
+// IsOCIDNS checks if the Verrazzano CR is configured with OCI-DNS
+func IsOCIDNS(vz *vzapi.Verrazzano) bool {
 	return vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil
 }
 
 // AppendOverrides Build the set of cert-manager overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Verify that we are using CA certs before appending override
-	isCAValue, err := isCA(compContext)
+	isCAValue, err := IsCA(compContext)
 	if err != nil {
 		err = compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
 		return []bom.KeyValue{}, err
@@ -315,8 +276,8 @@ func createSnippetWithPadding(padding string) []byte {
 	return []byte(builder.String())
 }
 
-// Check if cert-type is CA, if not it is assumed to be Acme
-func isCA(compContext spi.ComponentContext) (bool, error) {
+// IsCA checks if cert-type is CA, if not it is assumed to be Acme
+func IsCA(compContext spi.ComponentContext) (bool, error) {
 	components := compContext.EffectiveCR().Spec.Components
 	if components.CertManager == nil {
 		return false, errors.New("CertManager object is nil")
@@ -334,73 +295,6 @@ func isCA(compContext spi.ComponentContext) (bool, error) {
 	} else {
 		return false, errors.New("Either Acme or CA certificate authorities must be configured")
 	}
-}
-
-func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
-	acmeEnvironment := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme.Environment
-	return acmeEnvironment != "" && acmeEnvironment != "production"
-}
-
-// createAcmeResources creates all of the post install resources necessary for cert-manager
-func createAcmeResources(compContext spi.ComponentContext) error {
-	// Initialize Acme variables for the cluster issuer
-	var ociDNSConfigSecret string
-	var ociDNSZoneName string
-	vzDNS := compContext.EffectiveCR().Spec.Components.DNS
-	vzCertAcme := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.Acme
-	if vzDNS != nil && vzDNS.OCI != nil {
-		ociDNSConfigSecret = vzDNS.OCI.OCIConfigSecret
-		ociDNSZoneName = vzDNS.OCI.DNSZoneName
-	}
-	emailAddress := vzCertAcme.EmailAddress
-
-	// Verify that the secret exists
-	secret := v1.Secret{}
-	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: ComponentNamespace}, &secret); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to retrieve the OCI DNS config secret: %v", err)
-	}
-
-	// Verify the acme environment and set the server
-	acmeServer := letsEncryptProd
-	if isLetsEncryptStaging(compContext) {
-		acmeServer = letsEncryptStage
-	}
-
-	// Create the buffer and the cluster issuer data struct
-	var buff bytes.Buffer
-	clusterIssuerData := templateData{
-		Email:       emailAddress,
-		Server:      acmeServer,
-		SecretName:  ociDNSConfigSecret,
-		OCIZoneName: ociDNSZoneName,
-	}
-
-	// Parse the template string and create the template object
-	template, err := template.New("clusterIssuer").Parse(clusterIssuerTemplate)
-	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to parse the ClusterIssuer yaml template: %v", err)
-	}
-
-	// Execute the template object with the given data
-	err = template.Execute(&buff, &clusterIssuerData)
-	if err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to execute the ClusterIssuer template: %v", err)
-	}
-
-	// Create an unstructured object from the template output
-	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
-	if err := yaml.Unmarshal(buff.Bytes(), ciObject); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to unmarshal yaml: %v", err)
-	}
-
-	// Update or create the unstructured object
-	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), ciObject, func() error {
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
-	}
-	return nil
 }
 
 func createCAResources(compContext spi.ComponentContext) error {

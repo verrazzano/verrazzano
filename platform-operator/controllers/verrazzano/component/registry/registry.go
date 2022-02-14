@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanagerocidns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -55,6 +56,7 @@ func getComponents() []spi.Component {
 			istio.NewComponent(),
 			nginx.NewComponent(),
 			certmanager.NewComponent(),
+			certmanagerocidns.NewComponent(),
 			externaldns.NewComponent(),
 			rancher.NewComponent(),
 			verrazzano.NewComponent(),
