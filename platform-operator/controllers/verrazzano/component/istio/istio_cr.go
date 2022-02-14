@@ -46,9 +46,9 @@ spec:
         enabled: true
         k8s:
           replicaCount: {{.EgressReplicaCount}}
-{{- if .Affinity }}
+{{- if .EgressAffinity }}
           affinity:
-{{ multiLineIndent 12 .Affinity }}
+{{ multiLineIndent 12 .EgressAffinity }}
 {{- end}}
     ingressGateways:
       - name: istio-ingressgateway
@@ -60,17 +60,18 @@ spec:
             externalIPs:
               {{.ExternalIps}}
           {{- end}}
-{{- if .Affinity }}
+{{- if .IngressAffinity }}
           affinity:
-{{ multiLineIndent 12 .Affinity }}
+{{ multiLineIndent 12 .IngressAffinity }}
 {{- end}}
 `
 
 type ReplicaData struct {
 	IngressReplicaCount uint32
 	EgressReplicaCount  uint32
+	IngressAffinity     string
+	EgressAffinity      string
 	ExternalIps         string
-	Affinity            string
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
@@ -112,7 +113,7 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 			expandedYamls = append(expandedYamls, yaml)
 		}
 	}
-	gatewayYaml, err := configureGateways(comp.Kubernetes, fixExternalIPYaml(externalIPYAMLTemplateValue))
+	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
 	if err != nil {
 		return "", err
 	}
@@ -147,19 +148,28 @@ func fixExternalIPYaml(yaml string) string {
 }
 
 // value replicas and create Istio gateway yaml
-func configureGateways(k8sConfig *vzapi.IstioKubernetesSection, externalIP string) (string, error) {
+func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) (string, error) {
 	var data = ReplicaData{}
 
-	data.IngressReplicaCount = k8sConfig.Replicas
-	data.EgressReplicaCount = k8sConfig.Replicas
+	data.IngressReplicaCount = istioComponent.Ingress.Kubernetes.Replicas
+	data.EgressReplicaCount = istioComponent.Egress.Kubernetes.Replicas
 
-	if k8sConfig.Affinity != nil {
+	if istioComponent.Ingress.Kubernetes.Affinity != nil {
 		//		yml, err := yaml.Marshal(k8sConfig.Affinity.PodAntiAffinity)
-		yml, err := yaml.Marshal(k8sConfig.Affinity)
+		yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
 		if err != nil {
 			return "", err
 		}
-		data.Affinity = string(yml)
+		data.IngressAffinity = string(yml)
+	}
+
+	if istioComponent.Egress.Kubernetes.Affinity != nil {
+		//		yml, err := yaml.Marshal(k8sConfig.Affinity.PodAntiAffinity)
+		yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Affinity)
+		if err != nil {
+			return "", err
+		}
+		data.EgressAffinity = string(yml)
 	}
 
 	data.ExternalIps = ""

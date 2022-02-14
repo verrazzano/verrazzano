@@ -38,31 +38,65 @@ var cr1 = vzapi.IstioComponent{
 		},
 	},
 	Enabled: &enabled,
-	Kubernetes: &vzapi.IstioKubernetesSection{
-		CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-			Replicas: 2,
-			Affinity: &corev1.Affinity{
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: nil,
-					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-						{
-							Weight: 100,
-							PodAffinityTerm: corev1.PodAffinityTerm{
-								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: nil,
-									MatchExpressions: []metav1.LabelSelectorRequirement{
-										{
-											Key:      "app",
-											Operator: "In",
-											Values: []string{
-												"istio-ingressgateway",
-												"istio-egressgateway",
+	Ingress: &vzapi.IstioIngressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: 2,
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+							{
+								Weight: 100,
+								PodAffinityTerm: corev1.PodAffinityTerm{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: nil,
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: "In",
+												Values: []string{
+													"istio-ingressgateway",
+												},
 											},
 										},
 									},
+									Namespaces:  nil,
+									TopologyKey: "kubernetes.io/hostname",
 								},
-								Namespaces:  nil,
-								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	Egress: &vzapi.IstioEgressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: 2,
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+							{
+								Weight: 100,
+								PodAffinityTerm: corev1.PodAffinityTerm{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: nil,
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: "In",
+												Values: []string{
+													"istio-egressgateway",
+												},
+											},
+										},
+									},
+									Namespaces:  nil,
+									TopologyKey: "kubernetes.io/hostname",
+								},
 							},
 						},
 					},
@@ -90,7 +124,6 @@ spec:
                   - key: app
                     operator: In
                     values:
-                    - istio-ingressgateway
                     - istio-egressgateway
                 topologyKey: kubernetes.io/hostname
               weight: 100
@@ -109,7 +142,6 @@ spec:
                     operator: In
                     values:
                     - istio-ingressgateway
-                    - istio-egressgateway
                 topologyKey: kubernetes.io/hostname
               weight: 100
         replicaCount: 2
@@ -153,31 +185,65 @@ var cr2 = vzapi.IstioComponent{
 		},
 	},
 	Enabled: &enabled,
-	Kubernetes: &vzapi.IstioKubernetesSection{
-		CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-			Replicas: 1,
-			Affinity: &corev1.Affinity{
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: nil,
-					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-						{
-							Weight: 100,
-							PodAffinityTerm: corev1.PodAffinityTerm{
-								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: nil,
-									MatchExpressions: []metav1.LabelSelectorRequirement{
-										{
-											Key:      "app",
-											Operator: "In",
-											Values: []string{
-												"istio-ingressgateway",
-												"istio-egressgateway",
+	Ingress: &vzapi.IstioIngressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: 1,
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+							{
+								Weight: 100,
+								PodAffinityTerm: corev1.PodAffinityTerm{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: nil,
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: "In",
+												Values: []string{
+													"istio-ingressgateway",
+												},
 											},
 										},
 									},
+									Namespaces:  nil,
+									TopologyKey: "kubernetes.io/hostname",
 								},
-								Namespaces:  nil,
-								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	Egress: &vzapi.IstioEgressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: 1,
+				Affinity: &corev1.Affinity{
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+							{
+								Weight: 100,
+								PodAffinityTerm: corev1.PodAffinityTerm{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: nil,
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: "In",
+												Values: []string{
+													"istio-egressgateway",
+												},
+											},
+										},
+									},
+									Namespaces:  nil,
+									TopologyKey: "kubernetes.io/hostname",
+								},
 							},
 						},
 					},
@@ -205,7 +271,6 @@ spec:
                   - key: app
                     operator: In
                     values:
-                    - istio-ingressgateway
                     - istio-egressgateway
                 topologyKey: kubernetes.io/hostname
               weight: 100
@@ -224,7 +289,6 @@ spec:
                     operator: In
                     values:
                     - istio-ingressgateway
-                    - istio-egressgateway
                 topologyKey: kubernetes.io/hostname
               weight: 100
         replicaCount: 1
@@ -249,41 +313,85 @@ spec:
 // Override Affinity and Replicas
 var cr3 = vzapi.IstioComponent{
 	Enabled: &enabled,
-	Kubernetes: &vzapi.IstioKubernetesSection{
-		CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
-			Replicas: 3,
-			Affinity: &corev1.Affinity{
-				NodeAffinity: &corev1.NodeAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
-						NodeSelectorTerms: nil,
+	Ingress: &vzapi.IstioIngressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: 3,
+				Affinity: &corev1.Affinity{
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: nil,
+						},
+						PreferredDuringSchedulingIgnoredDuringExecution: nil,
 					},
-					PreferredDuringSchedulingIgnoredDuringExecution: nil,
-				},
-				PodAffinity: &corev1.PodAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution:  nil,
-					PreferredDuringSchedulingIgnoredDuringExecution: nil,
-				},
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: nil,
-					PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-						{
-							Weight: 30,
-							PodAffinityTerm: corev1.PodAffinityTerm{
-								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: nil,
-									MatchExpressions: []metav1.LabelSelectorRequirement{
-										{
-											Key:      "app",
-											Operator: "NotIn",
-											Values: []string{
-												"istio-ingressgateway",
-												"istio-egressgateway",
+					PodAffinity: &corev1.PodAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution:  nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: nil,
+					},
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+							{
+								Weight: 30,
+								PodAffinityTerm: corev1.PodAffinityTerm{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: nil,
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: "NotIn",
+												Values: []string{
+													"istio-ingressgateway",
+												},
 											},
 										},
 									},
+									Namespaces:  nil,
+									TopologyKey: "kubernetes.io/hostname",
 								},
-								Namespaces:  nil,
-								TopologyKey: "kubernetes.io/hostname",
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	Egress: &vzapi.IstioEgressSection{
+		Kubernetes: &vzapi.IstioKubernetesSection{
+			CommonKubernetesSpec: vzapi.CommonKubernetesSpec{
+				Replicas: 3,
+				Affinity: &corev1.Affinity{
+					NodeAffinity: &corev1.NodeAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+							NodeSelectorTerms: nil,
+						},
+						PreferredDuringSchedulingIgnoredDuringExecution: nil,
+					},
+					PodAffinity: &corev1.PodAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution:  nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: nil,
+					},
+					PodAntiAffinity: &corev1.PodAntiAffinity{
+						RequiredDuringSchedulingIgnoredDuringExecution: nil,
+						PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+							{
+								Weight: 30,
+								PodAffinityTerm: corev1.PodAffinityTerm{
+									LabelSelector: &metav1.LabelSelector{
+										MatchLabels: nil,
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{
+												Key:      "app",
+												Operator: "NotIn",
+												Values: []string{
+													"istio-egressgateway",
+												},
+											},
+										},
+									},
+									Namespaces:  nil,
+									TopologyKey: "kubernetes.io/hostname",
+								},
 							},
 						},
 					},
@@ -317,11 +425,9 @@ spec:
                     - key: app
                       operator: NotIn
                       values:
-                      - istio-ingressgateway
                       - istio-egressgateway
                   topologyKey: kubernetes.io/hostname
                 weight: 30
-            
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
@@ -341,7 +447,6 @@ spec:
                       operator: NotIn
                       values:
                       - istio-ingressgateway
-                      - istio-egressgateway
                   topologyKey: kubernetes.io/hostname
                 weight: 30
 `

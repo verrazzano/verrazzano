@@ -8,5 +8,9 @@ spec:
         - name: api.replicas
           value: "2"
     istio:
-      kubernetes:
-        replicas: 2
+      ingress:
+        kubernetes:
+          replicas: 2
+      egress:
+        kubernetes:
+          replicas: 2
