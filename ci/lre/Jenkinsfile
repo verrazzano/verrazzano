@@ -207,6 +207,9 @@ pipeline {
             parallel {
                 stage('verify-infra restapi') {
                     steps {
+                        sh '''
+                            echo ${KUBECONFIG}
+                        '''
                         runGinkgoRandomize('verify-infra/restapi')
                     }
                 }
@@ -308,8 +311,8 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            echo ${KUBECONFIG}
-            ginkgo -p --kubeconfig=${KUBECONFIG} --randomize-all -v --keep-going --no-color ${testSuitePath}/...
+            echo in runGinkgoRandomize ${KUBECONFIG}
+            ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
     }
 }
@@ -318,7 +321,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --kubeconfig=${KUBECONFIG} --keep-going --no-color ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${testSuitePath}/...
         """
     }
 }
@@ -327,7 +330,7 @@ def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --kubeconfig=${KUBECONFIG} --keep-going --no-color examples/socks/...
+            SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color examples/socks/...
         """
     }
 }
