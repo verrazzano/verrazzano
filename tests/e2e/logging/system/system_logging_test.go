@@ -164,6 +164,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// THEN Verify there are valid log records
 		valid := true
 		valid = validateKeycloakLogs() && valid
+		valid = validateKeycloakMySQLLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in Keycloak index")
@@ -283,6 +284,16 @@ func validateKeycloakLogs() bool {
 		keycloakIndex,
 		"kubernetes.labels.app.kubernetes.io/name",
 		"keycloak",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateKeycloakMySQLLogs() bool {
+	return validateElasticsearchRecords(
+		basicElasticsearchRecordValidator,
+		keycloakIndex,
+		"app",
+		"mysql",
 		searchTimeWindow,
 		noExceptions)
 }
