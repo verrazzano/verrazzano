@@ -406,7 +406,7 @@ data:
         </pattern>
       </parse>
     </filter>
-    
+
     # filter to parse Keycloak container log files
     <filter kubernetes.**keycloak**keycloak_keycloak**>
       @type parser
@@ -427,7 +427,7 @@ data:
         </pattern>
       </parse>
     </filter>
-    
+
     # filter to parse MySQL container log files
     <filter kubernetes.**mysql**keycloak_mysql**>
       @type parser
@@ -453,7 +453,7 @@ data:
         </pattern>
       </parse>
     </filter>
-  
+
     # filter to parse Grafana container log files
     <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
       @type parser
@@ -480,7 +480,7 @@ data:
         </pattern>
       </parse>
     </filter>
-    
+
     # filter to apply a record transformer Grafana container log files in JSON format
     <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
       @type record_transformer
@@ -494,7 +494,7 @@ data:
         level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}
       </record>
     </filter>
-  
+
 
     # filter to parse verrazzano-system Prometheus container log files
     <filter kubernetes.**vmi-system-prometheus**verrazzano-system_prometheus**>
@@ -544,6 +544,32 @@ data:
           format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/
           time_key logtime
           time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse NGINX Ingress Controller container log files
+    <filter **ingress-nginx-controller**ingress-nginx_controller-**>
+      @type parser
+      @id nginx-ingress-controller
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        <pattern>
+          format /^(?:[^ ]*) (?:[^ ]*) (?:[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?:[^ ]*)(?: "(?:[^\"]*)" "(?:[^\"]*)") (?<message>[\s\S]*)$/
+          time_key time
+          time_format %d/%b/%Y:%H:%M:%S %z
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
         </pattern>
         <pattern>
           format none
