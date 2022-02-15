@@ -550,6 +550,27 @@ data:
         </pattern>
       </parse>
     </filter>
+    
+    # filter to parse Kibana container log files
+    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+      @type parser
+      @id kibana
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Grafana has two formats for log records
+        @type multi_format
+        <pattern>
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
 
   kubernetes-filter.conf: |
     # Query the API for extra metadata.
