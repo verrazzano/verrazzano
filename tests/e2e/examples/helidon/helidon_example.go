@@ -4,6 +4,7 @@
 package helidon
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
@@ -170,6 +171,9 @@ func helloHelidonPodsRunning() bool {
 }
 
 func appEndpointAccessible(url string, hostname string) bool {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
@@ -183,6 +187,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 	}
 
 	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
+	httpClient.HTTPClient.Transport = transport
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
 		return false

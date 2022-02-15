@@ -135,10 +135,14 @@ func GetVerrazzanoNoRetryHTTPClient(kubeconfigPath string) (*http.Client, error)
 
 // GetVerrazzanoHTTPClient returns a retryable Http client configured with the Verrazzano CA cert
 func GetVerrazzanoHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	client, err := GetVerrazzanoNoRetryHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
+	client.Transport = transport
 	retryableClient := newRetryableHTTPClient(client)
 	return retryableClient, nil
 }
