@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package clusters
@@ -102,12 +102,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	rc.certificateAuthorityData = caCert
 
 	log.Debugf("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
-	additionalCA, err := common.GetAdditionalCA(rdr)
-	if err != nil {
-		log.Errorf("Unable to check Rancher for additional CA: %v", err)
-		return "", err
-	}
-	rc.additionalCA = additionalCA
+	rc.additionalCA = common.GetAdditionalCA(rdr)
 
 	log.Debug("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
@@ -368,10 +363,18 @@ func doRequest(req *http.Request, rc *rancherConfig, log *zap.SugaredLogger) (*h
 
 	proxyURL := getProxyURL()
 
-	tlsConfig := &tls.Config{
-		RootCAs:    common.CertPool(rc.certificateAuthorityData, rc.additionalCA),
-		ServerName: rc.host,
-		MinVersion: tls.VersionTLS12,
+	var tlsConfig *tls.Config
+	if len(rc.certificateAuthorityData) < 1 && len(rc.additionalCA) < 1 {
+		tlsConfig = &tls.Config{
+			ServerName: rc.host,
+			MinVersion: tls.VersionTLS12,
+		}
+	} else {
+		tlsConfig = &tls.Config{
+			RootCAs:    common.CertPool(rc.certificateAuthorityData, rc.additionalCA),
+			ServerName: rc.host,
+			MinVersion: tls.VersionTLS12,
+		}
 	}
 	tr := &http.Transport{
 		TLSClientConfig:       tlsConfig,
