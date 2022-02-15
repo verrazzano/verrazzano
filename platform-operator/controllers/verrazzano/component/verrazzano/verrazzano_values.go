@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package verrazzano
 
 // verrazzanoValues Struct representing the Verrazzano Helm chart values
@@ -37,7 +38,6 @@ type verrazzanoValues struct {
 	Security           *securityRoleBindingValues `json:"security,omitempty"`
 	Kubernetes         *kubernetesValues          `json:"kubernetes,omitempty"`
 	Externaldns        *externalDNSValues         `json:"externaldns,omitempty"`
-	DNS                *dnsValues                 `json:"dns,omitempty"`
 }
 
 type subject struct {
@@ -154,26 +154,8 @@ type consoleValues struct {
 }
 
 type apiValues struct {
-	Name                 string         `json:"name,omitempty"`
-	PullPolicy           string         `json:"pullPolicy,omitempty"`
-	Port                 int            `json:"port,omitempty"`
-	ImpersonatorRoleName string         `json:"impersonatorRoleName,omitempty"`
-	Proxy                *proxySettings `json:"proxy,omitempty"`
-}
-
-type proxySettings struct {
-	OidcRealm                    string `json:"OidcRealm,omitempty"`
-	PKCEClientID                 string `json:"PKCEClientID,omitempty"`
-	PGClientID                   string `json:"PGClientID,omitempty"`
-	RequiredRealmRole            string `json:"RequiredRealmRole,omitempty"`
-	OidcCallbackPath             string `json:"OidcCallbackPath,omitempty"`
-	OidcLogoutCallbackPath       string `json:"OidcLogoutCallbackPath,omitempty"`
-	OidcSingleLogoutCallbackPath string `json:"OidcSingleLogoutCallbackPath,omitempty"`
-	OidcProviderHost             string `json:"OidcProviderHost,omitempty"`
-	OidcProviderHostInCluster    string `json:"OidcProviderHostInCluster,omitempty"`
-	AuthnStateTTL                string `json:"AuthnStateTTL,omitempty"`
-	MaxRequestSize               string `json:"MaxRequestSize,omitempty"`
-	ProxyBufferSize              string `json:"ProxyBufferSize,omitempty"`
+	Name string `json:"name,omitempty"`
+	Port int    `json:"port,omitempty"`
 }
 
 type ociValues struct {
@@ -196,14 +178,6 @@ type configValues struct {
 	EnvName                 string `json:"envName,omitempty"`
 	DNSSuffix               string `json:"dnsSuffix,omitempty"`
 	EnableMonitoringStorage bool   `json:"enableMonitoringStorage,omitempty"`
-}
-
-type wildcardDNSSettings struct {
-	Domain string `json:"domain,omitempty"`
-}
-
-type dnsValues struct {
-	Wildcard *wildcardDNSSettings `json:"wildcard,omitempty"`
 }
 
 type externalDNSValues struct {

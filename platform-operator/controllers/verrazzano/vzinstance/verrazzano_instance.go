@@ -6,16 +6,17 @@ package vzinstance
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"go.uber.org/zap"
 	networkingv1 "k8s.io/api/networking/v1"
 )
@@ -37,7 +38,7 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 
 	var consoleURL *string
 	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
-		consoleURL = getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.VzConsoleIngress)
+		consoleURL = getComponentIngressURL(ingressList.Items, ctx, authproxy.ComponentName, constants.VzConsoleIngress)
 	} else {
 		consoleURL = nil
 	}

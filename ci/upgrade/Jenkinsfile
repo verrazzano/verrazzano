@@ -102,6 +102,11 @@ pipeline {
          PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+
+         // used to generate Ginkgo test reports
+         TEST_REPORT = "test-report.xml"
+         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -393,7 +398,7 @@ pipeline {
                 failure {
                     script {
                         if (fileExists(env.TESTS_EXECUTED_FILE)) {
-                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
+                            dumpK8sCluster('upgrade-failure-cluster-dump')
                         }
                     }
                 }
@@ -600,8 +605,15 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/build/resources/**,**/*-cluster-dump/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
                 if (params.EMIT_METRICS) {
@@ -647,7 +659,7 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -656,7 +668,7 @@ def runGinkgo(testSuitePath, skipDeploy, skipUndeploy) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy}
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy}
         """
     }
 }
@@ -665,7 +677,7 @@ def runGinkgoNamespace(testSuitePath, skipDeploy, skipUndeploy, namespace) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
         """
     }
 }

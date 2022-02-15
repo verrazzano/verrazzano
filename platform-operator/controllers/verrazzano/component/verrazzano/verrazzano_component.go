@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package verrazzano
 
 import (
@@ -40,10 +41,10 @@ func NewComponent() spi.Component {
 	}
 }
 
-// PostInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
+// PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("Verrazzano pre-install")
+	ctx.Log().Debug("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
 	}
@@ -64,9 +65,7 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	if !c.HelmComponent.IsReady(ctx) {
 		return false
 	}
-	deployments := []types.NamespacedName{
-		{Name: "verrazzano-authproxy", Namespace: globalconst.VerrazzanoSystemNamespace},
-	}
+	var deployments []types.NamespacedName
 	if isVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, []types.NamespacedName{
 			{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
@@ -130,12 +129,7 @@ func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
 
 // GetIngressNames - gets the names of the ingresses associated with this component
 func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
-	ingressNames := []types.NamespacedName{
-		{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.VzConsoleIngress,
-		},
-	}
+	var ingressNames []types.NamespacedName
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{

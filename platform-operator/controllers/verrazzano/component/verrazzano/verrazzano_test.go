@@ -769,8 +769,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			//t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 4, 2 file override + 2 custom image overrides
-				expectedNumKvs = 4
+				// default is 3, 2 file override + 1 custom image overrides
+				expectedNumKvs = 3
 			}
 			assert.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file

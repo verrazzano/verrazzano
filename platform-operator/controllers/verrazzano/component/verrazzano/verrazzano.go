@@ -6,9 +6,16 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"io/fs"
+	"io/ioutil"
+	"os"
+	"os/exec"
+	"strings"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,8 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/fs"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -27,20 +32,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	neturl "net/url"
-	"os"
-	"os/exec"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
-	"time"
 )
 
 // ComponentName is the name of the component
 
 const (
 	ComponentName           = "verrazzano"
-	keycloakInClusterURL    = "keycloak-http.keycloak.svc.cluster.local"
 	esHelmValuePrefixFormat = "elasticSearch.%s"
 
 	workloadName  = "system-es-master"
@@ -166,13 +166,6 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues
 
 func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValues) error {
 	effectiveCR := ctx.EffectiveCR()
-	if isWildcardDNS, domain := getWildcardDNS(&effectiveCR.Spec); isWildcardDNS {
-		overrides.DNS = &dnsValues{
-			Wildcard: &wildcardDNSSettings{
-				Domain: domain,
-			},
-		}
-	}
 
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
@@ -196,12 +189,6 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.Console = &consoleValues{Enabled: vzconfig.IsConsoleEnabled(effectiveCR)}
 	overrides.VerrazzanoOperator = &voValues{Enabled: isVMOEnabled(effectiveCR)}
 	overrides.MonitoringOperator = &vmoValues{Enabled: isVMOEnabled(effectiveCR)}
-	overrides.API = &apiValues{
-		Proxy: &proxySettings{
-			OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", envName, dnsSuffix),
-			OidcProviderHostInCluster: keycloakInClusterURL,
-		},
-	}
 	return nil
 }
 
@@ -395,13 +382,6 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 
 func isVMOEnabled(vz *vzapi.Verrazzano) bool {
 	return vzconfig.IsPrometheusEnabled(vz) || vzconfig.IsKibanaEnabled(vz) || vzconfig.IsElasticsearchEnabled(vz) || vzconfig.IsGrafanaEnabled(vz)
-}
-
-func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
-	if vz.Components.DNS != nil && vz.Components.DNS.Wildcard != nil {
-		return true, vz.Components.DNS.Wildcard.Domain
-	}
-	return false, ""
 }
 
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {
