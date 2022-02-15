@@ -575,6 +575,8 @@ data:
       @id kibana-json
       enable_ruby true
       <record>
+        # the following Ruby code looks for an intersection between the "tags" values and the log level values
+        # it returns the first intersection value if found or empty string if not
         level ${!!record["tags"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0] : "" : ""}
       </record>
     </filter>
