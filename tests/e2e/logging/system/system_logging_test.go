@@ -306,7 +306,7 @@ func validateKeycloakLogs() bool {
 
 func validateIngressNginxLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		noLevelElasticsearchRecordValidator,
 		certMgrIndex,
 		"kubernetes.labels.app_kubernetes_io/name",
 		"ingress-nginx",
