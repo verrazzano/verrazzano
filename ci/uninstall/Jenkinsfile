@@ -454,6 +454,7 @@ pipeline {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     sh """
+                        chmod +x ${LOOPING_TEST_SCRIPTS_DIR}/verify-vz-finalizer.sh
                         ${LOOPING_TEST_SCRIPTS_DIR}/verify-vz-finalizer.sh
                     """
                 }
