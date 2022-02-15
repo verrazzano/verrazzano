@@ -25,6 +25,7 @@ const (
 	installIndex         = "verrazzano-namespace-verrazzano-install"
 	certMgrIndex         = "verrazzano-namespace-cert-manager"
 	keycloakIndex        = "verrazzano-namespace-keycloak"
+	nginxIndex           = "verrazzano-namespace-ingress-nginx"
 )
 
 var (
@@ -172,6 +173,23 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			t.Logs.Info("Found problems with log records in Keycloak index")
 		}
 	})
+
+	t.It("contains ingress-nginx index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the index for the ingress-nginx namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound("verrazzano-namespace-ingress-nginx")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find NGINX index ingress-nginx")
+
+		valid := true
+		valid = validateIngressNginxLogs() && valid
+		if !valid {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in ingress-nginx index")
+		}
+	})
+
 })
 
 func validateAuthProxyLogs() bool {
@@ -316,6 +334,16 @@ func validateKeycloakLogs() bool {
 		keycloakIndex,
 		"kubernetes.labels.app.kubernetes.io/name",
 		"keycloak",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateIngressNginxLogs() bool {
+	return validateElasticsearchRecords(
+		noLevelElasticsearchRecordValidator,
+		nginxIndex,
+		"kubernetes.labels.app_kubernetes_io/name",
+		"ingress-nginx",
 		searchTimeWindow,
 		noExceptions)
 }
