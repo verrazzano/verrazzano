@@ -429,7 +429,7 @@ data:
     </filter>
 
     # filter to parse NGINX Ingress Controller container log files
-    <filter kubernetes.**ingress-nginx-**>
+    <filter **ingress-nginx-controller**ingress-nginx-controller-**>
       @type parseri
       @id nginx-ingress-controller
       key_name log
