@@ -427,7 +427,7 @@ data:
         </pattern>
       </parse>
     </filter>
-    
+
     # filter to parse MySQL container log files
     <filter kubernetes.**mysql**keycloak_mysql**>
       @type parser
@@ -453,7 +453,7 @@ data:
         </pattern>
       </parse>
     </filter>
-  
+
     # filter to parse Grafana container log files
     <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
       @type parser
@@ -480,7 +480,7 @@ data:
         </pattern>
       </parse>
     </filter>
-    
+
     # filter to apply a record transformer Grafana container log files in JSON format
     <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
       @type record_transformer
@@ -494,7 +494,7 @@ data:
         level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}
       </record>
     </filter>
-  
+
 
     # filter to parse verrazzano-system prometheus container log files
     <filter kubernetes.**vmi-system-prometheus**verrazzano-system_prometheus**>
@@ -561,7 +561,7 @@ data:
       <parse>
         @type multi_format
         <pattern>
-          format /^(?<remote>[^ ]*) (?<host>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)") (?<message>[\s\S]*)$/
+          format /^(?:[^ ]*) (?:[^ ]*) (?:[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?:[^ ]*)(?: "(?:[^\"]*)" "(?:[^\"]*)") (?<message>[\s\S]*)$/
           time_key time
           time_format %d/%b/%Y:%H:%M:%S %z
         </pattern>
