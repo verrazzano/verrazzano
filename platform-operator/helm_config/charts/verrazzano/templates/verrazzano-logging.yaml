@@ -551,7 +551,7 @@ data:
       </parse>
     </filter>
     
-    # filter to parse Kibana container log files
+    # filter to parse OpenSearch Dashboard container log files
     <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
       @type parser
       @id kibana
@@ -559,7 +559,7 @@ data:
       reserve_data true
       emit_invalid_record_to_error true
       <parse>
-        # Kibana has one format for log records
+        # OpenSearch Dashboard has one format for log records
         @type multi_format
         <pattern>
           format json
