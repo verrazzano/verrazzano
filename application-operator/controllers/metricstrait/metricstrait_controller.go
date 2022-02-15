@@ -275,7 +275,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 
 	// Fetch workload resource using information from the trait
 	var workload *unstructured.Unstructured
-	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r, log, trait); err != nil {
+	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r, log, trait); err != nil || workload == nil {
 		return reconcile.Result{}, true, err
 	}
 
