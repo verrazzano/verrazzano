@@ -485,10 +485,7 @@ data:
     <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
       @type record_transformer
       @id grafana-json
-      key_name log
-      reserve_data true
-      emit_invalid_record_to_error true
-      enable_ruby
+      enable_ruby true
       <record>
         message ${record["@message"] ? record["@message"] : record["message"] ? record["message"] : ""}
         level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}
@@ -549,6 +546,39 @@ data:
           format none
         </pattern>
       </parse>
+    </filter>
+    
+    # filter to parse OpenSearch Dashboard container log files
+    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+      @type parser
+      @id kibana
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # OpenSearch Dashboard has one format for log records
+        @type multi_format
+        <pattern>
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+    
+    # filter to parse OpenSearch Dashboard container log files
+    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+      @type record_transformer
+      @id kibana-json
+      enable_ruby true
+      <record>
+        # the following Ruby code looks for an intersection between the "tags" values and the log level values
+        # it returns the first intersection value if found or empty string if not
+        level ${!!record["tags"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0] : "" : ""}
+      </record>
     </filter>
 
     # filter to parse NGINX Ingress Controller container log files
