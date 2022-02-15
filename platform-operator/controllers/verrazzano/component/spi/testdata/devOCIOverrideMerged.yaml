@@ -13,6 +13,7 @@ spec:
     authProxy:
       enabled: true
       kubernetes:
+        replicas: 1
         affinity:
           podAntiAffinity:
             preferredDuringSchedulingIgnoredDuringExecution:
