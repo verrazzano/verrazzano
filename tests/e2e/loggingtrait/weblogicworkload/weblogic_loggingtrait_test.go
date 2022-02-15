@@ -110,7 +110,7 @@ var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oa
 	"f:app-lcm.weblogic-workload",
 	"f:app-lcm.logging-trait"), func() {
 
-	t.Context("deployment.", FlakeAttempts(5), func() {
+	t.Context("deployment.", FlakeAttempts(8), func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running

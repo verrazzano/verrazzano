@@ -168,7 +168,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	})
-	t.Context("Ingress.", Label("f:mesh.ingress"), FlakeAttempts(5), func() {
+	t.Context("Ingress.", Label("f:mesh.ingress"), FlakeAttempts(8), func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the roberts-books UI is accessed
