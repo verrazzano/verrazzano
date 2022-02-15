@@ -450,6 +450,57 @@ pipeline {
             }
         }
 
+        stage('Verify VZ finalizer') {
+            steps {
+                sh """
+                    finalizer=$(kubectl get vz -o=jsonpath='{.items[0].metadata.finalizers}')
+                    echo "$finalizer"
+                    if [[ -z "$finalizer" ]]; then
+                        echo "VZ CR is missing the finalizer necessary for uninstall"
+                        exit 1
+                    fi
+                """
+            }
+            post {
+                always {
+                    sh """
+                        ## dump out install logs
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
+                        kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall.log --tail -1
+                        kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/verrazzano-reinstall-job-pod.out
+                        echo "Verrazzano Installation logs dumped to verrazzano-reinstall.log"
+                        echo "Verrazzano Install pod description dumped to verrazzano-reinstall-job-pod.out"
+                        echo "------------------------------------------"
+                    """
+                    dumpVerrazzanoSystemPods('reinstall')
+                    dumpCattleSystemPods('reinstall')
+                    dumpNginxIngressControllerLogs('reinstall')
+                    dumpVerrazzanoPlatformOperatorLogs('reinstall')
+                    dumpVerrazzanoApplicationOperatorLogs('reinstall')
+                    dumpOamKubernetesRuntimeLogs('reinstall')
+                    dumpVerrazzanoApiLogs('reinstall')
+                    listNamepacesAndPods('after reinstalling Verrazzano')
+                    listHelmReleases('after reinstalling Verrazzano')
+                }
+                success {
+                    script {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                            dumpK8sCluster('verrazzano-reinstall-cluster-dump')
+                        }
+                    }
+                }
+                failure {
+                    dumpK8sCluster('verrazzano-reinstall-failure-cluster-dump')
+                    sh """
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_resources.sh > ${WORKSPACE}/verrazzano-platform-operator/scripts/reinstall/build/logs/resources.log
+                    """
+                }
+            }
+        }
+
+
+
         stage('Rerun Test') {
             environment {
                 TEST_ENV = "OKE"
