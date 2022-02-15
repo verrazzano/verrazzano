@@ -46,10 +46,8 @@ spec:
         enabled: true
         k8s:
           replicaCount: {{.EgressReplicaCount}}
-{{- if .EgressAffinity }}
           affinity:
 {{ multiLineIndent 12 .EgressAffinity }}
-{{- end}}
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
@@ -60,10 +58,8 @@ spec:
             externalIPs:
               {{.ExternalIps}}
           {{- end}}
-{{- if .IngressAffinity }}
           affinity:
 {{ multiLineIndent 12 .IngressAffinity }}
-{{- end}}
 `
 
 type ReplicaData struct {
