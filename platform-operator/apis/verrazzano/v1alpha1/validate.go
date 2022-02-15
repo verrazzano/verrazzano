@@ -82,6 +82,7 @@ func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	}
 	v := bom.GetVersion()
 	if v == constants.BomVerrazzanoVersion {
+		// This branch is only hit when using a development BOM
 		if len(os.Getenv("VZ_INSTALL_VERSION")) > 0 {
 			v = os.Getenv("VZ_INSTALL_VERSION")
 		} else {
