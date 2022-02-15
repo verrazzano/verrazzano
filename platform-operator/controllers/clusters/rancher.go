@@ -102,11 +102,7 @@ func registerManagedClusterWithRancher(rdr client.Reader, clusterName string, lo
 	rc.certificateAuthorityData = caCert
 
 	log.Debugf("Checking for Rancher additional CA in secret %s", rancherTLSAdditional)
-	additionalCA, err := common.GetAdditionalCA(rdr)
-	if err != nil {
-		return "", log.ErrorfNewErr("Failed getting Rancher additional CA: %v", err)
-	}
-	rc.additionalCA = additionalCA
+	rc.additionalCA = common.GetAdditionalCA(rdr)
 
 	log.Once("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
@@ -367,10 +363,18 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 
 	proxyURL := getProxyURL()
 
-	tlsConfig := &tls.Config{
-		RootCAs:    common.CertPool(rc.certificateAuthorityData, rc.additionalCA),
-		ServerName: rc.host,
-		MinVersion: tls.VersionTLS12,
+	var tlsConfig *tls.Config
+	if len(rc.certificateAuthorityData) < 1 && len(rc.additionalCA) < 1 {
+		tlsConfig = &tls.Config{
+			ServerName: rc.host,
+			MinVersion: tls.VersionTLS12,
+		}
+	} else {
+		tlsConfig = &tls.Config{
+			RootCAs:    common.CertPool(rc.certificateAuthorityData, rc.additionalCA),
+			ServerName: rc.host,
+			MinVersion: tls.VersionTLS12,
+		}
 	}
 	tr := &http.Transport{
 		TLSClientConfig:       tlsConfig,
