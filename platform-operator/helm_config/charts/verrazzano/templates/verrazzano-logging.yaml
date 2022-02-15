@@ -429,8 +429,8 @@ data:
     </filter>
 
     # filter to parse NGINX Ingress Controller container log files
-    <filter kubernetes.**ingress-nginx**>
-      @type parser
+    <filter kubernetes.**ingress-nginx-**>
+      @type parseri
       @id nginx-ingress-controller
       key_name log
       reserve_data true
@@ -440,7 +440,7 @@ data:
         <pattern>
           format /^(?<remote>[^ ]*) (?<host>[^ ]*) (?<user>[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?<size>[^ ]*)(?: "(?<referer>[^\"]*)" "(?<agent>[^\"]*)") (?<message>[\s\S]*)$/
           time_key time
-          time_format %Y-%m-%dT%H:%M:%S.%NZ
+          time_format %d/%b/%Y:%H:%M:%S %z
         </pattern>
         # Kubernetes klog format
         <pattern>
