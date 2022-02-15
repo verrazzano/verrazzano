@@ -14,3 +14,16 @@ config:
 dns:
   wildcard:
     domain: nip.io
+
+affinity: |
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app
+            operator: In
+            values:
+            - verrazzano-authproxy
+        topologyKey: kubernetes.io/hostname
+      weight: 100

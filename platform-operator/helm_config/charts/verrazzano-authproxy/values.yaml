@@ -27,18 +27,7 @@ proxy:
   MaxRequestSize: 65m
   ProxyBufferSize: 8k
 
-affinity: |
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-              - key: app
-                operator: In
-                values:
-                  - {{ .Values.name }}
-          topologyKey: kubernetes.io/hostname
+affinity:
 
 config:
   envName:
