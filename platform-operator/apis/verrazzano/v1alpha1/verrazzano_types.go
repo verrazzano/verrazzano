@@ -468,6 +468,16 @@ type IngressNginxComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
+type IstioIngressSection struct {
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+}
+
+// IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
+type IstioEgressSection struct {
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+}
+
 // IstioKubernetesSection specifies the Kubernetes resources that can be customized for Istio.
 type IstioKubernetesSection struct {
 	CommonKubernetesSpec `json:",inline"`
@@ -483,7 +493,9 @@ type IstioComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
-	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+	Ingress *IstioIngressSection `json:"ingress,omitempty"`
+	// +optional
+	Egress *IstioEgressSection `json:"egress,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
