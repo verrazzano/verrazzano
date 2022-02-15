@@ -6,9 +6,11 @@ package registry
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -23,8 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,20 +48,21 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 13, "Wrong number of components")
+	assert.Len(comps, 14, "Wrong number of components")
 	assert.Equal(comps[0].Name(), istio.ComponentName)
 	assert.Equal(comps[1].Name(), nginx.ComponentName)
 	assert.Equal(comps[2].Name(), certmanager.ComponentName)
 	assert.Equal(comps[3].Name(), externaldns.ComponentName)
 	assert.Equal(comps[4].Name(), rancher.ComponentName)
 	assert.Equal(comps[5].Name(), verrazzano.ComponentName)
-	assert.Equal(comps[6].Name(), coherence.ComponentName)
-	assert.Equal(comps[7].Name(), weblogic.ComponentName)
-	assert.Equal(comps[8].Name(), oam.ComponentName)
-	assert.Equal(comps[9].Name(), appoper.ComponentName)
-	assert.Equal(comps[10].Name(), mysql.ComponentName)
-	assert.Equal(comps[11].Name(), keycloak.ComponentName)
-	assert.Equal(comps[12].Name(), kiali.ComponentName)
+	assert.Equal(comps[6].Name(), authproxy.ComponentName)
+	assert.Equal(comps[7].Name(), coherence.ComponentName)
+	assert.Equal(comps[8].Name(), weblogic.ComponentName)
+	assert.Equal(comps[9].Name(), oam.ComponentName)
+	assert.Equal(comps[10].Name(), appoper.ComponentName)
+	assert.Equal(comps[11].Name(), mysql.ComponentName)
+	assert.Equal(comps[12].Name(), keycloak.ComponentName)
+	assert.Equal(comps[13].Name(), kiali.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
