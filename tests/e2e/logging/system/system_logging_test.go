@@ -25,6 +25,7 @@ const (
 	installIndex         = "verrazzano-namespace-verrazzano-install"
 	certMgrIndex         = "verrazzano-namespace-cert-manager"
 	keycloakIndex        = "verrazzano-namespace-keycloak"
+	nginxIndex           = "verrazzano-namespace-ingress-nginx"
 )
 
 var (
@@ -78,7 +79,9 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateOAMLogs() && valid
 		valid = validateIstioProxyLogs() && valid
 		valid = validateKialiLogs() && valid
-		valid = validateCertManagerLogs() && valid
+		valid = validatePrometheusLogs() && valid
+		valid = validatePrometheusConfigReloaderLogs() && valid
+		valid = validateGrafanaLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -164,6 +167,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// THEN Verify there are valid log records
 		valid := true
 		valid = validateKeycloakLogs() && valid
+		valid = validateKeycloakMySQLLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in Keycloak index")
@@ -195,7 +199,7 @@ func validateAuthProxyLogs() bool {
 	}
 	exceptions = append(exceptions, istioExceptions...)
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-authproxy",
@@ -205,7 +209,7 @@ func validateAuthProxyLogs() bool {
 
 func validateCoherenceLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"coherence-operator",
@@ -215,7 +219,7 @@ func validateCoherenceLogs() bool {
 
 func validateOAMLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"oam-kubernetes-runtime",
@@ -226,7 +230,7 @@ func validateOAMLogs() bool {
 // message:configPath: ./etc/istio/proxy
 func validateIstioProxyLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.container_name",
 		"istio-proxy",
@@ -236,7 +240,7 @@ func validateIstioProxyLogs() bool {
 
 func validateKialiLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app_kubernetes_io/part-of",
 		"kiali",
@@ -246,7 +250,7 @@ func validateKialiLogs() bool {
 
 func validateVPOLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		installIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-platform-operator",
@@ -256,7 +260,7 @@ func validateVPOLogs() bool {
 
 func validateVAOLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		installIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-application-operator",
@@ -266,7 +270,7 @@ func validateVAOLogs() bool {
 
 func validateVMOLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		installIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-monitoring-operator",
@@ -276,7 +280,7 @@ func validateVMOLogs() bool {
 
 func validateVOLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		installIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-operator",
@@ -284,9 +288,29 @@ func validateVOLogs() bool {
 		noExceptions)
 }
 
+func validatePrometheusLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.container_name",
+		"prometheus",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validatePrometheusConfigReloaderLogs() bool {
+	return validateElasticsearchRecords(
+		noLevelElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.container_name",
+		"config-reloader",
+		searchTimeWindow,
+		noExceptions)
+}
+
 func validateCertManagerLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		certMgrIndex,
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
@@ -294,9 +318,19 @@ func validateCertManagerLogs() bool {
 		noExceptions)
 }
 
+func validateGrafanaLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.labels.app.keyword",
+		"system-grafana",
+		searchTimeWindow,
+		noExceptions)
+}
+
 func validateKeycloakLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		keycloakIndex,
 		"kubernetes.labels.app.kubernetes.io/name",
 		"keycloak",
@@ -307,9 +341,19 @@ func validateKeycloakLogs() bool {
 func validateIngressNginxLogs() bool {
 	return validateElasticsearchRecords(
 		noLevelElasticsearchRecordValidator,
-		certMgrIndex,
+		nginxIndex,
 		"kubernetes.labels.app_kubernetes_io/name",
 		"ingress-nginx",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateKeycloakMySQLLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		keycloakIndex,
+		"kubernetes.labels.app.keyword",
+		"mysql",
 		searchTimeWindow,
 		noExceptions)
 }
@@ -319,7 +363,7 @@ func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, na
 	template :=
 		`{
 			"size": 1000,
-      "sort": [{"@timestamp": {"order": "desc"}}],
+			"sort": [{"@timestamp": {"order": "desc"}}],
 			"query": {
 				"bool": {
 					"filter" : [
@@ -349,8 +393,26 @@ func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, na
 	return true
 }
 
-// basicElasticsearchRecordValidator does common validation of log records
-func basicElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+// allElasticsearchRecordValidator does all validation for log records
+func allElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+	valid := true
+	if !commonElasticsearchRecordValidator(hit) {
+		valid = false
+	}
+	if !logLevelElasticsearchRecordValidator(hit) {
+		valid = false
+	}
+
+	return valid
+}
+
+// noLevelElasticsearchRecordValidator does validation for log records except level validation
+func noLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+	return commonElasticsearchRecordValidator(hit)
+}
+
+// commonElasticsearchRecordValidator does all validation for log records except level validation
+func commonElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 	ts := ""
 	valid := true
 	// Verify the record has a @timestamp field.
@@ -389,25 +451,6 @@ func basicElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 		pkg.Log(pkg.Info, "Log record has duplicate log and message field values")
 		valid = false
 	}
-	// Verify the record has a level field.
-	// If so verify that the level isn't debug.
-	if val, ok := hit["level"]; !ok || len(val.(string)) == 0 {
-		pkg.Log(pkg.Info, "Log record has missing or empty level field")
-		valid = false
-	} else {
-		//level := val.(string)
-		// Put this validation back in when the OAM logging is fixed.
-		// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
-		// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
-		// 	valid = false
-		// }
-		// There is an Istio proxy error that causes this to fail.
-		// Put this validation back in when that is addressed.
-		//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
-		//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
-		//	valid = false
-		//}
-	}
 	// Verify the record does not have a timestamp field.
 	if _, ok := hit["timestamp"]; ok {
 		pkg.Log(pkg.Info, "Log record has unwanted timestamp field")
@@ -417,4 +460,28 @@ func basicElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("Log record is invalid: %v", hit))
 	}
 	return valid
+}
+
+// logLevelElasticsearchRecordValidator does validation of level for log records
+func logLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+	// Verify the record has a level field.
+	// If so verify that the level isn't debug.
+	if val, ok := hit["level"]; !ok || len(val.(string)) == 0 {
+		pkg.Log(pkg.Info, "Log record has missing or empty level field")
+		return false
+	}
+	//level := val.(string)
+	// Put this validation back in when the OAM logging is fixed.
+	// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
+	// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
+	// 	valid = false
+	// }
+	// There is an Istio proxy error that causes this to fail.
+	// Put this validation back in when that is addressed.
+	//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
+	//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
+	//	valid = false
+	//}
+
+	return true
 }

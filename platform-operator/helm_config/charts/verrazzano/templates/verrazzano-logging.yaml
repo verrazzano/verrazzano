@@ -427,6 +427,129 @@ data:
         </pattern>
       </parse>
     </filter>
+    
+    # filter to parse MySQL container log files
+    <filter kubernetes.**mysql**keycloak_mysql**>
+      @type parser
+      @id mysql
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # MySQL has two formats for log records
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{6}Z) \d+ \[(?<level>.*?)\] (\[.*?\] ){2}(?<message>.*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^(?<logtime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\+\d{2}:\d{2} \[(?<level>.*?)\] \[.*?\]: (?<message>.*?)$/
+          time_key logtime
+          time_format %Y-%m-%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+  
+    # filter to parse Grafana container log files
+    <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
+      @type parser
+      @id grafana
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Grafana has two formats for log records
+        # one for json logs and one for string logs
+        @type multi_format
+        <pattern>
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^t=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\+\d{4} lvl=(?<level>\S+) msg="(?<message>.*?)".*?$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+    
+    # filter to apply a record transformer Grafana container log files in JSON format
+    <filter kubernetes.**vmi-system-grafana**verrazzano-system_grafana**>
+      @type record_transformer
+      @id grafana-json
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      enable_ruby
+      <record>
+        message ${record["@message"] ? record["@message"] : record["message"] ? record["message"] : ""}
+        level ${record["@level"] ? record["@level"] : record["level"] ? record["level"] : ""}
+      </record>
+    </filter>
+  
+
+    # filter to parse verrazzano-system prometheus container log files
+    <filter kubernetes.**vmi-system-prometheus**verrazzano-system_prometheus**>
+      @type parser
+      @id vmi-system-prometheus
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # Prometheus has two formats for log records
+        # One with a level and msg
+        # One with a level but not msg
+        @type multi_format
+        <pattern>
+          format /^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (.*?)msg="(?<message>.*?)"([\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format /^ts=(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z)(.*)level=(?<level>.*?) (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse verrazzano-system config-reloader container log files
+    <filter kubernetes.**vmi-system-prometheus**verrazzano-system_config-reloader**>
+      @type parser
+      @id config-reloader
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # config-reloader log messages do not have a log level
+        @type multi_format
+        <pattern>
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
 
     # filter to parse NGINX Ingress Controller container log files
     <filter **ingress-nginx-controller**ingress-nginx-controller-**>

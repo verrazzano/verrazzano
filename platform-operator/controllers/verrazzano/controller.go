@@ -10,24 +10,20 @@ import (
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
-
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
-
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/uninstalljob"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
-
+	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -94,10 +90,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		ControllerName: "verrazzano",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Verrazzano controller", err)
+		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
-	log.Oncef("Reconciling Verrazzano resource %v, generation %v", req.NamespacedName, vz.Generation)
+	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(log, vz)
 	if vzctrl.ShouldRequeue(res) {
 		return res, nil
@@ -169,7 +165,7 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 	}
 }
 
-// ReadyState processes the CR while in the ready state
+// ProcReadyState processes the CR while in the ready state
 func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	log := spiCtx.Log()
 	actualCR := spiCtx.ActualCR()
@@ -192,11 +188,18 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 
 	// If Verrazzano is installed see if upgrade is needed
 	if isInstalled(actualCR.Status) {
-		// If the version is specified and different than the current version of the installation
+		// If the version is specified and different from the current version of the installation
 		// then proceed with upgrade
 		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
-			return r.reconcileUpgrade(log, actualCR)
+			result, err := r.reconcileUpgrade(log, actualCR)
+			// Keep retrying the upgrade until it completes.
+			if err != nil {
+				return newRequeueWithDelay(), err
+			} else if vzctrl.ShouldRequeue(result) {
+				return result, nil
+			}
 		}
+		// Keep retrying to reconcile components until it completes
 		if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {
@@ -273,7 +276,7 @@ func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-// UninstallingState processes the CR while in the uninstalling state
+// ProcUninstallingState processes the CR while in the uninstalling state
 func (r *Reconciler) ProcUninstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
@@ -288,7 +291,7 @@ func (r *Reconciler) ProcUninstallingState(spiCtx spi.ComponentContext) (ctrl.Re
 	return ctrl.Result{}, nil
 }
 
-// UpgradingState processes the CR while in the upgrading state
+// ProcUpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
 	vz := spiCtx.ActualCR()
 	log := spiCtx.Log()
@@ -697,22 +700,24 @@ func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (boo
 }
 
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
-// operator-based in stall.  This is so that we know ahead of time exactly how many components we expect to install
+// operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
 func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	if cr.Status.Components != nil {
-		return ctrl.Result{}, nil
+	if cr.Status.Components == nil {
+		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 	}
-
-	log.Debugf("initializeComponentStatus for all components")
-	cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
 
 	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
 
+	statusUpdated := false
 	for _, comp := range registry.GetComponents() {
+		if _, ok := cr.Status.Components[comp.Name()]; ok {
+			// Skip components that have already been processed
+			continue
+		}
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
@@ -731,10 +736,14 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 				Name:  comp.Name(),
 				State: state,
 			}
+			statusUpdated = true
 		}
 	}
 	// Update the status
-	return newRequeueWithDelay(), r.updateVerrazzanoStatus(log, cr)
+	if statusUpdated {
+		return newRequeueWithDelay(), r.updateVerrazzanoStatus(log, cr)
+	}
+	return ctrl.Result{}, nil
 }
 
 // setUninstallCondition sets the Verrazzano resource condition in status for uninstall
@@ -921,21 +930,6 @@ func addFluentdExtraVolumeMounts(files []string, vz *installv1alpha1.Verrazzano)
 		}
 	}
 	return vz
-}
-
-func readLink(path string, info os.FileInfo) []string {
-	var files []string
-	if info.Mode()&os.ModeSymlink != 0 {
-		dest, err := os.Readlink(path)
-		if err == nil {
-			files = append(files, dest)
-			destInfo, err := os.Lstat(dest)
-			if err == nil {
-				files = append(files, readLink(dest, destInfo)...)
-			}
-		}
-	}
-	return files
 }
 
 func dirsOutsideVarLog(paths []string) []string {

@@ -175,6 +175,10 @@ pipeline {
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
     }
 
     stages {
@@ -452,25 +456,40 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
-                // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
-                //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
-                // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
-                // and put a host header in the corresponding calls to the app.
-                stage('generic-springboot') {
-                    environment {
-                        DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
-                    }
+
+            stages {
+                stage('verify-install') {
                     steps {
-                        script {
-                            runGinkgo('examples/springboot')
+                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                            sh """
+                                cd ${WORKSPACE}/tests/e2e
+                                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                            """
                         }
                     }
-                    post {
-                        always {
-                            dumpGenericSpringbootObjects()
-                            dumpGenericSpringbootLogs()
+                }
+                stage('springboot') {
+                    parallel {
+                        // Quick fix for Bob's Books test failure that reports "Webpage is NOT Robert's Books Greetings from Verrazzano!"
+                        //     Do not run this in parallel with Bob's Books because both specify a mapping for "/" path.
+                        // Real fix may be to have each app use a different dnsName in the ingress binding section of the binding file
+                        // and put a host header in the corresponding calls to the app.
+                        stage('generic-springboot') {
+                            environment {
+                                DIAGNOSTIC_LOG="${WORKSPACE}/platform-operator/scripts/install/build/logs/generic-springboot-test.log"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-springboot"
+                            }
+                            steps {
+                                script {
+                                    runGinkgo('examples/springboot')
+                                }
+                            }
+                            post {
+                                always {
+                                    dumpGenericSpringbootObjects()
+                                    dumpGenericSpringbootLogs()
+                                }
+                            }
                         }
                     }
                 }
@@ -485,17 +504,6 @@ pipeline {
             }
 
             stages {
-                stage('verify-install') {
-                    steps {
-                        catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            sh """
-                                cd ${WORKSPACE}/tests/e2e
-                                ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
-                            """
-                        }
-                    }
-                }
-
                 stage('run-acceptance-tests') {
                     parallel {
                         stage('metrics') {
@@ -634,8 +642,8 @@ pipeline {
                     sort -u -o ${IMG_LIST_FILE} ${IMG_LIST_FILE}
                 fi
             """
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/test-cluster-dumps/**/,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
                     withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
@@ -702,7 +710,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -711,7 +719,7 @@ def runGinkgoFailFast(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${WORKSPACE}/tests/e2e
-            ginkgo -v --fail-fast --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }

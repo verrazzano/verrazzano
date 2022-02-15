@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os/exec"
 	"strings"
 	"testing"
@@ -44,6 +45,72 @@ var installCR = &installv1alpha1.Verrazzano{
 					Name:  "arg1",
 					Value: "val1",
 				}},
+				Ingress: &installv1alpha1.IstioIngressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 1,
+							Affinity: &corev1.Affinity{
+								PodAntiAffinity: &corev1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: corev1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-ingressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Egress: &installv1alpha1.IstioEgressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 1,
+							Affinity: &corev1.Affinity{
+								PodAntiAffinity: &corev1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: corev1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-egressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
