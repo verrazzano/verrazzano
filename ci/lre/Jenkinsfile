@@ -228,11 +228,6 @@ pipeline {
                         runGinkgo('security/rbac')
                     }
                 }
-                stage('k8s deployment workload metrics') {
-                    steps {
-                        runGinkgo('metrics/deploymetrics')
-                        }
-                    }
                 stage('system logging') {
                     steps {
                         runGinkgo('logging/system')
@@ -276,26 +271,12 @@ pipeline {
                         runGinkgo('examples/bobsbooks')
                     }
                 }
-                stage('logging trait WebLogic workload') {
+                stage('k8s deployment workload metrics') {
                     steps {
-                        runGinkgo('loggingtrait/weblogicworkload')
+                        runGinkgo('metrics/deploymetrics')
                     }
                 }
-                stage('logging trait Helidon workload') {
-                    steps {
-                        runGinkgo('loggingtrait/helidonworkload')
-                    }
-                }
-                stage('logging trait Coherence workload') {
-                    steps {
-                        runGinkgo('loggingtrait/coherenceworkload')
-                    }
-                }
-                stage('poko metricsbinding') {
-                    steps {
-                        runGinkgo('metricsbinding')
-                    }
-                }
+
             }
             post {
                 always {
