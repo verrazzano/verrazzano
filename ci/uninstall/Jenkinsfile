@@ -313,7 +313,7 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
+            stages {
                 stage('verify-install') {
                     steps {
                         runGinkgo('verify-install')
@@ -457,7 +457,7 @@ pipeline {
                 SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
-            parallel {
+            stages {
                 stage('verify-install') {
                     steps {
                         runGinkgo('verify-install')

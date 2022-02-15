@@ -5,6 +5,10 @@ package metricsbinding
 
 import (
 	"context"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -20,14 +24,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
-	"testing"
-	"time"
 )
 
 // TestReconcilerSetupWithManager test the creation of the metrics trait reconciler.
@@ -368,7 +368,7 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 	log := vzlog.DefaultLogger()
 	controllerResult, err := reconciler.reconcileBindingCreateOrUpdate(context.TODO(), localMetricsBinding, log)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
-	assert.Equal(controllerResult, ctrl.Result{})
+	assert.True(controllerResult.Requeue)
 }
 
 // TestReconcileBindingDelete tests the reconciliation for a deletion
@@ -494,8 +494,7 @@ func TestCreateDeployment(t *testing.T) {
 
 	// Validate the results
 	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
-	assert.Equal(time.Duration(0), result.RequeueAfter)
+	assert.True(result.Requeue)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing

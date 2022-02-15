@@ -1,0 +1,17 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+imageName: ghcr.io/verrazzano/nginx-ingress-controller
+imageVersion: 0.46.0-20210510134749-abc2d2088
+replicas: 3
+
+proxy:
+  OidcProviderHost: keycloak.default.11.22.33.44.nip.io
+  OidcProviderHostInCluster: keycloak-http.keycloak.svc.cluster.local
+
+config:
+  dnsSuffix: 11.22.33.44.nip.io
+  envName: default
+
+dns:
+  wildcard:
+    domain: nip.io

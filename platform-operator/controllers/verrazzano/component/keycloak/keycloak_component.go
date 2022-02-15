@@ -8,9 +8,6 @@ import (
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -20,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -46,7 +44,7 @@ func NewComponent() spi.Component {
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
-			//  Check on Image Pull Pull Key
+			//  Check on Image Pull Key
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
 			Dependencies:            []string{istio.ComponentName},
 			SupportsOperatorInstall: true,

@@ -228,10 +228,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
-	// Never return an error since it has already been logged and we don't want the
-	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
-		return clusters.NewRequeueWithDelay(), nil
+		return clusters.NewRequeueWithDelay(), err
 	}
 
 	log.Oncef("Finished reconciling metrics trait %v", req.NamespacedName)

@@ -102,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.10.4",
+              "tag": "1.10.4-2",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.4",
+              "tag": "1.10.4-2",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -202,7 +202,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.10.4",
+              "tag": "1.10.4-2",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -351,7 +351,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.34.1",
+              "tag": "v1.34.1-1",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }

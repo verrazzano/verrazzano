@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -40,7 +39,6 @@ import (
 
 const (
 	ComponentName           = "verrazzano"
-	keycloakInClusterURL    = "keycloak-http.keycloak.svc.cluster.local"
 	esHelmValuePrefixFormat = "elasticSearch.%s"
 
 	workloadName  = "system-es-master"
@@ -162,13 +160,6 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues
 
 func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValues) error {
 	effectiveCR := ctx.EffectiveCR()
-	if isWildcardDNS, domain := getWildcardDNS(&effectiveCR.Spec); isWildcardDNS {
-		overrides.DNS = &dnsValues{
-			Wildcard: &wildcardDNSSettings{
-				Domain: domain,
-			},
-		}
-	}
 
 	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 	if err != nil {
@@ -192,12 +183,6 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.Console = &consoleValues{Enabled: vzconfig.IsConsoleEnabled(effectiveCR)}
 	overrides.VerrazzanoOperator = &voValues{Enabled: isVMOEnabled(effectiveCR)}
 	overrides.MonitoringOperator = &vmoValues{Enabled: isVMOEnabled(effectiveCR)}
-	overrides.API = &apiValues{
-		Proxy: &proxySettings{
-			OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", envName, dnsSuffix),
-			OidcProviderHostInCluster: keycloakInClusterURL,
-		},
-	}
 	return nil
 }
 
@@ -360,13 +345,6 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 
 func isVMOEnabled(vz *vzapi.Verrazzano) bool {
 	return vzconfig.IsPrometheusEnabled(vz) || vzconfig.IsKibanaEnabled(vz) || vzconfig.IsElasticsearchEnabled(vz) || vzconfig.IsGrafanaEnabled(vz)
-}
-
-func getWildcardDNS(vz *vzapi.VerrazzanoSpec) (bool, string) {
-	if vz.Components.DNS != nil && vz.Components.DNS.Wildcard != nil {
-		return true, vz.Components.DNS.Wildcard.Domain
-	}
-	return false, ""
 }
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does

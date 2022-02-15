@@ -3,7 +3,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Values.api.impersonatorRoleName }}
+  name: {{ .Values.impersonatorRoleName }}
 rules:
 - apiGroups: [""]
   resources: ["users", "groups"]
@@ -12,28 +12,28 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Values.api.impersonatorRoleName }}
+  name: {{ .Values.impersonatorRoleName }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Values.api.impersonatorRoleName }}
+  name: {{ .Values.impersonatorRoleName }}
 subjects:
 - kind: ServiceAccount
-  name: {{ .Values.api.name }}
+  name: {{ .Values.name }}
   namespace: {{ .Release.Namespace }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: {{ .Values.api.name }}
-  name: {{ .Values.api.name }}
+    app: {{ .Values.name }}
+  name: {{ .Values.name }}
   namespace: {{ .Release.Namespace }}
 spec:
-  replicas: {{ .Values.api.replicas }}
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
-      app: {{ .Values.api.name }}
+      app: {{ .Values.name }}
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -45,7 +45,7 @@ spec:
         sidecar.istio.io/inject: "true"
         traffic.sidecar.istio.io/excludeOutboundPorts: 443,6443
       labels:
-        app: {{ .Values.api.name }}
+        app: {{ .Values.name }}
     spec:
       volumes:
        - name: api-config
@@ -88,14 +88,14 @@ spec:
                   - key: reload.sh
                     path: reload.sh
                     mode: 0755
-      {{- with .Values.api.affinity }}
+      {{- with .Values.affinity }}
       affinity:
         {{- tpl . $ | nindent 8 }}
       {{- end }}
       containers:
-      - image: {{ .Values.api.imageName }}:{{ .Values.api.imageVersion }}
-        imagePullPolicy: {{ .Values.api.pullPolicy }}
-        name: {{ .Values.api.name }}
+      - image: {{ .Values.imageName }}:{{ .Values.imageVersion }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        name: {{ .Values.name }}
         command: ["/api-config/startup.sh"]
         env:
         - name: VZ_API_HOST
@@ -103,25 +103,25 @@ spec:
         - name: VZ_API_VERSION
           value: "20210501"
         ports:
-            - containerPort: {{ .Values.api.port }}
+            - containerPort: {{ .Values.port }}
         volumeMounts:
         - mountPath: /api-config
           name: api-config
-      serviceAccount: {{ .Values.api.name }}
+      serviceAccount: {{ .Values.name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.api.name }}
+  name: {{ .Values.name }}
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
   - name: api
-    port: {{ .Values.api.port }}
+    port: {{ .Values.port }}
     protocol: TCP
-    targetPort: {{ .Values.api.port }}
+    targetPort: {{ .Values.port }}
   selector:
-    app: {{ .Values.api.name }}
+    app: {{ .Values.name }}
 ---
 apiVersion: v1
 kind: Service
@@ -131,16 +131,16 @@ metadata:
 spec:
   ports:
     - name: auth-proxy
-      port: {{ .Values.api.port }}
+      port: {{ .Values.port }}
       protocol: TCP
-      targetPort: {{ .Values.api.port }}
+      targetPort: {{ .Values.port }}
   selector:
-    app: {{ .Values.api.name }}
+    app: {{ .Values.name }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Values.api.name }}
+  name: {{ .Values.name }}
   namespace: {{ .Release.Namespace }}
 {{- if .Values.global.imagePullSecrets }}
 imagePullSecrets:
@@ -153,7 +153,7 @@ apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
-  name: {{ .Values.api.name }}-secret
+  name: {{ .Values.name }}-secret
   namespace: {{ .Release.Namespace }}
 data:
   # encryption key generated dynamically and overridden on helm command line
