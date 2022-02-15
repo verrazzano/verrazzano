@@ -620,7 +620,7 @@ data:
       @log_level info
       log_es_400_reason true
 
-      data_stream_name verrazzano-application
+      data_stream_name verrazzano-application-${$.kubernetes.namespace_name}
       data_stream_template_name verrazzano-data-stream
       template_file /fluentd/etc/opensearch-template-verrazzano.json
 
@@ -641,7 +641,7 @@ data:
 
       bulk_message_request_threshold 16M
       request_timeout 2147483648
-      <buffer>
+      <buffer tag, $.kubernetes.namespace_name>
         @type file
         path /fluentd/log/output-buffer
         flush_thread_count 8
@@ -698,7 +698,7 @@ data:
           "verrazzano-application*"
       ],
       "version":60001,
-      "priority": 100,
+      "priority": 101,
       "data_stream": {},
       "template": {
         "settings":{

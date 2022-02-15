@@ -129,7 +129,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 	})
 
 	t.Context("for Logging", Label("f:observability.logging.es"), func() {
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-mc-sockshop", "verrazzano-application")
+		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-mc-sockshop", "verrazzano-application-mc-sockshop")
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster

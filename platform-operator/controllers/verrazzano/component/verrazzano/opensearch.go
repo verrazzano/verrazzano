@@ -64,7 +64,8 @@ const systemISMPayloadTemplate = `{
         ],
         "ism_template": {
           "index_patterns": [
-            "verrazzano-system"
+            "verrazzano-system",
+			"verrazzano-logstash*"
           ],
           "priority": 1
         }
@@ -109,8 +110,7 @@ const applicationISMPayloadTemplate = `{
         ],
         "ism_template": {
           "index_patterns": [
-            "verrazzano-application*",
-			"verrazzano-logstash*"
+            "verrazzano-application*"
           ],
           "priority": 1
         }

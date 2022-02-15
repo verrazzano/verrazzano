@@ -120,7 +120,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
 
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-"+namespace, "verrazzano-application")
+		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-"+namespace, "verrazzano-application-"+namespace)
 
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved

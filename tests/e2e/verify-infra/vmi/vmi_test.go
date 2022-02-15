@@ -211,22 +211,24 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 			})
 
-		t.It("should have ISM Policies for verrazzano-system and verrazzano-application", func() {
-			Eventually(func() bool {
-				systemPolicyExists, err := pkg.ISMPolicyExists("verrazzano-system")
-				if err != nil {
-					t.Logs.Error("failed to find system policy: verrazzano-system")
-					return false
-				}
-				applicationPolicyExists, err := pkg.ISMPolicyExists("verrazzano-application")
-				if err != nil {
-					t.Logs.Error("failed to find system policy: verrazzano-application")
-					return false
-				}
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); ok {
+			t.It("should have ISM Policies for verrazzano-system and verrazzano-application", func() {
+				Eventually(func() bool {
+					systemPolicyExists, err := pkg.ISMPolicyExists("verrazzano-system")
+					if err != nil {
+						t.Logs.Error("failed to find system policy: verrazzano-system")
+						return false
+					}
+					applicationPolicyExists, err := pkg.ISMPolicyExists("verrazzano-application")
+					if err != nil {
+						t.Logs.Error("failed to find system policy: verrazzano-application")
+						return false
+					}
 
-				return systemPolicyExists && applicationPolicyExists
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
+					return systemPolicyExists && applicationPolicyExists
+				}, waitTimeout, pollingInterval).Should(BeTrue())
+			})
+		}
 
 		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.logging.kibana"), func() {
