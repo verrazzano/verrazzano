@@ -10,6 +10,8 @@ spec:
   components:
     applicationOperator:
       enabled: true
+    authProxy:
+      enabled: true
     certManager:
       enabled: true
       certificate:

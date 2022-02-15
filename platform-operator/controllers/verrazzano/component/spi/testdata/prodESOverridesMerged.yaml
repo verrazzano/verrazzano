@@ -18,6 +18,10 @@ spec:
   components:
     applicationOperator:
       enabled: true
+    authProxy:
+      enabled: true
+      kubernetes:
+        replicas: 2
     certManager:
       enabled: true
       certificate:
@@ -101,8 +105,5 @@ spec:
       enabled: true
     verrazzano:
       enabled: true
-      installArgs:
-        - name: api.replicas
-          value: "2"
     weblogicOperator:
       enabled: true
