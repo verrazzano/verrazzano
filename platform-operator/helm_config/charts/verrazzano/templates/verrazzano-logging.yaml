@@ -571,6 +571,19 @@ data:
         </pattern>
       </parse>
     </filter>
+    
+    # filter to parse OpenSearch Dashboard container log files
+    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+      @type record_transformer
+      @id kibana-json
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      enable_ruby
+      <record>
+        level ${!!record["tags"] ? !(['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0].nil? ? (['trace', 'debug', 'info', 'warn', 'error', 'fail'] & record["tags"])[0] : "" : ""}
+      </record>
+    </filter>
 
   kubernetes-filter.conf: |
     # Query the API for extra metadata.
