@@ -313,7 +313,7 @@ func validateGrafanaLogs() bool {
 
 func validateKibanaLogs() bool {
 	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
+		noLevelElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"system-kibana",
