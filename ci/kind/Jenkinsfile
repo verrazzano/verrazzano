@@ -116,7 +116,7 @@ pipeline {
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
-        TEST_REPORT_DIR = "${WORKSPACE}/test-reports"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -542,7 +542,7 @@ pipeline {
 
             sh """
                 # Copy the generated test reports to WORKSPACE to archive them
-                mkdir ${TEST_REPORT_DIR}
+                mkdir -p ${TEST_REPORT_DIR}
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
             """
