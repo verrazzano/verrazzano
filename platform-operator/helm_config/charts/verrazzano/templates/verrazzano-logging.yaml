@@ -559,7 +559,7 @@ data:
       reserve_data true
       emit_invalid_record_to_error true
       <parse>
-        # Grafana has two formats for log records
+        # Kibana has one format for log records
         @type multi_format
         <pattern>
           format json
