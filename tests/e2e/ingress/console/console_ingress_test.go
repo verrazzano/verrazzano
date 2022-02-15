@@ -126,7 +126,7 @@ func undeployApplication() {
 var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload"), func() {
 
-	t.Context("deployment.", func() {
+	t.Context("deployment.", FlakeAttempts(5), func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
