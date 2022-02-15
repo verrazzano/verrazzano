@@ -552,8 +552,8 @@ data:
     </filter>
 
     # filter to parse NGINX Ingress Controller container log files
-    <filter **ingress-nginx-controller**ingress-nginx-controller-**>
-      @type parseri
+    <filter **ingress-nginx-controller**ingress-nginx_controller-**>
+      @type parser
       @id nginx-ingress-controller
       key_name log
       reserve_data true
