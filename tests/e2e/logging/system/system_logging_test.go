@@ -261,7 +261,7 @@ func validateVPOLogs() bool {
 func validateVAOLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		installIndex,
+		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-application-operator",
 		searchTimeWindow,
@@ -271,7 +271,7 @@ func validateVAOLogs() bool {
 func validateVMOLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		installIndex,
+		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-monitoring-operator",
 		searchTimeWindow,
@@ -281,7 +281,7 @@ func validateVMOLogs() bool {
 func validateVOLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		installIndex,
+		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-operator",
 		searchTimeWindow,
