@@ -12,7 +12,7 @@ ssl:
 # Add an init container to chown the data directory to be owned by the mysql user
 # (uid=27 gid=27) so that when upgrading, mysql user can definitely access data dir from previous volume
 # Note: if the Helm chart for MySQL changes, this should be reviewed for correctness
-extraInitContainers:
+extraInitContainers: |
   - command:
       - chown
       - -R
@@ -30,4 +30,3 @@ extraInitContainers:
     volumeMounts:
       - mountPath: /var/lib/mysql
         name: data
-
