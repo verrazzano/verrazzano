@@ -311,9 +311,9 @@ func validateGrafanaLogs() bool {
 		noExceptions)
 }
 
-func validateKibanaLogs() bool {
+func validateOpenSearchLogs() bool {
 	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
+		noLevelElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"system-kibana",
