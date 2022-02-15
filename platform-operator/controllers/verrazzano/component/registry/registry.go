@@ -49,6 +49,8 @@ func GetComponents() []spi.Component {
 func getComponents() []spi.Component {
 	if len(componentsRegistry) == 0 {
 		componentsRegistry = []spi.Component{
+			oam.NewComponent(),
+			appoper.NewComponent(),
 			istio.NewComponent(),
 			nginx.NewComponent(),
 			certmanager.NewComponent(),
@@ -58,8 +60,6 @@ func getComponents() []spi.Component {
 			authproxy.NewComponent(),
 			coherence.NewComponent(),
 			weblogic.NewComponent(),
-			oam.NewComponent(),
-			appoper.NewComponent(),
 			mysql.NewComponent(),
 			keycloak.NewComponent(),
 			kiali.NewComponent(),
