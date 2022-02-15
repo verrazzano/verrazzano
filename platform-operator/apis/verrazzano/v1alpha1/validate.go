@@ -82,8 +82,11 @@ func GetCurrentBomVersion() (*semver.SemVersion, error) {
 	}
 	v := bom.GetVersion()
 	if v == constants.BomVerrazzanoVersion {
-		// This will only happen during development testing, the value doesn't matter
-		v = "1.0.1"
+		if len(os.Getenv("VZ_INSTALL_VERSION")) > 0 {
+			v = os.Getenv("VZ_INSTALL_VERSION")
+		} else {
+			v = "1.0.1"
+		}
 	}
 	return semver.NewSemVersion(fmt.Sprintf("v%s", v))
 }
