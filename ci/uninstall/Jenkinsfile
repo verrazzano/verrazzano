@@ -452,14 +452,11 @@ pipeline {
 
         stage('Verify VZ finalizer') {
             steps {
-                sh """
-                    finalizer=$(kubectl get vz -o=jsonpath='{.items[0].metadata.finalizers}')
-                    echo "$finalizer"
-                    if [[ -z "$finalizer" ]]; then
-                        echo "VZ CR is missing the finalizer necessary for uninstall"
-                        exit 1
-                    fi
-                """
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify-vz-finalizer.sh
+                    """
+                }
             }
             post {
                 always {
@@ -498,8 +495,6 @@ pipeline {
                 }
             }
         }
-
-
 
         stage('Rerun Test') {
             environment {
