@@ -18,13 +18,17 @@ import (
 )
 
 const (
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
-	searchTimeWindow     = "1h"
-	systemIndex          = "verrazzano-namespace-verrazzano-system"
-	installIndex         = "verrazzano-namespace-verrazzano-install"
-	certMgrIndex         = "verrazzano-namespace-cert-manager"
-	keycloakIndex        = "verrazzano-namespace-keycloak"
+	shortPollingInterval       = 10 * time.Second
+	shortWaitTimeout           = 5 * time.Minute
+	searchTimeWindow           = "1h"
+	systemIndex                = "verrazzano-namespace-verrazzano-system"
+	installIndex               = "verrazzano-namespace-verrazzano-install"
+	certMgrIndex               = "verrazzano-namespace-cert-manager"
+	keycloakIndex              = "verrazzano-namespace-keycloak"
+	cattleSystemIndex          = "verrazzano-namespace-cattle-system"
+	fleetSystemIndex           = "verrazzano-namespace-fleet-system"
+	localPathStorageIndex      = "verrazzano-namespace-local-path-storage"
+	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
 )
 
 var (
@@ -172,6 +176,66 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			t.Logs.Info("Found problems with log records in Keycloak index")
 		}
 	})
+
+	t.It("contains cattle-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the cattle-system is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(cattleSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-system")
+
+		valid := true
+		valid = validateRancherLogs() && valid
+		valid = validateRancherWebhookLogs() && valid
+		if !valid {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in cattle-system index")
+		}
+	})
+
+	t.It("contains fleet-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the fleet-system is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(fleetSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index fleet-system")
+
+		if !validateFleetSystemLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in fleet-system index")
+		}
+	})
+
+	t.It("contains local-path-storage index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the local-path-storage is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(localPathStorageIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
+
+		if !validateLocalPathStorageLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in local-path-storage index")
+		}
+	})
+
+	t.It("contains rancher-operator-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the rancher-operator-system is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(localPathStorageIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index rancher-operator-system")
+
+		if !validateRancherOperatorSystemLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in rancher-operator-system index")
+		}
+	})
+
 })
 
 func validateAuthProxyLogs() bool {
@@ -326,6 +390,55 @@ func validateKeycloakMySQLLogs() bool {
 		keycloakIndex,
 		"kubernetes.labels.app.keyword",
 		"mysql",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateRancherLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		cattleSystemIndex,
+		"kubernetes.labels.app.keyword",
+		"rancher",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateRancherWebhookLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		cattleSystemIndex,
+		"kubernetes.labels.app.keyword",
+		"rancher-webhook",
+		searchTimeWindow,
+		noExceptions)
+}
+func validateFleetSystemLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		fleetSystemIndex,
+		"kubernetes.namespace_name",
+		"fleet-system",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateLocalPathStorageLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		localPathStorageIndex,
+		"kubernetes.namespace_name",
+		"local-path-storage",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateRancherOperatorSystemLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		rancherOperatorSystemIndex,
+		"kubernetes.namespace_name",
+		"rancher-operator-system",
 		searchTimeWindow,
 		noExceptions)
 }

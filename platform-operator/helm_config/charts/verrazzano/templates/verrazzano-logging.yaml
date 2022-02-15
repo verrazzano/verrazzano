@@ -496,7 +496,7 @@ data:
     </filter>
   
 
-    # filter to parse verrazzano-system prometheus container log files
+    # filter to parse verrazzano-system Prometheus container log files
     <filter kubernetes.**vmi-system-prometheus**verrazzano-system_prometheus**>
       @type parser
       @id vmi-system-prometheus
@@ -530,7 +530,7 @@ data:
       </parse>
     </filter>
 
-    # filter to parse verrazzano-system config-reloader container log files
+    # filter to parse verrazzano-system Prometheus config-reloader container log files
     <filter kubernetes.**vmi-system-prometheus**verrazzano-system_config-reloader**>
       @type parser
       @id config-reloader
@@ -544,6 +544,39 @@ data:
           format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<message>[\s\S]*?)$/
           time_key logtime
           time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to parse Rancher namespace container log files
+    <filter kubernetes.**cattle-system** kubernetes.**rancher-operator-system** kubernetes.**fleet-system** kubernetes.**local-path-provisioner**>
+      @type parser
+      @id rancher
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        # Rancher pattern #1
+        <pattern>
+          format /^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        # Rancher pattern #2
+        <pattern>
+          format /^(?<logtime>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) \[(?<level>.*?)\] (?<message>[\s\S]*?)?$/
+          time_key logtime
+          time_format %Y/%m/%d %H:%M:%S
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
         </pattern>
         <pattern>
           format none
