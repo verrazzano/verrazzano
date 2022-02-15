@@ -142,8 +142,8 @@ func GetVerrazzanoHTTPClient(kubeconfigPath string) (*retryablehttp.Client, erro
 	if err != nil {
 		return nil, err
 	}
-	retryableClient := newRetryableHTTPClient(client
-	retryableClient.HTTPClient.Transport = transport
+	client.Transport = transport
+	retryableClient := newRetryableHTTPClient(client)
 	return retryableClient, nil
 }
 
