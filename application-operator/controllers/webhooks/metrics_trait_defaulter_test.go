@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -72,19 +71,6 @@ func testDefaulter(t *testing.T, componentPath, configPath, workloadPath string,
 			}
 			return nil
 		})
-
-	if workloadSupported {
-		// Expect a call to get the workload.
-		mock.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
-				err = json.Unmarshal(readYaml2Json(t, workloadPath), workload)
-				if err != nil {
-					t.Fatalf("Error in unmarshalling workload %v", err)
-				}
-				return nil
-			})
-	}
 
 	err = defaulter.Default(appConfig, false, zap.S())
 	if err != nil {

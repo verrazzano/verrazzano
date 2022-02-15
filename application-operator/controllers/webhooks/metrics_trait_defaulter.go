@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,25 +62,14 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 
 		var component oamv1.Component
 		err := m.Client.Get(context.TODO(), types.NamespacedName{Namespace: appConfig.GetNamespace(), Name: appConfigComponent.ComponentName}, &component)
-
 		if err != nil {
 			log.Debugf("Unable to get component info for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
 			continue
 		}
 
-		componentUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
-		if err != nil || componentUnstructured == nil {
-			log.Debugf("Unable to convert workload spec for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
-			continue
-		}
-
-		if componentUnstructured.GetNamespace() == "" {
-			componentUnstructured.SetNamespace(component.GetNamespace())
-		}
-
-		workload, err := vznav.FetchWorkloadResource(context.TODO(), m.Client, vzlog.DefaultLogger(), componentUnstructured)
+		workload, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
 		if err != nil || workload == nil {
-			log.Debugf("Unable to get workload resource for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+			log.Debugf("Unable to convert workload spec for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
 			continue
 		}
 

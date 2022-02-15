@@ -231,6 +231,20 @@ func TestGetSupportedWorkloadType(t *testing.T) {
 	workloadType = GetSupportedWorkloadType(apiVerKind)
 	assert.Equal(constants.WorkloadTypeCoherence, workloadType)
 
+	// GIVEN an api version oam.verrazzano.io/v1alpha1 and Kind VerrazzanoWebLogicWorkload
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadtype is weblogic
+	apiVerKind = "oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Equal(constants.WorkloadTypeWeblogic, workloadType)
+
+	// GIVEN an api version oam.verrazzano.io/v1alpha1 and Kind VerrazzanoCoherenceWorkload
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadType is coherence
+	apiVerKind = "oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Equal(constants.WorkloadTypeCoherence, workloadType)
+
 	// GIVEN an api version oam.verrazzano.io/v1alpha1 and Kind VerrazzanoHelidonWorkload
 	// WHEN supported workloadtype is retrieved
 	// THEN verify that the workloadType is generic

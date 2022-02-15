@@ -52,18 +52,6 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log vzlog.Ve
 		return nil, err
 	}
 
-	return FetchWorkloadResource(ctx, cli, log, workload)
-}
-
-// IsWeblogicWorkloadKind returns true if the trait references a Verrazzano WebLogic workload kind
-// (VerrazzanoWebLogicWorkload), false otherwise.
-func IsWeblogicWorkloadKind(trait oam.Trait) bool {
-	kind := trait.GetWorkloadReference().Kind
-	return kind == "VerrazzanoWebLogicWorkload"
-}
-
-// FetchWorkloadResource fetches the underlying resource created by the workload.
-func FetchWorkloadResource(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, workload *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	// Getting kind of helidon workload i.e. "VerrazzanoHelidonWorkload"
 	helidonWorkloadKind := reflect.TypeOf(vzapi.VerrazzanoHelidonWorkload{}).Name()
 	// If the workload does not wrap unstructured data
@@ -79,4 +67,11 @@ func FetchWorkloadResource(ctx context.Context, cli client.Reader, log vzlog.Ver
 	}
 
 	return resource, nil
+}
+
+// IsWeblogicWorkloadKind returns true if the trait references a Verrazzano WebLogic workload kind
+// (VerrazzanoWebLogicWorkload), false otherwise.
+func IsWeblogicWorkloadKind(trait oam.Trait) bool {
+	kind := trait.GetWorkloadReference().Kind
+	return kind == "VerrazzanoWebLogicWorkload"
 }

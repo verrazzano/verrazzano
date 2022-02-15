@@ -111,7 +111,16 @@ func GetSupportedWorkloadType(apiVerKind string) string {
 		return constants.WorkloadTypeCoherence
 	}
 
-	// Match any version of Group=coherence.oracle and Kind=VerrazzanoHelidonWorkload or
+	// Match any version of Group=oam.verrazzano.io and Kind=VerrazzanoWebLogicWorkload
+	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoWebLogicWorkload$", apiVerKind); matched {
+		return constants.WorkloadTypeWeblogic
+	}
+	// Match any version of Group=oam.verrazzano.io and Kind=VerrazzanoCoherenceWorkload
+	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoCoherenceWorkload$", apiVerKind); matched {
+		return constants.WorkloadTypeCoherence
+	}
+
+	// Match any version of Group=oam.verrazzano.io and Kind=VerrazzanoHelidonWorkload or
 	// In the case of Helidon, the workload isn't currently being unwrapped
 	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
 		return constants.WorkloadTypeGeneric
