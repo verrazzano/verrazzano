@@ -3,9 +3,10 @@
 package weblogic
 
 import (
+	"testing"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -23,7 +24,7 @@ import (
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
 	kvs, err := AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 4)
+	assert.Len(t, kvs, 5)
 }
 
 // Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
@@ -37,7 +38,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 	var err error
 	kvs, err = AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, false), "weblogic-operator", "verrazzano-system", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 5)
+	assert.Len(t, kvs, 6)
 }
 
 // Test_weblogicOperatorPreInstall tests the WeblogicOperatorPreInstall fn
