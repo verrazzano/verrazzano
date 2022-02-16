@@ -116,17 +116,18 @@ func GetRootCA(c client.Reader) ([]byte, error) {
 }
 
 // GetAdditionalCA fetches the Rancher additional CA secret
-func GetAdditionalCA(c client.Reader) ([]byte, error) {
+// returns empty byte array of the secret tls-ca-additional is not found
+func GetAdditionalCA(c client.Reader) []byte {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: CattleSystem,
 		Name:      RancherAdditionalIngressCAName}
 
 	if err := c.Get(context.TODO(), nsName, secret); err != nil {
-		return nil, client.IgnoreNotFound(err)
+		return []byte{}
 	}
 
-	return secret.Data[RancherCAAdditionalPem], nil
+	return secret.Data[RancherCAAdditionalPem]
 }
 
 func CertPool(certs ...[]byte) *x509.CertPool {
@@ -144,14 +145,18 @@ func HTTPClient(c client.Reader, hostname string) (*http.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	additionalCA, err := GetAdditionalCA(c)
-	if err != nil {
-		return nil, err
-	}
-	if len(rootCA) < 1 && len(additionalCA) < 1 {
-		return nil, errors.New("neither root nor additional CA Secrets were found for Rancher")
-	}
+	additionalCA := GetAdditionalCA(c)
 
+	if len(rootCA) < 1 && len(additionalCA) < 1 {
+		return &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+					ServerName: hostname,
+				},
+			},
+		}, nil
+	}
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{

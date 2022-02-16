@@ -872,7 +872,7 @@ func TestWorkloadFetchError(t *testing.T) {
 
 	// Validate the results
 	mocker.Finish()
-	assert.Nil(err)
+	assert.NotNil(err)
 	assert.Equal(true, result.Requeue)
 }
 

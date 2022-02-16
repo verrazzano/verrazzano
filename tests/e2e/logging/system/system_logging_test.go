@@ -18,12 +18,19 @@ import (
 )
 
 const (
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
-	searchTimeWindow     = "1h"
-	systemIndex          = "verrazzano-namespace-verrazzano-system"
-	installIndex         = "verrazzano-namespace-verrazzano-install"
-	certMgrIndex         = "verrazzano-namespace-cert-manager"
+	shortPollingInterval       = 10 * time.Second
+	shortWaitTimeout           = 5 * time.Minute
+	searchTimeWindow           = "1h"
+	systemIndex                = "verrazzano-namespace-verrazzano-system"
+	installIndex               = "verrazzano-namespace-verrazzano-install"
+	certMgrIndex               = "verrazzano-namespace-cert-manager"
+	keycloakIndex              = "verrazzano-namespace-keycloak"
+	cattleSystemIndex          = "verrazzano-namespace-cattle-system"
+	fleetSystemIndex           = "verrazzano-namespace-fleet-system"
+	localPathStorageIndex      = "verrazzano-namespace-local-path-storage"
+	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
+	nginxIndex                 = "verrazzano-namespace-ingress-nginx"
+	monitoringIndex            = "verrazzano-namespace-monitoring"
 )
 
 var (
@@ -77,7 +84,10 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateOAMLogs() && valid
 		valid = validateIstioProxyLogs() && valid
 		valid = validateKialiLogs() && valid
-		valid = validateCertManagerLogs() && valid
+		valid = validatePrometheusLogs() && valid
+		valid = validatePrometheusConfigReloaderLogs() && valid
+		valid = validateGrafanaLogs() && valid
+		valid = validateOpenSearchLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -104,6 +114,35 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
+	t.It("contains valid verrazzano-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound("verrazzano-namespace-verrazzano-system")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
+
+		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-verrazzano-system index
+		// With field
+		//	kubernetes.labels.app.keyword==verrazzano-application-operator,
+		//  kubernetes.labels.app.keyword==verrazzano-monitoring-operator,
+		//  kubernetes.labels.app.keyword==verrazzano-operator
+		// WHEN Log messages are retrieved from Elasticsearch
+		// THEN Verify there are valid log records
+		if !validateVAOLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with Verrazzano Application Operator log records in verrazzano-system index")
+		}
+		if !validateVMOLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with Verrazzano Monitoring Operator log records in verrazzano-system index")
+		}
+		if !validateVOLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with Verrazzano Operator log records in verrazzano-system index")
+		}
+	})
+
 	t.It("contains cert-manager index with valid records", func() {
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cert-manager namespace is retrieved
@@ -119,6 +158,116 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			t.Logs.Info("Found problems with log records in cert-manager index")
 		}
 	})
+
+	t.It("contains valid Keycloak index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the Keycloak namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(keycloakIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-namepace-keycloak")
+
+		// GIVEN Log message in Elasticsearch in the verrazzano-namespace-keycloak index
+		// With field kubernetes.labels.app.kubernetes.io/name=keycloak
+		// WHEN Log messages are retrieved from Elasticsearch
+		// THEN Verify there are valid log records
+		valid := true
+		valid = validateKeycloakLogs() && valid
+		valid = validateKeycloakMySQLLogs() && valid
+		if !valid {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in Keycloak index")
+		}
+	})
+
+	t.It("contains ingress-nginx index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the index for the ingress-nginx namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound("verrazzano-namespace-ingress-nginx")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find NGINX index ingress-nginx")
+
+		valid := true
+		valid = validateIngressNginxLogs() && valid
+		if !valid {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in ingress-nginx index")
+		}
+	})
+
+	t.It("contains cattle-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the cattle-system namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(cattleSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-system")
+
+		valid := true
+		valid = validateRancherLogs() && valid
+		valid = validateRancherWebhookLogs() && valid
+		if !valid {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in cattle-system index")
+		}
+	})
+
+	t.It("contains fleet-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the fleet-system namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(fleetSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index fleet-system")
+
+		if !validateFleetSystemLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in fleet-system index")
+		}
+	})
+
+	t.It("contains local-path-storage index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the local-path-storage namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(localPathStorageIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
+
+		if !validateLocalPathStorageLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in local-path-storage index")
+		}
+	})
+
+	t.It("contains rancher-operator-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the rancher-operator-system namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(rancherOperatorSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index rancher-operator-system")
+
+		if !validateRancherOperatorSystemLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in rancher-operator-system index")
+		}
+	})
+
+	t.It("contains monitoring index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the monitoring namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(monitoringIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index monitoring")
+
+		if !validateNodeExporterLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in monitoring index")
+		}
+	})
 })
 
 func validateAuthProxyLogs() bool {
@@ -128,7 +277,7 @@ func validateAuthProxyLogs() bool {
 	}
 	exceptions = append(exceptions, istioExceptions...)
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-authproxy",
@@ -138,7 +287,7 @@ func validateAuthProxyLogs() bool {
 
 func validateCoherenceLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"coherence-operator",
@@ -148,7 +297,7 @@ func validateCoherenceLogs() bool {
 
 func validateOAMLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
 		"oam-kubernetes-runtime",
@@ -159,7 +308,7 @@ func validateOAMLogs() bool {
 // message:configPath: ./etc/istio/proxy
 func validateIstioProxyLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.container_name",
 		"istio-proxy",
@@ -169,7 +318,7 @@ func validateIstioProxyLogs() bool {
 
 func validateKialiLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app_kubernetes_io/part-of",
 		"kiali",
@@ -179,7 +328,7 @@ func validateKialiLogs() bool {
 
 func validateVPOLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		installIndex,
 		"kubernetes.labels.app.keyword",
 		"verrazzano-platform-operator",
@@ -187,12 +336,171 @@ func validateVPOLogs() bool {
 		noExceptions)
 }
 
+func validateVAOLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.labels.app.keyword",
+		"verrazzano-application-operator",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateVMOLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.labels.app.keyword",
+		"verrazzano-monitoring-operator",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateVOLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.labels.app.keyword",
+		"verrazzano-operator",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validatePrometheusLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.container_name",
+		"prometheus",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validatePrometheusConfigReloaderLogs() bool {
+	return validateElasticsearchRecords(
+		noLevelElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.container_name",
+		"config-reloader",
+		searchTimeWindow,
+		noExceptions)
+}
+
 func validateCertManagerLogs() bool {
 	return validateElasticsearchRecords(
-		basicElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		certMgrIndex,
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateGrafanaLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.labels.app.keyword",
+		"system-grafana",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateOpenSearchLogs() bool {
+	return validateElasticsearchRecords(
+		noLevelElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.labels.app.keyword",
+		"system-kibana",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateKeycloakLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		keycloakIndex,
+		"kubernetes.labels.app.kubernetes.io/name",
+		"keycloak",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateIngressNginxLogs() bool {
+	return validateElasticsearchRecords(
+		noLevelElasticsearchRecordValidator,
+		nginxIndex,
+		"kubernetes.labels.app_kubernetes_io/name",
+		"ingress-nginx",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateKeycloakMySQLLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		keycloakIndex,
+		"kubernetes.labels.app.keyword",
+		"mysql",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateRancherLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		cattleSystemIndex,
+		"kubernetes.labels.app.keyword",
+		"rancher",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateRancherWebhookLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		cattleSystemIndex,
+		"kubernetes.labels.app.keyword",
+		"rancher-webhook",
+		searchTimeWindow,
+		noExceptions)
+}
+func validateFleetSystemLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		fleetSystemIndex,
+		"kubernetes.namespace_name",
+		"fleet-system",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateLocalPathStorageLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		localPathStorageIndex,
+		"kubernetes.namespace_name",
+		"local-path-storage",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateRancherOperatorSystemLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		rancherOperatorSystemIndex,
+		"kubernetes.namespace_name",
+		"rancher-operator-system",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateNodeExporterLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		monitoringIndex,
+		"kubernetes.labels.app.keyword",
+		"node-exporter",
 		searchTimeWindow,
 		noExceptions)
 }
@@ -202,7 +510,7 @@ func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, na
 	template :=
 		`{
 			"size": 1000,
-      "sort": [{"@timestamp": {"order": "desc"}}],
+			"sort": [{"@timestamp": {"order": "desc"}}],
 			"query": {
 				"bool": {
 					"filter" : [
@@ -232,8 +540,26 @@ func validateElasticsearchRecords(hitValidator pkg.ElasticsearchHitValidator, na
 	return true
 }
 
-// basicElasticsearchRecordValidator does common validation of log records
-func basicElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+// allElasticsearchRecordValidator does all validation for log records
+func allElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+	valid := true
+	if !commonElasticsearchRecordValidator(hit) {
+		valid = false
+	}
+	if !logLevelElasticsearchRecordValidator(hit) {
+		valid = false
+	}
+
+	return valid
+}
+
+// noLevelElasticsearchRecordValidator does validation for log records except level validation
+func noLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+	return commonElasticsearchRecordValidator(hit)
+}
+
+// commonElasticsearchRecordValidator does all validation for log records except level validation
+func commonElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 	ts := ""
 	valid := true
 	// Verify the record has a @timestamp field.
@@ -272,25 +598,6 @@ func basicElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 		pkg.Log(pkg.Info, "Log record has duplicate log and message field values")
 		valid = false
 	}
-	// Verify the record has a level field.
-	// If so verify that the level isn't debug.
-	if val, ok := hit["level"]; !ok || len(val.(string)) == 0 {
-		pkg.Log(pkg.Info, "Log record has missing or empty level field")
-		valid = false
-	} else {
-		//level := val.(string)
-		// Put this validation back in when the OAM logging is fixed.
-		// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
-		// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
-		// 	valid = false
-		// }
-		// There is an Istio proxy error that causes this to fail.
-		// Put this validation back in when that is addressed.
-		//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
-		//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
-		//	valid = false
-		//}
-	}
 	// Verify the record does not have a timestamp field.
 	if _, ok := hit["timestamp"]; ok {
 		pkg.Log(pkg.Info, "Log record has unwanted timestamp field")
@@ -300,4 +607,28 @@ func basicElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("Log record is invalid: %v", hit))
 	}
 	return valid
+}
+
+// logLevelElasticsearchRecordValidator does validation of level for log records
+func logLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+	// Verify the record has a level field.
+	// If so verify that the level isn't debug.
+	if val, ok := hit["level"]; !ok || len(val.(string)) == 0 {
+		pkg.Log(pkg.Info, "Log record has missing or empty level field")
+		return false
+	}
+	//level := val.(string)
+	// Put this validation back in when the OAM logging is fixed.
+	// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
+	// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
+	// 	valid = false
+	// }
+	// There is an Istio proxy error that causes this to fail.
+	// Put this validation back in when that is addressed.
+	//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
+	//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
+	//	valid = false
+	//}
+
+	return true
 }
