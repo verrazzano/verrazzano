@@ -12,7 +12,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,14 +64,26 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 
 		var component oamv1.Component
 		err := m.Client.Get(context.TODO(), types.NamespacedName{Namespace: appConfig.GetNamespace(), Name: appConfigComponent.ComponentName}, &component)
+
 		if err != nil {
-			log.Debugf("Unable to get component info for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+			log.Debugf("Unable to get component info for component: %s of application configuration: %s/%s, error: %v", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+			if k8serrors.IsNotFound(err) {
+				log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+				m.addDefaultTrait(appConfigComponent)
+			}
+
 			continue
 		}
 
-		workload, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
-		if err != nil || workload == nil {
+		componentUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
+		if err != nil || componentUnstructured == nil {
 			log.Debugf("Unable to convert workload spec for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+			continue
+		}
+
+		workload, err := vznav.FetchWorkloadResource(context.TODO(), m.Client, vzlog.DefaultLogger(), componentUnstructured)
+		if err != nil || workload == nil {
+			log.Debugf("Unable to get workload resource for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
 			continue
 		}
 
@@ -81,7 +95,7 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 
 		workloadType := metricstrait.GetSupportedWorkloadType(apiVerKind)
 		if workloadType != "" {
-			log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+			log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
 			m.addDefaultTrait(appConfigComponent)
 		}
 	}
