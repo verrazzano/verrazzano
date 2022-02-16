@@ -861,6 +861,20 @@ func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait
 	if len(ports) == 0 {
 		// create a port spec from the existing port
 		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
+	} else {
+		// if there are existing ports and a port/path setting, add the latter to the ports
+		if trait.Spec.Port != nil {
+			// add the port to the ports
+			path := trait.Spec.Path
+			if path == nil {
+				path = traitDefaults.Path
+			}
+			portSpec := vzapi.PortSpec{
+				Port: trait.Spec.Port,
+				Path: path,
+			}
+			ports = append(ports, portSpec)
+		}
 	}
 
 	for i := range ports {
@@ -904,6 +918,20 @@ func MutateAnnotations(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTr
 	if len(ports) == 0 {
 		// create a port spec from the existing port
 		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
+	} else {
+		// if there are existing ports and a port/path setting, add the latter to the ports
+		if trait.Spec.Port != nil {
+			// add the port to the ports
+			path := trait.Spec.Path
+			if path == nil {
+				path = traitDefaults.Path
+			}
+			portSpec := vzapi.PortSpec{
+				Port: trait.Spec.Port,
+				Path: path,
+			}
+			ports = append(ports, portSpec)
+		}
 	}
 
 	// If the trait is being deleted, remove the annotations.
