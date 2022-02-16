@@ -44,6 +44,12 @@ pipeline {
         ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
         ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
 
+        //used to emit metrics
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
