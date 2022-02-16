@@ -1,6 +1,13 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: true, maxConcurrentPerNode: 1,
+                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
+               [$class: 'BuildDiscarderProperty',
+                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
+                pipelineTriggers([cron('H/5 * * * *')]),
+           ])
+
 pipeline {
     options {
         skipDefaultCheckout true
@@ -169,8 +176,7 @@ pipeline {
                         ls -ls ${KUBECONFIG}
                         sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
                         cat ${KUBECONFIG}
-
-			# updating kubeconfig with sa
+                        # updating kubeconfig with sa
                         cd ${GO_REPO_PATH}/verrazzano/
                         ci/scripts/update_lre_kubeconfig.sh
 
@@ -192,7 +198,7 @@ pipeline {
                         kubectl get nodes
                         echo "run kubectl get pods"
                         kubectl get pods
-                        '''
+                    '''
                 }
             }
         }
@@ -201,12 +207,35 @@ pipeline {
             parallel {
                 stage('verify-infra restapi') {
                     steps {
+                        sh '''
+                            echo ${KUBECONFIG}
+                        '''
                         runGinkgoRandomize('verify-infra/restapi')
                     }
                 }
                 stage('verify-infra vmi') {
                     steps {
                         runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+                stage('istio authorization policy') {
+                    steps {
+                        runGinkgo('istio/authz')
+                    }
+                }
+                stage('security role based access') {
+                    steps {
+                        runGinkgo('security/rbac')
+                    }
+                }
+                stage('system logging') {
+                    steps {
+                        runGinkgo('logging/system')
+                    }
+                }
+                stage('examples logging helidon') {
+                    steps {
+                        runGinkgo('logging/helidon')
                     }
                 }
                 stage('examples helidon') {
@@ -224,6 +253,7 @@ pipeline {
                         runGinkgo('examples/springboot')
                     }
                 }
+
 		        stage('examples socks') {
                     steps {
                         runSocksVariant('helidon')
@@ -241,6 +271,12 @@ pipeline {
                         runGinkgo('examples/bobsbooks')
                     }
                 }
+                stage('k8s deployment workload metrics') {
+                    steps {
+                        runGinkgo('metrics/deploymetrics')
+                    }
+                }
+
             }
             post {
                 always {
@@ -256,6 +292,8 @@ def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            echo in runGinkgoRandomize ${KUBECONFIG}
+            cat ${KUBECONFIG}
             ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
     }

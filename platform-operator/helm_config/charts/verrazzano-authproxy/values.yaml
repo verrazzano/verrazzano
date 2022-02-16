@@ -7,7 +7,7 @@ namespace: verrazzano-system
 global:
   imagePullSecrets: []
 
-replicas: 1
+replicas:
 # NOTE: The AuthProxy deployment runs the nginx-ingress-controller image.  The nginx-ingress-controller image
 # is obtained from the bill of materials file (verrazzano-bom.json).
 pullPolicy: IfNotPresent
@@ -27,18 +27,7 @@ proxy:
   MaxRequestSize: 65m
   ProxyBufferSize: 8k
 
-affinity: |
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-              - key: app
-                operator: In
-                values:
-                  - {{ .Values.name }}
-          topologyKey: kubernetes.io/hostname
+affinity:
 
 config:
   envName:
