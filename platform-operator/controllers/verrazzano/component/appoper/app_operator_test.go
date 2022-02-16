@@ -7,16 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const testBomFilePath = "../../testdata/test_bom.json"
@@ -54,48 +49,6 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	assert.Equalf(expectedFluentdImage, kvs[1].Value, "Did not get expected fluentdImage Value")
 	assert.Equalf("istioProxyImage", kvs[2].Key, "Did not get expected istioProxyImage Key")
 	assert.Equalf(expectedIstioProxyImage, kvs[2].Value, "Did not get expected istioProxyImage Value")
-}
-
-// TestIsApplicationOperatorReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
-func TestIsApplicationOperatorReady(t *testing.T) {
-
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      "verrazzano-application-operator",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
-	assert.True(t, IsApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
-}
-
-// TestIsApplicationOperatorNotReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
-func TestIsApplicationOperatorNotReady(t *testing.T) {
-
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      "verrazzano-application-operator",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
-		},
-	})
-	assert.False(t, IsApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 //  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function

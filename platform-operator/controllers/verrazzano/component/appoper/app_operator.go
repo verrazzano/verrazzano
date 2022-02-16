@@ -4,25 +4,16 @@
 package appoper
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-// ComponentName is the name of the component
-const (
-	ComponentName = "verrazzano-application-operator"
 )
 
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
@@ -77,15 +68,6 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 	})
 
 	return kvs, nil
-}
-
-// IsApplicationOperatorReady checks if the application operator deployment is ready
-func IsApplicationOperatorReady(ctx spi.ComponentContext, name string, namespace string) bool {
-	deployments := []types.NamespacedName{
-		{Name: "verrazzano-application-operator", Namespace: namespace},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {

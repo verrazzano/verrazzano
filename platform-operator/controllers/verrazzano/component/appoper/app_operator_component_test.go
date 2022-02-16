@@ -8,15 +8,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -157,4 +161,70 @@ func TestIsDisableExplicit(t *testing.T) {
 
 func getBoolPtr(b bool) *bool {
 	return &b
+}
+
+// TestIsReady tests the IsReady call
+// GIVEN a AppOper component
+//  WHEN I call IsReady when all requirements are met
+//  THEN true or false is returned
+func TestIsReady(t *testing.T) {
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+	tests := []struct {
+		name       string
+		client     client.Client
+		expectTrue bool
+	}{
+		{
+			name: "Test IsReady when AppOper is successfully deployed",
+			client: fake.NewFakeClientWithScheme(k8scheme.Scheme,
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+					},
+					Status: appsv1.DeploymentStatus{
+						Replicas:            1,
+						ReadyReplicas:       1,
+						AvailableReplicas:   1,
+						UnavailableReplicas: 0,
+					},
+				}),
+			expectTrue: true,
+		},
+		{
+			name: "Test IsReady when AuthProxy deployment is not ready",
+			client: fake.NewFakeClientWithScheme(k8scheme.Scheme,
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+					},
+					Status: appsv1.DeploymentStatus{
+						Replicas:            1,
+						ReadyReplicas:       1,
+						AvailableReplicas:   0,
+						UnavailableReplicas: 1,
+					},
+				}),
+			expectTrue: false,
+		},
+		{
+			name:       "Test IsReady when AuthProxy deployment does not exist",
+			client:     fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			expectTrue: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			if tt.expectTrue {
+				assert.True(t, NewComponent().IsReady(ctx))
+			} else {
+				assert.False(t, NewComponent().IsReady(ctx))
+			}
+		})
+	}
 }

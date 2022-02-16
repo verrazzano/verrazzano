@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package appoper
 
 import (
@@ -8,33 +9,41 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
-
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// ComponentName is the name of the component
+const ComponentName = "verrazzano-application-operator"
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
+
 type applicationOperatorComponent struct {
 	helm.HelmComponent
 }
+
+// Verify that AuthProxyComponent implements Component
+var _ spi.Component = applicationOperatorComponent{}
 
 func NewComponent() spi.Component {
 	return applicationOperatorComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
-			ReadyStatusFunc:         IsApplicationOperatorReady,
 			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
 			PreUpgradeFunc:          ApplyCRDYaml,
 		},
@@ -83,4 +92,16 @@ func (c applicationOperatorComponent) IsEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// IsReady checks if the application operator deployment is ready
+func (c applicationOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
+	if !c.HelmComponent.IsReady(ctx) {
+		return false
+	}
+	deployments := []types.NamespacedName{
+		{Name: ComponentName, Namespace: ComponentNamespace},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
