@@ -60,6 +60,9 @@ func (c authProxyComponent) IsEnabled(ctx spi.ComponentContext) bool {
 
 // IsReady checks if the AuthProxy deployment is ready
 func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
+	if !c.HelmComponent.IsReady(ctx) {
+		return false
+	}
 	deployments := []types.NamespacedName{
 		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
