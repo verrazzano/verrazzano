@@ -64,11 +64,10 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 
 		var component oamv1.Component
 		err := m.Client.Get(context.TODO(), types.NamespacedName{Namespace: appConfig.GetNamespace(), Name: appConfigComponent.ComponentName}, &component)
-
 		if err != nil {
 			log.Debugf("Unable to get component info for component: %s of application configuration: %s/%s, error: %v", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
 			if k8serrors.IsNotFound(err) {
-				log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+				log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
 				m.addDefaultTrait(appConfigComponent)
 			}
 
@@ -95,7 +94,7 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 
 		workloadType := metricstrait.GetSupportedWorkloadType(apiVerKind)
 		if workloadType != "" {
-			log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+			log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
 			m.addDefaultTrait(appConfigComponent)
 		}
 	}

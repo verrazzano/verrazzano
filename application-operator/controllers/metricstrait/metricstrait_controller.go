@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -28,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -89,6 +91,7 @@ const (
 	// Roles for use in qualified resource relations
 	scraperRole = "scraper"
 	sourceRole  = "source"
+	ownerRole   = "owner"
 
 	// SSL protocol scrape parameters for Istio enabled MTLS components
 	httpsProtocol = `scheme: https
@@ -405,6 +408,15 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 			update.RecordOutcome(status.Relations[i], status.Results[i], status.Errors[i])
 		}
 	}
+
+	if !trait.DeletionTimestamp.IsZero() && trait.OwnerReferences != nil {
+		for _, ownerRef := range trait.OwnerReferences {
+			if ownerRef.Kind == "ApplicationConfiguration" {
+				update.RecordOutcome(r.removedTraitReferencesFromOwner(ctx, &ownerRef, trait, log))
+			}
+		}
+	}
+
 	return &update
 }
 
@@ -1012,4 +1024,51 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 
 	// If the trait is being deleted (i.e. workload==nil) then no config is required.
 	return job, nil, nil
+}
+
+// removedTraitReferencesFromOwner removes traits from components of owner ApplicationConfiguration.
+func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerRef *metav1.OwnerReference, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	rel := vzapi.QualifiedResourceRelation{APIVersion: "core.oam.dev/v1alpha2", Kind: "ApplicationConfiguration", Namespace: trait.GetNamespace(), Name: ownerRef.Name, Role: ownerRole}
+	var appConfig oamv1.ApplicationConfiguration
+	err := r.Client.Get(ctx, types.NamespacedName{Namespace: trait.GetNamespace(), Name: ownerRef.Name}, &appConfig)
+	if err != nil {
+		log.Debugf("Unable to fetch ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)
+		return rel, controllerutil.OperationResultNone, err
+	}
+
+	if appConfig.Spec.Components != nil {
+		traitsRemoved := false
+		for _, component := range appConfig.Spec.Components {
+			if component.Traits != nil {
+				remainingTraits := []oamv1.ComponentTrait{}
+				for _, componentTrait := range component.Traits {
+					componentTraitUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&componentTrait.Trait)
+					if err != nil || componentTraitUnstructured == nil {
+						log.Debugf("Unable to convert trait for component: %s of application configuration: %s/%s, error: %v", component.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+						continue
+					}
+
+					if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
+						log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
+					} else {
+						remainingTraits = append(remainingTraits, componentTrait)
+					}
+				}
+				if len(remainingTraits) < len(component.Traits) {
+					component.Traits = remainingTraits
+					traitsRemoved = true
+				}
+			}
+		}
+		if traitsRemoved {
+			err = r.Client.Update(ctx, &appConfig)
+			if err != nil {
+				log.Infof("Unable to update ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)
+				return rel, controllerutil.OperationResultNone, err
+			}
+
+			return rel, controllerutil.OperationResultUpdated, err
+		}
+	}
+	return rel, controllerutil.OperationResultNone, nil
 }
