@@ -410,9 +410,9 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 	}
 
 	if !trait.DeletionTimestamp.IsZero() && trait.OwnerReferences != nil {
-		for _, ownerRef := range trait.OwnerReferences {
-			if ownerRef.Kind == "ApplicationConfiguration" {
-				update.RecordOutcome(r.removedTraitReferencesFromOwner(ctx, &ownerRef, trait, log))
+		for i := range trait.OwnerReferences {
+			if trait.OwnerReferences[i].Kind == "ApplicationConfiguration" {
+				update.RecordOutcome(r.removedTraitReferencesFromOwner(ctx, &trait.OwnerReferences[i], trait, log))
 			}
 		}
 	}
