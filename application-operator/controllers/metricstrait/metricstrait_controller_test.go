@@ -1948,6 +1948,355 @@ func TestMetricsTraitCreatedForCOHWorkload(t *testing.T) {
 	assert.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestMetricsTraitCreatedWithMultiplePorts tests the creation of a metrics trait related to a Coherence workload.
+// GIVEN a metrics trait that has been created that specifies multiple metrics ports
+// AND the metrics trait is related to a Coherence workload
+// WHEN the metrics trait Reconcile method is invoked
+// THEN verify that metrics trait finalizer is added
+// AND verify that pod annotations are updated
+// AND verify that the scraper configmap is updated
+// AND verify that the scraper pod is restarted
+func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	testDeployment := k8sapps.StatefulSet{
+		TypeMeta: k8smeta.TypeMeta{
+			APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+			Kind:       "StatefulSet",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:              "test-stateful-set-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
+			OwnerReferences: []k8smeta.OwnerReference{{
+				APIVersion: "coherence.oracle.com/v1",
+				Kind:       "Coherence",
+				Name:       "test-workload-name",
+				UID:        "test-workload-uid"}}}}
+	// Expect a call to get the trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+			trait.TypeMeta = k8smeta.TypeMeta{
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
+				Kind:       vzapi.MetricsTraitKind}
+			trait.ObjectMeta = k8smeta.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "coherence.oracle.com/v1",
+				Kind:       "Coherence",
+				Name:       "test-workload-name"}
+			port1 := 8080
+			port2 := 9612
+			path2 := "/somemetrics"
+			trait.Spec.Ports = []vzapi.PortSpec{{
+				Port: &port1,
+			}, {
+				Port: &port2,
+				Path: &path2,
+			}}
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+			assert.Equal("test-namespace", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
+	// Expect a call to get the Coherence workload resource
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+			workload.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   "coherence.oracle.com",
+				Version: "v1",
+				Kind:    "Coherence",
+			})
+			workload.SetNamespace(name.Namespace)
+			workload.SetName(name.Name)
+			workload.SetUID("test-workload-uid")
+			return nil
+		})
+	// Expect a call to get the prometheus configuration.
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			assert.Equal("istio-system", name.Namespace)
+			assert.Equal("prometheus", name.Name)
+			deployment.APIVersion = k8sapps.SchemeGroupVersion.Identifier()
+			deployment.Kind = deploymentKind
+			deployment.Namespace = name.Namespace
+			deployment.Name = name.Name
+			return nil
+		})
+	// Expect a call to get the Coherence workload resource definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "coherences.coherence.oracle.com"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *oamcore.WorkloadDefinition) error {
+			workloadDef.Namespace = name.Namespace
+			workloadDef.Name = name.Name
+			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
+				{APIVersion: "apps/v1", Kind: "StatefulSet", Selector: nil},
+				{APIVersion: "v1", Kind: "Service", Selector: nil},
+			}
+			return nil
+		})
+	// Expect a call to list the child StatefulSet resources of the Coherence workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("StatefulSet", list.GetKind())
+			return appendAsUnstructured(list, testDeployment)
+		})
+	// Expect a call to list the child Service resources of the Coherence workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("Service", list.GetKind())
+			return nil
+		})
+	// Expect a call to get the deployment definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-stateful-set-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulSet *k8sapps.StatefulSet) error {
+			statefulSet.ObjectMeta = testDeployment.ObjectMeta
+			statefulSet.Spec = testDeployment.Spec
+			return nil
+		})
+	// Expect a call to update the prometheus config
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deployment *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
+			assert.True(ok)
+			assert.Equal("true", scrape)
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
+			assert.True(ok)
+			assert.Equal("/metrics", target)
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
+			assert.True(ok)
+			assert.Equal("8080", port)
+			scrape, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled1"]
+			assert.True(ok)
+			assert.Equal("true", scrape)
+			target, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsPath1"]
+			assert.True(ok)
+			assert.Equal("/somemetrics", target)
+			port, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsPort1"]
+			assert.True(ok)
+			assert.Equal("9612", port)
+			return nil
+		})
+	// Expect a call to get the status writer
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// Expect a call to update the status of the trait status
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
+			assert.Len(trait.Status.Conditions, 1)
+			return nil
+		})
+
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+
+	reconciler := newMetricsTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestMetricsTraitCreatedWithMultiplePortsAndPort tests the creation of a metrics trait related to a Coherence workload.
+// GIVEN a metrics trait that has been created that specifies multiple metrics ports and a single port
+// AND the metrics trait is related to a Coherence workload
+// WHEN the metrics trait Reconcile method is invoked
+// THEN verify that metrics trait finalizer is added
+// AND verify that pod annotations are updated
+// AND verify that the scraper configmap is updated
+// AND verify that the scraper pod is restarted
+func TestMetricsTraitCreatedWithMultiplePortsAndPort(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	testDeployment := k8sapps.StatefulSet{
+		TypeMeta: k8smeta.TypeMeta{
+			APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
+			Kind:       "StatefulSet",
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:              "test-stateful-set-name",
+			Namespace:         "test-namespace",
+			CreationTimestamp: k8smeta.Now(),
+			OwnerReferences: []k8smeta.OwnerReference{{
+				APIVersion: "coherence.oracle.com/v1",
+				Kind:       "Coherence",
+				Name:       "test-workload-name",
+				UID:        "test-workload-uid"}}}}
+	// Expect a call to get the trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+			trait.TypeMeta = k8smeta.TypeMeta{
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
+				Kind:       vzapi.MetricsTraitKind}
+			trait.ObjectMeta = k8smeta.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "coherence.oracle.com/v1",
+				Kind:       "Coherence",
+				Name:       "test-workload-name"}
+			singlePort := 7001
+			port1 := 8080
+			port2 := 9612
+			path2 := "/somemetrics"
+			trait.Spec.Ports = []vzapi.PortSpec{{
+				Port: &port1,
+			}, {
+				Port: &port2,
+				Path: &path2,
+			}}
+			trait.Spec.Port = &singlePort
+			return nil
+		})
+	// Expect a call to update the trait resource with a finalizer.
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait) error {
+			assert.Equal("test-namespace", trait.Namespace)
+			assert.Equal("test-trait-name", trait.Name)
+			assert.Len(trait.Finalizers, 1)
+			assert.Equal("metricstrait.finalizers.verrazzano.io", trait.Finalizers[0])
+			return nil
+		})
+	// Expect a call to get the Coherence workload resource
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-workload-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *unstructured.Unstructured) error {
+			workload.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   "coherence.oracle.com",
+				Version: "v1",
+				Kind:    "Coherence",
+			})
+			workload.SetNamespace(name.Namespace)
+			workload.SetName(name.Name)
+			workload.SetUID("test-workload-uid")
+			return nil
+		})
+	// Expect a call to get the prometheus configuration.
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, deployment *k8sapps.Deployment) error {
+			assert.Equal("istio-system", name.Namespace)
+			assert.Equal("prometheus", name.Name)
+			deployment.APIVersion = k8sapps.SchemeGroupVersion.Identifier()
+			deployment.Kind = deploymentKind
+			deployment.Namespace = name.Namespace
+			deployment.Name = name.Name
+			return nil
+		})
+	// Expect a call to get the Coherence workload resource definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: "coherences.coherence.oracle.com"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workloadDef *oamcore.WorkloadDefinition) error {
+			workloadDef.Namespace = name.Namespace
+			workloadDef.Name = name.Name
+			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
+				{APIVersion: "apps/v1", Kind: "StatefulSet", Selector: nil},
+				{APIVersion: "v1", Kind: "Service", Selector: nil},
+			}
+			return nil
+		})
+	// Expect a call to list the child StatefulSet resources of the Coherence workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("StatefulSet", list.GetKind())
+			return appendAsUnstructured(list, testDeployment)
+		})
+	// Expect a call to list the child Service resources of the Coherence workload definition
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *unstructured.UnstructuredList, opts ...client.ListOption) error {
+			assert.Equal("Service", list.GetKind())
+			return nil
+		})
+	// Expect a call to get the deployment definition
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "test-namespace", Name: "test-stateful-set-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, statefulSet *k8sapps.StatefulSet) error {
+			statefulSet.ObjectMeta = testDeployment.ObjectMeta
+			statefulSet.Spec = testDeployment.Spec
+			return nil
+		})
+	// Expect a call to update the prometheus config
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, deployment *k8sapps.StatefulSet, opts ...client.UpdateOption) error {
+			scrape, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled"]
+			assert.True(ok)
+			assert.Equal("true", scrape)
+			target, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPath"]
+			assert.True(ok)
+			assert.Equal("/metrics", target)
+			port, ok := deployment.Spec.Template.Annotations["verrazzano.io/metricsPort"]
+			assert.True(ok)
+			assert.Equal("8080", port)
+			scrape, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled1"]
+			assert.True(ok)
+			assert.Equal("true", scrape)
+			target, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsPath1"]
+			assert.True(ok)
+			assert.Equal("/somemetrics", target)
+			port, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsPort1"]
+			assert.True(ok)
+			assert.Equal("9612", port)
+			scrape, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsEnabled2"]
+			assert.True(ok)
+			assert.Equal("true", scrape)
+			target, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsPath2"]
+			assert.True(ok)
+			assert.Equal("/metrics", target)
+			port, ok = deployment.Spec.Template.Annotations["verrazzano.io/metricsPort2"]
+			assert.True(ok)
+			assert.Equal("7001", port)
+			return nil
+		})
+	// Expect a call to get the status writer
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	// Expect a call to update the status of the trait status
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, trait *vzapi.MetricsTrait, opts ...client.UpdateOption) error {
+			assert.Len(trait.Status.Conditions, 1)
+			return nil
+		})
+
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
+
+	reconciler := newMetricsTraitReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.Equal(true, result.Requeue)
+	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
 // TestMetricsTraitDeletedForCOHWorkload tests deletion of a metrics trait related to a coherence workload.
 // GIVEN a metrics trait with a non-zero deletion time
 // WHEN the metrics trait Reconcile method is invoked
