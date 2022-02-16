@@ -20,24 +20,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 )
 
-var testScheme = runtime.NewScheme()
-
 const (
 	profileDir      = "../../../../manifests/profiles"
 	testBomFilePath = "../../testdata/test_bom.json"
 )
-
-func init() {
-	_ = clientgoscheme.AddToScheme(testScheme)
-	_ = vzapi.AddToScheme(testScheme)
-}
 
 // TestAppendOverrides tests the AppendOverrides function
 // GIVEN a call to AppendOverrides
@@ -174,7 +166,7 @@ func TestAppendOverrides(t *testing.T) {
 }
 
 func createFakeClientWithIngress() client.Client {
-	fakeClient := fake.NewFakeClientWithScheme(testScheme,
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace},
 			Spec: corev1.ServiceSpec{

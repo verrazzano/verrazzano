@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -36,11 +36,11 @@ func TestIsReady(t *testing.T) {
 	}{
 		{
 			name: "Test IsReady when AuthProxy is successfully deployed",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewFakeClientWithScheme(k8scheme.Scheme,
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: globalconst.VerrazzanoSystemNamespace,
-						Name:      "verrazzano-authproxy",
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
 					},
 					Status: appsv1.DeploymentStatus{
 						Replicas:            1,
@@ -53,11 +53,11 @@ func TestIsReady(t *testing.T) {
 		},
 		{
 			name: "Test IsReady when AuthProxy deployment is not ready",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewFakeClientWithScheme(k8scheme.Scheme,
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: globalconst.VerrazzanoSystemNamespace,
-						Name:      "verrazzano-authproxy",
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
 					},
 					Status: appsv1.DeploymentStatus{
 						Replicas:            1,
@@ -70,7 +70,7 @@ func TestIsReady(t *testing.T) {
 		},
 		{
 			name:       "Test IsReady when AuthProxy deployment does not exist",
-			client:     fake.NewFakeClientWithScheme(testScheme),
+			client:     fake.NewFakeClientWithScheme(k8scheme.Scheme),
 			expectTrue: false,
 		},
 	}
