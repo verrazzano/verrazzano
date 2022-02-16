@@ -177,7 +177,6 @@ func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) 
 			for i := 0; i < indentNum; i++ {
 				b[i] = 32
 			}
-			const indent = "            " // 12 spaces
 			lines := strings.SplitAfter(aff, "\n")
 			for i, line := range lines {
 				lines[i] = string(b) + line
