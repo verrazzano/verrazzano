@@ -291,24 +291,21 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	})
 
 	var fooHost = ""
+	var barHost = ""
+	var noIstioHost = ""
+
 	var err error
-	t.It("Get foo host from gateway.", func() {
+	t.BeforeEach("Get hosts from gateways.", func() {
 		Eventually(func() (string, error) {
 			fooHost, err = k8sutil.GetHostnameFromGateway(fooNamespace, "")
 			return fooHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", fooNamespace))
-	})
 
-	var barHost = ""
-	t.It("Get bar host from gateway.", func() {
 		Eventually(func() (string, error) {
 			barHost, err = k8sutil.GetHostnameFromGateway(barNamespace, "")
 			return barHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", barNamespace))
-	})
 
-	var noIstioHost = ""
-	t.It("Get noistio host from gateway.", func() {
 		Eventually(func() (string, error) {
 			noIstioHost, err = k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
 			return noIstioHost, err
