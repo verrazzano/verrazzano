@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
@@ -89,6 +89,17 @@ function delete_application_operator {
   fi
 }
 
+function delete_authproxy {
+  log "Uninstall the Verrazzano AuthProxy"
+  if helm status verrazzano-authproxy --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
+    if ! helm uninstall verrazzano-authproxy --namespace "${VERRAZZANO_NS}" ; then
+      error "Failed to uninstall the Verrazzano AuthProxy."
+    fi
+  fi
+}
+
+
+
 function delete_weblogic_operator {
   log "Uninstall the WebLogic Kubernetes operator"
   if helm status uninstall weblogic-operator --namespace "${VERRAZZANO_NS}" > /dev/null 2>&1 ; then
@@ -132,5 +143,6 @@ action "Deleting Verrazzano Application Kubernetes operator" delete_application_
 action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
 action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 1
+action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
