@@ -80,6 +80,10 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 			continue
 		}
 
+		if componentUnstructured.GetNamespace() == "" {
+			componentUnstructured.SetNamespace(component.GetNamespace())
+		}
+
 		workload, err := vznav.FetchWorkloadResource(context.TODO(), m.Client, vzlog.DefaultLogger(), componentUnstructured)
 		if err != nil || workload == nil {
 			log.Debugf("Unable to get workload resource for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
