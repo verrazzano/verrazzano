@@ -647,8 +647,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
 	_, err := reconciler.Reconcile(request)
+	asserts.NoError(err)
 	result, err := reconciler.Reconcile(request)
-
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
