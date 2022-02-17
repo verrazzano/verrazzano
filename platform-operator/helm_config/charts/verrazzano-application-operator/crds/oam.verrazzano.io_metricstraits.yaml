@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -44,9 +44,24 @@ spec:
                   to /metrics.
                 type: string
               port:
-                description: The HTTP port for the related metrics endpoint. Defaults
+                description: The HTTP port for the related metrics trait. Defaults
                   to 8080.
                 type: integer
+              ports:
+                description: The HTTP ports for the related metrics trait. Defaults
+                  to 8080.
+                items:
+                  properties:
+                    path:
+                      description: The HTTP path for the related metrics endpoint.
+                        Defaults to /metrics.
+                      type: string
+                    port:
+                      description: The HTTP port for the related metrics trait. Defaults
+                        to 8080.
+                      type: integer
+                  type: object
+                type: array
               scraper:
                 description: The prometheus deployment used to scrape the related
                   metrics endpoints. Defaults to istio-system/prometheus

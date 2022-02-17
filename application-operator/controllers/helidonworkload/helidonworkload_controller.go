@@ -353,7 +353,7 @@ func (r *Reconciler) addMetrics(ctx context.Context, log vzlog.VerrazzanoLogger,
 	}
 
 	labels := metricstrait.MutateLabels(metricsTrait, nil, helidon.Spec.Template.Labels)
-	annotations := metricstrait.MutateAnnotations(metricsTrait, nil, traitDefaults, helidon.Spec.Template.Annotations)
+	annotations := metricstrait.MutateAnnotations(metricsTrait, traitDefaults, helidon.Spec.Template.Annotations)
 
 	finalLabels := mergeMapOverrideWithDest(helidon.Spec.Template.Labels, labels)
 	log.Debugf("Setting labels on %s: %v", workload.Name, finalLabels)

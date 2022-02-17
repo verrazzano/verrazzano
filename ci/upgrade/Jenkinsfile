@@ -277,11 +277,12 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
                             }
                         }
-                        stage('examples socks') {
-                            steps {
-                                runGinkgoNamespace('examples/socks', "false", "true", "sockshop")
-                            }
-                        }
+                        // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
+//                         stage('examples socks') {
+//                             steps {
+//                                 runGinkgoNamespace('examples/socks', "false", "true", "sockshop")
+//                             }
+//                         }
                     }
                     post {
                         always {
@@ -476,7 +477,7 @@ pipeline {
                         }
                         stage('examples socks') {
                             steps {
-                                runGinkgoNamespace('examples/socks', "true", "false", "sockshop")
+                                runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
                             }
                         }
                         stage('examples spring') {
