@@ -1142,7 +1142,7 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 			}
 		}
 		if traitsRemoved {
-			log.Infof("Updating ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name)
+			log.Infof("Updating ApplicationConfiguration %s/%s", trait.GetNamespace(), ownerRef.Name)
 			err = r.Client.Update(ctx, &appConfig)
 			if err != nil {
 				log.Infof("Unable to update ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)
