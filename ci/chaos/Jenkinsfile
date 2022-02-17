@@ -381,13 +381,13 @@ pipeline {
                     sleep 15
                     kubectl -n verrazzano-install delete po \$POD
                     POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
-                    kubectl wait --for=condition=ready pod/\$POD
+                    kubectl -n verrazzano-install wait --for=condition=ready pod/\$POD
                     echo "VPO \$POD successfully restarted"
                     # Wait 15 seconds then kill vpo a second time
                     sleep 15
                     kubectl -n verrazzano-install delete po \$POD
                     POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
-                    kubectl wait --for=condition=ready pod/\$POD
+                    kubectl -n verrazzano-install wait --for=condition=ready pod/\$POD
                     echo "VPO \$POD successfully restarted a second time"
 
                     # Dump the resource to debug
