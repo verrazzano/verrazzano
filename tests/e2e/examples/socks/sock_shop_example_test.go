@@ -99,7 +99,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 
 	var hostname = ""
 	var err error
-	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			hostname, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return hostname, err
