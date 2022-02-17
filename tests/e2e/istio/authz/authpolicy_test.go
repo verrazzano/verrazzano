@@ -295,7 +295,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	var noIstioHost = ""
 
 	var err error
-	t.BeforeEach("Get hosts from gateways.", func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			fooHost, err = k8sutil.GetHostnameFromGateway(fooNamespace, "")
 			return fooHost, err

@@ -97,7 +97,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// GIVEN the Istio gateway for the helidon-logging namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.BeforeEach("Get host from gateway.", func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 			return host, err
