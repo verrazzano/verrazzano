@@ -56,7 +56,7 @@ func (m *MetricsTraitDefaulter) addDefaultTrait(component *oamv1.ApplicationConf
 func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	for i := range appConfig.Spec.Components {
 		appConfigComponent := &appConfig.Spec.Components[i]
-		if m.verifyComponentSupported(appConfig, appConfigComponent, log) {
+		if m.defaultTraitToBeAdded(appConfig, appConfigComponent, log) {
 			m.addDefaultTrait(appConfigComponent)
 		}
 	}
@@ -68,8 +68,8 @@ func (m *MetricsTraitDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguratio
 	return nil
 }
 
-//verifyComponentSupported method verifies whether a trait should be applied to the component
-func (m *MetricsTraitDefaulter) verifyComponentSupported(appConfig *oamv1.ApplicationConfiguration, appConfigComponent *oamv1.ApplicationConfigurationComponent, log *zap.SugaredLogger) bool {
+//defaultTraitToBeAdded method verifies whether a trait should be applied to the component
+func (m *MetricsTraitDefaulter) defaultTraitToBeAdded(appConfig *oamv1.ApplicationConfiguration, appConfigComponent *oamv1.ApplicationConfigurationComponent, log *zap.SugaredLogger) bool {
 	found := m.findMetricsTrait(appConfigComponent)
 	if found {
 		return false
