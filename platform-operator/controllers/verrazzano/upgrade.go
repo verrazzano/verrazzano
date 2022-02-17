@@ -19,8 +19,45 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ComponentUpgradeState identifies the state of a component during upgrade
+type ComponentUpgradeState string
+
+const (
+	// StateInit is the state when a Verrazzano component is starting the upgrade flow
+	StateInit ComponentUpgradeState = "Init"
+
+	// StatePreUpgrading is the state when a Verrazzano component has successfully called component preUpgrade
+	StatePreUpgrading ComponentUpgradeState = "PreUpgrading"
+
+	// StateUpgradeing is the state when a Verrazzano component has successfully called component Upgrade
+	StateUpgrading ComponentUpgradeState = "Upgrading"
+
+	// PostUpgradeCalled is the state when a Verrazzano component has successfully called component postUpgrade
+	StatePostUpgrading ComponentUpgradeState = "PostUpgrading"
+
+	// StateUpgraded is the state when a Verrazzano component has successfully upgraded the component
+	StateUpgraded ComponentUpgradeState = "Upgraded"
+)
+
+// upgradeContext has a map of upgradeContexts, one entry per verrazzano CR resource generation
+var upgradeContextMap = make(map[string]*vzUpgradeContext)
+
+// vzUpgradeContext has the upgrade context for the Verrazzano upgrade
+type vzUpgradeContext struct {
+	gen     int64
+	compMap map[string]*componentUpgradeContext
+}
+
+// componentUpgradeContext has the upgrade context for the Verrazzano upgrade
+type componentUpgradeContext struct {
+	state ComponentUpgradeState
+}
+
 // Reconcile upgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+	// Get the upgradeContext for this Verrazzano CR generation
+	vuc := getUpgradeContext(cr)
+
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
 	// Upgrade version was validated in webhook, see ValidateVersion
@@ -45,28 +82,39 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 		compLog := compContext.Log()
+		upgradeContext := vuc.getUpgradeContext(compName)
 
-		installed, err := comp.IsInstalled(compContext)
-		if err != nil {
-			return newRequeueWithDelay(), err
+		if upgradeContext.state == StateInit {
+			// Check if component is installed, if not continue
+			installed, err := comp.IsInstalled(compContext)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			if !installed {
+				compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
+				continue
+			}
+
+			compLog.Oncef("Component %s pre-upgrade running", compName)
+			if err := comp.PreUpgrade(compContext); err != nil {
+				// for now, this will be fatal until upgrade is retry-able
+				return ctrl.Result{}, err
+			}
+			upgradeContext.state = StatePreUpgrading
 		}
-		if !installed {
-			compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
-			continue
+
+		if upgradeContext.state == StatePreUpgrading {
+			compLog.Oncef("Component %s upgrade running", compName)
+			if err := comp.Upgrade(compContext); err != nil {
+				compLog.Errorf("Error upgrading component %s: %v", compName, err)
+				msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", compName,
+					fmtGeneration(cr.Generation), err.Error())
+				err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeFailed)
+				return ctrl.Result{}, err
+			}
+			upgradeContext.state = StateUpgrading
 		}
-		compLog.Oncef("Component %s pre-upgrade running", compName)
-		if err := comp.PreUpgrade(compContext); err != nil {
-			// for now, this will be fatal until upgrade is retry-able
-			return ctrl.Result{}, err
-		}
-		compLog.Oncef("Component %s upgrade running", compName)
-		if err := comp.Upgrade(compContext); err != nil {
-			compLog.Errorf("Error upgrading component %s: %v", compName, err)
-			msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", compName,
-				fmtGeneration(cr.Generation), err.Error())
-			err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeFailed)
-			return ctrl.Result{}, err
-		}
+
 		if !comp.IsReady(compContext) {
 			compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
 			return newRequeueWithDelay(), nil
@@ -121,4 +169,36 @@ func fmtGeneration(gen int64) string {
 
 func postUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
+}
+
+// get the key for the verrazzano resource
+func getNsnKey(cr *installv1alpha1.Verrazzano) string {
+	return fmt.Sprintf("%s-%s", cr.Namespace, cr.Name)
+}
+
+// Get the upgrade context for Verrazzano
+func getUpgradeContext(cr *installv1alpha1.Verrazzano) *vzUpgradeContext {
+	key := getNsnKey(cr)
+	vuc, ok := upgradeContextMap[key]
+	// If the entry is missing or the generation is different create a new entry
+	if !ok || vuc.gen != cr.Generation {
+		vuc = &vzUpgradeContext{
+			gen:     cr.Generation,
+			compMap: make(map[string]*componentUpgradeContext),
+		}
+		upgradeContextMap[key] = vuc
+	}
+	return vuc
+}
+
+// Get the upgrade context for the component
+func (vuc *vzUpgradeContext) getUpgradeContext(compName string) *componentUpgradeContext {
+	cuc, ok := vuc.compMap[compName]
+	if !ok {
+		cuc = &componentUpgradeContext{
+			state: installv1alpha1.StateInit,
+		}
+		vuc.compMap[compName] = cuc
+	}
+	return cuc
 }
