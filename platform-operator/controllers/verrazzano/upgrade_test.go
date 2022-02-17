@@ -880,6 +880,7 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Name().Return("testcomp").Times(1)
+	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(1)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -967,6 +968,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(1)
 
 	// Set disabled mock component expectations
 	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1)

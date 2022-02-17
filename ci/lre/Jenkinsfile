@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: true, maxConcurrentPerNode: 1,
+properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
                     maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
                [$class: 'BuildDiscarderProperty',
                 strategy: [$class: 'LogRotator', numToKeepStr: '10']],
@@ -43,6 +43,12 @@ pipeline {
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
         ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
+
+        //used to emit metrics
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')

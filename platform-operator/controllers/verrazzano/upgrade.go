@@ -67,6 +67,10 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeFailed)
 			return ctrl.Result{}, err
 		}
+		if !comp.IsReady(compContext) {
+			compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
+			return newRequeueWithDelay(), nil
+		}
 		compLog.Oncef("Component %s post-upgrade running", compName)
 		if err := comp.PostUpgrade(compContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able

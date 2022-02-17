@@ -7,9 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	log2 "github.com/verrazzano/verrazzano/pkg/log"
-	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strconv"
 	"strings"
@@ -17,10 +14,13 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	log2 "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -384,7 +384,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log vzlog2.VerrazzanoLogger
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
+	if err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
 		return err
 	}
 
@@ -444,7 +444,7 @@ func (r *Reconciler) addMetrics(ctx context.Context, log vzlog2.VerrazzanoLogger
 		metricLabels = map[string]string{}
 	}
 
-	finalAnnotations := metricstrait.MutateAnnotations(metricsTrait, coherence, traitDefaults, metricAnnotations)
+	finalAnnotations := metricstrait.MutateAnnotations(metricsTrait, traitDefaults, metricAnnotations)
 	log.Debugf("Setting annotations on %s: %v", workload.Name, finalAnnotations)
 	err = unstructured.SetNestedStringMap(coherence.Object, finalAnnotations, specAnnotationsFields...)
 	if err != nil {

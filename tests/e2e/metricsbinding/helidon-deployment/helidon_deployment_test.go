@@ -56,7 +56,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	// GIVEN the Helidon app is deployed and the pods are running
 	// WHEN the Prometheus metrics in the app namespace are scraped
 	// THEN the Helidon application metrics should exist using the default metrics template for deployments
-	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), func() {
+	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		t.It("Check Prometheus config map for scrape target", func() {
 			Eventually(func() bool {
 				return pkg.IsAppInPromConfig(promConfigJobName)
