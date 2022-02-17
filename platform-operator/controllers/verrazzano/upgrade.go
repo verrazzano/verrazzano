@@ -31,12 +31,6 @@ const (
 
 	// StateUpgradeing is the state when a Verrazzano component has successfully called component Upgrade
 	StateUpgrading ComponentUpgradeState = "Upgrading"
-
-	// PostUpgradeCalled is the state when a Verrazzano component has successfully called component postUpgrade
-	StatePostUpgrading ComponentUpgradeState = "PostUpgrading"
-
-	// StateUpgraded is the state when a Verrazzano component has successfully upgraded the component
-	StateUpgraded ComponentUpgradeState = "Upgraded"
 )
 
 // upgradeContext has a map of upgradeContexts, one entry per verrazzano CR resource generation
@@ -119,6 +113,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
 			return newRequeueWithDelay(), nil
 		}
+
 		compLog.Oncef("Component %s post-upgrade running", compName)
 		if err := comp.PostUpgrade(compContext); err != nil {
 			// for now, this will be fatal until upgrade is retry-able
@@ -127,14 +122,15 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	}
 
 	// Invoke the global post upgrade function after all components are upgraded.
-	err = postUpgrade(log, r)
+	log.Oncef("Checking if any pods with Istio sidecars need to be restarted")
+	err = postVerrazzanoUpgrade(log, r)
 	if err != nil {
 		log.Errorf("Error running Verrazzano system-level post-upgrade")
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
-	log.Info(msg)
+	log.Once(msg)
 	cr.Status.Version = targetVersion
 	if err = r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
@@ -168,7 +164,8 @@ func fmtGeneration(gen int64) string {
 	return "generation:" + s
 }
 
-func postUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
+// Restart pods with old Istio sidecar proxies
+func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
 }
 
