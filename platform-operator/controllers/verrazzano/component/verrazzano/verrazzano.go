@@ -489,8 +489,8 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 		// If fluentd is enabled, copy any custom secrets
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 		if fluentdConfig != nil {
-			// Copy the external Elasticsearch secret
-			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.DefaultElasticsearchSecretName {
+			// Copy the internal Elasticsearch secret
+			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
 				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
 					return err
 				}
