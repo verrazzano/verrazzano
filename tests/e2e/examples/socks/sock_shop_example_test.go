@@ -247,9 +247,9 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 				func() {
 					Eventually(appMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
-				//func() {
-				//	Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
-				//},
+				func() {
+					Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+				},
 				func() {
 					Eventually(appComponentMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
