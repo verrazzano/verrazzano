@@ -50,7 +50,7 @@ func init() {
 	_ = vzapp.AddToScheme(scheme)
 
 	// Add cert-manager components to the scheme
-	cmapiv1.AddToScheme(r.Scheme)
+	cmapiv1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
