@@ -1117,7 +1117,8 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 
 	if appConfig.Spec.Components != nil {
 		traitsRemoved := false
-		for _, component := range appConfig.Spec.Components {
+		for i := range appConfig.Spec.Components {
+			component := &appConfig.Spec.Components[i]
 			if component.Traits != nil {
 				remainingTraits := []oamv1.ComponentTrait{}
 				for _, componentTrait := range component.Traits {
