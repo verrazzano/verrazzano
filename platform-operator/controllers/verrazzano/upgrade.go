@@ -139,7 +139,8 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	if err = r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 		return newRequeueWithDelay(), err
 	}
-
+	// Upgrade completely done
+	deleteUpgradeContext(cr)
 	return ctrl.Result{}, nil
 }
 
@@ -191,12 +192,21 @@ func getUpgradeContext(cr *installv1alpha1.Verrazzano) *vzUpgradeContext {
 	return vuc
 }
 
+// Delete the upgrade context for Verrazzano
+func deleteUpgradeContext(cr *installv1alpha1.Verrazzano) {
+	key := getNsnKey(cr)
+	_, ok := upgradeContextMap[key]
+	if ok {
+		delete(upgradeContextMap, key)
+	}
+}
+
 // Get the upgrade context for the component
 func (vuc *vzUpgradeContext) getUpgradeContext(compName string) *componentUpgradeContext {
 	cuc, ok := vuc.compMap[compName]
 	if !ok {
 		cuc = &componentUpgradeContext{
-			state: installv1alpha1.StateInit,
+			state: StateInit,
 		}
 		vuc.compMap[compName] = cuc
 	}
