@@ -56,49 +56,7 @@ func (m *MetricsTraitDefaulter) addDefaultTrait(component *oamv1.ApplicationConf
 func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	for i := range appConfig.Spec.Components {
 		appConfigComponent := &appConfig.Spec.Components[i]
-		found := m.findMetricsTrait(appConfigComponent)
-
-		if found {
-			continue
-		}
-
-		var component oamv1.Component
-		err := m.Client.Get(context.TODO(), types.NamespacedName{Namespace: appConfig.GetNamespace(), Name: appConfigComponent.ComponentName}, &component)
-		if err != nil {
-			log.Debugf("Unable to get component info for component: %s of application configuration: %s/%s, error: %v", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
-			if k8serrors.IsNotFound(err) {
-				log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
-				m.addDefaultTrait(appConfigComponent)
-			}
-
-			continue
-		}
-
-		componentUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
-		if err != nil || componentUnstructured == nil {
-			log.Debugf("Unable to convert workload spec for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
-			continue
-		}
-
-		if componentUnstructured.GetNamespace() == "" {
-			componentUnstructured.SetNamespace(component.GetNamespace())
-		}
-
-		workload, err := vznav.FetchWorkloadResource(context.TODO(), m.Client, vzlog.DefaultLogger(), componentUnstructured)
-		if err != nil || workload == nil {
-			log.Debugf("Unable to get workload resource for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
-			continue
-		}
-
-		apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
-		if err != nil || apiVerKind == "" {
-			log.Debugf("Unable to determine api version and kind for workload of component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
-			continue
-		}
-
-		workloadType := metricstrait.GetSupportedWorkloadType(apiVerKind)
-		if workloadType != "" {
-			log.Infof("Adding default metrics trait for component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
+		if m.verifyComponentSupported(appConfig, appConfigComponent, log) {
 			m.addDefaultTrait(appConfigComponent)
 		}
 	}
@@ -108,4 +66,52 @@ func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguratio
 // Cleanup is not used by the metrics trait defaulter
 func (m *MetricsTraitDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	return nil
+}
+
+//verifyComponentSupported method verifies whether a trait should be applied to the component
+func (m *MetricsTraitDefaulter) verifyComponentSupported(appConfig *oamv1.ApplicationConfiguration, appConfigComponent *oamv1.ApplicationConfigurationComponent, log *zap.SugaredLogger) bool {
+	found := m.findMetricsTrait(appConfigComponent)
+	if found {
+		return false
+	}
+
+	var component oamv1.Component
+	err := m.Client.Get(context.TODO(), types.NamespacedName{Namespace: appConfig.GetNamespace(), Name: appConfigComponent.ComponentName}, &component)
+	if err != nil {
+		log.Debugf("Unable to get component info for component: %s of application configuration: %s/%s, error: %v", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+		if k8serrors.IsNotFound(err) {
+			log.Infof("Adding default metrics trait for unknown component: %s of application configuration: %s/%s", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
+			return true
+		}
+	}
+
+	componentUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&component.Spec.Workload)
+	if err != nil || componentUnstructured == nil {
+		log.Debugf("Unable to convert workload spec for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+		return false
+	}
+
+	if componentUnstructured.GetNamespace() == "" {
+		componentUnstructured.SetNamespace(component.GetNamespace())
+	}
+
+	workload, err := vznav.FetchWorkloadResource(context.TODO(), m.Client, vzlog.DefaultLogger(), componentUnstructured)
+	if err != nil || workload == nil {
+		log.Debugf("Unable to get workload resource for component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+		return false
+	}
+
+	apiVerKind, err := vznav.GetAPIVersionKindOfUnstructured(workload)
+	if err != nil || apiVerKind == "" {
+		log.Debugf("Unable to determine api version and kind for workload of component: %s of application configuration: %s/%s, error: %v, not adding default metric trait", appConfigComponent.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+		return false
+	}
+
+	workloadType := metricstrait.GetSupportedWorkloadType(apiVerKind)
+	if workloadType != "" {
+		log.Infof("Adding default metrics trait for supported component: %s of type %s of application configuration: %s/%s", appConfigComponent.ComponentName, workloadType, appConfig.GetNamespace(), appConfig.GetName())
+		return true
+	}
+
+	return false
 }

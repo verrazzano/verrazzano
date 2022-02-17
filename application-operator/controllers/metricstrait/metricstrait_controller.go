@@ -1125,15 +1125,14 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 					componentTraitUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&componentTrait.Trait)
 					if err != nil || componentTraitUnstructured == nil {
 						log.Debugf("Unable to convert trait for component: %s of application configuration: %s/%s, error: %v", component.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
-						continue
-					}
-
-					if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
-						if compName, ok := trait.Labels[compObjectMetaLabel]; ok && compName == component.ComponentName {
-							log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
-						}
 					} else {
-						remainingTraits = append(remainingTraits, componentTrait)
+						if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
+							if compName, ok := trait.Labels[compObjectMetaLabel]; ok && compName == component.ComponentName {
+								log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
+							}
+						} else {
+							remainingTraits = append(remainingTraits, componentTrait)
+						}
 					}
 				}
 				if len(remainingTraits) < len(component.Traits) {
@@ -1143,6 +1142,7 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 			}
 		}
 		if traitsRemoved {
+			log.Infof("Updating ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name)
 			err = r.Client.Update(ctx, &appConfig)
 			if err != nil {
 				log.Infof("Unable to update ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)

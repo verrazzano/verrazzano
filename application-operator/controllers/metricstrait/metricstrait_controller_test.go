@@ -20,7 +20,6 @@ import (
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -602,14 +601,14 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 		return nil
 	})
 	// 9. Expect a call to get the owner application configuration
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", name.Namespace)
 		assert.Equal("test-oam-app-name", name.Name)
 		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
@@ -699,14 +698,14 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 		return nil
 	})
 	// Expect a call to get the owner application configuration
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", name.Namespace)
 		assert.Equal("test-oam-app-name", name.Name)
 		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
 		return nil
 	})
 	// Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
@@ -806,14 +805,14 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 		return nil
 	})
 	// 9. Expect a call to get the owner application configuration
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("deploymetrics", name.Namespace)
 		assert.Equal("deploymetrics-appconf", name.Name)
 		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("deploymetrics", appConfig.Namespace)
 		assert.Equal("deploymetrics-appconf", appConfig.Name)
 		return nil
@@ -1818,14 +1817,14 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 		return nil
 	})
 	// 9. Expect a call to get the owner application configuration
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", name.Namespace)
 		assert.Equal("test-oam-app-name", name.Name)
 		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
@@ -2424,14 +2423,14 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 		return nil
 	})
 	// 9. Expect a call to get the owner application configuration
-	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", name.Namespace)
 		assert.Equal("test-oam-app-name", name.Name)
 		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
 		return nil
 	})
 	// 10. Expect a call to update the owner application configuration
-	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamv1.ApplicationConfiguration) error {
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
 		assert.Equal("test-namespace", appConfig.Namespace)
 		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
