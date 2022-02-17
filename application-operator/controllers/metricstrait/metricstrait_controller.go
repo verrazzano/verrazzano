@@ -1122,6 +1122,7 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 			if component.Traits != nil {
 				remainingTraits := []oamv1.ComponentTrait{}
 				for _, componentTrait := range component.Traits {
+					remainingTraits = append(remainingTraits, componentTrait)
 					componentTraitUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&componentTrait.Trait)
 					if err != nil || componentTraitUnstructured == nil {
 						log.Debugf("Unable to convert trait for component: %s of application configuration: %s/%s, error: %v", component.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
@@ -1129,9 +1130,8 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 						if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
 							if compName, ok := trait.Labels[compObjectMetaLabel]; ok && compName == component.ComponentName {
 								log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
+								remainingTraits = remainingTraits[:len(remainingTraits)-1]
 							}
-						} else {
-							remainingTraits = append(remainingTraits, componentTrait)
 						}
 					}
 				}
