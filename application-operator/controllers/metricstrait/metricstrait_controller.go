@@ -1127,7 +1127,7 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 						continue
 					}
 
-					if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
+					if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind && trait.Spec.WorkloadReference.Name == component.ComponentName {
 						log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
 					} else {
 						remainingTraits = append(remainingTraits, componentTrait)
