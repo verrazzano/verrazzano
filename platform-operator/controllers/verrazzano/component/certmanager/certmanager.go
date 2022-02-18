@@ -52,6 +52,8 @@ const (
 	crdDirectory  = "/cert-manager/"
 	crdInputFile  = "cert-manager.crds.yaml"
 	crdOutputFile = "output.crd.yaml"
+
+	clusterResourceNamespaceKey = "clusterResourceNamespace"
 )
 
 // Template for ClusterIssuer for Acme certificates
@@ -231,7 +233,8 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return []bom.KeyValue{}, err
 	}
 	if isCAValue {
-		kvs = append(kvs, bom.KeyValue{Key: "clusterResourceNamespace", Value: namespace})
+		ns := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace
+		kvs = append(kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: ns})
 	}
 	return kvs, nil
 }
