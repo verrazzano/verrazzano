@@ -28,7 +28,7 @@ const (
 // default CA object
 var ca = vzapi.CA{
 	SecretName:               "testSecret",
-	ClusterResourceNamespace: ComponentNamespace,
+	ClusterResourceNamespace: testNamespace,
 }
 
 // Default Acme object
