@@ -23,17 +23,17 @@ import (
 type ComponentUpgradeState string
 
 const (
-	// StateInit is the state when a Verrazzano component is starting the upgrade flow
+	// StateInit is the state when a component is starting the upgrade flow
 	StateInit ComponentUpgradeState = "Init"
 
-	// StatePreUpgrading is the state when a Verrazzano component has successfully called component preUpgrade
+	// StatePreUpgrading is the state when a component has successfully called component preUpgrade
 	StatePreUpgrading ComponentUpgradeState = "PreUpgrading"
 
-	// StateUpgradeing is the state when a Verrazzano component has successfully called component Upgrade
+	// StateUpgrading is the state when a component has successfully called component Upgrade
 	StateUpgrading ComponentUpgradeState = "Upgrading"
 )
 
-// upgradeContext has a map of upgradeContexts, one entry per verrazzano CR resource generation
+// upgradeContextMap has a map of upgradeContexts, one entry per verrazzano CR resource generation
 var upgradeContextMap = make(map[string]*vzUpgradeContext)
 
 // vzUpgradeContext has the upgrade context for the Verrazzano upgrade
@@ -47,10 +47,10 @@ type componentUpgradeContext struct {
 	state ComponentUpgradeState
 }
 
-// Reconcile upgrade will upgrade the components as required
+// reconcileUpgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	// Get the upgradeContext for this Verrazzano CR generation
-	vuc := getUpgradeContext(cr)
+	crUpgradeContext := getUpgradeContext(cr)
 
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
@@ -76,7 +76,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 		compLog := compContext.Log()
-		upgradeContext := vuc.getUpgradeContext(compName)
+		upgradeContext := crUpgradeContext.getUpgradeContext(compName)
 
 		if upgradeContext.state == StateInit {
 			// Check if component is installed, if not continue
@@ -88,7 +88,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 				compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
 				continue
 			}
-
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
 				// for now, this will be fatal until upgrade is retry-able
