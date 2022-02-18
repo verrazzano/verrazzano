@@ -74,7 +74,7 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 // TestIsApplicationOperatorNotReady tests the isApplicationOperatorReady function
@@ -95,7 +95,7 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 //  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function

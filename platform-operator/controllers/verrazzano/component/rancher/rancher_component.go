@@ -20,11 +20,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// ComponentName is the name of the component
 const ComponentName = common.RancherName
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = common.CattleSystem
 
 type rancherComponent struct {
 	helm.HelmComponent
@@ -36,7 +39,7 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 			ReleaseName:             common.RancherName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
-			ChartNamespace:          "cattle-system",
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
@@ -44,7 +47,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			IngressNames: []types.NamespacedName{
 				{
-					Namespace: common.CattleSystem,
+					Namespace: ComponentNamespace,
 					Name:      constants.RancherIngress,
 				},
 			},
@@ -195,25 +198,11 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//IsReady
-/* Checks that the Rancher component is in a 'Ready' state, as defined
-in the body of this function
-- Wait for at least one Rancher pod to be Ready in Kubernetes
-*/
-func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
-	if r.HelmComponent.IsReady(ctx) {
-		log := ctx.Log()
-		c := ctx.Client()
-		rancherDeploy := []types.NamespacedName{
-			{
-				Name:      common.RancherName,
-				Namespace: common.CattleSystem,
-			},
-		}
-		prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-		return status.DeploymentsReady(log, c, rancherDeploy, 1, prefix)
+// IsReady component check
+func (c rancherComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isRancherReady(ctx)
 	}
-
 	return false
 }
 
