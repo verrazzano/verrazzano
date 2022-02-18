@@ -5,6 +5,8 @@ package certmanager
 
 import (
 	"context"
+	"testing"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -16,17 +18,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
-	profileDir = "../../../../manifests/profiles"
+	profileDir    = "../../../../manifests/profiles"
+	testNamespace = "testNamespace"
 )
 
 // default CA object
 var ca = vzapi.CA{
 	SecretName:               "testSecret",
-	ClusterResourceNamespace: namespace,
+	ClusterResourceNamespace: testNamespace,
 }
 
 // Default Acme object
@@ -147,6 +149,7 @@ func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, namespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
+	assert.Contains(t, kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: testNamespace})
 }
 
 // TestCertManagerPreInstall tests the PreInstall fn
