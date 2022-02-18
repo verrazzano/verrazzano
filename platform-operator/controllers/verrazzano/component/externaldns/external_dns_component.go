@@ -47,7 +47,7 @@ func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error
 
 func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
 	if e.HelmComponent.IsReady(ctx) {
-		return isExternalDnsReady(ctx)
+		return isExternalDNSReady(ctx)
 	}
 	return false
 }

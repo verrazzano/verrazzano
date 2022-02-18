@@ -199,8 +199,8 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 }
 
 // IsReady component check
-func (c rancherComponent) IsReady(ctx spi.ComponentContext) bool {
-	if c.HelmComponent.IsReady(ctx) {
+func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
+	if r.HelmComponent.IsReady(ctx) {
 		return isRancherReady(ctx)
 	}
 	return false

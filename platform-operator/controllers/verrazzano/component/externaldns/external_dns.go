@@ -82,7 +82,7 @@ func preInstall(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func isExternalDnsReady(compContext spi.ComponentContext) bool {
+func isExternalDNSReady(compContext spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: ComponentName, Namespace: ComponentNamespace},
 	}

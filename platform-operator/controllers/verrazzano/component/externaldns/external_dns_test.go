@@ -82,26 +82,26 @@ func TestIsExternalDNSDisabled(t *testing.T) {
 	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, false)))
 }
 
-// TestIsExternalDNSReady tests the isExternalDnsReady fn
-// GIVEN a call to isExternalDnsReady
+// TestIsExternalDNSReady tests the isExternalDNSReady fn
+// GIVEN a call to isExternalDNSReady
 // WHEN the external dns deployment is ready
 // THEN the function returns true
 func TestIsExternalDNSReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		newDeployment(ComponentName, true),
 	)
-	assert.True(t, isExternalDnsReady(spi.NewFakeContext(client, nil, false)))
+	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
 }
 
-// TestIsExternalDNSNotReady tests the isExternalDnsReady fn
-// GIVEN a call to isExternalDnsReady
+// TestIsExternalDNSNotReady tests the isExternalDNSReady fn
+// GIVEN a call to isExternalDNSReady
 // WHEN the external dns deployment is not ready
 // THEN the function returns false
 func TestIsExternalDNSNotReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		newDeployment(ComponentName, false),
 	)
-	assert.False(t, isExternalDnsReady(spi.NewFakeContext(client, nil, false)))
+	assert.False(t, isExternalDNSReady(spi.NewFakeContext(client, nil, false)))
 }
 
 // TestAppendExternalDNSOverrides tests the AppendOverrides fn

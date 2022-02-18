@@ -103,9 +103,6 @@ type resolveNamespaceSig func(ns string) string
 // upgradeFuncSig is a function needed for unit test override
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error)
 
-// readyStatusFuncSig describes the function signature for doing deeper checks on a component's ready state
-type readyStatusFuncSig func(context spi.ComponentContext, releaseName string, namespace string) bool
-
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
