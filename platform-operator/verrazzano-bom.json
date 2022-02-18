@@ -192,7 +192,8 @@
             {
               "image": "node-exporter",
               "tag": "1.0.0-20211213080828-e25ae11",
-              "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
+              "helmFullImageKey": "nodeExporter.imageName",
+              "helmTagKey": "nodeExporter.imageVersion"
             },
             {
               "image": "verrazzano-monitoring-operator",

@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -57,7 +58,7 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
-
+	_ = vmov1.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
 	_ = vzclusters.AddToScheme(testScheme)
 

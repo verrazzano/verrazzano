@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -37,7 +38,7 @@ var scheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-
+	_ = vmov1.AddToScheme(scheme)
 	_ = installv1alpha1.AddToScheme(scheme)
 	_ = clustersv1alpha1.AddToScheme(scheme)
 

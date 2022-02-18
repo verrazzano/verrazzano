@@ -44,6 +44,9 @@ func NewComponent() spi.Component {
 // PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := setupSharedVMIResources(ctx); err != nil {
+		return err
+	}
 	ctx.Log().Debug("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
@@ -68,7 +71,6 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	var deployments []types.NamespacedName
 	if isVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, []types.NamespacedName{
-			{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
@@ -82,6 +84,9 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
+	if err := createVMI(ctx); err != nil {
+		return err
+	}
 	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
@@ -94,6 +99,9 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	cleanTempFiles(ctx)
+	if err := createVMI(ctx); err != nil {
+		return err
+	}
 	return c.updateElasticsearchResources(ctx)
 }
 

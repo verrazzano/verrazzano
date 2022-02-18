@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"os"
 	"os/exec"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 	"time"
 
@@ -72,6 +74,12 @@ func resolveVerrazzanoNamespace(ns string) string {
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
 func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
+	if err := addHelmAnnotations(client); err != nil {
+		return err
+	}
+	if err := ensureVMISecret(client); err != nil {
+
+	}
 	return fixupFluentdDaemonset(log, client, namespace)
 }
 
@@ -672,4 +680,40 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 		}
 		time.Sleep(retryDelay)
 	}
+}
+
+//addHelmAnnotations annotates any existing objects that should be managed by helm
+func addHelmAnnotations(cli clipkg.Client) error {
+	namespacedName := types.NamespacedName{Name: nodeExporter, Namespace: globalconst.VerrazzanoMonitoringNamespace}
+	objects := []controllerutil.Object{
+		&appsv1.DaemonSet{},
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	for _, obj := range objects {
+		if err := annotateObject(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//annotateObject annotates an object as being managed by the verrazzano helm chart
+func annotateObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) error {
+	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		} else {
+			return err
+		}
+	}
+	annotations := obj.GetAnnotations()
+	annotations["meta.helm.sh/release-name"] = "verrazzano"
+	annotations["meta.helm.sh/release-namespace"] = "verrazzano-system"
+	obj.SetAnnotations(annotations)
+	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
+	return cli.Patch(context.TODO(), obj, objMerge)
 }
