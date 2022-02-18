@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package weblogic
 
 import (
@@ -13,6 +14,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
+// ComponentName is the name of the component
+const ComponentName = "weblogic-operator"
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
+
 type weblogicComponent struct {
 	helm.HelmComponent
 }
@@ -22,7 +29,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
@@ -30,7 +37,6 @@ func NewComponent() spi.Component {
 			PreInstallFunc:          WeblogicOperatorPreInstall,
 			AppendOverridesFunc:     AppendWeblogicOperatorOverrides,
 			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         IsWeblogicOperatorReady,
 		},
 	}
 }
@@ -42,4 +48,12 @@ func (c weblogicComponent) IsEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// IsReady component check
+func (c weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isWeblogicOperatorReady(ctx)
+	}
+	return false
 }

@@ -15,6 +15,8 @@ import (
 	"strings"
 	"text/template"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -22,9 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -35,8 +34,6 @@ import (
 )
 
 const (
-	namespace = "cert-manager"
-
 	certManagerDeploymentName = "cert-manager"
 	cainjectorDeploymentName  = "cert-manager-cainjector"
 	webhookDeploymentName     = "cert-manager-webhook"
@@ -140,7 +137,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 
 	// create cert-manager namespace
 	compContext.Log().Debug("Adding label needed by network policies to cert-manager namespace")
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
@@ -239,12 +236,12 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	return kvs, nil
 }
 
-// IsReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
-func (c certManagerComponent) IsReady(context spi.ComponentContext) bool {
+// isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
+func isCertManagerReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: certManagerDeploymentName, Namespace: namespace},
-		{Name: cainjectorDeploymentName, Namespace: namespace},
-		{Name: webhookDeploymentName, Namespace: namespace},
+		{Name: certManagerDeploymentName, Namespace: ComponentNamespace},
+		{Name: cainjectorDeploymentName, Namespace: ComponentNamespace},
+		{Name: webhookDeploymentName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
@@ -359,7 +356,7 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 
 	// Verify that the secret exists
 	secret := v1.Secret{}
-	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: namespace}, &secret); err != nil {
+	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: ComponentNamespace}, &secret); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to retireve the OCI DNS config secret: %v", err)
 	}
 

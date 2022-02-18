@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package externaldns
 
 import (
@@ -10,6 +11,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
+
+// ComponentName is the name of the component
+const ComponentName = "external-dns"
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = "cert-manager"
 
 type externalDNSComponent struct {
 	helm.HelmComponent
@@ -23,7 +30,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          "cert-manager",
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  imagePullSecretHelmKey,
@@ -38,8 +45,11 @@ func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error
 	return preInstall(compContext)
 }
 
-func (e externalDNSComponent) IsReady(compContext spi.ComponentContext) bool {
-	return isReady(compContext)
+func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
+	if e.HelmComponent.IsReady(ctx) {
+		return isExternalDnsReady(ctx)
+	}
+	return false
 }
 
 func (e externalDNSComponent) IsEnabled(compContext spi.ComponentContext) bool {

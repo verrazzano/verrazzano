@@ -56,8 +56,8 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	assert.Equalf(expectedIstioProxyImage, kvs[2].Value, "Did not get expected istioProxyImage Value")
 }
 
-// TestIsApplicationOperatorReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
+// TestIsApplicationOperatorReady tests the isApplicationOperatorReady function
+// GIVEN a call to isApplicationOperatorReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsApplicationOperatorReady(t *testing.T) {
@@ -74,11 +74,11 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
-// TestIsApplicationOperatorNotReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
+// TestIsApplicationOperatorNotReady tests the isApplicationOperatorReady function
+// GIVEN a call to isApplicationOperatorReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsApplicationOperatorNotReady(t *testing.T) {
@@ -95,7 +95,7 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
 }
 
 //  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function
