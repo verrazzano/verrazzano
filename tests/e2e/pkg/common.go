@@ -318,3 +318,62 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 	}
 	return false
 }
+
+func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset for kubernetes cluster, error: %v", err))
+		return false
+	}
+
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+
+	targetPods := []v1.Pod{}
+	for _, pod := range pods.Items {
+		for _, namePrefix := range namePrefixes {
+			if strings.HasPrefix(pod.Name, namePrefix) {
+				targetPods = append(targetPods, pod)
+			}
+		}
+	}
+
+	podsWait := make(map[string]bool)
+	for _, pod := range targetPods {
+		podsWait[pod.Name] = true
+	}
+
+	for {
+		for _, pod := range pods.Items {
+			if _, ok := podsWait[pod.Name]; !ok {
+				continue
+			}
+
+			containerWaiting := false
+			for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+				containerWaiting = containerWaiting || (initContainerStatus.State.Waiting != nil)
+			}
+
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				containerWaiting = containerWaiting || (containerStatus.State.Waiting != nil)
+			}
+
+			if !containerWaiting {
+				delete(podsWait, pod.Name)
+			}
+		}
+		if len(podsWait) == 0 {
+			break
+		}
+	}
+	return len(podsWait) == 0
+}
