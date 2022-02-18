@@ -17,7 +17,6 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strconv"
 )
 
 const (
@@ -170,11 +169,12 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	}
 
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
-		intVal, err := strconv.Atoi(arg.Value)
+		var intVal int32
+		_, err := fmt.Sscan(arg.Value, &intVal)
 		if err != nil {
 			return err
 		}
-		*val = int32(intVal)
+		*val = intVal
 		return nil
 	}
 

@@ -706,9 +706,8 @@ func annotateObject(cli clipkg.Client, obj controllerutil.Object, namespacedName
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 	annotations := obj.GetAnnotations()
 	annotations["meta.helm.sh/release-name"] = "verrazzano"

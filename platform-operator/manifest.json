@@ -1,0 +1,6 @@
+{
+  "-_comment": "This file maintains the concrete versions of micro-operators, and other stuff to be launched into the Verrazzano Managed Clusters",
+  "wlsMicroOperatorCrd": "vendor/github.com/verrazzano/verrazzano-wko-operator/deploy/crds/verrazzano.io_wlsoperators_crd.yaml",
+  "helidonAppOperatorCrd": "vendor/github.com/verrazzano/verrazzano-helidon-app-operator/deploy/crds/verrazzano.io_helidonapps_crd.yaml",
+  "cohClusterOperatorCrd": "vendor/github.com/verrazzano/verrazzano-coh-cluster-operator/deploy/crds/verrazzano.io_cohclusters_crd.yaml"
+}
