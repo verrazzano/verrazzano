@@ -33,9 +33,6 @@ const (
 	StateUpgrading ComponentUpgradeState = "Upgrading"
 )
 
-// upgradeTrackerMap has a map of upgradeTracker, one entry per Verrazzano CR resource generation
-var upgradeTrackerMap = make(map[string]*upgradeTracker)
-
 // upgradeTracker has the upgrade context for the Verrazzano upgrade
 type upgradeTracker struct {
 	gen     int64
@@ -46,6 +43,9 @@ type upgradeTracker struct {
 type componentUpgradeContext struct {
 	state ComponentUpgradeState
 }
+
+// upgradeTrackerMap has a map of upgradeTrackers, one entry per Verrazzano CR resource generation
+var upgradeTrackerMap = make(map[string]*upgradeTracker)
 
 // reconcileUpgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
@@ -76,7 +76,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 		compLog := compContext.Log()
-		upgradeContext := upgradeTracker.getUpgradeContext(compName)
+		upgradeContext := upgradeTracker.getComponentUpgradeContext(compName)
 
 		if upgradeContext.state == StateInit {
 			// Check if component is installed, if not continue
@@ -135,11 +135,11 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		return newRequeueWithDelay(), err
 	}
 	// Upgrade completely done
-	deleteUpgradeContext(cr)
+	deleteUpgradeTracker(cr)
 	return ctrl.Result{}, nil
 }
 
-// Return true if Verrazzano is installed
+// isInstalled returns true if Verrazzano is installed
 func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
 	for _, cond := range st.Conditions {
 		if cond.Type == installv1alpha1.CondInstallComplete {
@@ -149,7 +149,7 @@ func isInstalled(st installv1alpha1.VerrazzanoStatus) bool {
 	return false
 }
 
-// Return true if the last condition matches the condition type
+// isLastCondition returns true if the last condition matches the condition type
 func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv1alpha1.ConditionType) bool {
 	l := len(st.Conditions)
 	if l == 0 {
@@ -163,12 +163,12 @@ func fmtGeneration(gen int64) string {
 	return "generation:" + s
 }
 
-// Restart pods with old Istio sidecar proxies
+// postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
 }
 
-// get the key for the verrazzano resource
+// getNsnKey gets the key for the verrazzano resource
 func getNsnKey(cr *installv1alpha1.Verrazzano) string {
 	return fmt.Sprintf("%s-%s", cr.Namespace, cr.Name)
 }
@@ -188,8 +188,8 @@ func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 	return vuc
 }
 
-// Delete the upgrade context for Verrazzano
-func deleteUpgradeContext(cr *installv1alpha1.Verrazzano) {
+// deleteUpgradeTracker deletes the upgrade tracker for the Verrazzano resource
+func deleteUpgradeTracker(cr *installv1alpha1.Verrazzano) {
 	key := getNsnKey(cr)
 	_, ok := upgradeTrackerMap[key]
 	if ok {
@@ -197,8 +197,8 @@ func deleteUpgradeContext(cr *installv1alpha1.Verrazzano) {
 	}
 }
 
-// Get the upgrade context for the component
-func (vuc *upgradeTracker) getUpgradeContext(compName string) *componentUpgradeContext {
+// getComponentUpgradeContext gets the upgrade context for the component
+func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componentUpgradeContext {
 	cuc, ok := vuc.compMap[compName]
 	if !ok {
 		cuc = &componentUpgradeContext{
