@@ -33,24 +33,24 @@ const (
 	StateUpgrading ComponentUpgradeState = "Upgrading"
 )
 
-// upgradeContextMap has a map of upgradeContexts, one entry per verrazzano CR resource generation
-var upgradeContextMap = make(map[string]*vzUpgradeContext)
+// upgradeTrackerMap has a map of upgradeTracker, one entry per Verrazzano CR resource generation
+var upgradeTrackerMap = make(map[string]*upgradeTracker)
 
-// vzUpgradeContext has the upgrade context for the Verrazzano upgrade
-type vzUpgradeContext struct {
+// upgradeTracker has the upgrade context for the Verrazzano upgrade
+type upgradeTracker struct {
 	gen     int64
 	compMap map[string]*componentUpgradeContext
 }
 
-// componentUpgradeContext has the upgrade context for the Verrazzano upgrade
+// componentUpgradeContext has the upgrade context for a Verrazzano component upgrade
 type componentUpgradeContext struct {
 	state ComponentUpgradeState
 }
 
 // reconcileUpgrade will upgrade the components as required
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	// Get the upgradeContext for this Verrazzano CR generation
-	crUpgradeContext := getUpgradeContext(cr)
+	// Get the upgradeTracker for this Verrazzano CR generation
+	upgradeTracker := getUpgradeTracker(cr)
 
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
@@ -76,7 +76,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 		compLog := compContext.Log()
-		upgradeContext := crUpgradeContext.getUpgradeContext(compName)
+		upgradeContext := upgradeTracker.getUpgradeContext(compName)
 
 		if upgradeContext.state == StateInit {
 			// Check if component is installed, if not continue
@@ -173,17 +173,17 @@ func getNsnKey(cr *installv1alpha1.Verrazzano) string {
 	return fmt.Sprintf("%s-%s", cr.Namespace, cr.Name)
 }
 
-// Get the upgrade context for Verrazzano
-func getUpgradeContext(cr *installv1alpha1.Verrazzano) *vzUpgradeContext {
+// getUpgradeTracker gets the upgrade tracker for Verrazzano
+func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 	key := getNsnKey(cr)
-	vuc, ok := upgradeContextMap[key]
+	vuc, ok := upgradeTrackerMap[key]
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
-		vuc = &vzUpgradeContext{
+		vuc = &upgradeTracker{
 			gen:     cr.Generation,
 			compMap: make(map[string]*componentUpgradeContext),
 		}
-		upgradeContextMap[key] = vuc
+		upgradeTrackerMap[key] = vuc
 	}
 	return vuc
 }
@@ -191,14 +191,14 @@ func getUpgradeContext(cr *installv1alpha1.Verrazzano) *vzUpgradeContext {
 // Delete the upgrade context for Verrazzano
 func deleteUpgradeContext(cr *installv1alpha1.Verrazzano) {
 	key := getNsnKey(cr)
-	_, ok := upgradeContextMap[key]
+	_, ok := upgradeTrackerMap[key]
 	if ok {
-		delete(upgradeContextMap, key)
+		delete(upgradeTrackerMap, key)
 	}
 }
 
 // Get the upgrade context for the component
-func (vuc *vzUpgradeContext) getUpgradeContext(compName string) *componentUpgradeContext {
+func (vuc *upgradeTracker) getUpgradeContext(compName string) *componentUpgradeContext {
 	cuc, ok := vuc.compMap[compName]
 	if !ok {
 		cuc = &componentUpgradeContext{

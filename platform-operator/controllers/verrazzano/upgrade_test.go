@@ -654,7 +654,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
-	asserts.Len(upgradeContextMap, 0, "Expect upgradeContextMap to be empty")
+	asserts.Len(upgradeTrackerMap, 0, "Expect upgradeTrackerMap to be empty")
 }
 
 // TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
