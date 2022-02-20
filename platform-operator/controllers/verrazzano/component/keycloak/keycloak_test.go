@@ -10,23 +10,23 @@ import (
 	"os/exec"
 	"testing"
 
-	networkv1 "k8s.io/api/networking/v1"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
+	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -1082,4 +1082,66 @@ func TestUpdateKeycloakIngress(t *testing.T) {
 	ctx := spi.NewFakeContext(c, testVZ, false)
 	err := updateKeycloakIngress(ctx)
 	assert.NoError(t, err)
+}
+
+func TestIsKeycloakReady(t *testing.T) {
+	readySecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      getSecretName(testVZ),
+			Namespace: ComponentNamespace,
+		},
+	}
+	scheme := k8scheme.Scheme
+	_ = certmanager.AddToScheme(scheme)
+	var tests = []struct {
+		name    string
+		c       client.Client
+		isReady bool
+	}{
+		{
+			"should not be ready when certificate not found",
+			fake.NewFakeClientWithScheme(scheme),
+			false,
+		},
+		{
+			"should not be ready when certificate has no status",
+			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      getSecretName(testVZ),
+					Namespace: ComponentNamespace,
+				},
+			}),
+			false,
+		},
+		{
+			"should not be ready when secret does not exists",
+			fake.NewFakeClientWithScheme(scheme),
+			false,
+		},
+		{
+			"should not be ready when certificate status is ready but statefulset is not ready",
+			fake.NewFakeClientWithScheme(scheme, readySecret),
+			false,
+		},
+		{
+			"should be ready when certificate status is ready and statefulset is ready",
+			fake.NewFakeClientWithScheme(scheme, readySecret, &appsv1.StatefulSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ComponentNamespace,
+					Name:      ComponentName,
+				},
+				Status: appsv1.StatefulSetStatus{
+					ReadyReplicas: 1,
+				},
+			}),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.c, testVZ, false)
+			assert.Equal(t, tt.isReady, isKeycloakReady(ctx))
+		})
+	}
 }
