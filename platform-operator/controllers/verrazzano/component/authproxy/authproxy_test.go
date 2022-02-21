@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,6 +42,68 @@ func init() {
 	_ = vzapi.AddToScheme(testScheme)
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
+}
+
+// TestIsAuthProxyReady tests the isAuthProxyReady call
+// GIVEN a AuthProxy component
+//  WHEN I call isAuthProxyReady when all requirements are met
+//  THEN true or false is returned
+func TestIsAuthProxyReady(t *testing.T) {
+	tests := []struct {
+		name       string
+		client     client.Client
+		expectTrue bool
+	}{
+		{
+			name: "Test IsReady when AuthProxy is successfully deployed",
+			client: fake.NewFakeClientWithScheme(testScheme,
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+					},
+					Status: appsv1.DeploymentStatus{
+						Replicas:            1,
+						ReadyReplicas:       1,
+						AvailableReplicas:   1,
+						UnavailableReplicas: 0,
+					},
+				}),
+			expectTrue: true,
+		},
+		{
+			name: "Test IsReady when AuthProxy deployment is not ready",
+			client: fake.NewFakeClientWithScheme(testScheme,
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+					},
+					Status: appsv1.DeploymentStatus{
+						Replicas:            1,
+						ReadyReplicas:       1,
+						AvailableReplicas:   0,
+						UnavailableReplicas: 1,
+					},
+				}),
+			expectTrue: false,
+		},
+		{
+			name:       "Test IsReady when AuthProxy deployment does not exist",
+			client:     fake.NewFakeClientWithScheme(testScheme),
+			expectTrue: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, false)
+			if tt.expectTrue {
+				assert.True(t, isAuthProxyReady(ctx))
+			} else {
+				assert.False(t, isAuthProxyReady(ctx))
+			}
+		})
+	}
 }
 
 // TestAppendOverrides tests the AppendOverrides function

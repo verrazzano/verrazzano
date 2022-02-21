@@ -5,12 +5,10 @@ package weblogic
 import (
 	"testing"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -51,16 +49,16 @@ func Test_weblogicOperatorPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestIsWeblogicOperatorReady tests the IsWeblogicOperatorReady function
-// GIVEN a call to IsWeblogicOperatorReady
+// TestIsWeblogicOperatorReady tests the isWeblogicOperatorReady function
+// GIVEN a call to isWeblogicOperatorReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsWeblogicOperatorReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      wlsOperatorDeploymentName,
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
@@ -69,19 +67,19 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 			UnavailableReplicas: 0,
 		},
 	})
-	assert.True(t, IsWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-// TestIsWeblogicOperatorNotReady tests the IsWeblogicOperatorReady function
-// GIVEN a call to IsWeblogicOperatorReady
+// TestIsWeblogicOperatorNotReady tests the isWeblogicOperatorReady function
+// GIVEN a call to isWeblogicOperatorReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsWeblogicOperatorNotReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      wlsOperatorDeploymentName,
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
@@ -90,5 +88,5 @@ func TestIsWeblogicOperatorNotReady(t *testing.T) {
 			UnavailableReplicas: 1,
 		},
 	})
-	assert.False(t, IsWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }

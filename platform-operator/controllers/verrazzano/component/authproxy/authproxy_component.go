@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,13 +57,12 @@ func (c authProxyComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return *comp.Enabled
 }
 
-// IsReady checks if the AuthProxy deployment is ready
+// IsReady component check
 func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+	if c.HelmComponent.IsReady(ctx) {
+		return isAuthProxyReady(ctx)
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return false
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component

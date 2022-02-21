@@ -145,7 +145,7 @@ var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 		// GIVEN the Istio gateway for the test namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
-		t.It("Get host from gateway.", func() {
+		t.BeforeEach(func() {
 			Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 				return host, err

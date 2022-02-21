@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -112,9 +111,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // doReconcile the Verrazzano CR
 func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	ctx := context.TODO()
-
-	// Add cert-manager components to the scheme
-	cmapiv1.AddToScheme(r.Scheme)
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)

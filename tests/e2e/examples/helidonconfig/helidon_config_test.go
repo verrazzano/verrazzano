@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	t = framework.NewTestFramework("helidonconfig")
+	t                  = framework.NewTestFramework("helidonconfig")
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
 )
 
@@ -103,7 +103,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// GIVEN the Istio gateway for the helidon-config namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
