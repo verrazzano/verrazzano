@@ -338,35 +338,51 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 		return false
 	}
 
-	targetPods := []v1.Pod{}
+	// watch all the eligible pods as waiting
+	podsWait := make(map[string]bool)
 	for _, pod := range pods.Items {
 		for _, namePrefix := range namePrefixes {
 			if strings.HasPrefix(pod.Name, namePrefix) {
-				targetPods = append(targetPods, pod)
+				podsWait[pod.Name] = true
 			}
 		}
 	}
 
-	podsWait := make(map[string]bool)
-	for _, pod := range targetPods {
-		podsWait[pod.Name] = true
-	}
-
+	// The idea here is to keep watching containers in a pod that are in a waiting state. If we identify
+	// a condition where waiting is not going to help, we back out, otherwise we wait
 	for {
 		for _, pod := range pods.Items {
+
+			// skip pods that were either not eligible or were deleted from the map
 			if _, ok := podsWait[pod.Name]; !ok {
 				continue
 			}
 
+			// Change containerWaiting to true if a container is in a waiting state
 			containerWaiting := false
 			for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+				if initContainerStatus.State.Waiting != nil {
+					// No need to wait if the reason is CrashLoopBackOff
+					if initContainerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+						Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", initContainerStatus.Name, pod.Name))
+						return false
+					}
+					Log(Info, fmt.Sprintf("%v %v", initContainerStatus.State.Waiting.Reason, initContainerStatus.State.Waiting.Message))
+				}
 				containerWaiting = containerWaiting || (initContainerStatus.State.Waiting != nil)
 			}
-
 			for _, containerStatus := range pod.Status.ContainerStatuses {
+				if containerStatus.State.Waiting != nil {
+					if containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+						Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", containerStatus.Name, pod.Name))
+						return false
+					}
+					Log(Info, fmt.Sprintf("%v %v", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
+				}
 				containerWaiting = containerWaiting || (containerStatus.State.Waiting != nil)
 			}
 
+			// delete pod entry if all the containers are past waiting state
 			if !containerWaiting {
 				delete(podsWait, pod.Name)
 			}
@@ -375,5 +391,5 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 			break
 		}
 	}
-	return len(podsWait) == 0
+	return true
 }

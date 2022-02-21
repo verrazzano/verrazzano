@@ -22,11 +22,22 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
+	expWait              = 60 * time.Minute
 )
 
 var (
 	t                  = framework.NewTestFramework("bobsbooks")
 	generatedNamespace = pkg.GenerateNamespace("bobs-books")
+	expectedPods       = []string{
+		"bobbys-front-end-adminserver",
+		"bobs-bookstore-adminserver",
+		"bobbys-coherence-0",
+		"roberts-coherence-0",
+		"roberts-coherence-1",
+		"bobbys-helidon-stock-application",
+		"robert-helidon",
+		"mysql",
+	}
 )
 
 var _ = BeforeSuite(func() {
@@ -36,18 +47,11 @@ var _ = BeforeSuite(func() {
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPods)
+	}, expWait, longPollingInterval).Should(BeTrue())
 	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
 	Eventually(func() bool {
-		expectedPods := []string{
-			"bobbys-front-end-adminserver",
-			"bobs-bookstore-adminserver",
-			"bobbys-coherence-0",
-			"roberts-coherence-0",
-			"roberts-coherence-1",
-			"bobbys-helidon-stock-application",
-			"robert-helidon",
-			"mysql",
-		}
 		return pkg.PodsRunning(namespace, expectedPods)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 })
