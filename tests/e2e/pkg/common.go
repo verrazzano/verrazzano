@@ -360,7 +360,7 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 
 			// Change containerWaiting to true if a container is in a waiting state
 			containerWaiting := false
-			podWaiting       := false
+			podWaiting := false
 			podWaiting = podWaiting || (pod.Status.Phase == "Pending")
 			for _, initContainerStatus := range pod.Status.InitContainerStatuses {
 				if initContainerStatus.State.Waiting != nil {
