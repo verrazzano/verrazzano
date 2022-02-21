@@ -94,7 +94,10 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	cleanTempFiles(ctx)
-	return c.updateElasticsearchResources(ctx)
+	if err := c.updateElasticsearchResources(ctx); err != nil {
+		return err
+	}
+	return fixupFluentdDaemonSetPostUpgrade(ctx, resolveVerrazzanoNamespace(c.ChartNamespace))
 }
 
 // updateElasticsearchResources updates elasticsearch resources
