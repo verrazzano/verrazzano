@@ -284,7 +284,7 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	}
 
 	if len(imageOverrides) < 2 {
-		return nil, fmt.Errorf("Component MySQL failed, expected atleast 2 image override keys for oraclelinux theme, found %v", len(imageOverrides))
+		return nil, fmt.Errorf("Component MySQL failed, expected atleast 2 image override keys for oraclelinux, found %v", len(imageOverrides))
 	}
 
 	// use template to get populate template with image:tag
