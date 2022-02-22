@@ -371,7 +371,7 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 	for podName, containers := range allContainers {
 		for _, container := range containers {
 			for _, event := range events.Items {
-				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(container.(string), event.InvolvedObject.FieldPath) {
+				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, container.(string)) {
 					if event.Reason == "Pulled" {
 						imagesYetToBePulled--
 						Log(Info, fmt.Sprintf("%v image pulled", container))
