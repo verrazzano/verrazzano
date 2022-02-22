@@ -375,20 +375,20 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		Log(Info, "Can't check for all the images right now")
 		return false
 	}
-
+	Log(Info, fmt.Sprintf("%d Before decrement", imagesYetToBePulled))
 	// Drill down event data to check if the container image has been pulled
 	for podName, containers := range allContainers {
 		for _, container := range containers {
 			for _, event := range events.Items {
 				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, container.(string)) {
+					Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
 					if event.Reason == "Pulled" {
 						imagesYetToBePulled--
-						Log(Info, fmt.Sprintf("%v image pulled", container))
 					}
 				}
 			}
 		}
 	}
-
+	Log(Info, fmt.Sprintf("%d After decrement", imagesYetToBePulled))
 	return imagesYetToBePulled == 0
 }
