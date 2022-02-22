@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -31,20 +30,19 @@ func createVMI(ctx spi.ComponentContext) error {
 	}
 
 	if err := createGrafanaConfigMaps(ctx); err != nil {
-		return err
+		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
 	}
 	values := &verrazzanoValues{}
 	if err := appendVerrazzanoValues(ctx, values); err != nil {
-		return err
+		return ctx.Log().ErrorfNewErr("failed to get Verrazzano values: %v", err)
 	}
 	storage, err := findStorageOverride(ctx.EffectiveCR())
 	if err != nil {
-		return err
+		return ctx.Log().ErrorfNewErr("failed to get storage overrides: %v", err)
 	}
-
-	existingVMI := getExistingVMI(ctx.Client())
 	vmi := newVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
+		existingVMI := vmi.DeepCopy()
 		vmi.Labels = map[string]string{
 			"k8s-app":            "verrazzano.io",
 			"verrazzano.binding": system,
@@ -66,17 +64,10 @@ func createVMI(ctx spi.ComponentContext) error {
 		vmi.Spec.Kibana = newOpenSearchDashboards(cr)
 		return nil
 	})
-	return err
-}
-
-func getExistingVMI(cli client.Client) *vmov1.VerrazzanoMonitoringInstance {
-	existingVMI := &vmov1.VerrazzanoMonitoringInstance{}
-	namespacedName := types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
-	err := cli.Get(context.TODO(), namespacedName, existingVMI)
 	if err != nil {
-		return nil
+		return ctx.Log().ErrorfNewErr("failed to update VMI: %v", err)
 	}
-	return existingVMI
+	return nil
 }
 
 func newVMI() *vmov1.VerrazzanoMonitoringInstance {
