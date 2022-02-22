@@ -101,7 +101,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 
 	// Should return with no error since the fluentd daemonset does not exist.
 	// This is valid case when fluentd is not installed.
-	err = fixupFluentdDaemonsetPreUpgrade(log, client, defNs)
+	err = fixupFluentdDaemonset(log, client, defNs)
 	assert.NoError(err)
 
 	// Create a fluentd daemonset for test purposes
@@ -136,7 +136,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	assert.NoError(err)
 
 	// should return error that fluentd container is missing
-	err = fixupFluentdDaemonsetPreUpgrade(log, client, defNs)
+	err = fixupFluentdDaemonset(log, client, defNs)
 	assert.Contains(err.Error(), "fluentd container not found in fluentd daemonset: fluentd")
 
 	daemonSet.Spec.Template.Spec.Containers[0].Name = "fluentd"
@@ -144,7 +144,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	assert.NoError(err)
 
 	// should return no error since the env variables don't need fixing up
-	err = fixupFluentdDaemonsetPreUpgrade(log, client, defNs)
+	err = fixupFluentdDaemonset(log, client, defNs)
 	assert.NoError(err)
 
 	// create a secret with needed keys
@@ -186,7 +186,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	assert.NoError(err)
 
 	// should return no error
-	err = fixupFluentdDaemonsetPreUpgrade(log, client, defNs)
+	err = fixupFluentdDaemonset(log, client, defNs)
 	assert.NoError(err)
 
 	// env variables should be fixed up to use Value instead of ValueFrom

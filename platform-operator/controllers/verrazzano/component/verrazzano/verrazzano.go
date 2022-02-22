@@ -13,8 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -26,6 +24,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -89,7 +88,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
 func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
-	return fixupFluentdDaemonsetPreUpgrade(log, client, namespace)
+	return fixupFluentdDaemonset(log, client, namespace)
 }
 
 // appendVerrazzanoOverrides appends the image overrides for the monitoring-init-images subcomponent
@@ -372,7 +371,7 @@ func isVMOEnabled(vz *vzapi.Verrazzano) bool {
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
 // ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
 // template for the fluentd daemonset expects a Value.
-func fixupFluentdDaemonsetPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
+func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
 	// Get the fluentd daemonset resource
 	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: namespace}
 	daemonSet := appsv1.DaemonSet{}
@@ -446,114 +445,6 @@ func fixupFluentdDaemonsetPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.C
 	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
-}
-
-func fixupFluentdEsConfig(ctx spi.ComponentContext, namespace string) error {
-	esConfig := corev1.ConfigMap{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "fluentd-es-config", Namespace: namespace}, &esConfig)
-	if err != nil {
-		ctx.Log().Errorf("Failed to find the ConfigMap %s/%s: %v", namespace, "fluentd-es-config", err)
-	}
-
-	esConfig.Data["es-secret"] = "verrazzano-es-internal"
-
-	ctx.Log().Debug("Updating the fluentd-es-config config map to use verrazzano-es-internal secret")
-	err = ctx.Client().Update(context.TODO(), &esConfig)
-	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to update the fluentd-es-config config map %s, %v", esConfig.Name, err)
-	}
-
-	return nil
-}
-
-// fixupFluentdDaemonSetPostUpgrade will change the Fluentd DaemonSet to use the verrazzano-es-internal secret
-// instead of the external facing verrazzano secret.
-func fixupFluentdDaemonSetPostUpgrade(ctx spi.ComponentContext, namespace string) error {
-	ctx.Log().Info("Performing post upgrade fixup of Fluentd DaemonSet")
-	// Only apply this fix to a cluster with Fluentd enabled.
-	if !vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		ctx.Log().Info("No post upgrade steps needed since Fluentd is disabled.")
-		return nil
-	}
-
-	// Get the Fluentd DaemonSet resource
-	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: namespace}
-	daemonSet := appsv1.DaemonSet{}
-	err := ctx.Client().Get(context.TODO(), fluentdNamespacedName, &daemonSet)
-	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to find the Fluentd DaemonSet %s, %v", daemonSet.Name, err)
-	}
-
-	// Find the fluentd container index and save it
-	fluentdIndex := -1
-	for i, container := range daemonSet.Spec.Template.Spec.Containers {
-		if container.Name == "fluentd" {
-			fluentdIndex = i
-			break
-		}
-	}
-	if fluentdIndex == -1 {
-		return ctx.Log().ErrorfNewErr("Failed, fluentd container not found in Fluentd DaemonSet: %s", daemonSet.Name)
-	}
-
-	// Find the Elasticsearch username and password environment variables and save their indexes
-	userIndex := -1
-	pwdIndex := -1
-	for i, env := range daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env {
-		if env.Name == "ELASTICSEARCH_USER" {
-			userIndex = i
-			continue
-		}
-		if env.Name == "ELASTICSEARCH_PASSWORD" {
-			pwdIndex = i
-		}
-	}
-
-	if userIndex == -1 {
-		return ctx.Log().ErrorfNewErr("Failed, fluentd container did not have expected env variable: %s", "ELASTICSEARCH_USER")
-	}
-	if pwdIndex == -1 {
-		return ctx.Log().ErrorfNewErr("Failed, fluentd container did not have expected env variable: %s", "ELASTICSEARCH_PASSWORD")
-	}
-
-	// Update the username and password environment variables to use the verrazzano-es-internal secret instead of the
-	// verrazzano secret
-	updated := false
-	if daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[userIndex].ValueFrom.SecretKeyRef.Name == "verrazzano" {
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[userIndex].ValueFrom.SecretKeyRef.Name = "verrazzano-es-internal"
-		updated = true
-	}
-	if daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[pwdIndex].ValueFrom.SecretKeyRef.Name == "verrazzano" {
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[pwdIndex].ValueFrom.SecretKeyRef.Name = "verrazzano-es-internal"
-		updated = true
-	}
-	if !updated {
-		return nil
-	}
-
-	// Find the Fluentd secret-volume index and save it
-	volumeIndex := -1
-	for i, volume := range daemonSet.Spec.Template.Spec.Volumes {
-		if volume.Name == "secret-volume" {
-			volumeIndex = i
-			break
-		}
-	}
-
-	if volumeIndex == -1 {
-		return ctx.Log().ErrorfNewErr("Failed, Fluentd DaemonSet did not have expected env volume: %s", "secret-volume")
-	}
-
-	// Update volume to use the verrazzano-es-internal secret instead of the verrazzano secret
-	daemonSet.Spec.Template.Spec.Volumes[volumeIndex].Secret.SecretName = "verrazzano-es-internal"
-
-	ctx.Log().Debug("Updating Fluentd DaemonSet to use verrazzano-es-internal secret")
-	err = ctx.Client().Update(context.TODO(), &daemonSet)
-	if err != nil {
-		return ctx.Log().ErrorNewErr("Failed to update the Fluentd DaemonSet %s, %v", daemonSet.Name, err)
-	}
-
-	return nil
 }
 
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {
