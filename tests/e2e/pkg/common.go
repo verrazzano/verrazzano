@@ -369,6 +369,11 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		}
 	}
 
+	if len(allContainers) == 0 || imagesYetToBePulled == 0 || len(allContainers) != len(namePrefixes) {
+		Log(Info, "Can't check for all the images right now")
+		return false
+	}
+
 	for podName, containers := range allContainers {
 		for _, container := range containers {
 			for _, event := range events.Items {
