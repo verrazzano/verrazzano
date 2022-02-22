@@ -14,11 +14,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// implicit base profile (defaults)
-	baseProfile = "base"
-)
-
 var _ ComponentContext = componentContext{}
 
 // componentContext has the context needed to reconcile a component
