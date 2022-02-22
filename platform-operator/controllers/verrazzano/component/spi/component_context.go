@@ -57,19 +57,11 @@ func NewComponentContext(vzContext *vzctx.VerrazzanoContext, compName string, op
 }
 
 // NewFakeContext creates a fake ComponentContext for unit testing purposes
-// c Kubernetes client
-// actualCR The user-supplied Verrazzano CR
-// dryRun Dry-run indicator
-// profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	return NewFakeContextWithNameAndOperation(c, actualCR, dryRun, "", "", profilesDir...)
 }
 
 // NewFakeContextWithNameAndOperation creates a fake ComponentContext with a name and operation for unit testing purposes
-// c Kubernetes client
-// actualCR The user-supplied Verrazzano CR
-// dryRun Dry-run indicator
-// profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContextWithNameAndOperation(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, name string, operation string, profilesDir ...string) ComponentContext {
 	effectiveCR := actualCR
 	log := vzlog.DefaultLogger()
