@@ -437,14 +437,25 @@ func TestReady(t *testing.T) {
 	assert := assert.New(t)
 
 	defer helm.SetDefaultChartStatusFunction()
-
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
+
+	defer helm.SetDefaultChartInfoFunction()
+	helm.SetChartInfoFunction(func(chartDir string) (helm.ChartInfo, error) {
+		return helm.ChartInfo{
+			AppVersion: "1.0",
+		}, nil
+	})
+
+	defer helm.SetDefaultReleaseAppVersionFunction()
+	helm.SetReleaseAppVersionFunction(func(releaseName string, namespace string) (string, error) {
+		return "1.0", nil
+	})
+
 	comp := HelmComponent{}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	compContext := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, false)
-	//compContext := spi.ComponentContext{Log: zap.S(), Client: client, EffectiveCR: &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}}
 
 	assert.True(comp.IsReady(compContext))
 
@@ -462,6 +473,16 @@ func TestReady(t *testing.T) {
 		return "", fmt.Errorf("Unexpected error")
 	})
 	assert.False(comp.IsReady(compContext))
+
+	// IsReady should fail when app versions do not match
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	helm.SetReleaseAppVersionFunction(func(releaseName string, namespace string) (string, error) {
+		return "1.1", nil
+	})
+	assert.False(comp.IsReady(compContext))
+
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade
