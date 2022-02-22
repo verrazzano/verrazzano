@@ -37,7 +37,6 @@ var expectedPodsIngressNginx = []string{
 
 var expectedNonVMIPodsVerrazzanoSystem = []string{
 	"verrazzano-monitoring-operator",
-	"verrazzano-operator",
 }
 
 // comment out while debugging so it does not break master
@@ -197,7 +196,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		)
 
 		t.It("the expected pods are running", func() {
-			pkg.Concurrently(
+			assertions := []func(){
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
 					// cluster is registered)
@@ -224,6 +223,16 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
+			}
+
+			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
+				assertions = append(assertions, func() {
+					Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", []string{"verrazzano-operator"}) }, waitTimeout, pollingInterval).
+						Should(BeTrue())
+				})
+			}
+			pkg.Concurrently(
+				assertions...,
 			)
 		})
 	})
