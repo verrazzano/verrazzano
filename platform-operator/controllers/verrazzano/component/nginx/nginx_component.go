@@ -16,6 +16,9 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "ingress-controller"
 
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = "ingress-nginx"
+
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
 	helm.HelmComponent
@@ -39,7 +42,6 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendOverrides,
 			PostInstallFunc:         PostInstall,
 			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         IsReady,
 		},
 	}
 }
@@ -51,4 +53,12 @@ func (c nginxComponent) IsEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// IsReady component check
+func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isNginxReady(ctx)
+	}
+	return false
 }

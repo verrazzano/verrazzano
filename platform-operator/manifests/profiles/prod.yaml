@@ -3,7 +3,13 @@
 
 spec:
   components:
-    verrazzano:
-      installArgs:
-        - name: api.replicas
-          value: "2"
+    authproxy:
+      kubernetes:
+        replicas: 2
+    istio:
+      ingress:
+        kubernetes:
+          replicas: 2
+      egress:
+        kubernetes:
+          replicas: 2

@@ -10,10 +10,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"go.uber.org/zap"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"go.uber.org/zap"
 
 	"sigs.k8s.io/yaml"
 
@@ -527,22 +528,22 @@ func TestValidateInProgress(t *testing.T) {
 	vzOld := Verrazzano{}
 	vzNew := Verrazzano{}
 
-	vzOld.Status.State = Ready
+	vzOld.Status.State = VzStateReady
 	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
 
-	vzOld.Status.State = Installing
+	vzOld.Status.State = VzStateInstalling
 	err := ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 
-	vzOld.Status.State = Uninstalling
+	vzOld.Status.State = VzStateUninstalling
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 	}
 
-	vzOld.Status.State = Upgrading
+	vzOld.Status.State = VzStateUpgrading
 	err = ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
 		assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
@@ -593,21 +594,21 @@ func TestValidateEnable(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			vzNew := Verrazzano{}
-			test.vzOld.Status.State = Ready
+			test.vzOld.Status.State = VzStateReady
 			err := ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
-			test.vzOld.Status.State = Installing
+			test.vzOld.Status.State = VzStateInstalling
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
-			test.vzOld.Status.State = Upgrading
+			test.vzOld.Status.State = VzStateUpgrading
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
 				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())
 			}
 
-			test.vzOld.Status.State = Uninstalling
+			test.vzOld.Status.State = VzStateUninstalling
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			if assert.Error(t, err) {
 				assert.Equal(t, "Updates to resource not allowed while install, uninstall or upgrade is in progress", err.Error())

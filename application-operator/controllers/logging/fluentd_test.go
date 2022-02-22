@@ -59,11 +59,9 @@ func TestFluentdApply(t *testing.T) {
 		})
 
 	// invoke method being tested
-	changesMade, err := fluentd.Apply(logInfo, resource, fluentdPod)
+	err := fluentd.Apply(logInfo, resource, fluentdPod)
 
-	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
-
 	testAssertFluentdPodForApply(t, fluentdPod)
 
 	mocker.Finish()
@@ -106,11 +104,9 @@ func TestFluentdApplyForUpdate(t *testing.T) {
 		})
 
 	// invoke method being tested
-	changesMade, err := fluentd.Apply(logInfo, resource, fluentdPod)
+	err := fluentd.Apply(logInfo, resource, fluentdPod)
 
-	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
-
 	testAssertFluentdPodForApplyUpdate(t, fluentdPod)
 
 	mocker.Finish()
@@ -197,11 +193,9 @@ func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 		})
 
 	// invoke method being tested
-	changesMade, err := fluentd.Apply(logInfo, resource, fluentdPod)
+	err := fluentd.Apply(logInfo, resource, fluentdPod)
 
-	asserts.True(t, changesMade)
 	asserts.Nil(t, err)
-
 	testAssertFluentdPodForApply(t, fluentdPod)
 
 	mocker.Finish()

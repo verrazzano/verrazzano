@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	t = framework.NewTestFramework("bobsbooks")
+	t                  = framework.NewTestFramework("bobsbooks")
 	generatedNamespace = pkg.GenerateNamespace("bobs-books")
 )
 
@@ -35,6 +35,21 @@ var _ = BeforeSuite(func() {
 		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
+	Eventually(func() bool {
+		expectedPods := []string{
+			"bobbys-front-end-adminserver",
+			"bobs-bookstore-adminserver",
+			"bobbys-coherence-0",
+			"roberts-coherence-0",
+			"roberts-coherence-1",
+			"bobbys-helidon-stock-application",
+			"robert-helidon",
+			"mysql",
+		}
+		return pkg.PodsRunning(namespace, expectedPods)
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 })
 
 var failed = false
@@ -139,29 +154,13 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload",
 	"f:app-lcm.coherence-workload"), func() {
 
-	t.It("application deployment.", func() {
-		Eventually(func() bool {
-			expectedPods := []string{
-				"bobbys-front-end-adminserver",
-				"bobs-bookstore-adminserver",
-				"bobbys-coherence-0",
-				"roberts-coherence-0",
-				"roberts-coherence-1",
-				"bobbys-helidon-stock-application",
-				"robert-helidon",
-				"mysql",
-			}
-			return pkg.PodsRunning(namespace, expectedPods)
-		}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
-	})
-
 	var host = ""
 	var err error
 	// Get the host from the Istio gateway resource.
 	// GIVEN the Istio gateway for the bobs-books namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
+	t.BeforeEach(func() {
 		start := time.Now()
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
@@ -169,7 +168,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 		metrics.Emit(t.Metrics.With("get_host_name_elapsed_time", time.Since(start).Milliseconds()))
 	})
-	t.Context("Ingress.", Label("f:mesh.ingress"), func() {
+	t.Context("Ingress.", Label("f:mesh.ingress"), FlakeAttempts(8), func() {
 		// Verify the application endpoint is working.
 		// GIVEN the Bobs Books app is deployed
 		// WHEN the roberts-books UI is accessed
@@ -217,7 +216,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(200), pkg.BodyContains("Bob's Order Manager")))
 		})
 	})
-	t.Context("Metrics.", Label("f:observability.monitoring.prom"), func() {
+	t.Context("Metrics.", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
 		// Verify application Prometheus scraped metrics
 		// GIVEN a deployed Bob's Books application
 		// WHEN the application configuration uses a default metrics trait

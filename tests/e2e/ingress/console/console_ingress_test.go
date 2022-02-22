@@ -126,7 +126,7 @@ func undeployApplication() {
 var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload"), func() {
 
-	t.Context("deployment.", func() {
+	t.Context("deployment.", FlakeAttempts(8), func() {
 		// GIVEN the app is deployed
 		// WHEN the running pods are checked
 		// THEN the adminserver and mysql pods should be found running
@@ -145,7 +145,7 @@ var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 		// GIVEN the Istio gateway for the test namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
-		t.It("Get host from gateway.", func() {
+		t.BeforeEach(func() {
 			Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 				return host, err

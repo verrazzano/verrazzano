@@ -6,21 +6,24 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	k8scorev1 "k8s.io/api/core/v1"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/rand"
 	k8scontroller "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 )
 
@@ -56,12 +59,9 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
-	// Never return an error since it has already been logged and we don't want the
-	// controller runtime to log again (with stack trace).  Just re-queue if there is an error.
 	if err != nil {
-		return clusters.NewRequeueWithDelay(), nil
+		return clusters.NewRequeueWithDelay(), err
 	}
-
 	log.Oncef("Finished reconciling metrics binding %v", req.NamespacedName)
 
 	return k8scontroller.Result{}, nil
@@ -113,7 +113,12 @@ func (r *Reconciler) reconcileBindingCreateOrUpdate(ctx context.Context, metrics
 	if err := r.mutatePrometheusScrapeConfig(ctx, metricsBinding, r.createOrUpdateScrapeConfig, log); err != nil {
 		return k8scontroller.Result{Requeue: true}, err
 	}
-	return k8scontroller.Result{}, nil
+
+	// Requeue with a delay to account for situations where the scrape config
+	// has changed but without the MetricsBinding changing.
+	var seconds = rand.IntnRange(45, 90)
+	var duration = time.Duration(seconds) * time.Second
+	return reconcile.Result{Requeue: true, RequeueAfter: duration}, nil
 }
 
 func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, log vzlog.VerrazzanoLogger) error {

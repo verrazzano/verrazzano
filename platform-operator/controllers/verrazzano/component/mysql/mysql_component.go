@@ -17,6 +17,9 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "mysql"
 
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = vzconst.KeycloakNamespace
+
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
 	helm.HelmComponent
@@ -31,21 +34,23 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          vzconst.KeycloakNamespace,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:     appendMySQLOverrides,
 			Dependencies:            []string{istio.ComponentName},
-			ReadyStatusFunc:         isReady,
 		},
 	}
 }
 
-// IsReady calls MySQL isReady function
+// IsReady calls MySQL isMySQLReady function
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
-	return isReady(context, c.ReleaseName, c.ChartNamespace)
+	if c.HelmComponent.IsReady(context) {
+		return isMySQLReady(context)
+	}
+	return false
 }
 
 // IsEnabled mysql-specific enabled check for installation
