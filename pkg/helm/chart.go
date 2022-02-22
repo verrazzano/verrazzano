@@ -19,13 +19,13 @@ type ChartInfo struct {
 	AppVersion  string
 }
 
-// Package-level var and functions to allow overriding getReleaseState for unit test purposes
-type chartInfoFnType func(chartDir string) (ChartInfo, error)
+// ChartInfoFnType - Package-level var and functions to allow overriding getReleaseState for unit test purposes
+type ChartInfoFnType func(chartDir string) (ChartInfo, error)
 
-var chartInfoFn chartInfoFnType = getChartInfo
+var chartInfoFn ChartInfoFnType = getChartInfo
 
 // SetChartInfoFunction Override the chart info function for unit testing
-func SetChartInfoFunction(f chartInfoFnType) {
+func SetChartInfoFunction(f ChartInfoFnType) {
 	chartInfoFn = f
 }
 
