@@ -161,20 +161,25 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	// Does the Helm installed app_version number match the chart?
 	chartInfo, err := helmcli.GetChartInfo(h.ChartDir)
 	if err != nil {
+		context.Log().Errorf("Failed getting Helm chart info for releease %s", h.ReleaseName)
 		return false
 	}
 	releaseAppVersion, err := helmcli.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
+		context.Log().Errorf("Failed getting Helm AppVersion for releease %s", h.ReleaseName)
 		return false
 	}
 	if chartInfo.AppVersion != releaseAppVersion {
+		context.Log().Progressf("Waiting for Helm release %s app version to match chart", h.ReleaseName)
 		return false
 	}
 
 	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
 	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
+		context.Log().Oncef("Helm release %s is deployed", h.ReleaseName)
 		return true
 	}
+	context.Log().Progressf("Waiting for Helm release %s to be deployed", h.ReleaseName)
 	return false
 }
 

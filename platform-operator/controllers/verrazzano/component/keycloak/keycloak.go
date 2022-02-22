@@ -1243,9 +1243,10 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 	secret := &corev1.Secret{}
 	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
+		ctx.Log().Progressf("Component Keycloak waiting for certificate secret %s to exist", secretName)
 		return false
 	}
+	ctx.Log().Oncef("Component Keycloak found certificate secret %s", secretName)
 
 	statefulsetName := []types.NamespacedName{
 		{
