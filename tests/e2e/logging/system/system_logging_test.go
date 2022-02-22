@@ -358,7 +358,7 @@ func validateVMOLogs() bool {
 
 func validateVOLogs() bool {
 	// VO not installed in 1.3.0+
-	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); ok {
+	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
 		return validateElasticsearchRecords(
 			allElasticsearchRecordValidator,
 			systemIndex,

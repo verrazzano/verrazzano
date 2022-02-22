@@ -461,7 +461,7 @@ func importToHelmChart(cli clipkg.Client) error {
 	}
 
 	for _, obj := range objects {
-		if err := importHelmObject(cli, obj, namespacedName); err != nil {
+		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
 			return err
 		}
 	}
@@ -469,12 +469,12 @@ func importToHelmChart(cli clipkg.Client) error {
 }
 
 //importHelmObject annotates an object as being managed by the verrazzano helm chart
-func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) error {
+func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return obj, nil
 		}
-		return err
+		return obj, err
 	}
 	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
 	annotations := obj.GetAnnotations()
@@ -490,5 +490,5 @@ func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedNa
 	}
 	labels["app.kubernetes.io/managed-by"] = "Helm"
 	obj.SetLabels(labels)
-	return cli.Patch(context.TODO(), obj, objMerge)
+	return obj, cli.Patch(context.TODO(), obj, objMerge)
 }

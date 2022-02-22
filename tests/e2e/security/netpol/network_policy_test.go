@@ -442,7 +442,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 		}
 
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
 			assertions = append(assertions, func() {
 				pkg.Log(pkg.Info, "Negative test verrazzano-operator ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-operator"}}, "verrazzano-system", 8000, false)

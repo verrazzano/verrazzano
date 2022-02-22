@@ -108,7 +108,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		}
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); ok {
+		if isMinVersion1_3_0, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !isMinVersion1_3_0 {
 			componentsArgs = append(componentsArgs, t.Entry("includes verrazzano-operator", "verrazzano-operator", true))
 		}
 
