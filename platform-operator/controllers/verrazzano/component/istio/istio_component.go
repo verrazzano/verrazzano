@@ -300,6 +300,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 		if vzString.SliceContainsString(config.GetInjectedSystemNamespaces(), daemonSet.Namespace) {
 			var pods v1.PodList
 			if err := client.List(context.TODO(), &pods, clipkg.MatchingLabels(daemonSet.Spec.Selector.MatchLabels)); err != nil {
+
 				return err
 			}
 			if needsRestart(pods, istioVersion) {
