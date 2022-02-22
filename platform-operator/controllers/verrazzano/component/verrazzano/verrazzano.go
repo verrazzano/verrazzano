@@ -333,11 +333,7 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
-			if fluentd.ElasticsearchSecret == "verrazzano" {
-				overrides.Logging.ElasticsearchSecret = "verrazzano-es-internal"
-			} else {
-				overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
-			}
+			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
 		}
 		if len(fluentd.ExtraVolumeMounts) > 0 {
 			for _, vm := range fluentd.ExtraVolumeMounts {
@@ -361,6 +357,10 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 				APISecret:       fluentd.OCI.APISecret,
 			}
 		}
+	}
+
+	if overrides.Logging.ElasticsearchSecret == "verrazzano" {
+		overrides.Logging.ElasticsearchSecret = "verrazzano-es-internal"
 	}
 }
 
@@ -446,6 +446,24 @@ func fixupFluentdDaemonsetPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.C
 	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
+}
+
+func fixupFluentdEsConfig(ctx spi.ComponentContext, namespace string) error {
+	esConfig := corev1.ConfigMap{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "fluentd-es-config", Namespace: namespace}, &esConfig)
+	if err != nil {
+		ctx.Log().Errorf("Failed to find the ConfigMap %s/%s: %v", namespace, "fluentd-es-config", err)
+	}
+
+	esConfig.Data["es-secret"] = "verrazzano-es-internal"
+
+	ctx.Log().Debug("Updating the fluentd-es-config config map to use verrazzano-es-internal secret")
+	err = ctx.Client().Update(context.TODO(), &esConfig)
+	if err != nil {
+		return ctx.Log().ErrorNewErr("Failed to update the fluentd-es-config config map %s, %v", esConfig.Name, err)
+	}
+
+	return nil
 }
 
 // fixupFluentdDaemonSetPostUpgrade will change the Fluentd DaemonSet to use the verrazzano-es-internal secret
