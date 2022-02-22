@@ -316,7 +316,11 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
-			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
+			if fluentd.ElasticsearchSecret == "verrazzano" {
+				overrides.Logging.ElasticsearchSecret = "verrazzano-es-internal"
+			} else {
+				overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
+			}
 		}
 		if len(fluentd.ExtraVolumeMounts) > 0 {
 			for _, vm := range fluentd.ExtraVolumeMounts {
@@ -430,10 +434,10 @@ func fixupFluentdDaemonsetPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.C
 // fixupFluentdDaemonSetPostUpgrade will change the Fluentd DaemonSet to use the verrazzano-es-internal secret
 // instead of the external facing verrazzano secret.
 func fixupFluentdDaemonSetPostUpgrade(ctx spi.ComponentContext, namespace string) error {
-	ctx.Log().Info("Called fixupFluentdDaemonSetPostUpgrade")
+	ctx.Log().Info("Performing post upgrade fixup of Fluentd DaemonSet")
 	// Only apply this fix to a cluster with Fluentd enabled.
 	if !vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		ctx.Log().Info("Fluentd Post Upgrade: Fixup Fluentd Elasticsearch secret not necessary.")
+		ctx.Log().Info("No post upgrade steps needed since Fluentd is disabled.")
 		return nil
 	}
 
@@ -441,9 +445,6 @@ func fixupFluentdDaemonSetPostUpgrade(ctx spi.ComponentContext, namespace string
 	fluentdNamespacedName := types.NamespacedName{Name: globalconst.FluentdDaemonSetName, Namespace: namespace}
 	daemonSet := appsv1.DaemonSet{}
 	err := ctx.Client().Get(context.TODO(), fluentdNamespacedName, &daemonSet)
-	if errors.IsNotFound(err) {
-		return nil
-	}
 	if err != nil {
 		return ctx.Log().ErrorNewErr("Failed to find the Fluentd DaemonSet %s, %v", daemonSet.Name, err)
 	}
@@ -509,11 +510,15 @@ func fixupFluentdDaemonSetPostUpgrade(ctx spi.ComponentContext, namespace string
 	}
 
 	// Update volume to use the verrazzano-es-internal secret instead of the verrazzano secret
-	daemonSet.Spec.Template.Spec.Volumes[volumeIndex].Name = "verrazzano-es-internal"
+	daemonSet.Spec.Template.Spec.Volumes[volumeIndex].Secret.SecretName = "verrazzano-es-internal"
 
 	ctx.Log().Debug("Updating Fluentd DaemonSet to use verrazzano-es-internal secret")
 	err = ctx.Client().Update(context.TODO(), &daemonSet)
-	return err
+	if err != nil {
+		return ctx.Log().ErrorNewErr("Failed to update the Fluentd DaemonSet %s, %v", daemonSet.Name, err)
+	}
+
+	return nil
 }
 
 func createAndLabelNamespaces(ctx spi.ComponentContext) error {

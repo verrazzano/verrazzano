@@ -37,7 +37,7 @@ data:
   {{- if .Values.logging.elasticsearchSecret }}
   es-secret: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-  es-secret: verrazzano-es-config
+  es-secret: verrazzano-es-internal
   {{- end }}
 ---
 apiVersion: v1
