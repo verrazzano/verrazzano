@@ -452,16 +452,26 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 //importToHelmChart annotates any existing objects that should be managed by helm
 func importToHelmChart(cli clipkg.Client) error {
 	namespacedName := types.NamespacedName{Name: nodeExporter, Namespace: globalconst.VerrazzanoMonitoringNamespace}
+	name := types.NamespacedName{Name: nodeExporter}
 	objects := []controllerutil.Object{
 		&appsv1.DaemonSet{},
 		&corev1.ServiceAccount{},
 		&corev1.Service{},
+	}
+
+	noNamespaceObjects := []controllerutil.Object{
 		&rbacv1.ClusterRole{},
 		&rbacv1.ClusterRoleBinding{},
 	}
 
 	for _, obj := range objects {
 		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+
+	for _, obj := range noNamespaceObjects {
+		if _, err := importHelmObject(cli, obj, name); err != nil {
 			return err
 		}
 	}
