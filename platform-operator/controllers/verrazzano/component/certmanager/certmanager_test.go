@@ -17,6 +17,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -260,6 +261,89 @@ func TestIsCABothPopulated(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	_, err := isCA(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.Error(t, err)
+}
+
+// TestCreateCAResources tests the createCAResources function.
+func TestCreateCAResources(t *testing.T) {
+	// GIVEN that a secret with the cluster CA certificate does not exist
+	// WHEN a call is made to create the CA resources
+	// THEN the call succeeds and an Issuer, Certificate, and ClusterIssuer have been created
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.CertManager.Certificate.CA = ca
+
+	scheme := k8scheme.Scheme
+	certv1.AddToScheme(scheme)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	err := createCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	assert.NoError(t, err)
+
+	// validate that the Issuer, Certificate, and ClusterIssuer were created
+	exists, err := issuerExists(client, caSelfSignedIssuerName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	exists, err = certificateExists(client, caCertificateName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	exists, err = clusterIssuerExists(client, caClusterIssuerName)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// GIVEN that a secret with the cluster CA certificate exists
+	// WHEN a call is made to create the CA resources
+	// THEN the call succeeds and only a ClusterIssuer has been created
+	secret := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      localvz.Spec.Components.CertManager.Certificate.CA.SecretName,
+			Namespace: localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace,
+		},
+	}
+	client = fake.NewFakeClientWithScheme(scheme, &secret)
+
+	err = createCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	assert.NoError(t, err)
+
+	// validate that only the ClusterIssuer was created
+	exists, err = issuerExists(client, caSelfSignedIssuerName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	exists, err = certificateExists(client, caCertificateName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	exists, err = clusterIssuerExists(client, caClusterIssuerName)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+}
+
+// issuerExists returns true if the Issuer with the name and namespace exists.
+func issuerExists(client clipkg.Client, name string, namespace string) (bool, error) {
+	issuer := certv1.Issuer{}
+	if err := client.Get(context.TODO(), clipkg.ObjectKey{Name: name, Namespace: namespace}, &issuer); err != nil {
+		return false, clipkg.IgnoreNotFound(err)
+	}
+	return true, nil
+}
+
+// clusterIssuerExists returns true if the ClusterIssuer with the name exists.
+func clusterIssuerExists(client clipkg.Client, name string) (bool, error) {
+	clusterIssuer := certv1.ClusterIssuer{}
+	if err := client.Get(context.TODO(), clipkg.ObjectKey{Name: name}, &clusterIssuer); err != nil {
+		return false, clipkg.IgnoreNotFound(err)
+	}
+	return true, nil
+}
+
+// certificateExists returns true if the Certificate with the name and namespace exists.
+func certificateExists(client clipkg.Client, name string, namespace string) (bool, error) {
+	cert := certv1.Certificate{}
+	if err := client.Get(context.TODO(), clipkg.ObjectKey{Name: name, Namespace: namespace}, &cert); err != nil {
+		return false, clipkg.IgnoreNotFound(err)
+	}
+	return true, nil
 }
 
 // TestPostInstallCA tests the PostInstall function
