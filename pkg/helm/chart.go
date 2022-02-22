@@ -6,6 +6,7 @@ package helm
 import (
 	"io/ioutil"
 	"path/filepath"
+
 	"sigs.k8s.io/yaml"
 )
 
@@ -18,8 +19,28 @@ type ChartInfo struct {
 	AppVersion  string
 }
 
-// GetChartInfo loads the Chart.yaml from the specified chart dir into a ChartInfo struct
+// ChartInfoFnType - Package-level var and functions to allow overriding getReleaseState for unit test purposes
+type ChartInfoFnType func(chartDir string) (ChartInfo, error)
+
+var chartInfoFn ChartInfoFnType = getChartInfo
+
+// SetChartInfoFunction Override the chart info function for unit testing
+func SetChartInfoFunction(f ChartInfoFnType) {
+	chartInfoFn = f
+}
+
+// SetDefaultChartInfoFunction Reset the chart info function
+func SetDefaultChartInfoFunction() {
+	chartInfoFn = getChartInfo
+}
+
+// GetChartInfo - public entry point
 func GetChartInfo(chartDir string) (ChartInfo, error) {
+	return chartInfoFn(chartDir)
+}
+
+// getChartInfo loads the Chart.yaml from the specified chart dir into a ChartInfo struct
+func getChartInfo(chartDir string) (ChartInfo, error) {
 	chartBytes, err := ioutil.ReadFile(filepath.Join(chartDir + "/Chart.yaml"))
 	if err != nil {
 		return ChartInfo{}, err
