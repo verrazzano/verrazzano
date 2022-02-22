@@ -348,12 +348,13 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 	return CheckAllImagesPulled(pods, events, namePrefixes)
 }
 
-// The idea here is to enumerate all the containers and check if their images have been pulled or not
+// The idea here is to enumerate all the containers in a pod and check if their images have been pulled or not
 func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
-	// Slice containing all initcontainer and container names
+
 	allContainers := make(map[string][]interface{})
 	imagesYetToBePulled := 0
-	// fill allContainers with all the container names
+
+	// For a given pod, store all the container names in a slice
 	for _, pod := range pods.Items {
 		for _, namePrefix := range namePrefixes {
 			if strings.HasPrefix(pod.Name, namePrefix) {
@@ -369,11 +370,13 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		}
 	}
 
-	if len(allContainers) == 0 || imagesYetToBePulled == 0 || len(allContainers) != len(namePrefixes) {
+	// Retry if all the pods haven't been scheduled
+	if len(allContainers) == 0 || imagesYetToBePulled == 0 || len(allContainers) < len(namePrefixes) {
 		Log(Info, "Can't check for all the images right now")
 		return false
 	}
 
+	// Drill down event data to check if the container image has been pulled
 	for podName, containers := range allContainers {
 		for _, container := range containers {
 			for _, event := range events.Items {
