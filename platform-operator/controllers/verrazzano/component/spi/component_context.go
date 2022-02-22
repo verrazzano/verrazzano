@@ -39,7 +39,7 @@ func NewComponentContext(vzContext *vzctx.VerrazzanoContext, compName string, op
 	log := vzContext.Log
 	if len(operation) > 0 {
 		// Get zap logger, add "with" fields for this componentName name and operator
-		zapLogger := vzContext.Log.GetRootZapLogger().With("componentName", len(compName))
+		zapLogger := vzContext.Log.GetRootZapLogger().With("componentName", compName)
 		zapLogger = zapLogger.With("operation", operation)
 
 		// Ensure that there is a logger for this componentName, inject the new zap logger
