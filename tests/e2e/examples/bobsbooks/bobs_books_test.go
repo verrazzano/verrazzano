@@ -46,7 +46,7 @@ var _ = BeforeSuite(func() {
 		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-
+	pkg.Log(pkg.Info, "Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, expectedPods)
 	}, expWait, longPollingInterval).Should(BeTrue())

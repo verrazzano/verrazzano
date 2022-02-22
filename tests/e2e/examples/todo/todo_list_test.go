@@ -38,7 +38,7 @@ var _ = t.BeforeSuite(func() {
 		deployToDoListExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-
+	pkg.Log(pkg.Info, "Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, []string{"mysql", "tododomain-adminserver"})
 	}, expWait, longPollingInterval).Should(BeTrue())

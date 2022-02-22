@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -338,53 +339,45 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 		return false
 	}
 
-	return WaitForPodAndContainer(pods, namePrefixes)
+	events, err := clientset.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing events in cluster for namespace: %s, erroe: %v", namespace, err))
+		return false
+	}
+
+	return CheckAllImagesPulled(pods, events, namePrefixes)
 }
 
-func WaitForPodAndContainer(pods *v1.PodList, namePrefixes []string) bool {
-	// watch all the eligible pods as waiting
-	podsWait := make(map[string]bool)
+// The idea here is to enumerate all the containers and check if their images have been pulled or not
+func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
+	// Slice containing all initcontainer and container names
+	allContainers := []string{}
+
+	// fill allContainers with all the container names
 	for _, pod := range pods.Items {
 		for _, namePrefix := range namePrefixes {
 			if strings.HasPrefix(pod.Name, namePrefix) {
-				podsWait[pod.Name] = true
+				for _, initContainer := range pod.Spec.InitContainers {
+					allContainers = append(allContainers, initContainer.Name)
+				}
+				for _, container := range pod.Spec.Containers {
+					allContainers = append(allContainers, container.Name)
+				}
 			}
 		}
 	}
-	podWaiting := false
-	containerWaiting := false
-	// The idea here is to keep watching containers in a pod that are in a waiting state. If we identify
-	// a condition where waiting is not going to help, we back out, otherwise we wait
-	for _, pod := range pods.Items {
 
-		// skip pods that were not eligible
-		if _, ok := podsWait[pod.Name]; !ok {
-			continue
-		}
-
-		// Change containerWaiting to true if a container is in a waiting state
-		podWaiting = podWaiting || (pod.Status.Phase == v1.PodPending)
-		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
-			if initContainerStatus.State.Waiting != nil {
-				// No need to wait if the reason is CrashLoopBackOff
-				if initContainerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
-					Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", initContainerStatus.Name, pod.Name))
-					return true
+	imagesYetToBePulled := len(allContainers)
+	for _, container := range allContainers {
+		for _, event := range events.Items {
+			if len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(container, event.InvolvedObject.FieldPath) {
+				if event.Reason == "Pulled" {
+					imagesYetToBePulled--
+					Log(Info, fmt.Sprintf("%v image pulled", container))
 				}
-				Log(Info, fmt.Sprintf("%v %v", initContainerStatus.State.Waiting.Reason, initContainerStatus.State.Waiting.Message))
 			}
-			containerWaiting = containerWaiting || (initContainerStatus.State.Waiting != nil)
-		}
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-			if containerStatus.State.Waiting != nil {
-				if containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
-					Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", containerStatus.Name, pod.Name))
-					return true
-				}
-				Log(Info, fmt.Sprintf("%v %v", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
-			}
-			containerWaiting = containerWaiting || (containerStatus.State.Waiting != nil)
 		}
 	}
-	return !podWaiting && !containerWaiting
+
+	return imagesYetToBePulled == 0
 }
