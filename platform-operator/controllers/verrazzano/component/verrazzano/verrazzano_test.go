@@ -1456,6 +1456,30 @@ func createObjectFromTemplate(obj runtime.Object, template string, data interfac
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
 }
 
+// TestImportHelmObject tests labelling/annotating objects that will be imported to a helm chart
+// GIVEN an unmanaged object
+//  WHEN I call importHelmObject
+//  THEN the object is managed by helm
+func TestImportHelmObject(t *testing.T) {
+	namespacedName := types.NamespacedName{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+	}
+	obj := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(testScheme, obj)
+	_, err := importHelmObject(c, obj, namespacedName)
+	assert.NoError(t, err)
+	assert.Equal(t, obj.Annotations["meta.helm.sh/release-name"], ComponentName)
+	assert.Equal(t, obj.Annotations["meta.helm.sh/release-namespace"], globalconst.VerrazzanoSystemNamespace)
+	assert.Equal(t, obj.Labels["app.kubernetes.io/managed-by"], "Helm")
+}
+
 // TestIsReadySecretNotReady tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component
 //  WHEN I call isVerrazzanoReady when it is installed and the deployment availability criteria are met, but the secret is not found

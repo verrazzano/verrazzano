@@ -491,8 +491,8 @@ func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedNa
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	annotations["meta.helm.sh/release-name"] = "verrazzano"
-	annotations["meta.helm.sh/release-namespace"] = "verrazzano-system"
+	annotations["meta.helm.sh/release-name"] = ComponentName
+	annotations["meta.helm.sh/release-namespace"] = globalconst.VerrazzanoSystemNamespace
 	obj.SetAnnotations(annotations)
 	labels := obj.GetLabels()
 	if labels == nil {
