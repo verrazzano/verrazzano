@@ -8,22 +8,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"regexp"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
 )
 
 const (
-	minIndexAge        = "min_index_age"
-	defaultMinIndexAge = "7d"
+	minIndexAge            = "min_index_age"
+	defaultMinIndexAge     = "7d"
+	systemDataStreamName   = "verrazzano-system"
+	dataStreamTemplateName = "verrazzano-data-stream"
 )
 
 const systemISMPayloadTemplate = `{
@@ -116,6 +122,34 @@ const applicationISMPayloadTemplate = `{
     }
 }`
 
+const reindexPayload = `{
+  "source": {
+    "index": "{{ .SourceName }}",
+    "query": {
+      "range": {
+        "@timestamp": {
+          "gte": "now-{{ .NumberOfSeconds }}/s",
+          "lt": "now/s"
+        }
+      }
+    }
+  },
+  "dest": {
+    "index": "{{ .DestinationName }}",
+    "op_type": "create"
+  }
+}`
+
+const reindexPayloadWithoutQuery = `{
+  "source": {
+    "index": "{{ .SourceName }}"
+  },
+  "dest": {
+    "index": "{{ .DestinationName }}",
+    "op_type": "create"
+  }
+}`
+
 type (
 	ISMPolicy struct {
 		ID             string `json:"_id"`
@@ -128,6 +162,30 @@ type (
 		port   string
 		scheme string
 	}
+)
+
+type ReindexInput struct {
+	SourceName      string
+	DestinationName string
+	NumberOfSeconds string
+}
+
+type ReindexInputWithoutQuery struct {
+	SourceName      string
+	DestinationName string
+}
+
+// The system namespaces used in Verrazzano
+var (
+	systemNamespaces = []string{"kube-system", "verrazzano-system", "istio-system", "keycloak", "metallb-system",
+		"default", "cert-manager", "local-path-storage", "rancher-operator-system", "fleet-system", "ingress-nginx",
+		"cattle-system", "verrazzano-install", "monitoring"}
+	agePattern       = "^(?P<number>\\d+)(?P<unit>[yMwdhHms])$"
+	reTimeUnit       = regexp.MustCompile(agePattern)
+	secondsPerMinute = uint64(60)
+	secondsPerHour   = secondsPerMinute * 60
+	secondsPerDay    = secondsPerHour * 24
+	secondsPerWeek   = secondsPerDay * 7
 )
 
 func isOpenSearchReady(ctx spi.ComponentContext, namespace string) ([]corev1.Pod, bool) {
@@ -161,11 +219,11 @@ var ConfigureIndexManagement = func(ctx spi.ComponentContext, namespace string) 
 		return fmt.Errorf("cannot create data stream, %s container is not ready yet", containerName)
 	}
 	pod := &pods[0]
-	return doSetupViaOpenSearchAPI(ctx, pod)
+	return doSetupViaOpenSearchAPI(ctx, pod, namespace)
 }
 
 //doSetupViaOpenSearchAPI creates the ISM Policy and Index Template
-func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
+func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod, namespace string) error {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
@@ -183,7 +241,17 @@ func doSetupViaOpenSearchAPI(ctx spi.ComponentContext, pod *corev1.Pod) error {
 	}
 
 	// Create ISM Policy for Verrazzano System
-	return putRetententionPolicy(cfg, cli, pod, policies.System, "verrazzano-system", "verrazzano-system", systemISMPayloadTemplate)
+	if err := putRetententionPolicy(cfg, cli, pod, policies.System, "verrazzano-system", "verrazzano-system", systemISMPayloadTemplate); err != nil {
+		return err
+	}
+
+	// During upgrade, reindex and delete old indices
+	if ctx.GetOperation() == constants.UpgradeOperation {
+		if err := pruneOldIndices(ctx, cfg, cli, pod, policies, namespace); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func putRetententionPolicy(cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod, retentionPolicy vzapi.RetentionPolicy, policyName, policyIndexPattern, template string) error {
@@ -343,4 +411,283 @@ func waitForReadyOSContainers(ctx spi.ComponentContext, namespace string) ([]cor
 	}
 
 	return pods, nil
+}
+
+// Reindex old style indices to data streams and delete it
+func pruneOldIndices(ctx spi.ComponentContext, cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod,
+	policies vzapi.RetentionPolicies, namespace string) error {
+	ctx.Log().Info("OpenSearch Post Upgrade: Migrating Verrazzano old indices if any to data streams")
+	// Make sure that the data stream template is created before re-indexing
+	err := verifyDataStreamTemplateExists(ctx.Log(), cfg, cli, pod, dataStreamTemplateName, 2*time.Minute,
+		15*time.Second)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in verifying the existence of"+
+			" data stream template %s: %v", dataStreamTemplateName, err)
+	}
+	// Get system indices
+	systemIndices, err := getSystemIndices(ctx.Log(), cfg, cli, pod)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in getting the Verrazzano system indices: %v", err)
+	}
+	// Calculate the number of seconds of past system data that has to be re-indexed
+	var noOfSecsOfSystemData string
+	if policies.System.Enabled != nil && *policies.System.Enabled {
+		noOfSecs, err := calculateSeconds(*policies.System.MinAge)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in calculating the number of"+
+				" seconds of past system logs that has to be re-indexed: %v", err)
+		}
+		noOfSecsOfSystemData = fmt.Sprintf("%ds", noOfSecs)
+	}
+	// Reindex and delete old system indices
+	err = reindexAndDeleteIndices(ctx.Log(), cfg, cli, pod, systemIndices, true, noOfSecsOfSystemData)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in migrating the old Verrazzano"+
+			" system indices to data streams: %v", err)
+	}
+	// Get application indices
+	appIndices, err := getApplicationIndices(ctx.Log(), cfg, cli, pod)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in getting the Verrazzano application indices: %v", err)
+	}
+	// Calculate the number of seconds of past application data that has to be re-indexed
+	var noOfSecsOfAppData string
+	if policies.Application.Enabled != nil && *policies.Application.Enabled {
+		noOfSecs, err := calculateSeconds(*policies.Application.MinAge)
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in calculating the number of"+
+				" seconds of past application logs that has to be re-indexed: %v", err)
+		}
+		noOfSecsOfAppData = fmt.Sprintf("%ds", noOfSecs)
+	}
+	// Reindex and delete old application indices
+	err = reindexAndDeleteIndices(ctx.Log(), cfg, cli, pod, appIndices, false, noOfSecsOfAppData)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in migrating the old Verrazzano"+
+			" application indices to data streams: %v", err)
+	}
+
+	// Update index patterns in OpenSearch dashboards
+	err = updatePatterns(ctx, cfg, cli, namespace)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed in OpenSearch post upgrade: error in updating index patterns"+
+			" in OpenSearch Dashboards: %v", err)
+	}
+	ctx.Log().Info("OpenSearch Post Upgrade: Migration of Verrazzano old indices to data streams completed successfully")
+	return nil
+}
+
+func getSystemIndices(log vzlog.VerrazzanoLogger, cfg *rest.Config, cli kubernetes.Interface,
+	pod *corev1.Pod) ([]string, error) {
+	var indices []string
+	indices, err := getIndices(log, cfg, cli, pod)
+	if err != nil {
+		return nil, err
+	}
+	var systemIndices []string
+	for _, index := range indices {
+		if strings.HasPrefix(index, "verrazzano-namespace-") {
+			for _, systemNamespace := range systemNamespaces {
+				if index == "verrazzano-namespace-"+systemNamespace {
+					systemIndices = append(systemIndices, index)
+				}
+			}
+		}
+		if strings.Contains(index, "verrazzano-systemd-journal") {
+			systemIndices = append(systemIndices, index)
+		}
+		if strings.HasPrefix(index, "verrazzano-logstash-") {
+			systemIndices = append(systemIndices, index)
+		}
+	}
+	log.Debugf("OpenSearch Post Upgrade: Found Verrazzano system indices %v", systemIndices)
+	return systemIndices, nil
+}
+
+func getApplicationIndices(log vzlog.VerrazzanoLogger, cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod) ([]string, error) {
+	var indices []string
+	indices, err := getIndices(log, cfg, cli, pod)
+	if err != nil {
+		return nil, err
+	}
+	var appIndices []string
+	for _, index := range indices {
+		systemIndex := false
+		if strings.HasPrefix(index, "verrazzano-namespace-") {
+			for _, systemNamespace := range systemNamespaces {
+				if index == "verrazzano-namespace-"+systemNamespace {
+					systemIndex = true
+					break
+				}
+			}
+			if !systemIndex {
+				appIndices = append(appIndices, index)
+			}
+		}
+	}
+	log.Debugf("OpenSearch Post Upgrade: Found Verrazzano application indices %v", appIndices)
+	return appIndices, nil
+}
+
+func getIndices(log vzlog.VerrazzanoLogger, cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod) ([]string, error) {
+	getVZIndices := makeBashCommand(fmt.Sprintf("curl -XGET -s -k --fail 'http://localhost:%s/_cat/indices/verrazzano-*?format=json'", searchPort))
+	getResponse, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, getVZIndices)
+	if err != nil {
+		log.Errorf("OpenSearch Post Upgrade: Error getting cluster indices: %v", err)
+		return nil, err
+	}
+	log.Debugf("OpenSearch Post Upgrade: Response body %v", getResponse)
+	var indices []map[string]interface{}
+	if err := json.Unmarshal([]byte(getResponse), &indices); err != nil {
+		log.Errorf("OpenSearch Post Upgrade: Error unmarshalling indices response body: %v", err)
+		return nil, err
+	}
+	var indexNames []string
+	for _, index := range indices {
+		val, found := index["index"]
+		if !found {
+			log.Errorf("OpenSearch Post Upgrade: Not able to find the name of the index: %v", index)
+			return nil, err
+		}
+		indexNames = append(indexNames, val.(string))
+
+	}
+	log.Debugf("OpenSearch Post Upgrade: Found Verrazzano indices %v", indices)
+	return indexNames, nil
+}
+
+func reindexAndDeleteIndices(log vzlog.VerrazzanoLogger, cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod,
+	indices []string, isSystemIndex bool, retentionDays string) error {
+	for _, index := range indices {
+		var dataStreamName string
+		if isSystemIndex {
+			dataStreamName = systemDataStreamName
+		} else {
+			dataStreamName = strings.Replace(index, "verrazzano-namespace", "verrazzano-application", 1)
+		}
+		log.Infof("OpenSearch Post Upgrade: Reindexing logs from index %v to data stream %s", index, dataStreamName)
+		err := reindexToDataStream(log, cfg, cli, pod, index, dataStreamName, retentionDays)
+		if err != nil {
+			return err
+		}
+		log.Infof("OpenSearch Post Upgrade: Deleting old index %v", index)
+		err = deleteIndex(log, cfg, cli, pod, index)
+		if err != nil {
+			return err
+		}
+		log.Infof("OpenSearch Post Upgrade: Deleted old index %v successfully", index)
+	}
+	return nil
+}
+
+func reindexToDataStream(log vzlog.VerrazzanoLogger, cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod,
+	sourceName string, destName string, retentionDays string) error {
+	var payload string
+	var err error
+	if retentionDays == "" {
+		input := ReindexInputWithoutQuery{SourceName: sourceName, DestinationName: destName}
+		payload, err = formatReindexPayloadWithoutQuery(input, reindexPayloadWithoutQuery)
+	} else {
+		input := ReindexInput{SourceName: sourceName, DestinationName: destName, NumberOfSeconds: retentionDays}
+		payload, err = formatReindexPayload(input, reindexPayload)
+	}
+	if err != nil {
+		return err
+	}
+
+	cmd := fmt.Sprintf("curl -k --fail -X POST -H 'Content-Type: application/json' 'localhost:9200/_reindex' -d '%s'", payload)
+	log.Debugf("OpenSearch Post Upgrade: Executing reindex API %s", cmd)
+	containerCommand := makeBashCommand(cmd)
+	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, pod, containerName, containerCommand)
+	if err != nil {
+		log.Errorf("OpenSearch Post Upgrade: Reindex from %s to %s failed: stdout = %s: stderr = %s", sourceName, destName, stdOut, stdErr)
+		return err
+	}
+	log.Debugf("OpenSearch Post Upgrade: Reindex from %s to %s API response %s", sourceName, destName, stdOut)
+	return nil
+}
+
+func deleteIndex(log vzlog.VerrazzanoLogger, cfg *rest.Config, cli kubernetes.Interface, pod *corev1.Pod,
+	indexName string) error {
+	cmd := fmt.Sprintf("curl -k --fail -X DELETE -H 'Content-Type: application/json' 'localhost:9200/%s'", indexName)
+	log.Debugf("OpenSearch Post Upgrade: Executing delete API %s", cmd)
+	containerCommand := makeBashCommand(cmd)
+	response, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, containerCommand)
+	log.Debugf("OpenSearch Post Upgrade: Delete API response %s", response)
+	return err
+}
+
+func verifyDataStreamTemplateExists(log vzlog.VerrazzanoLogger, cfg *rest.Config, cli kubernetes.Interface,
+	pod *corev1.Pod, templateName string, retryDelay time.Duration, timeout time.Duration) error {
+	cmd := fmt.Sprintf("curl -k --fail -X GET 'localhost:9200/_index_template/%s'", templateName)
+	log.Debugf("OpenSearch Post Upgrade: Executing get template API %s", cmd)
+	containerCommand := makeBashCommand(cmd)
+	start := time.Now()
+	for {
+		response, _, err := k8sutil.ExecPod(cli, cfg, pod, containerName, containerCommand)
+		if err != nil {
+			return err
+		}
+		if strings.Contains(response, `"name":"`+templateName) {
+			return nil
+		}
+		if time.Since(start) >= timeout {
+			return log.ErrorfNewErr("OpenSearch post upgrade: Time out in verifying the existence of "+
+				"data stream template %s", templateName)
+		}
+		time.Sleep(retryDelay)
+	}
+}
+
+func formatReindexPayload(input ReindexInput, payload string) (string, error) {
+	tmpl, err := template.New("reindex").
+		Option("missingkey=error").
+		Parse(payload)
+	if err != nil {
+		return "", err
+	}
+	buffer := &bytes.Buffer{}
+	if err := tmpl.Execute(buffer, input); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
+func formatReindexPayloadWithoutQuery(input ReindexInputWithoutQuery, payload string) (string, error) {
+	tmpl, err := template.New("reindexWithoutQuery").
+		Option("missingkey=error").
+		Parse(payload)
+	if err != nil {
+		return "", err
+	}
+	buffer := &bytes.Buffer{}
+	if err := tmpl.Execute(buffer, input); err != nil {
+		return "", err
+	}
+	return buffer.String(), nil
+}
+
+func calculateSeconds(age string) (uint64, error) {
+	match := reTimeUnit.FindStringSubmatch(age)
+	if match == nil || len(match) < 2 {
+		return 0, fmt.Errorf("unable to convert %s to seconds due to invalid format", age)
+	}
+	n := match[1]
+	number, err := strconv.ParseUint(n, 10, 0)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse the specified time unit %s", n)
+	}
+	switch match[2] {
+	case "w":
+		return number * secondsPerWeek, nil
+	case "d":
+		return number * secondsPerDay, nil
+	case "h", "H":
+		return number * secondsPerHour, nil
+	case "m":
+		return number * secondsPerMinute, nil
+	case "s":
+		return number, nil
+	}
+	return 0, fmt.Errorf("conversion to seconds for time unit %s is unsupported", match[2])
 }

@@ -486,6 +486,25 @@ func ISMPolicyExists(policyName string) (bool, error) {
 	return resp.StatusCode == 200, nil
 }
 
+func IndicesNotExists(patterns []string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	Log(Debug, fmt.Sprintf("Looking for indices in cluster using kubeconfig %s", kubeconfigPath))
+	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
+		for _, pattern := range patterns {
+			matched, _ := regexp.MatchString(pattern, name)
+			if matched {
+				Log(Error, fmt.Sprintf("Index %s matching the pattern %s still exists", name, pattern))
+				return false
+			}
+		}
+	}
+	return true
+}
+
 // ElasticQuery describes an Elasticsearch Query
 type ElasticQuery struct {
 	Filters []Match
