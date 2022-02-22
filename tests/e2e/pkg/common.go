@@ -352,22 +352,23 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
 	// Slice containing all initcontainer and container names
 	allContainers := make(map[string][]interface{})
-
+	imagesYetToBePulled := 0
 	// fill allContainers with all the container names
 	for _, pod := range pods.Items {
 		for _, namePrefix := range namePrefixes {
 			if strings.HasPrefix(pod.Name, namePrefix) {
 				for _, initContainer := range pod.Spec.InitContainers {
 					allContainers[pod.Name] = append(allContainers[pod.Name], initContainer.Name)
+					imagesYetToBePulled++
 				}
 				for _, container := range pod.Spec.Containers {
 					allContainers[pod.Name] = append(allContainers[pod.Name], container.Name)
+					imagesYetToBePulled++
 				}
 			}
 		}
 	}
 
-	imagesYetToBePulled := len(allContainers)
 	for podName, containers := range allContainers {
 		for _, container := range containers {
 			for _, event := range events.Items {
