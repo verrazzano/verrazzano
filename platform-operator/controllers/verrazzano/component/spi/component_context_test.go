@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -141,7 +144,11 @@ func TestContextProfilesMerge(t *testing.T) {
 
 			// Create the context with the effective CR
 			log := vzlog.DefaultLogger()
-			context, err := NewContext(log, fake.NewFakeClientWithScheme(testScheme), &test.actualCR, false)
+			fakeScheme := fake.NewFakeClientWithScheme(testScheme)
+			vzContext, err := vzctx.New(log, fakeScheme, &test.actualCR, false)
+			assert.NoError(err, "Failed creating VerrazzanoContext")
+			context := NewComponentContext(&vzContext, test.name, "")
+
 			// Assert the error expectations
 			if test.expectedErr {
 				assert.Error(err)
@@ -167,4 +174,35 @@ func loadExpectedMergeResult(expectedYamlFile string) (*vzapi.Verrazzano, error)
 	vz := vzapi.Verrazzano{}
 	err = yaml.Unmarshal(bYaml, &vz)
 	return &vz, err
+}
+
+// NewFakeContext creates a fake ComponentContext for unit testing purposes
+// c Kubernetes client
+// actualCR The user-supplied Verrazzano CR
+// dryRun Dry-run indicator
+// profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
+func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
+	effectiveCR := actualCR
+	log := vzlog.DefaultLogger()
+	if len(profilesDir) > 0 {
+		config.TestProfilesDir = profilesDir[0]
+		log.Debugf("Profiles location: %s", config.TestProfilesDir)
+		defer func() { config.TestProfilesDir = "" }()
+
+		var err error
+		effectiveCR, err = vzctx.GetEffectiveCR(actualCR)
+		if err != nil {
+			log.Errorf("Failed, unexpected error building fake context: %v", err)
+			return nil
+		}
+	}
+	return componentContext{
+		log:           log,
+		client:        c,
+		dryRun:        dryRun,
+		cr:            actualCR,
+		effectiveCR:   effectiveCR,
+		operation:     "",
+		componentName: "",
+	}
 }

@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -138,7 +140,7 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	spiContext, err := spi.NewContext(log, r, vz, r.DryRun)
+	vzContext, err := vzctx.New(log, r, vz, r.DryRun)
 	if err != nil {
 		log.Errorf("Failed to create component context: %v", err)
 		return newRequeueWithDelay(), err
@@ -147,24 +149,24 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
-		return r.ProcFailedState(spiContext)
+		return r.ProcFailedState(&vzContext)
 	case installv1alpha1.VzStateInstalling:
-		return r.ProcInstallingState(spiContext)
+		return r.ProcInstallingState(&vzContext)
 	case installv1alpha1.VzStateReady:
-		return r.ProcReadyState(spiContext)
+		return r.ProcReadyState(&vzContext)
 	case installv1alpha1.VzStateUninstalling:
-		return r.ProcUninstallingState(spiContext)
+		return r.ProcUninstallingState(&vzContext)
 	case installv1alpha1.VzStateUpgrading:
-		return r.ProcUpgradingState(spiContext)
+		return r.ProcUpgradingState(&vzContext)
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
 }
 
 // ProcReadyState processes the CR while in the ready state
-func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
-	log := spiCtx.Log()
-	actualCR := spiCtx.ActualCR()
+func (r *Reconciler) ProcReadyState(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
+	log := vzContext.Log
+	actualCR := vzContext.ActualCR
 
 	log.Debugf("Entering ProcReadyState")
 	ctx := context.TODO()
@@ -175,7 +177,7 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 	}
 
 	// Pre-populate the component status fields
-	result, err := r.initializeComponentStatus(log, actualCR)
+	result, err := r.initializeComponentStatus(vzContext)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -187,7 +189,7 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 		// If the version is specified and different from the current version of the installation
 		// then proceed with upgrade
 		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
-			result, err := r.reconcileUpgrade(log, actualCR)
+			result, err := r.reconcileUpgrade(vzContext)
 			// Keep retrying the upgrade until it completes.
 			if err != nil {
 				return newRequeueWithDelay(), err
@@ -196,7 +198,7 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 			}
 		}
 		// Keep retrying to reconcile components until it completes
-		if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
+		if result, err := r.reconcileComponents(vzContext); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
@@ -226,7 +228,7 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 	}
 
 	// Change the state back to ready if install complete otherwise requeue
-	done, err := r.checkInstallComplete(spiCtx)
+	done, err := r.checkInstallComplete(vzContext)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -246,9 +248,9 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 }
 
 // ProcInstallingState processes the CR while in the installing state
-func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
-	log := spiCtx.Log()
-	actualCR := spiCtx.ActualCR()
+func (r *Reconciler) ProcInstallingState(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
+	log := vzContext.Log
+	actualCR := vzContext.ActualCR
 	log.Debug("Entering ProcInstallingState")
 	ctx := context.TODO()
 
@@ -257,14 +259,14 @@ func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Resu
 		return r.procDelete(ctx, log, actualCR)
 	}
 
-	if result, err := r.reconcileComponents(ctx, spiCtx); err != nil {
+	if result, err := r.reconcileComponents(vzContext); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
 	}
 
 	// Change the state back to ready if install complete otherwise requeue
-	done, err := r.checkInstallComplete(spiCtx)
+	done, err := r.checkInstallComplete(vzContext)
 	if !done || err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -273,9 +275,9 @@ func (r *Reconciler) ProcInstallingState(spiCtx spi.ComponentContext) (ctrl.Resu
 }
 
 // ProcUninstallingState processes the CR while in the uninstalling state
-func (r *Reconciler) ProcUninstallingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
-	vz := spiCtx.ActualCR()
-	log := spiCtx.Log()
+func (r *Reconciler) ProcUninstallingState(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
+	vz := vzContext.ActualCR
+	log := vzContext.Log
 	log.Debug("Entering ProcUninstallingState")
 	ctx := context.TODO()
 
@@ -288,12 +290,11 @@ func (r *Reconciler) ProcUninstallingState(spiCtx spi.ComponentContext) (ctrl.Re
 }
 
 // ProcUpgradingState processes the CR while in the upgrading state
-func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
-	vz := spiCtx.ActualCR()
-	log := spiCtx.Log()
+func (r *Reconciler) ProcUpgradingState(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
+	log := vzContext.Log
 	log.Debug("Entering ProcUpgradingState")
 
-	if result, err := r.reconcileUpgrade(log, vz); err != nil {
+	if result, err := r.reconcileUpgrade(vzContext); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
 		return result, nil
@@ -304,9 +305,9 @@ func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Resul
 }
 
 // ProcFailedState only allows uninstall
-func (r *Reconciler) ProcFailedState(spiCtx spi.ComponentContext) (ctrl.Result, error) {
-	vz := spiCtx.ActualCR()
-	log := spiCtx.Log()
+func (r *Reconciler) ProcFailedState(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
+	vz := vzContext.ActualCR
+	log := vzContext.Log
 	log.Debug("Entering ProcFailedState")
 	ctx := context.TODO()
 
@@ -429,10 +430,10 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log vzlog.Ver
 }
 
 // checkInstallComplete checks to see if the install is complete
-func (r *Reconciler) checkInstallComplete(spiCtx spi.ComponentContext) (bool, error) {
-	log := spiCtx.Log()
-	actualCR := spiCtx.ActualCR()
-	ready, err := r.checkComponentReadyState(spiCtx)
+func (r *Reconciler) checkInstallComplete(vzContext *vzctx.VerrazzanoContext) (bool, error) {
+	log := vzContext.Log
+	actualCR := vzContext.ActualCR
+	ready, err := r.checkComponentReadyState(vzContext)
 	if err != nil {
 		return false, err
 	}
@@ -675,8 +676,8 @@ func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv
 }
 
 // checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
-func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (bool, error) {
-	cr := context.ActualCR()
+func (r *Reconciler) checkComponentReadyState(vzContext *vzctx.VerrazzanoContext) (bool, error) {
+	cr := vzContext.ActualCR
 	if unitTesting {
 		for _, compStatus := range cr.Status.Components {
 			if compStatus.State != installv1alpha1.CompStateDisabled && compStatus.State != installv1alpha1.CompStateReady {
@@ -688,7 +689,8 @@ func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (boo
 
 	// Return false if any enabled component is not ready
 	for _, comp := range registry.GetComponents() {
-		if comp.IsEnabled(context) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+		compContext := spi.NewComponentContext(vzContext, comp.Name(), "")
+		if comp.IsEnabled(compContext) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
 			return false, nil
 		}
 	}
@@ -698,14 +700,10 @@ func (r *Reconciler) checkComponentReadyState(context spi.ComponentContext) (boo
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
 // operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
 // via the operator, and when we're done installing.
-func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) initializeComponentStatus(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
+	cr := vzContext.ActualCR
 	if cr.Status.Components == nil {
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
-	}
-
-	newContext, err := spi.NewContext(log, r, cr, r.DryRun)
-	if err != nil {
-		return newRequeueWithDelay(), err
 	}
 
 	statusUpdated := false
@@ -716,12 +714,12 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 		}
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
-			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
+			compContext := spi.NewComponentContext(vzContext, comp.Name(), "")
 			state := installv1alpha1.CompStateDisabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
-					log.Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
+					compContext.Log().Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
 					return newRequeueWithDelay(), err
 				}
 				if installed {
@@ -737,7 +735,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	}
 	// Update the status
 	if statusUpdated {
-		return newRequeueWithDelay(), r.updateVerrazzanoStatus(log, cr)
+		return newRequeueWithDelay(), r.updateVerrazzanoStatus(vzContext.Log, cr)
 	}
 	return ctrl.Result{}, nil
 }

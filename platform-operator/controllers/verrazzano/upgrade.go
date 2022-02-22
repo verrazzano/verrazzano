@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
+	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -48,10 +50,12 @@ type componentUpgradeContext struct {
 var upgradeTrackerMap = make(map[string]*upgradeTracker)
 
 // reconcileUpgrade will upgrade the components as required
-func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
+func (r *Reconciler) reconcileUpgrade(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
 	// Get the upgradeTracker for this Verrazzano CR generation
+	cr := vzContext.EffectiveCR
 	upgradeTracker := getUpgradeTracker(cr)
 
+	log := vzContext.Log
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
 	// Upgrade version was validated in webhook, see ValidateVersion
@@ -59,23 +63,19 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 	// Only write the upgrade started message once
 	if !isLastCondition(cr.Status, installv1alpha1.CondUpgradeStarted) {
-		err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
+		err := r.updateStatus(vzContext.Log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
 			installv1alpha1.CondUpgradeStarted)
 		// Always requeue to get a fresh copy of status and avoid potential conflict
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
-	}
-
-	spiCtx, err := spi.NewContext(log, r, cr, r.DryRun)
-	if err != nil {
-		return newRequeueWithDelay(), err
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
 	// - for now, upgrade is blocking
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
+		compContext := spi.NewComponentContext(vzContext, compName, vzconst.UpgradeOperation)
 		compLog := compContext.Log()
+
 		upgradeContext := upgradeTracker.getComponentUpgradeContext(compName)
 
 		if upgradeContext.state == StateInit {
@@ -122,7 +122,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 	// Invoke the global post upgrade function after all components are upgraded.
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted")
-	err = postVerrazzanoUpgrade(log, r)
+	err := postVerrazzanoUpgrade(log, r)
 	if err != nil {
 		log.Errorf("Error running Verrazzano system-level post-upgrade")
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err

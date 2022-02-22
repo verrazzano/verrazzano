@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -911,8 +913,11 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 		}).Times(0)
 
 	// Reconcile upgrade
+	config.TestProfilesDir = "../../manifests/profiles"
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	vzContext, err := vzctx.New(vzlog.DefaultLogger(), reconciler, &vz, false)
+	assert.NoError(t, err, "Failed creating VerrazzanoContext")
+	result, err := reconciler.reconcileUpgrade(&vzContext)
 
 	// Validate the results
 	mocker.Finish()
@@ -998,7 +1003,9 @@ func TestUpgradeComponent(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	vzContext, err := vzctx.New(vzlog.DefaultLogger(), reconciler, &vz, false)
+	assert.NoError(t, err, "Failed creating VerrazzanoContext")
+	result, err := reconciler.reconcileUpgrade(&vzContext)
 
 	// Validate the results
 	mocker.Finish()
@@ -1093,7 +1100,9 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	vzContext, err := vzctx.New(vzlog.DefaultLogger(), reconciler, &vz, false)
+	assert.NoError(t, err, "Failed creating VerrazzanoContext")
+	result, err := reconciler.reconcileUpgrade(&vzContext)
 
 	// Validate the results
 	mocker.Finish()

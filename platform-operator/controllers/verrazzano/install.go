@@ -4,7 +4,7 @@
 package verrazzano
 
 import (
-	"context"
+	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -22,20 +22,19 @@ import (
 // 3. Loop through all components before returning, except for the case
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
-func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.ComponentContext) (ctrl.Result, error) {
-	cr := spiCtx.ActualCR()
-	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
+func (r *Reconciler) reconcileComponents(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
+	cr := vzContext.ActualCR
+	vzContext.Log.Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
+		compContext := spi.NewComponentContext(vzContext, compName, vzconst.InstallOperation)
 		compLog := compContext.Log()
 
 		compLog.Oncef("Component %s is being reconciled", compName)
-
 		if !comp.IsOperatorInstallSupported() {
 			compLog.Debugf("Component based install not supported for %s", compName)
 			continue
@@ -49,7 +48,7 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 		case vzapi.CompStateReady:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			compLog.Oncef("Component %s is ready", compName)
-			if err := comp.Reconcile(spiCtx); err != nil {
+			if err := comp.Reconcile(compContext); err != nil {
 				return newRequeueWithDelay(), err
 			}
 			continue

@@ -55,7 +55,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
-	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
+	if compContext.GetOperation() == vzconst.UpgradeOperation {
 		secret := &v1.Secret{}
 		nsName := types.NamespacedName{
 			Namespace: ComponentNamespace,
@@ -78,7 +78,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 
 	kvs = append(kvs, bom.KeyValue{Key: mySQLUsernameKey, Value: mySQLUsername})
 
-	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
+	if compContext.GetOperation() == vzconst.InstallOperation {
 		mySQLInitFile, err := createMySQLInitFile(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
