@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io"
 	"os"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -454,16 +454,6 @@ func createCAResources(compContext spi.ComponentContext) error {
 				Name:      caSelfSignedIssuerName,
 				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
-<<<<<<< HEAD
-		},
-		Status: certv1.IssuerStatus{},
-	}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &issuer, func() error {
-		return nil
-	}); err != nil {
-		return fmt.Errorf("Failed to create or update the Issuer: %s", err)
-	}
-=======
 			Spec: certv1.IssuerSpec{
 				IssuerConfig: certv1.IssuerConfig{
 					SelfSigned: &certv1.SelfSignedIssuer{},
@@ -474,9 +464,8 @@ func createCAResources(compContext spi.ComponentContext) error {
 		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &issuer, func() error {
 			return nil
 		}); err != nil {
-			return compContext.Log().ErrorfNewErr("Failed to create or update the Issuer: %v", err)
+			return fmt.Errorf("Failed to create or update the Issuer: %v", err)
 		}
->>>>>>> 70844c0fb... Fix bug, don't create Issuer and Certificate when user specifies CA cert (#2581)
 
 		// Create the certificate resource for CA cert
 		compContext.Log().Debug("Applying Certificate for CA cert")
@@ -485,14 +474,6 @@ func createCAResources(compContext spi.ComponentContext) error {
 				Name:      caCertificateName,
 				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
-<<<<<<< HEAD
-		},
-	}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
-		return nil
-	}); err != nil {
-		return fmt.Errorf("Failed to create or update the Certificate: %s", err)
-=======
 			Spec: certv1.CertificateSpec{
 				SecretName: vzCertCA.SecretName,
 				CommonName: caCertCommonName,
@@ -506,9 +487,8 @@ func createCAResources(compContext spi.ComponentContext) error {
 		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
 			return nil
 		}); err != nil {
-			return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", err)
+			return fmt.Errorf("Failed to create or update the Certificate: %v", err)
 		}
->>>>>>> 70844c0fb... Fix bug, don't create Issuer and Certificate when user specifies CA cert (#2581)
 	}
 
 	// Create the cluster issuer resource for CA cert
