@@ -18,6 +18,7 @@ const (
 	baseProfile = "base"
 )
 
+// VerrazzanoContext the context needed to reconcile a Verrazzano CR
 type VerrazzanoContext struct {
 	// log logger for the execution context
 	Log vzlog.VerrazzanoLogger
@@ -31,9 +32,9 @@ type VerrazzanoContext struct {
 	EffectiveCR *vzapi.Verrazzano
 }
 
-// NewContext creates a ComponentContext from a raw CR
+// New creates a ComponentContext from a raw CR
 func New(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (VerrazzanoContext, error) {
-	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
+	// Generate the effective CR based on the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := GetEffectiveCR(actualCR)
 	if err != nil {
 		return VerrazzanoContext{}, err
