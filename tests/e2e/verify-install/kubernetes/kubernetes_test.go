@@ -206,7 +206,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						Eventually(func() bool {
 							result, err := pkg.PodsRunningReturnError("keycloak", expectedPodsKeycloak)
 							if err != nil {
-								AbortSuite("Aborting the test suite as Keycloak pod entered CrashLoopBackOff state")
+								AbortSuite(fmt.Sprintf("Aborting the test suite as one or more pods are not running in namespace keycloak, error: %v", err))
 							}
 							return result
 						}, waitTimeout, pollingInterval).Should(BeTrue())

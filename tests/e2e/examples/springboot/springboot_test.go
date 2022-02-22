@@ -40,7 +40,11 @@ var _ = t.BeforeSuite(func() {
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
 	Eventually(func() bool {
-		return pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
+		result, err := pkg.PodsRunningReturnError(namespace, expectedPodsSpringBootApp)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("Aborting the test suite as one or more pods are not running in namespace: %v, error: %v", namespace, err))
+		}
+		return result
 	}, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
 

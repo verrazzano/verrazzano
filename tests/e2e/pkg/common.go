@@ -35,7 +35,11 @@ const (
 	RetryWaitMax = 30 * time.Second
 )
 
-const CrashLoopBackOff = "CrashLoopBackOff"
+const (
+	CrashLoopBackOff    = "CrashLoopBackOff"
+	ImagePullBackOff    = "ImagePullBackOff"
+	InitContainerPrefix = "Init"
+)
 
 // UsernamePassword - Username and Password credentials
 type UsernamePassword struct {
@@ -108,7 +112,9 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 	return true
 }
 
-// PodsRunningReturnError is identical to PodsRunning, except that it returns an error in the event of CrashLoopBackOff
+// PodsRunningReturnError is identical to PodsRunning, except that it returns an error when the pod is in waiting state due to
+// ImagePullBackOff or CrashLoopBackOff
+// A temporary function for initial review
 func PodsRunningReturnError(namespace string, namePrefixes []string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -159,7 +165,9 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 	return len(missing) == 0
 }
 
-// PodsRunning is same as PodsRunningInCluster, except that it returns an error in the event of CrashLoopBackOff
+// PodsRunning is same as PodsRunningInCluster, except that it returns an error when the pod is in waiting state due to
+// ImagePullBackOff or CrashLoopBackOff
+// A temporary function for initial review
 func PodsRunningInClusterReturnError(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
@@ -254,11 +262,24 @@ func isPodRunning(pods []v1.Pod, namePrefix string) (bool, error) {
 			running = isReadyAndRunning(pods[i])
 			if !running {
 				status := "status:"
+				if len(pods[i].Status.InitContainerStatuses) > 0 {
+					for _, ics := range pods[i].Status.InitContainerStatuses {
+						if ics.State.Waiting != nil {
+							// if the reason is either CrashLoopBackOff or ImagePullBackOff, return an error to allow the caller to abort the run
+							if ics.State.Waiting.Reason == ImagePullBackOff || ics.State.Waiting.Reason == CrashLoopBackOff {
+								return false, fmt.Errorf("pod %v is not running: %v", pods[i].Name,
+									fmt.Sprintf("%v %v:%v", status, InitContainerPrefix, ics.State.Waiting.Reason))
+							}
+						}
+					}
+				}
+
 				if len(pods[i].Status.ContainerStatuses) > 0 {
 					for _, cs := range pods[i].Status.ContainerStatuses {
 						if cs.State.Waiting != nil {
 							status = fmt.Sprintf("%v %v", status, cs.State.Waiting.Reason)
-							if cs.State.Waiting.Reason == CrashLoopBackOff {
+							// if the reason is either CrashLoopBackOff or ImagePullBackOff, return an error to allow the caller to abort the run
+							if cs.State.Waiting.Reason == ImagePullBackOff || cs.State.Waiting.Reason == CrashLoopBackOff {
 								return false, fmt.Errorf("pod %v is not running: %v", pods[i].Name, status)
 							}
 						}
