@@ -26,7 +26,7 @@ var longPollingInterval = 20 * time.Second
 var (
 	t                  = framework.NewTestFramework("springboot")
 	generatedNamespace = pkg.GenerateNamespace("springboot")
-	expWait            = 60 * time.Second
+	expWait            = 60 * time.Minute
 )
 
 var _ = t.BeforeSuite(func() {
