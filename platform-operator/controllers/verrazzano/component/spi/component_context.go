@@ -6,6 +6,7 @@ package spi
 
 import (
 	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -58,6 +59,46 @@ func NewComponentContext(vzContext *vzctx.VerrazzanoContext, compName string, op
 		dryRun:        vzContext.DryRun,
 		cr:            vzContext.ActualCR,
 		effectiveCR:   vzContext.EffectiveCR,
+	}
+}
+
+// NewFakeContext creates a fake ComponentContext for unit testing purposes
+// c Kubernetes client
+// actualCR The user-supplied Verrazzano CR
+// dryRun Dry-run indicator
+// profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
+func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
+	return NewFakeContextWithNameAndOperation(c, actualCR, dryRun, "", "", profilesDir...)
+}
+
+// NewFakeContextWithNameAndOperation creates a fake ComponentContext with a name and operation for unit testing purposes
+// c Kubernetes client
+// actualCR The user-supplied Verrazzano CR
+// dryRun Dry-run indicator
+// profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
+func NewFakeContextWithNameAndOperation(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, name string, operation string, profilesDir ...string) ComponentContext {
+	effectiveCR := actualCR
+	log := vzlog.DefaultLogger()
+	if len(profilesDir) > 0 {
+		config.TestProfilesDir = profilesDir[0]
+		log.Debugf("Profiles location: %s", config.TestProfilesDir)
+		defer func() { config.TestProfilesDir = "" }()
+
+		var err error
+		effectiveCR, err = vzctx.GetEffectiveCR(actualCR)
+		if err != nil {
+			log.Errorf("Failed, unexpected error building fake context: %v", err)
+			return nil
+		}
+	}
+	return componentContext{
+		log:           log,
+		client:        c,
+		dryRun:        dryRun,
+		cr:            actualCR,
+		effectiveCR:   effectiveCR,
+		operation:     operation,
+		componentName: name,
 	}
 }
 

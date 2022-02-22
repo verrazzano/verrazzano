@@ -7,13 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzctx "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -160,7 +158,6 @@ func TestContextProfilesMerge(t *testing.T) {
 			assert.NotNil(context.ActualCR(), "Actual CR was nil")
 			assert.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			assert.NotNil(context.EffectiveCR(), "Effective CR was nil")
-			assert.Equal(vzapi.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
 			assert.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
 		})
 	}
@@ -174,35 +171,4 @@ func loadExpectedMergeResult(expectedYamlFile string) (*vzapi.Verrazzano, error)
 	vz := vzapi.Verrazzano{}
 	err = yaml.Unmarshal(bYaml, &vz)
 	return &vz, err
-}
-
-// NewFakeContext creates a fake ComponentContext for unit testing purposes
-// c Kubernetes client
-// actualCR The user-supplied Verrazzano CR
-// dryRun Dry-run indicator
-// profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
-func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
-	effectiveCR := actualCR
-	log := vzlog.DefaultLogger()
-	if len(profilesDir) > 0 {
-		config.TestProfilesDir = profilesDir[0]
-		log.Debugf("Profiles location: %s", config.TestProfilesDir)
-		defer func() { config.TestProfilesDir = "" }()
-
-		var err error
-		effectiveCR, err = vzctx.GetEffectiveCR(actualCR)
-		if err != nil {
-			log.Errorf("Failed, unexpected error building fake context: %v", err)
-			return nil
-		}
-	}
-	return componentContext{
-		log:           log,
-		client:        c,
-		dryRun:        dryRun,
-		cr:            actualCR,
-		effectiveCR:   effectiveCR,
-		operation:     "",
-		componentName: "",
-	}
 }
