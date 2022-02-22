@@ -24,9 +24,6 @@ import (
 )
 
 const (
-	// ComponentName is the name of the component
-	ComponentName = "kiali-server"
-
 	kialiHostName    = "kiali.vmi.system"
 	kialiSystemName  = "vmi-system-kiali"
 	kialiServicePort = "20001"
@@ -35,9 +32,9 @@ const (
 )
 
 // isKialiReady checks if the Kiali deployment is ready
-func isKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
+func isKialiReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: kialiSystemName, Namespace: namespace},
+		{Name: kialiSystemName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)

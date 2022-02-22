@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -42,9 +42,9 @@ spec:
         paths:
           - backend:
               service:
-                name: {{ .Values.api.name }}
+                name: {{ .Values.name }}
                 port:
-                  number: {{ .Values.api.port }}
+                  number: {{ .Values.port }}
             path: /()(.*)
             pathType: ImplementationSpecific
   tls:

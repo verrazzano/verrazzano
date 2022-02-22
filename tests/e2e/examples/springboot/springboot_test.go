@@ -24,7 +24,7 @@ var longWaitTimeout = 15 * time.Minute
 var longPollingInterval = 20 * time.Second
 
 var (
-	t = framework.NewTestFramework("springboot")
+	t                  = framework.NewTestFramework("springboot")
 	generatedNamespace = pkg.GenerateNamespace("springboot")
 )
 
@@ -34,6 +34,14 @@ var _ = t.BeforeSuite(func() {
 		pkg.DeploySpringBootApplication(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
+
+	// Verify springboot-workload pod is running
+	// GIVEN springboot app is deployed
+	// WHEN the component and appconfig are created
+	// THEN the expected pod must be running in the test namespace
+	Eventually(func() bool {
+		return pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
+	}, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
 
 var failed = false
@@ -72,7 +80,7 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	// GIVEN the Istio gateway for the springboot namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
@@ -97,7 +105,7 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 		}, longWaitTimeout, longPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyNotEmpty()))
 	})
 
-	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
+	t.Context("for Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
 		indexName := "verrazzano-namespace-" + namespace
 		t.It("Verify Elasticsearch index exists", func() {
 			Eventually(func() bool {

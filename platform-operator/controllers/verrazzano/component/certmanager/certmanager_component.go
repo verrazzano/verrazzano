@@ -15,6 +15,9 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "cert-manager"
 
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = "cert-manager"
+
 // certManagerComponent represents an CertManager component
 type certManagerComponent struct {
 	helm.HelmComponent
@@ -29,7 +32,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
-			ChartNamespace:          ComponentName,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
@@ -47,4 +50,12 @@ func (c certManagerComponent) IsEnabled(compContext spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// IsReady component check
+func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isCertManagerReady(ctx)
+	}
+	return false
 }
