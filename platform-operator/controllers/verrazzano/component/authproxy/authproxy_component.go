@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,13 +57,12 @@ func (c authProxyComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return *comp.Enabled
 }
 
-// IsReady checks if the AuthProxy deployment is ready
+// IsReady component check
 func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+	if c.HelmComponent.IsReady(ctx) {
+		return isAuthProxyReady(ctx)
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return false
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
@@ -82,13 +80,23 @@ func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.Na
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
 
+	// Temporary work around for installer bug of calling pre-install after a component is installed
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
+		return nil
+	}
+
 	// The AuthProxy helm chart was separated out of the Verrazzano helm chart in release 1.2.
 	// During an upgrade from 1.1 to 1.2, there is a period of time when AuthProxy is being un-deployed
 	// due to it being removed from the Verrazzano helm chart.  Wait for the undeploy to complete before
 	// installing the AuthProxy helm chart.  This avoids Helm errors in the log of resources being
 	// referenced by more than one chart.
 	authProxySA := corev1.ServiceAccount{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &authProxySA)
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &authProxySA)
 	if (err == nil) || (err != nil && !errors.IsNotFound(err)) {
 		ctx.Log().Progressf("Component %s is waiting for pre-install conditions to be met", ComponentName)
 		return fmt.Errorf("Waiting for ServiceAccount %s to not exist", ComponentName)

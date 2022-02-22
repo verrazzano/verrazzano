@@ -8,6 +8,7 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
@@ -48,6 +49,9 @@ func init() {
 	_ = oam.AddToScheme(scheme)
 
 	_ = vzapp.AddToScheme(scheme)
+
+	// Add cert-manager components to the scheme
+	cmapiv1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }

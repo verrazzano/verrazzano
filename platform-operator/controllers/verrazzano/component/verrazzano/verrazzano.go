@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -40,7 +42,6 @@ import (
 // ComponentName is the name of the component
 
 const (
-	ComponentName           = "verrazzano"
 	esHelmValuePrefixFormat = "elasticSearch.%s"
 
 	workloadName  = "system-es-master"
@@ -70,6 +71,21 @@ func resolveVerrazzanoNamespace(ns string) string {
 		return ns
 	}
 	return globalconst.VerrazzanoSystemNamespace
+}
+
+// isVerrazzanoReady Verrazzano component ready-check
+func isVerrazzanoReady(ctx spi.ComponentContext) bool {
+	var deployments []types.NamespacedName
+	if isVMOEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, []types.NamespacedName{
+			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
+		}...)
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+		return false
+	}
+	return isVerrazzanoSecretReady(ctx)
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart

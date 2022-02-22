@@ -15,6 +15,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// ComponentName is the name of the component
+const ComponentName = "kiali-server"
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
+
 type kialiComponent struct {
 	helm.HelmComponent
 }
@@ -28,7 +34,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
@@ -38,7 +44,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
 			IngressNames: []types.NamespacedName{
 				{
-					Namespace: constants.VerrazzanoSystemNamespace,
+					Namespace: ComponentNamespace,
 					Name:      constants.KialiIngress,
 				},
 			},
@@ -67,7 +73,7 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 // IsReady Kiali-specific ready-check
 func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isKialiReady(context, c.ReleaseName, c.ChartNamespace)
+		return isKialiReady(context)
 	}
 	return false
 }

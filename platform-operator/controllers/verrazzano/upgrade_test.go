@@ -560,6 +560,103 @@ func TestUpgradeCompleted(t *testing.T) {
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
 }
 
+// TestUpgradeCompletedMultipleReconcile tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an verrazzano resource after install is completed
+// WHEN spec.version doesn't match status.version and reconcile is called multiple times
+// THEN ensure a condition with type UpgradeCompleted is added
+func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
+
+	fname, _ := filepath.Abs(unitTestBomFile)
+	config.SetDefaultBomFilePath(fname)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			fakeComponent{},
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
+	mock.AddRestartMocks()
+
+	// Expect a call to get the verrazzano resource.  Return resource with version
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Namespace:  name.Namespace,
+				Name:       name.Name,
+				Finalizers: []string{finalizerName}}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Version: "0.2.0"}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State:      vzapi.VzStateReady,
+				Components: makeVerrazzanoComponentStatusMap(),
+				Conditions: []vzapi.Condition{
+					{
+						Type: vzapi.CondInstallComplete,
+					},
+					{
+						Type: vzapi.CondUpgradeStarted,
+					},
+				},
+			}
+			return nil
+		}).Times(2)
+
+	// Expect 2 calls to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect 2 calls to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect calls to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to update the status of the Verrazzano resource
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
+			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
+			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
+			return nil
+		}).Times(2)
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	_, err := reconciler.Reconcile(request)
+	asserts.NoError(err)
+	result, err := reconciler.Reconcile(request)
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(false, result.Requeue)
+	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Len(upgradeTrackerMap, 0, "Expect upgradeTrackerMap to be empty")
+}
+
 // TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an verrazzano resource after install is completed
 // WHEN the update of the VZ resource status fails and returns an error
@@ -696,6 +793,7 @@ func TestUpgradeHelmError(t *testing.T) {
 			verrazzano.ObjectMeta = metav1.ObjectMeta{
 				Namespace:  name.Namespace,
 				Name:       name.Name,
+				Generation: 1,
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "0.2.0"}
