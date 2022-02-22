@@ -49,7 +49,7 @@ const (
 	tagSep                        = ":"
 )
 
-const expectedMySqlInitContainerValue = `
+const expectedMySQLInitContainerValue = `
     - command:
       - chown
       - -R
@@ -429,6 +429,6 @@ func commonAssertions(t *testing.T, kvs []bom.KeyValue) {
 	assert.Equal(t, oracleLinuxImageName, bom.FindKV(kvs, busyboxImageNameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 	assert.Equal(t, oracleLinuxImageTag, bom.FindKV(kvs, busyboxImageTagKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, mySqlInitContainerKey))
-	assert.Equal(t, expectedMySqlInitContainerValue, bom.FindKV(kvs, mySqlInitContainerKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySQLInitContainerKey))
+	assert.Equal(t, expectedMySQLInitContainerValue, bom.FindKV(kvs, mySQLInitContainerKey))
 }

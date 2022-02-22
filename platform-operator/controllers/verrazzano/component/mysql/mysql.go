@@ -43,13 +43,13 @@ const (
 
 // Define the MySQL Key:Value pair for extra init container.
 // We need to replace image using the real image in the bom
-const mySqlInitContainerKey = "extraInitContainers"
+const mySQLInitContainerKey = "extraInitContainers"
 
 // Add an init container to chown the data directory to be owned by the mysql user
 // (uid=27 gid=27) so that when upgrading, mysql user can definitely access data dir
 // from previous volume. The Helm chart expects this to be a STRING, so using a multi-line string here
 // Note: if the Helm chart for MySQL changes, this should be reviewed for correctness
-const mySqlInitContainerValueTemplate = `
+const mySQLInitContainerValueTemplate = `
     - command:
       - chown
       - -R
@@ -289,7 +289,7 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
 	// use template to get populate template with image:tag
 	var b bytes.Buffer
-	t, err := template.New("image").Parse(mySqlInitContainerValueTemplate)
+	t, err := template.New("image").Parse(mySQLInitContainerValueTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	}
 
 	kvs = append(kvs, bom.KeyValue{
-		Key:   mySqlInitContainerKey,
+		Key:   mySQLInitContainerKey,
 		Value: b.String(),
 	})
 
