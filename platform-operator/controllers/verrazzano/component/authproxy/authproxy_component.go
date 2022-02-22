@@ -80,13 +80,23 @@ func (c authProxyComponent) GetIngressNames(ctx spi.ComponentContext) []types.Na
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
 
+	// Temporary work around for installer bug of calling pre-install after a component is installed
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		ctx.Log().Oncef("Component %s already installed, skipping PreInstall checks", ComponentName)
+		return nil
+	}
+
 	// The AuthProxy helm chart was separated out of the Verrazzano helm chart in release 1.2.
 	// During an upgrade from 1.1 to 1.2, there is a period of time when AuthProxy is being un-deployed
 	// due to it being removed from the Verrazzano helm chart.  Wait for the undeploy to complete before
 	// installing the AuthProxy helm chart.  This avoids Helm errors in the log of resources being
 	// referenced by more than one chart.
 	authProxySA := corev1.ServiceAccount{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &authProxySA)
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &authProxySA)
 	if (err == nil) || (err != nil && !errors.IsNotFound(err)) {
 		ctx.Log().Progressf("Component %s is waiting for pre-install conditions to be met", ComponentName)
 		return fmt.Errorf("Waiting for ServiceAccount %s to not exist", ComponentName)
