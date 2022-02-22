@@ -35,11 +35,10 @@ type componentContext struct {
 }
 
 // NewComponentContext creates a ComponentContext
-// func NewComponentContext(log vzlog.VerrazzanoLogger, c clipkg.Client, effectiveCR *vzapi.Verrazzano, dryRun bool) ComponentContext
 func NewComponentContext(vzContext *vzctx.VerrazzanoContext, compName string, operation string) ComponentContext {
 	log := vzContext.Log
 	if len(operation) > 0 {
-		// Get zap logger, add "with" field for this componentName name and operator
+		// Get zap logger, add "with" fields for this componentName name and operator
 		zapLogger := vzContext.Log.GetRootZapLogger().With("componentName", len(compName))
 		zapLogger = zapLogger.With("operation", operation)
 
