@@ -338,6 +338,10 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 		return false
 	}
 
+	return WaitForPodAndContainer(pods, namePrefixes)
+}
+
+func WaitForPodAndContainer(pods *v1.PodList, namePrefixes []string) bool {
 	// watch all the eligible pods as waiting
 	podsWait := make(map[string]bool)
 	for _, pod := range pods.Items {
@@ -347,51 +351,40 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 			}
 		}
 	}
-
+	podWaiting := false
+	containerWaiting := false
 	// The idea here is to keep watching containers in a pod that are in a waiting state. If we identify
 	// a condition where waiting is not going to help, we back out, otherwise we wait
-	for {
-		for _, pod := range pods.Items {
+	for _, pod := range pods.Items {
 
-			// skip pods that were either not eligible or were deleted from the map
-			if _, ok := podsWait[pod.Name]; !ok {
-				continue
-			}
-
-			// Change containerWaiting to true if a container is in a waiting state
-			containerWaiting := false
-			podWaiting := false
-			podWaiting = podWaiting || (pod.Status.Phase == "Pending")
-			for _, initContainerStatus := range pod.Status.InitContainerStatuses {
-				if initContainerStatus.State.Waiting != nil {
-					// No need to wait if the reason is CrashLoopBackOff
-					if initContainerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
-						Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", initContainerStatus.Name, pod.Name))
-						return false
-					}
-					Log(Info, fmt.Sprintf("%v %v", initContainerStatus.State.Waiting.Reason, initContainerStatus.State.Waiting.Message))
-				}
-				containerWaiting = containerWaiting || (initContainerStatus.State.Waiting != nil)
-			}
-			for _, containerStatus := range pod.Status.ContainerStatuses {
-				if containerStatus.State.Waiting != nil {
-					if containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
-						Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", containerStatus.Name, pod.Name))
-						return false
-					}
-					Log(Info, fmt.Sprintf("%v %v", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
-				}
-				containerWaiting = containerWaiting || (containerStatus.State.Waiting != nil)
-			}
-
-			// delete pod entry if all the containers are past waiting state
-			if !containerWaiting && !podWaiting {
-				delete(podsWait, pod.Name)
-			}
+		// skip pods that were not eligible
+		if _, ok := podsWait[pod.Name]; !ok {
+			continue
 		}
-		if len(podsWait) == 0 {
-			break
+
+		// Change containerWaiting to true if a container is in a waiting state
+		podWaiting = podWaiting || (pod.Status.Phase == v1.PodPending)
+		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+			if initContainerStatus.State.Waiting != nil {
+				// No need to wait if the reason is CrashLoopBackOff
+				if initContainerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+					Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", initContainerStatus.Name, pod.Name))
+					return true
+				}
+				Log(Info, fmt.Sprintf("%v %v", initContainerStatus.State.Waiting.Reason, initContainerStatus.State.Waiting.Message))
+			}
+			containerWaiting = containerWaiting || (initContainerStatus.State.Waiting != nil)
+		}
+		for _, containerStatus := range pod.Status.ContainerStatuses {
+			if containerStatus.State.Waiting != nil {
+				if containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
+					Log(Info, fmt.Sprintf("Container %v of Pod %v has entered CrashLoopBackOff", containerStatus.Name, pod.Name))
+					return true
+				}
+				Log(Info, fmt.Sprintf("%v %v", containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
+			}
+			containerWaiting = containerWaiting || (containerStatus.State.Waiting != nil)
 		}
 	}
-	return true
+	return !podWaiting && !containerWaiting
 }
