@@ -85,7 +85,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
 func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
-	if err := addHelmAnnotations(client); err != nil {
+	if err := importToHelmChart(client); err != nil {
 		return err
 	}
 	if err := ensureVMISecret(client); err != nil {
@@ -449,8 +449,8 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 	}
 }
 
-//addHelmAnnotations annotates any existing objects that should be managed by helm
-func addHelmAnnotations(cli clipkg.Client) error {
+//importToHelmChart annotates any existing objects that should be managed by helm
+func importToHelmChart(cli clipkg.Client) error {
 	namespacedName := types.NamespacedName{Name: nodeExporter, Namespace: globalconst.VerrazzanoMonitoringNamespace}
 	objects := []controllerutil.Object{
 		&appsv1.DaemonSet{},
@@ -461,21 +461,22 @@ func addHelmAnnotations(cli clipkg.Client) error {
 	}
 
 	for _, obj := range objects {
-		if err := annotateObject(cli, obj, namespacedName); err != nil {
+		if err := importHelmObject(cli, obj, namespacedName); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-//annotateObject annotates an object as being managed by the verrazzano helm chart
-func annotateObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) error {
+//importHelmObject annotates an object as being managed by the verrazzano helm chart
+func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) error {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
 		return err
 	}
+	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -483,6 +484,10 @@ func annotateObject(cli clipkg.Client, obj controllerutil.Object, namespacedName
 	annotations["meta.helm.sh/release-name"] = "verrazzano"
 	annotations["meta.helm.sh/release-namespace"] = "verrazzano-system"
 	obj.SetAnnotations(annotations)
-	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
+	labels := obj.GetAnnotations()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels["app.kubernetes.io/managed-by"] = "Helm"
 	return cli.Patch(context.TODO(), obj, objMerge)
 }

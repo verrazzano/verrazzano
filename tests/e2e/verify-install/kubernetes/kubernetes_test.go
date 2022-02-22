@@ -94,14 +94,12 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		})
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
-
-		t.DescribeTable("Verrazzano components are deployed,",
+		componentsArgs := []interface{}{
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			t.Entry("includes verrazzano-operator", "verrazzano-operator", true),
 			t.Entry("does not include verrazzano-web", "verrazzano-web", false),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			t.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
@@ -109,6 +107,13 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
+		}
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); ok {
+			componentsArgs = append(componentsArgs, t.Entry("includes verrazzano-operator", "verrazzano-operator", true))
+		}
+
+		t.DescribeTable("Verrazzano components are deployed,",
+			componentsArgs...,
 		)
 
 		t.DescribeTable("cert-manager components are deployed,",
