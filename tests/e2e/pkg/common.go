@@ -351,29 +351,31 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 // The idea here is to enumerate all the containers and check if their images have been pulled or not
 func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
 	// Slice containing all initcontainer and container names
-	allContainers := []string{}
+	allContainers := make(map[string][]interface{})
 
 	// fill allContainers with all the container names
 	for _, pod := range pods.Items {
 		for _, namePrefix := range namePrefixes {
 			if strings.HasPrefix(pod.Name, namePrefix) {
 				for _, initContainer := range pod.Spec.InitContainers {
-					allContainers = append(allContainers, initContainer.Name)
+					allContainers[pod.Name] = append(allContainers[pod.Name], initContainer.Name)
 				}
 				for _, container := range pod.Spec.Containers {
-					allContainers = append(allContainers, container.Name)
+					allContainers[pod.Name] = append(allContainers[pod.Name], container.Name)
 				}
 			}
 		}
 	}
 
 	imagesYetToBePulled := len(allContainers)
-	for _, container := range allContainers {
-		for _, event := range events.Items {
-			if len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(container, event.InvolvedObject.FieldPath) {
-				if event.Reason == "Pulled" {
-					imagesYetToBePulled--
-					Log(Info, fmt.Sprintf("%v image pulled", container))
+	for podName, containers := range allContainers {
+		for _, container := range containers {
+			for _, event := range events.Items {
+				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(container.(string), event.InvolvedObject.FieldPath) {
+					if event.Reason == "Pulled" {
+						imagesYetToBePulled--
+						Log(Info, fmt.Sprintf("%v image pulled", container))
+					}
 				}
 			}
 		}
