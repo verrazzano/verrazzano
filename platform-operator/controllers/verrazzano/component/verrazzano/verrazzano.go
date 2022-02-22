@@ -484,10 +484,11 @@ func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedNa
 	annotations["meta.helm.sh/release-name"] = "verrazzano"
 	annotations["meta.helm.sh/release-namespace"] = "verrazzano-system"
 	obj.SetAnnotations(annotations)
-	labels := obj.GetAnnotations()
+	labels := obj.GetLabels()
 	if labels == nil {
 		labels = map[string]string{}
 	}
 	labels["app.kubernetes.io/managed-by"] = "Helm"
+	obj.SetLabels(labels)
 	return cli.Patch(context.TODO(), obj, objMerge)
 }
