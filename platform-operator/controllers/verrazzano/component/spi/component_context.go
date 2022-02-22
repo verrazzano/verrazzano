@@ -24,8 +24,8 @@ type componentContext struct {
 	client clipkg.Client
 	// dryRun If true, do a dry run of operations
 	dryRun bool
-	// cr Represents the current Verrazzano object state in the cluster
-	cr *vzapi.Verrazzano
+	// actualCR Represents the desired Verrazzano state passed to Reconcile by the controller-runtime
+	actualCR *vzapi.Verrazzano
 	// effectiveCR Represents the configuration resulting from any named profiles used and any configured overrides in the CR
 	effectiveCR *vzapi.Verrazzano
 	// operation is the defined operation field for the logger. Defaults to nil if not present
@@ -51,7 +51,7 @@ func NewComponentContext(vzContext *vzctx.VerrazzanoContext, compName string, op
 		log:           log,
 		client:        vzContext.Client,
 		dryRun:        vzContext.DryRun,
-		cr:            vzContext.ActualCR,
+		actualCR:      vzContext.ActualCR,
 		effectiveCR:   vzContext.EffectiveCR,
 	}
 }
@@ -81,7 +81,7 @@ func NewFakeContextWithNameAndOperation(c clipkg.Client, actualCR *vzapi.Verrazz
 		log:           log,
 		client:        c,
 		dryRun:        dryRun,
-		cr:            actualCR,
+		actualCR:      actualCR,
 		effectiveCR:   effectiveCR,
 		operation:     operation,
 		componentName: name,
@@ -101,7 +101,7 @@ func (c componentContext) IsDryRun() bool {
 }
 
 func (c componentContext) ActualCR() *vzapi.Verrazzano {
-	return c.cr
+	return c.actualCR
 }
 
 func (c componentContext) EffectiveCR() *vzapi.Verrazzano {
@@ -113,7 +113,7 @@ func (c componentContext) Copy() ComponentContext {
 		log:           c.log,
 		client:        c.client,
 		dryRun:        c.dryRun,
-		cr:            c.cr,
+		actualCR:      c.actualCR,
 		effectiveCR:   c.effectiveCR,
 		operation:     c.operation,
 		componentName: c.componentName,
