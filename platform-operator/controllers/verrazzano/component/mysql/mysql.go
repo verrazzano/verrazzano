@@ -4,12 +4,14 @@
 package mysql
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -35,7 +37,42 @@ const (
 	mySQLKey            = "mysql-password"
 	mySQLRootKey        = "mysql-root-password"
 	mySQLInitFilePrefix = "init-mysql-"
+	busyboxImageNameKey = "busybox.image"
+	busyboxImageTagKey  = "busybox.tag"
 )
+
+// Define the MySQL Key:Value pair for extra init container.
+// We need to replace image using the real image in the bom
+const mySqlInitContainerKey = "extraInitContainers"
+
+// Add an init container to chown the data directory to be owned by the mysql user
+// (uid=27 gid=27) so that when upgrading, mysql user can definitely access data dir
+// from previous volume. The Helm chart expects this to be a STRING, so using a multi-line string here
+// Note: if the Helm chart for MySQL changes, this should be reviewed for correctness
+const mySqlInitContainerValueTemplate = `
+    - command:
+      - chown
+      - -R
+      - 27:27
+      - /var/lib/mysql
+    image: {{.Image}}
+    imagePullPolicy: IfNotPresent
+    name: chown-data-dir
+    resources:
+      requests:
+        cpu: 10m
+        memory: 10Mi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: data
+`
+
+// imageData needed for template rendering
+type imageData struct {
+	Image string
+}
 
 // isMySQLReady checks to see if the MySQL component is in ready state
 func isMySQLReady(context spi.ComponentContext) bool {
@@ -246,8 +283,44 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
+	if len(imageOverrides) < 2 {
+		return nil, fmt.Errorf("Component MySQL failed, expected atleast 2 image override keys for oraclelinux theme, found %v", len(imageOverrides))
+	}
+
+	// use template to get populate template with image:tag
+	var b bytes.Buffer
+	t, err := template.New("image").Parse(mySqlInitContainerValueTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Render the template
+	data := imageData{Image: getInitImage(imageOverrides)}
+	err = t.Execute(&b, data)
+	if err != nil {
+		return nil, err
+	}
+
+	kvs = append(kvs, bom.KeyValue{
+		Key:   mySqlInitContainerKey,
+		Value: b.String(),
+	})
+
 	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
+}
+
+func getInitImage(imageOverrides []bom.KeyValue) string {
+	busyboxImageName, busyboxImageTag := "", ""
+	for _, imageOverride := range imageOverrides {
+		if imageOverride.Key == busyboxImageNameKey {
+			busyboxImageName = imageOverride.Value
+		}
+		if imageOverride.Key == busyboxImageTagKey {
+			busyboxImageTag = imageOverride.Value
+		}
+	}
+	return busyboxImageName + ":" + busyboxImageTag
 }
 
 // getInstallArgs get the install args for MySQL

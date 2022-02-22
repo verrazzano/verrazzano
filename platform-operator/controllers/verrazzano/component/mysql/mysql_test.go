@@ -42,11 +42,32 @@ var crEnabled = vzapi.Verrazzano{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 1
-	busyboxImageNameKey           = "busybox.image"
-	busyboxImageTagKey            = "busybox.tag"
+	minExpectedHelmOverridesCount = 2
 	testBomFilePath               = "../../testdata/test_bom.json"
+	oracleLinuxImageName          = "ghcr.io/oracle/oraclelinux"
+	oracleLinuxImageTag           = "7-slim"
+	tagSep                        = ":"
 )
+
+const expectedMySqlInitContainerValue = `
+    - command:
+      - chown
+      - -R
+      - 27:27
+      - /var/lib/mysql
+    image: ` + oracleLinuxImageName + tagSep + oracleLinuxImageTag + `
+    imagePullPolicy: IfNotPresent
+    name: chown-data-dir
+    resources:
+      requests:
+        cpu: 10m
+        memory: 10Mi
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: data
+`
 
 // TestAppendMySQLOverrides tests the appendMySQLOverrides function
 // GIVEN a call to appendMySQLOverrides
@@ -64,8 +85,7 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, mySQLUsername, bom.FindKV(kvs, mySQLUsernameKey))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	commonAssertions(t, kvs)
 }
 
 // TestAppendMySQLOverridesWithInstallArgs tests the appendMySQLOverrides function
@@ -97,8 +117,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	commonAssertions(t, kvs)
 }
 
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
@@ -125,8 +144,7 @@ func TestAppendMySQLOverridesDev(t *testing.T) {
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "false", bom.FindKV(kvs, "persistence.enabled"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	commonAssertions(t, kvs)
 }
 
 // TestAppendMySQLOverridesDevWithPersistence tests the appendMySQLOverrides function
@@ -170,8 +188,7 @@ func TestAppendMySQLOverridesDevWithPersistence(t *testing.T) {
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	commonAssertions(t, kvs)
 }
 
 // TestAppendMySQLOverridesProd tests the appendMySQLOverrides function
@@ -194,8 +211,7 @@ func TestAppendMySQLOverridesProd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	commonAssertions(t, kvs)
 }
 
 // TestAppendMySQLOverridesProdWithOverrides tests the appendMySQLOverrides function
@@ -235,8 +251,7 @@ func TestAppendMySQLOverridesProdWithOverrides(t *testing.T) {
 	assert.Equal(t, "true", bom.FindKV(kvs, "persistence.enabled"))
 	assert.Equal(t, "100Gi", bom.FindKV(kvs, "persistence.size"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "initializationFiles.create-db\\.sql"))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	commonAssertions(t, kvs)
 }
 
 // TestAppendMySQLOverridesUpgrade tests the appendMySQLOverrides function
@@ -267,8 +282,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 	assert.Equal(t, "test-key", bom.FindKV(kvs, helmPwd))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
-	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	commonAssertions(t, kvs)
 }
 
 // TestIsMySQLReady tests the isMySQLReady function
@@ -408,4 +422,13 @@ func TestIsEnabledDevProfile(t *testing.T) {
 
 func getBoolPtr(b bool) *bool {
 	return &b
+}
+
+func commonAssertions(t *testing.T, kvs []bom.KeyValue) {
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.Equal(t, oracleLinuxImageName, bom.FindKV(kvs, busyboxImageNameKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.Equal(t, oracleLinuxImageTag, bom.FindKV(kvs, busyboxImageTagKey))
+	assert.NotEmpty(t, bom.FindKV(kvs, mySqlInitContainerKey))
+	assert.Equal(t, expectedMySqlInitContainerValue, bom.FindKV(kvs, mySqlInitContainerKey))
 }
