@@ -134,7 +134,7 @@ func TestIsCertManagerDisabled(t *testing.T) {
 // WHEN a VZ spec is passed with defaults
 // THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profileDir), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
@@ -146,7 +146,7 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 	assert.Contains(t, kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: testNamespace})
@@ -176,8 +176,8 @@ func TestCertManagerPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestIsCertManagerReady tests the IsReady function
-// GIVEN a call to IsReady
+// TestIsCertManagerReady tests the isCertManagerReady function
+// GIVEN a call to isCertManagerReady
 // WHEN the deployment object has enough replicas available
 // THEN true is returned
 func TestIsCertManagerReady(t *testing.T) {
@@ -186,11 +186,11 @@ func TestIsCertManagerReady(t *testing.T) {
 		newDeployment(cainjectorDeploymentName, true),
 		newDeployment(webhookDeploymentName, true),
 	)
-	assert.True(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
+	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
 
-// TestIsCertManagerNotReady tests the IsReady function
-// GIVEN a call to IsReady
+// TestIsCertManagerNotReady tests the isCertManagerReady function
+// GIVEN a call to isCertManagerReady
 // WHEN the deployment object does not have enough replicas available
 // THEN false is returned
 func TestIsCertManagerNotReady(t *testing.T) {
@@ -199,7 +199,7 @@ func TestIsCertManagerNotReady(t *testing.T) {
 		newDeployment(cainjectorDeploymentName, false),
 		newDeployment(webhookDeploymentName, false),
 	)
-	assert.False(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
+	assert.False(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
 
 // TestIsCANil tests the isCA function
@@ -295,7 +295,7 @@ func TestPostInstallAcme(t *testing.T) {
 	client.Create(context.TODO(), &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ociDNSSecret",
-			Namespace: namespace,
+			Namespace: ComponentNamespace,
 		},
 	})
 	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
@@ -311,7 +311,7 @@ func fakeBash(_ ...string) (string, string, error) {
 func newDeployment(name string, ready bool) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
+			Namespace: ComponentNamespace,
 			Name:      name,
 		},
 		Status: appsv1.DeploymentStatus{

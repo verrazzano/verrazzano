@@ -5,16 +5,13 @@ package kiali
 import (
 	"testing"
 
-	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
-	"github.com/stretchr/testify/assert"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,71 +43,6 @@ func init() {
 	_ = istioclisec.AddToScheme(testScheme)
 
 	// +kubebuilder:scaffold:testScheme
-}
-
-// TestIsKialiReady tests the IsReady function
-// GIVEN a call to IsReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
-func TestIsKialiReady(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      kialiSystemName,
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
-
-	assert.True(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
-}
-
-// TestIsKialiNotReady tests the IsReady function
-// GIVEN a call to IsReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
-func TestIsKialiNotReady(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      kialiSystemName,
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
-		},
-	})
-	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
-}
-
-// TestIsKialiNotReadyChartNotFound tests the IsReady function
-// GIVEN a call to IsReady
-//  WHEN the Kiali chart is not found
-//  THEN false is returned
-func TestIsKialiNotReadyChartNotFound(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-
-	fakeClient := fake.NewFakeClientWithScheme(testScheme)
-	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function

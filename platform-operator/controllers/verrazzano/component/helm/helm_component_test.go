@@ -462,26 +462,6 @@ func TestReady(t *testing.T) {
 		return "", fmt.Errorf("Unexpected error")
 	})
 	assert.False(comp.IsReady(compContext))
-
-	compInstalledWithNotReadyStatus := HelmComponent{
-		ReadyStatusFunc: func(ctx spi.ComponentContext, releaseName string, namespace string) bool {
-			return false
-		},
-	}
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	assert.False(compInstalledWithNotReadyStatus.IsReady(compContext))
-
-	compInstalledWithReadyStatus := HelmComponent{
-		ReadyStatusFunc: func(ctx spi.ComponentContext, releaseName string, namespace string) bool {
-			return true
-		},
-	}
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	assert.True(compInstalledWithReadyStatus.IsReady(compContext))
 }
 
 // fakeUpgrade verifies that the correct parameter values are passed to upgrade

@@ -12,6 +12,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
+// ComponentName is the name of the component
+const ComponentName = "coherence-operator"
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
+
 type coherenceComponent struct {
 	helm.HelmComponent
 }
@@ -21,12 +27,11 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "coherence-values.yaml"),
-			ReadyStatusFunc:         IsCoherenceOperatorReady,
 		},
 	}
 }
@@ -38,4 +43,12 @@ func (c coherenceComponent) IsEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// IsReady checks if the Coherence deployment is ready
+func (c coherenceComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isCoherenceOperatorReady(ctx)
+	}
+	return false
 }

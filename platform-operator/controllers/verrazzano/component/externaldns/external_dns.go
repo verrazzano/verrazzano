@@ -23,13 +23,10 @@ import (
 
 // ComponentName is the name of the component
 const (
-	ComponentName             = "external-dns"
-	externalDNSNamespace      = "cert-manager"
-	externalDNSDeploymentName = "external-dns"
-	ociSecretFileName         = "oci.yaml"
-	dnsGlobal                 = "GLOBAL" //default
-	dnsPrivate                = "PRIVATE"
-	imagePullSecretHelmKey    = "global.imagePullSecrets[0]"
+	ociSecretFileName      = "oci.yaml"
+	dnsGlobal              = "GLOBAL" //default
+	dnsPrivate             = "PRIVATE"
+	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -39,8 +36,8 @@ func preInstall(compContext spi.ComponentContext) error {
 		return nil
 	}
 
-	compContext.Log().Debug("Creating namespace %s namespace if necessary", externalDNSNamespace)
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: externalDNSNamespace}}
+	compContext.Log().Debug("Creating namespace %s namespace if necessary", ComponentNamespace)
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
@@ -63,7 +60,7 @@ func preInstall(compContext spi.ComponentContext) error {
 	// Attach compartment field to secret and apply it in the external DNS namespace
 	externalDNSSecret := v1.Secret{}
 	compContext.Log().Debug("Creating the external DNS secret")
-	externalDNSSecret.Namespace = externalDNSNamespace
+	externalDNSSecret.Namespace = ComponentNamespace
 	externalDNSSecret.Name = dnsSecret.Name
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &externalDNSSecret, func() error {
 		externalDNSSecret.Data = make(map[string][]byte)
@@ -85,9 +82,9 @@ func preInstall(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func isReady(compContext spi.ComponentContext) bool {
+func isExternalDNSReady(compContext spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
 	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)

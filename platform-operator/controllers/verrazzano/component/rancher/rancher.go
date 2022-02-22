@@ -5,9 +5,13 @@ package rancher
 
 import (
 	"fmt"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -56,4 +60,19 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	}
 	rancherHostname := fmt.Sprintf("%s.%s.%s", common.RancherName, vz.Spec.EnvironmentName, dnsSuffix)
 	return rancherHostname, nil
+}
+
+// isRancherReady checks that the Rancher component is in a 'Ready' state, as defined
+// in the body of this function
+func isRancherReady(ctx spi.ComponentContext) bool {
+	log := ctx.Log()
+	c := ctx.Client()
+	rancherDeploy := []types.NamespacedName{
+		{
+			Name:      common.RancherName,
+			Namespace: common.CattleSystem,
+		},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsReady(log, c, rancherDeploy, 1, prefix)
 }
