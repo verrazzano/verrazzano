@@ -331,7 +331,7 @@ func (s *Syncer) updateLoggingDaemonSet(regSecret corev1.Secret, ds *appsv1.Daem
 const (
 	defaultClusterName   = constants.DefaultClusterName
 	defaultElasticURL    = "http://verrazzano-authproxy-elasticsearch:8775"
-	defaultSecretName    = "verrazzano-es-internal"
+	defaultSecretName    = "verrazzano-es-internal" //nolint:gosec //#gosec G101
 	esConfigMapName      = "fluentd-es-config"
 	esConfigMapURLKey    = "es-url"
 	esConfigMapSecretKey = "es-secret"
