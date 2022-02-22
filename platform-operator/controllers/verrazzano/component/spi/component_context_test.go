@@ -157,6 +157,7 @@ func TestContextProfilesMerge(t *testing.T) {
 			assert.NotNil(context, "Context was nil")
 			assert.NotNil(context.ActualCR(), "Actual CR was nil")
 			assert.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
+			context.EffectiveCR().Status = vzapi.VerrazzanoStatus{}
 			assert.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			assert.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
 		})
