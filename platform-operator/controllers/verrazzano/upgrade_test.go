@@ -589,8 +589,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	defer registry.ResetGetComponentsFn()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-	mock.AddRestartMocks()
+	mocks.RestartMocks(mock)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

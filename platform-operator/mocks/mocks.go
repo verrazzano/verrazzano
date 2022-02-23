@@ -16,14 +16,14 @@ func RestartMocks(mock *MockClient) {
 		DoAndReturn(func(ctx context.Context, deployList *v1.DeploymentList) error {
 			deployList.Items = []v1.Deployment{{}}
 			return nil
-		})
+		}).AnyTimes()
 
 	mock.EXPECT().
 		List(gomock.Any(), &v1.StatefulSetList{}).
 		DoAndReturn(func(ctx context.Context, ssList *v1.StatefulSetList) error {
 			ssList.Items = []v1.StatefulSet{{}}
 			return nil
-		})
+		}).AnyTimes()
 
 	s := metav1.LabelSelector{
 		MatchLabels: map[string]string{"app": "fluentdd"},
@@ -38,7 +38,7 @@ func RestartMocks(mock *MockClient) {
 				},
 			}}
 			return nil
-		})
+		}).AnyTimes()
 
 	mock.EXPECT().
 		List(gomock.Any(), &corev1.PodList{}, gomock.Any()).
@@ -101,5 +101,5 @@ func RestartMocks(mock *MockClient) {
 			ds.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			ds.Spec.Template.ObjectMeta.Annotations[constants.VerrazzanoRestartAnnotation] = "some time"
 			return nil
-		})
+		}).AnyTimes()
 }
