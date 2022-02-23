@@ -337,6 +337,15 @@ func createExtraInitContainersFile(ctx spi.ComponentContext, imageOverrides []bo
 	if err != nil {
 		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
 	}
+
+	// TODO: troubleshooting - remove later
+	//Print the contents of the file
+	fileContents, err := ioutil.ReadFile(file.Name())
+	if err != nil {
+		return "", ctx.Log().ErrorfNewErr("Failed to read from temporary file: %v", err)
+	}
+	ctx.Log().Infow("MySQL extra init file contents: %s", string(fileContents))
+
 	// Close the file
 	if err := file.Close(); err != nil {
 		return "", ctx.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
