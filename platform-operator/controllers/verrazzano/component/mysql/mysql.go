@@ -29,17 +29,18 @@ import (
 )
 
 const (
-	secretName               = "mysql"
-	mySQLUsernameKey         = "mysqlUser"
-	mySQLUsername            = "keycloak"
-	helmPwd                  = "mysqlPassword"
-	helmRootPwd              = "mysqlRootPassword"
-	mySQLKey                 = "mysql-password"
-	mySQLRootKey             = "mysql-root-password"
-	mySQLInitFilePrefix      = "init-mysql-"
-	mySQLExtraInitFilePrefix = "extra-init-mysql-"
-	busyboxImageNameKey      = "busybox.image"
-	busyboxImageTagKey       = "busybox.tag"
+	secretName                  = "mysql"
+	mySQLUsernameKey            = "mysqlUser"
+	mySQLUsername               = "keycloak"
+	helmPwd                     = "mysqlPassword"
+	helmRootPwd                 = "mysqlRootPassword"
+	mySQLKey                    = "mysql-password"
+	mySQLRootKey                = "mysql-root-password"
+	mySQLInitFilePrefix         = "init-mysql-"
+	mySQLExtraInitFilePrefix    = "extra-init-mysql-"
+	busyboxImageNameKey         = "busybox.image"
+	busyboxImageTagKey          = "busybox.tag"
+	mySQLExtraInitContainersKey = "mySQLExtraInitContainers"
 )
 
 // Define the MySQL Key:Value pair for extra init container.
@@ -293,7 +294,7 @@ func appendCustomImageOverrides(compContext spi.ComponentContext, kvs []bom.KeyV
 	if err != nil {
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-	kvs = append(kvs, bom.KeyValue{Key: mySQLInitContainerKey, Value: mySQLExtraInitFile, SetFile: true})
+	kvs = append(kvs, bom.KeyValue{Key: mySQLExtraInitContainersKey, Value: mySQLExtraInitFile, SetFile: true})
 
 	kvs = append(kvs, imageOverrides...)
 	return kvs, nil

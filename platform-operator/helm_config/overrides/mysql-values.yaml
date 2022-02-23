@@ -10,4 +10,4 @@ ssl:
   enabled: false
 
 extraInitContainers: |
-  {{ .Values.mySQLExtraInitContainers }}
+{{ .Values.mySQLExtraInitContainers }}
