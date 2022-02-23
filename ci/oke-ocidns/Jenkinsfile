@@ -43,7 +43,7 @@ pipeline {
     }
 
     parameters {
-        // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region 
+        // OKE_CLUSTER_REGION parameter will be ignored for private DNS tests. They get overwritten with runner region
         choice (description: 'OCI region to launch OKE clusters in. This parameter will be ignored for private DNS tests', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
@@ -58,7 +58,7 @@ pipeline {
             choices: [ "GLOBAL","PRIVATE" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.20.8", "1.18.10", "v1.19.7", "v1.19.12" ])
+                choices: [ "v1.20.8", "1.18.10", "v1.19.7", "v1.19.12", "v1.21.5" ])
         choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
                 choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
