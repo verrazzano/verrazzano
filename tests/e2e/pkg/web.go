@@ -211,7 +211,7 @@ func CheckStatusAndResponseHeaderAbsent(httpClient *retryablehttp.Client, req *r
 	return nil
 }
 
-// GetVerrazzanoRetryableHTTPClient returns a retryable HTTP client configured with the system vmi CA cert
+// GetVerrazzanoRetryableHTTPClient returns a retryable HTTP client configured with the CA cert
 func GetVerrazzanoRetryableHTTPClient() (*retryablehttp.Client, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
