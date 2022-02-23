@@ -29,16 +29,17 @@ import (
 )
 
 const (
-	secretName          = "mysql"
-	mySQLUsernameKey    = "mysqlUser"
-	mySQLUsername       = "keycloak"
-	helmPwd             = "mysqlPassword"
-	helmRootPwd         = "mysqlRootPassword"
-	mySQLKey            = "mysql-password"
-	mySQLRootKey        = "mysql-root-password"
-	mySQLInitFilePrefix = "init-mysql-"
-	busyboxImageNameKey = "busybox.image"
-	busyboxImageTagKey  = "busybox.tag"
+	secretName               = "mysql"
+	mySQLUsernameKey         = "mysqlUser"
+	mySQLUsername            = "keycloak"
+	helmPwd                  = "mysqlPassword"
+	helmRootPwd              = "mysqlRootPassword"
+	mySQLKey                 = "mysql-password"
+	mySQLRootKey             = "mysql-root-password"
+	mySQLInitFilePrefix      = "init-mysql-"
+	mySQLExtraInitFilePrefix = "extra-init-mysql-"
+	busyboxImageNameKey      = "busybox.image"
+	busyboxImageTagKey       = "busybox.tag"
 )
 
 // Define the MySQL Key:Value pair for extra init container.
@@ -50,6 +51,7 @@ const mySQLInitContainerKey = "extraInitContainers"
 // from previous volume. The Helm chart expects this to be a STRING, so using a multi-line string here
 // Note: if the Helm chart for MySQL changes, this should be reviewed for correctness
 const mySQLInitContainerValueTemplate = `
+extraInitContainers: |
     - command:
       - chown
       - -R
@@ -87,7 +89,7 @@ func isMySQLReady(context spi.ComponentContext) bool {
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
 
-	kvs, err := appendCustomImageOverrides(kvs)
+	kvs, err := appendCustomImageOverrides(compContext, kvs)
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
@@ -164,6 +166,7 @@ func postInstall(ctx spi.ComponentContext) error {
 	}
 	// Delete create-mysql-db.sql after install
 	removeMySQLInitFile(ctx)
+	removeExtraInitContainersFile(ctx)
 	return nil
 }
 
@@ -272,7 +275,7 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 }
 
 //appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
-func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func appendCustomImageOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -287,24 +290,11 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 		return nil, fmt.Errorf("Component MySQL failed, expected atleast 2 image override keys for oraclelinux, found %v", len(imageOverrides))
 	}
 
-	// use template to get populate template with image:tag
-	var b bytes.Buffer
-	t, err := template.New("image").Parse(mySQLInitContainerValueTemplate)
+	mySQLExtraInitFile, err := createExtraInitContainersFile(compContext, imageOverrides)
 	if err != nil {
-		return nil, err
+		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-
-	// Render the template
-	data := imageData{Image: getInitImage(imageOverrides)}
-	err = t.Execute(&b, data)
-	if err != nil {
-		return nil, err
-	}
-
-	kvs = append(kvs, bom.KeyValue{
-		Key:   mySQLInitContainerKey,
-		Value: b.String(),
-	})
+	kvs = append(kvs, bom.KeyValue{Key: "extraInitializationFiles.create-db\\.yaml", Value: mySQLExtraInitFile, SetFile: true})
 
 	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
@@ -321,6 +311,53 @@ func getInitImage(imageOverrides []bom.KeyValue) string {
 		}
 	}
 	return busyboxImageName + ":" + busyboxImageTag
+}
+
+func createExtraInitContainersFile(ctx spi.ComponentContext, imageOverrides []bom.KeyValue) (string, error) {
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLExtraInitFilePrefix))
+	if err != nil {
+		return "", err
+	}
+
+	// use template to get populate template with image:tag
+	var b bytes.Buffer
+	t, err := template.New("image").Parse(mySQLInitContainerValueTemplate)
+	if err != nil {
+		return "", err
+	}
+
+	// Render the template
+	data := imageData{Image: getInitImage(imageOverrides)}
+	err = t.Execute(&b, data)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = file.Write([]byte(b.Bytes()))
+	if err != nil {
+		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
+	}
+	// Close the file
+	if err := file.Close(); err != nil {
+		return "", ctx.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
+	}
+	return file.Name(), nil
+}
+
+func removeExtraInitContainersFile(ctx spi.ComponentContext) {
+	files, err := ioutil.ReadDir(os.TempDir())
+	if err != nil {
+		ctx.Log().Errorf("Failed reading temp directory: %v", err)
+	}
+	for _, file := range files {
+		if !file.IsDir() && strings.HasPrefix(file.Name(), mySQLExtraInitFilePrefix) && strings.HasSuffix(file.Name(), ".sql") {
+			fullPath := filepath.Join(os.TempDir(), file.Name())
+			ctx.Log().Debugf("Deleting temp MySQL extra init file %s", fullPath)
+			if err := os.Remove(fullPath); err != nil {
+				ctx.Log().Errorf("Failed deleting temp MySQL extra init file %s", fullPath)
+			}
+		}
+	}
 }
 
 // getInstallArgs get the install args for MySQL
