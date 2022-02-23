@@ -32,6 +32,7 @@ const (
 	longWaitTimeout      = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
 	sockshopAppName      = "sockshop-appconfig"
+	expWait              = 60 * time.Minute
 )
 
 var sockShop SockShop
@@ -68,6 +69,9 @@ var _ = t.BeforeSuite(func() {
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPods)
+	}, expWait, pollingInterval).Should(BeTrue())
 	// checks that all pods are up and running
 	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
