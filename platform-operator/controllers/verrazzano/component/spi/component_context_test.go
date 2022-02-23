@@ -143,7 +143,7 @@ func TestContextProfilesMerge(t *testing.T) {
 			// Create the context with the effective CR
 			log := vzlog.DefaultLogger()
 			fakeScheme := fake.NewFakeClientWithScheme(testScheme)
-			vzContext, err := vzctx.New(log, fakeScheme, &test.actualCR, false)
+			vzContext, err := vzctx.NewVerrazzanoContext(log, fakeScheme, &test.actualCR, false)
 			assert.NoError(err, "Failed creating VerrazzanoContext")
 			context := NewComponentContext(&vzContext, test.name, "")
 
