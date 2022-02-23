@@ -194,13 +194,23 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("Fluentd should point to the correct ES", func() {
+			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0")
+			if err != nil {
+				Fail(err.Error())
+			}
 			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
+				var secret string
+				if supported {
+					secret = pkg.VmiESInternalSecret
+				} else {
+					secret = pkg.VmiESExternalSecret
+				}
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret("", "external-es-secret")
+					return pkg.AssertFluentdURLAndSecret("", secret)
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
 		})
