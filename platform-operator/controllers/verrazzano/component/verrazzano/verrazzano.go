@@ -74,11 +74,9 @@ func resolveVerrazzanoNamespace(ns string) string {
 // isVerrazzanoReady Verrazzano component ready-check
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	var deployments []types.NamespacedName
-	deployments = append(deployments, []types.NamespacedName{
-		{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
-	}...)
 	if isVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, []types.NamespacedName{
+			{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
