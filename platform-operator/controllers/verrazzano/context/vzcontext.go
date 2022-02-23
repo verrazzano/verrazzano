@@ -9,11 +9,6 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// implicit base profile (defaults)
-	baseProfile = "base"
-)
-
 // VerrazzanoContext the context needed to reconcile a Verrazzano CR
 type VerrazzanoContext struct {
 	// log logger for the execution context
