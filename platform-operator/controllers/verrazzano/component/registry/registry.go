@@ -102,11 +102,14 @@ func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) boo
 func checkDependencies(c spi.Component, context spi.ComponentContext, visited map[string]bool, stateMap map[string]bool) (map[string]bool, error) {
 	compName := c.Name()
 	log := context.Log()
-	log.Debugf("Checking %s dependencies", compName)
 	if _, wasVisited := visited[compName]; wasVisited {
 		return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
 	}
 	visited[compName] = true
+
+	if len(c.GetDependencies()) > 0 {
+		log.Progressf("Component %s is checking the components that it depends on", compName)
+	}
 	for _, dependencyName := range c.GetDependencies() {
 		if compName == dependencyName {
 			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
@@ -123,6 +126,7 @@ func checkDependencies(c spi.Component, context spi.ComponentContext, visited ma
 		if trace, err := checkDependencies(dependency, context, visited, stateMap); err != nil {
 			return trace, err
 		}
+		log.Progressf("Component %s is checking if dependency %s is ready ", compName, dependencyName)
 		if !dependency.IsReady(context) {
 			stateMap[dependencyName] = false // dependency is not ready
 			continue

@@ -46,7 +46,7 @@ func NewComponentContext(vzContext *vzctx.VerrazzanoContext, compName string, op
 		log = vzContext.Log.GetContext().EnsureLogger(compName, zapLogger, zapLogger)
 	}
 
-	return componentContext{
+	comp := componentContext{
 		componentName: compName,
 		log:           log,
 		client:        vzContext.Client,
@@ -54,6 +54,7 @@ func NewComponentContext(vzContext *vzctx.VerrazzanoContext, compName string, op
 		actualCR:      vzContext.ActualCR,
 		effectiveCR:   vzContext.EffectiveCR,
 	}
+	return &comp
 }
 
 // NewFakeContext creates a fake ComponentContext for unit testing purposes
