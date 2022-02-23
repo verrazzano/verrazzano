@@ -314,7 +314,7 @@ func getInitImage(imageOverrides []bom.KeyValue) string {
 }
 
 func createExtraInitContainersFile(ctx spi.ComponentContext, imageOverrides []bom.KeyValue) (string, error) {
-	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLExtraInitFilePrefix))
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.yaml", mySQLExtraInitFilePrefix))
 	if err != nil {
 		return "", err
 	}
@@ -333,7 +333,7 @@ func createExtraInitContainersFile(ctx spi.ComponentContext, imageOverrides []bo
 		return "", err
 	}
 
-	_, err = file.Write([]byte(b.Bytes()))
+	_, err = file.Write(b.Bytes())
 	if err != nil {
 		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
 	}
