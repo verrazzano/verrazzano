@@ -22,12 +22,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -1234,4 +1235,24 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 		}
 	}
 	return ""
+}
+
+func isKeycloakReady(ctx spi.ComponentContext) bool {
+	// TLS cert from Cert Manager should be in Ready state
+	secretName := getSecretName(ctx.EffectiveCR())
+	secret := &corev1.Secret{}
+	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
+		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
+		return false
+	}
+
+	statefulsetName := []types.NamespacedName{
+		{
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
+		},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
 }
