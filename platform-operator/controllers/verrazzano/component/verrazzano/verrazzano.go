@@ -7,11 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"os/exec"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"strings"
 	"time"
+
+	rbacv1 "k8s.io/api/rbac/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 
@@ -71,7 +72,7 @@ func resolveVerrazzanoNamespace(ns string) string {
 // isVerrazzanoReady Verrazzano component ready-check
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	var deployments []types.NamespacedName
-	if isVMOEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, []types.NamespacedName{
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
@@ -116,10 +117,6 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 		}, nil
 	}
 	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
-}
-
-func isVMOEnabled(vz *vzapi.Verrazzano) bool {
-	return vzconfig.IsPrometheusEnabled(vz) || vzconfig.IsKibanaEnabled(vz) || vzconfig.IsElasticsearchEnabled(vz) || vzconfig.IsGrafanaEnabled(vz)
 }
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
@@ -215,7 +212,7 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
 		return err
 	}
-	if isVMOEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
 		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating Verrazzano Monitoring namespace: %v", err)
