@@ -103,6 +103,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		if ingress.Annotations == nil {
 			ingress.Annotations = make(map[string]string)
 		}
+		ingress.Annotations["kubernetes.io/tls-acme"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "6M"
 		ingress.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2"
 		ingress.Annotations["nginx.ingress.kubernetes.io/secure-backends"] = "false"
