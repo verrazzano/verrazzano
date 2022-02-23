@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"text/template"
@@ -339,12 +340,23 @@ func createExtraInitContainersFile(ctx spi.ComponentContext, imageOverrides []bo
 	}
 
 	// TODO: troubleshooting - remove later
-	//Print the contents of the file
+	// Print the contents of file using cat
+	cmd := exec.Command("cat", file.Name()) //nolint:gosec
+	stdout, err := cmd.Output()
+
+	if err != nil {
+		ctx.Log().Errorf("Failed to cat temp file %s: %v", file.Name(), err)
+	} else {
+		// print the file content
+		ctx.Log().Infof("-------\nMySQL extra init file cat contents:\n%s\n-----------", string(stdout))
+	}
+	//Print the contents of the file from memory
 	fileContents, err := ioutil.ReadFile(file.Name())
 	if err != nil {
 		return "", ctx.Log().ErrorfNewErr("Failed to read from temporary file: %v", err)
 	}
 	ctx.Log().Infof("MySQL extra init file contents: %s", string(fileContents))
+	// END TODO: troubleshooting - remove later
 
 	// Close the file
 	if err := file.Close(); err != nil {
