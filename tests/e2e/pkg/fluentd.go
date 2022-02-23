@@ -15,7 +15,7 @@ import (
 
 const verrazzanoNamespace string = "verrazzano-system"
 const VmiESURL = "http://verrazzano-authproxy-elasticsearch:8775"
-const VmiESExternalSecret = "verrazzano"             //nolint:gosec //#gosec G101
+const VmiESLegacySecret = "verrazzano"               //nolint:gosec //#gosec G101
 const VmiESInternalSecret = "verrazzano-es-internal" //nolint:gosec //#gosec G101
 
 func getFluentdDaemonset() (*appv1.DaemonSet, error) {

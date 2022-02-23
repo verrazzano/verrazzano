@@ -207,7 +207,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 				if supported {
 					secret = pkg.VmiESInternalSecret
 				} else {
-					secret = pkg.VmiESExternalSecret
+					secret = pkg.VmiESLegacySecret
 				}
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret("", secret)
