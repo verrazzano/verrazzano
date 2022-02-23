@@ -73,8 +73,10 @@ func FetchWorkloadResource(ctx context.Context, cli client.Reader, log vzlog.Ver
 
 	// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
 	resource, err := FetchContainedWorkload(ctx, cli, workload)
-	if err != nil && !k8serrors.IsNotFound(err) {
-		log.Errorf("Failed to fetch contained workload %s: %v", client.ObjectKey{Name: workload.GetName(), Namespace: workload.GetNamespace()}, err)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			log.Errorf("Failed to fetch contained workload %s: %v", client.ObjectKey{Name: workload.GetName(), Namespace: workload.GetNamespace()}, err)
+		}
 		return nil, err
 	}
 
