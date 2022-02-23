@@ -39,6 +39,21 @@ spec:
         domain: "nip.io"
     elasticsearch:
       enabled: true
+      installArgs:
+        - name: nodes.master.replicas
+          value: "3"
+        - name: nodes.master.requests.memory
+          value: "1.4Gi"
+        - name: nodes.ingest.replicas
+          value: "1"
+        - name: nodes.ingest.requests.memory
+          value: "2.5Gi"
+        - name: nodes.data.replicas
+          value: "3"
+        - name: nodes.data.requests.memory
+          value: "4.8Gi"
+        - name: nodes.data.requests.storage
+          value: "50Gi"
     fluentd:
       enabled: true
       elasticsearchURL: https://myes.mycorp.com
