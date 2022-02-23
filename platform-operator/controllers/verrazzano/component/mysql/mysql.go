@@ -53,23 +53,23 @@ const mySQLInitContainerKey = "extraInitContainers"
 // from previous volume. The Helm chart expects this to be a STRING, so using a multi-line string here
 // Note: if the Helm chart for MySQL changes, this should be reviewed for correctness
 const mySQLInitContainerValueTemplate = `
-    - command:
-      - chown
-      - -R
-      - 27:27
-      - /var/lib/mysql
-    image: {{.Image}}
-    imagePullPolicy: IfNotPresent
-    name: chown-data-dir
-    resources:
-      requests:
-        cpu: 10m
-        memory: 10Mi
-    terminationMessagePath: /dev/termination-log
-    terminationMessagePolicy: File
-    volumeMounts:
-      - mountPath: /var/lib/mysql
-        name: data
+- command:
+  - chown
+  - -R
+  - 27:27
+  - /var/lib/mysql
+image: {{.Image}}
+imagePullPolicy: IfNotPresent
+name: chown-data-dir
+resources:
+  requests:
+	cpu: 10m
+	memory: 10Mi
+terminationMessagePath: /dev/termination-log
+terminationMessagePolicy: File
+volumeMounts:
+  - mountPath: /var/lib/mysql
+	name: data
 `
 
 // imageData needed for template rendering
