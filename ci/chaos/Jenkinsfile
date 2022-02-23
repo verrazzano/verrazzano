@@ -57,6 +57,10 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        choice (name: 'CHAOS_TEST_TYPE',
+                description: 'Type of chaos to inflict',
+                // 1st choice is the default value
+                choices: [ "vpo.killed", "helm.chart.corrupted" ])
     }
 
     environment {
@@ -375,6 +379,9 @@ pipeline {
                     # wait for the upgrade to complete
                     # kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
+                    echo "CHAOS TEST TYPE = \$params.CHAOS_TEST_TYPE"
+                    if [[ "vpo.killed" == "\$params.CHAOS_TEST_TYPE" ]]
+                    then
                     # Wait 15 seconds then kill vpo
                     POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                     echo "Wait 15 seconds and kill VPO \$POD"
@@ -383,13 +390,14 @@ pipeline {
                     POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                     kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                     echo "VPO \$POD successfully restarted"
+                    ##  Test to crash VPO twice but once was good enough to surface errors
                     # Wait 15 seconds then kill vpo a second time
                     # sleep 15
                     # kubectl -n verrazzano-install delete po \$POD
                     # POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                     # kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                     # echo "VPO \$POD successfully restarted a second time"
-
+                    fi
                     # Dump the resource to debug
                     kubectl get -o yaml verrazzano/my-verrazzano || true
 
