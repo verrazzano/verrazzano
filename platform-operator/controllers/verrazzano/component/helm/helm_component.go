@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -150,12 +151,26 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	return installed, nil
 }
 
-// IsReady Indicates whether or not a component is available and ready
+// IsReady Indicates whether a component is available and ready
 func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	if context.IsDryRun() {
 		context.Log().Debugf("IsReady() dry run for %s", h.ReleaseName)
 		return true
 	}
+
+	// Does the Helm installed app_version number match the chart?
+	chartInfo, err := helmcli.GetChartInfo(h.ChartDir)
+	if err != nil {
+		return false
+	}
+	releaseAppVersion, err := helmcli.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		return false
+	}
+	if chartInfo.AppVersion != releaseAppVersion {
+		return false
+	}
+
 	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
 	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
 		return true
@@ -163,7 +178,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
-// IsEnabled Indicates whether or not a component is enabled for installation
+// IsEnabled Indicates whether a component is enabled for installation
 func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
 	return true
 }
