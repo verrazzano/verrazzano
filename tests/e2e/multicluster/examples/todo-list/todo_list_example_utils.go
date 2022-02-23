@@ -158,13 +158,23 @@ func projectExists(kubeconfigPath string, projectName string) bool {
 
 // todoListPodsRunning Check if expected pods are running on a given cluster
 func todoListPodsRunning(kubeconfigPath string, namespace string) bool {
-	return pkg.PodsRunningInCluster(namespace, expectedPodsTodoList, kubeconfigPath)
+	result, err := pkg.PodsRunningInCluster(namespace, expectedPodsTodoList, kubeconfigPath)
+	// TODO: Go through each of the test cases calling this and decide whether to fail the test or test suite
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
 
 // todoListPodDeleted Check if expected pods are running on a given cluster
 func todoListPodDeleted(kubeconfigPath string, namespace string, pod string) bool {
 	deletedPod := []string{pod}
-	return !pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
+	result, err := pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
+	// TODO: Go through each of the test cases calling this and decide whether to fail the test or test suite
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("There is an error in checking whether the pods are running in the namespace: %v, error: %v", namespace, err))
+	}
+	return !result
 }
 
 // VerifyTodoListDeleteOnAdminCluster verifies that the todo-list app resources have been deleted from the admin

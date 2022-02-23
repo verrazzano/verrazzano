@@ -42,7 +42,11 @@ var _ = t.BeforeSuite(func() {
 	// WHEN the running pods are checked
 	// THEN the tododomain-adminserver and mysql pods should be found running
 	Eventually(func() bool {
-		return pkg.PodsRunning(namespace, []string{"mysql", "tododomain-adminserver"})
+		result, err := pkg.PodsRunning(namespace, []string{"mysql", "tododomain-adminserver"})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 

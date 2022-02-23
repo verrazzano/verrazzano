@@ -112,72 +112,28 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 	return true
 }
 
-// PodsRunningReturnError is identical to PodsRunning, except that it returns an error when the pod is in waiting state due to
-// ImagePullBackOff or CrashLoopBackOff
-// A temporary function for initial review
-func PodsRunningReturnError(namespace string, namePrefixes []string) (bool, error) {
+// PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
+func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
-		return false, err
+		return false, fmt.Errorf("error getting kubeconfig, error: %v", err)
 	}
-	result, err := PodsRunningInClusterReturnError(namespace, namePrefixes, kubeconfigPath)
+	result, err := PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
 	return result, err
 }
 
-// PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
-func PodsRunning(namespace string, namePrefixes []string) bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
-		return false
-	}
-	return PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
-}
-
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
-func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
+func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
-		return false
+		return false, fmt.Errorf("error getting clientset for cluster, error: %v", err)
 	}
 	pods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-		return false
-	}
-	missing, err := notRunning(pods.Items, namePrefixes...)
-	if err != nil {
-		return false
-	}
-
-	if len(missing) > 0 {
-		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
-		for _, pod := range pods.Items {
-			if isReadyAndRunning(pod) {
-				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
-			} else {
-				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
-			}
-		}
-	}
-	return len(missing) == 0
-}
-
-// PodsRunning is same as PodsRunningInCluster, except that it returns an error when the pod is in waiting state due to
-// ImagePullBackOff or CrashLoopBackOff
-// A temporary function for initial review
-func PodsRunningInClusterReturnError(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
-	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
-		return false, nil
-	}
-	pods, err := ListPodsInCluster(namespace, clientset)
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-		return false, nil
+		return false, fmt.Errorf("error listing pods in cluster for namespace: %s, error: %v", namespace, err)
 	}
 	missing, err := notRunning(pods.Items, namePrefixes...)
 	if err != nil {
@@ -262,10 +218,11 @@ func isPodRunning(pods []v1.Pod, namePrefix string) (bool, error) {
 			running = isReadyAndRunning(pods[i])
 			if !running {
 				status := "status:"
+				// Check if init container status ImagePullBackOff and CrashLoopBackOff
 				if len(pods[i].Status.InitContainerStatuses) > 0 {
 					for _, ics := range pods[i].Status.InitContainerStatuses {
 						if ics.State.Waiting != nil {
-							// if the reason is either CrashLoopBackOff or ImagePullBackOff, return an error to allow the caller to abort the run
+							// return an error if the reason is either CrashLoopBackOff or ImagePullBackOff
 							if ics.State.Waiting.Reason == ImagePullBackOff || ics.State.Waiting.Reason == CrashLoopBackOff {
 								return false, fmt.Errorf("pod %v is not running: %v", pods[i].Name,
 									fmt.Sprintf("%v %v:%v", status, InitContainerPrefix, ics.State.Waiting.Reason))
@@ -278,7 +235,7 @@ func isPodRunning(pods []v1.Pod, namePrefix string) (bool, error) {
 					for _, cs := range pods[i].Status.ContainerStatuses {
 						if cs.State.Waiting != nil {
 							status = fmt.Sprintf("%v %v", status, cs.State.Waiting.Reason)
-							// if the reason is either CrashLoopBackOff or ImagePullBackOff, return an error to allow the caller to abort the run
+							// return an error if the reason is either CrashLoopBackOff or ImagePullBackOff
 							if cs.State.Waiting.Reason == ImagePullBackOff || cs.State.Waiting.Reason == CrashLoopBackOff {
 								return false, fmt.Errorf("pod %v is not running: %v", pods[i].Name, status)
 							}

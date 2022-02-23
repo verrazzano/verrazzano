@@ -18,13 +18,12 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 15 * time.Minute
-	longPollingInterval  = 20 * time.Second
-	namespace            = "sockshop-logging"
-	componentsPath       = "testdata/loggingtrait/coherenceworkload/coherence-logging-components.yaml"
-	applicationPath      = "testdata/loggingtrait/coherenceworkload/coherence-logging-application.yaml"
-	applicationPodName   = "carts-coh-0"
-	configMapName        = "logging-stdout-carts-coh-coherence"
+
+	namespace          = "sockshop-logging"
+	componentsPath     = "testdata/loggingtrait/coherenceworkload/coherence-logging-components.yaml"
+	applicationPath    = "testdata/loggingtrait/coherenceworkload/coherence-logging-application.yaml"
+	applicationPodName = "carts-coh-0"
+	configMapName      = "logging-stdout-carts-coh-coherence"
 )
 
 var kubeConfig = os.Getenv("KUBECONFIG")
@@ -32,7 +31,7 @@ var kubeConfig = os.Getenv("KUBECONFIG")
 var t = framework.NewTestFramework("coherenceworkload")
 
 var _ = t.BeforeSuite(func() {
-	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, t)
+	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
 })
 
 var failed = false
@@ -50,17 +49,6 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Test coherence loggingtrait application", Label("f:app-lcm.oam",
 	"f:app-lcm.coherence-workload",
 	"f:app-lcm.logging-trait"), func() {
-
-	t.Context("Deployment.", func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and MySQL pods should be found running
-		t.It("Verify 'hello-helidon-deployment' pod is running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{applicationPodName})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
 
 	t.Context("for LoggingTrait.", func() {
 		// GIVEN the app is deployed and the pods are running
