@@ -40,7 +40,6 @@ const (
 	mySQLExtraInitFilePrefix    = "extra-init-mysql-"
 	busyboxImageNameKey         = "busybox.image"
 	busyboxImageTagKey          = "busybox.tag"
-	mySQLExtraInitContainersKey = "mySQLExtraInitContainers"
 )
 
 // Define the MySQL Key:Value pair for extra init container.
@@ -294,7 +293,7 @@ func appendCustomImageOverrides(compContext spi.ComponentContext, kvs []bom.KeyV
 	if err != nil {
 		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-	kvs = append(kvs, bom.KeyValue{Key: mySQLExtraInitContainersKey, Value: mySQLExtraInitFile, SetFile: true})
+	kvs = append(kvs, bom.KeyValue{Key: mySQLInitContainerKey, Value: mySQLExtraInitFile, SetFile: true})
 
 	kvs = append(kvs, imageOverrides...)
 	return kvs, nil
@@ -344,7 +343,7 @@ func createExtraInitContainersFile(ctx spi.ComponentContext, imageOverrides []bo
 	if err != nil {
 		return "", ctx.Log().ErrorfNewErr("Failed to read from temporary file: %v", err)
 	}
-	ctx.Log().Infow("MySQL extra init file contents: %s", string(fileContents))
+	ctx.Log().Infof("MySQL extra init file contents: %s", string(fileContents))
 
 	// Close the file
 	if err := file.Close(); err != nil {
@@ -359,11 +358,11 @@ func removeExtraInitContainersFile(ctx spi.ComponentContext) {
 		ctx.Log().Errorf("Failed reading temp directory: %v", err)
 	}
 	for _, file := range files {
-		if !file.IsDir() && strings.HasPrefix(file.Name(), mySQLExtraInitFilePrefix) && strings.HasSuffix(file.Name(), ".sql") {
+		if !file.IsDir() && strings.HasPrefix(file.Name(), mySQLExtraInitFilePrefix) && strings.HasSuffix(file.Name(), ".yaml") {
 			fullPath := filepath.Join(os.TempDir(), file.Name())
-			ctx.Log().Debugf("Deleting temp MySQL extra init file %s", fullPath)
+			ctx.Log().Debugf("Deleting temp MySQL extra init containers file %s", fullPath)
 			if err := os.Remove(fullPath); err != nil {
-				ctx.Log().Errorf("Failed deleting temp MySQL extra init file %s", fullPath)
+				ctx.Log().Errorf("Failed deleting temp MySQL extra init containers file %s", fullPath)
 			}
 		}
 	}

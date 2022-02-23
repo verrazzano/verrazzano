@@ -1,0 +1,35 @@
+{
+  "registry": "ghcr.io",
+  "version": "1.1.0-local+775f6089",
+  "components": [
+    {
+      "name": "mysql",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql",
+          "images": [
+            {
+              "image": "mysql",
+              "tag": "8.0.20",
+              "helmFullImageKey": "image",
+              "helmTagKey": "imageTag"
+            }
+          ]
+        },
+        {
+          "repository": "oracle",
+          "name": "oraclelinux",
+          "images": [
+            {
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "busybox.image",
+              "helmTagKey": "busybox.tag"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
