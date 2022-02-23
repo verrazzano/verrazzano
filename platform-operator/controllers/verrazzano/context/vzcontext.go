@@ -32,7 +32,7 @@ type VerrazzanoContext struct {
 	EffectiveCR *vzapi.Verrazzano
 }
 
-// NewVerrazzanoContext creates a ComponentContext from a raw CR
+// NewVerrazzanoContext creates a VerrazzanoContext, while creating an effective CR
 func NewVerrazzanoContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (VerrazzanoContext, error) {
 	// Generate the effective CR based on the declared profile and any overrides in the user-supplied one
 	effectiveCR, err := GetEffectiveCR(actualCR)

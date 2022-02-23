@@ -142,7 +142,7 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 
 	vzContext, err := vzctx.NewVerrazzanoContext(log, r, vz, r.DryRun)
 	if err != nil {
-		log.Errorf("Failed to create component context: %v", err)
+		log.Errorf("Failed to create VerrazzanoContext: %v", err)
 		return newRequeueWithDelay(), err
 	}
 
