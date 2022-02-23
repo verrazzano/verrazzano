@@ -27,7 +27,7 @@ pipeline {
         choice (name: 'LRE_CLUSTER',
                 description: 'Which LRE cluster to run the test against',
                 // 1st choice is the default value
-                choices: [ "dev", "prod" ])
+                choices: [ "dev", "prod", "test" ])
     }
 
     environment {
@@ -46,11 +46,13 @@ pipeline {
         dev_lre_compartment_id = credentials('dev-lre-compartment-id')
         dev2_lre_compartment_id = credentials('dev2-lre-compartment-id')
         dev2_lre_cluster_id = credentials('dev2-lre-cluster-id')
+        prod_lre_compartment_id = credentials('prod-lre-compartment-id')
         prod_lre_cluster_id = credentials('prod-lre-cluster-id')
+        test_lre_compartment_id = credentials('test-lre-compartment-id')
         test_lre_cluster_id = credentials('test-lre-cluster-id')
-        dev2_private_ip = credentials('dev2_private_ip')
-        prod_private_ip = credentials('prod_private_ip')
-        test_private_ip = credentials('test_private_ip')
+        dev2_private_ip = credentials('dev2-lre-cluster-ip')
+        prod_private_ip = credentials('prod-lre-cluster-ip')
+        test_private_ip = credentials('test-lre-cluster-ip')
         dev_lre_bastion_ip = credentials('dev-lre-bastion-ip')
         OCI_CLI_REGION = "us-ashburn-1"
         KUBECONFIG = "${WORKSPACE}/.kube/config"
@@ -147,13 +149,18 @@ pipeline {
         stage('Download kubeconfig') {
             steps {
                 script {
+                    switch(LRE_CLUSTER_ENV) {
+                        case "dev" :
+                            env.CLUSTER_ID = "${dev2_lre_cluster_id}"
+                            break
+                        case "prod" :
+                            env.CLUSTER_ID = "${prod_lre_cluster_id}"
+                            break
+                        case "test" :
+                            env.CLUSTER_ID = "${test_lre_cluster_id}"
+                            break
+                    }
                     sh """
-                        if (LRE_CLUSTER_ENV == "dev") {
-                            CLUSTER_ID = ${dev2_lre_cluster_id}
-                        } else if (LRE_CLUSTER_ENV == "prod") {
-                            CLUSTER_ID = ${prod_lre_cluster_id}
-                        } else if (LRE_CLUSTER_ENV == "test") {
-                            CLUSTER_ID = ${test_lre_cluster_id}
                         mkdir -p ${WORKSPACE}/.kube
                         rm -rf ${KUBECONFIG}
                         # get kubeconfig from OCI
@@ -192,6 +199,22 @@ pipeline {
         stage('set up ssh tunnel') {
             steps {
                 script {
+                    switch(LRE_CLUSTER_ENV) {
+                        case "dev" :
+                            //dev2 lre cluster use bastion host from lre/dev compartment
+                            env.COMPARTMENT_ID = "{dev_lre_compartment_id}"
+                            env.CLUSTER_IP = "{dev2_private_ip}"
+                            break
+                        case "prod" :
+                            env.COMPARTMENT_ID = "{prod_lre_compartment_id}"
+                            env.CLUSTER_IP = "{prod_private_ip}"
+                            break
+                        case "test" :
+                            //test lre cluster use bastion host from lre/dev compartment
+                            env.COMPARTMENT_ID = "{dev_lre_compartment_id}"
+                            env.CLUSTER_IP = "{test_private_ip}"
+                            break
+                    }
                     sh '''
                         echo "create ssh tunnel"
                         cd ${GO_REPO_PATH}/verrazzano/
