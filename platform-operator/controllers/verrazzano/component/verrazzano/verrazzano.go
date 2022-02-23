@@ -69,13 +69,43 @@ func resolveVerrazzanoNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// isVerrazzanoReady Verrazzano component ready-check
+// isVerrazzanoReady Verrazzano components ready-check
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	var deployments []types.NamespacedName
+	if vzconfig.IsApplicationOperatorEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "verrazzano-application-operator", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "verrazzano-authproxy", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "verrazzano-console", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, []types.NamespacedName{
-			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
-		}...)
+		deployments = append(deployments, types.NamespacedName{
+			Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "vmi-system-grafana", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsKialiEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "vmi-system-kiali", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "vmi-system-kibana", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "vmi-system-prometheus-0", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
