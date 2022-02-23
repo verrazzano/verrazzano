@@ -376,8 +376,8 @@ pipeline {
                     cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
-                    echo "CHAOS TEST TYPE = \${params.CHAOS_TEST_TYPE}"
-                    if [[ "vpo.killed" == "\${params.CHAOS_TEST_TYPE}" ]]
+                    echo "CHAOS TEST TYPE = ${params.CHAOS_TEST_TYPE}"
+                    if [[ "vpo.killed" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # Wait 15 seconds then kill vpo
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
@@ -397,7 +397,7 @@ pipeline {
                     fi
 
 
-                    if [[ "helm.chart.corrupted" == "\${params.CHAOS_TEST_TYPE}" ]]
+                    if [[ "helm.chart.corrupted" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # Move values.yaml so helm install of Verrazzano will fail
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
