@@ -58,6 +58,10 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
+	if err := ValidateBom(); err != nil {
+		return err
+	}
+
 	if err := ValidateVersion(v.Spec.Version); err != nil {
 		return err
 	}
@@ -102,6 +106,9 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldResource.Spec.Profile, v.Spec.Profile)
 	}
 
+	if err := ValidateBom(); err != nil {
+		return err
+	}
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
 	err := ValidateUpgradeRequest(&oldResource.Spec, &v.Spec)
 	if err != nil {
