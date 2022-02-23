@@ -23,7 +23,7 @@ import (
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
 func (r *Reconciler) reconcileComponents(vzContext *vzctx.VerrazzanoContext) (ctrl.Result, error) {
-	cr := vzContext.ActualCR
+	cr := vzContext.EffectiveCR
 	vzContext.Log.Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
