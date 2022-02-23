@@ -370,7 +370,7 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		}
 	}
 
-	// Retry if all the pods haven't been scheduled
+	// Keep waiting and retry if all the pods haven't been scheduled
 	if len(allContainers) == 0 || imagesYetToBePulled == 0 || len(allContainers) < len(namePrefixes) {
 		Log(Info, "Can't check for all the images right now")
 		return false
@@ -380,10 +380,21 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 	for podName, containers := range allContainers {
 		for _, container := range containers {
 			for _, event := range events.Items {
-				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, container.(string)) {
-					Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+				// used to match exact container name in event data
+				containerRegex := "{" + container.(string) + "}"
+
+				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, containerRegex) {
+
 					if event.Reason == "Pulled" {
 						imagesYetToBePulled--
+						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+					}
+					// Stop waiting in case of ImagePullBackoff and CrashLoopBackOff
+					if event.Reason == "Failed" {
+						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+						if strings.Contains(event.Message, "ImagePullBackOff") || strings.Contains(event.Message, "CrashLoopBackOff") {
+							return true
+						}
 					}
 				}
 			}
