@@ -8,3 +8,6 @@ imagePullPolicy: IfNotPresent
 
 ssl:
   enabled: false
+
+extraInitContainers: |
+  {{ .Values.mySQLExtraInitContainers }}
