@@ -54,7 +54,7 @@ spec:
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
-      elasticsearchSecret: verrazzano
+      elasticsearchSecret: verrazzano-es-internal
     grafana:
       enabled: true
     ingress:

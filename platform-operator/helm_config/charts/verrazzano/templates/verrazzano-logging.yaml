@@ -37,7 +37,7 @@ data:
   {{- if .Values.logging.elasticsearchSecret }}
   es-secret: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-  es-secret: verrazzano
+  es-secret: verrazzano-es-internal
   {{- end }}
 ---
 apiVersion: v1
@@ -1013,7 +1013,7 @@ spec:
   {{- if .Values.logging.elasticsearchSecret }}
                   name: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-                  name: verrazzano
+                  name: verrazzano-es-internal
   {{- end }}
                   optional: true
             - name: ELASTICSEARCH_PASSWORD
@@ -1023,7 +1023,7 @@ spec:
   {{- if .Values.logging.elasticsearchSecret }}
                   name: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-                  name: verrazzano
+                  name: verrazzano-es-internal
   {{- end }}
                   optional: true
             - name: CA_FILE
@@ -1080,7 +1080,7 @@ spec:
   {{- if .Values.logging.elasticsearchSecret }}
             secretName: {{ .Values.logging.elasticsearchSecret }}
   {{- else }}
-            secretName: verrazzano
+            secretName: verrazzano-es-internal
   {{- end }}
   {{- if .Values.fluentd.oci }}
   {{- if .Values.fluentd.oci.apiSecret }}
