@@ -29,17 +29,17 @@ import (
 )
 
 const (
-	secretName                  = "mysql"
-	mySQLUsernameKey            = "mysqlUser"
-	mySQLUsername               = "keycloak"
-	helmPwd                     = "mysqlPassword"
-	helmRootPwd                 = "mysqlRootPassword"
-	mySQLKey                    = "mysql-password"
-	mySQLRootKey                = "mysql-root-password"
-	mySQLInitFilePrefix         = "init-mysql-"
-	mySQLExtraInitFilePrefix    = "extra-init-mysql-"
-	busyboxImageNameKey         = "busybox.image"
-	busyboxImageTagKey          = "busybox.tag"
+	secretName               = "mysql"
+	mySQLUsernameKey         = "mysqlUser"
+	mySQLUsername            = "keycloak"
+	helmPwd                  = "mysqlPassword"
+	helmRootPwd              = "mysqlRootPassword"
+	mySQLKey                 = "mysql-password"
+	mySQLRootKey             = "mysql-root-password"
+	mySQLInitFilePrefix      = "init-mysql-"
+	mySQLExtraInitFilePrefix = "extra-init-mysql-"
+	busyboxImageNameKey      = "busybox.image"
+	busyboxImageTagKey       = "busybox.tag"
 )
 
 // Define the MySQL Key:Value pair for extra init container.
