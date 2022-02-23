@@ -12,8 +12,8 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
-
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // Debug is set from a platform-operator arg and sets the helm --debug flag
@@ -28,7 +28,7 @@ const ChartStatusDeployed = "deployed"
 const ChartStatusPendingInstall = "pending-install"
 const ChartStatusFailed = "failed"
 
-// Package-level var and functions to allow overriding GetChartStatus for unit test purposes
+// ChartStatusFnType - Package-level var and functions to allow overriding GetChartStatus for unit test purposes
 type ChartStatusFnType func(releaseName string, namespace string) (string, error)
 
 // HelmOverrides contains all of the overrides that gets passed to the helm cli runner
@@ -49,6 +49,21 @@ func SetChartStatusFunction(f ChartStatusFnType) {
 // SetDefaultChartStatusFunction Reset the chart status function
 func SetDefaultChartStatusFunction() {
 	chartStatusFn = getChartStatus
+}
+
+// ReleaseAppVersionFnType - Package-level var and functions to allow overriding GetReleaseAppVersion for unit test purposes
+type ReleaseAppVersionFnType func(releaseName string, namespace string) (string, error)
+
+var releaseAppVersionFn ReleaseAppVersionFnType = getReleaseAppVersion
+
+// SetReleaseAppVersionFunction Override the GetReleaseAppVersion for unit testing
+func SetReleaseAppVersionFunction(f ReleaseAppVersionFnType) {
+	releaseAppVersionFn = f
+}
+
+// SetDefaultReleaseAppVersionFunction Reset the GetReleaseAppVersion function
+func SetDefaultReleaseAppVersionFunction() {
+	releaseAppVersionFn = getReleaseAppVersion
 }
 
 // Package-level var and functions to allow overriding getReleaseState for unit test purposes
@@ -136,7 +151,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 func Uninstall(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	// Helm upgrade command will apply the new chart, but use all the existing
 	// overrides that we used during the install.
-	args := []string{}
+	var args []string
 
 	stdout, stderr, err = runHelm(log, releaseName, namespace, "", "uninstall", false, args, dryRun)
 	if err != nil {
@@ -297,24 +312,11 @@ func getChartStatus(releaseName string, namespace string) (string, error) {
 
 // getReleaseState extracts the release state from an "ls -o json" command for a specific release/namespace
 func getReleaseState(releaseName string, namespace string) (string, error) {
-	args := []string{"ls"}
-	if namespace != "" {
-		args = append(args, "--namespace")
-		args = append(args, namespace)
-		args = append(args, "-o")
-		args = append(args, "json")
-	}
-	cmd := exec.Command("helm", args...)
-	stdout, stderr, err := runner.Run(cmd)
+	statusInfo, err := getReleases(namespace)
 	if err != nil {
-		if strings.Contains(string(stderr), "not found") {
+		if errors.IsNotFound(err) {
 			return ChartNotFound, nil
 		}
-		return "", fmt.Errorf("helm status for release %s failed with stderr: %s", releaseName, string(stderr))
-	}
-
-	var statusInfo []map[string]interface{}
-	if err := json.Unmarshal(stdout, &statusInfo); err != nil {
 		return "", err
 	}
 
@@ -327,6 +329,58 @@ func getReleaseState(releaseName string, namespace string) (string, error) {
 		}
 	}
 	return strings.TrimSpace(status), nil
+}
+
+// GetReleaseAppVersion - public function to execute releaseAppVersionFn
+func GetReleaseAppVersion(releaseName string, namespace string) (string, error) {
+	return releaseAppVersionFn(releaseName, namespace)
+}
+
+// getReleaseAppVersion extracts the release app_version from a "ls -o json" command for a specific release/namespace
+func getReleaseAppVersion(releaseName string, namespace string) (string, error) {
+	statusInfo, err := getReleases(namespace)
+	if err != nil {
+		if err.Error() == ChartNotFound {
+			return ChartNotFound, nil
+		}
+		return "", err
+	}
+
+	var status string
+	for _, info := range statusInfo {
+		release := info["name"].(string)
+		if release == releaseName {
+			status = info["app_version"].(string)
+			break
+		}
+	}
+	return strings.TrimSpace(status), nil
+}
+
+func getReleases(namespace string) ([]map[string]interface{}, error) {
+	var statusInfo []map[string]interface{}
+
+	args := []string{"ls"}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "json")
+	}
+	cmd := exec.Command("helm", args...)
+	stdout, stderr, err := runner.Run(cmd)
+	if err != nil {
+		if strings.Contains(string(stderr), "not found") {
+			return statusInfo, fmt.Errorf(ChartNotFound)
+		}
+		return statusInfo, fmt.Errorf("helm status for namespace %s failed with stderr: %s", namespace, string(stderr))
+	}
+
+	if err := json.Unmarshal(stdout, &statusInfo); err != nil {
+		return statusInfo, err
+	}
+
+	return statusInfo, nil
 }
 
 // SetCmdRunner sets the command runner as needed by unit tests

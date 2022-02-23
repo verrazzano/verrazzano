@@ -357,7 +357,7 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	// Verify that the secret exists
 	secret := v1.Secret{}
 	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: ComponentNamespace}, &secret); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to retireve the OCI DNS config secret: %v", err)
+		return compContext.Log().ErrorfNewErr("Failed to retrieve the OCI DNS config secret: %v", err)
 	}
 
 	// Verify the acme environment and set the server
@@ -404,52 +404,58 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 }
 
 func createCAResources(compContext spi.ComponentContext) error {
-	// Create the issuer resource for CA certs
-	compContext.Log().Debug("Applying Issuer for CA cert")
 	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
-	issuer := certv1.Issuer{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      caSelfSignedIssuerName,
-			Namespace: vzCertCA.ClusterResourceNamespace,
-		},
-		Spec: certv1.IssuerSpec{
-			IssuerConfig: certv1.IssuerConfig{
-				SelfSigned: &certv1.SelfSignedIssuer{},
-			},
-		},
-		Status: certv1.IssuerStatus{},
-	}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &issuer, func() error {
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the Issuer: %v", err)
-	}
 
-	// Create the certificate resource for CA cert
-	compContext.Log().Debug("Applying Certificate for CA cert")
-	certObject := certv1.Certificate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      caCertificateName,
-			Namespace: vzCertCA.ClusterResourceNamespace,
-		},
-		Spec: certv1.CertificateSpec{
-			SecretName: vzCertCA.SecretName,
-			CommonName: caCertCommonName,
-			IsCA:       true,
-			IssuerRef: certmetav1.ObjectReference{
-				Name: issuer.Name,
-				Kind: issuer.Kind,
+	// if the CA cert secret does not exist, create the Issuer and Certificate resources
+	secret := v1.Secret{}
+	secretKey := client.ObjectKey{Name: vzCertCA.SecretName, Namespace: vzCertCA.ClusterResourceNamespace}
+	if err := compContext.Client().Get(context.TODO(), secretKey, &secret); err != nil {
+		// Create the issuer resource for CA certs
+		compContext.Log().Debug("Applying Issuer for CA cert")
+		issuer := certv1.Issuer{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      caSelfSignedIssuerName,
+				Namespace: vzCertCA.ClusterResourceNamespace,
 			},
-		},
-	}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", err)
+			Spec: certv1.IssuerSpec{
+				IssuerConfig: certv1.IssuerConfig{
+					SelfSigned: &certv1.SelfSignedIssuer{},
+				},
+			},
+			Status: certv1.IssuerStatus{},
+		}
+		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &issuer, func() error {
+			return nil
+		}); err != nil {
+			return compContext.Log().ErrorfNewErr("Failed to create or update the Issuer: %v", err)
+		}
+
+		// Create the certificate resource for CA cert
+		compContext.Log().Debug("Applying Certificate for CA cert")
+		certObject := certv1.Certificate{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      caCertificateName,
+				Namespace: vzCertCA.ClusterResourceNamespace,
+			},
+			Spec: certv1.CertificateSpec{
+				SecretName: vzCertCA.SecretName,
+				CommonName: caCertCommonName,
+				IsCA:       true,
+				IssuerRef: certmetav1.ObjectReference{
+					Name: issuer.Name,
+					Kind: issuer.Kind,
+				},
+			},
+		}
+		if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &certObject, func() error {
+			return nil
+		}); err != nil {
+			return compContext.Log().ErrorfNewErr("Failed to create or update the Certificate: %v", err)
+		}
 	}
 
 	// Create the cluster issuer resource for CA cert
-	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
+	compContext.Log().Debug("Applying ClusterIssuer")
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: caClusterIssuerName,
