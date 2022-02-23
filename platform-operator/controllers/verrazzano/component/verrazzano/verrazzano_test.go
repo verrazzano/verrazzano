@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -50,13 +51,21 @@ const (
 )
 
 var (
-	testScheme  = runtime.NewScheme()
-	pvc100Gi, _ = resource.ParseQuantity("100Gi")
+	testScheme      = runtime.NewScheme()
+	pvc100Gi, _     = resource.ParseQuantity("100Gi")
+	prodESOverrides = []bom.KeyValue{
+		{Key: "elasticSearch.nodes.master.replicas", Value: "3"},
+		{Key: "elasticSearch.nodes.master.requests.memory", Value: "1.4Gi"},
+		{Key: "elasticSearch.nodes.ingest.replicas", Value: "1"},
+		{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "2.5Gi"},
+		{Key: "elasticSearch.nodes.data.replicas", Value: "3"},
+		{Key: "elasticSearch.nodes.data.requests.memory", Value: "4.8Gi"},
+		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"}}
 )
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
-
+	_ = vmov1.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
 	_ = vzclusters.AddToScheme(testScheme)
 
@@ -366,7 +375,7 @@ func Test_appendVMIValues(t *testing.T) {
 			description:           "Test VMI basic prod no user overrides",
 			actualCR:              vzapi.Verrazzano{},
 			expectedYAML:          "testdata/vzValuesVMIProdVerrazzanoNoOverrides.yaml",
-			expectedHelmOverrides: []bom.KeyValue{},
+			expectedHelmOverrides: prodESOverrides,
 			expectedErr:           nil,
 		},
 		{
@@ -439,7 +448,7 @@ func Test_appendVMIValues(t *testing.T) {
 				},
 			},
 			expectedYAML:          "testdata/vzValuesVMIProdWithStorageOverrides.yaml",
-			expectedHelmOverrides: []bom.KeyValue{},
+			expectedHelmOverrides: prodESOverrides,
 			expectedErr:           nil,
 		},
 		{
@@ -470,6 +479,7 @@ func Test_appendVMIValues(t *testing.T) {
 				{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "32G"},
 				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
 				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
+				{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
 			},
 			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
 			expectedErr:  nil,
@@ -768,8 +778,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			//t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 3, 2 file override + 1 custom image overrides
-				expectedNumKvs = 3
+				// default is 10, 2 file override + 1 custom image overrides + 7 ES
+				expectedNumKvs = 10
 			}
 			assert.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file
@@ -1453,6 +1463,30 @@ func createObjectFromTemplate(obj runtime.Object, template string, data interfac
 		return err
 	}
 	return runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
+}
+
+// TestImportHelmObject tests labelling/annotating objects that will be imported to a helm chart
+// GIVEN an unmanaged object
+//  WHEN I call importHelmObject
+//  THEN the object is managed by helm
+func TestImportHelmObject(t *testing.T) {
+	namespacedName := types.NamespacedName{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+	}
+	obj := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+
+	c := fake.NewFakeClientWithScheme(testScheme, obj)
+	_, err := importHelmObject(c, obj, namespacedName)
+	assert.NoError(t, err)
+	assert.Equal(t, obj.Annotations["meta.helm.sh/release-name"], ComponentName)
+	assert.Equal(t, obj.Annotations["meta.helm.sh/release-namespace"], globalconst.VerrazzanoSystemNamespace)
+	assert.Equal(t, obj.Labels["app.kubernetes.io/managed-by"], "Helm")
 }
 
 // TestIsReadySecretNotReady tests the Verrazzano isVerrazzanoReady call

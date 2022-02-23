@@ -357,13 +357,18 @@ func validateVMOLogs() bool {
 }
 
 func validateVOLogs() bool {
-	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
-		systemIndex,
-		"kubernetes.labels.app.keyword",
-		"verrazzano-operator",
-		searchTimeWindow,
-		noExceptions)
+	// VO not installed in 1.3.0+
+	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
+		return validateElasticsearchRecords(
+			allElasticsearchRecordValidator,
+			systemIndex,
+			"kubernetes.labels.app.keyword",
+			"verrazzano-operator",
+			searchTimeWindow,
+			noExceptions)
+	}
+
+	return true
 }
 
 func validatePrometheusLogs() bool {

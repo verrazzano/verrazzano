@@ -62,6 +62,8 @@ spec:
           value: "6"
         - name: nodes.data.requests.memory
           value: "32G"
+        - name: nodes.data.requests.storage
+          value: "50Gi"
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
