@@ -13,7 +13,7 @@ if [ -z "${ssh_public_key_path}" ] ; then
     exit 1
 fi
 if [ -z "${COMPARTMENT_ID}" ] ; then
-    echo "dev_lre_compartment_id env var must be set!"
+    echo "COMPARTMENT_ID env var must be set!"
     exit 1
 fi
 if [ -z "${KUBECONFIG}" ] ; then
@@ -21,7 +21,8 @@ if [ -z "${KUBECONFIG}" ] ; then
     exit 1
 fi
 
-
+echo "Compartment id is ${COMPARTMENT_ID}"
+echo "Cluster IP is ${CLUSTER_IP}"
 BASTION_ID=$(oci bastion bastion list \
             --compartment-id "${COMPARTMENT_ID}" --all \
             | jq -r '.data[0]."id"')
