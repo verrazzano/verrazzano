@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -257,5 +258,11 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 				APISecret:       fluentd.OCI.APISecret,
 			}
 		}
+	}
+
+	// Force the override to be the internal ES secret if the legacy ES secret is being used.
+	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
+	if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
+		overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
 	}
 }

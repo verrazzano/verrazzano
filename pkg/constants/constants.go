@@ -71,8 +71,8 @@ const LabelIstioInjection = "istio-injection"
 // LabelVerrazzanoNamespace - constant for a Kubernetes label that is used by network policies
 const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 
-// DefaultElasticsearchSecretName default secret name for Elasticsearch credentials
-const DefaultElasticsearchSecretName = "verrazzano"
+// LegacyElasticsearchSecretName legacy secret name for Elasticsearch credentials
+const LegacyElasticsearchSecretName = "verrazzano"
 
 // VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
 const VerrazzanoESInternal = "verrazzano-es-internal"

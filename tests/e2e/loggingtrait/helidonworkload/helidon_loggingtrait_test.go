@@ -18,8 +18,6 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 15 * time.Minute
-	longPollingInterval  = 20 * time.Second
 	namespace            = "hello-helidon-logging"
 	componentsPath       = "testdata/loggingtrait/helidonworkload/helidon-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/helidonworkload/helidon-logging-application.yaml"
@@ -32,7 +30,7 @@ var kubeConfig = os.Getenv("KUBECONFIG")
 var t = framework.NewTestFramework("helidonworkload")
 
 var _ = t.BeforeSuite(func() {
-	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, t)
+	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
 })
 
 var clusterDump = pkg.NewClusterDumpWrapper()
@@ -46,17 +44,6 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Test helidon loggingtrait application", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload",
 	"f:app-lcm.logging-trait"), func() {
-
-	t.Context("Deployment.", func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and mysql pods should be found running
-		t.It("Verify 'hello-helidon-deployment' pod is running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{applicationPodName})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
 
 	t.Context("for LoggingTrait.", func() {
 		// GIVEN the app is deployed and the pods are running

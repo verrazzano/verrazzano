@@ -7,9 +7,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"reflect"
 	"strings"
+
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -870,7 +871,7 @@ func (r *Reconciler) fetchServicesFromTrait(ctx context.Context, trait *vzapi.In
 
 	// Fetch workload resource
 	var workload *unstructured.Unstructured
-	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r.Client, log, trait); err != nil {
+	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r.Client, log, trait); err != nil || workload == nil {
 		return nil, err
 	}
 

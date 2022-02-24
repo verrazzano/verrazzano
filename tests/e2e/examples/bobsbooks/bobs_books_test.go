@@ -27,6 +27,15 @@ const (
 var (
 	t                  = framework.NewTestFramework("bobsbooks")
 	generatedNamespace = pkg.GenerateNamespace("bobs-books")
+	expectedPods       = []string{
+		"bobbys-front-end-adminserver",
+		"bobs-bookstore-adminserver",
+		"bobbys-coherence-0",
+		"roberts-coherence-0",
+		"roberts-coherence-1",
+		"bobbys-helidon-stock-application",
+		"robert-helidon",
+		"mysql"}
 )
 
 var _ = BeforeSuite(func() {
@@ -38,17 +47,11 @@ var _ = BeforeSuite(func() {
 
 	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
 	Eventually(func() bool {
-		expectedPods := []string{
-			"bobbys-front-end-adminserver",
-			"bobs-bookstore-adminserver",
-			"bobbys-coherence-0",
-			"roberts-coherence-0",
-			"roberts-coherence-1",
-			"bobbys-helidon-stock-application",
-			"robert-helidon",
-			"mysql",
+		result, err := pkg.PodsRunning(namespace, expectedPods)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 		}
-		return pkg.PodsRunning(namespace, expectedPods)
+		return result
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 })
 
