@@ -173,6 +173,7 @@ pipeline {
                         --region ${OCI_CLI_REGION} \
                         --token-version 2.0.0  \
                         --kube-endpoint PRIVATE_ENDPOINT
+                        cat ${KUBECONFIG}
                     """
                 }
             }
@@ -205,22 +206,22 @@ pipeline {
                     switch(LRE_CLUSTER_ENV) {
                         case "dev" :
                             //dev2 lre cluster use bastion host from lre/dev compartment
-                            env.COMPARTMENT_ID = "{dev_lre_compartment_id}"
-                            env.CLUSTER_IP = "{dev2_private_ip}"
+                            env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
+                            env.CLUSTER_IP = "${dev2_private_ip}"
                             break
                         case "prod" :
-                            env.COMPARTMENT_ID = "{prod_lre_compartment_id}"
-                            env.CLUSTER_IP = "{prod_private_ip}"
+                            env.COMPARTMENT_ID = "${prod_lre_compartment_id}"
+                            env.CLUSTER_IP = "${prod_private_ip}"
                             break
                         case "test" :
                             //test lre cluster use bastion host from lre/dev compartment
-                            env.COMPARTMENT_ID = "{dev_lre_compartment_id}"
-                            env.CLUSTER_IP = "{test_private_ip}"
+                            env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
+                            env.CLUSTER_IP = "${test_private_ip}"
                             break
                         default:
                             //dev2 lre cluster use bastion host from lre/dev compartment
-                            env.COMPARTMENT_ID = "{dev_lre_compartment_id}"
-                            env.CLUSTER_IP = "{dev2_private_ip}"
+                            env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
+                            env.CLUSTER_IP = "${dev2_private_ip}"
                             break
                     }
                     sh '''
