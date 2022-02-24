@@ -6,7 +6,6 @@ package register_test
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -194,13 +194,23 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("Fluentd should point to the correct ES", func() {
+			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0")
+			if err != nil {
+				Fail(err.Error())
+			}
 			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
+				var secret string
+				if supported {
+					secret = pkg.VmiESInternalSecret
+				} else {
+					secret = pkg.VmiESLegacySecret
+				}
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret("", pkg.VmiESSecret)
+					return pkg.AssertFluentdURLAndSecret("", secret)
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
 		})

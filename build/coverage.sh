@@ -18,7 +18,12 @@ go test -coverpkg=./... -coverprofile ./coverage.raw.cov $(go list ./... | \
 
 TEST_STATUS=$?
 
-cat ./coverage.raw.cov | grep -v "zz_generated.deepcopy" | grep -v "mocks" | grep -v "e2e" > coverage.cov
+# Remove specific files from coverage report
+cat ./coverage.raw.cov |\
+  grep -v "zz_generated.deepcopy" |\
+  grep -v "mocks" |\
+  grep -v "e2e" |\
+  grep -v "generated_assets" > coverage.cov
 
 # Display the global code coverage.  This generates the total number the badge uses
 go tool cover -func=coverage.cov

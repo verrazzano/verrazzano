@@ -37,8 +37,7 @@ var (
 		"roberts-coherence-1",
 		"bobbys-helidon-stock-application",
 		"robert-helidon",
-		"mysql",
-	}
+		"mysql"}
 )
 
 var _ = BeforeSuite(func() {
@@ -53,7 +52,11 @@ var _ = BeforeSuite(func() {
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
 	Eventually(func() bool {
-		return pkg.PodsRunning(namespace, expectedPods)
+		result, err := pkg.PodsRunning(namespace, expectedPods)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 })
 

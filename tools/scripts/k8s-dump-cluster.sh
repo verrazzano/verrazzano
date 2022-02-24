@@ -226,6 +226,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/statefulsets.json || true
         kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/secrets.json || true
         kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/certificates.json || true
+        kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-dump/$NAMESPACE/metrics-traits.json || true
       fi
     fi
   done <$CAPTURE_DIR/cluster-dump/namespace_list.out

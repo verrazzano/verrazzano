@@ -4,6 +4,7 @@
 package deploymetrics
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -62,6 +63,15 @@ func deployMetricsApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
+
+	pkg.Log(pkg.Info, "Verify deploymetrics-workload pod is running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		}
+		return result
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
@@ -97,17 +107,6 @@ func undeployMetricsApplication() {
 }
 
 var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), func() {
-	// Verify deploymetrics-workload pod is running
-	// GIVEN deploymetrics app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	t.Context("app deployment", func() {
-		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
 
 	t.Context("for Prometheus Config.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {

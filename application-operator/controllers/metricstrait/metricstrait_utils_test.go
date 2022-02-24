@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -8,6 +8,7 @@ import (
 
 	"github.com/Jeffail/gabs/v2"
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -208,4 +209,53 @@ func Test_mergeTemplateWithContext(t *testing.T) {
 	context = map[string]string{"{{template-name-1}}": "template-value-2"}
 	output = mergeTemplateWithContext(input, context)
 	assert.Equal("template-value-2\ntemplate-value-2", output)
+}
+
+// TestGetSupportedWorkloadType tests metrics trait utility function GetSupportedWorkloadType
+func TestGetSupportedWorkloadType(t *testing.T) {
+	assert := asserts.New(t)
+	var apiVerKind string
+	var workloadType string
+
+	// GIVEN an api version weblogic.oracle/v8 and Kind Domain
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadtype is weblogic
+	apiVerKind = "weblogic.oracle/v8.Domain"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Equal(constants.WorkloadTypeWeblogic, workloadType)
+
+	// GIVEN an api version coherence.oracle.com/v1 and Kind Coherence
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadType is coherence
+	apiVerKind = "coherence.oracle.com/v1.Coherence"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Equal(constants.WorkloadTypeCoherence, workloadType)
+
+	// GIVEN an api version oam.verrazzano.io/v1alpha1 and Kind VerrazzanoHelidonWorkload
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadType is generic
+	apiVerKind = "oam.verrazzano.io/v1alpha1.VerrazzanoHelidonWorkload"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Equal(constants.WorkloadTypeGeneric, workloadType)
+
+	// GIVEN an api version core.oam.dev/v1alpha2 and Kind ContainerizedWorkload
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadType is generic
+	apiVerKind = "core.oam.dev/v1alpha2.ContainerizedWorkload"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Equal(constants.WorkloadTypeGeneric, workloadType)
+
+	// GIVEN an api version apps/v1 and Kind Deployment
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadType is generic
+	apiVerKind = "apps/v1.Deployment"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Equal(constants.WorkloadTypeGeneric, workloadType)
+
+	// GIVEN an api version vi and Kind ConfigMap
+	// WHEN supported workloadtype is retrieved
+	// THEN verify that the workloadType is empty because ConfigMap is not a supported type.
+	apiVerKind = "v1.ConfigMap"
+	workloadType = GetSupportedWorkloadType(apiVerKind)
+	assert.Empty(workloadType)
 }

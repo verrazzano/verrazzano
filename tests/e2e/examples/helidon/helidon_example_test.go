@@ -159,7 +159,11 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 })
 
 func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
 
 func appEndpointAccessible(url string, hostname string) bool {

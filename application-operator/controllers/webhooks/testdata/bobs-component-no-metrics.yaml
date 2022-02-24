@@ -1,0 +1,21 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: bobs-mysql-service
+  namespace: bobs-books
+spec:
+  workload:
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: mysql
+      namespace: bobs-books
+    spec:
+      clusterIP: None
+      ports:
+      - port: 3306
+      selector:
+        app: bobs-mysql

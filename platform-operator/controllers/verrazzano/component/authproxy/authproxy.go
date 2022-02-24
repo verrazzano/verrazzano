@@ -22,7 +22,7 @@ import (
 
 const (
 	keycloakInClusterURL = "keycloak-http.keycloak.svc.cluster.local"
-	tmpFilePrefix        = "verrazzano-overrides-"
+	tmpFilePrefix        = "authproxy-overrides-"
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix

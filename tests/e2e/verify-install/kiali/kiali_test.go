@@ -72,7 +72,11 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 		WhenKialiInstalledIt("should have a running pod", func() {
 			kialiPodsRunning := func() bool {
-				return pkg.PodsRunning(systemNamespace, []string{kiali})
+				result, err := pkg.PodsRunning(systemNamespace, []string{kiali})
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", kiali, systemNamespace, err))
+				}
+				return result
 			}
 			Eventually(kialiPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 		})

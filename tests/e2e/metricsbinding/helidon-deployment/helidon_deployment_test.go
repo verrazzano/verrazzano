@@ -15,8 +15,6 @@ import (
 )
 
 const (
-	longWaitTimeout      = 15 * time.Minute
-	longPollingInterval  = 20 * time.Second
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
 	namespace            = "hello-helidon-namespace"
@@ -29,7 +27,7 @@ var t = framework.NewTestFramework("deploymentworkload")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplication(namespace, yamlPath)
+	metricsbinding.DeployApplication(namespace, yamlPath, applicationPodPrefix)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -42,16 +40,6 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
-	t.Context("app deployment", func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the Helidon pod should exist
-		t.It("Verify 'hello-helidon-deployment' pod is running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{applicationPodPrefix})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
 
 	// GIVEN the Helidon app is deployed and the pods are running
 	// WHEN the Prometheus metrics in the app namespace are scraped
