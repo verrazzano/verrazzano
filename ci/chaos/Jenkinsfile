@@ -60,7 +60,7 @@ pipeline {
         choice (name: 'CHAOS_TEST_TYPE',
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
-                choices: [ "vpo.killed", "helm.chart.corrupted" ])
+                choices: [ "helm.chart.corrupted", "vpo.killed" ])
     }
 
     environment {
@@ -405,15 +405,20 @@ pipeline {
                         # Move values.yaml so helm install of Verrazzano will fail
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
-                        # sleep 5 minutes to let the helm upgrade error manifest
-                        sleep 300
+                        # wait for the expected error message
+                        # TODO - set a limit to wait?
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for the error message ..."
+                            sleep 30
+                        done
                         # Fix it
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml"
                     fi
 
                     # wait for the upgrade to complete
                     # Turn it off for now, Upgrade Fails
-                    # kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
 
                     # Dump the resource to debug
