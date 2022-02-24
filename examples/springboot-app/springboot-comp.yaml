@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: springboot-container
-        image: "ghcr.io/verrazzano/example-springboot:1.0.0-1-20211220133936-937bbfb"
+        image: "ghcr.io/verrazzano/example-springboot:20220224073321-2e66890"
         ports:
           - containerPort: 8080
             name: springboot
