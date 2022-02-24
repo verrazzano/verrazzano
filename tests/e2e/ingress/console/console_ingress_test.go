@@ -97,10 +97,6 @@ func deployApplication() {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
-	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-
 	// Verify cidomain-adminserver and mysql pods are running
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
