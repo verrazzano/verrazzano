@@ -389,24 +389,6 @@ pipeline {
             }
         }
 
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                integrationTests("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**,**/install.sh.log', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
                 script {
