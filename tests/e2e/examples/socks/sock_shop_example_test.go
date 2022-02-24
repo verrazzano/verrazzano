@@ -26,13 +26,13 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 7 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 10 * time.Minute
-	longWaitTimeout      = 20 * time.Minute
-	pollingInterval      = 30 * time.Second
-	sockshopAppName      = "sockshop-appconfig"
-	imagePullWaitTimeout            = 40 * time.Minute
+	shortWaitTimeout         = 7 * time.Minute
+	shortPollingInterval     = 10 * time.Second
+	waitTimeout              = 10 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
+	pollingInterval          = 30 * time.Second
+	sockshopAppName          = "sockshop-appconfig"
+	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 )
 

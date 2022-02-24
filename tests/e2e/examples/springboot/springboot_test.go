@@ -24,9 +24,9 @@ var longWaitTimeout = 15 * time.Minute
 var longPollingInterval = 20 * time.Second
 
 var (
-	t                  = framework.NewTestFramework("springboot")
-	generatedNamespace = pkg.GenerateNamespace("springboot")
-	imagePullWaitTimeout            = 40 * time.Minute
+	t                        = framework.NewTestFramework("springboot")
+	generatedNamespace       = pkg.GenerateNamespace("springboot")
+	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 )
 
