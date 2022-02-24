@@ -26,16 +26,12 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "1.20", "1.19", "1.21" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.0.0',
+                defaultValue: 'v1.1.1',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano tip will be used.',
-                trim: true)
-        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                defaultValue: 'NONE',
-                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
                 trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
@@ -60,7 +56,7 @@ pipeline {
         choice (name: 'CHAOS_TEST_TYPE',
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
-                choices: [ "vpo.killed", "helm.chart.corrupted" ])
+                choices: [ "vpo.killed", "helm.chart.corrupted", "uninstall.failed.upgrade" ])
     }
 
     environment {
@@ -91,7 +87,6 @@ pipeline {
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -352,7 +347,7 @@ pipeline {
             }
         }
 
-        stage("Upgrade Verrazzano") {
+        stage("Upgrade Verrazzano and execute selected test") {
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
@@ -406,30 +401,59 @@ pipeline {
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
                         # sleep 5 minutes to let the helm upgrade error manifest
-                        sleep 300
-                        # Fix it
-                        kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml"
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for the error message ..."
+                            sleep 30
+                        done
+                        # Make sure the install is still upgrading
+                        vz_status=`kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}'`
+                        if [ vz_status == 'UpgradeStarted' ]; then
+                            # Fix it
+                            kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml"
+                        fi
                     fi
 
-                    # wait for the upgrade to complete
-                    # Turn it off for now, Upgrade Fails
-                    # kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    if [[ "uninstall.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                    then
+                        # Move values.yaml so helm install of Verrazzano will fail
+                        POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
+                        kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
+                        # sleep 5 minutes to let the helm upgrade error manifest
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for the error message ..."
+                            sleep 30
+                        done
+                        # Make sure the install is still upgrading
+                        vz_status=`kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}'`
+                        if [ vz_status == 'UpgradeStarted' ]; then
+                            # Uninstall VZ
+                            kubectl delete verrazzano my-verrazzano
+                        fi
+                    fi
+
+                    if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
+                    then
+                        # wait for the upgrade to complete
+                        # Turn it off for now, Upgrade Fails
+                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
 
-                    # Dump the resource to debug
-                    kubectl get -o yaml verrazzano/my-verrazzano || true
+                        # Dump the resource to debug
+                        kubectl get -o yaml verrazzano/my-verrazzano || true
 
-                    # ideally we don't need to wait here
-                    sleep 15
-                    echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                    helm list -A
+                        # ideally we don't need to wait here
+                        sleep 15
+                        echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                        helm list -A
 
-                    # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-                    kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+                        # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
+                        kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
-                    echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-                    cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-
+                        echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
+                        cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+                    fi
                 """
             }
             post {
@@ -448,6 +472,9 @@ pipeline {
         }
 
         stage('Post-upgrade Acceptance Tests') {
+            when {
+                expression{params.CHAOS_TEST_TYPE != "uninstall.failed.upgrade"}
+            }
             environment {
                 TEST_ENV = "KIND"
                 SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
@@ -566,6 +593,9 @@ pipeline {
             }
         }
         stage('Uninstall') {
+            when {
+                expression{params.CHAOS_TEST_TYPE != "uninstall.failed.upgrade"}
+            }
             options {
                 timeout(time: 30, unit: "MINUTES")
             }
