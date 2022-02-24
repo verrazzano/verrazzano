@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022 Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -418,7 +418,8 @@ pipeline {
 
                     # wait for the upgrade to complete
                     # Turn it off for now, Upgrade Fails
-                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    # default was 20m
+                    kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
 
                     # Dump the resource to debug
