@@ -150,14 +150,17 @@ pipeline {
             steps {
                 script {
                     switch(LRE_CLUSTER_ENV) {
-                        case "dev" :
+                        case "dev":
                             env.CLUSTER_ID = "${dev2_lre_cluster_id}"
                             break
-                        case "prod" :
+                        case "prod":
                             env.CLUSTER_ID = "${prod_lre_cluster_id}"
                             break
-                        case "test" :
+                        case "test":
                             env.CLUSTER_ID = "${test_lre_cluster_id}"
+                            break
+                        default:
+                            env.CLUSTER_ID = "${dev2_lre_cluster_id}"
                             break
                     }
                     sh """
@@ -213,6 +216,11 @@ pipeline {
                             //test lre cluster use bastion host from lre/dev compartment
                             env.COMPARTMENT_ID = "{dev_lre_compartment_id}"
                             env.CLUSTER_IP = "{test_private_ip}"
+                            break
+                        default:
+                            //dev2 lre cluster use bastion host from lre/dev compartment
+                            env.COMPARTMENT_ID = "{dev_lre_compartment_id}"
+                            env.CLUSTER_IP = "{dev2_private_ip}"
                             break
                     }
                     sh '''
