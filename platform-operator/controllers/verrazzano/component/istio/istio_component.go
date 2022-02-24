@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -447,7 +448,7 @@ func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, 
 	return kvs, nil
 }
 
-func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
+func buildOverridesString(_ vzlog.VerrazzanoLogger, _ clipkg.Client, _ string, additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()
 	if err != nil {
@@ -501,7 +502,7 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 // if so it returns true
 func needsRestart(pods v1.PodList, istioVersion string) bool {
 	for _, pod := range pods.Items {
-		for _, bomImage := range bom.BuildBomImagesFromPod(pod) {
+		for _, bomImage := range bom.BuildBOMImagesFromStrings(k8sutil.ListImagesInPod(pod)) {
 			if bomImage.ImageName == IstioProxyImageName && bomImage.ImageTag != istioVersion {
 				return true
 			}

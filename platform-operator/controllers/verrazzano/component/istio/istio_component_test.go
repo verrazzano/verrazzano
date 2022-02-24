@@ -368,6 +368,85 @@ func TestGetIstioVersion(t *testing.T) {
 	assert.Equal(t, "1.10.4", istioVersion, "the istio proxyv2 image tag should match the one in test_bom.json")
 }
 
+// TestNeedsRestart tests that needsRestart returns the correct value given a PodList
+func TestNeedsRestart(t *testing.T) {
+	correctIstioVersion := "1.10.4"
+	podListRestart := v1.PodList{
+		Items: []v1.Pod{
+			{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
+						},
+						{
+							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
+						},
+					},
+				},
+				Status: v1.PodStatus{},
+			},
+			{
+
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
+						},
+						{
+							Image: "ghcr.io/verrazzano/proxyv2:1.7.3",
+						},
+					},
+				},
+			},
+			{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
+						},
+						{
+							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
+						},
+					},
+				},
+			},
+		},
+	}
+	assert.True(t, needsRestart(podListRestart, correctIstioVersion))
+
+	podListDontRestart := v1.PodList{
+		Items: []v1.Pod{
+			{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
+						},
+						{
+							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
+						},
+					},
+				},
+				Status: v1.PodStatus{},
+			},
+			{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						{
+							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
+						},
+						{
+							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
+						},
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, needsRestart(podListDontRestart, correctIstioVersion))
+}
+
 // upgradeMocks generates a MockClient and gives it the EXPECTs necessary to pass the unit tests
 func upgradeMocks(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)

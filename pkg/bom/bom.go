@@ -11,8 +11,6 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
-	v1 "k8s.io/api/core/v1"
 )
 
 const defaultImageKey = "image"
@@ -324,6 +322,15 @@ func FindKV(kvs []KeyValue, key string) string {
 	return ""
 }
 
+// BuildBOMImagesFromStrings populates and returns a []BomImage
+func BuildBOMImagesFromStrings(images []string) []BomImage {
+	var bomImages []BomImage
+	for _, image := range images {
+		bomImages = append(bomImages, BuildBOMImageFromString(image))
+	}
+	return bomImages
+}
+
 // BuildBOMImageFromString populates and returns a BomImage type from the passed in image
 func BuildBOMImageFromString(image string) BomImage {
 	var bomImage BomImage
@@ -333,14 +340,4 @@ func BuildBOMImageFromString(image string) BomImage {
 	bomImage.ImageName = image[(slash + 1):colon]
 	bomImage.Repository = image[:slash]
 	return bomImage
-}
-
-// BuildBomImagesFromPod builds a list of BomImages from a pod
-func BuildBomImagesFromPod(pod v1.Pod) []BomImage {
-	var images []BomImage
-	podContainers := pod.Spec.Containers
-	for _, container := range podContainers {
-		images = append(images, BuildBOMImageFromString(container.Image))
-	}
-	return images
 }
