@@ -5,14 +5,17 @@ package mocks
 
 import (
 	"context"
-	"github.com/golang/mock/gomock"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
+
+	"github.com/golang/mock/gomock"
 	"k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// RestartMocks takes a MockClient and gives it the EXPECTs necessary to pass the unit tests
 func RestartMocks(mock *MockClient) {
 	mock.EXPECT().
 		List(gomock.Any(), &v1.DeploymentList{}).

@@ -367,6 +367,7 @@ func TestGetIstioVersion(t *testing.T) {
 	assert.Equal(t, "1.10.4", istioVersion, "the istio proxyv2 image tag should match the one in test_bom.json")
 }
 
+// upgradeMocks generates a MockClient and gives it the EXPECTs necessary to pass the unit tests
 func upgradeMocks(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
@@ -421,6 +422,7 @@ func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overri
 	return []byte("success"), []byte(""), nil
 }
 
+// fakeHelmUninstall is a fake uninstall function for unit tests
 func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 	if releaseName != "istiocoredns" {
 		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)

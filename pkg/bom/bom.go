@@ -324,6 +324,7 @@ func FindKV(kvs []KeyValue, key string) string {
 	return ""
 }
 
+// BuildBOMImageFromString populates and returns a BomImage type from the passed in image
 func BuildBOMImageFromString(image string) BomImage {
 	var bomImage BomImage
 	colon := strings.LastIndex(image, ":")
@@ -334,6 +335,7 @@ func BuildBOMImageFromString(image string) BomImage {
 	return bomImage
 }
 
+// BuildBomImagesFromPod builds a list of BomImages from a pod
 func BuildBomImagesFromPod(pod v1.Pod) []BomImage {
 	var images []BomImage
 	podContainers := pod.Spec.Containers

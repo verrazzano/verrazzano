@@ -227,23 +227,24 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 		return err
 	}
 
-	// get all the deployments and pods
+	// Restart all necessary in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
-	if err := client.List(context.TODO(), &deploymentList); err != nil {
+	err = client.List(context.TODO(), &deploymentList)
+	if err != nil {
+		log.Errorf("Error listing Deployments in the cluster: %v", err)
 		return err
 	}
-
-	// iterate through deployments
 	for index := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
-
 		// Check if deployment is in an Istio injected system namespace
 		if vzString.SliceContainsString(config.GetInjectedSystemNamespaces(), deployment.Namespace) {
 			if deployment.Spec.Paused {
 				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
 			}
 			var pods v1.PodList
-			if err := client.List(context.TODO(), &pods, clipkg.MatchingLabels(deployment.Spec.Selector.MatchLabels)); err != nil {
+			err = client.List(context.TODO(), &pods, clipkg.MatchingLabels(deployment.Spec.Selector.MatchLabels))
+			if err != nil {
+				log.Errorf("Error listing Pods for Deployment %s: %v", deployment.Name, err)
 				return err
 			}
 			if needsRestart(pods, istioVersion) {
@@ -252,18 +253,22 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 					deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 				}
 				deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-				if err := client.Update(context.TODO(), deployment); err != nil {
-					log.Errorf("Failed to update the annotations for deployment %s: %v", deployment.Name, err)
+				err = client.Update(context.TODO(), deployment)
+				if err != nil {
+					log.Errorf("Failed to update the annotations for Deployment %s: %v", deployment.Name, err)
 					return err
 				}
+				log.Debugf("Restarted Deployment: %s")
 			}
 		}
 		log.Info("Restarted system Deployments in istio injected namespaces")
 	}
-	// Restart all the StatefulSet in the injected system namespaces
+
+	// Restart the necessary StatefulSet in the injected system namespaces
 	statefulSetList := appsv1.StatefulSetList{}
 	err = client.List(context.TODO(), &statefulSetList)
 	if err != nil {
+		log.Errorf("Error listing StatefulSets in the cluster: %v", err)
 		return err
 	}
 	for index := range statefulSetList.Items {
@@ -271,7 +276,9 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 		// Check if StatefulSet is in an Istio injected system namespace
 		if vzString.SliceContainsString(config.GetInjectedSystemNamespaces(), statefulSet.Namespace) {
 			var pods v1.PodList
-			if err := client.List(context.TODO(), &pods, clipkg.MatchingLabels(statefulSet.Spec.Selector.MatchLabels)); err != nil {
+			err = client.List(context.TODO(), &pods, clipkg.MatchingLabels(statefulSet.Spec.Selector.MatchLabels))
+			if err != nil {
+				log.Errorf("Error listing Pods for StatefulSet %s: %v", statefulSet.Name, err)
 				return err
 			}
 			if needsRestart(pods, istioVersion) {
@@ -280,18 +287,22 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 					statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 				}
 				statefulSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-				if err := client.Update(context.TODO(), statefulSet); err != nil {
+				err = client.Update(context.TODO(), statefulSet)
+				if err != nil {
+					log.Errorf("Failed to update the annotations for StatefulSet %s: %v", statefulSet.Name, err)
 					return err
 				}
+				log.Debugf("Restarted StatefuSet: %s")
 			}
 		}
 	}
 	log.Info("Restarted system Statefulsets in istio injected namespaces")
 
-	// Restart all the StatefulSet in the injected system namespaces
+	// Restart the necessary StatefulSet in the injected system namespaces
 	daemonSetList := appsv1.DaemonSetList{}
 	err = client.List(context.TODO(), &daemonSetList)
 	if err != nil {
+		log.Errorf("Error listing StatefulSets in the cluster: %v", err)
 		return err
 	}
 	for index := range daemonSetList.Items {
@@ -299,8 +310,9 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 		// Check if StatefulSet is in an Istio injected system namespace
 		if vzString.SliceContainsString(config.GetInjectedSystemNamespaces(), daemonSet.Namespace) {
 			var pods v1.PodList
-			if err := client.List(context.TODO(), &pods, clipkg.MatchingLabels(daemonSet.Spec.Selector.MatchLabels)); err != nil {
-
+			err = client.List(context.TODO(), &pods, clipkg.MatchingLabels(daemonSet.Spec.Selector.MatchLabels))
+			if err != nil {
+				log.Errorf("Error listing Pods for DaemonSet %s: %v", daemonSet.Name, err)
 				return err
 			}
 			if needsRestart(pods, istioVersion) {
@@ -309,9 +321,12 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 					daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 				}
 				daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-				if err := client.Update(context.TODO(), daemonSet); err != nil {
+				err = client.Update(context.TODO(), daemonSet)
+				if err != nil {
+					log.Errorf("Failed to update the annotations for DaemonSet %s: %v", daemonSet.Name, err)
 					return err
 				}
+				log.Debugf("Restarted DaemonSet: %s")
 			}
 		}
 	}
@@ -319,6 +334,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	return nil
 }
 
+// getIstioVersion returns the istio version contained in the BOM
 func getIstioVersion() (string, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
@@ -332,6 +348,7 @@ func getIstioVersion() (string, error) {
 	return proxyImage.ImageTag, err
 }
 
+// deleteIstioCoreDNS deletes the istiocoredns release
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
@@ -375,6 +392,7 @@ func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	return nil
 }
 
+// buildImageOverridesString builds the override string
 func buildImageOverridesString(_ vzlog.VerrazzanoLogger) (string, error) {
 	// Get the image overrides from the BOM
 	var kvs []bom.KeyValue
@@ -479,6 +497,8 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
+// needsRestart checks whether any of the pods has an istio image that doesn't match the one in the bom
+// if so it returns true
 func needsRestart(pods v1.PodList, istioVersion string) bool {
 	for _, pod := range pods.Items {
 		for _, bomImage := range bom.BuildBomImagesFromPod(pod) {

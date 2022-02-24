@@ -254,6 +254,10 @@ func TestBomSubcomponentOverrides(t *testing.T) {
 	assert.Equal("verrazzano", bom.ResolveRepo(vpoSubcomponent, BomImage{}), "VPO subcomponent repo not correct")
 }
 
+// TestBomImageOverrides test the generation of BOM image overrides
+// GIVEN a new BOM file
+// WHEN the bom contains specific registry, repo, and subcomponents
+// THEN assert these are correct
 func TestBomImageOverrides(t *testing.T) {
 	bom, err := NewBom(testBomImageOverridesPath)
 	assert.NoError(t, err)
@@ -265,6 +269,10 @@ func TestBomImageOverrides(t *testing.T) {
 	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, img))
 }
 
+// TestBuildBOMImageFromString tests the BuildBOMImageFromString function
+// GIVEN an image
+// WHEN image is passed into the BuildBOMImageFromString and a BomImage is returned
+// THEN assert that  the image tag, image name, and repository are correct
 func TestBuildBOMImageFromString(t *testing.T) {
 	proxyImage := "ghcr.io/verrazzano/proxyv2:1.7.3"
 	proxyBOM := BuildBOMImageFromString(proxyImage)
