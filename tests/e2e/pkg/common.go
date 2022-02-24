@@ -385,6 +385,7 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 
 	allContainers := make(map[string][]interface{})
 	imagesYetToBePulled := 0
+	scheduledPods := make(map[string]bool)
 
 	// For a given pod, store all the container names in a slice
 	for _, pod := range pods.Items {
@@ -398,6 +399,7 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 					allContainers[pod.Name] = append(allContainers[pod.Name], container.Name)
 					imagesYetToBePulled++
 				}
+				scheduledPods[namePrefix] = true
 			}
 		}
 	}
@@ -434,7 +436,7 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 	}
 
 	// If all the pods haven't been scheduled, retry
-	if len(allContainers) < len(namePrefixes) {
+	if len(scheduledPods) != len(namePrefixes) {
 		Log(Info, "All the pods haven't been scheduled yet, retrying")
 		return false
 	}
