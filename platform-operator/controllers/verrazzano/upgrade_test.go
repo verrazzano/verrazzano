@@ -821,15 +821,6 @@ func TestUpgradeHelmError(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.CondUpgradeFailed, "Incorrect condition")
-			return nil
-		})
-
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
@@ -838,8 +829,8 @@ func TestUpgradeHelmError(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
-	asserts.Equal(time.Duration(0), result.RequeueAfter)
+	asserts.Equal(true, result.Requeue)
+	asserts.GreaterOrEqual(result.RequeueAfter.Seconds(), time.Duration(30).Seconds())
 }
 
 // TestUpgradeIsCompInstalledFailure tests the reconcileUpgrade method for the following use case
