@@ -172,7 +172,11 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 })
 
 func helidonConfigPodsRunning() bool {
-	return pkg.PodsRunning(namespace, expectedPodsHelidonConfig)
+	result, err := pkg.PodsRunning(namespace, expectedPodsHelidonConfig)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
 
 func appMetricsExists() bool {

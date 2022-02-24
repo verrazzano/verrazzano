@@ -53,7 +53,11 @@ var _ = t.Describe("Multi Cluster Install Validation", Label("f:platform-lcm.ins
 		t.Context("Expected pods are running.", func() {
 			t.It("and waiting for expected pods must be running", func() {
 				Eventually(func() bool {
-					return pkg.PodsRunning("kube-system", expectedPodsKubeSystem)
+					result, err := pkg.PodsRunning("kube-system", expectedPodsKubeSystem)
+					if err != nil {
+						AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: kube-system, error: %v", err))
+					}
+					return result
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		})
