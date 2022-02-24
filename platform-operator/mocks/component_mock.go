@@ -11,9 +11,9 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	spi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	zap "go.uber.org/zap"
 	types "k8s.io/apimachinery/pkg/types"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -97,20 +97,6 @@ func (mr *MockComponentContextMockRecorder) EffectiveCR() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EffectiveCR", reflect.TypeOf((*MockComponentContext)(nil).EffectiveCR))
 }
 
-// For mocks base method.
-func (m *MockComponentContext) For(arg0 string) spi.ComponentContext {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "For", arg0)
-	ret0, _ := ret[0].(spi.ComponentContext)
-	return ret0
-}
-
-// For indicates an expected call of For.
-func (mr *MockComponentContextMockRecorder) For(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "For", reflect.TypeOf((*MockComponentContext)(nil).For), arg0)
-}
-
 // GetComponent mocks base method.
 func (m *MockComponentContext) GetComponent() string {
 	m.ctrl.T.Helper()
@@ -139,6 +125,20 @@ func (mr *MockComponentContextMockRecorder) GetOperation() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperation", reflect.TypeOf((*MockComponentContext)(nil).GetOperation))
 }
 
+// Init mocks base method.
+func (m *MockComponentContext) Init(arg0 string) spi.ComponentContext {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Init", arg0)
+	ret0, _ := ret[0].(spi.ComponentContext)
+	return ret0
+}
+
+// Init indicates an expected call of Init.
+func (mr *MockComponentContextMockRecorder) Init(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Init", reflect.TypeOf((*MockComponentContext)(nil).Init), arg0)
+}
+
 // IsDryRun mocks base method.
 func (m *MockComponentContext) IsDryRun() bool {
 	m.ctrl.T.Helper()
@@ -154,10 +154,10 @@ func (mr *MockComponentContextMockRecorder) IsDryRun() *gomock.Call {
 }
 
 // Log mocks base method.
-func (m *MockComponentContext) Log() *zap.SugaredLogger {
+func (m *MockComponentContext) Log() vzlog.VerrazzanoLogger {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Log")
-	ret0, _ := ret[0].(*zap.SugaredLogger)
+	ret0, _ := ret[0].(vzlog.VerrazzanoLogger)
 	return ret0
 }
 
