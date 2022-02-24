@@ -26,7 +26,8 @@ var longPollingInterval = 20 * time.Second
 var (
 	t                  = framework.NewTestFramework("springboot")
 	generatedNamespace = pkg.GenerateNamespace("springboot")
-	expWait            = 60 * time.Minute
+	imagePullWaitTimeout            = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var _ = t.BeforeSuite(func() {
@@ -43,7 +44,7 @@ var _ = t.BeforeSuite(func() {
 	pkg.Log(pkg.Info, "Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, expectedPodsSpringBootApp)
-	}, expWait, longPollingInterval).Should(BeTrue())
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	Eventually(func() bool {
 		return pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
 	}, longWaitTimeout, pollingInterval).Should(BeTrue())

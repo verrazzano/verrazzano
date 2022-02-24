@@ -25,7 +25,8 @@ const (
 	longPollingInterval  = 20 * time.Second
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-	expWait              = 60 * time.Minute
+	imagePullWaitTimeout             = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var (
@@ -44,7 +45,7 @@ var _ = t.BeforeSuite(func() {
 
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
-	}, expWait, longPollingInterval).Should(BeTrue())
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created

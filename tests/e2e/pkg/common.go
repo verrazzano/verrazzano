@@ -348,7 +348,10 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 	return CheckAllImagesPulled(pods, events, namePrefixes)
 }
 
-// The idea here is to enumerate all the containers in a pod and check if their images have been pulled or not
+// CheckAllImagesPulled checks if all the images of the target pods have been pulled or not.
+// The idea here is to periodically enumerate the containers from the target pods and watch the events related image pulls,
+// such that we can make a smarter decision about pod deployment i.e. keep waiting if the process is slow, and stop waiting
+// in case of unrecoverable failures.
 func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
 
 	allContainers := make(map[string][]interface{})
@@ -371,10 +374,11 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 	}
 
 	// Keep waiting and retry if all the pods haven't been scheduled
-	if len(allContainers) == 0 || imagesYetToBePulled == 0 || len(allContainers) < len(namePrefixes) {
-		Log(Info, "Can't check for all the images right now")
+	if len(allContainers) == 0 || imagesYetToBePulled == 0 {
+		Log(Info, "All the pods haven't been scheduled yet, retrying")
 		return false
 	}
+
 	// Drill down event data to check if the container image has been pulled
 	for podName, containers := range allContainers {
 		for _, container := range containers {
@@ -398,6 +402,12 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 				}
 			}
 		}
+	}
+
+	// If all the pods haven't been scheduled, retry
+	if len(allContainers) < len(namePrefixes) {
+		Log(Info, "All the pods haven't been scheduled yet, retrying")
+		return false
 	}
 	Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
 	return imagesYetToBePulled == 0

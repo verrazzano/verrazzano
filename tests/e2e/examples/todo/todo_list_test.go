@@ -24,7 +24,8 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 20 * time.Minute
 	longPollingInterval  = 20 * time.Second
-	expWait              = 60 * time.Minute
+	imagePullWaitTimeout              = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var (
@@ -41,7 +42,7 @@ var _ = t.BeforeSuite(func() {
 	pkg.Log(pkg.Info, "Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, []string{"mysql", "tododomain-adminserver"})
-	}, expWait, longPollingInterval).Should(BeTrue())
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// GIVEN the ToDoList app is deployed
 	// WHEN the running pods are checked
 	// THEN the tododomain-adminserver and mysql pods should be found running
