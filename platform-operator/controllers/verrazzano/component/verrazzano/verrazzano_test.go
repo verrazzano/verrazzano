@@ -18,9 +18,8 @@ import (
 	"text/template"
 	"time"
 
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-
 	"github.com/stretchr/testify/assert"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -1522,35 +1521,11 @@ func TestIsReadyChartNotInstalled(t *testing.T) {
 }
 
 // TestIsReady tests the Verrazzano isVerrazzanoReady call
-// GIVEN a Verrazzano component
+// GIVEN Verrazzano components that are all enabled by default
 //  WHEN I call isVerrazzanoReady when all requirements are met
 //  THEN false is returned
 func TestIsReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "verrazzano-application-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "verrazzano-authproxy",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -1567,54 +1542,6 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      "verrazzano-monitoring-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "vmi-system-grafana",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "vmi-system-kiali",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "vmi-system-kibana",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "vmi-system-prometheus-0",
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1665,72 +1592,13 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "verrazzano-application-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "verrazzano-authproxy",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "verrazzano-console",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "verrazzano-monitoring-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      "vmi-system-kiali",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
 	)
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
+		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
