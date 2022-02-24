@@ -108,3 +108,9 @@ const StatusReasonSuccess = "success"
 
 // OCILoggingIDAnnotation Annotation name for a customized OCI log ID for all containers in a namespace
 const OCILoggingIDAnnotation = "verrazzano.io/oci-log-id"
+
+// WorkloadTypeCoherence indicates the workload is Coherence
+const WorkloadTypeCoherence = "coherence"
+
+// WorkloadTypeGeneric indicates the workload is generic (one of VerrazzanoHelidonWorkload, ContainerizedWorkload or Deployment)
+const WorkloadTypeGeneric = "generic"

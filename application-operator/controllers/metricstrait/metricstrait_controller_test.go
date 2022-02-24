@@ -600,7 +600,20 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
 	})
-	// 9. Expect a call to update the metrics trait to remove the finalizer
+	// 9. Expect a call to get the owner application configuration
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", name.Namespace)
+		assert.Equal("test-oam-app-name", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
+		return nil
+	})
+	// 10. Expect a call to update the owner application configuration
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", appConfig.Namespace)
+		assert.Equal("test-oam-app-name", appConfig.Name)
+		return nil
+	})
+	// 11. Expect a call to update the metrics trait to remove the finalizer
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
@@ -682,6 +695,19 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *k8score.ConfigMap) error {
 		assert.Equal("verrazzano-system", obj.Namespace)
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
+		return nil
+	})
+	// Expect a call to get the owner application configuration
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", name.Namespace)
+		assert.Equal("test-oam-app-name", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
+		return nil
+	})
+	// Expect a call to update the owner application configuration
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", appConfig.Namespace)
+		assert.Equal("test-oam-app-name", appConfig.Name)
 		return nil
 	})
 	// Expect a call to update the metrics trait to remove the finalizer
@@ -778,7 +804,20 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
 	})
-	// 9. Expect a call to update the metrics trait to remove the finalizer
+	// 9. Expect a call to get the owner application configuration
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("deploymetrics", name.Namespace)
+		assert.Equal("deploymetrics-appconf", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
+		return nil
+	})
+	// 10. Expect a call to update the owner application configuration
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("deploymetrics", appConfig.Namespace)
+		assert.Equal("deploymetrics-appconf", appConfig.Name)
+		return nil
+	})
+	// 11. Expect a call to update the metrics trait to remove the finalizer
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
 		assert.Equal("deploymetrics", obj.Namespace)
 		assert.Equal("deploymetrics-deployment-trait", obj.Name)
@@ -1777,7 +1816,20 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 		assert.Equal("prometheus", obj.Name)
 		return nil
 	})
-	// 9. Expect a call to update the metrics trait to remove the finalizer.
+	// 9. Expect a call to get the owner application configuration
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", name.Namespace)
+		assert.Equal("test-oam-app-name", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
+		return nil
+	})
+	// 10. Expect a call to update the owner application configuration
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", appConfig.Namespace)
+		assert.Equal("test-oam-app-name", appConfig.Name)
+		return nil
+	})
+	// 11. Expect a call to update the metrics trait to remove the finalizer
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
@@ -2370,7 +2422,20 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 		assert.Equal("vmi-system-prometheus-0", obj.Name)
 		return nil
 	})
-	// 9. Expect a call to update the metrics trait to remove the finalizer
+	// 9. Expect a call to get the owner application configuration
+	mock.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", name.Namespace)
+		assert.Equal("test-oam-app-name", name.Name)
+		assert.NoError(updateObjectFromYAMLTemplate(appConfig, "test/templates/appconf_metrics_trait_deleted.yaml", params))
+		return nil
+	})
+	// 10. Expect a call to update the owner application configuration
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, appConfig *oamcore.ApplicationConfiguration) error {
+		assert.Equal("test-namespace", appConfig.Namespace)
+		assert.Equal("test-oam-app-name", appConfig.Name)
+		return nil
+	})
+	// 11. Expect a call to update the metrics trait to remove the finalizer
 	mock.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, obj *vzapi.MetricsTrait) error {
 		assert.Equal("test-namespace", obj.Namespace)
 		assert.Equal("test-trait-name", obj.Name)
