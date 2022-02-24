@@ -228,7 +228,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 
 			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
 				assertions = append(assertions, func() {
-					Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", []string{"verrazzano-operator"}) }, waitTimeout, pollingInterval).
+					Eventually(func() bool { return checkPodsRunning("verrazzano-system", []string{"verrazzano-operator"}) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				})
 			}
