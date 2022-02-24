@@ -377,6 +377,9 @@ pipeline {
                     kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
                     echo "CHAOS TEST TYPE = ${params.CHAOS_TEST_TYPE}"
+
+                    ## This test will fail.  2 JIRAs have been opened
+                    ##  VZ-5023 & VZ5024
                     if [[ "vpo.killed" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # Wait 15 seconds then kill vpo
