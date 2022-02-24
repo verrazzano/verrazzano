@@ -355,7 +355,10 @@ func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return false
 	}
+	return ContainerImagePullWaitInCluster(namespace, namePrefixes, kubeconfigPath)
+}
 
+func ContainerImagePullWaitInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset for kubernetes cluster, error: %v", err))
