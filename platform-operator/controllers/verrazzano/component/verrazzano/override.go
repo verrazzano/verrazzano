@@ -5,13 +5,14 @@ package verrazzano
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/fs"
-	"os"
 	"sigs.k8s.io/yaml"
 )
 
@@ -121,8 +122,8 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
 	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
 	overrides.Console = &consoleValues{Enabled: vzconfig.IsConsoleEnabled(effectiveCR)}
-	overrides.VerrazzanoOperator = &voValues{Enabled: isVMOEnabled(effectiveCR)}
-	overrides.MonitoringOperator = &vmoValues{Enabled: isVMOEnabled(effectiveCR)}
+	overrides.VerrazzanoOperator = &voValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
+	overrides.MonitoringOperator = &vmoValues{Enabled: vzconfig.IsVMOEnabled(effectiveCR)}
 	return nil
 }
 
