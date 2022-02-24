@@ -359,6 +359,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
+// TestGetIstioVersion tests the getIstioVersion function to ensure the correct istio version is retrieved from the BOM
 func TestGetIstioVersion(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer config.SetDefaultBomFilePath("")
