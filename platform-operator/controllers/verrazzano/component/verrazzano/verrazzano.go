@@ -6,16 +6,11 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -24,17 +19,18 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // ComponentName is the name of the component
@@ -76,7 +72,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	var deployments []types.NamespacedName
 	if isVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, []types.NamespacedName{
-			{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
 		}...)
 	}
@@ -89,212 +84,13 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
 func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
+	if err := importToHelmChart(client); err != nil {
+		return err
+	}
+	if err := ensureVMISecret(client); err != nil {
+
+	}
 	return fixupFluentdDaemonset(log, client, namespace)
-}
-
-// appendVerrazzanoOverrides appends the image overrides for the monitoring-init-images subcomponent
-func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-
-	// Append some custom image overrides
-	// - use local KeyValues array to ensure we append those after the file override; typically won't matter with the
-	//   way we implement Helm calls, but don't depend on that
-	vzkvs, err := appendCustomImageOverrides(kvs)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to append custom image overrides: %v", err)
-	}
-
-	effectiveCR := ctx.EffectiveCR()
-	// Find any storage overrides for the VMI, and
-	resourceRequestOverrides, err := findStorageOverride(effectiveCR)
-	if err != nil {
-		return kvs, err
-	}
-
-	// Overrides object to store any user overrides
-	overrides := verrazzanoValues{}
-
-	// Append the simple overrides
-	if err := appendVerrazzanoValues(ctx, &overrides); err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano values: %v", err)
-	}
-	// Append any VMI overrides to the override values object, and any installArgs overrides to the kvs list
-	vzkvs = appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, vzkvs)
-
-	// append any fluentd overrides
-	appendFluentdOverrides(effectiveCR, &overrides)
-	// append the security role overrides
-	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano security overrides: %v", err)
-	}
-
-	// Append any installArgs overrides to the kvs list
-	vzkvs = appendVerrazzanoComponentOverrides(effectiveCR, vzkvs)
-
-	// Write the overrides file to a temp dir and add a helm file override argument
-	overridesFileName, err := generateOverridesFile(ctx, &overrides)
-	if err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed generating Verrazzano overrides file: %v", err)
-	}
-
-	// Append any installArgs overrides in vzkvs after the file overrides to ensure precedence of those
-	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
-	kvs = append(kvs, vzkvs...)
-	return kvs, nil
-}
-
-func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, err
-	}
-
-	imageOverrides, err := bomFile.BuildImageOverrides("monitoring-init-images")
-	if err != nil {
-		return kvs, err
-	}
-
-	kvs = append(kvs, imageOverrides...)
-	return kvs, nil
-}
-
-func generateOverridesFile(ctx spi.ComponentContext, overrides *verrazzanoValues) (string, error) {
-	bytes, err := yaml.Marshal(overrides)
-	if err != nil {
-		return "", err
-	}
-	file, err := os.CreateTemp(os.TempDir(), tmpFileCreatePattern)
-	if err != nil {
-		return "", err
-	}
-
-	overridesFileName := file.Name()
-	if err := writeFileFunc(overridesFileName, bytes, fs.ModeAppend); err != nil {
-		return "", err
-	}
-	ctx.Log().Debugf("Verrazzano install overrides file %s contents: %s", overridesFileName, string(bytes))
-	return overridesFileName, nil
-}
-
-func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValues) error {
-	effectiveCR := ctx.EffectiveCR()
-
-	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
-	}
-
-	if externalDNSEnabled := vzconfig.IsExternalDNSEnabled(effectiveCR); externalDNSEnabled {
-		overrides.Externaldns = &externalDNSValues{
-			Enabled: externalDNSEnabled,
-		}
-	}
-
-	envName := vzconfig.GetEnvName(effectiveCR)
-	overrides.Config = &configValues{
-		EnvName:   envName,
-		DNSSuffix: dnsSuffix,
-	}
-
-	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
-	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
-	overrides.Console = &consoleValues{Enabled: vzconfig.IsConsoleEnabled(effectiveCR)}
-	overrides.VerrazzanoOperator = &voValues{Enabled: isVMOEnabled(effectiveCR)}
-	overrides.MonitoringOperator = &vmoValues{Enabled: isVMOEnabled(effectiveCR)}
-	return nil
-}
-
-func appendSecurityOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) error {
-	vzSpec := effectiveCR.Spec
-
-	numAdminSubjects := len(vzSpec.Security.AdminSubjects)
-	numMonSubjects := len(vzSpec.Security.MonitorSubjects)
-	if numMonSubjects == 0 && numAdminSubjects == 0 {
-		return nil
-	}
-
-	overrides.Security = &securityRoleBindingValues{}
-
-	if numAdminSubjects > 0 {
-		adminSubjectsMap := make(map[string]subject, numAdminSubjects)
-		for i, adminSubj := range vzSpec.Security.AdminSubjects {
-			subjectName := fmt.Sprintf("subject-%d", i)
-			if err := vzconfig.ValidateRoleBindingSubject(adminSubj, subjectName); err != nil {
-				return err
-			}
-			adminSubjectsMap[subjectName] = subject{
-				Name:      adminSubj.Name,
-				Kind:      adminSubj.Kind,
-				Namespace: adminSubj.Namespace,
-				APIGroup:  adminSubj.APIGroup,
-			}
-		}
-		overrides.Security.AdminSubjects = adminSubjectsMap
-	}
-	if numMonSubjects > 0 {
-		monSubjectMap := make(map[string]subject, numMonSubjects)
-		for i, monSubj := range vzSpec.Security.MonitorSubjects {
-			subjectName := fmt.Sprintf("subject-%d", i)
-			if err := vzconfig.ValidateRoleBindingSubject(monSubj, fmt.Sprintf("monitorSubjects[%d]", i)); err != nil {
-				return err
-			}
-			monSubjectMap[subjectName] = subject{
-				Name:      monSubj.Name,
-				Kind:      monSubj.Kind,
-				Namespace: monSubj.Namespace,
-				APIGroup:  monSubj.APIGroup,
-			}
-		}
-		overrides.Security.MonitorSubjects = monSubjectMap
-	}
-	return nil
-}
-
-// appendVerrazzanoComponentOverrides - append overrides specified for the Verrazzano component
-func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom.KeyValue) []bom.KeyValue {
-	if effectiveCR.Spec.Components.Verrazzano != nil {
-		for _, arg := range effectiveCR.Spec.Components.Verrazzano.InstallArgs {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   arg.Name,
-				Value: arg.Value,
-			})
-		}
-	}
-	return kvs
-}
-
-func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *resourceRequestValues, kvs []bom.KeyValue) []bom.KeyValue {
-	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsKibanaEnabled(effectiveCR)}
-
-	overrides.ElasticSearch = &elasticsearchValues{
-		Enabled: vzconfig.IsElasticsearchEnabled(effectiveCR),
-	}
-	if storageOverrides != nil {
-		overrides.ElasticSearch.Nodes = &esNodes{
-			// Only have to override the data node storage
-			Data: &esNodeValues{
-				Requests: storageOverrides,
-			},
-		}
-	}
-	if effectiveCR.Spec.Components.Elasticsearch != nil {
-		for _, arg := range effectiveCR.Spec.Components.Elasticsearch.ESInstallArgs {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   fmt.Sprintf(esHelmValuePrefixFormat, arg.Name),
-				Value: arg.Value,
-			})
-		}
-	}
-
-	overrides.Prometheus = &prometheusValues{
-		Enabled:  vzconfig.IsPrometheusEnabled(effectiveCR),
-		Requests: storageOverrides,
-	}
-
-	overrides.Grafana = &grafanaValues{
-		Enabled:  vzconfig.IsGrafanaEnabled(effectiveCR),
-		Requests: storageOverrides,
-	}
-	return kvs
 }
 
 func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues, error) {
@@ -319,45 +115,6 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 		}, nil
 	}
 	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
-}
-
-func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) {
-	overrides.Fluentd = &fluentdValues{
-		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
-	}
-
-	fluentd := effectiveCR.Spec.Components.Fluentd
-	if fluentd != nil {
-		overrides.Logging = &loggingValues{}
-		if len(fluentd.ElasticsearchURL) > 0 {
-			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
-		}
-		if len(fluentd.ElasticsearchSecret) > 0 {
-			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
-		}
-		if len(fluentd.ExtraVolumeMounts) > 0 {
-			for _, vm := range fluentd.ExtraVolumeMounts {
-				dest := vm.Source
-				if vm.Destination != "" {
-					dest = vm.Destination
-				}
-				readOnly := true
-				if vm.ReadOnly != nil {
-					readOnly = *vm.ReadOnly
-				}
-				overrides.Fluentd.ExtraVolumeMounts = append(overrides.Fluentd.ExtraVolumeMounts,
-					volumeMount{Source: vm.Source, Destination: dest, ReadOnly: readOnly})
-			}
-		}
-		// Overrides for OCI Logging integration
-		if fluentd.OCI != nil {
-			overrides.Fluentd.OCI = &ociLoggingSettings{
-				DefaultAppLogID: fluentd.OCI.DefaultAppLogID,
-				SystemLogID:     fluentd.OCI.SystemLogID,
-				APISecret:       fluentd.OCI.APISecret,
-			}
-		}
-	}
 }
 
 func isVMOEnabled(vz *vzapi.Verrazzano) bool {
@@ -506,8 +263,8 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 		// If fluentd is enabled, copy any custom secrets
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 		if fluentdConfig != nil {
-			// Copy the external Elasticsearch secret
-			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.DefaultElasticsearchSecretName {
+			// Copy the internal Elasticsearch secret
+			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
 				if err := copySecret(ctx, fluentdConfig.ElasticsearchSecret, "custom Elasticsearch"); err != nil {
 					return err
 				}
@@ -689,4 +446,58 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 		}
 		time.Sleep(retryDelay)
 	}
+}
+
+//importToHelmChart annotates any existing objects that should be managed by helm
+func importToHelmChart(cli clipkg.Client) error {
+	namespacedName := types.NamespacedName{Name: nodeExporter, Namespace: globalconst.VerrazzanoMonitoringNamespace}
+	name := types.NamespacedName{Name: nodeExporter}
+	objects := []controllerutil.Object{
+		&appsv1.DaemonSet{},
+		&corev1.ServiceAccount{},
+		&corev1.Service{},
+	}
+
+	noNamespaceObjects := []controllerutil.Object{
+		&rbacv1.ClusterRole{},
+		&rbacv1.ClusterRoleBinding{},
+	}
+
+	for _, obj := range objects {
+		if _, err := importHelmObject(cli, obj, namespacedName); err != nil {
+			return err
+		}
+	}
+
+	for _, obj := range noNamespaceObjects {
+		if _, err := importHelmObject(cli, obj, name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+//importHelmObject annotates an object as being managed by the verrazzano helm chart
+func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedName types.NamespacedName) (controllerutil.Object, error) {
+	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
+		if errors.IsNotFound(err) {
+			return obj, nil
+		}
+		return obj, err
+	}
+	objMerge := clipkg.MergeFrom(obj.DeepCopyObject())
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations["meta.helm.sh/release-name"] = ComponentName
+	annotations["meta.helm.sh/release-namespace"] = globalconst.VerrazzanoSystemNamespace
+	obj.SetAnnotations(annotations)
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels["app.kubernetes.io/managed-by"] = "Helm"
+	obj.SetLabels(labels)
+	return obj, cli.Patch(context.TODO(), obj, objMerge)
 }

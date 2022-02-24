@@ -204,10 +204,24 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
 		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
 		newReadyDeployment(webhookDeploymentName, certManagerNamespace))
+
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+
+	helm.SetChartInfoFunction(func(chartDir string) (helm.ChartInfo, error) {
+		return helm.ChartInfo{
+			AppVersion: "1.0",
+		}, nil
+	})
+	defer helm.SetDefaultChartInfoFunction()
+
+	helm.SetReleaseAppVersionFunction(func(releaseName string, namespace string) (string, error) {
+		return "1.0", nil
+	})
+	defer helm.SetDefaultReleaseAppVersionFunction()
+
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, false))
 	assert.True(t, ready)
 }

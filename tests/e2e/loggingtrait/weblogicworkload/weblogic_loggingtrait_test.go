@@ -4,6 +4,7 @@
 package weblogicworkload
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
@@ -103,23 +104,21 @@ func deployWebLogicApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, "Check application pods are running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
 var _ = t.Describe("Test WebLogic loggingtrait application", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload",
 	"f:app-lcm.logging-trait"), func() {
-
-	t.Context("deployment.", FlakeAttempts(8), func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and mysql pods should be found running
-		t.It("Verify 'tododomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", applicationPodName})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
 
 	t.Context("for LoggingTrait.", func() {
 		// GIVEN the app is deployed and the pods are running

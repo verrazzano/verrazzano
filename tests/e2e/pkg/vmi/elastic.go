@@ -43,13 +43,13 @@ func (e *Elastic) PodsRunning() bool {
 		fmt.Sprintf("vmi-%s-grafana", e.binding),
 		fmt.Sprintf("vmi-%s-prometheus", e.binding),
 		fmt.Sprintf("vmi-%s-api", e.binding)}
-	running := pkg.PodsRunning("verrazzano-system", expectedElasticPods)
+	running, _ := pkg.PodsRunning("verrazzano-system", expectedElasticPods)
 
 	if running {
 		expectedElasticPods = []string{
 			fmt.Sprintf("vmi-%s-es-ingest", e.binding),
 			fmt.Sprintf("vmi-%s-es-data", e.binding)}
-		running = pkg.PodsRunning("verrazzano-system", expectedElasticPods)
+		running, _ = pkg.PodsRunning("verrazzano-system", expectedElasticPods)
 	}
 
 	return running

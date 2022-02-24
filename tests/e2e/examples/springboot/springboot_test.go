@@ -40,7 +40,11 @@ var _ = t.BeforeSuite(func() {
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
 	Eventually(func() bool {
-		return pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
+		result, err := pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
 	}, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
 
@@ -62,17 +66,6 @@ var _ = t.AfterSuite(func() {
 
 var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	"f:app-lcm.spring-workload"), func() {
-	// Verify springboot-workload pod is running
-	// GIVEN springboot app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	t.Context("expected pods", func() {
-		t.It("are running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, expectedPodsSpringBootApp)
-			}, longWaitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
 
 	var host = ""
 	var err error
