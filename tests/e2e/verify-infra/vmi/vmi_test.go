@@ -77,17 +77,15 @@ func verrazzanoInstallerCRD() (*apiextv1.CustomResourceDefinition, error) {
 }
 
 var (
-	httpClient             *retryablehttp.Client
-	creds                  *pkg.UsernamePassword
-	vmiCRD                 *apiextv1.CustomResourceDefinition
-	vzCRD                  *apiextv1.CustomResourceDefinition
-	ingressURLs            map[string]string
-	volumeClaims           map[string]*corev1.PersistentVolumeClaim
-	elastic                *vmi.Elastic
-	waitTimeout            = 10 * time.Minute
-	pollingInterval        = 5 * time.Second
-	elasticWaitTimeout     = 2 * time.Minute
-	elasticPollingInterval = 5 * time.Second
+	httpClient      *retryablehttp.Client
+	creds           *pkg.UsernamePassword
+	vmiCRD          *apiextv1.CustomResourceDefinition
+	vzCRD           *apiextv1.CustomResourceDefinition
+	ingressURLs     map[string]string
+	volumeClaims    map[string]*corev1.PersistentVolumeClaim
+	elastic         *vmi.Elastic
+	waitTimeout     = 10 * time.Minute
+	pollingInterval = 30 * time.Second
 )
 
 var _ = t.BeforeSuite(func() {
@@ -156,14 +154,14 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			elasticPodsRunning := func() bool {
 				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
 			}
-			Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
-			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
-			//Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
-			Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
+			Eventually(elasticPodsRunning(), waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
+			Eventually(elasticTLSSecret, waitTimeout, pollingInterval).Should(BeTrue(), "tls-secret did not show up")
+			//Eventually(elasticCertificate, waitTimeout, pollingInterval).Should(BeTrue(), "certificate did not show up")
+			Eventually(elasticIngress, waitTimeout, pollingInterval).Should(BeTrue(), "ingress did not show up")
 			Expect(ingressURLs).To(HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
 			assertOidcIngressByName("vmi-system-es-ingest")
-			Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
-			Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
+			Eventually(elasticConnected, waitTimeout, pollingInterval).Should(BeTrue(), "never connected")
+			Eventually(elasticIndicesCreated, waitTimeout, pollingInterval).Should(BeTrue(), "indices never created")
 		})
 
 		t.It("Elasticsearch verrazzano-system Index should be accessible", Label("f:observability.logging.es"),
@@ -194,8 +192,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			})
 
 		t.It("Elasticsearch health should be green", func() {
-			Eventually(elasticHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "cluster health status not green")
-			Eventually(elasticIndicesHealth, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices health status not green")
+			Eventually(elasticHealth, waitTimeout, pollingInterval).Should(BeTrue(), "cluster health status not green")
+			Eventually(elasticIndicesHealth, waitTimeout, pollingInterval).Should(BeTrue(), "indices health status not green")
 		})
 
 		t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
