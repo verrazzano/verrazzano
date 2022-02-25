@@ -6,18 +6,15 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/golang/mock/gomock"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"os/exec"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -26,9 +23,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -224,8 +224,29 @@ func TestUpgrade(t *testing.T) {
 	SetIstioUpgradeFunction(fakeUpgrade)
 	defer SetDefaultIstioUpgradeFunction()
 
-	err := comp.Upgrade(spi.NewFakeContext(upgradeMocks(t), crInstall, false))
+	err := comp.Upgrade(spi.NewFakeContext(getMock(t), crInstall, false))
 	assert.NoError(err, "Upgrade returned an error")
+}
+
+// fakeUpgrade verifies that the correct parameter values are passed to upgrade
+func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
+	if len(overridesFiles) != 2 {
+		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
+	}
+	if overridesFiles[0] != "test-values-file.yaml" {
+		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
+	}
+	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
+		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
+	}
+	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
+	if err != nil {
+		return []byte("error"), []byte(""), fmt.Errorf("unable to read install args overrides file")
+	}
+	if !strings.Contains(string(installArgsFromFile), "val1") {
+		return []byte("error"), []byte(""), fmt.Errorf("install args overrides file does not contain install args")
+	}
+	return []byte("success"), []byte(""), nil
 }
 
 func TestPostUpgrade(t *testing.T) {
@@ -238,8 +259,52 @@ func TestPostUpgrade(t *testing.T) {
 	defer helm.SetDefaultRunner()
 	SetHelmUninstallFunction(fakeHelmUninstall)
 	SetDefaultHelmUninstallFunction()
-	err := comp.PostUpgrade(spi.NewFakeContext(upgradeMocks(t), crInstall, false))
+	err := comp.PostUpgrade(spi.NewFakeContext(getMock(t), crInstall, false))
 	assert.NoError(err, "PostUpgrade returned an error")
+}
+
+func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	if releaseName != "istiocoredns" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
+	}
+	if releaseName != "istio-system" {
+		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
+	}
+	return []byte("success"), []byte(""), nil
+}
+
+func getMock(t *testing.T) *mocks.MockClient {
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Add mocks necessary for the system component restart
+	mock.AddRestartMocks()
+
+	mock.EXPECT().
+		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {
+			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
+			return nil
+		})
+
+	mock.EXPECT().
+		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
+			return nil
+		}).Times(2)
+
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *oam.ApplicationConfigurationList, opts ...client.ListOption) error {
+			return nil
+		}).Times(2)
+
+	return mock
+}
+
+// fakeRunner overrides the istio run command
+func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
 }
 
 // TestAppendIstioOverrides tests the Istio override for the global hub
@@ -291,7 +356,7 @@ func TestIsReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.IstioSystemNamespace,
+			Namespace: IstioNamespace,
 			Name:      IstiodDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
@@ -357,158 +422,4 @@ func TestIsDisableExplicit(t *testing.T) {
 
 func getBoolPtr(b bool) *bool {
 	return &b
-}
-
-// TestGetIstioVersion tests the getIstioVersion function to ensure the correct istio version is retrieved from the BOM
-func TestGetIstioVersion(t *testing.T) {
-	config.SetDefaultBomFilePath(testBomFilePath)
-	defer config.SetDefaultBomFilePath("")
-	istioVersion, err := getIstioVersion()
-	assert.Nil(t, err, "getIstioVersion should not return an error")
-	assert.Equal(t, "1.10.4", istioVersion, "the istio proxyv2 image tag should match the one in test_bom.json")
-}
-
-// TestNeedsRestart tests that needsRestart returns the correct value given a PodList
-func TestNeedsRestart(t *testing.T) {
-	correctIstioVersion := "1.10.4"
-	podListRestart := v1.PodList{
-		Items: []v1.Pod{
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
-						},
-					},
-				},
-				Status: v1.PodStatus{},
-			},
-			{
-
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.7.3",
-						},
-					},
-				},
-			},
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
-						},
-					},
-				},
-			},
-		},
-	}
-	assert.True(t, needsRestart(podListRestart, correctIstioVersion))
-
-	podListDontRestart := v1.PodList{
-		Items: []v1.Pod{
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
-						},
-					},
-				},
-				Status: v1.PodStatus{},
-			},
-			{
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Image: "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20211206061401-0302423",
-						},
-						{
-							Image: "ghcr.io/verrazzano/proxyv2:1.10.4",
-						},
-					},
-				},
-			},
-		},
-	}
-	assert.False(t, needsRestart(podListDontRestart, correctIstioVersion))
-}
-
-// upgradeMocks generates a MockClient and gives it the EXPECTs necessary to pass the unit tests
-func upgradeMocks(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	mocks.RestartMocks(mock)
-
-	mock.EXPECT().
-		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {
-			secretList.Items = []v1.Secret{{Type: HelmScrtType}, {Type: "generic"}, {Type: HelmScrtType}}
-			return nil
-		})
-
-	mock.EXPECT().
-		Delete(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, secret *v1.Secret) error {
-			return nil
-		}).Times(2)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *v1alpha2.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).Times(2)
-
-	return mock
-}
-
-// fakeRunner overrides the istio run command
-func (r fakeRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
-}
-
-// fakeUpgrade verifies that the correct parameter values are passed to upgrade
-func fakeUpgrade(log vzlog.VerrazzanoLogger, imageOverridesString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error) {
-	if len(overridesFiles) != 2 {
-		return []byte("error"), []byte(""), fmt.Errorf("incorrect number of override files: expected 2, received %v", len(overridesFiles))
-	}
-	if overridesFiles[0] != "test-values-file.yaml" {
-		return []byte("error"), []byte(""), fmt.Errorf("invalid values file")
-	}
-	if !strings.Contains(overridesFiles[1], "values-") || !strings.Contains(overridesFiles[1], ".yaml") {
-		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
-	}
-	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
-	if err != nil {
-		return []byte("error"), []byte(""), fmt.Errorf("unable to read install args overrides file")
-	}
-	if !strings.Contains(string(installArgsFromFile), "val1") {
-		return []byte("error"), []byte(""), fmt.Errorf("install args overrides file does not contain install args")
-	}
-	return []byte("success"), []byte(""), nil
-}
-
-// fakeHelmUninstall is a fake uninstall function for unit tests
-func fakeHelmUninstall(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
-	if releaseName != "istiocoredns" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected release name istiocoredns does not match provided release name of %v", releaseName)
-	}
-	if releaseName != "istio-system" {
-		return []byte("error"), []byte(""), fmt.Errorf("expected namespace istio-system does not match provided namespace of %v", namespace)
-	}
-	return []byte("success"), []byte(""), nil
 }
