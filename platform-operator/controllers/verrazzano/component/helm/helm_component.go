@@ -219,7 +219,6 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// Perform an install using the helm upgrade --install command
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, resolvedNamespace, h.ChartDir, h.WaitForInstall, context.IsDryRun(), overrides)
-	println("ERROR from upgradeFunc")
 	return err
 }
 

@@ -80,6 +80,10 @@ func TestInstall(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetUpgradeFunc(fakeUpgrade)
 	defer helm.SetDefaultUpgradeFunc()
+	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
