@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -75,11 +77,14 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 
 // isApplicationOperatorReady checks if the application operator deployment is ready
 func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: "verrazzano-application-operator", Namespace: ComponentNamespace},
+	if vzconfig.IsApplicationOperatorEnabled(ctx.EffectiveCR()) {
+		deployments := []types.NamespacedName{
+			{Name: "verrazzano-application-operator", Namespace: ComponentNamespace},
+		}
+		prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+		return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return true
 }
 
 func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {
