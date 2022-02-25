@@ -192,7 +192,8 @@
             {
               "image": "node-exporter",
               "tag": "1.0.0-20211213080828-e25ae11",
-              "helmFullImageKey": "verrazzanoOperator.nodeExporterImage"
+              "helmFullImageKey": "nodeExporter.imageName",
+              "helmTagKey": "nodeExporter.imageVersion"
             },
             {
               "image": "verrazzano-monitoring-operator",
@@ -237,12 +238,12 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20211206061401-0302423",
+              "tag": "v1.12.3-20220223195215-0302423",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "1.3.0-20220216010828-2062518",
+              "tag": "1.3.0-20220224182255-4d0d44f",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package sock_shop
@@ -203,5 +203,10 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 
 // sockShopPodsRunning Check if expected pods are running on a given cluster
 func sockShopPodsRunning(kubeconfigPath string, namespace string) bool {
-	return pkg.PodsRunningInCluster(namespace, expectedPodsSockShop, kubeconfigPath)
+	result, err := pkg.PodsRunningInCluster(namespace, expectedPodsSockShop, kubeconfigPath)
+	// TODO: Go through each of the test cases calling this and decide whether to fail the test or test suite
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }

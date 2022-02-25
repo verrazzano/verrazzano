@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
@@ -28,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -91,6 +94,7 @@ const (
 	// Roles for use in qualified resource relations
 	scraperRole = "scraper"
 	sourceRole  = "source"
+	ownerRole   = "owner"
 
 	// SSL protocol scrape parameters for Istio enabled MTLS components
 	httpsProtocol = `scheme: https
@@ -277,7 +281,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 
 	// Fetch workload resource using information from the trait
 	var workload *unstructured.Unstructured
-	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r, log, trait); err != nil {
+	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r, log, trait); err != nil || workload == nil {
 		return reconcile.Result{}, true, err
 	}
 
@@ -407,6 +411,15 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 			update.RecordOutcome(status.Relations[i], status.Results[i], status.Errors[i])
 		}
 	}
+
+	if !trait.DeletionTimestamp.IsZero() && trait.OwnerReferences != nil {
+		for i := range trait.OwnerReferences {
+			if trait.OwnerReferences[i].Kind == "ApplicationConfiguration" {
+				update.RecordOutcome(r.removedTraitReferencesFromOwner(ctx, &trait.OwnerReferences[i], trait, log))
+			}
+		}
+	}
+
 	return &update
 }
 
@@ -741,40 +754,25 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 	if err != nil {
 		return nil, true, err
 	}
-	// Match any version of Group=weblogic.oracle and Kind=Domain
-	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+
+	workloadType := GetSupportedWorkloadType(apiVerKind)
+	switch workloadType {
+	case constants.WorkloadTypeWeblogic:
 		spec, err := r.NewTraitDefaultsForWLSDomainWorkload(ctx, workload)
 		return spec, true, err
-	}
-	// Match any version of Group=coherence.oracle and Kind=Coherence
-	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
+	case constants.WorkloadTypeCoherence:
 		spec, err := r.NewTraitDefaultsForCOHWorkload(ctx, workload)
 		return spec, true, err
-	}
-
-	// Match any version of Group=coherence.oracle and Kind=VerrazzanoHelidonWorkload
-	// In the case of Helidon, the workload isn't currently being unwrapped
-	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
+	case constants.WorkloadTypeGeneric:
 		spec, err := r.NewTraitDefaultsForGenericWorkload()
 		return spec, true, err
+	default:
+		// Log the kind/workload is unsupported and return a nil trait.
+		log.Debugf("unsupported kind %s of workload %s", apiVerKind, vznav.GetNamespacedNameFromUnstructured(workload))
+		return nil, false, nil
+
 	}
 
-	// Match any version of Group=core.oam.dev and Kind=ContainerizedWorkload
-	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
-		spec, err := r.NewTraitDefaultsForGenericWorkload()
-		return spec, true, err
-	}
-
-	// Match any version of Group=apps and Kind=Deployment
-	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
-		spec, err := r.NewTraitDefaultsForGenericWorkload()
-		return spec, true, err
-	}
-
-	// Log the kind/workload is unsupported and return a nil trait.
-	gvk, _ := vznav.GetAPIVersionKindOfUnstructured(workload)
-	log.Debugf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload))
-	return nil, false, nil
 }
 
 // NewTraitDefaultsForWLSDomainWorkload creates metrics trait default values for a WLS domain workload.
@@ -1105,4 +1103,54 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 
 	// If the trait is being deleted (i.e. workload==nil) then no config is required.
 	return job, nil, nil
+}
+
+// removedTraitReferencesFromOwner removes traits from components of owner ApplicationConfiguration.
+func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerRef *metav1.OwnerReference, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	rel := vzapi.QualifiedResourceRelation{APIVersion: "core.oam.dev/v1alpha2", Kind: "ApplicationConfiguration", Namespace: trait.GetNamespace(), Name: ownerRef.Name, Role: ownerRole}
+	var appConfig oamv1.ApplicationConfiguration
+	err := r.Client.Get(ctx, types.NamespacedName{Namespace: trait.GetNamespace(), Name: ownerRef.Name}, &appConfig)
+	if err != nil {
+		log.Debugf("Unable to fetch ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)
+		return rel, controllerutil.OperationResultNone, err
+	}
+
+	if appConfig.Spec.Components != nil {
+		traitsRemoved := false
+		for i := range appConfig.Spec.Components {
+			component := &appConfig.Spec.Components[i]
+			if component.Traits != nil {
+				remainingTraits := []oamv1.ComponentTrait{}
+				for _, componentTrait := range component.Traits {
+					remainingTraits = append(remainingTraits, componentTrait)
+					componentTraitUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&componentTrait.Trait)
+					if err != nil || componentTraitUnstructured == nil {
+						log.Debugf("Unable to convert trait for component: %s of application configuration: %s/%s, error: %v", component.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+					} else {
+						if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
+							if compName, ok := trait.Labels[compObjectMetaLabel]; ok && compName == component.ComponentName {
+								log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
+								remainingTraits = remainingTraits[:len(remainingTraits)-1]
+							}
+						}
+					}
+				}
+				if len(remainingTraits) < len(component.Traits) {
+					component.Traits = remainingTraits
+					traitsRemoved = true
+				}
+			}
+		}
+		if traitsRemoved {
+			log.Infof("Updating ApplicationConfiguration %s/%s", trait.GetNamespace(), ownerRef.Name)
+			err = r.Client.Update(ctx, &appConfig)
+			if err != nil {
+				log.Infof("Unable to update ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)
+				return rel, controllerutil.OperationResultNone, err
+			}
+
+			return rel, controllerutil.OperationResultUpdated, err
+		}
+	}
+	return rel, controllerutil.OperationResultNone, nil
 }

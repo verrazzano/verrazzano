@@ -19,6 +19,12 @@ import (
 
 const profilesRelativePath = "../../../../manifests/profiles"
 
+var dnsComponents = vzapi.ComponentSpec{
+	DNS: &vzapi.DNSComponent{
+		External: &vzapi.External{Suffix: "blah"},
+	},
+}
+
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
@@ -57,7 +63,11 @@ func TestPreInstall(t *testing.T) {
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: dnsComponents,
+		},
+	}, false)
 	vzComp := NewComponent()
 
 	// PostInstall will fail because the expected VZ ingresses are not present in cluster
@@ -82,8 +92,13 @@ func TestPostInstall(t *testing.T) {
 //  THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Version: "v1.2.0"},
-		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"}}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Version:    "v1.2.0",
+			Components: dnsComponents,
+		},
+		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
+	}, false)
 	err := NewComponent().PostUpgrade(ctx)
 	assert.NoError(t, err)
 }

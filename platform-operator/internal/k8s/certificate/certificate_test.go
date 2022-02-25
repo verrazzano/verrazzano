@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificate
@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	adminv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -77,45 +77,45 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	pathInstall := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
-	serviceInstall := adminv1beta1.ServiceReference{
+	serviceInstall := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &pathInstall,
 	}
 	pathClusters := "/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
-	serviceClusters := adminv1beta1.ServiceReference{
+	serviceClusters := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &pathClusters,
 	}
-	webhook := adminv1beta1.ValidatingWebhookConfiguration{
+	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: OperatorName,
 		},
-		Webhooks: []adminv1beta1.ValidatingWebhook{
+		Webhooks: []adminv1.ValidatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &serviceInstall,
 				},
 			},
 			{
 				Name: "clusters.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &serviceClusters,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
@@ -132,27 +132,27 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	path := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
-	service := adminv1beta1.ServiceReference{
+	service := adminv1.ServiceReference{
 		Name:      OperatorName,
 		Namespace: OperatorNamespace,
 		Path:      &path,
 	}
-	webhook := adminv1beta1.ValidatingWebhookConfiguration{
+	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "InvalidName",
 		},
-		Webhooks: []adminv1beta1.ValidatingWebhook{
+		Webhooks: []adminv1.ValidatingWebhook{
 			{
 				Name: "install.verrazzano.io",
-				ClientConfig: adminv1beta1.WebhookClientConfig{
+				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &service,
 				},
 			},
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
 	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert)

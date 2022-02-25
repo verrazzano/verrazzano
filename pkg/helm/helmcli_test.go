@@ -159,8 +159,8 @@ func TestUninstall(t *testing.T) {
 //  WHEN the command executes and returns an error
 //  THEN the function returns an error
 func TestUninstallError(t *testing.T) {
-	stdout := []byte{}
-	stdErr := []byte{}
+	var stdout []byte
+	var stdErr []byte
 
 	SetCmdRunner(genericTestRunner{
 		stdOut: stdout,
@@ -509,7 +509,7 @@ func Test_getChartStatusChartNotFound(t *testing.T) {
 //  WHEN Helm returns an error
 //  THEN the function returns an error
 func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
-	stdout := []byte{}
+	var stdout []byte
 	stdErr := []byte("Some unknown helm status error")
 
 	SetCmdRunner(genericTestRunner{
@@ -644,4 +644,79 @@ func (r foundRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error
 	}
 	// simulate a Helm error
 	return []byte(""), []byte("error"), errors.New("helm error")
+}
+
+// Test_GetReleaseAppVersion tests the GetReleaseAppVersion function
+// GIVEN a call to GetReleaseAppVersion
+//  WHEN varying the inputs and underlying status
+//  THEN test the expected result is returned
+func Test_GetReleaseAppVersion(t *testing.T) {
+	jsonSuccess := []byte(`
+[
+  {
+    "name": "verrazzano",
+    "namespace": "verrazzano-system",
+    "app_version": "1"
+  }
+]
+`)
+
+	jsonFail := []byte(`
+[
+  {
+    "name": "unknown",
+    "namespace": "verrazzano-system",
+    "app_version": "1"
+  }
+]
+`)
+	type args struct {
+		releaseName string
+		namespace   string
+		jsonOut     []byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "Test GetReleaseAppVersion when app_version exists",
+			want: "1",
+			args: args{
+				releaseName: "verrazzano",
+				namespace:   "verrazzano-system",
+				jsonOut:     jsonSuccess,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Test GetReleaseAppVersion when app_version does not exist",
+			want: "",
+			args: args{
+				releaseName: "verrazzano",
+				namespace:   "verrazzano-system",
+				jsonOut:     jsonFail,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			SetCmdRunner(genericTestRunner{
+				stdOut: tt.args.jsonOut,
+				stdErr: []byte{},
+				err:    nil,
+			})
+			defer SetDefaultRunner()
+			got, err := GetReleaseAppVersion(tt.args.releaseName, tt.args.namespace)
+			if !tt.wantErr {
+				assert.NoError(t, err)
+				assert.Equalf(t, tt.want, got, "GetReleaseAppVersion(%v, %v)", tt.args.releaseName, tt.args.namespace)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
 }

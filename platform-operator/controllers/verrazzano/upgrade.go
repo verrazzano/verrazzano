@@ -5,16 +5,16 @@ package verrazzano
 
 import (
 	"fmt"
-	"strconv"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/pkg/controller"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -100,10 +100,8 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			compLog.Oncef("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
 				compLog.Errorf("Error upgrading component %s: %v", compName, err)
-				msg := fmt.Sprintf("Error upgrading component %s - %s\".  Error is %s", compName,
-					fmtGeneration(cr.Generation), err.Error())
-				err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeFailed)
-				return ctrl.Result{}, err
+				// requeue for 30 to 60 seconds later
+				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
 			}
 			upgradeContext.state = StateUpgrading
 		}
@@ -158,14 +156,9 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 	return st.Conditions[l-1].Type == conditionType
 }
 
-func fmtGeneration(gen int64) string {
-	s := strconv.FormatInt(gen, 10)
-	return "generation:" + s
-}
-
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
-	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
+	return istio.RestartComponents(log, client)
 }
 
 // getNsnKey gets the key for the verrazzano resource

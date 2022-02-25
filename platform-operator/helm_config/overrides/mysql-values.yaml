@@ -19,7 +19,7 @@ extraInitContainers: |
       - -R
       - 27:27
       - /var/lib/mysql
-    image: ghcr.io/oracle/oraclelinux:7-slim
+    image: "{{ .Values.busybox.image}}:{{ .Values.busybox.tag }}"
     imagePullPolicy: IfNotPresent
     name: chown-data-dir
     resources:
