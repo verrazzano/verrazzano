@@ -84,7 +84,7 @@ func TestUpgrade(t *testing.T) {
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	SetUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	defer SetDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -105,7 +105,7 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	SetUpgradeFunc(func(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helm.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		return nil, nil, nil
 	})
-	defer setDefaultUpgradeFunc()
+	defer SetDefaultUpgradeFunc()
 
 	helm.SetCmdRunner(genericHelmTestRunner{
 		stdOut: []byte(""),
@@ -169,7 +169,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	SetUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	defer SetDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -203,7 +203,7 @@ func TestInstall(t *testing.T) {
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	SetUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	defer SetDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil
 	})
@@ -255,7 +255,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 		assert.Contains(overrides.SetFileOverrides, "setFileKey=setFileValue", "Incorrect --set overrides")
 		return fakeUpgrade(log, releaseName, namespace, chartDir, wait, dryRun, overrides)
 	})
-	defer setDefaultUpgradeFunc()
+	defer SetDefaultUpgradeFunc()
 
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil
@@ -296,7 +296,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 	helm.SetCmdRunner(helmFakeRunner{})
 	defer helm.SetDefaultRunner()
 	SetUpgradeFunc(fakeUpgrade)
-	defer setDefaultUpgradeFunc()
+	defer SetDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil
 	})
@@ -358,7 +358,7 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 		}
 		return []byte{}, []byte{}, nil
 	})
-	defer setDefaultUpgradeFunc()
+	defer SetDefaultUpgradeFunc()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil
 	})

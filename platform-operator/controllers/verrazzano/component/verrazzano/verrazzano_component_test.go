@@ -79,6 +79,7 @@ func TestInstall(t *testing.T) {
 	}, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -127,6 +128,7 @@ func TestUpgrade(t *testing.T) {
 	}, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }

@@ -111,7 +111,7 @@ func SetUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f
 }
 
-func setDefaultUpgradeFunc() {
+func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
 }
 
