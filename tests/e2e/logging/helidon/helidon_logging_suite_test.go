@@ -4,13 +4,17 @@
 package helidon
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
 
+var namespace string
+
 func TestHelidonExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Helidon Logging Suite")
+	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
 }

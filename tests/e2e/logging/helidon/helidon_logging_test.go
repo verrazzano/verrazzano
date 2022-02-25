@@ -23,7 +23,10 @@ const (
 	shortWaitTimeout     = 5 * time.Minute
 )
 
-var t = framework.NewTestFramework("helidon")
+var (
+	t                  = framework.NewTestFramework("helidon")
+	generatedNamespace = pkg.GenerateNamespace("helidon-logging")
+)
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -31,15 +34,15 @@ var _ = t.BeforeSuite(func() {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace("helidon-logging", nsLabels)
+		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	// Verify hello-helidon-workload pod is running
@@ -59,15 +62,15 @@ var _ = t.AfterSuite(func() {
 	// undeploy the application here
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteNamespace("helidon-logging")
+		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })

@@ -1,12 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
-                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
-               [$class: 'BuildDiscarderProperty',
-                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
-                pipelineTriggers([cron('H/5 * * * *')]),
-           ])
+//properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
+//                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
+//               [$class: 'BuildDiscarderProperty',
+//                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
+//                pipelineTriggers([cron('H/5 * * * *')]),
+//           ])
 
 pipeline {
     options {
