@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1645823236800,
+  "iteration": 1645826624829,
   "links": [],
   "panels": [
     {
@@ -277,6 +277,7 @@
           "color": {
             "mode": "thresholds"
           },
+          "displayName": "$serverName",
           "mappings": [
             {
               "$$hashKey": "object:209",
@@ -402,6 +403,7 @@
             "mode": "thresholds"
           },
           "decimals": 1,
+          "displayName": "$serverName",
           "mappings": [
             {
               "$$hashKey": "object:83",
@@ -496,6 +498,7 @@
             "mode": "thresholds"
           },
           "decimals": 1,
+          "displayName": "$serverName",
           "mappings": [
             {
               "$$hashKey": "object:125",
@@ -590,6 +593,7 @@
             "mode": "thresholds"
           },
           "decimals": 0,
+          "displayName": "$serverName",
           "mappings": [
             {
               "$$hashKey": "object:167",
@@ -606,14 +610,6 @@
               {
                 "color": "#299c46",
                 "value": null
-              },
-              {
-                "color": "rgba(237, 129, 40, 0.89)",
-                "value": 50
-              },
-              {
-                "color": "#d44a3a",
-                "value": 80
               }
             ]
           },
@@ -2825,12 +2821,14 @@
         "overrides": []
       },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 12,
         "x": 0,
         "y": 44
       },
+      "hiddenSeries": false,
       "id": 58,
       "legend": {
         "avg": false,
@@ -2845,6 +2843,9 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "paceLength": 10,
       "percentage": false,
       "pluginVersion": "7.5.11",
@@ -2917,12 +2918,14 @@
         "overrides": []
       },
       "fill": 1,
+      "fillGradient": 0,
       "gridPos": {
         "h": 7,
         "w": 12,
         "x": 12,
         "y": 44
       },
+      "hiddenSeries": false,
       "id": 117,
       "legend": {
         "avg": false,
@@ -2937,6 +2940,9 @@
       "linewidth": 1,
       "links": [],
       "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
       "paceLength": 10,
       "percentage": false,
       "pluginVersion": "7.5.11",
@@ -3452,5 +3458,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 9
+  "version": 14
 }
