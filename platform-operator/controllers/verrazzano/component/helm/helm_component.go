@@ -191,7 +191,6 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	failed, err := helm.IsReleaseFailed(h.ReleaseName, resolvedNamespace)
 	if err != nil {
-		println("ERROR from helm.IsReleaseFailed")
 		return err
 	}
 	if failed {
@@ -206,14 +205,12 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	// check for global image pull secret
 	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
-		println("ERROR from secret.AddGlobalImagePullSecretHelmOverride")
 		return err
 	}
 
 	// vz-specific chart overrides file
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
 	if err != nil {
-		println("ERROR from h.buildCustomHelmOverridese")
 		return err
 	}
 

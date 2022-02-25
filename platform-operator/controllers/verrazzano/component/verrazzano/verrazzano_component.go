@@ -63,14 +63,9 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 // Install Verrazzano component install processing
 func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
-		println("ERROR from install")
 		return err
 	}
-	err := createVMI(ctx)
-	if err != nil {
-		println("ERROR from createVMI")
-	}
-	return err
+	return createVMI(ctx)
 }
 
 // PreUpgrade Verrazzano component pre-upgrade processing
