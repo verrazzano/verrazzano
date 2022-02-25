@@ -512,6 +512,11 @@ pipeline {
                                 runGinkgoRandomize('upgrade/post-upgrade/verify')
                             }
                         }
+                        stage('examples socks') {
+                            steps {
+                                runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
+                            }
+                        }
                         stage('examples spring') {
                             steps {
                                 runGinkgoNamespace('examples/springboot', "true", "false", "springboot")
@@ -522,6 +527,16 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                             }
                         }
+                        stage('examples todo') {
+                            steps {
+                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
+                            }
+                        }
+                        stage('examples bobs-books') {
+                            steps {
+                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
+                            }
+                        }                        
                     }
                     post {
                         always {
