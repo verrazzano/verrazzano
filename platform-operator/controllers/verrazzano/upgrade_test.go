@@ -463,7 +463,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(2) * time.Second, result.RequeueAfter)
+	asserts.Equal(time.Duration(2)*time.Second, result.RequeueAfter)
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
