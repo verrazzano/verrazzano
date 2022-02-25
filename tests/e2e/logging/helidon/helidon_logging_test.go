@@ -81,10 +81,6 @@ var (
 	pollingInterval          = 30 * time.Second
 )
 
-const (
-	testNamespace = "helidon-logging"
-)
-
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
 
@@ -96,7 +92,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN return the host name found in the gateway.
 	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -117,7 +113,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
-		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
+		indexName := fmt.Sprintf("verrazzano-namespace-%s", namespace)
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
@@ -156,9 +152,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 })
 
 func helloHelidonPodsRunning() bool {
-	result, err := pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 	return result
 }
