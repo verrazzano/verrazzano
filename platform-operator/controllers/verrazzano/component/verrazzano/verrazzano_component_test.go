@@ -6,6 +6,11 @@ import (
 	"context"
 	"testing"
 
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"github.com/stretchr/testify/assert"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -33,6 +38,11 @@ var crEnabled = vzapi.Verrazzano{
 			},
 		},
 	},
+}
+
+// fakeUpgrade verifies that the correct parameter values are passed to upgrade
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
 }
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
@@ -68,6 +78,8 @@ func TestInstall(t *testing.T) {
 			Components: dnsComponents,
 		},
 	}, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetUpgradeFunc(fakeUpgrade)
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -114,6 +126,8 @@ func TestUpgrade(t *testing.T) {
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
 	}, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetUpgradeFunc(fakeUpgrade)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
