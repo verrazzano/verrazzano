@@ -7,6 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	batchv1 "k8s.io/api/batch/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -364,6 +367,103 @@ func TestUpgradeStarted(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.Equal(time.Duration(1), result.RequeueAfter)
+}
+
+// TestDeleteDuringUpgrade tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile a verrazzano resource after upgrade is started
+// WHEN upgrade has started and deletion timestamp is not zero
+// THEN ensure a condition with type Uninstall Started is added
+func TestDeleteDuringUpgrade(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+	var verrazzanoToUse vzapi.Verrazzano
+
+	config.SetDefaultBomFilePath(unitTestBomFile)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Expect a call to get the verrazzano resource.  Return resource with version
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
+			verrazzano.TypeMeta = metav1.TypeMeta{
+				APIVersion: "install.verrazzano.io/v1alpha1",
+				Kind:       "Verrazzano"}
+			verrazzano.ObjectMeta = metav1.ObjectMeta{
+				Name:              name.Name,
+				Namespace:         name.Namespace,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				Finalizers:        []string{finalizerName},
+			}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Version: "0.2.0"}
+			verrazzano.Status = vzapi.VerrazzanoStatus{
+				State: vzapi.VzStateUpgrading,
+				Conditions: []vzapi.Condition{
+					{
+						Type: vzapi.CondInstallComplete,
+					},
+					{
+						Type: vzapi.CondUpgradeStarted,
+					},
+				},
+				Components: makeVerrazzanoComponentStatusMap(),
+			}
+			return nil
+		})
+
+	// Expect a call to get the service account
+	expectGetServiceAccountExists(mock, name, nil)
+
+	// Expect a call to get the ClusterRoleBinding
+	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Expect a call to get the uninstall Job - return that it does not exist
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildUninstallJobName(name)}, gomock.Not(gomock.Nil())).
+		Return(errors2.NewNotFound(schema.GroupResource{Group: namespace, Resource: "Job"}, buildUninstallJobName(name)))
+
+	// Expect a call to create the uninstall Job - return success
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
+			asserts.Equalf(getInstallNamespace(), job.Namespace, "Job namespace did not match")
+			asserts.Equalf(buildUninstallJobName(name), job.Name, "Job name did not match")
+			return nil
+		})
+
+	// Expect a call to update the job - return success
+	mock.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	// Expect a status update on the job
+	mockStatus.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	// Create and make the request
+	request := newRequest(namespace, name)
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
+	asserts.Equal(time.Duration(2) * time.Second, result.RequeueAfter)
 }
 
 // TestUpgradeStartedWhenPrevFailures tests the reconcileUpgrade method for the following use case
