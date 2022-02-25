@@ -127,7 +127,7 @@ pipeline {
                         script {
                             build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                 parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT_FOR_UPGRADE),
+                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                     string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                     string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
