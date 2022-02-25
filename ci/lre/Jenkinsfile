@@ -333,11 +333,6 @@ pipeline {
                         runGinkgo('metrics/deploymetrics')
                     }
                 }
-                stage('logging trait Helidon workload') {
-                    steps {
-                        runGinkgo('loggingtrait/helidonworkload')
-                    }
-                }
                 stage('logging trait Coherence workload') {
                     steps {
                         runGinkgo('loggingtrait/coherenceworkload')
