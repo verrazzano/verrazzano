@@ -8,14 +8,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/controller"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -159,7 +158,7 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
-	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
+	return istio.RestartComponents(log, client)
 }
 
 // getNsnKey gets the key for the verrazzano resource

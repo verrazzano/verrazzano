@@ -208,3 +208,13 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 
 	return stdout.String(), stderr.String(), nil
 }
+
+// ListImagesInPod returns a list of images in the pod
+func ListImagesInPod(pod v1.Pod) []string {
+	var images []string
+	podContainers := pod.Spec.Containers
+	for _, container := range podContainers {
+		images = append(images, container.Image)
+	}
+	return images
+}

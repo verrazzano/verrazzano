@@ -497,7 +497,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	defer registry.ResetGetComponentsFn()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	mocks.RestartMocks(mock)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -589,8 +589,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	defer registry.ResetGetComponentsFn()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-	mock.AddRestartMocks()
+	mocks.RestartMocks(mock)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -689,7 +688,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	mocks.RestartMocks(mock)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -975,7 +974,7 @@ func TestUpgradeComponent(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	mocks.RestartMocks(mock)
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -1070,7 +1069,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
+	mocks.RestartMocks(mock)
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
