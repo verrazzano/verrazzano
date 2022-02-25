@@ -57,6 +57,21 @@ func TestPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestInstall tests the Verrazzano Install call
+// GIVEN a Verrazzano component
+//  WHEN I call Install when dependencies are met
+//  THEN no error is returned
+func TestInstall(t *testing.T) {
+	client := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: dnsComponents,
+		},
+	}, false)
+	err := NewComponent().Install(ctx)
+	assert.NoError(t, err)
+}
+
 // TestPostInstall tests the Verrazzano PostInstall call
 // GIVEN a Verrazzano component
 //  WHEN I call PostInstall
@@ -83,6 +98,23 @@ func TestPostInstall(t *testing.T) {
 		})
 	}
 	err = vzComp.PostInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
+//  WHEN I call Upgrade
+//  THEN no error is returned
+func TestUpgrade(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Version:    "v1.2.0",
+			Components: dnsComponents,
+		},
+		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
+	}, false)
+	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
 
