@@ -62,6 +62,9 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 
 // Install Verrazzano component install processing
 func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Install(ctx); err != nil {
+		return err
+	}
 	return createVMI(ctx)
 }
 
@@ -73,6 +76,9 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // InstallUpgrade Verrazzano component upgrade processing
 func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Upgrade(ctx); err != nil {
+		return err
+	}
 	return createVMI(ctx)
 }
 
