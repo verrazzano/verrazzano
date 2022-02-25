@@ -78,45 +78,20 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		deployments = append(deployments, types.NamespacedName{
 			Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
-	/*
-		if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-			deployments = append(deployments, types.NamespacedName{
-				Name: "vmi-system-grafana", Namespace: globalconst.VerrazzanoSystemNamespace})
-		}
-		if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-			deployments = append(deployments, types.NamespacedName{
-				Name: "vmi-system-kibana", Namespace: globalconst.VerrazzanoSystemNamespace})
-		}
-		if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-			deployments = append(deployments, types.NamespacedName{
-				Name: "vmi-system-prometheus-0", Namespace: globalconst.VerrazzanoSystemNamespace})
-		}
-		if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-			if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-				esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
-				for _, args := range esInstallArgs {
-					if args.Name == "nodes.data.replicas" {
-						replicas, _ := strconv.Atoi(args.Value)
-						for i := 0; replicas > 0 && i < replicas; i++ {
-							deployments = append(deployments, types.NamespacedName{
-								Name: fmt.Sprintf("vmi-system-es-data-%d", i), Namespace: globalconst.VerrazzanoSystemNamespace})
-						}
-					}
-					if args.Name == "nodes.ingest.replicas" {
-						replicas, _ := strconv.Atoi(args.Value)
-						if replicas > 0 {
-							deployments = append(deployments, types.NamespacedName{
-								Name: "vmi-system-es-ingest", Namespace: globalconst.VerrazzanoSystemNamespace})
-						}
-					}
-				}
-			}
-		}
-	*/
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
+
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		var daemonsets []types.NamespacedName
+		daemonsets = append(daemonsets, types.NamespacedName{
+			Name: "node-exporter", Namespace: globalconst.VerrazzanoMonitoringNamespace})
+		if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+			return false
+		}
+	}
+
 	return isVerrazzanoSecretReady(ctx)
 }
 

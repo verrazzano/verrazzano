@@ -1550,6 +1550,18 @@ func TestIsReady(t *testing.T) {
 				UnavailableReplicas: 0,
 			},
 		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
+				Name:      "node-exporter",
+			},
+			Status: appsv1.DaemonSetStatus{
+				DesiredNumberScheduled: 1,
+				NumberReady:            1,
+				NumberAvailable:        1,
+				NumberUnavailable:      0,
+			},
+		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
 	)
