@@ -333,6 +333,11 @@ pipeline {
                         runGinkgo('metrics/deploymetrics')
                     }
                 }
+                stage('logging trait Coherence workload') {
+                    steps {
+                        runGinkgo('loggingtrait/coherenceworkload')
+                    }
+                }
 
             }
             post {
