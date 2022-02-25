@@ -271,6 +271,16 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
+                        stage('examples spring') {
+                            steps {
+                                runGinkgoNamespace('examples/springboot', "false", "true", "springboot")
+                            }
+                        }
+                        stage('examples helidon') {
+                            steps {
+                                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
+                            }
+                        }
                         // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
 //                         stage('examples socks') {
 //                             steps {
@@ -527,16 +537,6 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                             }
                         }
-                        stage('examples todo') {
-                            steps {
-                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
-                            }
-                        }
-                        stage('examples bobs-books') {
-                            steps {
-                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
-                            }
-                        }                        
                     }
                     post {
                         always {
