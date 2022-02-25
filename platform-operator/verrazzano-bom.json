@@ -320,7 +320,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.7",
+              "tag": "3.3.8",
               "helmFullImageKey": "image"
             }
           ]
