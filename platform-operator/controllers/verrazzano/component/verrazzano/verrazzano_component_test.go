@@ -39,7 +39,7 @@ var crEnabled = vzapi.Verrazzano{
 	},
 }
 
-// fakeUpgrade verifies that the correct parameter values are passed to upgrade
+// fakeUpgrade override the upgrade function during unit tests
 func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
 }
