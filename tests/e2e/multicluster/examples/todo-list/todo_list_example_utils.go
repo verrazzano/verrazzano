@@ -172,11 +172,7 @@ func todoListPodsRunning(kubeconfigPath string, namespace string) (bool, error) 
 // todoListPodDeleted Check if expected pods are running on a given cluster
 func todoListPodDeleted(kubeconfigPath string, namespace string, pod string) bool {
 	deletedPod := []string{pod}
-	result, err := pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error in checking whether the pods are running in the namespace: %v, error: %v", namespace, err))
-		return false
-	}
+	result, _ := pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
 	return !result
 }
 
