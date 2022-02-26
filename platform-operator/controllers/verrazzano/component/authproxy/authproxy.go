@@ -39,14 +39,11 @@ func resetWriteFileFunc() {
 
 // isAuthProxyReady checks if the AuthProxy deployment is ready
 func isAuthProxyReady(ctx spi.ComponentContext) bool {
-	if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
-		deployments := []types.NamespacedName{
-			{Name: ComponentName, Namespace: ComponentNamespace},
-		}
-		prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-		return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	deployments := []types.NamespacedName{
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
-	return true
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install

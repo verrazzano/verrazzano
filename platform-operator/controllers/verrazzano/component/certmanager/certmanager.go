@@ -15,8 +15,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -240,16 +238,13 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
 func isCertManagerReady(context spi.ComponentContext) bool {
-	if vzconfig.IsCertManagerEnabled(context.EffectiveCR()) {
-		deployments := []types.NamespacedName{
-			{Name: certManagerDeploymentName, Namespace: ComponentNamespace},
-			{Name: cainjectorDeploymentName, Namespace: ComponentNamespace},
-			{Name: webhookDeploymentName, Namespace: ComponentNamespace},
-		}
-		prefix := fmt.Sprintf("Component %s", context.GetComponent())
-		return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
+	deployments := []types.NamespacedName{
+		{Name: certManagerDeploymentName, Namespace: ComponentNamespace},
+		{Name: cainjectorDeploymentName, Namespace: ComponentNamespace},
+		{Name: webhookDeploymentName, Namespace: ComponentNamespace},
 	}
-	return true
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 //writeCRD writes out CertManager CRD manifests with OCI DNS specifications added

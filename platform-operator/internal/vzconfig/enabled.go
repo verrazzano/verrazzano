@@ -94,30 +94,6 @@ func IsRancherEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-// IsApplicationOperatorEnabled - Returns false only if explicitly disabled in the CR
-func IsApplicationOperatorEnabled(vz *vzapi.Verrazzano) bool {
-	if vz != nil && vz.Spec.Components.ApplicationOperator != nil && vz.Spec.Components.ApplicationOperator.Enabled != nil {
-		return *vz.Spec.Components.ApplicationOperator.Enabled
-	}
-	return true
-}
-
-// IsAuthProxyEnabled - Returns false only if explicitly disabled in the CR
-func IsAuthProxyEnabled(vz *vzapi.Verrazzano) bool {
-	if vz != nil && vz.Spec.Components.AuthProxy != nil && vz.Spec.Components.AuthProxy.Enabled != nil {
-		return *vz.Spec.Components.AuthProxy.Enabled
-	}
-	return true
-}
-
-// IsCertManagerEnabled - Returns false only if explicitly disabled in the CR
-func IsCertManagerEnabled(vz *vzapi.Verrazzano) bool {
-	if vz != nil && vz.Spec.Components.CertManager != nil && vz.Spec.Components.CertManager.Enabled != nil {
-		return *vz.Spec.Components.CertManager.Enabled
-	}
-	return true
-}
-
 // IsExternalDNSEnabled Indicates if the external-dns service is expected to be deployed, true if OCI DNS is configured
 func IsExternalDNSEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.DNS != nil && vz.Spec.Components.DNS.OCI != nil {
