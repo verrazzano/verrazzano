@@ -99,7 +99,11 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
 		t.It("Does not have application placed", func() {
 			Consistently(func() bool {
-				return VerifyTodoListInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				result, err := VerifyTodoListInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -118,7 +122,11 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
 			Eventually(func() bool {
-				return VerifyTodoListInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				result, err := VerifyTodoListInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 		})
 	})
@@ -145,7 +153,11 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 			})
 			It("Does not have application placed", func() {
 				Eventually(func() bool {
-					return VerifyTodoListInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+					result, err := VerifyTodoListInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+					if err != nil {
+						AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+					}
+					return result
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		}
