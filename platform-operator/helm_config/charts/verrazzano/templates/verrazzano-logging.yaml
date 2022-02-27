@@ -556,7 +556,7 @@ data:
       reserve_data true
       emit_invalid_record_to_error true
       <parse>
-        # Weblogic Operator Dashboard has multi format for log records
+        # WebLogic Operator Dashboard has one format for log records
         @type multi_format
         <pattern>
           format json

@@ -420,7 +420,7 @@ func validateOpenSearchLogs() bool {
 
 func validateWeblogicOperatorLogs() bool {
 	return validateElasticsearchRecords(
-		noLevelElasticsearchRecordValidator,
+		allElasticsearchRecordValidator,
 		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"weblogic-operator",
