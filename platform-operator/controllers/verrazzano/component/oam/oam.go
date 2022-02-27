@@ -11,12 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const oamOperatorDeploymentName = ComponentName
-
 // isOAMReady checks if the OAM operator deployment is ready
 func isOAMReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: oamOperatorDeploymentName, Namespace: ComponentNamespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
