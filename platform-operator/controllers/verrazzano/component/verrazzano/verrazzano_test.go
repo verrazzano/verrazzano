@@ -1588,6 +1588,18 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
+				Namespace: globalconst.VerrazzanoSystemNamespace,
+				Name:      "fluentd",
+			},
+			Status: appsv1.DaemonSetStatus{
+				DesiredNumberScheduled: 1,
+				NumberReady:            1,
+				NumberAvailable:        1,
+				NumberUnavailable:      0,
+			},
+		},
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoMonitoringNamespace,
 				Name:      "node-exporter",
 			},
@@ -1669,6 +1681,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	falseValue := false
 	vz.Spec.Components = vzapi.ComponentSpec{
 		Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
 		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},

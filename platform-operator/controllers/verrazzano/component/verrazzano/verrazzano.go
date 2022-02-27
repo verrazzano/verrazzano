@@ -72,6 +72,7 @@ func resolveVerrazzanoNamespace(ns string) string {
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
+	// First, check deployments
 	var deployments []types.NamespacedName
 	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
@@ -97,15 +98,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		var daemonsets []types.NamespacedName
-		daemonsets = append(daemonsets, types.NamespacedName{
-			Name: "node-exporter", Namespace: globalconst.VerrazzanoMonitoringNamespace})
-		if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
-			return false
-		}
-	}
-
+	// Next, check statefulsets
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
@@ -124,6 +117,20 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				}
 			}
 		}
+	}
+
+	// Finally, check daemonsets
+	var daemonsets []types.NamespacedName
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		daemonsets = append(daemonsets, types.NamespacedName{
+			Name: "node-exporter", Namespace: globalconst.VerrazzanoMonitoringNamespace})
+	}
+	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
+		daemonsets = append(daemonsets, types.NamespacedName{
+			Name: "fluentd", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+		return false
 	}
 
 	return isVerrazzanoSecretReady(ctx)
