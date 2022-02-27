@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -69,6 +70,8 @@ func resolveVerrazzanoNamespace(ns string) string {
 
 // isVerrazzanoReady Verrazzano components ready-check
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+
 	var deployments []types.NamespacedName
 	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
@@ -90,7 +93,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		deployments = append(deployments, types.NamespacedName{
 			Name: "vmi-system-prometheus-0", Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
@@ -101,6 +103,26 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 			Name: "node-exporter", Namespace: globalconst.VerrazzanoMonitoringNamespace})
 		if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 			return false
+		}
+	}
+
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+			for _, args := range esInstallArgs {
+				if args.Name == "nodes.master.replicas" {
+					var statefulsets []types.NamespacedName
+					replicas, _ := strconv.Atoi(args.Value)
+					if replicas > 0 {
+						statefulsets = append(statefulsets, types.NamespacedName{
+							Name: "vmi-system-es-master", Namespace: globalconst.VerrazzanoSystemNamespace})
+						if !status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
+							return false
+						}
+					}
+					break
+				}
+			}
 		}
 	}
 

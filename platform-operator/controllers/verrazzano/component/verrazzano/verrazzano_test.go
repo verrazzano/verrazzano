@@ -1598,10 +1598,32 @@ func TestIsReady(t *testing.T) {
 				NumberUnavailable:      0,
 			},
 		},
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      "vmi-system-es-master",
+			},
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				CurrentReplicas: 1,
+			},
+		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
 			Namespace: ComponentNamespace}},
 	)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+
+	vz := &vzapi.Verrazzano{}
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Elasticsearch: &vzapi.ElasticsearchComponent{
+			ESInstallArgs: []vzapi.InstallArgs{
+				{
+					Name:  "nodes.master.replicas",
+					Value: "1",
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, false)
 	assert.True(t, isVerrazzanoReady(ctx))
 }
 
