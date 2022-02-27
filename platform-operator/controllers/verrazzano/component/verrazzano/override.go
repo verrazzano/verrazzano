@@ -262,7 +262,9 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 
 	// Force the override to be the internal ES secret if the legacy ES secret is being used.
 	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
-	if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
-		overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
+	if overrides.Logging != nil {
+		if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
+			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
+		}
 	}
 }
