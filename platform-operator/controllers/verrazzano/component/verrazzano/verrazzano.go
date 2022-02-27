@@ -78,6 +78,18 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		deployments = append(deployments, types.NamespacedName{
 			Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
+	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "vmi-system-grafana", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "vmi-system-kibana", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: "vmi-system-prometheus-0", Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
