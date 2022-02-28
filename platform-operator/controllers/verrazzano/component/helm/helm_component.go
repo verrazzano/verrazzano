@@ -107,11 +107,11 @@ type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespa
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
-func setUpgradeFunc(f upgradeFuncSig) {
+func SetUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f
 }
 
-func setDefaultUpgradeFunc() {
+func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
 }
 
