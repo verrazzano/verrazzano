@@ -157,7 +157,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 
 	// Finally, check daemonsets
 	var daemonsets []types.NamespacedName
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		daemonsets = append(daemonsets, types.NamespacedName{
 			Name: nodeExporterDaemonset, Namespace: globalconst.VerrazzanoMonitoringNamespace})
 	}
