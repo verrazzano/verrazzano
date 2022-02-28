@@ -569,6 +569,13 @@ data:
       </parse>
     </filter>
 
+    # filter to apply a record transformer into WebLogic Component log files in JSON format
+    <filter kubernetes.**weblogic-operator**verrazzano-system_weblogic-operator**>
+      @type record_transformer
+      @id weblogic-operator-json
+      remove_keys timestamp
+    </filter>
+
     # filter to parse OpenSearch Dashboard container log files
     <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
       @type parser
