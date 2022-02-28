@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1645826624829,
+  "iteration": 1646063753772,
   "links": [],
   "panels": [
     {
@@ -382,9 +382,12 @@
       },
       "targets": [
         {
-          "expr": "wls_server_state_val{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\"}",
+          "exemplar": true,
+          "expr": "wls_server_state_val{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
+          "legendFormat": "",
           "refId": "A"
         }
       ],
@@ -473,7 +476,8 @@
       },
       "targets": [
         {
-          "expr": "100 - wls_jvm_heap_free_percent{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\"}",
+          "exemplar": true,
+          "expr": "100 - wls_jvm_heap_free_percent{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -568,7 +572,8 @@
       },
       "targets": [
         {
-          "expr": "wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\"}",
+          "exemplar": true,
+          "expr": "wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -655,7 +660,8 @@
       },
       "targets": [
         {
-          "expr": "wls_server_open_sockets_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\"}",
+          "exemplar": true,
+          "expr": "wls_server_open_sockets_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -725,24 +731,30 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "wls_jvm_heap_free_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}",
+          "exemplar": true,
+          "expr": "wls_jvm_heap_free_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": " Heap Free  ({{weblogic_serverName}})",
           "refId": "B"
         },
         {
-          "expr": "wls_jvm_heap_size_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}",
+          "exemplar": true,
+          "expr": "wls_jvm_heap_size_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "instant": false,
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "Heap Size ({{weblogic_serverName}})",
           "refId": "A"
         },
         {
-          "expr": "wls_jvm_heap_size_max{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}",
+          "exemplar": true,
+          "expr": "wls_jvm_heap_size_max{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
           "hide": true,
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "Heap Max  ({{weblogic_serverName}})",
           "refId": "C"
@@ -3256,9 +3268,9 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
+          "selected": true,
+          "text": "managed1",
+          "value": "managed1"
         },
         "datasource": "Prometheus",
         "definition": "label_values(verrazzano_cluster)",
@@ -3458,5 +3470,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 14
+  "version": 16
 }
