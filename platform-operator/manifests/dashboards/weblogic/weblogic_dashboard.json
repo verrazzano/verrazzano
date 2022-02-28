@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646075662170,
+  "iteration": 1646078866867,
   "links": [],
   "panels": [
     {
@@ -1633,8 +1633,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": " sum(irate(wls_webapp_config_sessions_opened_total_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}[5m])) by (app)",
+          "exemplar": true,
+          "expr": " sum(irate(wls_webapp_config_sessions_opened_total_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (verrazzano_cluster,app)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{app}}",
           "refId": "A"
@@ -3680,7 +3682,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "All",
           "value": "$__all"
         },
@@ -3809,7 +3811,8 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
+          "selected": false,
+          "tags": [],
           "text": "5",
           "value": "5"
         },
@@ -3882,5 +3885,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 33
+  "version": 34
 }
