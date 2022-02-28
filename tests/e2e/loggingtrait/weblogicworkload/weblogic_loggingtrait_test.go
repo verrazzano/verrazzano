@@ -23,7 +23,6 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
-	namespace            = "weblogic-logging-trait"
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 	applicationPodName   = "tododomain-adminserver"
@@ -32,7 +31,10 @@ const (
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-var t = framework.NewTestFramework("weblogicworkload")
+var (
+	t                  = framework.NewTestFramework("weblogicworkload")
+	generatedNamespace = pkg.GenerateNamespace("weblogic-logging-trait")
+)
 
 var _ = t.BeforeSuite(func() {
 	deployWebLogicApplication()
@@ -96,12 +98,12 @@ func deployWebLogicApplication() {
 
 	pkg.Log(pkg.Info, "Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Check application pods are running")

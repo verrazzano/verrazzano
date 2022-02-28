@@ -16,6 +16,7 @@ var namespace string
 func init() {
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
 }
+
 func TestHelidonExample(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Helidon Logging Suite")

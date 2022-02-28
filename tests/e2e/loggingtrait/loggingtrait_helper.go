@@ -41,12 +41,12 @@ func DeployApplication(namespace, componentsPath, applicationPath, podName strin
 
 	pkg.Log(pkg.Info, "Create component resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, fmt.Sprintf("Check pod %v is running", podName))
@@ -65,12 +65,12 @@ func UndeployApplication(namespace string, componentsPath string, applicationPat
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFile(applicationPath)
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFile(componentsPath)
+		return pkg.DeleteResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")
