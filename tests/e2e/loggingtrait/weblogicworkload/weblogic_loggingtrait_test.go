@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -61,10 +60,10 @@ func deployWebLogicApplication() {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
 	// Wait for namespace to finish deletion possibly from a prior run.
-	Eventually(func() bool {
-		_, err := pkg.GetNamespace(namespace)
-		return err != nil && errors.IsNotFound(err)
-	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+	//Eventually(func() bool {
+	//	_, err := pkg.GetNamespace(namespace)
+	//	return err != nil && errors.IsNotFound(err)
+	//}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	start := time.Now()

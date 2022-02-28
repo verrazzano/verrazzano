@@ -343,11 +343,11 @@ pipeline {
                         runGinkgo('loggingtrait/helidonworkload')
                     }
                 }
-                //stage('logging trait weblogic workload') {
-                //    steps {
-                //        runGinkgo('loggingtrait/weblogicworkload')
-                //    }
-                //}
+                stage('logging trait weblogic workload') {
+                    steps {
+                        runGinkgo('loggingtrait/weblogicworkload')
+                    }
+                }
             }
             post {
                 always {
