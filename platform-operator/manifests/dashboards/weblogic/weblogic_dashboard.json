@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646069154003,
+  "iteration": 1646073031964,
   "links": [],
   "panels": [
     {
@@ -97,7 +97,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count (wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",verrazzano_cluster=~\"$vzcluster\"}) by (name))",
+          "expr": "count(count (wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",verrazzano_cluster=~\"$vzcluster\"}) by (name,verrazzano_cluster))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -172,7 +172,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count(wls_webapp_config_deployment_state{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",verrazzano_cluster=~\"$vzcluster\"}) by (app))",
+          "expr": "count(count(wls_webapp_config_deployment_state{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",verrazzano_cluster=~\"$vzcluster\"}) by (app,verrazzano_cluster))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3496,7 +3496,6 @@
         "allValue": null,
         "current": {
           "selected": false,
-          "tags": [],
           "text": "5",
           "value": "5"
         },
@@ -3568,5 +3567,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 22
+  "version": 23
 }
