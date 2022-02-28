@@ -348,6 +348,11 @@ pipeline {
                         runGinkgo('loggingtrait/weblogicworkload')
                     }
                 }
+                stage('logging trait coherence workload') {
+                    steps {
+                        runGinkgo('loggingtrait/coherenceworkload')
+                    }
+                }
             }
             post {
                 always {
