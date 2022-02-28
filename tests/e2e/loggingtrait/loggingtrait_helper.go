@@ -25,11 +25,6 @@ const (
 func DeployApplication(namespace, componentsPath, applicationPath, podName string, t *framework.TestFramework) {
 	pkg.Log(pkg.Info, "Deploy test application")
 	start := time.Now()
-	// Wait for namespace to finish deletion possibly from a prior run.
-	//gomega.Eventually(func() bool {
-	//	_, err := pkg.GetNamespace(namespace)
-	//	return err != nil && errors.IsNotFound(err)
-	//}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {

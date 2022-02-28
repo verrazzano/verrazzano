@@ -61,12 +61,6 @@ func deployWebLogicApplication() {
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
-	// Wait for namespace to finish deletion possibly from a prior run.
-	//Eventually(func() bool {
-	//	_, err := pkg.GetNamespace(namespace)
-	//	return err != nil && errors.IsNotFound(err)
-	//}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
-
 	pkg.Log(pkg.Info, "Create namespace")
 	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
