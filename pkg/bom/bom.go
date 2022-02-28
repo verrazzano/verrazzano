@@ -321,23 +321,3 @@ func FindKV(kvs []KeyValue, key string) string {
 	}
 	return ""
 }
-
-// BuildBOMImagesFromStrings populates and returns a []BomImage
-func BuildBOMImagesFromStrings(images []string) []BomImage {
-	var bomImages []BomImage
-	for _, image := range images {
-		bomImages = append(bomImages, BuildBOMImageFromString(image))
-	}
-	return bomImages
-}
-
-// BuildBOMImageFromString populates and returns a BomImage type from the passed in image
-func BuildBOMImageFromString(image string) BomImage {
-	var bomImage BomImage
-	colon := strings.LastIndex(image, ":")
-	slash := strings.LastIndex(image, "/")
-	bomImage.ImageTag = image[(colon + 1):]
-	bomImage.ImageName = image[(slash + 1):colon]
-	bomImage.Repository = image[:slash]
-	return bomImage
-}

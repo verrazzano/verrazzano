@@ -131,17 +131,20 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 
 // VerifyTodoListInCluster verifies that the todo-list app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifyTodoListInCluster(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
+func VerifyTodoListInCluster(kubeconfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) (bool, error) {
 	projectExists := projectExists(kubeconfigPath, projectName)
-	podsRunning := todoListPodsRunning(kubeconfigPath, namespace)
+	podsRunning, err := todoListPodsRunning(kubeconfigPath, namespace)
+	if err != nil {
+		return false, err
+	}
 
 	if placedInThisCluster {
-		return projectExists && podsRunning
+		return projectExists && podsRunning, nil
 	} else {
 		if isAdminCluster {
-			return projectExists && !podsRunning
+			return projectExists && !podsRunning, nil
 		} else {
-			return !podsRunning && !projectExists
+			return !podsRunning && !projectExists, nil
 		}
 	}
 }
@@ -157,23 +160,19 @@ func projectExists(kubeconfigPath string, projectName string) bool {
 }
 
 // todoListPodsRunning Check if expected pods are running on a given cluster
-func todoListPodsRunning(kubeconfigPath string, namespace string) bool {
+func todoListPodsRunning(kubeconfigPath string, namespace string) (bool, error) {
 	result, err := pkg.PodsRunningInCluster(namespace, expectedPodsTodoList, kubeconfigPath)
-	// TODO: Go through each of the test cases calling this and decide whether to fail the test or test suite
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		return false, err
 	}
-	return result
+	return result, nil
 }
 
 // todoListPodDeleted Check if expected pods are running on a given cluster
 func todoListPodDeleted(kubeconfigPath string, namespace string, pod string) bool {
 	deletedPod := []string{pod}
-	result, err := pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
-	// TODO: Go through each of the test cases calling this and decide whether to fail the test or test suite
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("There is an error in checking whether the pods are running in the namespace: %v, error: %v", namespace, err))
-	}
+	result, _ := pkg.PodsRunningInCluster(namespace, deletedPod, kubeconfigPath)
 	return !result
 }
 

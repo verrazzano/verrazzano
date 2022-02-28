@@ -128,18 +128,21 @@ func VerifyMCResourcesV100(kubeconfigPath string, isAdminCluster bool, placedInT
 
 // VerifyHelloHelidonInCluster verifies that the hello helidon app resources are either present or absent
 // depending on whether the app is placed in this cluster
-func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) bool {
+func VerifyHelloHelidonInCluster(kubeConfigPath string, isAdminCluster bool, placedInThisCluster bool, projectName string, namespace string) (bool, error) {
 	projectExists := projectExists(kubeConfigPath, projectName)
 	workloadExists := componentWorkloadExists(kubeConfigPath, namespace)
-	podsRunning := helloHelidonPodsRunning(kubeConfigPath, namespace)
+	podsRunning, err := helloHelidonPodsRunning(kubeConfigPath, namespace)
+	if err != nil {
+		return false, err
+	}
 
 	if placedInThisCluster {
-		return projectExists && workloadExists && podsRunning
+		return projectExists && workloadExists && podsRunning, nil
 	} else {
 		if isAdminCluster {
-			return projectExists && !workloadExists && !podsRunning
+			return projectExists && !workloadExists && !podsRunning, nil
 		} else {
-			return !workloadExists && !podsRunning && !projectExists
+			return !workloadExists && !podsRunning && !projectExists, nil
 		}
 	}
 }
@@ -166,7 +169,7 @@ func VerifyHelloHelidonDeletedInManagedCluster(kubeconfigPath string, namespace 
 // VerifyAppDeleted - verifies that the workload and pods are deleted on the the specified cluster
 func VerifyAppDeleted(kubeconfigPath string, namespace string) bool {
 	workloadExists := componentWorkloadExists(kubeconfigPath, namespace)
-	podsRunning := helloHelidonPodsRunning(kubeconfigPath, namespace)
+	podsRunning, _ := helloHelidonPodsRunning(kubeconfigPath, namespace)
 	return !workloadExists && !podsRunning
 }
 
@@ -253,11 +256,11 @@ func resourceExists(gvr schema.GroupVersionResource, ns string, name string, kub
 	return u != nil
 }
 
-func helloHelidonPodsRunning(kubeconfigPath string, namespace string) bool {
-	// TODO: Go through each of the test cases calling this and decide whether to fail the test or test suite
+func helloHelidonPodsRunning(kubeconfigPath string, namespace string) (bool, error) {
 	result, err := pkg.PodsRunningInCluster(namespace, expectedPodsHelloHelidon, kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		return false, err
 	}
-	return result
+	return result, nil
 }

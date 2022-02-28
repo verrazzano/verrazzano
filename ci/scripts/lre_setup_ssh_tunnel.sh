@@ -12,8 +12,8 @@ if [ -z "${ssh_public_key_path}" ] ; then
     echo "ssh_public_key_path env var must be set!"
     exit 1
 fi
-if [ -z "${dev_lre_compartment_id}" ] ; then
-    echo "dev_lre_compartment_id env var must be set!"
+if [ -z "${COMPARTMENT_ID}" ] ; then
+    echo "COMPARTMENT_ID env var must be set!"
     exit 1
 fi
 if [ -z "${KUBECONFIG}" ] ; then
@@ -21,9 +21,10 @@ if [ -z "${KUBECONFIG}" ] ; then
     exit 1
 fi
 
-
+echo "Compartment id is ${COMPARTMENT_ID}"
+echo "Cluster IP is ${CLUSTER_IP}"
 BASTION_ID=$(oci bastion bastion list \
-            --compartment-id "${dev_lre_compartment_id}" --all \
+            --compartment-id "${COMPARTMENT_ID}" --all \
             | jq -r '.data[0]."id"')
 
 if [ -z "$BASTION_ID" ]; then
@@ -34,7 +35,7 @@ fi
 SESSION_ID=$(oci bastion session create-port-forwarding \
    --bastion-id $BASTION_ID \
    --ssh-public-key-file ${ssh_public_key_path} \
-   --target-private-ip 10.196.0.171 \
+   --target-private-ip ${CLUSTER_IP} \
    --target-port 6443 | jq '.data.id' | sed s/\"//g)
 
 if [ -z "$SESSION_ID" ]; then

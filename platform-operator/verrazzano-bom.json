@@ -50,24 +50,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "1.2.0-20211212162439-4f1415cb5",
+              "tag": "1.2.0-20220225033848-4f1415cb5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "1.2.0-20211212162513-4f1415cb5",
+              "tag": "1.2.0-20220225033913-4f1415cb5",
               "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "1.2.0-20211212162439-4f1415cb5",
+              "tag": "1.2.0-20220225033848-4f1415cb5",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "1.2.0-20211212162439-4f1415cb5",
+              "tag": "1.2.0-20220225033848-4f1415cb5",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -84,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220119205950-b0543ed2",
+              "tag": "v0.10.2-20220225144626-7bae1b96",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -185,19 +185,19 @@
           "images": [
             {
               "image": "verrazzano-operator",
-              "tag": "1.3.0-20220216005855-4714c1c",
+              "tag": "1.3.0-20220225034830-4714c1c",
               "helmFullImageKey": "verrazzanoOperator.imageName",
               "helmTagKey": "verrazzanoOperator.imageVersion"
             },
             {
               "image": "node-exporter",
-              "tag": "1.0.0-20211213080828-e25ae11",
+              "tag": "1.0.0-20220225034938-e25ae11",
               "helmFullImageKey": "nodeExporter.imageName",
               "helmTagKey": "nodeExporter.imageVersion"
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.3.0-20220216005851-173e0f7",
+              "tag": "1.3.0-20220225175957-5afd166",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -218,17 +218,17 @@
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20220207214930-833b159de83",
+              "tag": "1.2.3-20220225102914-833b159de83",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220209174907-c1f2500d38",
+              "tag": "1.2.0-20220225104807-c1f2500d38",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
               "image": "configmap-reload",
-              "tag": "0.3-20211202193501-64d77e0",
+              "tag": "0.3-20220225035234-64d77e0",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
@@ -238,12 +238,12 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20220223195215-0302423",
+              "tag": "v1.12.3-20220225061210-0302423",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
               "image": "console",
-              "tag": "1.3.0-20220224182255-4d0d44f",
+              "tag": "1.3.0-20220226065210-4d0d44f",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -287,7 +287,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20220125135517-3a38226",
+              "tag": "v0.3.0-20220225035616-3a38226",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -320,7 +320,7 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "3.3.7",
+              "tag": "3.3.8",
               "helmFullImageKey": "image"
             }
           ]
@@ -398,7 +398,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "15.0.2-20220209090418-a7c16adfc3",
+              "tag": "15.0.2-20220225013936-a7c16adfc3",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -410,7 +410,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "1.3.0-20220216155525-dc513a7"
+              "tag": "1.3.0-20220226065029-dc513a7"
             }
           ]
         }
