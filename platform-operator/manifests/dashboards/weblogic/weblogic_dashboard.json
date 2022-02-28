@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646074064146,
+  "iteration": 1646075662150,
   "links": [],
   "panels": [
     {
@@ -1743,22 +1743,6 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Time"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Time"
-              },
-              {
-                "id": "custom.align",
-                "value": null
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
               "options": "weblogic_serverName"
             },
             "properties": [
@@ -1959,6 +1943,16 @@
           "id": "merge",
           "options": {
             "reducers": []
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {}
           }
         }
       ],
@@ -3691,5 +3685,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 24
+  "version": 25
 }
