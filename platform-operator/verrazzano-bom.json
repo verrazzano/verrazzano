@@ -222,7 +222,7 @@
             },
             {
               "image": "kibana",
-              "tag": "7.10.2-20220223205825-2b031d0",
+              "tag": "7.10.2-20220225122026-f83045b",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
