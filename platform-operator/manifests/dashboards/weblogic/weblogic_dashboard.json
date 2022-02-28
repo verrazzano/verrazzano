@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646063753782,
+  "iteration": 1646067380100,
   "links": [],
   "panels": [
     {
@@ -2297,8 +2297,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(wls_jmsruntime_connections_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}) by (weblogic_serverName)",
+          "exemplar": true,
+          "expr": "sum(wls_jmsruntime_connections_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}) by (weblogic_serverName)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{weblogic_serverName}}",
           "refId": "A"
@@ -3278,7 +3280,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": true,
+          "selected": false,
           "text": "All",
           "value": "$__all"
         },
@@ -3480,5 +3482,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 18
+  "version": 19
 }
