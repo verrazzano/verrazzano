@@ -25,7 +25,7 @@ const (
 	rancherTLSSecretName           = "tls-ca"
 	defaultVerrazzanoName          = "verrazzano-ca-certificate-secret"
 	fleetAgentDeployment           = "fleet-agent"
-	fleetControllerDeployment      = "fleet-deployment"
+	fleetControllerDeployment      = "fleet-controller"
 	gitjobDeployment               = "gitjob"
 	localPathProvisionerDeployment = "local-path-provisioner"
 	rancherWebhookDeployment       = "rancher-webhook"
