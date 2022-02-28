@@ -94,6 +94,29 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		deployments = append(deployments, types.NamespacedName{
 			Name: "vmi-system-prometheus-0", Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+			for _, args := range esInstallArgs {
+				if args.Name == "nodes.data.replicas" {
+					replicas, _ := strconv.Atoi(args.Value)
+					for i := 0; replicas > 0 && i < replicas; i++ {
+						deployments = append(deployments, types.NamespacedName{
+							Name: fmt.Sprintf("vmi-system-es-data-%d", i), Namespace: globalconst.VerrazzanoSystemNamespace})
+					}
+					continue
+				}
+				if args.Name == "nodes.ingest.replicas" {
+					replicas, _ := strconv.Atoi(args.Value)
+					if replicas > 0 {
+						deployments = append(deployments, types.NamespacedName{
+							Name: "vmi-system-es-ingest", Namespace: globalconst.VerrazzanoSystemNamespace})
+					}
+				}
+			}
+		}
+	}
+
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}

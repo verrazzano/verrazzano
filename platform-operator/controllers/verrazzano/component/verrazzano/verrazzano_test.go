@@ -1586,6 +1586,42 @@ func TestIsReady(t *testing.T) {
 				UnavailableReplicas: 0,
 			},
 		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      "vmi-system-es-data-0",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      "vmi-system-es-data-1",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      "vmi-system-es-ingest",
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            2,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
@@ -1617,7 +1653,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.StatefulSetStatus{
 				ReadyReplicas:   1,
-				CurrentReplicas: 1,
+				CurrentReplicas: 2,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
@@ -1630,7 +1666,15 @@ func TestIsReady(t *testing.T) {
 			ESInstallArgs: []vzapi.InstallArgs{
 				{
 					Name:  "nodes.master.replicas",
-					Value: "1",
+					Value: "2",
+				},
+				{
+					Name:  "nodes.data.replicas",
+					Value: "2",
+				},
+				{
+					Name:  "nodes.ingest.replicas",
+					Value: "2",
 				},
 			},
 		},
