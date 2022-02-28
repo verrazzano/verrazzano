@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646067380100,
+  "iteration": 1646067380106,
   "links": [],
   "panels": [
     {
@@ -2398,8 +2398,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(wls_jmsruntime_connections_total_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}[5m])) by (weblogic_serverName)",
+          "exemplar": true,
+          "expr": "sum(irate(wls_jmsruntime_connections_total_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (weblogic_serverName)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{weblogic_serverName}}",
           "refId": "A"
@@ -2673,15 +2675,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(wls_jms_messages_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}) by (jmsserver)",
+          "exemplar": true,
+          "expr": "sum(wls_jms_messages_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}) by (jmsserver)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "Current ({{jmsserver}})",
           "refId": "A"
         },
         {
-          "expr": "sum(wls_jms_messages_pending_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}) by (jmsserver)",
+          "exemplar": true,
+          "expr": "sum(wls_jms_messages_pending_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}) by (jmsserver)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "Pending ({{jmsserver}})",
           "refId": "B"
@@ -2778,15 +2784,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(wls_jms_bytes_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}) by (jmsserver)",
+          "exemplar": true,
+          "expr": "sum(wls_jms_bytes_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}) by (jmsserver)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "Current ({{jmsserver}})",
           "refId": "A"
         },
         {
-          "expr": "sum(wls_jms_bytes_pending_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}) by (jmsserver)",
+          "exemplar": true,
+          "expr": "sum(wls_jms_bytes_pending_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}) by (jmsserver)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "Pending ({{jmsserver}})",
           "refId": "B"
@@ -2882,8 +2892,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(wls_jms_messages_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}[5m])) by (jmsserver)",
+          "exemplar": true,
+          "expr": "sum(irate(wls_jms_messages_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (jmsserver)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{jmsserver}}",
           "refId": "A"
@@ -2979,8 +2991,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(wls_jms_bytes_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}[5m])) by (jmsserver)",
+          "exemplar": true,
+          "expr": "sum(irate(wls_jms_bytes_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (jmsserver)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{jmsserver}}",
           "refId": "A"
@@ -3280,7 +3294,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
@@ -3482,5 +3496,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 19
+  "version": 20
 }
