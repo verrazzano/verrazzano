@@ -87,7 +87,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1
 	grafana := vmov1.Grafana{
 		Enabled:              grafanaValues.Enabled != nil && *grafanaValues.Enabled,
 		DashboardsConfigMap:  "system-dashboards",
-		DatasourcesConfigMap: "vmi-system-datasources",
+		DatasourcesConfigMap: "vmi-system-datasource",
 		Resources: vmov1.Resources{
 			RequestMemory: "48Mi",
 		},
