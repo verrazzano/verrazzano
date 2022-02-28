@@ -256,8 +256,8 @@
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
-              "image": "elasticsearch-jenkins",
-              "tag": "20220227131056-7ec91d53",
+              "image": "elasticsearch",
+              "tag": "7.6.1-20220228100024-328e8ece",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
