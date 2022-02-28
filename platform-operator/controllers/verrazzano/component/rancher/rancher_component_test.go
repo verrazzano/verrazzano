@@ -171,15 +171,6 @@ func TestIsReady(t *testing.T) {
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: localPathStorageNamespace,
-				Name:      localPathProvisionerDeployment,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fleetSystemNamespace,
 				Name:      fleetAgentDeployment,
 			},
@@ -223,12 +214,6 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: OperatorNamespace,
 				Name:      rancherOperatorDeployment,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: localPathStorageNamespace,
-				Name:      localPathProvisionerDeployment,
 			},
 		},
 		&appsv1.Deployment{

@@ -17,19 +17,17 @@ import (
 
 // Constants for Kubernetes resource names
 const (
-	fleetSystemNamespace           = "fleet-system"
-	localPathStorageNamespace      = "local-path-storage"
-	OperatorNamespace              = "rancher-operator-system"
-	defaultSecretNamespace         = "cert-manager"
-	namespaceLabelKey              = "verrazzano.io/namespace"
-	rancherTLSSecretName           = "tls-ca"
-	defaultVerrazzanoName          = "verrazzano-ca-certificate-secret"
-	fleetAgentDeployment           = "fleet-agent"
-	fleetControllerDeployment      = "fleet-controller"
-	gitjobDeployment               = "gitjob"
-	localPathProvisionerDeployment = "local-path-provisioner"
-	rancherWebhookDeployment       = "rancher-webhook"
-	rancherOperatorDeployment      = "rancher-operator"
+	fleetSystemNamespace      = "fleet-system"
+	OperatorNamespace         = "rancher-operator-system"
+	defaultSecretNamespace    = "cert-manager"
+	namespaceLabelKey         = "verrazzano.io/namespace"
+	rancherTLSSecretName      = "tls-ca"
+	defaultVerrazzanoName     = "verrazzano-ca-certificate-secret"
+	fleetAgentDeployment      = "fleet-agent"
+	fleetControllerDeployment = "fleet-controller"
+	gitjobDeployment          = "gitjob"
+	rancherWebhookDeployment  = "rancher-webhook"
+	rancherOperatorDeployment = "rancher-operator"
 )
 
 // Helm Chart setter keys
@@ -82,8 +80,6 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 		Name: rancherWebhookDeployment, Namespace: ComponentNamespace})
 	deployments = append(deployments, types.NamespacedName{
 		Name: rancherOperatorDeployment, Namespace: OperatorNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: localPathProvisionerDeployment, Namespace: localPathStorageNamespace})
 	deployments = append(deployments, types.NamespacedName{
 		Name: fleetAgentDeployment, Namespace: fleetSystemNamespace})
 	deployments = append(deployments, types.NamespacedName{
