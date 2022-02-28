@@ -429,7 +429,7 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 					// Stop waiting in case of ImagePullBackoff and CrashLoopBackOff
 					if event.Reason == "Failed" {
 						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
-						if strings.Contains(event.Message, "ImagePullBackOff") || strings.Contains(event.Message, "CrashLoopBackOff") {
+						if strings.Contains(event.Message, ImagePullBackOff) || strings.Contains(event.Message, CrashLoopBackOff) {
 							return true
 						}
 					}
