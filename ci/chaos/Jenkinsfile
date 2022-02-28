@@ -417,9 +417,7 @@ pipeline {
                     fi
 
                     # wait for the upgrade to complete
-                    # Turn it off for now, Upgrade Fails
-                    # default was 20m
-                    kubectl wait --timeout=10m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
 
                     # Dump the resource to debug
