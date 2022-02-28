@@ -818,9 +818,17 @@ data:
               }
             },
             {
-              "string_fields":{
+              "object_fields": {
+                "match": "*",
+                "match_mapping_type": "object",
+                "mapping": {
+                  "type": "object"
+                }
+              }
+            },
+            {
+              "all_non_object_fields":{
                 "match":"*",
-                "match_mapping_type":"string",
                 "mapping":{
                   "type":"text",
                   "norms":false,
@@ -833,7 +841,20 @@ data:
                 }
               }
             }
-          ]
+          ],
+          "properties" : {
+            "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
+            "@version": { "type": "keyword"},
+            "geoip"  : {
+              "dynamic": true,
+              "properties" : {
+                "ip": { "type": "ip" },
+                "location" : { "type" : "geo_point" },
+                "latitude" : { "type" : "half_float" },
+                "longitude" : { "type" : "half_float" }
+              }
+            }
+          }
         }
       }
     }
