@@ -29,6 +29,8 @@ var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 15 * time.Minute
 var longPollingInterval = 30 * time.Second
+var imagePullWaitTimeout = 40 * time.Minute
+var imagePullPollingInterval = 30 * time.Second
 
 var t = framework.NewTestFramework("deploymetrics")
 
@@ -63,6 +65,10 @@ func deployMetricsApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
+
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(testNamespace, expectedPodsDeploymetricsApp)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Verify deploymetrics-workload pod is running")
 	Eventually(func() bool {

@@ -20,10 +20,12 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 10 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
+	shortWaitTimeout         = 10 * time.Minute
+	shortPollingInterval     = 10 * time.Second
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var (
@@ -37,7 +39,10 @@ var _ = t.BeforeSuite(func() {
 		deployToDoListExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-
+	pkg.Log(pkg.Info, "Container image pull check")
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, []string{"mysql", "tododomain-adminserver"})
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// GIVEN the ToDoList app is deployed
 	// WHEN the running pods are checked
 	// THEN the tododomain-adminserver and mysql pods should be found running

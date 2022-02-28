@@ -17,10 +17,12 @@ import (
 )
 
 const (
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	shortWaitTimeout         = 5 * time.Minute
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var t = framework.NewTestFramework("helidon")
@@ -42,6 +44,9 @@ var _ = t.BeforeSuite(func() {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(testNamespace, expectedPodsHelloHelidon)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-workload pod is running
 	Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
