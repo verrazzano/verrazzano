@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646075662156,
+  "iteration": 1646075662158,
   "links": [],
   "panels": [
     {
@@ -2211,8 +2211,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "wls_datasource_waiting_for_connection_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}",
+          "exemplar": true,
+          "expr": "wls_datasource_waiting_for_connection_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": " {{name}} @ {{weblogic_serverName}}",
           "refId": "A"
@@ -2309,8 +2311,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "wls_datasource_connection_delay_time{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}",
+          "exemplar": true,
+          "expr": "wls_datasource_connection_delay_time{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": " {{name}} @ {{weblogic_serverName}}",
           "refId": "A"
@@ -3488,8 +3492,8 @@
         "allValue": null,
         "current": {
           "selected": true,
-          "text": "managed1",
-          "value": "managed1"
+          "text": "All",
+          "value": "$__all"
         },
         "datasource": "Prometheus",
         "definition": "label_values(verrazzano_cluster)",
@@ -3689,5 +3693,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 27
+  "version": 28
 }
