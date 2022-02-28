@@ -209,8 +209,8 @@ func TestIsReady(t *testing.T) {
 	unreadyDeployClient := fake.NewFakeClientWithScheme(getScheme(),
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: common.CattleSystem,
-				Name:      common.RancherName,
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
 			},
 		},
 		&appsv1.Deployment{
