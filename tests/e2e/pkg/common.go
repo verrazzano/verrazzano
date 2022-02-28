@@ -406,7 +406,11 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 			}
 		}
 	}
-
+	// If all the pods haven't been scheduled, retry
+	if len(scheduledPods) != len(namePrefixes) {
+		Log(Info, "All the pods haven't been scheduled yet, retrying")
+		return false
+	}
 	// Keep waiting and retry if all the pods haven't been scheduled
 	if len(allContainers) == 0 || imagesYetToBePulled == 0 {
 		Log(Info, "All the pods haven't been scheduled yet, retrying")
@@ -438,11 +442,6 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		}
 	}
 
-	// If all the pods haven't been scheduled, retry
-	if len(scheduledPods) != len(namePrefixes) {
-		Log(Info, "All the pods haven't been scheduled yet, retrying")
-		return false
-	}
 	Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
 	return imagesYetToBePulled == 0
 }
