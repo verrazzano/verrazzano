@@ -148,7 +148,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		daemonsets = append(daemonsets, types.NamespacedName{
 			Name: "node-exporter", Namespace: globalconst.VerrazzanoMonitoringNamespace})
 	}
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
 		daemonsets = append(daemonsets, types.NamespacedName{
 			Name: "fluentd", Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
@@ -573,4 +573,13 @@ func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedNa
 	labels["app.kubernetes.io/managed-by"] = "Helm"
 	obj.SetLabels(labels)
 	return obj, cli.Patch(context.TODO(), obj, objMerge)
+}
+
+// GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
+func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
+	profile := vz.Spec.Profile
+	if len(profile) == 0 {
+		profile = vzapi.Prod
+	}
+	return profile
 }
