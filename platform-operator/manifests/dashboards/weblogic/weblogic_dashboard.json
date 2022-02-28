@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646078866867,
+  "iteration": 1646086844838,
   "links": [],
   "panels": [
     {
@@ -1837,8 +1837,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(irate(wls_servlet_invocation_total_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\"}[5m])) by (app)",
+          "exemplar": true,
+          "expr": "sum(irate(wls_servlet_invocation_total_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (verrazzano_cluster,app)",
           "format": "time_series",
+          "interval": "",
           "intervalFactor": 1,
           "legendFormat": "{{app}}",
           "refId": "A"
