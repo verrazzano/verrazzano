@@ -18,10 +18,12 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 10 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
+	shortWaitTimeout         = 10 * time.Minute
+	shortPollingInterval     = 10 * time.Second
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var (
@@ -44,7 +46,10 @@ var _ = BeforeSuite(func() {
 		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-
+	pkg.Log(pkg.Info, "Container image pull check")
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPods)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, expectedPods)
