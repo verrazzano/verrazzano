@@ -250,14 +250,9 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Run Acceptance Tests Before Upgrade') {
-                    stages {
-                        stage('examples helidon') {
-                            steps {
-                                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
-                            }
-                        }
+                stage('examples helidon') {
+                    steps {
+                        runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
                     }
                     post {
                         always {
@@ -455,44 +450,39 @@ pipeline {
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
-            stages {
-                stage('Run Acceptance Tests After Upgrade') {
-                    parallel {
-                        stage('verify-upgrade post-upgrade') {
-                            steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/verify')
-                            }
-                        }
-                        stage('examples helidon') {
-                            steps {
-                                runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
-                            }
+            parallel {
+                stage('verify-upgrade post-upgrade') {
+                    steps {
+                        runGinkgoRandomize('upgrade/post-upgrade/verify')
+                    }
+                }
+                stage('examples helidon') {
+                    steps {
+                        runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
                         }
                     }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('post-upgrade-failure-cluster-dump')
-                                }
-                            }
-                        }
-                        success {
-                            script {
-                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('post-upgrade-success-cluster-dump')
-                                }
-                            }
+                }
+                success {
+                    script {
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('post-upgrade-success-cluster-dump')
                         }
                     }
                 }
             }
         }
-
     }
 
     post {
