@@ -16,7 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 21,
-  "iteration": 1646087656262,
+  "iteration": 1646088664166,
   "links": [],
   "panels": [
     {
@@ -3216,7 +3216,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(irate(wls_jms_messages_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (jmsserver)",
+          "expr": "sum(irate(wls_jms_messages_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (verrazzano_cluster,jmsserver)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3315,7 +3315,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(irate(wls_jms_bytes_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (jmsserver)",
+          "expr": "sum(irate(wls_jms_bytes_received_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\"}[5m])) by (verrazzano_cluster,jmsserver)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -3888,5 +3888,5 @@
   "timezone": "",
   "title": "WebLogic Server Dashboard Bugfix",
   "uid": "XKwKBuBnz",
-  "version": 36
+  "version": 37
 }
