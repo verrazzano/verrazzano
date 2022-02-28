@@ -1497,7 +1497,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
-			Name:      "verrazzano-monitoring-operator",
+			Name:      vmoDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
@@ -1529,7 +1529,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "verrazzano-console",
+				Name:      verrazzanoConsoleDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1541,7 +1541,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "verrazzano-monitoring-operator",
+				Name:      vmoDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1553,7 +1553,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-grafana",
+				Name:      grafanaDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1565,7 +1565,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-kibana",
+				Name:      kibanaDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1577,7 +1577,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-prometheus-0",
+				Name:      prometheusDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1589,7 +1589,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-es-data-0",
+				Name:      fmt.Sprintf("%s-0", esDataDeployment),
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1601,7 +1601,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-es-data-1",
+				Name:      fmt.Sprintf("%s-1", esDataDeployment),
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,
@@ -1613,7 +1613,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-es-ingest",
+				Name:      esIngestDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            2,
@@ -1625,7 +1625,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "fluentd",
+				Name:      fluentDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
 				DesiredNumberScheduled: 1,
@@ -1637,7 +1637,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.DaemonSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				Name:      "node-exporter",
+				Name:      nodeExporterDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
 				DesiredNumberScheduled: 1,
@@ -1649,7 +1649,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "vmi-system-es-master",
+				Name:      esMasterStatefulset,
 			},
 			Status: appsv1.StatefulSetStatus{
 				ReadyReplicas:   1,
@@ -1692,7 +1692,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      "verrazzano-monitoring-operator",
+				Name:      vmoDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
 				Replicas:            1,

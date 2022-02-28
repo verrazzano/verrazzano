@@ -48,6 +48,19 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+
+	fluentDaemonset       = "fluentd"
+	nodeExporterDaemonset = "node-exporter"
+
+	esDataDeployment            = "vmi-system-es-data"
+	esIngestDeployment          = "vmi-system-es-ingest"
+	grafanaDeployment           = "vmi-system-grafana"
+	kibanaDeployment            = "vmi-system-kibana"
+	prometheusDeployment        = "vmi-system-prometheus-0"
+	verrazzanoConsoleDeployment = "verrazzano-console"
+	vmoDeployment               = "verrazzano-monitoring-operator"
+
+	esMasterStatefulset = "vmi-system-es-master"
 )
 
 var (
@@ -76,23 +89,23 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	var deployments []types.NamespacedName
 	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
-			Name: "verrazzano-console", Namespace: globalconst.VerrazzanoSystemNamespace})
+			Name: verrazzanoConsoleDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
-			Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace})
+			Name: vmoDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
-			Name: "vmi-system-grafana", Namespace: globalconst.VerrazzanoSystemNamespace})
+			Name: grafanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
-			Name: "vmi-system-kibana", Namespace: globalconst.VerrazzanoSystemNamespace})
+			Name: kibanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
-			Name: "vmi-system-prometheus-0", Namespace: globalconst.VerrazzanoSystemNamespace})
+			Name: prometheusDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
@@ -102,7 +115,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					replicas, _ := strconv.Atoi(args.Value)
 					for i := 0; replicas > 0 && i < replicas; i++ {
 						deployments = append(deployments, types.NamespacedName{
-							Name: fmt.Sprintf("vmi-system-es-data-%d", i), Namespace: globalconst.VerrazzanoSystemNamespace})
+							Name: fmt.Sprintf("%s-%d", esDataDeployment, i), Namespace: globalconst.VerrazzanoSystemNamespace})
 					}
 					continue
 				}
@@ -110,7 +123,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
 						deployments = append(deployments, types.NamespacedName{
-							Name: "vmi-system-es-ingest", Namespace: globalconst.VerrazzanoSystemNamespace})
+							Name: esIngestDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
 					}
 				}
 			}
@@ -131,7 +144,7 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
 						statefulsets = append(statefulsets, types.NamespacedName{
-							Name: "vmi-system-es-master", Namespace: globalconst.VerrazzanoSystemNamespace})
+							Name: esMasterStatefulset, Namespace: globalconst.VerrazzanoSystemNamespace})
 						if !status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
 							return false
 						}
@@ -146,11 +159,11 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	var daemonsets []types.NamespacedName
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		daemonsets = append(daemonsets, types.NamespacedName{
-			Name: "node-exporter", Namespace: globalconst.VerrazzanoMonitoringNamespace})
+			Name: nodeExporterDaemonset, Namespace: globalconst.VerrazzanoMonitoringNamespace})
 	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
 		daemonsets = append(daemonsets, types.NamespacedName{
-			Name: "fluentd", Namespace: globalconst.VerrazzanoSystemNamespace})
+			Name: fluentDaemonset, Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
 	if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
