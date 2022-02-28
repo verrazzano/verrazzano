@@ -22,6 +22,9 @@ webhooks:
     - v1beta1
     - v1
   name: appconfig-defaulter.kb.io
+  namespaceSelector:
+    matchExpressions:
+      - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
   rules:
   - apiGroups:
     - core.oam.dev
@@ -54,6 +57,9 @@ webhooks:
     - v1beta1
     - v1
   name: vingresstrait.kb.io
+  namespaceSelector:
+    matchExpressions:
+      - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
   rules:
   - apiGroups:
     - oam.verrazzano.io

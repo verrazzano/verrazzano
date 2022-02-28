@@ -8,6 +8,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: install.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
