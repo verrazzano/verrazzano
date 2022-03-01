@@ -17,13 +17,15 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-pod"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-pod.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-pod_v1_Pod"
 )
 
-var t = framework.NewTestFramework("podworkload")
+var (
+	t                  = framework.NewTestFramework("podworkload")
+	generatedNamespace = pkg.GenerateNamespace("hello-helidon-namespace")
+)
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()

@@ -23,7 +23,10 @@ const (
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-replicaset_apps_v1_ReplicaSet"
 )
 
-var t = framework.NewTestFramework("replicasetworkload")
+var (
+	t                  = framework.NewTestFramework("replicasetworkload")
+	generatedNamespace = pkg.GenerateNamespace("hello-helidon-namespace")
+)
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
