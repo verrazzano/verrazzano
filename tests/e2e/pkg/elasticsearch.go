@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/ginkgo/v2"
 	"html/template"
 	"net/http"
 	"os"
@@ -25,6 +26,18 @@ const (
 	// ISO8601Layout defines the timestamp format
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
+
+func GetOpenSearchIndex(oldIndex, newIndex string) string {
+	isVersion1_3_0, err := IsVerrazzanoMinVersion("1.3.0")
+	if err != nil {
+		ginkgo.Fail(err.Error())
+		return ""
+	}
+	if isVersion1_3_0 {
+		return newIndex
+	}
+	return oldIndex
+}
 
 func UseExternalElasticsearch() bool {
 	return os.Getenv("EXTERNAL_ELASTICSEARCH") == "true"
@@ -454,6 +467,42 @@ func PostElasticsearch(path string, body string) (*HTTPResponse, error) {
 	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
 	resp, err := postElasticSearchWithBasicAuth(url, body, username, password, configPath)
 	return resp, err
+}
+
+func ISMPolicyExists(policyName string) (bool, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return false, err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getElasticSearchURL(kubeconfigPath), policyName)
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	return resp.StatusCode == 200, nil
+}
+
+func IndicesNotExists(patterns []string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	Log(Debug, fmt.Sprintf("Looking for indices in cluster using kubeconfig %s", kubeconfigPath))
+	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
+		for _, pattern := range patterns {
+			matched, _ := regexp.MatchString(pattern, name)
+			if matched {
+				Log(Error, fmt.Sprintf("Index %s matching the pattern %s still exists", name, pattern))
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // ElasticQuery describes an Elasticsearch Query

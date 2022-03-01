@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+
 	"os/exec"
 	"path/filepath"
 	"testing"
@@ -40,10 +42,6 @@ type goodRunner struct {
 type badRunner struct {
 }
 
-// TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
-// WHEN a verrazzano version is empty
-// THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeNoVersion(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
@@ -57,6 +55,9 @@ func TestUpgradeNoVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+	verrazzano.ConfigureIndexManagement = func(_ spi.ComponentContext, _ string) error {
+		return nil
+	}
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -142,6 +143,9 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+	verrazzano.ConfigureIndexManagement = func(_ spi.ComponentContext, _ string) error {
+		return nil
+	}
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

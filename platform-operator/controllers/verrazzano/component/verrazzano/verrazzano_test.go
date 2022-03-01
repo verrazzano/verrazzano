@@ -1089,10 +1089,10 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	//   AND no error should be returned
 	context, err := createFakeComponentContext()
 	assert.NoError(err, "Failed to create fake component context.")
-	createElasticsearchPod(context.Client(), "http")
+	createOpenSearchPod(context.Client(), "http")
 	execCommand = fakeExecCommand
-	fakeExecScenarioNames = []string{"fixupElasticSearchReplicaCount/get", "fixupElasticSearchReplicaCount/put"} //nolint,ineffassign
-	fakeExecScenarioIndex = 0                                                                                    //nolint,ineffassign
+	fakeExecScenarioNames = []string{"fixupOpenSearchReplicaCount/get", "fixupOpenSearchReplicaCount/put"} //nolint,ineffassign
+	fakeExecScenarioIndex = 0                                                                              //nolint,ineffassign
 	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
 	assert.NoError(err, "Failed to fixup Elasticsearch index template")
 
@@ -1104,7 +1104,7 @@ func Test_fixupElasticSearchReplicaCount(t *testing.T) {
 	fakeExecScenarioIndex = 0          //nolint,ineffassign
 	context, err = createFakeComponentContext()
 	assert.NoError(err, "Failed to create fake component context.")
-	createElasticsearchPod(context.Client(), "tcp")
+	createOpenSearchPod(context.Client(), "tcp")
 	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
 	assert.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
 
@@ -1326,7 +1326,7 @@ func newPod() *corev1.Pod {
 	}
 }
 
-func createElasticsearchPod(cli client.Client, portName string) {
+func createOpenSearchPod(cli client.Client, portName string) {
 	labels := map[string]string{
 		"app": "system-es-master",
 	}
@@ -1390,11 +1390,11 @@ func TestFakeExecHandler(t *testing.T) {
 	scenario, found := os.LookupEnv("TEST_FAKE_EXEC_SCENARIO")
 	if found {
 		switch scenario {
-		case "fixupElasticSearchReplicaCount/get":
+		case "fixupOpenSearchReplicaCount/get":
 			assert.Equal(`curl -v -XGET -s -k --fail http://localhost:42/_cluster/health`,
 				os.Args[13], "Expected curl command to be correct.")
 			fmt.Print(`"number_of_data_nodes":1,`)
-		case "fixupElasticSearchReplicaCount/put":
+		case "fixupOpenSearchReplicaCount/put":
 			fmt.Println(scenario)
 			fmt.Println(strings.Join(os.Args, " "))
 			assert.Equal(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:42/verrazzano-*/_settings`,
