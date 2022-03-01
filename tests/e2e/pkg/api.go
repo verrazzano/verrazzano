@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -181,5 +181,5 @@ func (api *APIEndpoint) GetElasticURL() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }

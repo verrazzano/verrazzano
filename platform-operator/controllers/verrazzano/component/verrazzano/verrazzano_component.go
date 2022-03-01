@@ -60,15 +60,30 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// Install Verrazzano component install processing
+func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Install(ctx); err != nil {
+		return err
+	}
+	return createVMI(ctx)
+}
+
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(),
 		c.ReleaseName, resolveVerrazzanoNamespace(c.ChartNamespace), c.ChartDir)
 }
 
+// InstallUpgrade Verrazzano component upgrade processing
+func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Upgrade(ctx); err != nil {
+		return err
+	}
+	return createVMI(ctx)
+}
+
 // IsReady component check
 func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
-
 	if c.HelmComponent.IsReady(ctx) {
 		return isVerrazzanoReady(ctx)
 	}
@@ -78,9 +93,6 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
-	if err := createVMI(ctx); err != nil {
-		return err
-	}
 	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
@@ -93,9 +105,6 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	cleanTempFiles(ctx)
-	if err := createVMI(ctx); err != nil {
-		return err
-	}
 	return c.updateElasticsearchResources(ctx)
 }
 

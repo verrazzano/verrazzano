@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -41,6 +41,16 @@ if [ -z "$6" ]; then
   exit 1
 fi
 GENERATED_BOM_FILE=$6
+
+if [ -f "${BOM_FILE}" ]; then
+  cat ${BOM_FILE} | jq . > /dev/null
+  if [ $? != 0 ]; then
+    echo "[ERROR] BOM template file '${BOM_FILE}' is not a well formed JSON"
+    exit 1
+  fi
+else
+  echo "[ERROR] The BOM template '${BOM_FILE}' does not exist or is not a file"
+fi
 
 cp ${BOM_FILE} ${GENERATED_BOM_FILE}
 

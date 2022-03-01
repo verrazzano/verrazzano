@@ -55,7 +55,7 @@ spec:
                 items:
                   - key: ca.crt
                     path: default-ca-bundle
-                name: system-tls
+                name:  {{ .Values.config.envName }}-secret
                 optional: true
             - secret:
                 name: verrazzano-cluster-registration

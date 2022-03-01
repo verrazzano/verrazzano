@@ -37,7 +37,7 @@ var t = framework.NewTestFramework("kiali")
 var _ = t.BeforeSuite(func() {
 	client, kialiErr = k8sutil.GetKubernetesClientset()
 	Expect(kialiErr).ToNot(HaveOccurred())
-	httpClient, kialiErr = pkg.GetSystemVmiHTTPClient()
+	httpClient, kialiErr = pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(kialiErr).ToNot(HaveOccurred())
 })
 
@@ -107,7 +107,7 @@ var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 			WhenKialiInstalledIt("not allow unauthenticated logins", func() {
 				Eventually(func() bool {
-					unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+					unauthHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 					if err != nil {
 						return false
 					}

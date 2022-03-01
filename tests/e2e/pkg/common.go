@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -346,4 +347,101 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 		}
 	}
 	return false
+}
+
+func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	return ContainerImagePullWaitInCluster(namespace, namePrefixes, kubeconfigPath)
+}
+
+func ContainerImagePullWaitInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset for kubernetes cluster, error: %v", err))
+		return false
+	}
+
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+
+	events, err := clientset.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing events in cluster for namespace: %s, erroe: %v", namespace, err))
+		return false
+	}
+
+	return CheckAllImagesPulled(pods, events, namePrefixes)
+}
+
+// CheckAllImagesPulled checks if all the images of the target pods have been pulled or not.
+// The idea here is to periodically enumerate the containers from the target pods and watch the events related image pulls,
+// such that we can make a smarter decision about pod deployment i.e. keep waiting if the process is slow, and stop waiting
+// in case of unrecoverable failures.
+func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
+
+	allContainers := make(map[string][]interface{})
+	imagesYetToBePulled := 0
+	scheduledPods := make(map[string]bool)
+
+	// For a given pod, store all the container names in a slice
+	for _, pod := range pods.Items {
+		for _, namePrefix := range namePrefixes {
+			if strings.HasPrefix(pod.Name, namePrefix) {
+				for _, initContainer := range pod.Spec.InitContainers {
+					allContainers[pod.Name] = append(allContainers[pod.Name], initContainer.Name)
+					imagesYetToBePulled++
+				}
+				for _, container := range pod.Spec.Containers {
+					allContainers[pod.Name] = append(allContainers[pod.Name], container.Name)
+					imagesYetToBePulled++
+				}
+				scheduledPods[namePrefix] = true
+			}
+		}
+	}
+	// If all the pods haven't been scheduled, retry
+	if len(scheduledPods) != len(namePrefixes) {
+		Log(Info, "All the pods haven't been scheduled yet, retrying")
+		return false
+	}
+	// Keep waiting and retry if all the pods haven't been scheduled
+	if len(allContainers) == 0 || imagesYetToBePulled == 0 {
+		Log(Info, "All the pods haven't been scheduled yet, retrying")
+		return false
+	}
+
+	// Drill down event data to check if the container image has been pulled
+	for podName, containers := range allContainers {
+		for _, container := range containers {
+			for _, event := range events.Items {
+				// used to match exact container name in event data
+				containerRegex := "{" + container.(string) + "}"
+
+				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, containerRegex) {
+
+					if event.Reason == "Pulled" {
+						imagesYetToBePulled--
+						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+					}
+					// Stop waiting in case of ImagePullBackoff and CrashLoopBackOff
+					if event.Reason == "Failed" {
+						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+						if strings.Contains(event.Message, ImagePullBackOff) || strings.Contains(event.Message, CrashLoopBackOff) {
+							return true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
+	return imagesYetToBePulled == 0
 }
