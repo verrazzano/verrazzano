@@ -197,6 +197,9 @@ const (
 
 	// CondUpgradeComplete means the upgrade has completed successfully
 	CondUpgradeComplete ConditionType = "UpgradeComplete"
+
+	// CondComponentUninstallComplete means a component has successfully uninstalled
+	CondComponentUninstallComplete ConditionType = "UninstallComponentComplete"
 )
 
 // Condition describes current state of an install.

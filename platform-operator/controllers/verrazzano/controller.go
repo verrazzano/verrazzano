@@ -5,8 +5,11 @@ package verrazzano
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"os"
+	"reflect"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"time"
 
@@ -50,6 +53,9 @@ type Reconciler struct {
 
 // Name of finalizer
 const finalizerName = "install.verrazzano.io"
+
+// Key into ConfigMap data for stored install Spec, the data for which will be used for update/upgrade purposes
+const configDataKey = "spec"
 
 // initializedSet is needed to keep track of which Verrazzano CRs have been initialized
 var initializedSet = make(map[string]bool)
@@ -147,18 +153,26 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 	// Process CR based on state
 	switch vz.Status.State {
 	case installv1alpha1.VzStateFailed:
-		return r.ProcFailedState(spiContext)
+		result, err = r.ProcFailedState(spiContext)
 	case installv1alpha1.VzStateInstalling:
-		return r.ProcInstallingState(spiContext)
+		result, err = r.ProcInstallingState(spiContext)
 	case installv1alpha1.VzStateReady:
-		return r.ProcReadyState(spiContext)
+		result, err = r.ProcReadyState(spiContext)
 	case installv1alpha1.VzStateUninstalling:
 		return r.ProcUninstallingState(spiContext)
 	case installv1alpha1.VzStateUpgrading:
-		return r.ProcUpgradingState(spiContext)
+		result, err = r.ProcUpgradingState(spiContext)
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
+	if err != nil {
+		return result, err
+	}
+	// Create/update a configmap from spec for future comparison on update/upgrade
+	if err := r.saveVerrazzanoSpec(ctx, log, vz); err != nil {
+		return reconcile.Result{}, err
+	}
+	return ctrl.Result{}, nil
 }
 
 // ProcReadyState processes the CR while in the ready state
@@ -186,7 +200,12 @@ func (r *Reconciler) ProcReadyState(spiCtx spi.ComponentContext) (ctrl.Result, e
 	if isInstalled(actualCR.Status) {
 		// If the version is specified and different from the current version of the installation
 		// then proceed with upgrade
-		if len(actualCR.Spec.Version) > 0 && actualCR.Spec.Version != actualCR.Status.Version {
+		updated, err := r.installSpecUpdated(ctx, log, actualCR)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+		if updated {
+			// If anything in the VZ spec changed, go through the upgrade process
 			result, err := r.reconcileUpgrade(log, actualCR)
 			// Keep retrying the upgrade until it completes.
 			if err != nil {
@@ -603,7 +622,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 		}
 		cr.Status.Components[componentName] = componentStatus
 	}
-	if conditionType == installv1alpha1.CondInstallComplete {
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUninstallComplete {
 		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
 	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
@@ -637,6 +656,8 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 		return installv1alpha1.CompStateUpgrading
 	case installv1alpha1.CondUninstallComplete:
 		return installv1alpha1.CompStateReady
+	case installv1alpha1.CondComponentUninstallComplete:
+		return installv1alpha1.CompStateDisabled
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
 		return installv1alpha1.CompStateFailed
 	}
@@ -1203,4 +1224,80 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	}
 	// Return error so that reconcile gets called again
 	return err
+}
+
+// saveVerrazzanoSpec Saves the install spec in a configmap to use with upgrade/updates later on
+func (r *Reconciler) saveVerrazzanoSpec(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (err error) {
+	installSpecBytes, err := yaml.Marshal(vz.Spec)
+	installSpec := base64.StdEncoding.EncodeToString(installSpecBytes)
+	if err == nil {
+		var installConfig *corev1.ConfigMap
+		installConfig, err = r.getInternalConfigMap(ctx, vz)
+		if err == nil {
+			// Update the configmap if the data has changed
+			currentConfigData := installConfig.Data[configDataKey]
+			if currentConfigData != installSpec {
+				installConfig.Data[configDataKey] = installSpec
+				return r.Update(ctx, installConfig)
+			}
+		} else if errors.IsNotFound(err) {
+			configMapName := buildInternalConfigMapName(vz.Name)
+			configData := make(map[string]string)
+			configData[configDataKey] = installSpec
+			// Create the configmap and set the owner reference to the VZ installer resource for garbage collection
+			installConfig = &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      configMapName,
+					Namespace: vz.Namespace,
+					OwnerReferences: []metav1.OwnerReference{{
+						APIVersion: vz.APIVersion,
+						Kind:       vz.Kind,
+						Name:       vz.Name,
+						UID:        vz.UID,
+					}},
+				},
+				Data: configData,
+			}
+			err = r.Create(ctx, installConfig)
+			if err != nil {
+				log.Errorf("Unable to create installer config map %s: %v", configMapName, err.Error())
+				return err
+			}
+		}
+	}
+	return err
+}
+
+// installSpecUpdated Returns true if the current Spec field of the Verrazzano resource does not match what was saved in the internal ConfigMap
+func (r *Reconciler) installSpecUpdated(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (bool, error) {
+	storedSpec, err := r.getSavedInstallSpec(ctx, log, vz)
+	if err != nil {
+		return false, err
+	}
+	if !reflect.DeepEqual(vz.Spec, storedSpec) {
+		return false, nil
+	}
+	return true, nil
+}
+
+// getSavedInstallSpec Returns the saved Verrazzano resource Spec field from the internal ConfigMap, or an error if it can't be restored
+func (r *Reconciler) getSavedInstallSpec(ctx context.Context, log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (*installv1alpha1.VerrazzanoSpec, error) {
+	configMap, err := r.getInternalConfigMap(ctx, vz)
+	if err != nil {
+		log.Debugf("No saved configuration found for install spec for %s", vz.Name)
+		return nil, err
+	}
+	storedSpec := &installv1alpha1.VerrazzanoSpec{}
+	if specData, ok := configMap.Data[configDataKey]; ok {
+		decodeBytes, err := base64.StdEncoding.DecodeString(specData)
+		if err != nil {
+			log.Errorf("Error decoding saved install spec for %s", vz.Name)
+			return nil, err
+		}
+		if err := yaml.Unmarshal(decodeBytes, storedSpec); err != nil {
+			log.Errorf("Error unmarshalling saved install spec for %s", vz.Name)
+			return nil, err
+		}
+	}
+	return storedSpec, nil
 }

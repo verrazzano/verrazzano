@@ -63,6 +63,10 @@ type ComponentInstaller interface {
 	Install(context ComponentContext) error
 	// PostInstall allows components to perform any post-processing required after initial install
 	PostInstall(context ComponentContext) error
+	// Uninstall Starts the uninstall of a component
+	Uninstall(context ComponentContext) error
+	// PostUninstall verifies the uninstall of a component and performs any post-uninstall cleanup
+	PostUninstall(context ComponentContext) error
 }
 
 // ComponentUpgrader interface defines upgrade operations for components that support it

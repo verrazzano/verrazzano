@@ -85,8 +85,8 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
-			if !installed {
-				compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
+			if !installed || !comp.IsEnabled(compContext){
+				compLog.Oncef("Component %s is disabled or not installed; upgrade being skipped", compName)
 				continue
 			}
 			compLog.Oncef("Component %s pre-upgrade running", compName)

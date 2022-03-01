@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,6 +64,41 @@ type istioComponent struct {
 
 	// Internal monitor object for peforming `istioctl` operations in the background
 	monitor installMonitor
+}
+
+// Uninstall Uninstall istio
+func (i istioComponent) Uninstall(context spi.ComponentContext) error {
+	// TODO: Fork into background like Install
+	//_, _, err := istio.Uninstall(context.Log())
+	//return err
+	return nil
+}
+
+// PostUninstall Istio post-uninstall cleanup
+func (i istioComponent) PostUninstall(ctx spi.ComponentContext) error {
+	////  # delete webhook configurations
+	////  log "Removing Istio Webhook Configurations"
+	////  kubectl delete MutatingWebhookConfiguration istio-sidecar-injector --ignore-not-found=true || err_return $? "Could not delete MutatingWebhookConfiguration from Istio" || return $?
+	//if err := deleteObject(ctx.Client(), types.NamespacedName{Name: "istio-sidecar-injector"}, &v12.MutatingWebhookConfiguration{}); err != nil {
+	//	return err
+	//}
+	////  kubectl delete ValidatingWebhookConfiguration istiod-istio-system  --ignore-not-found=true || err_return $? "Could not delete ValidatingWebhookConfiguration from Istio" || return $?
+	//if err := deleteObject(ctx.Client(), types.NamespacedName{Name: "istiod-istio-system"}, &v12.ValidatingWebhookConfiguration{}); err != nil {
+	//	return err
+	//}
+	return nil
+}
+
+func deleteObject(client clipkg.Client, name types.NamespacedName, obj runtime.Object) error {
+	if err := client.Get(context.TODO(), name, obj); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+	}
+	if err := client.Delete(context.TODO(), obj); err != nil {
+		return err
+	}
+	return nil
 }
 
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)

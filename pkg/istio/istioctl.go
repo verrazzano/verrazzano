@@ -102,6 +102,19 @@ func VerifyInstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, er
 	return stdout, stderr, nil
 }
 
+// Uninstall runs istioctl -x uninstall to remove Istio
+func Uninstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
+	//   # Make attempt to delete using istioctl
+	//  istioctl x uninstall --purge -y || true
+	args := []string{"x", "uninstall", "--purge", "-y"}
+	// Perform istioctl call of type upgrade
+	stdout, stderr, err = runIstioctl(log, args, "verify-install")
+	if err != nil {
+		return stdout, stderr, err
+	}
+	return stdout, stderr, nil
+}
+
 // runIstioctl will perform istioctl calls with specified arguments  for operations
 // Note that operation name as of now does not affect the istioctl call (both upgrade and install call istioctl install)
 // The operationName field is just used for visibility of operation in logging at the moment
