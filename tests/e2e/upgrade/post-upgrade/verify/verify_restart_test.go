@@ -55,7 +55,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	MinimumVerrazzanoIt("pods in verrazzano-system have correct istio proxy image", func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.VerrazzanoSystemNamespace, envoyImage)
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
+		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
 	})
 
 	// GIVEN the ingress-nginx namespace
@@ -64,7 +64,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	MinimumVerrazzanoIt("pods in ingress-nginx have correct istio proxy image", func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.IngressNginxNamespace, envoyImage)
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
+		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
 	})
 
 	// GIVEN the keycloak namespace
@@ -73,7 +73,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	MinimumVerrazzanoIt("pods in keycloak have correct istio proxy image", func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.KeycloakNamespace, envoyImage)
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")
+		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")
 	})
 })
 
