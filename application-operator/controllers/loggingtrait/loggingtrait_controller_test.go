@@ -308,3 +308,21 @@ func newDeployment(deploymentName string, namespaceName string, workloadName str
 		},
 	}
 }
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: kubeSystem, Name: "test-trait-name"}}
+	reconciler := newLoggingTraitReconciler(mock, t)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
+}
