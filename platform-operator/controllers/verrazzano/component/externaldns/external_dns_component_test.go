@@ -46,7 +46,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 				},
 			},
 			new:     &vzapi.Verrazzano{},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
