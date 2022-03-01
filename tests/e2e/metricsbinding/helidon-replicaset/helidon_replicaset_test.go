@@ -17,7 +17,6 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-replicaset-"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-replicaset.yaml"
 	promConfigJobName    = "hello-helidon-namespace_hello-helidon-replicaset_apps_v1_ReplicaSet"
