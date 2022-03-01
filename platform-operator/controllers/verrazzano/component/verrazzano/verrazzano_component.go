@@ -84,7 +84,6 @@ func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
 
 // IsReady component check
 func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
-
 	if c.HelmComponent.IsReady(ctx) {
 		return isVerrazzanoReady(ctx)
 	}

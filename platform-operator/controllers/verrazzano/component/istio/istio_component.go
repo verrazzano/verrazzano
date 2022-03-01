@@ -38,6 +38,12 @@ const ComponentName = "istio"
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
 
+// IstioInressgatewayDeployment is the name of the istio ingressgateway deployment
+const IstioInressgatewayDeployment = "istio-ingressgateway"
+
+// IstioEressgatewayDeployment is the name of the istio egressgateway deployment
+const IstioEressgatewayDeployment = "istio-egressgateway"
+
 const istioGlobalHubKey = "global.hub"
 
 // IstioNamespace is the default Istio namespace
@@ -163,6 +169,8 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{Name: IstiodDeployment, Namespace: IstioNamespace},
+		{Name: IstioInressgatewayDeployment, Namespace: IstioNamespace},
+		{Name: IstioEressgatewayDeployment, Namespace: IstioNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)

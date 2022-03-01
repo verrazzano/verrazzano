@@ -35,7 +35,7 @@ func TestIsOAMOperatorReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
-			Name:      oamOperatorDeploymentName,
+			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
@@ -56,7 +56,7 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
-			Name:      oamOperatorDeploymentName,
+			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
 			Replicas:            1,
