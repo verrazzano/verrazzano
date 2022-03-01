@@ -333,11 +333,11 @@ pipeline {
                         runGinkgo('metrics/deploymetrics')
                     }
                 }
-                stage('poko metricsbinding') {
-                    steps {
-                        runGinkgo('metricsbinding')
-                    }
-                }
+                //stage('poko metricsbinding') {
+                //    steps {
+                //        runGinkgo('metricsbinding')
+                //    }
+                //}
                 stage('logging trait helodin workload') {
                     steps {
                         runGinkgo('loggingtrait/helidonworkload')
