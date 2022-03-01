@@ -460,6 +460,20 @@ func TestGetCurrentBomVersionBadYAML(t *testing.T) {
 	assert.Nil(t, version)
 }
 
+// TestInvalidJsonBom Tests that the ValidateBom() method returns error when the BOM file is not a well-formed JSON
+// GIVEN a request for validating the BOM JSON file
+// WHEN an error occurs reading in the BOM file as json
+// THEN an error is returned
+func TestInvalidJsonBom(t *testing.T) {
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	err := ValidateBom()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected end of JSON input")
+}
+
 // TestValidateVersionInvalidVersionCheckingDisabled Tests  ValidateVersion() when version checking is disabled
 // GIVEN a request for the current VZ Bom version
 // WHEN the version provided is not valid version and checking is disabled

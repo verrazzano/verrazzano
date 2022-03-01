@@ -88,6 +88,8 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validatePrometheusConfigReloaderLogs() && valid
 		valid = validateGrafanaLogs() && valid
 		valid = validateOpenSearchLogs() && valid
+		valid = validateWeblogicOperatorLogs() && valid
+
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -417,6 +419,16 @@ func validateOpenSearchLogs() bool {
 		systemIndex,
 		"kubernetes.labels.app.keyword",
 		"system-kibana",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateWeblogicOperatorLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		systemIndex,
+		"kubernetes.labels.app.keyword",
+		"weblogic-operator",
 		searchTimeWindow,
 		noExceptions)
 }

@@ -547,7 +547,35 @@ data:
         </pattern>
       </parse>
     </filter>
-    
+
+    # filter to parse Weblogic Operator Dashboard container log files
+    <filter kubernetes.**weblogic-operator**verrazzano-system_weblogic-operator**>
+      @type parser
+      @id weblogic-operator
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        # WebLogic Operator Dashboard has one format for log records
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
+    # filter to apply a record transformer into WebLogic Component log files in JSON format
+    <filter kubernetes.**weblogic-operator**verrazzano-system_weblogic-operator**>
+      @type record_transformer
+      @id weblogic-operator-json
+      remove_keys timestamp
+    </filter>
+
     # filter to parse OpenSearch Dashboard container log files
     <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
       @type parser
@@ -568,7 +596,7 @@ data:
         </pattern>
       </parse>
     </filter>
-    
+
     # filter to parse OpenSearch Dashboard container log files
     <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
       @type record_transformer
@@ -639,6 +667,34 @@ data:
         </pattern>
       </parse>
     </filter>
+
+    # filter to parse External-dns container log files
+    <filter kubernetes.**external-dns**external-dns**>
+      @type parser
+      @id external-dns
+      key_name log
+      reserve_data true
+      emit_invalid_record_to_error true
+      <parse>
+        @type multi_format
+        # external-dns pattern
+        <pattern>
+          format /^time="(?<logtime>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)" level=(?<level>.*?) msg="(?<message>.*?)"[\s\S]*?$/
+          time_key logtime
+          time_format %Y-%m-%dT%H:%M:%SZ
+        </pattern>
+        # Kubernetes klog format
+        <pattern>
+          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
+          time_key logtime
+          time_format %H:%M:%S.%N
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+
 
     # filter to parse node-exporter container log files
     <filter kubernetes.**node-exporter**monitoring_node-exporter**>
