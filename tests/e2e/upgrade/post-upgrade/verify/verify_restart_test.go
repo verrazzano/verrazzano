@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	twoMinutes   = 1 * time.Minute
-	fiveMinutes  = 5 * time.Minute
+	twoMinutes  = 1 * time.Minute
+	fiveMinutes = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
 	envoyImage      = "proxyv2:1.10"
