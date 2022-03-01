@@ -10,9 +10,7 @@ elasticSearch:
 externaldns:
   enabled: true
 logging:
-  elasticsearchURL: verrazzano-authproxy-elasticsearch
-  elasticsearchPort: 8775
-  elasticsearchScheme: http
+  elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
   elasticsearchSecret: verrazzano-es-internal
 fluentd:
   enabled: true

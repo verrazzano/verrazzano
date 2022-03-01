@@ -4,8 +4,10 @@ package verrazzano
 
 import (
 	"context"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"testing"
@@ -61,6 +63,8 @@ func readyOpenSearchPods() *corev1.Pod {
 			},
 		},
 	}
+}
+
 // fakeUpgrade override the upgrade function during unit tests
 func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 	return []byte("success"), []byte(""), nil
@@ -77,182 +81,6 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestIsReadySecretNotReady tests the Verrazzano IsReady call
-// GIVEN a Verrazzano component
-//  WHEN I call IsReady when it is installed and the deployment availability criteria are met, but the secret is not found
-//  THEN false is returned
-func TestIsReadySecretNotReady(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	client := fake.NewFakeClientWithScheme(testScheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-			Name:      "verrazzano-operator",
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
-		},
-	})
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	assert.False(t, NewComponent().IsReady(ctx))
-}
-
-// TestIsReadyChartNotInstalled tests the Verrazzano IsReady call
-// GIVEN a Verrazzano component
-//  WHEN I call IsReady when it is not installed
-//  THEN false is returned
-func TestIsReadyChartNotInstalled(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartNotFound, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	assert.False(t, NewComponent().IsReady(ctx))
-}
-
-// TestIsReady tests the Verrazzano IsReady call
-// GIVEN a Verrazzano component
-//  WHEN I call IsReady when all requirements are met
-//  THEN false is returned
-func TestIsReady(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-monitoring-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
-			},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "verrazzano",
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-			},
-		},
-		readyOpenSearchPods(),
-	)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	assert.True(t, NewComponent().IsReady(ctx))
-}
-
-// TestIsReadyDeploymentNotAvailable tests the Verrazzano IsReady call
-// GIVEN a Verrazzano component
-//  WHEN I call IsReady when the VO deployment is not available
-//  THEN false is returned
-func TestIsReadyDeploymentNotAvailable(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-monitoring-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 0,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: globalconst.VerrazzanoSystemNamespace,
-				Name:      "verrazzano-operator",
-			},
-			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 0,
-			},
-		},
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-			Namespace: globalconst.VerrazzanoSystemNamespace}},
-	)
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
-	assert.False(t, NewComponent().IsReady(ctx))
-}
-
-// TestIsReadyDeploymentVMIDisabled tests the Verrazzano IsReady call
-// GIVEN a Verrazzano component with all VMI components disabled
-//  WHEN I call IsReady
-//  THEN true is returned
-func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-			Namespace: globalconst.VerrazzanoSystemNamespace}},
-	)
-	vz := &vzapi.Verrazzano{}
-	falseValue := false
-	vz.Spec.Components = vzapi.ComponentSpec{
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-	}
-	ctx := spi.NewFakeContext(client, vz, false)
-	assert.True(t, NewComponent().IsReady(ctx))
-}
-
-// TestIsReadyDeploymentVMIDisabled tests the Verrazzano IsReady call
-// GIVEN a Verrazzano component with all VMI components disabled
-//  WHEN I call IsReady
-//  THEN true is returned
-func TestNotReadyDeploymentVMIDisabled(t *testing.T) {
-	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
-		return helm.ChartStatusDeployed, nil
-	})
-	defer helm.SetDefaultChartStatusFunction()
-	client := fake.NewFakeClientWithScheme(testScheme,
-		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
-			Namespace: globalconst.VerrazzanoSystemNamespace}},
-	)
-	vz := &vzapi.Verrazzano{}
-	falseValue := false
-	vz.Spec.Components = vzapi.ComponentSpec{
-		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-	}
-	ctx := spi.NewFakeContext(client, vz, false)
-	assert.True(t, NewComponent().IsReady(ctx))
-}
-  
 // TestPreInstall tests the Verrazzano PreInstall call
 // GIVEN a Verrazzano component
 //  WHEN I call PreInstall when dependencies are met

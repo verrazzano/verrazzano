@@ -1078,6 +1078,62 @@ func createFakeClientWithIngress() client.Client {
 	return fakeClient
 }
 
+// Test_fixupElasticSearchReplicaCount tests the fixupElasticSearchReplicaCount function.
+func Test_fixupElasticSearchReplicaCount(t *testing.T) {
+	assert := assert.New(t)
+
+	// GIVEN an Elasticsearch pod with a http port
+	//  WHEN fixupElasticSearchReplicaCount is called
+	//  THEN a command should be executed to get the cluster health information
+	//   AND a command should be executed to update the cluster index settings
+	//   AND no error should be returned
+	context, err := createFakeComponentContext()
+	assert.NoError(err, "Failed to create fake component context.")
+	createOpenSearchPod(context.Client(), "http")
+	execCommand = fakeExecCommand
+	fakeExecScenarioNames = []string{"fixupOpenSearchReplicaCount/get", "fixupOpenSearchReplicaCount/put"} //nolint,ineffassign
+	fakeExecScenarioIndex = 0                                                                              //nolint,ineffassign
+	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
+	assert.NoError(err, "Failed to fixup Elasticsearch index template")
+
+	// GIVEN an Elasticsearch pod with no http port
+	//  WHEN fixupElasticSearchReplicaCount is called
+	//  THEN an error should be returned
+	//   AND no commands should be invoked
+	fakeExecScenarioNames = []string{} //nolint,ineffassign
+	fakeExecScenarioIndex = 0          //nolint,ineffassign
+	context, err = createFakeComponentContext()
+	assert.NoError(err, "Failed to create fake component context.")
+	createOpenSearchPod(context.Client(), "tcp")
+	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
+	assert.Error(err, "Error should be returned if there is no http port for elasticsearch pods")
+
+	// GIVEN a Verrazzano resource with version 1.1.0 in the status
+	//  WHEN fixupElasticSearchReplicaCount is called
+	//  THEN no error should be returned
+	//   AND no commands should be invoked
+	fakeExecScenarioNames = []string{} //nolint,ineffassign
+	fakeExecScenarioIndex = 0          //nolint,ineffassign
+	context, err = createFakeComponentContext()
+	assert.NoError(err, "Unexpected error")
+	context.ActualCR().Status.Version = "1.1.0"
+	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
+	assert.NoError(err, "No error should be returned if the source version is 1.1.0 or later")
+
+	// GIVEN a Verrazzano resource with Elasticsearch disabled
+	//  WHEN fixupElasticSearchReplicaCount is called
+	//  THEN no error should be returned
+	//   AND no commands should be invoked
+	fakeExecScenarioNames = []string{}
+	fakeExecScenarioIndex = 0
+	falseValue := false
+	context, err = createFakeComponentContext()
+	assert.NoError(err, "Unexpected error")
+	context.EffectiveCR().Spec.Components.Elasticsearch.Enabled = &falseValue
+	err = fixupElasticSearchReplicaCount(context, "verrazzano-system")
+	assert.NoError(err, "No error should be returned if the elasticsearch is not enabled")
+}
+
 // Test_getNamedContainerPortOfContainer tests the getNamedContainerPortOfContainer function.
 func Test_getNamedContainerPortOfContainer(t *testing.T) {
 	assert := assert.New(t)

@@ -6,8 +6,8 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"io/fs"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"io/ioutil"
 	"os/exec"
 	"strconv"
@@ -16,7 +16,6 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -453,6 +452,79 @@ func isVerrazzanoSecretReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 	return true
+}
+
+//cleanTempFiles - Clean up the override temp files in the temp dir
+func cleanTempFiles(ctx spi.ComponentContext) {
+	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
+		ctx.Log().Errorf("Failed deleting temp files: %v", err)
+	}
+}
+
+// fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
+func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) error {
+	// Only apply this fix to clusters with Elasticsearch enabled.
+	if !vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary on managed cluster.")
+		return nil
+	}
+
+	// Only apply this fix to clusters being upgraded from a source version before 1.1.0.
+	ver1_1_0, err := semver.NewSemVersion("v1.1.0")
+	if err != nil {
+		return err
+	}
+	sourceVer, err := semver.NewSemVersion(ctx.ActualCR().Status.Version)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed Elasticsearch post-upgrade: Invalid source Verrazzano version: %v", err)
+	}
+	if sourceVer.IsGreatherThan(ver1_1_0) || sourceVer.IsEqualTo(ver1_1_0) {
+		ctx.Log().Debug("Elasticsearch Post Upgrade: Replica count update unnecessary for source Verrazzano version %v.", sourceVer.ToString())
+		return nil
+	}
+
+	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
+	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 15*time.Second, 5*time.Minute, containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed getting the Elasticsearch pods during post-upgrade: %v", err)
+	}
+	if len(pods) == 0 {
+		return ctx.Log().ErrorfNewErr("Failed to find Elasticsearch pods during post-upgrade: %v", err)
+	}
+	pod := pods[0]
+
+	// Find the Elasticsearch HTTP control container port.
+	httpPort, err := getNamedContainerPortOfContainer(pod, containerName, portName)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to find HTTP port of Elasticsearch container during post-upgrade: %v", err)
+	}
+	if httpPort <= 0 {
+		return ctx.Log().ErrorfNewErr("Failed to find Elasticsearch port during post-upgrade: %v", err)
+	}
+
+	// Set the the number of replicas for the Verrazzano indices
+	// to something valid in single node Elasticsearch cluster
+	ctx.Log().Debug("Elasticsearch Post Upgrade: Getting the health of the Elasticsearch cluster")
+	getCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
+		fmt.Sprintf("curl -v -XGET -s -k --fail http://localhost:%d/_cluster/health", httpPort))
+	output, err := getCmd.Output()
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post upgrade: error getting the Elasticsearch cluster health: %v", err)
+	}
+	ctx.Log().Debugf("Elasticsearch Post Upgrade: Output of the health of the Elasticsearch cluster %s", string(output))
+	// If the data node count is seen as 1 then the node is considered as single node cluster
+	if strings.Contains(string(output), `"number_of_data_nodes":1,`) {
+		// Login to Elasticsearch and update index settings for single data node elasticsearch cluster
+		putCmd := execCommand("kubectl", "exec", pod.Name, "-n", namespace, "-c", containerName, "--", "sh", "-c",
+			fmt.Sprintf(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:%d/%s/_settings`, httpPort, indexPattern))
+		_, err = putCmd.Output()
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed in Elasticsearch post-upgrade: Error logging into Elasticsearch: %v", err)
+		}
+		ctx.Log().Debug("Elasticsearch Post Upgrade: Successfully updated Elasticsearch index settings")
+	}
+	ctx.Log().Debug("Elasticsearch Post Upgrade: Completed successfully")
+	return nil
 }
 
 func getNamedContainerPortOfContainer(pod corev1.Pod, containerName string, portName string) (int32, error) {
