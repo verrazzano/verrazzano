@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package oam
 
 import (
@@ -12,6 +13,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
+// ComponentName is the name of the component
+const ComponentName = "oam-kubernetes-runtime"
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
+
 type oamComponent struct {
 	helm.HelmComponent
 }
@@ -21,12 +28,11 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
-			ReadyStatusFunc:         IsOAMReady,
 		},
 	}
 }
@@ -38,4 +44,12 @@ func (c oamComponent) IsEnabled(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// IsReady component check
+func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return isOAMReady(ctx)
+	}
+	return false
 }

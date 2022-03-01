@@ -9,6 +9,9 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -19,7 +22,7 @@ import (
 
 const (
 	keycloakInClusterURL = "keycloak-http.keycloak.svc.cluster.local"
-	tmpFilePrefix        = "verrazzano-overrides-"
+	tmpFilePrefix        = "authproxy-overrides-"
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
@@ -32,6 +35,15 @@ var (
 
 func resetWriteFileFunc() {
 	writeFileFunc = ioutil.WriteFile
+}
+
+// isAuthProxyReady checks if the AuthProxy deployment is ready
+func isAuthProxyReady(ctx spi.ComponentContext) bool {
+	deployments := []types.NamespacedName{
+		{Name: ComponentName, Namespace: ComponentNamespace},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install

@@ -26,12 +26,14 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 7 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 10 * time.Minute
-	longWaitTimeout      = 20 * time.Minute
-	pollingInterval      = 30 * time.Second
-	sockshopAppName      = "sockshop-appconfig"
+	shortWaitTimeout         = 7 * time.Minute
+	shortPollingInterval     = 10 * time.Second
+	waitTimeout              = 10 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
+	pollingInterval          = 30 * time.Second
+	sockshopAppName          = "sockshop-appconfig"
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var sockShop SockShop
@@ -68,6 +70,9 @@ var _ = t.BeforeSuite(func() {
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPods)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// checks that all pods are up and running
 	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
@@ -99,7 +104,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 
 	var hostname = ""
 	var err error
-	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			hostname, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return hostname, err
@@ -245,13 +250,16 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		t.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
-					Eventually(appMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appComponentMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 				func() {
-					Eventually(appConfigMetricsExists, waitTimeout, pollingInterval).Should(BeTrue())
+					Eventually(appComponentMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(appConfigMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
 				},
 			)
 		})
@@ -331,21 +339,29 @@ func isSockShopServiceReady(name string) bool {
 
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {
-	return pkg.PodsRunning(namespace, expectedPods)
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
 
-// appMetricsExists checks whether app related metrics are available
-func appMetricsExists() bool {
+// appMetricExists checks whether app related metrics are available
+func appMetricExists() bool {
 	return pkg.MetricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
 }
 
-// appComponentMetricsExists checks whether component related metrics are available
-func appComponentMetricsExists() bool {
+func coherenceMetricExists() bool {
+	return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "Orders")
+}
+
+// appComponentMetricExists checks whether component related metrics are available
+func appComponentMetricExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_name", "sockshop-appconf")
 }
 
-// appConfigMetricsExists checks whether config metrics are available
-func appConfigMetricsExists() bool {
+// appConfigMetricExists checks whether config metrics are available
+func appConfigMetricExists() bool {
 	return pkg.MetricsExist("vendor_requests_count_total", "app_oam_dev_component", "orders")
 }
 

@@ -1,13 +1,14 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package verrazzano
 
 import (
+	"reflect"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"reflect"
-	"strconv"
 )
 
 // upgradeFuncSig is a function needed for unit test override
@@ -95,9 +96,6 @@ func (f fakeComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 }
 
 func (f fakeComponent) IsReady(x spi.ComponentContext) bool {
-	if f.ReadyStatusFunc != nil {
-		return f.ReadyStatusFunc(x, f.ReleaseName, f.ChartNamespace)
-	}
 	return getBool(f.ready, "ready")
 }
 

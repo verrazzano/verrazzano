@@ -4,20 +4,23 @@
 package verrazzano
 
 import (
-	"fmt"
 	"path/filepath"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+// ComponentName is the name of the component
+const ComponentName = "verrazzano"
+
+// ComponentNamespace is the namespace of the component
+const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 type verrazzanoComponent struct {
 	helm.HelmComponent
@@ -30,7 +33,7 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
-			ChartNamespace:          constants.VerrazzanoSystemNamespace,
+			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			ResolveNamespaceFunc:    resolveVerrazzanoNamespace,
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
@@ -44,6 +47,9 @@ func NewComponent() spi.Component {
 // PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := setupSharedVMIResources(ctx); err != nil {
+		return err
+	}
 	ctx.Log().Debug("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
@@ -54,35 +60,34 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// Install Verrazzano component install processing
+func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Install(ctx); err != nil {
+		return err
+	}
+	return createVMI(ctx)
+}
+
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(),
 		c.ReleaseName, resolveVerrazzanoNamespace(c.ChartNamespace), c.ChartDir)
 }
 
-// IsReady Verrazzano component ready-check
+// InstallUpgrade Verrazzano component upgrade processing
+func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Upgrade(ctx); err != nil {
+		return err
+	}
+	return createVMI(ctx)
+}
+
+// IsReady component check
 func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
-	if !c.HelmComponent.IsReady(ctx) {
-		return false
+	if c.HelmComponent.IsReady(ctx) {
+		return isVerrazzanoReady(ctx)
 	}
-	var deployments []types.NamespacedName
-	if isVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, []types.NamespacedName{
-			{Name: "verrazzano-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
-			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
-		}...)
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
-		return false
-	}
-	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
-		// If opensearch is enabled, we should wait for it to be ready
-		if _, ok := isOpenSearchReady(ctx, c.ChartNamespace); !ok {
-			return false
-		}
-	}
-	return isVerrazzanoSecretReady(ctx)
+	return false
 }
 
 // PostInstall - post-install, clean up temp files
@@ -133,28 +138,28 @@ func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: constants.VerrazzanoSystemNamespace,
+			Namespace: ComponentNamespace,
 			Name:      constants.ElasticsearchIngress,
 		})
 	}
 
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: constants.VerrazzanoSystemNamespace,
+			Namespace: ComponentNamespace,
 			Name:      constants.GrafanaIngress,
 		})
 	}
 
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: constants.VerrazzanoSystemNamespace,
+			Namespace: ComponentNamespace,
 			Name:      constants.KibanaIngress,
 		})
 	}
 
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
-			Namespace: constants.VerrazzanoSystemNamespace,
+			Namespace: ComponentNamespace,
 			Name:      constants.PrometheusIngress,
 		})
 	}

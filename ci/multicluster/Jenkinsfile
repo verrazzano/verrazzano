@@ -400,54 +400,6 @@ pipeline {
                         }
                     }
                 }
-                stage ('Verify Install') {
-                    stages {
-                        stage('verify-install') {
-                            steps {
-                                runGinkgoRandomize('verify-install')
-                            }
-                        }
-
-                        stage ('multicluster/verify-install') {
-                            steps {
-                                runGinkgoRandomize('multicluster/verify-install')
-                            }
-                        }
-                    }
-                }
-
-                stage ('Verify Infra') {
-                    // NOTE: The stages are executed in parallel, however the tests themselves are executed against
-                    //       each cluster in sequence. If possible, we should parallelize that as well.
-                    parallel {
-                        stage('verify-scripts') {
-                            steps {
-                                runGinkgoRandomize('scripts')
-                            }
-                        }
-                        stage('verify-infra restapi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                    }
-                }
                 stage ('Register managed clusters') {
                     steps {
                         registerManagedClusters()
@@ -512,6 +464,55 @@ pipeline {
                     script {
                         dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-dump")
                     }
+                }
+            }
+        }
+
+        stage ('Verify Install') {
+            stages {
+                stage('verify-install') {
+                    steps {
+                        runGinkgoRandomize('verify-install')
+                    }
+                }
+
+                stage ('multicluster/verify-install') {
+                    steps {
+                        runGinkgoRandomize('multicluster/verify-install')
+                    }
+                }
+            }
+        }
+
+        stage ('Verify Infra') {
+            // NOTE: The stages are executed in parallel, however the tests themselves are executed against
+            //       each cluster in sequence. If possible, we should parallelize that as well.
+            parallel {
+                stage('verify-scripts') {
+                    steps {
+                        runGinkgoRandomize('scripts')
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/restapi')
+                    }
+                }
+                stage('verify-infra oam') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/oam')
+                    }
+                }
+                stage('verify-infra vmi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
             }
         }

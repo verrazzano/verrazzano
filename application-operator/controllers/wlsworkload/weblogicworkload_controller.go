@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"math/big"
 	"os"
 	"reflect"
@@ -22,10 +20,12 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -306,13 +306,6 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 		return ctrl.Result{}, nil
 	}
 
-	// If the domain already exists, make sure that the domain can be restarted.
-	// If the domain cannot be restarted, don't make any domain changes.
-	if domainExists && !r.isOkToRestartWebLogic(workload) {
-		log.Debug("There have been no changes to the WebLogic workload, nor has the restart annotation changed. The Domain will not be modified.")
-		return ctrl.Result{}, nil
-	}
-
 	// Add the Fluentd sidecar container required for logging to the Domain.  If the image is old, update it
 	if err = r.addLogging(ctx, log, workload, u); err != nil {
 		return reconcile.Result{}, err
@@ -515,7 +508,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log vzlog.VerrazzanoLogger,
 
 	// note that this call has the side effect of creating a FLUENTD config map if one
 	// does not already exist in the namespace
-	if _, err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
+	if err := fluentdManager.Apply(logging.NewLogInfo(), resource, fluentdPod); err != nil {
 		return err
 	}
 

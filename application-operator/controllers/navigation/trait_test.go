@@ -6,8 +6,9 @@ package navigation
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/golang/mock/gomock"
@@ -216,4 +217,121 @@ func TestFetchWorkloadFromTrait(t *testing.T) {
 
 	assert.Equal("test-trait-namespace", uns.GetNamespace())
 	assert.Equal("test-helidon-workload", uns.GetName())
+}
+
+// TestFetchWorkloadResource tests various usages of FetchWorkloadResource
+func TestFetchWorkloadResource(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker *gomock.Controller
+	var cli *mocks.MockClient
+	var ctx = context.TODO()
+	var err error
+	var uns *unstructured.Unstructured
+
+	// GIVEN a non Verrazzano specific workload
+	// WHEN the workload resource is fetched
+	// THEN verify the workload is returned as is
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	uns = &unstructured.Unstructured{}
+	containerizedWorkloadName := "container-workload"
+	containerizedWorkloadNamespace := "default"
+	containerizedWorkloadAPIVersion := "core.oam.dev/v1alpha2"
+	containerizedWorkloadKind := "ContainerizedWorkload"
+	uns.SetNamespace(containerizedWorkloadNamespace)
+	uns.SetName(containerizedWorkloadName)
+	uns.SetAPIVersion(containerizedWorkloadAPIVersion)
+	uns.SetKind(containerizedWorkloadKind)
+	uns, err = FetchWorkloadResource(ctx, cli, vzlog.DefaultLogger(), uns)
+	assert.NoError(err)
+	assert.Equal(containerizedWorkloadNamespace, uns.GetNamespace())
+	assert.Equal(containerizedWorkloadName, uns.GetName())
+	assert.Equal(containerizedWorkloadAPIVersion, uns.GetAPIVersion())
+	assert.Equal(containerizedWorkloadKind, uns.GetKind())
+
+	// GIVEN a Verrazzano specific workload
+	// WHEN the workload resource is fetched
+	// THEN verify the contained workload is returned
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	uns = &unstructured.Unstructured{}
+	workloadName := "coherence-workload"
+	workloadNamespace := "default"
+	workloadAPIVersion := "oam.verrazzano.io/v1alpha1"
+	workloadKind := "VerrazzanoCoherenceWorkload"
+
+	containedAPIVersion := "coherence.oracle.com/v1"
+	containedKind := "Coherence"
+	containedName := "unit-test-resource"
+	containedNamespace := "default"
+
+	containedResource := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": containedName,
+		},
+	}
+
+	uns.SetNamespace(workloadNamespace)
+	uns.SetName(workloadName)
+	uns.SetAPIVersion(workloadAPIVersion)
+	uns.SetKind(workloadKind)
+	unstructured.SetNestedMap(uns.Object, containedResource, "spec", "template")
+	// expect a call to fetch the contained workload that is wrapped by the Verrazzano workload
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: containedNamespace, Name: containedName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+			obj.SetUnstructuredContent(containedResource)
+			obj.SetAPIVersion(containedAPIVersion)
+			obj.SetKind(containedKind)
+			obj.SetNamespace(containedNamespace)
+			return nil
+		})
+
+	uns, err = FetchWorkloadResource(ctx, cli, vzlog.DefaultLogger(), uns)
+	assert.NoError(err)
+	assert.Equal(containedNamespace, uns.GetNamespace())
+	assert.Equal(containedName, uns.GetName())
+	assert.Equal(containedAPIVersion, uns.GetAPIVersion())
+	assert.Equal(containedKind, uns.GetKind())
+
+	// GIVEN a Verrazzano specific workload
+	// WHEN a failure occurs attempting to fetch the workload resource
+	// THEN verify the error is propagated
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+	uns = &unstructured.Unstructured{}
+	workloadName = "coherence-workload"
+	workloadNamespace = "default"
+	workloadAPIVersion = "oam.verrazzano.io/v1alpha1"
+	workloadKind = "VerrazzanoCoherenceWorkload"
+
+	containedAPIVersion = "coherence.oracle.com/v1"
+	containedKind = "Coherence"
+	containedName = "unit-test-resource"
+	containedNamespace = "default"
+
+	containedResource = map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name": containedName,
+		},
+	}
+
+	uns.SetNamespace(workloadNamespace)
+	uns.SetName(workloadName)
+	uns.SetAPIVersion(workloadAPIVersion)
+	uns.SetKind(workloadKind)
+	unstructured.SetNestedMap(uns.Object, containedResource, "spec", "template")
+	// expect a call to fetch the contained workload that is wrapped by the Verrazzano workload and return error
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: containedNamespace, Name: containedName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+			return fmt.Errorf("test-error")
+		})
+
+	uns, err = FetchWorkloadResource(ctx, cli, vzlog.DefaultLogger(), uns)
+	mocker.Finish()
+	assert.Nil(uns)
+	assert.Error(err)
+	assert.Equal("test-error", err.Error())
 }

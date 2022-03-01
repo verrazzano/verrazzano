@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package certificate
@@ -16,7 +16,7 @@ import (
 	"os"
 	"time"
 
-	adminv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -159,8 +159,8 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 
 // UpdateValidatingnWebhookConfiguration sets the CABundle
 func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
-	var validatingWebhook *adminv1beta1.ValidatingWebhookConfiguration
-	validatingWebhook, err := kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Get(context.TODO(), OperatorName, metav1.GetOptions{})
+	var validatingWebhook *adminv1.ValidatingWebhookConfiguration
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OperatorName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 	}
 	validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
 	validatingWebhook.Webhooks[1].ClientConfig.CABundle = caCert.Bytes()
-	_, err = kubeClient.AdmissionregistrationV1beta1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}

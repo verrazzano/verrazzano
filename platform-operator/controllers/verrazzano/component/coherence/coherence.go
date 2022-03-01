@@ -11,15 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "coherence-operator"
-
-const coherenceOperatorDeploymentName = ComponentName
-
 // IsCoherenceOperatorReady checks if the COH operator deployment is ready
-func IsCoherenceOperatorReady(ctx spi.ComponentContext, _ string, namespace string) bool {
+func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: coherenceOperatorDeploymentName, Namespace: namespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)

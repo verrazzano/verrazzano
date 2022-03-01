@@ -17,10 +17,12 @@ import (
 )
 
 const (
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	shortWaitTimeout         = 5 * time.Minute
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var (
@@ -48,6 +50,9 @@ var _ = t.BeforeSuite(func() {
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPodsHelidonConfig)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify helidon-config-deployment pod is running
 	// GIVEN OAM helidon-config app is deployed
 	// WHEN the component and appconfig are created
@@ -103,7 +108,7 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// GIVEN the Istio gateway for the helidon-config namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", Label("f:mesh.ingress"), func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
@@ -172,7 +177,11 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 })
 
 func helidonConfigPodsRunning() bool {
-	return pkg.PodsRunning(namespace, expectedPodsHelidonConfig)
+	result, err := pkg.PodsRunning(namespace, expectedPodsHelidonConfig)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
 
 func appMetricsExists() bool {

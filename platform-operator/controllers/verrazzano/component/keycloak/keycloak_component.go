@@ -4,7 +4,6 @@ package keycloak
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -14,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -146,22 +144,10 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return *comp.Enabled
 }
 
+// IsReady component check
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
-	// TLS cert from Cert Manager should be in Ready state
-	secretName := getSecretName(ctx.EffectiveCR())
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
-		return false
+	if c.HelmComponent.IsReady(ctx) {
+		return isKeycloakReady(ctx)
 	}
-
-	statefulsetName := []types.NamespacedName{
-		{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
-		},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
+	return false
 }

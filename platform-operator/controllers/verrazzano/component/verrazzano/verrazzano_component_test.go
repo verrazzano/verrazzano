@@ -11,13 +11,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/helm"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,6 +26,12 @@ import (
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
+
+var dnsComponents = vzapi.ComponentSpec{
+	DNS: &vzapi.DNSComponent{
+		External: &vzapi.External{Suffix: "blah"},
+	},
+}
 
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -55,6 +61,9 @@ func readyOpenSearchPods() *corev1.Pod {
 			},
 		},
 	}
+// fakeUpgrade override the upgrade function during unit tests
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
 }
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
@@ -243,7 +252,7 @@ func TestNotReadyDeploymentVMIDisabled(t *testing.T) {
 	ctx := spi.NewFakeContext(client, vz, false)
 	assert.True(t, NewComponent().IsReady(ctx))
 }
-
+  
 // TestPreInstall tests the Verrazzano PreInstall call
 // GIVEN a Verrazzano component
 //  WHEN I call PreInstall when dependencies are met
@@ -252,6 +261,28 @@ func TestPreInstall(t *testing.T) {
 	client := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 	err := NewComponent().PreInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestInstall tests the Verrazzano Install call
+// GIVEN a Verrazzano component
+//  WHEN I call Install when dependencies are met
+//  THEN no error is returned
+func TestInstall(t *testing.T) {
+	client := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: dnsComponents,
+		},
+	}, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
+	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
 
@@ -267,7 +298,11 @@ func TestPostInstall(t *testing.T) {
 		return config, k, nil
 	}
 	client := fake.NewFakeClientWithScheme(testScheme, readyOpenSearchPods())
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: dnsComponents,
+		},
+	}, false)
 	vzComp := NewComponent()
 
 	// PostInstall will fail because the expected VZ ingresses are not present in cluster
@@ -286,6 +321,26 @@ func TestPostInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
+// GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
+//  WHEN I call Upgrade
+//  THEN no error is returned
+func TestUpgrade(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Version:    "v1.2.0",
+			Components: dnsComponents,
+		},
+		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
+	}, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
+	err := NewComponent().Upgrade(ctx)
+	assert.NoError(t, err)
+}
+
 // TestPostUpgrade tests the Verrazzano PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
 //  WHEN I call PostUpgrade
@@ -298,8 +353,13 @@ func TestPostUpgrade(t *testing.T) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
 	}
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Version: "v1.2.0"},
-		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"}}, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Version:    "v1.2.0",
+			Components: dnsComponents,
+		},
+		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
+	}, false)
 	err := NewComponent().PostUpgrade(ctx)
 	assert.NoError(t, err)
 }

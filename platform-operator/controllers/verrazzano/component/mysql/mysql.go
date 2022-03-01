@@ -6,11 +6,10 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -18,11 +17,9 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
-	"io/ioutil"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -40,10 +37,10 @@ const (
 	mySQLInitFilePrefix = "init-mysql-"
 )
 
-// isReady checks to see if the MySQL component is in ready state
-func isReady(context spi.ComponentContext, name string, namespace string) bool {
+// isMySQLReady checks to see if the MySQL component is in ready state
+func isMySQLReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: name, Namespace: namespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
@@ -61,7 +58,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
 		secret := &v1.Secret{}
 		nsName := types.NamespacedName{
-			Namespace: vzconst.KeycloakNamespace,
+			Namespace: ComponentNamespace,
 			Name:      secretName}
 		// Get the mysql secret
 		err := compContext.Client().Get(context.TODO(), nsName, secret)

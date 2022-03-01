@@ -269,7 +269,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	t.Context("check app deployment", func() {
 		t.It("in foo namespace", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
+				return checkPodsRunning(fooNamespace, expectedPodsFoo)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
@@ -277,7 +277,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	t.Context("check app deployment", func() {
 		t.It("in bar namespace", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(barNamespace, expectedPodsBar)
+				return checkPodsRunning(barNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
@@ -285,30 +285,27 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	t.Context("check app deployment", func() {
 		t.It("in noistio namespace", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
+				return checkPodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
 	})
 
 	var fooHost = ""
+	var barHost = ""
+	var noIstioHost = ""
+
 	var err error
-	t.It("Get foo host from gateway.", func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
 			fooHost, err = k8sutil.GetHostnameFromGateway(fooNamespace, "")
 			return fooHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", fooNamespace))
-	})
 
-	var barHost = ""
-	t.It("Get bar host from gateway.", func() {
 		Eventually(func() (string, error) {
 			barHost, err = k8sutil.GetHostnameFromGateway(barNamespace, "")
 			return barHost, err
 		}, waitTimeout, shortPollingInterval).Should(Not(BeEmpty()), fmt.Sprintf("Failed to get host from gateway in %s", barNamespace))
-	})
 
-	var noIstioHost = ""
-	t.It("Get noistio host from gateway.", func() {
 		Eventually(func() (string, error) {
 			noIstioHost, err = k8sutil.GetHostnameFromGateway(noIstioNamespace, "")
 			return noIstioHost, err
@@ -465,7 +462,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(fooNamespace, expectedPodsFoo)
+				return checkPodsRunning(fooNamespace, expectedPodsFoo)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
@@ -473,7 +470,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(barNamespace, expectedPodsBar)
+				return checkPodsRunning(barNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
@@ -481,7 +478,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
-				return pkg.PodsRunning(noIstioNamespace, expectedPodsBar)
+				return checkPodsRunning(noIstioNamespace, expectedPodsBar)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
 	})
@@ -601,3 +598,12 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	})
 
 })
+
+// checkPodsRunning checks whether the pods are ready in a given namespace
+func checkPodsRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
+}

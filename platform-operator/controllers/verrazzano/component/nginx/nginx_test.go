@@ -5,16 +5,14 @@ package nginx
 import (
 	"testing"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -152,7 +150,7 @@ func TestIsNGINXReady(t *testing.T) {
 			},
 		},
 	)
-	assert.True(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), ComponentName, ComponentNamespace))
+	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
@@ -185,7 +183,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 			},
 		},
 	)
-	assert.False(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 // TestPostInstallWithPorts tests the PostInstall function

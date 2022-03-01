@@ -96,6 +96,15 @@ func deployApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	// Verify cidomain-adminserver and mysql pods are running
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
@@ -126,17 +135,6 @@ func undeployApplication() {
 var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload"), func() {
 
-	t.Context("deployment.", func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and mysql pods should be found running
-		t.It("Verify 'cidomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
-
 	t.Context("Ingress.", Label("f:mesh.ingress",
 		"f:ui.console"), func() {
 		var host = ""
@@ -145,7 +143,7 @@ var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 		// GIVEN the Istio gateway for the test namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
-		t.It("Get host from gateway.", func() {
+		t.BeforeEach(func() {
 			Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 				return host, err

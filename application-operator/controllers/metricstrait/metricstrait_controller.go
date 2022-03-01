@@ -8,10 +8,13 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
+	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
@@ -27,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -62,9 +66,10 @@ const (
 	prometheusPathAnnotation = "prometheus.io/path"
 
 	// Annotation names for metrics set by the controller
-	verrazzanoMetricsPortAnnotation    = "verrazzano.io/metricsPort"
-	verrazzanoMetricsPathAnnotation    = "verrazzano.io/metricsPath"
-	verrazzanoMetricsEnabledAnnotation = "verrazzano.io/metricsEnabled"
+	verrazzanoMetricsAnnotationPrefix  = "verrazzano.io/metrics"
+	verrazzanoMetricsPortAnnotation    = "verrazzano.io/metricsPort%s"
+	verrazzanoMetricsPathAnnotation    = "verrazzano.io/metricsPath%s"
+	verrazzanoMetricsEnabledAnnotation = "verrazzano.io/metricsEnabled%s"
 
 	// Label names for the OAM application and component references
 	appObjectMetaLabel  = "app.oam.dev/name"
@@ -81,6 +86,7 @@ const (
 	appNameHolder       = "##APP_NAME##"
 	compNameHolder      = "##COMP_NAME##"
 	jobNameHolder       = "##JOB_NAME##"
+	portOrderHolder     = "##PORT_ORDER##"
 	namespaceHolder     = "##NAMESPACE##"
 	sslProtocolHolder   = "##SSL_PROTOCOL##"
 	vzClusterNameHolder = "##VERRAZZANO_CLUSTER_NAME##"
@@ -88,6 +94,7 @@ const (
 	// Roles for use in qualified resource relations
 	scraperRole = "scraper"
 	sourceRole  = "source"
+	ownerRole   = "owner"
 
 	// SSL protocol scrape parameters for Istio enabled MTLS components
 	httpsProtocol = `scheme: https
@@ -114,14 +121,14 @@ relabel_configs:
   target_label: ` + prometheusClusterNameLabel + `
   replacement: ##VERRAZZANO_CLUSTER_NAME##
 - action: keep
-  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
+  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsEnabled##PORT_ORDER##,__meta_kubernetes_pod_label_app_oam_dev_name,__meta_kubernetes_pod_label_app_oam_dev_component]
   regex: true;##APP_NAME##;##COMP_NAME##
 - action: replace
-  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath]
+  source_labels: [__meta_kubernetes_pod_annotation_verrazzano_io_metricsPath##PORT_ORDER##]
   target_label: __metrics_path__
   regex: (.+)
 - action: replace
-  source_labels: [__address__, __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort]
+  source_labels: [__address__, __meta_kubernetes_pod_annotation_verrazzano_io_metricsPort##PORT_ORDER##]
   target_label: __address__
   regex: ([^:]+)(?::\d+)?;(\d+)
   replacement: $1:$2
@@ -274,7 +281,7 @@ func (r *Reconciler) reconcileTraitCreateOrUpdate(ctx context.Context, trait *vz
 
 	// Fetch workload resource using information from the trait
 	var workload *unstructured.Unstructured
-	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r, log, trait); err != nil {
+	if workload, err = vznav.FetchWorkloadFromTrait(ctx, r, log, trait); err != nil || workload == nil {
 		return reconcile.Result{}, true, err
 	}
 
@@ -404,6 +411,15 @@ func (r *Reconciler) deleteOrUpdateObsoleteResources(ctx context.Context, trait 
 			update.RecordOutcome(status.Relations[i], status.Results[i], status.Errors[i])
 		}
 	}
+
+	if !trait.DeletionTimestamp.IsZero() && trait.OwnerReferences != nil {
+		for i := range trait.OwnerReferences {
+			if trait.OwnerReferences[i].Kind == "ApplicationConfiguration" {
+				update.RecordOutcome(r.removedTraitReferencesFromOwner(ctx, &trait.OwnerReferences[i], trait, log))
+			}
+		}
+	}
+
 	return &update
 }
 
@@ -557,7 +573,7 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 			log.Debug("Workload child deployment not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: deployment.APIVersion, Resource: deployment.Kind}, deployment.Name)
 		}
-		deployment.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
+		deployment.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, traitDefaults, deployment.Spec.Template.ObjectMeta.Annotations)
 		deployment.Spec.Template.ObjectMeta.Labels = MutateLabels(trait, workload, deployment.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
@@ -583,7 +599,7 @@ func (r *Reconciler) updateRelatedStatefulSet(ctx context.Context, trait *vzapi.
 			log.Debug("Workload child statefulset not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: statefulSet.APIVersion, Resource: statefulSet.Kind}, statefulSet.Name)
 		}
-		statefulSet.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
+		statefulSet.Spec.Template.ObjectMeta.Annotations = MutateAnnotations(trait, traitDefaults, statefulSet.Spec.Template.ObjectMeta.Annotations)
 		statefulSet.Spec.Template.ObjectMeta.Labels = MutateLabels(trait, workload, statefulSet.Spec.Template.ObjectMeta.Labels)
 		return nil
 	})
@@ -608,7 +624,7 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 			log.Debug("Workload child pod not found")
 			return apierrors.NewNotFound(schema.GroupResource{Group: pod.APIVersion, Resource: pod.Kind}, pod.Name)
 		}
-		pod.ObjectMeta.Annotations = MutateAnnotations(trait, workload, traitDefaults, pod.ObjectMeta.Annotations)
+		pod.ObjectMeta.Annotations = MutateAnnotations(trait, traitDefaults, pod.ObjectMeta.Annotations)
 		pod.ObjectMeta.Labels = MutateLabels(trait, workload, pod.ObjectMeta.Labels)
 		return nil
 	})
@@ -738,40 +754,25 @@ func (r *Reconciler) fetchTraitDefaults(ctx context.Context, workload *unstructu
 	if err != nil {
 		return nil, true, err
 	}
-	// Match any version of Group=weblogic.oracle and Kind=Domain
-	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+
+	workloadType := GetSupportedWorkloadType(apiVerKind)
+	switch workloadType {
+	case constants.WorkloadTypeWeblogic:
 		spec, err := r.NewTraitDefaultsForWLSDomainWorkload(ctx, workload)
 		return spec, true, err
-	}
-	// Match any version of Group=coherence.oracle and Kind=Coherence
-	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
+	case constants.WorkloadTypeCoherence:
 		spec, err := r.NewTraitDefaultsForCOHWorkload(ctx, workload)
 		return spec, true, err
-	}
-
-	// Match any version of Group=coherence.oracle and Kind=VerrazzanoHelidonWorkload
-	// In the case of Helidon, the workload isn't currently being unwrapped
-	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
+	case constants.WorkloadTypeGeneric:
 		spec, err := r.NewTraitDefaultsForGenericWorkload()
 		return spec, true, err
+	default:
+		// Log the kind/workload is unsupported and return a nil trait.
+		log.Debugf("unsupported kind %s of workload %s", apiVerKind, vznav.GetNamespacedNameFromUnstructured(workload))
+		return nil, false, nil
+
 	}
 
-	// Match any version of Group=core.oam.dev and Kind=ContainerizedWorkload
-	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
-		spec, err := r.NewTraitDefaultsForGenericWorkload()
-		return spec, true, err
-	}
-
-	// Match any version of Group=apps and Kind=Deployment
-	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
-		spec, err := r.NewTraitDefaultsForGenericWorkload()
-		return spec, true, err
-	}
-
-	// Log the kind/workload is unsupported and return a nil trait.
-	gvk, _ := vznav.GetAPIVersionKindOfUnstructured(workload)
-	log.Debugf("unsupported kind %s of workload %s", gvk, vznav.GetNamespacedNameFromUnstructured(workload))
-	return nil, false, nil
 }
 
 // NewTraitDefaultsForWLSDomainWorkload creates metrics trait default values for a WLS domain workload.
@@ -784,7 +785,10 @@ func (r *Reconciler) NewTraitDefaultsForWLSDomainWorkload(ctx context.Context, w
 		return nil, err
 	}
 	return &vzapi.MetricsTraitSpec{
-		Port:    &port,
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
 		Path:    &path,
 		Secret:  secret,
 		Scraper: &r.Scraper}, nil
@@ -809,7 +813,10 @@ func (r *Reconciler) NewTraitDefaultsForCOHWorkload(ctx context.Context, workloa
 		}
 	}
 	return &vzapi.MetricsTraitSpec{
-		Port:    &port,
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
 		Path:    &path,
 		Secret:  secret,
 		Scraper: &r.Scraper}, nil
@@ -820,7 +827,10 @@ func (r *Reconciler) NewTraitDefaultsForGenericWorkload() (*vzapi.MetricsTraitSp
 	port := defaultScrapePort
 	path := defaultScrapePath
 	return &vzapi.MetricsTraitSpec{
-		Port:    &port,
+		Ports: []vzapi.PortSpec{{
+			Port: &port,
+			Path: &path,
+		}},
 		Path:    &path,
 		Secret:  nil,
 		Scraper: &r.Scraper}, nil
@@ -845,77 +855,134 @@ func updateStatusIfRequired(status *vzapi.MetricsTraitStatus, results *reconcile
 // mutatePrometheusScrapeConfig mutates the Prometheus scrape configuration.
 // Scrap configuration rules will be added, updated, deleted depending on the state of the trait.
 func mutatePrometheusScrapeConfig(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, prometheusScrapeConfig *gabs.Container, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (*gabs.Container, error) {
-	oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
-	prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
-	newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(ctx, trait, traitDefaults, secret, workload, c)
-	if err != nil {
-		return prometheusScrapeConfig, err
-	}
-	existingReplaced := false
-	for _, oldScrapeConfig := range oldScrapeConfigs {
-		oldScrapeJob := oldScrapeConfig.Search(prometheusJobNameLabel).Data()
-		if newScrapeJob == oldScrapeJob {
-			// If the scrape config should be removed then skip adding it to the result slice.
-			// This will occur in two situations.
-			// 1. The trait is being deleted.
-			// 2. The trait scraper has been changed and the old scrape config is being updated.
-			//    In this case the traitDefaults and newScrapeConfig will be nil.
-			if trait.DeletionTimestamp.IsZero() && traitDefaults != nil && newScrapeConfig != nil {
-				prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+	ports := trait.Spec.Ports
+	if len(ports) == 0 {
+		// create a port spec from the existing port
+		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
+	} else {
+		// if there are existing ports and a port/path setting, add the latter to the ports
+		if trait.Spec.Port != nil {
+			// add the port to the ports
+			path := trait.Spec.Path
+			if path == nil {
+				path = traitDefaults.Path
 			}
-			existingReplaced = true
-		} else {
-			prometheusScrapeConfig.ArrayAppendP(oldScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+			portSpec := vzapi.PortSpec{
+				Port: trait.Spec.Port,
+				Path: path,
+			}
+			ports = append(ports, portSpec)
 		}
 	}
-	// If an existing config was not replaced and there is new config (i.e. newScrapeConfig != nil) then add the new config.
-	if !existingReplaced && newScrapeConfig != nil {
-		prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+
+	for i := range ports {
+		oldScrapeConfigs := prometheusScrapeConfig.Search(prometheusScrapeConfigsLabel).Children()
+		prometheusScrapeConfig.Array(prometheusScrapeConfigsLabel) // zero out the array of scrape configs
+		newScrapeJob, newScrapeConfig, err := createScrapeConfigFromTrait(ctx, trait, i, secret, workload, c)
+		if err != nil {
+			return prometheusScrapeConfig, err
+		}
+		existingReplaced := false
+		for _, oldScrapeConfig := range oldScrapeConfigs {
+			oldScrapeJob := oldScrapeConfig.Search(prometheusJobNameLabel).Data()
+			if newScrapeJob == oldScrapeJob {
+				// If the scrape config should be removed then skip adding it to the result slice.
+				// This will occur in two situations.
+				// 1. The trait is being deleted.
+				// 2. The trait scraper has been changed and the old scrape config is being updated.
+				//    In this case the traitDefaults and newScrapeConfig will be nil.
+				if trait.DeletionTimestamp.IsZero() && traitDefaults != nil && newScrapeConfig != nil {
+					prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+				}
+				existingReplaced = true
+			} else {
+				prometheusScrapeConfig.ArrayAppendP(oldScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+			}
+		}
+		// If an existing config was not replaced and there is new config (i.e. newScrapeConfig != nil) then add the new config.
+		if !existingReplaced && newScrapeConfig != nil {
+			prometheusScrapeConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
+		}
 	}
 	return prometheusScrapeConfig, nil
 }
 
 // MutateAnnotations mutates annotations with values used by the scraper config.
 // Annotations are either set or removed depending on the state of the trait.
-func MutateAnnotations(trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, annotations map[string]string) map[string]string {
+func MutateAnnotations(trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, annotations map[string]string) map[string]string {
 	mutated := annotations
+
+	ports := trait.Spec.Ports
+	if len(ports) == 0 {
+		// create a port spec from the existing port
+		ports = []vzapi.PortSpec{{Port: trait.Spec.Port, Path: trait.Spec.Path}}
+	} else {
+		// if there are existing ports and a port/path setting, add the latter to the ports
+		if trait.Spec.Port != nil {
+			// add the port to the ports
+			path := trait.Spec.Path
+			if path == nil {
+				path = traitDefaults.Path
+			}
+			portSpec := vzapi.PortSpec{
+				Port: trait.Spec.Port,
+				Path: path,
+			}
+			ports = append(ports, portSpec)
+		}
+	}
 
 	// If the trait is being deleted, remove the annotations.
 	if !trait.DeletionTimestamp.IsZero() {
-		delete(mutated, verrazzanoMetricsEnabledAnnotation)
-		delete(mutated, verrazzanoMetricsPathAnnotation)
-		delete(mutated, verrazzanoMetricsPortAnnotation)
+		for k := range mutated {
+			if strings.HasPrefix(k, verrazzanoMetricsAnnotationPrefix) {
+				delete(mutated, k)
+			}
+		}
 		return mutated
 	}
 
-	mutated = updateStringMap(mutated, verrazzanoMetricsEnabledAnnotation, strconv.FormatBool(true))
-
 	// Merge trait, default and existing value.
 	var found bool
-	var path string
-	if trait.Spec.Path != nil {
-		path = *trait.Spec.Path
-	} else {
-		path, found = annotations[prometheusPathAnnotation]
-		if !found {
-			path = *traitDefaults.Path
-		}
-	}
-	mutated = updateStringMap(mutated, verrazzanoMetricsPathAnnotation, path)
-
-	// Merge trait, default and existing value.
 	var port string
-	if trait.Spec.Port != nil {
-		port = strconv.Itoa(*trait.Spec.Port)
-	} else {
-		port, found = annotations[prometheusPortAnnotation]
-		if !found {
-			port = strconv.Itoa(*traitDefaults.Port)
+	for i, portSpec := range ports {
+
+		mutated = updateStringMap(mutated, formatMetric(verrazzanoMetricsEnabledAnnotation, i), strconv.FormatBool(true))
+
+		if portSpec.Port != nil {
+			port = strconv.Itoa(*portSpec.Port)
+		} else {
+			port, found = annotations[prometheusPortAnnotation]
+			if !found {
+				port = strconv.Itoa(*traitDefaults.Ports[0].Port)
+			}
 		}
+		mutated = updateStringMap(mutated, formatMetric(verrazzanoMetricsPortAnnotation, i), port)
+
+		// Merge trait, default and existing value.
+		var path string
+		if portSpec.Path != nil {
+			path = *portSpec.Path
+		} else {
+			path, found = annotations[prometheusPathAnnotation]
+			if !found {
+				if traitDefaults.Ports[0].Path != nil {
+					path = *traitDefaults.Ports[0].Path
+				}
+			}
+		}
+		mutated = updateStringMap(mutated, formatMetric(verrazzanoMetricsPathAnnotation, i), path)
 	}
-	mutated = updateStringMap(mutated, verrazzanoMetricsPortAnnotation, port)
 
 	return mutated
+}
+
+func formatMetric(format string, i int) string {
+	suffix := ""
+	if i > 0 {
+		suffix = strconv.Itoa(i)
+	}
+	return fmt.Sprintf(format, suffix)
 }
 
 // MutateLabels mutates the labels associated with a related resources.
@@ -947,7 +1014,7 @@ func useHTTPSForScrapeTarget(ctx context.Context, c client.Client, trait *vzapi.
 
 // createPrometheusScrapeConfigMapJobName creates a Prometheus scrape configmap job name from a trait.
 // Format is {oam_app}_{cluster}_{namespace}_{oam_comp}
-func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, error) {
+func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait, portNum int) (string, error) {
 	cluster := getClusterNameFromObjectMetaOrDefault(trait.ObjectMeta)
 	namespace := getNamespaceFromObjectMetaOrDefault(trait.ObjectMeta)
 	app, found := trait.Labels[appObjectMetaLabel]
@@ -958,16 +1025,21 @@ func createPrometheusScrapeConfigMapJobName(trait *vzapi.MetricsTrait) (string, 
 	if !found {
 		return "", fmt.Errorf("metrics trait missing component name label")
 	}
-	return fmt.Sprintf("%s_%s_%s_%s", app, cluster, namespace, comp), nil
+	portStr := ""
+	if portNum > 0 {
+		portStr = fmt.Sprintf("_%d", portNum)
+	}
+	return fmt.Sprintf("%s_%s_%s_%s%s", app, cluster, namespace, comp, portStr), nil
 }
 
 // createScrapeConfigFromTrait creates Prometheus scrape config for a trait.
 // This populates the Prometheus scrape config template.
 // The job name is returned.
 // The YAML container populated from the Prometheus scrape config template is returned.
-func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, traitDefaults *vzapi.MetricsTraitSpec, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
+func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait, portIncrement int, secret *k8score.Secret, workload *unstructured.Unstructured, c client.Client) (string, *gabs.Container, error) {
 
-	job, err := createPrometheusScrapeConfigMapJobName(trait)
+	// TODO: see if we can create a scrape job per port within this method. change name to createScrapeConfigsFromTrait
+	job, err := createPrometheusScrapeConfigMapJobName(trait, portIncrement)
 	if err != nil {
 		return "", nil, err
 	}
@@ -975,10 +1047,15 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 	// If workload is nil then the trait is being deleted so no config is required
 	if workload != nil {
 		// Populate the Prometheus scrape config template
+		portOrderStr := ""
+		if portIncrement > 0 {
+			portOrderStr = strconv.Itoa(portIncrement)
+		}
 		context := map[string]string{
 			appNameHolder:       trait.Labels[appObjectMetaLabel],
 			compNameHolder:      trait.Labels[compObjectMetaLabel],
 			jobNameHolder:       job,
+			portOrderHolder:     portOrderStr,
 			namespaceHolder:     trait.Namespace,
 			sslProtocolHolder:   httpProtocol,
 			vzClusterNameHolder: clusters.GetClusterName(ctx, c)}
@@ -1026,4 +1103,54 @@ func createScrapeConfigFromTrait(ctx context.Context, trait *vzapi.MetricsTrait,
 
 	// If the trait is being deleted (i.e. workload==nil) then no config is required.
 	return job, nil, nil
+}
+
+// removedTraitReferencesFromOwner removes traits from components of owner ApplicationConfiguration.
+func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerRef *metav1.OwnerReference, trait *vzapi.MetricsTrait, log vzlog2.VerrazzanoLogger) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+	rel := vzapi.QualifiedResourceRelation{APIVersion: "core.oam.dev/v1alpha2", Kind: "ApplicationConfiguration", Namespace: trait.GetNamespace(), Name: ownerRef.Name, Role: ownerRole}
+	var appConfig oamv1.ApplicationConfiguration
+	err := r.Client.Get(ctx, types.NamespacedName{Namespace: trait.GetNamespace(), Name: ownerRef.Name}, &appConfig)
+	if err != nil {
+		log.Debugf("Unable to fetch ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)
+		return rel, controllerutil.OperationResultNone, err
+	}
+
+	if appConfig.Spec.Components != nil {
+		traitsRemoved := false
+		for i := range appConfig.Spec.Components {
+			component := &appConfig.Spec.Components[i]
+			if component.Traits != nil {
+				remainingTraits := []oamv1.ComponentTrait{}
+				for _, componentTrait := range component.Traits {
+					remainingTraits = append(remainingTraits, componentTrait)
+					componentTraitUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&componentTrait.Trait)
+					if err != nil || componentTraitUnstructured == nil {
+						log.Debugf("Unable to convert trait for component: %s of application configuration: %s/%s, error: %v", component.ComponentName, appConfig.GetNamespace(), appConfig.GetName(), err)
+					} else {
+						if componentTraitUnstructured.GetAPIVersion() == trait.APIVersion && componentTraitUnstructured.GetKind() == trait.Kind {
+							if compName, ok := trait.Labels[compObjectMetaLabel]; ok && compName == component.ComponentName {
+								log.Infof("Removing trait %s/%s for component: %s of application configuration: %s/%s", componentTraitUnstructured.GetAPIVersion(), componentTraitUnstructured.GetKind(), component.ComponentName, appConfig.GetNamespace(), appConfig.GetName())
+								remainingTraits = remainingTraits[:len(remainingTraits)-1]
+							}
+						}
+					}
+				}
+				if len(remainingTraits) < len(component.Traits) {
+					component.Traits = remainingTraits
+					traitsRemoved = true
+				}
+			}
+		}
+		if traitsRemoved {
+			log.Infof("Updating ApplicationConfiguration %s/%s", trait.GetNamespace(), ownerRef.Name)
+			err = r.Client.Update(ctx, &appConfig)
+			if err != nil {
+				log.Infof("Unable to update ApplicationConfiguration %s/%s, error: %v", trait.GetNamespace(), ownerRef.Name, err)
+				return rel, controllerutil.OperationResultNone, err
+			}
+
+			return rel, controllerutil.OperationResultUpdated, err
+		}
+	}
+	return rel, controllerutil.OperationResultNone, nil
 }

@@ -11,15 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "oam-kubernetes-runtime"
-
-const oamOperatorDeploymentName = ComponentName
-
-// IsOAMReady checks if the OAM operator deployment is ready
-func IsOAMReady(context spi.ComponentContext, _ string, namespace string) bool {
+// isOAMReady checks if the OAM operator deployment is ready
+func isOAMReady(context spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: oamOperatorDeploymentName, Namespace: namespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
