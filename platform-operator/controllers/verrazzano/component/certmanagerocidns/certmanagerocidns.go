@@ -27,8 +27,6 @@ const (
 
 	letsEncryptProd  = "https://acme-v02.api.letsencrypt.org/directory"
 	letsEncryptStage = "https://acme-staging-v02.api.letsencrypt.org/directory"
-
-	clusterResourceNamespaceKey = "clusterResourceNamespace"
 )
 
 // Template for ClusterIssuer for Acme certificates
@@ -79,7 +77,7 @@ func (c certManagerOciDNSComponent) PreInstall(compContext spi.ComponentContext)
 
 // PostInstall applies necessary cert-manager resources after the install has occurred
 // In the case of an Acme cert, we install Acme resources
-// In the case of a CA cert, we install CA resources
+// In the case of a CA cert, cert-manager should have installed CA resources
 func (c certManagerOciDNSComponent) PostInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
@@ -101,18 +99,8 @@ func (c certManagerOciDNSComponent) PostInstall(compContext spi.ComponentContext
 	return nil
 }
 
-// AppendOverrides Build the set of cert-manager overrides for the helm install
+// AppendOverrides Build the set of overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// Verify that we are using CA certs before appending override
-	isCAValue, err := certmanager.IsCA(compContext)
-	if err != nil {
-		err = compContext.Log().ErrorfNewErr("Failed to verify the config type: %v", err)
-		return []bom.KeyValue{}, err
-	}
-	if isCAValue {
-		ns := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace
-		kvs = append(kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: ns})
-	}
 	return kvs, nil
 }
 

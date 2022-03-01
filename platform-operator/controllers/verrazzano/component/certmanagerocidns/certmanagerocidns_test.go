@@ -47,6 +47,7 @@ func TestIsCertManagerOciDNSEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	bt := true
 	localvz.Spec.Components.CertManager.Enabled = &bt
+	localvz.Spec.Components.DNS = &vzapi.DNSComponent{OCI: &vzapi.OCI{}}
 	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
 }
 
