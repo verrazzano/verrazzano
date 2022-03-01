@@ -110,9 +110,6 @@ const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
 // VerrazzanoAuthProxyServicePort is the port exposed by the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServicePort = 8775
 
-// VerrazzanoSystemTLSSecretName is the name of the system TLS secret
-const VerrazzanoSystemTLSSecretName = "system-tls"
-
 // DefaultEnvironmentName is the default name for install environment
 const DefaultEnvironmentName = "default"
 

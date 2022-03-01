@@ -211,15 +211,15 @@ func CheckStatusAndResponseHeaderAbsent(httpClient *retryablehttp.Client, req *r
 	return nil
 }
 
-// GetSystemVmiHTTPClient returns a retryable HTTP client configured with the system vmi CA cert
-func GetSystemVmiHTTPClient() (*retryablehttp.Client, error) {
+// GetVerrazzanoRetryableHTTPClient returns a retryable HTTP client configured with the CA cert
+func GetVerrazzanoRetryableHTTPClient() (*retryablehttp.Client, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
 		return nil, err
 	}
 
-	caCert, err := getSystemVMICACert(kubeconfigPath)
+	caCert, err := getVerrazzanoCACert(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -379,11 +379,6 @@ func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
 		return nil, err
 	}
 	return doGetCACertFromSecret(envName+"-secret", "keycloak", kubeconfigPath)
-}
-
-// getSystemVMICACert returns the system vmi CA cert
-func getSystemVMICACert(kubeconfigPath string) ([]byte, error) {
-	return doGetCACertFromSecret("system-tls", "verrazzano-system", kubeconfigPath)
 }
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster

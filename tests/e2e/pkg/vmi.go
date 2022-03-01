@@ -1,12 +1,10 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
 
 import (
 	"fmt"
-
-	"github.com/hashicorp/go-retryablehttp"
 )
 
 // GetSystemVMICredentials - Obtain VMI system credentials
@@ -26,23 +24,4 @@ func GetSystemVMICredentials() (*UsernamePassword, error) {
 		Username: string(username),
 		Password: string(password),
 	}, nil
-}
-
-// GetBindingVmiHTTPClient returns the VMI client for the prided binding
-func GetBindingVmiHTTPClient(bindingName string, kubeconfigPath string) (*retryablehttp.Client, error) {
-	bindingVmiCaCert, err := getBindingVMICACert(bindingName, kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	vmiRawClient, err := getHTTPClientWithCABundle(bindingVmiCaCert, kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	retryableClient := newRetryableHTTPClient(vmiRawClient)
-	retryableClient.CheckRetry = GetRetryPolicy()
-	return retryableClient, nil
-}
-
-func getBindingVMICACert(bindingName string, kubeconfigPath string) ([]byte, error) {
-	return doGetCACertFromSecret(fmt.Sprintf("%v-tls", bindingName), "verrazzano-system", kubeconfigPath)
 }
