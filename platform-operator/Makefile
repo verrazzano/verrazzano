@@ -147,7 +147,7 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: generate-bom go-build-linux
+docker-build: assets generate-bom go-build-linux
 	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
