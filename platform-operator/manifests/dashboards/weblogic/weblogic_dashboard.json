@@ -15,8 +15,8 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 21,
-  "iteration": 1646088664166,
+  "id": 24,
+  "iteration": 1646142319043,
   "links": [],
   "panels": [
     {
@@ -3685,7 +3685,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "All",
           "value": "$__all"
         },
@@ -3715,11 +3715,7 @@
       },
       {
         "allValue": null,
-        "current": {
-          "selected": false,
-          "text": "tododomain",
-          "value": "tododomain"
-        },
+        "current": {},
         "datasource": "Prometheus",
         "definition": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\"}, weblogic_domainUID)",
         "description": null,
@@ -3886,7 +3882,7 @@
     ]
   },
   "timezone": "",
-  "title": "WebLogic Server Dashboard Bugfix",
-  "uid": "XKwKBuBnz",
-  "version": 37
+  "title": "WebLogic Server Dashboard",
+  "uid": "XKwKBuBna",
+  "version": 1
 }
