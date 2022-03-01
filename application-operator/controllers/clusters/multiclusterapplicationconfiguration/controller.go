@@ -37,6 +37,14 @@ const finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
 // of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
 // the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
 	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
