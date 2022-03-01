@@ -96,7 +96,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1
 		Storage: vmov1.Storage{},
 	}
 	if vmi != nil {
-		grafana.Storage.PvcNames = vmi.Spec.Grafana.Storage.PvcNames
+		grafana.Storage = vmi.Spec.Grafana.Storage
 	}
 
 	if storage != nil {
@@ -120,7 +120,7 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	}
 
 	if vmi != nil {
-		prometheus.Storage.PvcNames = vmi.Spec.Prometheus.Storage.PvcNames
+		prometheus.Storage = vmi.Spec.Prometheus.Storage
 	}
 
 	if storage != nil {
@@ -153,12 +153,12 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
-	if storage != nil {
-		opensearch.Storage.Size = storage.Storage
+	if vmi != nil {
+		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
 	}
 
-	if vmi != nil {
-		opensearch.Storage.PvcNames = vmi.Spec.Elasticsearch.Storage.PvcNames
+	if storage != nil {
+		opensearch.Storage.Size = storage.Storage
 	}
 
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
