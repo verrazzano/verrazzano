@@ -843,17 +843,7 @@ data:
             }
           ],
           "properties" : {
-            "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"},
-            "@version": { "type": "keyword"},
-            "geoip"  : {
-              "dynamic": true,
-              "properties" : {
-                "ip": { "type": "ip" },
-                "location" : { "type" : "geo_point" },
-                "latitude" : { "type" : "half_float" },
-                "longitude" : { "type" : "half_float" }
-              }
-            }
+            "@timestamp": { "type": "date", "format": "strict_date_time||strict_date_optional_time||epoch_millis"}
           }
         }
       }
