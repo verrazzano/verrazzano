@@ -18,6 +18,7 @@ var monitoringComponent = vzapi.MonitoringComponent{
 
 var vmiEnabledCR = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
+		Profile: vzapi.Prod,
 		Components: vzapi.ComponentSpec{
 			Kibana: &vzapi.KibanaComponent{
 				MonitoringComponent: monitoringComponent,
@@ -141,4 +142,9 @@ func TestNewGrafana(t *testing.T) {
 	assert.NotNil(t, grafana)
 	assert.Equal(t, "100Gi", grafana.Storage.Size)
 	assert.Equal(t, []string{"my-pvc"}, grafana.Storage.PvcNames)
+}
+
+func TestNewPrometheus(t *testing.T) {
+	prometheus := newPrometheus(&vmiEnabledCR, nil, nil)
+	assert.Equal(t, "50Gi", prometheus.Storage.Size)
 }

@@ -95,6 +95,8 @@ func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1
 		},
 		Storage: vmov1.Storage{},
 	}
+	setDefaultStorageSize(cr, storage, &grafana.Storage)
+
 	if vmi != nil {
 		grafana.Storage = vmi.Spec.Grafana.Storage
 	}
@@ -118,6 +120,7 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 		Storage: vmov1.Storage{},
 	}
+	setDefaultStorageSize(cr, storage, &prometheus.Storage)
 
 	if vmi != nil {
 		prometheus.Storage = vmi.Spec.Prometheus.Storage
@@ -128,6 +131,12 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	}
 
 	return prometheus
+}
+
+func setDefaultStorageSize(cr *vzapi.Verrazzano, storage *resourceRequestValues, storageObject *vmov1.Storage) {
+	if cr.Spec.Profile == vzapi.Prod && storage == nil {
+		storageObject.Size = "50Gi"
+	}
 }
 
 func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) (*vmov1.Elasticsearch, error) {
