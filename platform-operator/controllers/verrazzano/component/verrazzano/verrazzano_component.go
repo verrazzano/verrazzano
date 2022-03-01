@@ -4,6 +4,7 @@
 package verrazzano
 
 import (
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -119,11 +120,17 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 
 // IsEnabled verrazzano-specific enabled check for installation
 func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Verrazzano
+	effectiveCR := ctx.EffectiveCR()
+	comp := effectiveCR.Spec.Components.Verrazzano
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
-	return *comp.Enabled
+	return *comp.Enabled || isAnyVzComponentEnabled(effectiveCR)
+}
+
+func isAnyVzComponentEnabled(cr *vzapi.Verrazzano) bool {
+	return isVMOEnabled(cr) || vzconfig.IsConsoleEnabled(cr) ||
+		vzconfig.IsFluentdEnabled(cr)
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component

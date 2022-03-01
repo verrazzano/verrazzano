@@ -17,10 +17,12 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    {{- if .Values.istio.enabled }}
     - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: istio-system
+    {{- end }}
     - from:
         - namespaceSelector:
             matchLabels:
@@ -434,6 +436,7 @@ spec:
           podSelector:
             matchLabels:
               app: system-prometheus
+{{- if .Values.istio.enabled }}
 ---
 # Network policy for istio-system pod communication
 # Ingress: allow all pod-to-pod communication within the namespace
@@ -601,6 +604,7 @@ spec:
           podSelector:
             matchLabels:
               app: system-prometheus
+{{- end }}
 ---
 # Network policy for Kiali
 # Ingress: allow connect from istio-system

@@ -12,6 +12,9 @@ image:
 appBinding:
   useSystemVMI: true
 
+istio:
+  enabled: true
+
 elasticSearch:
   enabled: true
   nodes:
