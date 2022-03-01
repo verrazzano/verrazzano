@@ -445,3 +445,22 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 	Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
 	return imagesYetToBePulled == 0
 }
+
+func CheckNamespaceFinalizerRemoved(namespacename string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error in getting kubeconfig, error: %v", err))
+		return false
+	}
+	return CheckNamespaceFinalizerRemovedInCluster(namespacename, kubeconfigPath)
+}
+
+func CheckNamespaceFinalizerRemovedInCluster(namespacename string, kubeconfigPath string) bool {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error in getting clientset for kubernetes cluster"))
+		return false
+	}
+	namespace, err := clientset.CoreV1().Namespaces().Get(context.TODO(), namespacename, metav1.GetOptions{})
+	return len(namespace.Spec.Finalizers) == 0
+}
