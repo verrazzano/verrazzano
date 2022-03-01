@@ -101,3 +101,8 @@ func IsExternalDNSEnabled(vz *vzapi.Verrazzano) bool {
 	}
 	return false
 }
+
+// IsVMOEnabled - Returns false if all VMO components are disabled
+func IsVMOEnabled(vz *vzapi.Verrazzano) bool {
+	return IsPrometheusEnabled(vz) || IsKibanaEnabled(vz) || IsElasticsearchEnabled(vz) || IsGrafanaEnabled(vz)
+}
