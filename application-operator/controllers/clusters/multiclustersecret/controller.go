@@ -26,7 +26,10 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclustersecret.verrazzano.io"
+const (
+	finalizerName = "multiclustersecret.verrazzano.io"
+	kubeSystem    = "kube-system"
+)
 
 // Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the

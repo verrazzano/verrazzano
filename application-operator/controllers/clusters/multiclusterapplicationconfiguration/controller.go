@@ -30,7 +30,10 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
+const (
+	finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
+	kubeSystem    = "kube-system"
+)
 
 // Reconcile reconciles a MultiClusterApplicationConfiguration resource. It fetches the embedded OAM
 // app config, mutates it based on the MultiClusterApplicationConfiguration, and updates the status

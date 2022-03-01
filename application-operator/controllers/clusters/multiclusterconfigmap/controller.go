@@ -26,7 +26,10 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclusterconfigmap.verrazzano.io"
+const (
+	finalizerName = "multiclusterconfigmap.verrazzano.io"
+	kubeSystem    = "kube-system"
+)
 
 // Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
 // mutates it based on the MultiClusterConfigMap, and updates the status of the

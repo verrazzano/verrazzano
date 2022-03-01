@@ -35,6 +35,7 @@ const (
 	projectMonitorGroupTemplate = "verrazzano-project-%s-monitors"
 	finalizerName               = "project.verrazzano.io"
 	managedClusterRole          = "verrazzano-managed-cluster"
+	kubeSystem                  = "kube-system"
 )
 
 // Reconciler reconciles a VerrazzanoProject object

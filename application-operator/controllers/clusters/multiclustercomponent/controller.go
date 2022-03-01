@@ -19,7 +19,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const finalizerName = "multiclustercomponent.verrazzano.io"
+const (
+	finalizerName = "multiclustercomponent.verrazzano.io"
+	kubeSystem    = "kube-system"
+)
 
 // Reconciler reconciles a MultiClusterComponent object
 type Reconciler struct {
