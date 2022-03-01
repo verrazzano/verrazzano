@@ -20,7 +20,6 @@ import (
 
 const (
 	twoMinutes   = 1 * time.Minute
-	threeMinutes = 3 * time.Minute
 	fiveMinutes  = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
