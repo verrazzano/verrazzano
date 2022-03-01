@@ -88,6 +88,15 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validatePrometheusConfigReloaderLogs() && valid
 		valid = validateGrafanaLogs() && valid
 		valid = validateOpenSearchLogs() && valid
+
+		dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
+		if err != nil {
+			dnsPodExist = false
+			t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
+		}
+		if dnsPodExist {
+			valid = validateExternalDNSLogs() && valid
+		}
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in verrazzano-system index")
@@ -153,6 +162,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 
 		valid := true
 		valid = validateCertManagerLogs() && valid
+		valid = validateExternalDNSLogs() && valid
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in cert-manager index")
@@ -397,6 +407,16 @@ func validateCertManagerLogs() bool {
 		certMgrIndex,
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateExternalDNSLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		certMgrIndex,
+		"kubernetes.labels.app_kubernetes_io/instance",
+		"external-dns",
 		searchTimeWindow,
 		noExceptions)
 }
