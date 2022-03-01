@@ -36,7 +36,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
-		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
+		compContext := spiCtx.Init(compName)
 		compLog := compContext.Log()
 
 		compLog.Oncef("Component %s is being reconciled", compName)
@@ -51,6 +51,16 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			continue
 		}
 		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
+			installed, err := comp.IsInstalled(spiCtx)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			if installed && !comp.IsEnabled(spiCtx.EffectiveCR()) {
+				// Comp has been disabled, start uninstall
+				if err := r.updateComponentStatus(compContext, "Uninstall started", vzapi.CondUninstallStarted); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
+			}
 			if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
 				compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 			} else {
@@ -93,6 +103,19 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 				return ctrl.Result{Requeue: true}, err
 			}
 			continue
+		case vzapi.CompStateUninstalling:
+			compLog.Progressf("Uninstall of %s in progress", compName)
+			uninstallContext := compContext.Operation(vzconst.UninstallOperation)
+			// start uninstall
+			if err := comp.Uninstall(uninstallContext); err != nil {
+				return newRequeueWithDelay(), err
+			}
+			if err := comp.PostUninstall(uninstallContext); err != nil {
+				return newRequeueWithDelay(), err
+			}
+			if err := r.updateComponentStatus(compContext, "Uninstall complete", vzapi.CondUninstallComplete); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
 		case vzapi.CompStateDisabled:
 			if !comp.IsEnabled(compContext.EffectiveCR()) {
 				compLog.Oncef("Component %s is disabled, skipping install", compName)
@@ -111,46 +134,50 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			requeue = true
 
 		case vzapi.CompStatePreInstalling:
-			if !registry.ComponentDependenciesMet(comp, compContext) {
-				compLog.Progressf("Component %s waiting for dependencies %v to be ready", comp.Name(), comp.GetDependencies())
+			installContext := compContext.Operation(vzconst.InstallOperation)
+			installLog := installContext.Log()
+			if !registry.ComponentDependenciesMet(comp, installContext) {
+				installLog.Progressf("Component %s waiting for dependencies %v to be ready", comp.Name(), comp.GetDependencies())
 				requeue = true
 				continue
 			}
-			compLog.Progressf("Component %s pre-install is running ", compName)
-			if err := comp.PreInstall(compContext); err != nil {
+			installLog.Progressf("Component %s pre-install is running ", compName)
+			if err := comp.PreInstall(installContext); err != nil {
 				requeue = true
 				continue
 			}
 			// If component is not installed,install it
-			compLog.Oncef("Component %s install started ", compName)
-			if err := comp.Install(compContext); err != nil {
+			installLog.Oncef("Component %s install started ", compName)
+			if err := comp.Install(installContext); err != nil {
 				requeue = true
 				continue
 			}
-			if err := r.updateComponentStatus(compContext, "Install started", vzapi.CondInstallStarted); err != nil {
+			if err := r.updateComponentStatus(installContext, "Install started", vzapi.CondInstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			// Install started requeue to check status
 			requeue = true
 		case vzapi.CompStateInstalling:
+			installContext := compContext.Operation(vzconst.InstallOperation)
+			installLog := installContext.Log()
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			// If component is enabled -- need to replicate scripts' config merging logic here
 			// If component is in deployed state, continue
-			if comp.IsReady(compContext) {
-				compLog.Progressf("Component %s post-install is running ", compName)
-				if err := comp.PostInstall(compContext); err != nil {
+			if comp.IsReady(installContext) {
+				installLog.Progressf("Component %s post-install is running ", compName)
+				if err := comp.PostInstall(installContext); err != nil {
 					requeue = true
 					continue
 				}
-				compLog.Oncef("Component %s successfully installed", comp.Name())
-				if err := r.updateComponentStatus(compContext, "Install complete", vzapi.CondInstallComplete); err != nil {
+				installLog.Oncef("Component %s successfully installed", comp.Name())
+				if err := r.updateComponentStatus(installContext, "Install complete", vzapi.CondInstallComplete); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 				// Don't requeue because of this component, it is done install
 				continue
 			}
 			// Install of this component is not done, requeue to check status
-			compLog.Progressf("Component %s waiting to finish installing", compName)
+			installLog.Progressf("Component %s waiting to finish installing", compName)
 			requeue = true
 		}
 		r.ClearWatch(comp.GetJSONName())

@@ -4,7 +4,6 @@
 package externaldns
 
 import (
-	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 

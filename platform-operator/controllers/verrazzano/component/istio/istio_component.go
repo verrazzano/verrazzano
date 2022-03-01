@@ -76,6 +76,16 @@ type istioComponent struct {
 	monitor installMonitor
 }
 
+// Uninstall Uninstall istio
+func (i istioComponent) Uninstall(context spi.ComponentContext) error {
+	return fmt.Errorf("Unsupported operation: %s", context.GetOperation())
+}
+
+// PostUninstall Istio post-uninstall cleanup
+func (i istioComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return fmt.Errorf("Operation %s not supported", ctx.GetOperation())
+}
+
 // GetJsonName returns the josn name of the verrazzano component in CRD
 func (i istioComponent) GetJSONName() string {
 	return ComponentJSONName

@@ -580,3 +580,11 @@ func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Ve
 func (f fakeComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }
+
+func (f fakeComponent) Uninstall(context spi.ComponentContext) error {
+	return nil
+}
+
+func (f fakeComponent) PostUninstall(context spi.ComponentContext) error {
+	return nil
+}

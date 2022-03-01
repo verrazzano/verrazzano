@@ -163,7 +163,7 @@ type ComponentStatusDetails struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 	// The version of Verrazzano that is installed
 	State CompStateType `json:"state,omitempty"`
-	// The version of Verrazzano that is installed
+	// The version of Component that is installed
 	Version string `json:"version,omitempty"`
 	// The generation of the last VZ resource the Component was successfully reconciled against
 	LastReconciledGeneration int64 `json:"lastReconciledGeneration,omitempty"`

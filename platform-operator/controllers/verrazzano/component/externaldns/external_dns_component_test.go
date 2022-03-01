@@ -46,7 +46,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 				},
 			},
 			new:     &vzapi.Verrazzano{},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no change",
@@ -90,7 +90,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false, // For now, any changes to the DNS component are rejected
 		},
 		{
 			name: "oci-to-wildcard",
@@ -114,7 +114,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false, // For now, any changes to the DNS component are rejected
 		},
 		{
 			name: "default-to-wildcard",
