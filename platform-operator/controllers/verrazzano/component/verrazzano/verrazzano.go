@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,6 +48,19 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+
+	fluentDaemonset       = "fluentd"
+	nodeExporterDaemonset = "node-exporter"
+
+	esDataDeployment            = "vmi-system-es-data"
+	esIngestDeployment          = "vmi-system-es-ingest"
+	grafanaDeployment           = "vmi-system-grafana"
+	kibanaDeployment            = "vmi-system-kibana"
+	prometheusDeployment        = "vmi-system-prometheus-0"
+	verrazzanoConsoleDeployment = "verrazzano-console"
+	vmoDeployment               = "verrazzano-monitoring-operator"
+
+	esMasterStatefulset = "vmi-system-es-master"
 )
 
 var (
@@ -67,18 +81,96 @@ func resolveVerrazzanoNamespace(ns string) string {
 	return globalconst.VerrazzanoSystemNamespace
 }
 
-// isVerrazzanoReady Verrazzano component ready-check
+// isVerrazzanoReady Verrazzano components ready-check
 func isVerrazzanoReady(ctx spi.ComponentContext) bool {
-	var deployments []types.NamespacedName
-	if isVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, []types.NamespacedName{
-			{Name: "verrazzano-monitoring-operator", Namespace: globalconst.VerrazzanoSystemNamespace},
-		}...)
-	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+
+	// First, check deployments
+	var deployments []types.NamespacedName
+	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: verrazzanoConsoleDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: vmoDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: grafanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: kibanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: prometheusDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+			for _, args := range esInstallArgs {
+				/* This should be uncommented when VZ-5128 is fixed
+				if args.Name == "nodes.data.replicas" {
+					replicas, _ := strconv.Atoi(args.Value)
+					for i := 0; replicas > 0 && i < replicas; i++ {
+						deployments = append(deployments, types.NamespacedName{
+							Name: fmt.Sprintf("%s-%d", esDataDeployment, i), Namespace: globalconst.VerrazzanoSystemNamespace})
+					}
+					continue
+				}
+				*/
+				if args.Name == "nodes.ingest.replicas" {
+					replicas, _ := strconv.Atoi(args.Value)
+					if replicas > 0 {
+						deployments = append(deployments, types.NamespacedName{
+							Name: esIngestDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+					}
+				}
+			}
+		}
+	}
+
 	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
+
+	// Next, check statefulsets
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
+			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
+			for _, args := range esInstallArgs {
+				if args.Name == "nodes.master.replicas" {
+					var statefulsets []types.NamespacedName
+					replicas, _ := strconv.Atoi(args.Value)
+					if replicas > 0 {
+						statefulsets = append(statefulsets, types.NamespacedName{
+							Name: esMasterStatefulset, Namespace: globalconst.VerrazzanoSystemNamespace})
+						if !status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
+							return false
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Finally, check daemonsets
+	var daemonsets []types.NamespacedName
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		daemonsets = append(daemonsets, types.NamespacedName{
+			Name: nodeExporterDaemonset, Namespace: globalconst.VerrazzanoMonitoringNamespace})
+	}
+	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
+		daemonsets = append(daemonsets, types.NamespacedName{
+			Name: fluentDaemonset, Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+		return false
+	}
+
 	return isVerrazzanoSecretReady(ctx)
 }
 
@@ -115,10 +207,6 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 		}, nil
 	}
 	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
-}
-
-func isVMOEnabled(vz *vzapi.Verrazzano) bool {
-	return vzconfig.IsPrometheusEnabled(vz) || vzconfig.IsKibanaEnabled(vz) || vzconfig.IsElasticsearchEnabled(vz) || vzconfig.IsGrafanaEnabled(vz)
 }
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
@@ -214,7 +302,7 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
 		return err
 	}
-	if isVMOEnabled(ctx.EffectiveCR()) {
+	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		// If the monitoring operator is enabled, create the monitoring namespace and copy the image pull secret
 		if err := namespace.CreateVerrazzanoMonitoringNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating Verrazzano Monitoring namespace: %v", err)
@@ -500,4 +588,13 @@ func importHelmObject(cli clipkg.Client, obj controllerutil.Object, namespacedNa
 	labels["app.kubernetes.io/managed-by"] = "Helm"
 	obj.SetLabels(labels)
 	return obj, cli.Patch(context.TODO(), obj, objMerge)
+}
+
+// GetProfile Returns the configured profile name, or "prod" if not specified in the configuration
+func getProfile(vz *vzapi.Verrazzano) vzapi.ProfileType {
+	profile := vz.Spec.Profile
+	if len(profile) == 0 {
+		profile = vzapi.Prod
+	}
+	return profile
 }

@@ -5,6 +5,12 @@ package rancher
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -14,17 +20,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"net/http"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
 
 func getValue(kvs []bom.KeyValue, key string) (string, bool) {
@@ -140,23 +141,100 @@ func TestPreInstall(t *testing.T) {
 //  WHEN IsReady is called
 //  THEN IsReady should return true
 func TestIsReady(t *testing.T) {
-	deploy := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: common.CattleSystem,
-			Name:      common.RancherName,
+	readyClient := fake.NewFakeClientWithScheme(getScheme(),
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      rancherWebhookDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+			},
 		},
-	}
-	unreadyDeploy := appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: common.CattleSystem,
-			Name:      common.RancherName,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: OperatorNamespace,
+				Name:      rancherOperatorDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+			},
 		},
-	}
-	readyClient := fake.NewFakeClientWithScheme(getScheme(), &deploy)
-	unreadyDeployClient := fake.NewFakeClientWithScheme(getScheme(), &unreadyDeploy)
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fleetSystemNamespace,
+				Name:      fleetAgentDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fleetSystemNamespace,
+				Name:      fleetControllerDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fleetSystemNamespace,
+				Name:      gitjobDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+			},
+		},
+	)
+	unreadyDeployClient := fake.NewFakeClientWithScheme(getScheme(),
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      rancherWebhookDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: OperatorNamespace,
+				Name:      rancherOperatorDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fleetSystemNamespace,
+				Name:      fleetAgentDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fleetSystemNamespace,
+				Name:      fleetControllerDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: fleetSystemNamespace,
+				Name:      gitjobDeployment,
+			},
+		},
+	)
 
 	var tests = []struct {
 		testName string

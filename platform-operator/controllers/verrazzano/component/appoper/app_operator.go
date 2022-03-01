@@ -76,7 +76,7 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 // isApplicationOperatorReady checks if the application operator deployment is ready
 func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: "verrazzano-application-operator", Namespace: ComponentNamespace},
+		{Name: ComponentName, Namespace: ComponentNamespace},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -60,7 +60,7 @@ pipeline {
         choice (name: 'CHAOS_TEST_TYPE',
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
-                choices: [ "vpo.killed", "helm.chart.corrupted" ])
+                choices: [ "helm.chart.corrupted", "vpo.killed" ])
     }
 
     environment {
@@ -405,15 +405,19 @@ pipeline {
                         # Move values.yaml so helm install of Verrazzano will fail
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
-                        # sleep 5 minutes to let the helm upgrade error manifest
-                        sleep 300
+                        # wait for the expected error message
+                        # TODO - set a limit to wait?
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for the error message ..."
+                            sleep 30
+                        done
                         # Fix it
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml"
                     fi
 
                     # wait for the upgrade to complete
-                    # Turn it off for now, Upgrade Fails
-                    # kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
 
                     # Dump the resource to debug
@@ -531,16 +535,6 @@ pipeline {
                                 runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                             }
                         }
-                        stage('examples todo') {
-                            steps {
-                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
-                            }
-                        }
-                        stage('examples bobs-books') {
-                            steps {
-                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
-                            }
-                        }
                     }
                     post {
                         always {
@@ -565,74 +559,7 @@ pipeline {
                 }
             }
         }
-        stage('Uninstall') {
-            options {
-                timeout(time: 30, unit: "MINUTES")
-            }
-            steps {
-                script {
-                    try {
-                        sh """
-                            kubectl delete verrazzano my-verrazzano
-                        """
-                    } catch (err) {
-                        currentBuild.result = "FAILURE"
-                        echo "Caught: ${err}"
-                        err 'Verrazzano uninstall failed'
-                    }
-                }
-            }
-            post {
-                always {
-                    sh """
-                        ## dump out uninstall logs
-                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                        kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
-                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
-                        echo "Listing all pods in all namespaces after uninstall"
-                        kubectl get pods --all-namespaces
-                        echo "-----------------------------------------------------"
-                    """
-                    listNamespacesAndPods('after Verrazzano uninstall')
-                    listHelmReleases('after Verrazzano uninstall')
-                }
-                success {
-                    script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('uninstall-success-cluster-dump')
-                        }
-                    }
-                }
-                failure {
-                    dumpK8sCluster('uninstall-failure-cluster-dump')
-                }
-                aborted {
-                    dumpK8sCluster('uninstall-aborted-cluster-dump')
-                }
-            }
-        }
-        stage("Verify Uninstall") {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
-                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
-                    """
-                }
-            }
-            post {
-                success {
-                    script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verify-uninstall-success-cluster-dump')
-                        }
-                    }
-                }
-                failure {
-                    dumpK8sCluster('verify-uninstall-failed-cluster-dump')
-                }
-            }
-        }
+
     }
 
     post {

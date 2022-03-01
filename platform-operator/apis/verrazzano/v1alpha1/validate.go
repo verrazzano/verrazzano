@@ -208,6 +208,12 @@ func ValidateInProgress(old *Verrazzano, new *Verrazzano) error {
 	return fmt.Errorf("Updates to resource not allowed while install, uninstall or upgrade is in progress")
 }
 
+// ValidateBom validates that the BOM file is readable and is a well formed JSON
+func ValidateBom() error {
+	_, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	return err
+}
+
 // validateOCISecrets - Validate that the OCI DNS and Fluentd OCI secrets required by install exists, if configured
 func validateOCISecrets(client client.Client, spec *VerrazzanoSpec) error {
 	if err := validateOCIDNSSecret(client, spec); err != nil {
