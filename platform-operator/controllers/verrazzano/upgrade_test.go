@@ -36,6 +36,17 @@ import (
 // unitTestBomFIle is used for unit test
 const unitTestBomFile = "../../verrazzano-bom.json"
 
+//ingress list constants
+const dnsDomain = "myenv.testverrazzano.com"
+const keycloakURL = "keycloak." + dnsDomain
+const esURL = "elasticsearch." + dnsDomain
+const promURL = "prometheus." + dnsDomain
+const grafanaURL = "grafana." + dnsDomain
+const kialiURL = "kiali." + dnsDomain
+const kibanaURL = "kibana." + dnsDomain
+const rancherURL = "rancher." + dnsDomain
+const consoleURL = "verrazzano." + dnsDomain
+
 // goodRunner is used to test helm success without actually running an OS exec command
 type goodRunner struct {
 }
@@ -89,7 +100,64 @@ func TestUpgradeNoVersion(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-			ingressList.Items = []networkingv1.Ingress{}
+			ingressList.Items = []networkingv1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: rancherURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "keycloak"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: keycloakURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: esURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: promURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-grafana"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: grafanaURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: kibanaURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: consoleURL},
+						},
+					},
+				},
+			}
 			return nil
 		}).AnyTimes()
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -191,7 +259,64 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList) error {
-			ingressList.Items = []networkingv1.Ingress{}
+			ingressList.Items = []networkingv1.Ingress{
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: rancherURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "keycloak"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: keycloakURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: esURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-prometheus"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: promURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-grafana"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: grafanaURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: kibanaURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: consoleURL},
+						},
+					},
+				},
+			}
 			return nil
 		}).AnyTimes()
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
