@@ -19,7 +19,7 @@ const (
 	shortPollingInterval = 10 * time.Second
 	applicationPodPrefix = "hello-helidon-statefulset-"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-statefulset.yaml"
-	promConfigJobName    = "hello-helidon-namespace_hello-helidon-statefulset_apps_v1_StatefulSet"
+	promConfigJobName    = "_hello-helidon-statefulset_apps_v1_StatefulSet"
 )
 
 var (
@@ -36,7 +36,7 @@ var _ = t.BeforeSuite(func() {
 var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
-	metricsbinding.UndeployApplication(namespace, yamlPath, promConfigJobName)
+	metricsbinding.UndeployApplication(namespace, yamlPath, namespace+promConfigJobName)
 })
 
 var _ = t.AfterEach(func() {})
@@ -49,7 +49,7 @@ var _ = t.Describe("Verify application.", Label("f:app-lcm.poko"), func() {
 	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Check Prometheus config map for scrape target", func() {
 			Eventually(func() bool {
-				return pkg.IsAppInPromConfig(promConfigJobName)
+				return pkg.IsAppInPromConfig(namespace + promConfigJobName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected application to be found in Prometheus config")
 		})
 		t.It("Retrieve Prometheus scraped metrics for 'hello-helidon-statefulset' Pod", func() {
