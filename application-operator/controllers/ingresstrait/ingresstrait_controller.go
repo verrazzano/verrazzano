@@ -91,14 +91,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-
-	// We do not want any resource to get reconciled if it is in namespace kube-system
-	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
-	// If this is the case then return success
-	if req.Namespace == kubeSystem {
-		return reconcile.Result{}, nil
-	}
-
 	var err error
 	var trait *vzapi.IngressTrait
 	ctx := context.Background()
@@ -114,6 +106,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		zap.S().Errorf("Failed to create controller logger for ingress trait", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		log.Oncef("Ingress trait resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	log.Oncef("Reconciling ingress trait resource %v, generation %v", req.NamespacedName, trait.Generation)
 
 	res, err := r.doReconcile(ctx, trait, log)

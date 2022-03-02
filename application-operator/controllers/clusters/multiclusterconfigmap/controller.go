@@ -36,14 +36,6 @@ const (
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-
-	// We do not want any resource to get reconciled if it is in namespace kube-system
-	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
-	// If this is the case then return success
-	if req.Namespace == kubeSystem {
-		return reconcile.Result{}, nil
-	}
-
 	ctx := context.Background()
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
 	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
@@ -55,6 +47,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		zap.S().Errorf("Failed to create controller logger for multi-cluster config map", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		log.Oncef("Config map resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	log.Oncef("Reconciling multi-cluster config map resource %v, generation %v", req.NamespacedName, mcConfigMap.Generation)
 
 	res, err := r.doReconcile(ctx, mcConfigMap, log)

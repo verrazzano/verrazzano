@@ -41,14 +41,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile checks restart version annotations on an ContainerizedWorkload and
 // restarts as needed.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-
-	// We do not want any resource to get reconciled if it is in namespace kube-system
-	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
-	// If this is the case then return success
-	if req.Namespace == kubeSystem {
-		return reconcile.Result{}, nil
-	}
-
 	ctx := context.Background()
 	var workload oamv1.ContainerizedWorkload
 	if err := r.Client.Get(ctx, req.NamespacedName, &workload); err != nil {
@@ -59,6 +51,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		zap.S().Errorf("Failed to create controller logger for containerized workload", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		log.Oncef("Containerized workload resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	log.Oncef("Reconciling containerized workload resource %v, generation %v", req.NamespacedName, workload.Generation)
 
 	res, err := r.doReconcile(ctx, workload, log)

@@ -45,14 +45,6 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
 // No kubebuilder annotations are used as the application RBAC for the application operator is now manually managed.
 func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
-
-	// We do not want any resource to get reconciled if it is in namespace kube-system
-	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
-	// If this is the case then return success
-	if req.Namespace == kubeSystem {
-		return reconcile.Result{}, nil
-	}
-
 	ctx := context.Background()
 	metricsBinding := vzapi.MetricsBinding{}
 	if err := r.Client.Get(context.TODO(), req.NamespacedName, &metricsBinding); err != nil {
@@ -63,6 +55,15 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 		zap.S().Errorf("Failed to create controller logger for metrics binding", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		log.Oncef("Metrics binding resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	log.Oncef("Reconciling metrics binding resource %v, generation %v", req.NamespacedName, metricsBinding.Generation)
 
 	res, err := r.doReconcile(ctx, metricsBinding, log)

@@ -35,14 +35,6 @@ const (
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-
-	// We do not want any resource to get reconciled if it is in namespace kube-system
-	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
-	// If this is the case then return success
-	if req.Namespace == kubeSystem {
-		return reconcile.Result{}, nil
-	}
-
 	ctx := context.Background()
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
@@ -54,6 +46,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		zap.S().Errorf("Failed to create controller logger for multi-cluster secret", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		log.Oncef("Secret resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	log.Oncef("Reconciling multi-cluster secret resource %v, generation %v", req.NamespacedName, mcSecret.Generation)
 
 	res, err := r.doReconcile(ctx, mcSecret, log)
