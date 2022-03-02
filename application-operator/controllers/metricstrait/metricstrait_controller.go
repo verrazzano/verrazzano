@@ -40,6 +40,7 @@ const (
 	deploymentKind  = "Deployment"
 	statefulSetKind = "StatefulSet"
 	podKind         = "Pod"
+	kubeSystem      = "kube-system"
 
 	// In code defaults for metrics trait configuration
 	defaultWLSAdminScrapePort = 7001
@@ -208,6 +209,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=metricstraits,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=metricstraits/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	// Fetch the trait.
 	var err error

@@ -5,7 +5,7 @@ package namespace
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -23,9 +23,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const namespaceControllerFinalizer = "verrazzano.io/namespace"
-
-const namespaceField = "namespace"
+const (
+	namespaceControllerFinalizer = "verrazzano.io/namespace"
+	namespaceField               = "namespace"
+	kubeSystem                   = "kube-system"
+)
 
 // Reconciler reconciles a Verrazzano object
 type NamespaceController struct {
@@ -59,6 +61,14 @@ func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile - Watches for and manages namespace activity as it relates to Verrazzano platform services
 func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	// fetch the namespace
 	ns := corev1.Namespace{}

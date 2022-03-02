@@ -29,6 +29,8 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
+const kubeSystem = "kube-system"
+
 // SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -39,6 +41,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile checks restart version annotations on an ContainerizedWorkload and
 // restarts as needed.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var workload oamv1.ContainerizedWorkload
 	if err := r.Client.Get(ctx, req.NamespacedName, &workload); err != nil {
