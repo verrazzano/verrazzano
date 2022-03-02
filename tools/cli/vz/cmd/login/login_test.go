@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package login
@@ -309,8 +309,8 @@ func newFakeSecret(fakek8sClient kubernetes.Interface) error {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "system-tls",
-			Namespace: "verrazzano-system",
+			Name:      "tls-rancher-ingress",
+			Namespace: "cattle-system",
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: "clusters.verrazzano.io/v1alpha1",
 				Kind:       "VerrazzanoSystemCluster",
@@ -322,6 +322,6 @@ func newFakeSecret(fakek8sClient kubernetes.Interface) error {
 			"ca.crt": []byte("LS0tCmFwaVZlcnNpb246IHYxCmRhdGE6CiAgYWRtaW4ta3ViZWNvbmZpZzogWTJ4MWMzUmxjbk02Q2kwZ1kyeDFjM1JsY2pvS0lDQWdJR05sY25ScFptbGpZWFJsTFdGMWRHaHZjbWwwZVMxa1lYUmhPaUJNVXpCMFRGTXhRMUpWWkVwVWFVSkVVbFpL"),
 		},
 	}
-	_, err := fakek8sClient.CoreV1().Secrets("verrazzano-system").Create(context.Background(), fakeSecret, metav1.CreateOptions{})
+	_, err := fakek8sClient.CoreV1().Secrets("cattle-system").Create(context.Background(), fakeSecret, metav1.CreateOptions{})
 	return err
 }

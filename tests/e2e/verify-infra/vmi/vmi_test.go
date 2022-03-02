@@ -93,7 +93,7 @@ var (
 var _ = t.BeforeSuite(func() {
 	var err error
 
-	httpClient, err = pkg.GetSystemVmiHTTPClient()
+	httpClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
@@ -326,7 +326,7 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+	unauthHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 	pkg.Concurrently(
 		func() {
@@ -377,7 +377,7 @@ func assertDashboard(url string) {
 	fmt.Println("Grafana URL in browseGrafanaDashboard ", searchURL)
 
 	searchDashboard := func() bool {
-		vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+		vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
 			return false

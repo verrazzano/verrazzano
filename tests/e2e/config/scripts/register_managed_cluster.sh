@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -22,6 +22,10 @@ if [ -z "${MANAGED_KUBECONFIG}" ] ; then
     echo "MANAGED_KUBECONFIG env var must be set!'"
     exit 1
 fi
+if [ -z "${MANAGED_CLUSTER_ENV}" ] ; then
+    echo "MANAGED_CLUSTER_ENV env var must be set!'"
+    exit 1
+fi
 
 if [ -z "${ACME_ENVIRONMENT}" ] ; then
   ACME_ENVIRONMENT="staging"
@@ -30,6 +34,7 @@ fi
 echo ADMIN_KUBECONFIG: ${ADMIN_KUBECONFIG}
 echo MANAGED_CLUSTER_NAME: ${MANAGED_CLUSTER_NAME}
 echo MANAGED_KUBECONFIG: ${MANAGED_KUBECONFIG}
+echo MANAGED_CLUSTER_ENV: ${MANAGED_CLUSTER_ENV}
 echo ACME_ENVIRONMENT: ${ACME_ENVIRONMENT}
 
 # create configmap "verrazzano-admin-cluster" on admin
@@ -40,15 +45,15 @@ fi
 
 # create managed cluster ca secret yaml on managed
 CA_SECRET_FILE=${MANAGED_CLUSTER_NAME}.yaml
-TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"')
+TLS_SECRET=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"')
 if [ ! -z "${TLS_SECRET%%*( )}" ] && [ "null" != "${TLS_SECRET}" ] ; then
-  CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret system-tls -o json | jq -r '.data."ca.crt"' | base64 --decode)
+  CA_CERT=$(kubectl --kubeconfig ${MANAGED_KUBECONFIG} -n verrazzano-system get secret ${MANAGED_CLUSTER_ENV}-secret -o json | jq -r '.data."ca.crt"' | base64 --decode)
 fi
 
 if [ ! -z "${CA_CERT}" ] ; then
   kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="$CA_CERT" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
 else
-  # When the CA is publicly available/accessible, ca.crt would be empty in system-tls on the admin cluster. So, set an empty string for cacrt
+  # When the CA is publicly available/accessible, ca.crt would be empty in tls secret on the admin cluster. So, set an empty string for cacrt
   if [ "production" == "${ACME_ENVIRONMENT}" ] ; then
     kubectl create secret generic "ca-secret-${MANAGED_CLUSTER_NAME}" -n verrazzano-mc --from-literal=cacrt="" --dry-run=client -o yaml >> ${CA_SECRET_FILE}
   else

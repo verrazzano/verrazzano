@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -33,10 +33,6 @@ pipeline {
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash for the target upgrade.  By default, the Verrazzano tip will be used.',
                 trim: true)
-        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
-                defaultValue: 'NONE',
-                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from Verrazzano repo will be used to create Verrazzano platform operator',
-                trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
@@ -60,7 +56,7 @@ pipeline {
         choice (name: 'CHAOS_TEST_TYPE',
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
-                choices: [ "vpo.killed", "helm.chart.corrupted" ])
+                choices: [ "helm.chart.corrupted", "vpo.killed", "uninstall.failed.upgrade" ])
     }
 
     environment {
@@ -87,11 +83,12 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-        INSTALL_PROFILE = "dev"
+        INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
-        VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
+        // needed for prepare at shell script
+        VERRAZZANO_OPERATOR_IMAGE="NONE"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -253,40 +250,9 @@ pipeline {
                         }
                     }
                 }
-
-                stage('Run Acceptance Tests Before Upgrade') {
-                    parallel {
-                        stage('verify-infra restapi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('examples spring') {
-                            steps {
-                                runGinkgoNamespace('examples/springboot', "false", "true", "springboot")
-                            }
-                        }
-                        stage('examples helidon') {
-                            steps {
-                                runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
-                            }
-                        }
-                        // Re-enable this stage when a mechanism is in place to deploy different comp and app yamls based on VZ version
-//                         stage('examples socks') {
-//                             steps {
-//                                 runGinkgoNamespace('examples/socks', "false", "true", "sockshop")
-//                             }
-//                         }
+                stage('examples helidon') {
+                    steps {
+                        runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
                     }
                     post {
                         always {
@@ -352,7 +318,7 @@ pipeline {
             }
         }
 
-        stage("Upgrade Verrazzano") {
+        stage("Upgrade Verrazzano and execute selected test") {
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
@@ -405,31 +371,57 @@ pipeline {
                         # Move values.yaml so helm install of Verrazzano will fail
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
-                        # sleep 5 minutes to let the helm upgrade error manifest
-                        sleep 300
+                        # wait for the expected error message
+                        # TODO - set a limit to wait?
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for the error message ..."
+                            sleep 30
+                        done
                         # Fix it
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml"
                     fi
 
-                    # wait for the upgrade to complete
-                    # Turn it off for now, Upgrade Fails
-                    # kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                   if [[ "uninstall.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                    then
+                        # Move values.yaml so helm install of Verrazzano will fail
+                        POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
+                        kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
+                        # sleep 5 minutes to let the helm upgrade error manifest
+                        until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
+                        do
+                            echo "Waiting for the error message ..."
+                            sleep 30
+                        done
+                        # Make sure the upgrade is still in progress
+                        vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
+                        if [[ \${vz_status} == "UpgradeStarted" ]]; then
+                            # Uninstall VZ
+                            kubectl delete verrazzano my-verrazzano
+                        fi
+                    fi
+
+                    if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
+                    then
+                        # wait for the upgrade to complete
+                        # Turn it off for now, Upgrade Fails
+                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
 
-                    # Dump the resource to debug
-                    kubectl get -o yaml verrazzano/my-verrazzano || true
+                        # Dump the resource to debug
+                        kubectl get -o yaml verrazzano/my-verrazzano || true
 
-                    # ideally we don't need to wait here
-                    sleep 15
-                    echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                    helm list -A
+                        # ideally we don't need to wait here
+                        sleep 15
+                        echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
+                        helm list -A
 
-                    # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-                    kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+                        # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
+                        kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
 
-                    echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-                    cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-
+                        echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
+                        cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
+                    fi
                 """
             }
             post {
@@ -448,6 +440,9 @@ pipeline {
         }
 
         stage('Post-upgrade Acceptance Tests') {
+            when {
+                expression{params.CHAOS_TEST_TYPE != "uninstall.failed.upgrade"}
+            }
             environment {
                 TEST_ENV = "KIND"
                 SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
@@ -455,181 +450,36 @@ pipeline {
                 SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
-            stages {
-                stage('verify-install') {
+            parallel {
+                stage('verify-upgrade post-upgrade') {
                     steps {
-                        runGinkgoRandomize('verify-install')
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('post-upgrade-install-cluster-dump')
-                                }
-                            }
-                        }
+                        runGinkgoRandomize('upgrade/post-upgrade/verify')
                     }
                 }
-
-                stage('Run Acceptance Tests After Upgrade') {
-                    parallel {
-                        stage("Validate BOM") {
-                            when {
-                                allOf {
-                                    expression{params.RUN_BOM_VALIDATOR == true}
-                                }
-                            }
-                            environment {
-                                OCI_CLI_AUTH="instance_principal"
-                                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                                OCI_OS_BUCKET="verrazzano-builds"
-                            }
-                            steps {
-                                sh """
-                                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/bom-validator --file ${WORKSPACE}/bom-validator
-                                    chmod +x ${WORKSPACE}/bom-validator
-                                    ${WORKSPACE}/bom-validator
-                                """
-                            }
-                        }
-                        stage('verify-infra restapi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/restapi')
-                            }
-                        }
-                        stage('verify-infra oam') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/oam')
-                            }
-                        }
-                        stage('verify-infra vmi') {
-                            steps {
-                                runGinkgoRandomize('verify-infra/vmi')
-                            }
-                        }
-                        stage('verify-upgrade post-upgrade') {
-                            steps {
-                                runGinkgoRandomize('upgrade/post-upgrade/verify')
-                            }
-                        }
-                        stage('examples socks') {
-                            steps {
-                                runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
-                            }
-                        }
-                        stage('examples spring') {
-                            steps {
-                                runGinkgoNamespace('examples/springboot', "true", "false", "springboot")
-                            }
-                        }
-                        stage('examples helidon') {
-                            steps {
-                                runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
-                            }
-                        }
-                        stage('examples todo') {
-                            steps {
-                                runGinkgoNamespace('examples/todo', "false", "true", "todo-list")
-                            }
-                        }
-                        stage('examples bobs-books') {
-                            steps {
-                                runGinkgoNamespace('examples/bobsbooks', "false", "true", "bobs-books")
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('post-upgrade-failure-cluster-dump')
-                                }
-                            }
-                        }
-                        success {
-                            script {
-                                if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
-                                    dumpK8sCluster('post-upgrade-success-cluster-dump')
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        stage('Uninstall') {
-            options {
-                timeout(time: 30, unit: "MINUTES")
-            }
-            steps {
-                script {
-                    try {
-                        sh """
-                            kubectl delete verrazzano my-verrazzano
-                        """
-                    } catch (err) {
-                        currentBuild.result = "FAILURE"
-                        echo "Caught: ${err}"
-                        err 'Verrazzano uninstall failed'
+                stage('examples helidon') {
+                    steps {
+                        runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                     }
                 }
             }
             post {
                 always {
-                    sh """
-                        ## dump out uninstall logs
-                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                        kubectl logs -n verrazzano-install --tail -1 --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log
-                        kubectl describe pod -n verrazzano-install --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
-                        echo "Listing all pods in all namespaces after uninstall"
-                        kubectl get pods --all-namespaces
-                        echo "-----------------------------------------------------"
-                    """
-                    listNamespacesAndPods('after Verrazzano uninstall')
-                    listHelmReleases('after Verrazzano uninstall')
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
-                success {
+                failure {
                     script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('uninstall-success-cluster-dump')
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('post-upgrade-failure-cluster-dump')
                         }
                     }
                 }
-                failure {
-                    dumpK8sCluster('uninstall-failure-cluster-dump')
-                }
-                aborted {
-                    dumpK8sCluster('uninstall-aborted-cluster-dump')
-                }
-            }
-        }
-        stage("Verify Uninstall") {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    sh """
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
-                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
-                    """
-                }
-            }
-            post {
                 success {
                     script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
-                            dumpK8sCluster('verify-uninstall-success-cluster-dump')
+                        if (params.DUMP_K8S_CLUSTER_ON_SUCCESS == true && fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('post-upgrade-success-cluster-dump')
                         }
                     }
-                }
-                failure {
-                    dumpK8sCluster('verify-uninstall-failed-cluster-dump')
                 }
             }
         }

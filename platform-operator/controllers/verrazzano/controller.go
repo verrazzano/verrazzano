@@ -293,6 +293,11 @@ func (r *Reconciler) ProcUpgradingState(spiCtx spi.ComponentContext) (ctrl.Resul
 	log := spiCtx.Log()
 	log.Debug("Entering ProcUpgradingState")
 
+	// Check if Verrazzano resource is being deleted
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(context.TODO(), log, vz)
+	}
+
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {

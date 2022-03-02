@@ -458,8 +458,8 @@ func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []networkingv1.IngressTLS{{
-				Hosts: []string{"console"},
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
+				Host: "console",
 			}}
 			return nil
 		})
@@ -476,8 +476,8 @@ func expectGetPrometheusHostCalled(mock *mocks.MockClient) {
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []networkingv1.IngressTLS{{
-				Hosts: []string{"prometheus"},
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
+				Host: "prometheus",
 			}}
 			return nil
 		})
