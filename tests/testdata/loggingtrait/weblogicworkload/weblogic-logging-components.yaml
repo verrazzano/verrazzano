@@ -1,10 +1,11 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-domain
+  namespace: weblogic-logging-trait
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -13,6 +14,7 @@ spec:
       template:
         metadata:
           name: todo-domain
+          namespace: weblogic-logging-trait
         spec:
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
@@ -48,12 +50,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-jdbc-configmap
+  namespace: weblogic-logging-trait
 spec:
   workload:
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: tododomain-jdbc-config
+      namespace: weblogic-logging-trait
     data:
       wdt_jdbc.yaml: |
         resources:
@@ -87,12 +91,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-configmap
+  namespace: weblogic-logging-trait
 spec:
   workload:
     apiVersion: v1
     kind: ConfigMap
     metadata:
       name: mysql-initdb-config
+      namespace: weblogic-logging-trait
     data:
       initdb.sql: |
         create table `ToDos` (
@@ -106,12 +112,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-service
+  namespace: weblogic-logging-trait
 spec:
   workload:
     apiVersion: v1
     kind: Service
     metadata:
       name: mysql
+      namespace: weblogic-logging-trait
     spec:
       ports:
         - port: 3306
@@ -123,12 +131,14 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: todo-mysql-deployment
+  namespace: weblogic-logging-trait
 spec:
   workload:
     apiVersion: apps/v1
     kind: Deployment
     metadata:
       name: mysql
+      namespace: weblogic-logging-trait
     spec:
       replicas: 1
       selector:

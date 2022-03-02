@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -23,6 +24,7 @@ const (
 	shortPollingInterval = 10 * time.Second
 	longWaitTimeout      = 15 * time.Minute
 	longPollingInterval  = 20 * time.Second
+	namespace            = "weblogic-logging-trait"
 	componentsPath       = "testdata/loggingtrait/weblogicworkload/weblogic-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/weblogicworkload/weblogic-logging-application.yaml"
 	applicationPodName   = "tododomain-adminserver"
@@ -31,10 +33,7 @@ const (
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-var (
-	t                  = framework.NewTestFramework("weblogicworkload")
-	generatedNamespace = pkg.GenerateNamespace("weblogic-logging-trait")
-)
+var t = framework.NewTestFramework("weblogicworkload")
 
 var _ = t.BeforeSuite(func() {
 	deployWebLogicApplication()
@@ -60,6 +59,12 @@ func deployWebLogicApplication() {
 	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
+
+	// Wait for namespace to finish deletion possibly from a prior run.
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	start := time.Now()
@@ -92,12 +97,12 @@ func deployWebLogicApplication() {
 
 	pkg.Log(pkg.Info, "Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
+		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
+		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	pkg.Log(pkg.Info, "Check application pods are running")

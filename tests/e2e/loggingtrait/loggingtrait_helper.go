@@ -25,6 +25,11 @@ const (
 func DeployApplication(namespace, componentsPath, applicationPath, podName string, t *framework.TestFramework) {
 	pkg.Log(pkg.Info, "Deploy test application")
 	start := time.Now()
+	// Wait for namespace to finish deletion possibly from a prior run.
+	gomega.Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -36,12 +41,12 @@ func DeployApplication(namespace, componentsPath, applicationPath, podName strin
 
 	pkg.Log(pkg.Info, "Create component resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
+		return pkg.CreateOrUpdateResourceFromFile(componentsPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create application resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
+		return pkg.CreateOrUpdateResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, fmt.Sprintf("Check pod %v is running", podName))
@@ -60,12 +65,12 @@ func UndeployApplication(namespace string, componentsPath string, applicationPat
 	pkg.Log(pkg.Info, "Delete application")
 	start := time.Now()
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(applicationPath, namespace)
+		return pkg.DeleteResourceFromFile(applicationPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Delete components")
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(componentsPath, namespace)
+		return pkg.DeleteResourceFromFile(componentsPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")

@@ -23,6 +23,11 @@ const (
 
 func DeployApplication(namespace, yamlPath, podPrefix string) {
 	pkg.Log(pkg.Info, "Deploy test application")
+	// Wait for namespace to finish deletion possibly from a prior run.
+	gomega.Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -34,7 +39,7 @@ func DeployApplication(namespace, yamlPath, podPrefix string) {
 
 	pkg.Log(pkg.Info, "Create helidon resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		return pkg.CreateOrUpdateResourceFromFile(yamlPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Check application pods are running")
@@ -50,7 +55,7 @@ func DeployApplication(namespace, yamlPath, podPrefix string) {
 func UndeployApplication(namespace string, yamlPath string, promConfigJobName string) {
 	pkg.Log(pkg.Info, "Delete application")
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		return pkg.DeleteResourceFromFile(yamlPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Remove application from Prometheus Config")
@@ -71,6 +76,11 @@ func UndeployApplication(namespace string, yamlPath string, promConfigJobName st
 
 func DeployApplicationAndTemplate(namespace, appYamlPath, templateYamlPath, podPrefix string, nsAnnotations map[string]string) {
 	pkg.Log(pkg.Info, "Deploy test application")
+	// Wait for namespace to finish deletion possibly from a prior run.
+	gomega.Eventually(func() bool {
+		_, err := pkg.GetNamespace(namespace)
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
 	pkg.Log(pkg.Info, "Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -82,12 +92,12 @@ func DeployApplicationAndTemplate(namespace, appYamlPath, templateYamlPath, podP
 
 	pkg.Log(pkg.Info, "Create template resource")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)
+		return pkg.CreateOrUpdateResourceFromFile(templateYamlPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Create helidon resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(appYamlPath, namespace)
+		return pkg.CreateOrUpdateResourceFromFile(appYamlPath)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	pkg.Log(pkg.Info, "Check application pods are running")

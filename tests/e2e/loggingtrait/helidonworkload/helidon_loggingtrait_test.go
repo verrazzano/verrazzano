@@ -18,6 +18,7 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
+	namespace            = "hello-helidon-logging"
 	componentsPath       = "testdata/loggingtrait/helidonworkload/helidon-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/helidonworkload/helidon-logging-application.yaml"
 	applicationPodName   = "hello-helidon-deployment-"
@@ -26,10 +27,7 @@ const (
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-var (
-	t                  = framework.NewTestFramework("helidonworkload")
-	generatedNamespace = pkg.GenerateNamespace("hello-helidon-logging")
-)
+var t = framework.NewTestFramework("helidonworkload")
 
 var _ = t.BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)

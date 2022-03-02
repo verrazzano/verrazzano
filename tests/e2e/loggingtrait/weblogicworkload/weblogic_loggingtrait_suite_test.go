@@ -4,18 +4,11 @@
 package weblogicworkload
 
 import (
-	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
-
-var namespace string
-
-func init() {
-	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
-}
 
 // TestWebLogicLoggingTrait tests an ingress trait setup for console access.
 func TestWebLogicLoggingTrait(t *testing.T) {
