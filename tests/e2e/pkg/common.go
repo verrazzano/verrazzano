@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	neturl "net/url"
@@ -447,24 +448,13 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 }
 
 func CheckNamespaceFinalizerRemoved(namespacename string) bool {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error in getting kubeconfig, error: %v", err))
-		return false
+	namespace, err := GetNamespace(namespacename)
+	if err != nil && errors.IsNotFound(err) {
+		return true
 	}
-	return CheckNamespaceFinalizerRemovedInCluster(namespacename, kubeconfigPath)
-}
 
-func CheckNamespaceFinalizerRemovedInCluster(namespacename string, kubeconfigPath string) bool {
-	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error in getting clientset for kubernetes cluster, error: %v", err))
-		return false
+		Log(Info, fmt.Sprintf("Error in getting namespace %v", err))
 	}
-	namespace, err := clientset.CoreV1().Namespaces().Get(context.TODO(), namespacename, metav1.GetOptions{})
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error in getting namespace, error: %v", err))
-		return false
-	}
-	return namespace.Spec.Finalizers == nil
+	return namespace.Finalizers == nil
 }
