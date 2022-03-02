@@ -243,13 +243,20 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the local-path-storage namespace is retrieved
 		// THEN verify that it is found
-		Eventually(func() bool {
-			return pkg.LogIndexFound(localPathStorageIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
+		dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
+		if err != nil {
+			dnsPodExist = false
+			t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
+		}
+		if dnsPodExist {
+			Eventually(func() bool {
+				return pkg.LogIndexFound(localPathStorageIndex)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
 
-		if !validateLocalPathStorageLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in local-path-storage index")
+			if !validateLocalPathStorageLogs() {
+				// Don't fail for invalid logs until this is stable.
+				t.Logs.Info("Found problems with log records in local-path-storage index")
+			}
 		}
 	})
 
