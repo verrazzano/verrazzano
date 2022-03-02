@@ -58,7 +58,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 				return pkg.MetricsExist("base_jvm_uptime_seconds", "app_verrazzano_io_workload", "hello-helidon-deployment-apps-v1-deployment")
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 			Eventually(func() bool {
-				return pkg.MetricsExist("base_jvm_uptime_seconds", "test_namespace", "hello-helidon-namespace-test")
+				return pkg.MetricsExist("base_jvm_uptime_seconds", "test_namespace", namespace+"-test")
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Prometheus scraped metrics for Helidon application.")
 		})
 	})
