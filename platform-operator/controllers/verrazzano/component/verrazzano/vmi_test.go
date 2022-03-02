@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"github.com/stretchr/testify/assert"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"testing"
 )
@@ -17,6 +18,7 @@ var monitoringComponent = vzapi.MonitoringComponent{
 
 var vmiEnabledCR = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
+		Profile: vzapi.Prod,
 		Components: vzapi.ComponentSpec{
 			Kibana: &vzapi.KibanaComponent{
 				MonitoringComponent: monitoringComponent,
@@ -115,4 +117,34 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 
 	_, err := newOpenSearch(crBadArgs, r, nil)
 	assert.Error(t, err)
+}
+
+// TestNewGrafana tests that storage values in the VMI are not erased when a new Grafana is created
+// GIVEN a Verrazzano CR and an existing VMO
+//  WHEN I create a new Grafana resource
+//  THEN the storage options from the existing VMO are preserved.
+func TestNewGrafana(t *testing.T) {
+	existingVmo := vmov1.VerrazzanoMonitoringInstance{
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			Grafana: vmov1.Grafana{
+				Enabled: true,
+				Storage: vmov1.Storage{
+					Size: "100Gi",
+					PvcNames: []string{
+						"my-pvc",
+					},
+				},
+			},
+		},
+	}
+
+	grafana := newGrafana(&vmiEnabledCR, nil, &existingVmo)
+	assert.NotNil(t, grafana)
+	assert.Equal(t, "100Gi", grafana.Storage.Size)
+	assert.Equal(t, []string{"my-pvc"}, grafana.Storage.PvcNames)
+}
+
+func TestNewPrometheus(t *testing.T) {
+	prometheus := newPrometheus(&vmiEnabledCR, nil, nil)
+	assert.Equal(t, "50Gi", prometheus.Storage.Size)
 }
