@@ -48,7 +48,7 @@ var _ = t.BeforeSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(testNamespace, expectedPodsHelloHelidon)
+		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-workload pod is running
 	Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
