@@ -95,7 +95,7 @@ func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1
 		},
 		Storage: vmov1.Storage{},
 	}
-	setStorageSize(cr, storage, &grafana.Storage)
+	setStorageSize(storage, &grafana.Storage)
 	if vmi != nil {
 		grafana.Storage = vmi.Spec.Grafana.Storage
 	}
@@ -115,7 +115,7 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 		Storage: vmov1.Storage{},
 	}
-	setStorageSize(cr, storage, &prometheus.Storage)
+	setStorageSize(storage, &prometheus.Storage)
 	if vmi != nil {
 		prometheus.Storage = vmi.Spec.Prometheus.Storage
 	}
@@ -123,7 +123,7 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	return prometheus
 }
 
-func setStorageSize(cr *vzapi.Verrazzano, storage *resourceRequestValues, storageObject *vmov1.Storage) {
+func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage) {
 	if storage == nil {
 		storageObject.Size = "50Gi"
 	} else {
@@ -154,12 +154,11 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
-	if vmi != nil {
-		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
-	}
-
 	if storage != nil && len(storage.Storage) > 0 {
 		opensearch.Storage.Size = storage.Storage
+	}
+	if vmi != nil {
+		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
 	}
 
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
