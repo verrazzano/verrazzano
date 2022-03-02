@@ -248,7 +248,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			dnsPodExist = false
 			t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
 		}
-		if dnsPodExist {
+		if !dnsPodExist {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(localPathStorageIndex)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
