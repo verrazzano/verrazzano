@@ -25,10 +25,7 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 )
 
-var (
-	t                  = framework.NewTestFramework("helidon")
-	generatedNamespace = pkg.GenerateNamespace("helidon-logging")
-)
+var t = framework.NewTestFramework("helidon")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -36,15 +33,15 @@ var _ = t.BeforeSuite(func() {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace(namespace, nsLabels)
+		return pkg.CreateNamespace("helidon-logging", nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
+		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
+		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
@@ -67,15 +64,15 @@ var _ = t.AfterSuite(func() {
 	// undeploy the application here
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
+		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
+		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteNamespace(namespace)
+		return pkg.DeleteNamespace("helidon-logging")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -84,6 +81,10 @@ var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-workload"}
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
+)
+
+const (
+	testNamespace = "helidon-logging"
 )
 
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
@@ -97,7 +98,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN return the host name found in the gateway.
 	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -118,7 +119,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
-		indexName := fmt.Sprintf("verrazzano-namespace-%s", namespace)
+		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
@@ -157,9 +158,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 })
 
 func helloHelidonPodsRunning() bool {
-	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+	result, err := pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
 	}
 	return result
 }

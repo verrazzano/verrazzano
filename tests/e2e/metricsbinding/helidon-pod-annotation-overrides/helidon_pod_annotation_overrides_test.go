@@ -19,9 +19,10 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
+	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment-pod-annotated.yaml"
-	promConfigJobName    = "_hello-helidon-deployment_apps_v1_Deployment"
+	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
 
 	PrometheusPortAnnotation   = "prometheus.io/port"
 	PrometheusPathAnnotation   = "prometheus.io/path"
@@ -32,10 +33,7 @@ const (
 	PrometheusScrapeOverride = "false"
 )
 
-var (
-	t                  = framework.NewTestFramework("helidonpodannotation")
-	generatedNamespace = pkg.GenerateNamespace("hello-helidon-namespace")
-)
+var t = framework.NewTestFramework("helidonpodannotation")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -46,7 +44,7 @@ var _ = t.BeforeSuite(func() {
 var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
-	metricsbinding.UndeployApplication(namespace, yamlPath, namespace+promConfigJobName)
+	metricsbinding.UndeployApplication(namespace, yamlPath, promConfigJobName)
 })
 
 var _ = t.AfterEach(func() {})
@@ -59,7 +57,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Check Prometheus config map for scrape target", func() {
 			Eventually(func() bool {
-				return pkg.IsAppInPromConfig(namespace + promConfigJobName)
+				return pkg.IsAppInPromConfig(promConfigJobName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected application to be found in Prometheus config")
 		})
 		t.It("Retrieve Prometheus scraped metrics for 'hello-helidon-deployment' Pod", func() {
@@ -74,7 +72,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error creating clientset from kubeconfig, error: %v", err))
 					return false
 				}
-				pods, err := pkg.ListPodsInCluster(namespace, clientset)
+				pods, err := pkg.ListPodsInCluster("hello-helidon-namespace", clientset)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error listing pods in the namespace hello-helidon-namespace, error: %v", err))
 					return false

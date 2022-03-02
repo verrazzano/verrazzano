@@ -5,6 +5,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: hello-helidon-statefulset
+  namespace: hello-helidon-namespace
 spec:
   selector:
     matchLabels:
@@ -29,6 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: hello-helidon-service
+  namespace: hello-helidon-namespace
   labels:
     app: hello-helidon-application
 spec:

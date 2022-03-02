@@ -4,18 +4,11 @@
 package podworkload
 
 import (
-	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
-
-var namespace string
-
-func init() {
-	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
-}
 
 // TestHelidonPodWorkload tests a helidon pod workload for Prometheus metric scraping
 func TestHelidonPodWorkload(t *testing.T) {
