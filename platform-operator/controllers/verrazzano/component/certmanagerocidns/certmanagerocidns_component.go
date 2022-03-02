@@ -47,7 +47,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerOciDNSComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isCertManagerEnabled(ctx) && isOciDNSEnabled(ctx)
+	return isCertManagerEnabled(ctx)
 }
 
 // IsReady component check
@@ -68,13 +68,4 @@ func isCertManagerEnabled(compContext spi.ComponentContext) bool {
 		return true
 	}
 	return *comp.Enabled
-}
-
-// isOciDNSEnabled returns true if the oci-dns is enabled
-func isOciDNSEnabled(compContext spi.ComponentContext) bool {
-	dns := compContext.EffectiveCR().Spec.Components.DNS
-	if dns != nil && dns.OCI != nil {
-		return true
-	}
-	return false
 }
