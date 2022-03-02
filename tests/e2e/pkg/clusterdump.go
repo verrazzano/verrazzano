@@ -6,6 +6,7 @@ package pkg
 import (
 	"fmt"
 	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,6 +38,11 @@ func (c *ClusterDumpWrapper) AfterEach(body func()) bool {
 // usage: var _ = c.AfterSuite(func() { ...after suite logic... })
 func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 	return ginkgo.AfterSuite(func() {
+		if ginkgo.CurrentSpecReport().State == types.SpecStateInvalid {
+			fmt.Println("Setting flag failed to true as BeforeSuite failed")
+			c.failed = true
+		}
+
 		if c.failed {
 			ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
 		}

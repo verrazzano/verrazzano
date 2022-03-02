@@ -27,7 +27,7 @@ var longPollingInterval = 20 * time.Second
 var (
 	t                        = framework.NewTestFramework("springboot")
 	generatedNamespace       = pkg.GenerateNamespace("springboot")
-	imagePullWaitTimeout     = 5 * time.Minute
+	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
 )
 
@@ -63,7 +63,7 @@ var _ = t.AfterEach(func() {
 
 var _ = t.AfterSuite(func() {
 	if CurrentSpecReport().State == types.SpecStateInvalid {
-		pkg.Log(pkg.Info, "Setting failed to true as BeforeSuite failed")
+		pkg.Log(pkg.Info, "Setting flag failed to true as BeforeSuite failed")
 		failed = true
 	}
 
