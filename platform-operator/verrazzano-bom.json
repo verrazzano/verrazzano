@@ -227,8 +227,8 @@
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
-              "image": "configmap-reload-jenkins",
-              "tag": "20220302134026-028f9d5",
+              "image": "configmap-reload",
+              "tag": "0.7.1-20220302211236-774d907",
               "helmFullImageKey": "monitoringOperator.configReloaderImage"
             },
             {
