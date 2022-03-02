@@ -5,13 +5,11 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: hello-helidon-component
-  namespace: hello-helidon-logging
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
     kind: VerrazzanoHelidonWorkload
     metadata:
-      name: hello-helidon-workload
       labels:
         app: hello-helidon
     spec:
