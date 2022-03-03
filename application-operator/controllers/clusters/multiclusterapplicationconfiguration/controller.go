@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,8 +32,9 @@ type Reconciler struct {
 }
 
 const (
-	finalizerName = "multiclusterapplicationconfiguration.verrazzano.io"
-	kubeSystem    = "kube-system"
+	finalizerName  = "multiclusterapplicationconfiguration.verrazzano.io"
+	kubeSystem     = "kube-system"
+	controllerName = "multiclusterappconfiguration"
 )
 
 // Reconcile reconciles a MultiClusterApplicationConfiguration resource. It fetches the embedded OAM
@@ -45,6 +47,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 	if req.Namespace == kubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Multi-cluster application configuration resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -56,7 +60,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mcapplicationconfiguration", req.NamespacedName, &mcAppConfig)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for multi-cluster application configuration", err)
+		zap.S().Error("Failed to create controller logger for multi-cluster application configuration", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling multi-cluster application configuration resource %v, generation %v", req.NamespacedName, mcAppConfig.Generation)
