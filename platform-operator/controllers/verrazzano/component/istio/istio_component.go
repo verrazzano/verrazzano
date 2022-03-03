@@ -6,12 +6,13 @@ package istio
 import (
 	"context"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -119,6 +120,10 @@ func (i istioComponent) GetMinVerrazzanoVersion() string {
 // Name returns the component name
 func (i istioComponent) Name() string {
 	return ComponentName
+}
+
+func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
 }
 
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
