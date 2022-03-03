@@ -142,6 +142,14 @@ func TestUpgradeNoVersion(t *testing.T) {
 					},
 				},
 				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: kialiURL},
+						},
+					},
+				},
+				{
 					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
@@ -297,6 +305,14 @@ func TestUpgradeSameVersion(t *testing.T) {
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: grafanaURL},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali"},
+					Spec: networkingv1.IngressSpec{
+						Rules: []networkingv1.IngressRule{
+							{Host: kialiURL},
 						},
 					},
 				},
