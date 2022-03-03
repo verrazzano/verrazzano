@@ -4,11 +4,18 @@
 package replicasetworkload
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
+
+var namespace string
+
+func init() {
+	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+}
 
 // TestHelidonReplicaSetWorkload tests a helidon replicaset workload for Prometheus metric scraping
 func TestHelidonReplicaSetWorkload(t *testing.T) {
