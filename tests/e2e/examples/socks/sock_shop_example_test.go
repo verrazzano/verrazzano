@@ -304,6 +304,11 @@ var _ = clusterDump.AfterSuite(func() {
 			return pkg.DeleteNamespace(namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+		pkg.Log(pkg.Info, "Wait for namespace finalizer to be removed")
+		Eventually(func() bool {
+			return pkg.CheckNamespaceFinalizerRemoved(namespace)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 		pkg.Log(pkg.Info, "Wait for sockshop namespace to be deleted")
 		Eventually(func() bool {
 			_, err := pkg.GetNamespace(namespace)

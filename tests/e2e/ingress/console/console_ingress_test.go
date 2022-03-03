@@ -120,10 +120,21 @@ func undeployApplication() {
 		return pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Wait for application pods to terminate")
+	Eventually(func() bool {
+		podsTerminated, _ := pkg.PodsNotRunning(namespace, []string{"mysql", "cidomain-adminserver"})
+		return podsTerminated
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
+	Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved(namespace)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)

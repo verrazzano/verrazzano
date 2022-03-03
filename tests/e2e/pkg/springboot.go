@@ -22,6 +22,8 @@ const (
 	springbootAppYaml       = "examples/springboot-app/springboot-app.yaml"
 )
 
+var expectedPodsSpringBootApp = []string{"springboot-workload"}
+
 // DeploySpringBootApplication deploys the Springboot example application.
 func DeploySpringBootApplication(namespace string) {
 	Log(Info, "Deploy Spring Boot Application")
@@ -58,11 +60,23 @@ func UndeploySpringBootApplication(namespace string) {
 			return DeleteResourceFromFileInGeneratedNamespace(springbootComponentYaml, namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
+		Log(Info, "Wait for application pods to terminate")
+		gomega.Eventually(func() bool {
+			podsTerminated, _ := PodsNotRunning(namespace, expectedPodsSpringBootApp)
+			return podsTerminated
+		}, springbootWaitTimeout, springbootPollingInterval).Should(gomega.BeTrue())
+
 		Log(Info, fmt.Sprintf("Delete namespace %s", namespace))
 		gomega.Eventually(func() error {
 			return DeleteNamespace(namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
+		Log(Info, "Wait for namespace finalizer to be removed")
+		gomega.Eventually(func() bool {
+			return CheckNamespaceFinalizerRemoved(namespace)
+		}, springbootWaitTimeout, springbootPollingInterval).Should(gomega.BeTrue())
+
+		Log(Info, "Wait for namespace to be deleted")
 		gomega.Eventually(func() bool {
 			_, err := GetNamespace(namespace)
 			return err != nil && errors.IsNotFound(err)
