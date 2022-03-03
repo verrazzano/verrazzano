@@ -80,9 +80,6 @@ const VerrazzanoESInternal = "verrazzano-es-internal"
 // VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
 const VerrazzanoPromInternal = "verrazzano-prom-internal"
 
-// SystemTLS is the name of the system-tls secret in the Verrazzano system namespace
-const SystemTLS = "system-tls"
-
 // AdditionalTLS is an optional tls secret that contains additional CA
 const AdditionalTLS = "tls-ca-additional"
 

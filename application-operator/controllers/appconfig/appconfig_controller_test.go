@@ -63,7 +63,7 @@ func newReconciler(c client.Client) Reconciler {
 func newRequest(namespace string, name string) ctrl.Request {
 	return ctrl.Request{
 		NamespacedName: types.NamespacedName{
-			Namespace: testNamespace,
+			Namespace: namespace,
 			Name:      name,
 		},
 	}
@@ -890,4 +890,22 @@ func TestDeleteCertAndSecretWhenAppConfigIsDeleted(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
 	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(kubeSystem, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

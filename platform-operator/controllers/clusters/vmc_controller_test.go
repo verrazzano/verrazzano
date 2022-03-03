@@ -1411,9 +1411,9 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			return nil
 		})
 
-	// Expect a call to get the system-tls secret, return the secret with the fields set
+	// Expect a call to get the tls secret, return the secret with the fields set
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.SystemTLS}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "default-secret"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				CaCrtKey: []byte(vzCaData),
@@ -1436,8 +1436,8 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.TLS = []networkingv1.IngressTLS{{
-				Hosts: []string{"keycloak"},
+			ingress.Spec.Rules = []k8net.IngressRule{{
+				Host: "keycloak",
 			}}
 			return nil
 		})

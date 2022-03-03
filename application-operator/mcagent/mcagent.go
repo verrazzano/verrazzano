@@ -454,7 +454,7 @@ func (s *Syncer) GetAPIServerURL() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzConsoleIngress, err)
 	}
-	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }
 
 // GetPrometheusHost returns the prometheus host for Verrazzano instance.
@@ -464,7 +464,7 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
 	}
-	return ingress.Spec.TLS[0].Hosts[0], nil
+	return ingress.Spec.Rules[0].Host, nil
 }
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR

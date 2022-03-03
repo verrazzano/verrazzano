@@ -420,16 +420,13 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 	// Drill down event data to check if the container image has been pulled
 	for podName, containers := range allContainers {
 		for _, container := range containers {
-			for _, event := range events.Items {
+			for i := len(events.Items) - 1; i >= 0; i-- {
+				event := events.Items[i]
 				// used to match exact container name in event data
 				containerRegex := "{" + container.(string) + "}"
 
 				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, containerRegex) {
 
-					if event.Reason == "Pulled" {
-						imagesYetToBePulled--
-						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
-					}
 					// Stop waiting in case of ImagePullBackoff and CrashLoopBackOff
 					if event.Reason == "Failed" {
 						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
@@ -437,11 +434,19 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 							return true
 						}
 					}
+					if event.Reason == "Pulled" {
+						imagesYetToBePulled--
+						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+						break
+					}
+
 				}
 			}
 		}
 	}
 
-	Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
+	if imagesYetToBePulled != 0 {
+		Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
+	}
 	return imagesYetToBePulled == 0
 }
