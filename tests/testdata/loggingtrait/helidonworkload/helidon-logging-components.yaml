@@ -21,7 +21,7 @@ spec:
         podSpec:
           containers:
             - name: hello-helidon-container
-              image: "ghcr.io/verrazzano/example-helidon-greet-app-v1:1.0.0-1-20211215184123-0a1b633"
+              image: "ghcr.io/verrazzano/example-helidon-greet-app-fail-v1:1.0.0-1-20211215184123-0a1b633"
               ports:
                 - containerPort: 8080
                   name: http
