@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -154,6 +155,8 @@ func main() {
 		log.Errorf("Failed to create a controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
+
+	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
 	// Setup the reconciler
 	reconciler := vzcontroller.Reconciler{

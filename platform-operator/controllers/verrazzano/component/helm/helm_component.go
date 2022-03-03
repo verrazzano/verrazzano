@@ -183,6 +183,10 @@ func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
 	return true
 }
 
+func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
+}
+
 // Install installs the component using Helm
 func (h HelmComponent) Install(context spi.ComponentContext) error {
 

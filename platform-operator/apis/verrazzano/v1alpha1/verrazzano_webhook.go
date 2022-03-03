@@ -33,6 +33,17 @@ func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredL
 
 var _ webhook.Validator = &Verrazzano{}
 
+type ComponentValidator interface {
+	ValidateUpdate(old *Verrazzano, new *Verrazzano) error
+}
+
+var vzValidator ComponentValidator = nil
+
+
+func SetComponentValidator(v ComponentValidator) {
+	vzValidator = v
+}
+
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (v *Verrazzano) ValidateCreate() error {
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
@@ -108,6 +119,13 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		log.Errorf("Invalid upgrade request: %s", err.Error())
 		return err
 	}
+
+	if vzValidator != nil {
+		if err := vzValidator.ValidateUpdate(oldResource, v); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
