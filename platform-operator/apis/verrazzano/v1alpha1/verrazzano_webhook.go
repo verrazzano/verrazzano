@@ -5,7 +5,10 @@ package v1alpha1
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
+
+	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
@@ -33,15 +36,17 @@ func (v *Verrazzano) SetupWebhookWithManager(mgr ctrl.Manager, log *zap.SugaredL
 
 var _ webhook.Validator = &Verrazzano{}
 
+// +k8s:deepcopy-gen=false
+
 type ComponentValidator interface {
-	ValidateUpdate(old *Verrazzano, new *Verrazzano) error
+	ValidateInstall(vz *Verrazzano) []error
+	ValidateUpdate(old *Verrazzano, new *Verrazzano) []error
 }
 
-var vzValidator ComponentValidator = nil
-
+var componentValidator ComponentValidator = nil
 
 func SetComponentValidator(v ComponentValidator) {
-	vzValidator = v
+	componentValidator = v
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
@@ -81,6 +86,12 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
+	// hand the Verrazzano to component validator to validate
+	if componentValidator != nil {
+		if errs := componentValidator.ValidateInstall(v); len(errs) > 0 {
+			return combineErrors(errs)
+		}
+	}
 	return nil
 }
 
@@ -120,9 +131,10 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		return err
 	}
 
-	if vzValidator != nil {
-		if err := vzValidator.ValidateUpdate(oldResource, v); err != nil {
-			return err
+	// hand the old and new Verrazzano to component validator to validate
+	if componentValidator != nil {
+		if errs := componentValidator.ValidateUpdate(oldResource, v); len(errs) > 0 {
+			return combineErrors(errs)
 		}
 	}
 
@@ -152,6 +164,14 @@ func (v *Verrazzano) verifyPlatformOperatorSingleton() error {
 func (v *Verrazzano) ValidateDelete() error {
 
 	// Webhook is not configured for deletes so function will not be called.
+	return nil
+}
+
+// combineErrors combines multiple errors into one error, nil if no error
+func combineErrors(errs []error) error {
+	if len(errs) > 0 {
+		return goerrors.New(errors.AggregateError(errs).Error())
+	}
 	return nil
 }
 

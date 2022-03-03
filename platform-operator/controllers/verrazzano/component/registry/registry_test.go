@@ -516,3 +516,11 @@ func (f fakeComponent) Reconcile(_ spi.ComponentContext) error {
 func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }
+
+func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return nil
+}
