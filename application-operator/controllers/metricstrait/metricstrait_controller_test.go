@@ -2670,12 +2670,29 @@ func updateObjectFromYAMLTemplate(obj interface{}, template string, params ...ma
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// Expect a call to get the trait resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.MetricsTrait) error {
+			trait.TypeMeta = k8smeta.TypeMeta{
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
+				Kind:       vzapi.MetricsTraitKind}
+			trait.ObjectMeta = k8smeta.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ContainerizedWorkloadKind,
+				Name:       "test-workload-name"}
+			return nil
+		})
 
 	// create a request and reconcile it
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: kubeSystem, Name: "test-trait-name"}}
-	reconciler := newMetricsTraitReconciler(cli)
+	reconciler := newMetricsTraitReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
 	// Validate the results

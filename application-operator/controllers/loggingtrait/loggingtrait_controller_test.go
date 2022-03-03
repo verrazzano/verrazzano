@@ -312,12 +312,25 @@ func newDeployment(deploymentName string, namespaceName string, workloadName str
 // TestReconcileKubeSystem tests to make sure we do not reconcile
 // Any resource that belong to the kube-system namespace
 func TestReconcileKubeSystem(t *testing.T) {
+	traitName := "test-trait-name"
 	assert := asserts.New(t)
+
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
+	// Expect a calDl to get the logging trait
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: kubeSystem, Name: traitName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.LoggingTrait) error {
+			trait.SetWorkloadReference(oamrt.TypedReference{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ContainerizedWorkloadKind,
+			})
+			return nil
+		})
+
 	// create a request and reconcile it
-	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: kubeSystem, Name: "test-trait-name"}}
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: kubeSystem, Name: traitName}}
 	reconciler := newLoggingTraitReconciler(mock, t)
 	result, err := reconciler.Reconcile(request)
 

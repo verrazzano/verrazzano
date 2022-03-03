@@ -923,8 +923,15 @@ func TestReconcileRestart(t *testing.T) {
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the VerrazzanoHelidonWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: "unit-test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
+			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "")
+		})
 
 	// create a request and reconcile it
 	request := newRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")

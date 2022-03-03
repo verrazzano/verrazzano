@@ -899,6 +899,24 @@ func TestReconcileKubeSystem(t *testing.T) {
 	mocker := gomock.NewController(t)
 	cli := mocks.NewMockClient(mocker)
 
+	// expect a call to fetch the ApplicationConfiguration
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: testAppConfigName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, appConfig *oamv1.ApplicationConfiguration) error {
+			appConfig.Namespace = kubeSystem
+			appConfig.Name = testAppConfigName
+			appConfig.Annotations = map[string]string{vzconst.RestartVersionAnnotation: testNewRestartVersion}
+			appConfig.Status.Workloads = []oamv1.WorkloadStatus{{
+				ComponentName: testStatefulSetName,
+				Reference: oamrt.TypedReference{
+					APIVersion: "v1",
+					Kind:       vzconst.StatefulSetWorkloadKind,
+					Name:       testStatefulSetName,
+				},
+			}}
+			return nil
+		})
+
 	// create a request and reconcile it
 	request := newRequest(kubeSystem, testAppConfigName)
 	reconciler := newReconciler(cli)

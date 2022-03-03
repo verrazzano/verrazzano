@@ -2157,11 +2157,24 @@ func TestReconcileStartDomain(t *testing.T) {
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the VerrazzanoWebLogicWorkload
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
+			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomainWithMonitoringExporter, " ", ""), "\n", ""))}
+			workload.APIVersion = vzapi.SchemeGroupVersion.String()
+			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Namespace = namespace
+			workload.ObjectMeta.Generation = 2
+			workload.Status.LastGeneration = "1"
+			return nil
+		})
 
 	// create a request and reconcile it
-	request := newRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := newRequest(kubeSystem, "unit-test-verrazzano-weblogic-workload")
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

@@ -442,11 +442,16 @@ func newSecretReconciler(c client.Client) Reconciler {
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch existing corev1.Secret and return not found error, to test create case
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: crName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, crName))
 
 	// create a request and reconcile it
-	request := clusterstest.NewRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := clusterstest.NewRequest(kubeSystem, crName)
 	reconciler := newSecretReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

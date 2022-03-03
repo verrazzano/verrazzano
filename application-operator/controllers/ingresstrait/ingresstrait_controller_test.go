@@ -3190,11 +3190,33 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// Expect a call to get the ingress trait resource.
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: "test-trait-name"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, trait *vzapi.IngressTrait) error {
+			trait.TypeMeta = metav1.TypeMeta{
+				APIVersion: "oam.verrazzano.io/v1alpha1",
+				Kind:       "IngressTrait"}
+			trait.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name,
+				Labels:    map[string]string{oam.LabelAppName: "myapp"}}
+			trait.Spec.Rules = []vzapi.IngressRule{{
+				Hosts: []string{"test-host"},
+				Paths: []vzapi.IngressPath{{Path: "test-path"}}}}
+			trait.Spec.TLS = vzapi.IngressSecurity{SecretName: "cert-secret"}
+			trait.Spec.WorkloadReference = oamrt.TypedReference{
+				APIVersion: "core.oam.dev/v1alpha2",
+				Kind:       "ContainerizedWorkload",
+				Name:       "test-workload-name"}
+			return nil
+		})
 
 	// create a request and reconcile it
-	request := newRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := newRequest(kubeSystem, "test-trait-name")
 	reconciler := newIngressTraitReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

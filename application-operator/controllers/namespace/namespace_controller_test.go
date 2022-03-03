@@ -730,6 +730,18 @@ func TestReconcileKubeSystem(t *testing.T) {
 	nc, err := newTestController(mock)
 	asserts.NoError(err)
 
+	// Expect a call to get the namespace
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace) error {
+			ns.Name = "myns"
+			ns.Annotations = map[string]string{
+				constants.OCILoggingIDAnnotation: "myocid",
+			}
+			ns.Finalizers = []string{"someFinalizer"}
+			return nil
+		})
+
 	// create a request and reconcile it
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Namespace: kubeSystem},

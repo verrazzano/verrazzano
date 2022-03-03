@@ -528,13 +528,18 @@ func newReconciler(c client.Client) Reconciler {
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the MetricsBinding
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: kubeSystem, Name: testMetricsBindingName}), gomock.Not(gomock.Nil())).DoAndReturn(
+		func(ctx context.Context, key client.ObjectKey, binding *vzapi.MetricsBinding) error {
+			return nil
+		})
 
 	// create a request and reconcile it
-	namespacedName := types.NamespacedName{Namespace: kubeSystem, Name: testMetricsBindingName}
-	request := ctrl.Request{NamespacedName: namespacedName}
-	reconciler := newReconciler(cli)
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: kubeSystem, Name: testMetricsBindingName}}
+	reconciler := newReconciler(mock)
 	result, err := reconciler.Reconcile(request)
 
 	// Validate the results

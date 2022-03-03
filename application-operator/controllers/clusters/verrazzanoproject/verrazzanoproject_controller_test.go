@@ -765,12 +765,24 @@ func doExpectStatusUpdateSucceeded(cli *mocks.MockClient, mockStatusWriter *mock
 // Any resource that belong to the kube-system namespace
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
+	vpName := "unit-test-verrazzano-project-workload"
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: vpName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vp *clustersv1alpha1.VerrazzanoProject) error {
+			vp.Namespace = kubeSystem
+			vp.Name = vpName
+			vp.Spec.Template.Namespaces = []clustersv1alpha1.NamespaceTemplate{existingNS}
+			vp.Spec.Placement.Clusters = []clustersv1alpha1.Cluster{{Name: clusterstest.UnitTestClusterName}}
+			vp.ObjectMeta.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			return nil
+		})
 
 	// create a request and reconcile it
-	request := clusterstest.NewRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := clusterstest.NewRequest(kubeSystem, vpName)
 	reconciler := newVerrazzanoProjectReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

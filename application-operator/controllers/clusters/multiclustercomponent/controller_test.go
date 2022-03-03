@@ -491,11 +491,17 @@ func newReconciler(c client.Client) Reconciler {
 func TestReconcileKubeSystem(t *testing.T) {
 	assert := asserts.New(t)
 
-	var mocker = gomock.NewController(t)
-	var cli = mocks.NewMockClient(mocker)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// expect a call to fetch the MultiClusterComponent
+	// and return a not found error
+	cli.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: kubeSystem, Name: crName}, gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: clustersv1alpha1.SchemeGroupVersion.Group, Resource: clustersv1alpha1.MultiClusterComponentResource}, crName))
 
 	// create a request and reconcile it
-	request := clusterstest.NewRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := clusterstest.NewRequest(kubeSystem, crName)
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
