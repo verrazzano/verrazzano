@@ -6,6 +6,7 @@ package multiclustercomponent
 import (
 	"context"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -18,7 +19,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const finalizerName = "multiclustercomponent.verrazzano.io"
+const (
+	finalizerName = "multiclustercomponent.verrazzano.io"
+	kubeSystem    = "kube-system"
+)
 
 // Reconciler reconciles a MultiClusterComponent object
 type Reconciler struct {
@@ -32,6 +36,14 @@ type Reconciler struct {
 // mutates it based on the MultiClusterComponent, and updates the status of the
 // MultiClusterComponent to reflect the success or failure of the changes to the embedded resource
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var mcComp clustersv1alpha1.MultiClusterComponent
 	err := r.fetchMultiClusterComponent(ctx, req.NamespacedName, &mcComp)

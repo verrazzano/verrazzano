@@ -25,7 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -57,6 +57,7 @@ const (
 	webLogicDomainUIDLabel                = "weblogic.domainUID"
 	webLogicPluginConfigYamlKey           = "WebLogicPlugin.yaml"
 	WDTConfigMapNameSuffix                = "-wdt-config-map"
+	kubeSystem                            = "kube-system"
 )
 
 const defaultMonitoringExporterData = `
@@ -223,6 +224,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanoweblogicworkloads,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=verrazzanoweblogicworkloads/status,verbs=get;update;patch
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	// fetch the workload and unwrap the WebLogic resource
 	workload, err := r.fetchWorkload(ctx, req.NamespacedName, zap.S())

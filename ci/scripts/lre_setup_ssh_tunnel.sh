@@ -35,6 +35,7 @@ fi
 SESSION_ID=$(oci bastion session create-port-forwarding \
    --bastion-id $BASTION_ID \
    --ssh-public-key-file ${ssh_public_key_path} \
+   --session-ttl 7200 \
    --target-private-ip ${CLUSTER_IP} \
    --target-port 6443 | jq '.data.id' | sed s/\"//g)
 
