@@ -147,8 +147,8 @@ func undeployBobsBooksExample() {
 
 	pkg.Log(pkg.Info, "Wait for pods to terminate")
 	Eventually(func() bool {
-		podsNotRunning, _ := pkg.PodsNotRunning(namespace, expectedPods)
-		return podsNotRunning
+		podsTerminated, _ := pkg.PodsNotRunning(namespace, expectedPods)
+		return podsTerminated
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Delete namespace")
@@ -156,7 +156,7 @@ func undeployBobsBooksExample() {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for finalizer to be removed")
+	pkg.Log(pkg.Info, "Wait for namespace finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())

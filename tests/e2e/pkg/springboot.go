@@ -62,8 +62,8 @@ func UndeploySpringBootApplication(namespace string) {
 
 		Log(Info, "Wait for application pods to terminate")
 		gomega.Eventually(func() bool {
-			podsNotRunning, _ := PodsNotRunning(namespace, expectedPodsSpringBootApp)
-			return podsNotRunning
+			podsTerminated, _ := PodsNotRunning(namespace, expectedPodsSpringBootApp)
+			return podsTerminated
 		}, springbootWaitTimeout, springbootPollingInterval).Should(gomega.BeTrue())
 
 		Log(Info, fmt.Sprintf("Delete namespace %s", namespace))
@@ -71,12 +71,12 @@ func UndeploySpringBootApplication(namespace string) {
 			return DeleteNamespace(namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-		Log(Info, "Wait for finalizer to be removed")
+		Log(Info, "Wait for namespace finalizer to be removed")
 		gomega.Eventually(func() bool {
 			return CheckNamespaceFinalizerRemoved(namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).Should(gomega.BeTrue())
 
-		Log(Info, "Wait for namespace to be removed")
+		Log(Info, "Wait for namespace to be deleted")
 		gomega.Eventually(func() bool {
 			_, err := GetNamespace(namespace)
 			return err != nil && errors.IsNotFound(err)
