@@ -51,7 +51,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 	if req.Namespace == kubeSystem {
-		log.Oncef("Secret resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
+		log.Oncef("Multi-cluster secret resource %v should not be reconciled in kube-system namespace, returning", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
