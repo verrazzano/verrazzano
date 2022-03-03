@@ -277,7 +277,7 @@ pipeline {
                 }
                 stage('istio authorization policy') {
                     steps {
-                        runGinkgo('istio/authz', 'security/rbac', )
+                        runGinkgo('istio/authz','security/rbac')
                     }
                 }
                 //stage('security role based access') {
