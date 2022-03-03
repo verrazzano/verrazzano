@@ -148,7 +148,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.VerrazzanoLogger) {
 	labelSelector := kblabels.Set{"name": compName, "status": "pending-upgrade"}.AsSelector()
 	helmSecrets := v1.SecretList{}
-	err := r.Client.List(context.TODO(), &helmSecrets, clipkg.MatchingLabelsSelector{labelSelector})
+	err := r.Client.List(context.TODO(), &helmSecrets, &clipkg.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			compLog.Debugf("No pending upgrade found for component %s.  Re-trying upgrade", compName)
@@ -157,8 +157,8 @@ func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.Verra
 		}
 	}
 	// remove any pending upgrade secrets
-	for _, secret := range helmSecrets.Items {
-		err := r.Client.Delete(context.TODO(), &secret, &clipkg.DeleteOptions{})
+	for i := range helmSecrets.Items {
+		err := r.Client.Delete(context.TODO(), &helmSecrets.Items[i], &clipkg.DeleteOptions{})
 		if err != nil {
 			compLog.Errorf("Unable to remove pending upgrade helm secret for component %s: %v", compName, err)
 		} else {

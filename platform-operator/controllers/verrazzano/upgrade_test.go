@@ -913,6 +913,13 @@ func TestUpgradeHelmError(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to list any pending upgrade secrets for the component
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, opts ...client.ListOption) error {
+			return nil
+		})
+
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
 
