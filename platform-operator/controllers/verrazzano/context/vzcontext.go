@@ -11,17 +11,17 @@ import (
 
 // VerrazzanoContext the context needed to reconcile a Verrazzano CR
 type VerrazzanoContext struct {
-	// log logger for the execution context
+	// Log is the logger for the execution context
 	Log vzlog.VerrazzanoLogger
-	// client Kubernetes client
+	// Client is a Kubernetes client
 	Client clipkg.Client
-	// dryRun If true, do a dry run of operations
+	// DryRun will do a dry run of operations if true
 	DryRun bool
-	// ActualCR is the CR passed to top level Reconcile.  It epresents the desired Verrazzano state in the cluster
+	// ActualCR is the CR passed to top level Reconcile.  It represents the desired Verrazzano state in the cluster
 	ActualCR *vzapi.Verrazzano
 }
 
-// NewVerrazzanoContext creates a VerrazzanoContext, while creating an effective CR
+// NewVerrazzanoContext creates a VerrazzanoContext
 func NewVerrazzanoContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (VerrazzanoContext, error) {
 	return VerrazzanoContext{
 		Log:      log,
