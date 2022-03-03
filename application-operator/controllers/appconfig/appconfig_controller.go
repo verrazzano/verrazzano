@@ -36,7 +36,10 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
-const finalizerName = "appconfig.finalizers.verrazzano.io"
+const (
+	finalizerName = "appconfig.finalizers.verrazzano.io"
+	kubeSystem    = "kube-system"
+)
 
 // SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -49,6 +52,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // restarts applications as needed. When applications are restarted, the previous restart
 // version annotation value is updated.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var appConfig oamv1.ApplicationConfiguration
 	if err := r.Client.Get(ctx, req.NamespacedName, &appConfig); err != nil {

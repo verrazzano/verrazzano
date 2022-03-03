@@ -35,6 +35,7 @@ const (
 	projectMonitorGroupTemplate = "verrazzano-project-%s-monitors"
 	finalizerName               = "project.verrazzano.io"
 	managedClusterRole          = "verrazzano-managed-cluster"
+	kubeSystem                  = "kube-system"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -56,6 +57,14 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // It fetches its namespaces if the VerrazzanoProject is in the verrazzano-mc namespace
 // and create namespaces in the local cluster.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var vp clustersv1alpha1.VerrazzanoProject
 	err := r.Get(ctx, req.NamespacedName, &vp)
