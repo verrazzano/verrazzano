@@ -41,7 +41,7 @@ var _ = t.Describe("keycloak", Label("f:infra-lcm",
 					if err != nil {
 						return err
 					}
-					keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+					keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 					pkg.Log(pkg.Info, fmt.Sprintf("Found ingress URL: %s", keycloakURL))
 					return nil
 				}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())

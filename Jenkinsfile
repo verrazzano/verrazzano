@@ -389,24 +389,6 @@ pipeline {
             }
         }
 
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                integrationTests("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**,**/install.sh.log', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
                 script {
@@ -632,28 +614,6 @@ def moveContentToGoRepoPath() {
         rm -rf ${GO_REPO_PATH}/verrazzano
         mkdir -p ${GO_REPO_PATH}/verrazzano
         tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-    """
-}
-
-// Called in Stage Integration Tests steps
-def integrationTests(dockerImageTag) {
-    sh """
-        if [ "${params.SIMULATE_FAILURE}" == "true" ]; then
-            echo "Simulate failure from a stage"
-            exit 1
-        fi
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-        make cleanup-cluster
-        make create-cluster KIND_CONFIG="kind-config-ci.yaml"
-        ../ci/scripts/setup_kind_for_jenkins.sh
-        make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
-        ../build/copy-junit-output.sh ${WORKSPACE}
-        cd ${GO_REPO_PATH}/verrazzano/application-operator
-        make cleanup-cluster
-        make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
-        ../build/copy-junit-output.sh ${WORKSPACE}
-        make cleanup-cluster
     """
 }
 

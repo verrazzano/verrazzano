@@ -43,13 +43,13 @@ func (e *Elastic) PodsRunning() bool {
 		fmt.Sprintf("vmi-%s-grafana", e.binding),
 		fmt.Sprintf("vmi-%s-prometheus", e.binding),
 		fmt.Sprintf("vmi-%s-api", e.binding)}
-	running := pkg.PodsRunning("verrazzano-system", expectedElasticPods)
+	running, _ := pkg.PodsRunning("verrazzano-system", expectedElasticPods)
 
 	if running {
 		expectedElasticPods = []string{
 			fmt.Sprintf("vmi-%s-es-ingest", e.binding),
 			fmt.Sprintf("vmi-%s-es-data", e.binding)}
-		running = pkg.PodsRunning("verrazzano-system", expectedElasticPods)
+		running, _ = pkg.PodsRunning("verrazzano-system", expectedElasticPods)
 	}
 
 	return running
@@ -128,7 +128,7 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	if e.vmiHTTPClient == nil {
 		var err error
-		e.vmiHTTPClient, err = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
+		e.vmiHTTPClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 		if err != nil {
 			return nil, err
 		}

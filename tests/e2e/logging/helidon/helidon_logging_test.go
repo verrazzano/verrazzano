@@ -17,10 +17,12 @@ import (
 )
 
 const (
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	shortWaitTimeout         = 5 * time.Minute
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var t = framework.NewTestFramework("helidon")
@@ -41,6 +43,12 @@ var _ = t.BeforeSuite(func() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(testNamespace, expectedPodsHelloHelidon)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+	// Verify hello-helidon-workload pod is running
+	Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -81,15 +89,6 @@ const (
 
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
-	// Verify hello-helidon-workload pod is running
-	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	t.Describe("hello-helidon-workload pod", func() {
-		t.It("is running", func() {
-			Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
 
 	var host = ""
 	var err error
@@ -159,5 +158,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 })
 
 func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+	result, err := pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+	}
+	return result
 }

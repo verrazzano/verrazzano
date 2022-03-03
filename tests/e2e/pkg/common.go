@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -33,6 +34,12 @@ const (
 
 	// RetryWaitMax - maximum retry wait
 	RetryWaitMax = 30 * time.Second
+)
+
+const (
+	CrashLoopBackOff    = "CrashLoopBackOff"
+	ImagePullBackOff    = "ImagePullBackOff"
+	InitContainerPrefix = "Init"
 )
 
 // UsernamePassword - Username and Password credentials
@@ -107,29 +114,33 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 }
 
 // PodsRunning is identical to PodsRunningInCluster, except that it uses the cluster specified in the environment
-func PodsRunning(namespace string, namePrefixes []string) bool {
+func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
-		return false
+		return false, fmt.Errorf("error getting kubeconfig, error: %v", err)
 	}
-
-	return PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
+	result, err := PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
+	return result, err
 }
 
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
-func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
+func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPath string) (bool, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
-		return false
+		return false, fmt.Errorf("error getting clientset for cluster, error: %v", err)
 	}
 	pods, err := ListPodsInCluster(namespace, clientset)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
-		return false
+		return false, fmt.Errorf("error listing pods in cluster for namespace: %s, error: %v", namespace, err)
 	}
-	missing := notRunning(pods.Items, namePrefixes...)
+	missing, err := notRunning(pods.Items, namePrefixes...)
+	if err != nil {
+		return false, err
+	}
+
 	if len(missing) > 0 {
 		Log(Info, fmt.Sprintf("Pods %v were NOT running in %v", missing, namespace))
 		for _, pod := range pods.Items {
@@ -140,7 +151,7 @@ func PodsRunningInCluster(namespace string, namePrefixes []string, kubeconfigPat
 			}
 		}
 	}
-	return len(missing) == 0
+	return len(missing) == 0, nil
 }
 
 func formatContainerStatuses(containerStatuses []v1.ContainerStatus) string {
@@ -163,7 +174,7 @@ func PodsNotRunning(namespace string, namePrefixes []string) (bool, error) {
 		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
 		return false, err
 	}
-	terminatedPods := notRunning(allPods.Items, namePrefixes...)
+	terminatedPods, _ := notRunning(allPods.Items, namePrefixes...)
 	if len(terminatedPods) != len(namePrefixes) {
 		runningPods := areRunning(allPods.Items, namePrefixes...)
 		Log(Info, fmt.Sprintf("Pods %v were RUNNING in %v", runningPods, namespace))
@@ -174,22 +185,25 @@ func PodsNotRunning(namespace string, namePrefixes []string) (bool, error) {
 }
 
 // notRunning finds the pods not running
-func notRunning(pods []v1.Pod, podNames ...string) []string {
+func notRunning(pods []v1.Pod, podNames ...string) ([]string, error) {
 	var notRunning []string
 	for _, name := range podNames {
-		running := isPodRunning(pods, name)
+		running, err := isPodRunning(pods, name)
+		if err != nil {
+			return notRunning, err
+		}
 		if !running {
 			notRunning = append(notRunning, name)
 		}
 	}
-	return notRunning
+	return notRunning, nil
 }
 
 // areRunning finds the pods that are running
 func areRunning(pods []v1.Pod, podNames ...string) []string {
 	var runningPods []string
 	for _, name := range podNames {
-		running := isPodRunning(pods, name)
+		running, _ := isPodRunning(pods, name)
 		if running {
 			runningPods = append(runningPods, name)
 		}
@@ -198,18 +212,34 @@ func areRunning(pods []v1.Pod, podNames ...string) []string {
 }
 
 // isPodRunning checks if the pod(s) with the name-prefix does exist and is running
-func isPodRunning(pods []v1.Pod, namePrefix string) bool {
+func isPodRunning(pods []v1.Pod, namePrefix string) (bool, error) {
 	running := false
 	for i := range pods {
 		if strings.HasPrefix(pods[i].Name, namePrefix) {
 			running = isReadyAndRunning(pods[i])
 			if !running {
 				status := "status:"
+				// Check if init container status ImagePullBackOff and CrashLoopBackOff
+				if len(pods[i].Status.InitContainerStatuses) > 0 {
+					for _, ics := range pods[i].Status.InitContainerStatuses {
+						if ics.State.Waiting != nil {
+							// return an error if the reason is either CrashLoopBackOff or ImagePullBackOff
+							if ics.State.Waiting.Reason == ImagePullBackOff || ics.State.Waiting.Reason == CrashLoopBackOff {
+								return false, fmt.Errorf("pod %v is not running: %v", pods[i].Name,
+									fmt.Sprintf("%v %v:%v", status, InitContainerPrefix, ics.State.Waiting.Reason))
+							}
+						}
+					}
+				}
+
 				if len(pods[i].Status.ContainerStatuses) > 0 {
 					for _, cs := range pods[i].Status.ContainerStatuses {
-						//if cs.State.Waiting.Reason is CrashLoopBackOff, no need to retry
 						if cs.State.Waiting != nil {
 							status = fmt.Sprintf("%v %v", status, cs.State.Waiting.Reason)
+							// return an error if the reason is either CrashLoopBackOff or ImagePullBackOff
+							if cs.State.Waiting.Reason == ImagePullBackOff || cs.State.Waiting.Reason == CrashLoopBackOff {
+								return false, fmt.Errorf("pod %v is not running: %v", pods[i].Name, status)
+							}
 						}
 						if cs.State.Terminated != nil {
 							status = fmt.Sprintf("%v %v", status, cs.State.Terminated.Reason)
@@ -222,11 +252,11 @@ func isPodRunning(pods []v1.Pod, namePrefix string) bool {
 					status = fmt.Sprintf("%v %v", status, "unknown")
 				}
 				Log(Info, fmt.Sprintf("Pod %v was NOT running: %v", pods[i].Name, status))
-				return false
+				return false, nil
 			}
 		}
 	}
-	return running
+	return running, nil
 }
 
 // isReadyAndRunning checks if the pod is ready and running
@@ -317,4 +347,106 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 		}
 	}
 	return false
+}
+
+func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	return ContainerImagePullWaitInCluster(namespace, namePrefixes, kubeconfigPath)
+}
+
+func ContainerImagePullWaitInCluster(namespace string, namePrefixes []string, kubeconfigPath string) bool {
+	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset for kubernetes cluster, error: %v", err))
+		return false
+	}
+
+	pods, err := ListPodsInCluster(namespace, clientset)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing pods in cluster for namespace: %s, error: %v", namespace, err))
+		return false
+	}
+
+	events, err := clientset.CoreV1().Events(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error listing events in cluster for namespace: %s, erroe: %v", namespace, err))
+		return false
+	}
+
+	return CheckAllImagesPulled(pods, events, namePrefixes)
+}
+
+// CheckAllImagesPulled checks if all the images of the target pods have been pulled or not.
+// The idea here is to periodically enumerate the containers from the target pods and watch the events related image pulls,
+// such that we can make a smarter decision about pod deployment i.e. keep waiting if the process is slow, and stop waiting
+// in case of unrecoverable failures.
+func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes []string) bool {
+
+	allContainers := make(map[string][]interface{})
+	imagesYetToBePulled := 0
+	scheduledPods := make(map[string]bool)
+
+	// For a given pod, store all the container names in a slice
+	for _, pod := range pods.Items {
+		for _, namePrefix := range namePrefixes {
+			if strings.HasPrefix(pod.Name, namePrefix) {
+				for _, initContainer := range pod.Spec.InitContainers {
+					allContainers[pod.Name] = append(allContainers[pod.Name], initContainer.Name)
+					imagesYetToBePulled++
+				}
+				for _, container := range pod.Spec.Containers {
+					allContainers[pod.Name] = append(allContainers[pod.Name], container.Name)
+					imagesYetToBePulled++
+				}
+				scheduledPods[namePrefix] = true
+			}
+		}
+	}
+	// If all the pods haven't been scheduled, retry
+	if len(scheduledPods) != len(namePrefixes) {
+		Log(Info, "All the pods haven't been scheduled yet, retrying")
+		return false
+	}
+	// Keep waiting and retry if all the pods haven't been scheduled
+	if len(allContainers) == 0 || imagesYetToBePulled == 0 {
+		Log(Info, "All the pods haven't been scheduled yet, retrying")
+		return false
+	}
+
+	// Drill down event data to check if the container image has been pulled
+	for podName, containers := range allContainers {
+		for _, container := range containers {
+			for i := len(events.Items) - 1; i >= 0; i-- {
+				event := events.Items[i]
+				// used to match exact container name in event data
+				containerRegex := "{" + container.(string) + "}"
+
+				if event.InvolvedObject.Kind == "Pod" && event.InvolvedObject.Name == podName && len(event.InvolvedObject.FieldPath) > 0 && strings.Contains(event.InvolvedObject.FieldPath, containerRegex) {
+
+					// Stop waiting in case of ImagePullBackoff and CrashLoopBackOff
+					if event.Reason == "Failed" {
+						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+						if strings.Contains(event.Message, ImagePullBackOff) || strings.Contains(event.Message, CrashLoopBackOff) {
+							return true
+						}
+					}
+					if event.Reason == "Pulled" {
+						imagesYetToBePulled--
+						Log(Info, fmt.Sprintf("Pod: %v container: %v status: %v ", podName, container, event.Reason))
+						break
+					}
+
+				}
+			}
+		}
+	}
+
+	if imagesYetToBePulled != 0 {
+		Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
+	}
+	return imagesYetToBePulled == 0
 }

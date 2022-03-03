@@ -522,3 +522,23 @@ func newReconciler(c client.Client) Reconciler {
 	}
 	return reconciler
 }
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	namespacedName := types.NamespacedName{Namespace: kubeSystem, Name: testMetricsBindingName}
+	request := ctrl.Request{NamespacedName: namespacedName}
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
+}

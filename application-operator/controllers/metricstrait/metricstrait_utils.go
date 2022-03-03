@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -6,7 +6,10 @@ package metricstrait
 import (
 	"strings"
 
+	"regexp"
+
 	"github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -94,4 +97,35 @@ func mergeTemplateWithContext(template string, context map[string]string) string
 		template = strings.ReplaceAll(template, key, value)
 	}
 	return template
+}
+
+// GetSupportedWorkloadType returns workload type corresponding to input API version and kind
+// that is supported by MetricsTrait.
+func GetSupportedWorkloadType(apiVerKind string) string {
+	// Match any version of Group=weblogic.oracle and Kind=Domain
+	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+		return constants.WorkloadTypeWeblogic
+	}
+	// Match any version of Group=coherence.oracle and Kind=Coherence
+	if matched, _ := regexp.MatchString("^coherence.oracle.com/.*\\.Coherence$", apiVerKind); matched {
+		return constants.WorkloadTypeCoherence
+	}
+
+	// Match any version of Group=coherence.oracle and Kind=VerrazzanoHelidonWorkload or
+	// In the case of Helidon, the workload isn't currently being unwrapped
+	if matched, _ := regexp.MatchString("^oam.verrazzano.io/.*\\.VerrazzanoHelidonWorkload$", apiVerKind); matched {
+		return constants.WorkloadTypeGeneric
+	}
+
+	// Match any version of Group=core.oam.dev and Kind=ContainerizedWorkload
+	if matched, _ := regexp.MatchString("^core.oam.dev/.*\\.ContainerizedWorkload$", apiVerKind); matched {
+		return constants.WorkloadTypeGeneric
+	}
+
+	// Match any version of Group=apps and Kind=Deployment
+	if matched, _ := regexp.MatchString("^apps/.*\\.Deployment$", apiVerKind); matched {
+		return constants.WorkloadTypeGeneric
+	}
+
+	return ""
 }

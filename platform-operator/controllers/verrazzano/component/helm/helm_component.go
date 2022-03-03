@@ -107,11 +107,11 @@ type upgradeFuncSig func(log vzlog.VerrazzanoLogger, releaseName string, namespa
 // upgradeFunc is the default upgrade function
 var upgradeFunc upgradeFuncSig = helm.Upgrade
 
-func setUpgradeFunc(f upgradeFuncSig) {
+func SetUpgradeFunc(f upgradeFuncSig) {
 	upgradeFunc = f
 }
 
-func setDefaultUpgradeFunc() {
+func SetDefaultUpgradeFunc() {
 	upgradeFunc = helm.Upgrade
 }
 
@@ -307,8 +307,10 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return context.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
 	}
 
-	// Generate a list of component-specified override files if present
-	overrides.FileOverrides = append(overrides.FileOverrides, tmpFile.Name())
+	// Generate a list of override files making helm get values overrides first
+	overrides.FileOverrides = append(overrides.FileOverrides, "")
+	copy(overrides.FileOverrides[1:], overrides.FileOverrides[0:])
+	overrides.FileOverrides[0] = tmpFile.Name()
 
 	_, _, err = upgradeFunc(context.Log(), h.ReleaseName, namespace, h.ChartDir, true, context.IsDryRun(), overrides)
 	return err

@@ -978,6 +978,7 @@ def registerManagedClusters() {
                     export MANAGED_CLUSTER_DIR="${KUBECONFIG_DIR}/${count}"
                     export MANAGED_CLUSTER_NAME="managed${count-1}"
                     export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    export MANAGED_CLUSTER_ENV="mgd${count-1}"
                     cd ${GO_REPO_PATH}/verrazzano
                     ./tests/e2e/config/scripts/register_managed_cluster.sh
                 """

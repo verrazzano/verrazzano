@@ -47,6 +47,9 @@ func NewComponent() spi.Component {
 // PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := setupSharedVMIResources(ctx); err != nil {
+		return err
+	}
 	ctx.Log().Debug("Verrazzano pre-install")
 	if err := createAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
@@ -57,10 +60,26 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// Install Verrazzano component install processing
+func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Install(ctx); err != nil {
+		return err
+	}
+	return createVMI(ctx)
+}
+
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(),
 		c.ReleaseName, resolveVerrazzanoNamespace(c.ChartNamespace), c.ChartDir)
+}
+
+// InstallUpgrade Verrazzano component upgrade processing
+func (c verrazzanoComponent) Upgrade(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Upgrade(ctx); err != nil {
+		return err
+	}
+	return createVMI(ctx)
 }
 
 // IsReady component check

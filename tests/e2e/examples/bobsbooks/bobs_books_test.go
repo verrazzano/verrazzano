@@ -18,15 +18,26 @@ import (
 )
 
 const (
-	shortWaitTimeout     = 10 * time.Minute
-	shortPollingInterval = 10 * time.Second
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
+	shortWaitTimeout         = 10 * time.Minute
+	shortPollingInterval     = 10 * time.Second
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
 var (
 	t                  = framework.NewTestFramework("bobsbooks")
 	generatedNamespace = pkg.GenerateNamespace("bobs-books")
+	expectedPods       = []string{
+		"bobbys-front-end-adminserver",
+		"bobs-bookstore-adminserver",
+		"bobbys-coherence-0",
+		"roberts-coherence-0",
+		"roberts-coherence-1",
+		"bobbys-helidon-stock-application",
+		"robert-helidon",
+		"mysql"}
 )
 
 var _ = BeforeSuite(func() {
@@ -35,20 +46,17 @@ var _ = BeforeSuite(func() {
 		deployBobsBooksExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-
+	pkg.Log(pkg.Info, "Container image pull check")
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPods)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	pkg.Log(pkg.Info, "Bobs Books Application expected pods running check.")
 	Eventually(func() bool {
-		expectedPods := []string{
-			"bobbys-front-end-adminserver",
-			"bobs-bookstore-adminserver",
-			"bobbys-coherence-0",
-			"roberts-coherence-0",
-			"roberts-coherence-1",
-			"bobbys-helidon-stock-application",
-			"robert-helidon",
-			"mysql",
+		result, err := pkg.PodsRunning(namespace, expectedPods)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 		}
-		return pkg.PodsRunning(namespace, expectedPods)
+		return result
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Bobs Books Application Failed to Deploy")
 })
 

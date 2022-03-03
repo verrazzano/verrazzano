@@ -37,7 +37,6 @@ var expectedPodsIngressNginx = []string{
 
 var expectedNonVMIPodsVerrazzanoSystem = []string{
 	"verrazzano-monitoring-operator",
-	"verrazzano-operator",
 }
 
 // comment out while debugging so it does not break master
@@ -94,14 +93,12 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		})
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
-
-		t.DescribeTable("Verrazzano components are deployed,",
+		componentsArgs := []interface{}{
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			t.Entry("includes verrazzano-operator", "verrazzano-operator", true),
 			t.Entry("does not include verrazzano-web", "verrazzano-web", false),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			t.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
@@ -109,6 +106,13 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
+		}
+		if isMinVersion1_3_0, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !isMinVersion1_3_0 {
+			componentsArgs = append(componentsArgs, t.Entry("includes verrazzano-operator", "verrazzano-operator", true))
+		}
+
+		t.DescribeTable("Verrazzano components are deployed,",
+			componentsArgs...,
 		)
 
 		t.DescribeTable("cert-manager components are deployed,",
@@ -192,33 +196,44 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		)
 
 		t.It("the expected pods are running", func() {
-			pkg.Concurrently(
+			assertions := []func(){
 				func() {
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
 					// cluster is registered)
 					if !isManagedClusterProfile {
-						Eventually(func() bool { return pkg.PodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
+						Eventually(func() bool { return checkPodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}
 				},
 				func() {
 					if !isManagedClusterProfile {
-						Eventually(func() bool { return pkg.PodsRunning("keycloak", expectedPodsKeycloak) }, waitTimeout, pollingInterval).
-							Should(BeTrue())
+						Eventually(func() bool {
+							return checkPodsRunning("keycloak", expectedPodsKeycloak)
+						}, waitTimeout, pollingInterval).Should(BeTrue())
 					}
 				},
 				func() {
-					Eventually(func() bool { return pkg.PodsRunning("cert-manager", expectedPodsCertManager) }, waitTimeout, pollingInterval).
+					Eventually(func() bool { return checkPodsRunning("cert-manager", expectedPodsCertManager) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return pkg.PodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
+					Eventually(func() bool { return checkPodsRunning("ingress-nginx", expectedPodsIngressNginx) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
 				func() {
-					Eventually(func() bool { return pkg.PodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
+					Eventually(func() bool { return checkPodsRunning("verrazzano-system", expectedNonVMIPodsVerrazzanoSystem) }, waitTimeout, pollingInterval).
 						Should(BeTrue())
 				},
+			}
+
+			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
+				assertions = append(assertions, func() {
+					Eventually(func() bool { return checkPodsRunning("verrazzano-system", []string{"verrazzano-operator"}) }, waitTimeout, pollingInterval).
+						Should(BeTrue())
+				})
+			}
+			pkg.Concurrently(
+				assertions...,
 			)
 		})
 	})
@@ -234,4 +249,12 @@ func nsListContains(list []v1.Namespace, target string) bool {
 
 func vzComponentPresent(name string, namespace string) (bool, error) {
 	return pkg.DoesPodExist(namespace, name)
+}
+
+func checkPodsRunning(namespace string, expectedPods []string) bool {
+	result, err := pkg.PodsRunning(namespace, expectedPods)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }
