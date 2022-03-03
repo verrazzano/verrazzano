@@ -44,7 +44,11 @@ func createVMI(ctx spi.ComponentContext) error {
 	}
 	vmi := newVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
-		existingVMI := vmi.DeepCopy()
+		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
+		if len(vmi.Spec.URI) > 0 {
+			existingVMI = vmi.DeepCopy()
+		}
+
 		vmi.Labels = map[string]string{
 			"k8s-app":            "verrazzano.io",
 			"verrazzano.binding": system,
@@ -95,14 +99,9 @@ func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1
 		},
 		Storage: vmov1.Storage{},
 	}
-	setDefaultStorageSize(cr, storage, &grafana.Storage)
-
+	setStorageSize(storage, &grafana.Storage)
 	if vmi != nil {
 		grafana.Storage = vmi.Spec.Grafana.Storage
-	}
-
-	if storage != nil {
-		grafana.Storage.Size = storage.Storage
 	}
 
 	return grafana
@@ -120,22 +119,19 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 		Storage: vmov1.Storage{},
 	}
-	setDefaultStorageSize(cr, storage, &prometheus.Storage)
-
+	setStorageSize(storage, &prometheus.Storage)
 	if vmi != nil {
 		prometheus.Storage = vmi.Spec.Prometheus.Storage
-	}
-
-	if storage != nil {
-		prometheus.Storage.Size = storage.Storage
 	}
 
 	return prometheus
 }
 
-func setDefaultStorageSize(cr *vzapi.Verrazzano, storage *resourceRequestValues, storageObject *vmov1.Storage) {
-	if cr.Spec.Profile == vzapi.Prod && storage == nil {
+func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage) {
+	if storage == nil {
 		storageObject.Size = "50Gi"
+	} else {
+		storageObject.Size = storage.Storage
 	}
 }
 
@@ -162,12 +158,11 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
+	if storage != nil && len(storage.Storage) > 0 {
+		opensearch.Storage.Size = storage.Storage
+	}
 	if vmi != nil {
 		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
-	}
-
-	if storage != nil {
-		opensearch.Storage.Size = storage.Storage
 	}
 
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
