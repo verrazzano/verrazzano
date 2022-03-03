@@ -119,11 +119,11 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestNewGrafana tests that storage values in the VMI are not erased when a new Grafana is created
+// TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
 // GIVEN a Verrazzano CR and an existing VMO
 //  WHEN I create a new Grafana resource
 //  THEN the storage options from the existing VMO are preserved.
-func TestNewGrafana(t *testing.T) {
+func TestNewGrafanaWithExistingVMI(t *testing.T) {
 	existingVmo := vmov1.VerrazzanoMonitoringInstance{
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
 			Grafana: vmov1.Grafana{
@@ -144,7 +144,20 @@ func TestNewGrafana(t *testing.T) {
 	assert.Equal(t, []string{"my-pvc"}, grafana.Storage.PvcNames)
 }
 
-func TestNewPrometheus(t *testing.T) {
+// TestNewPrometheusWithDefaultStorage tests that the default storage of Prometheus is 50Gi
+// GIVEN a Verrazzano CR
+// WHEN I create a new Prometheus resource
+//  THEN the storage is 50Gi
+func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 	prometheus := newPrometheus(&vmiEnabledCR, nil, nil)
 	assert.Equal(t, "50Gi", prometheus.Storage.Size)
+}
+
+// TestPrometheusWithStorageOverride tests that storage overrides are applied to Prometheus
+// GIVEN a Verrazzano CR and a storage override of 100Gi
+// WHEN I create a new Prometheus resource
+//  THEN the storage is 100Gi
+func TestPrometheusWithStorageOverride(t *testing.T) {
+	prometheus := newPrometheus(&vmiEnabledCR, &resourceRequestValues{Storage: "100Gi"}, nil)
+	assert.Equal(t, "100Gi", prometheus.Storage.Size)
 }
