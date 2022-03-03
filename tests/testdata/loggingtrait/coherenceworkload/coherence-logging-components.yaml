@@ -5,7 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: carts
-  namespace: sockshop-logging
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1

@@ -44,7 +44,11 @@ func createVMI(ctx spi.ComponentContext) error {
 	}
 	vmi := newVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
-		existingVMI := vmi.DeepCopy()
+		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
+		if len(vmi.Spec.URI) > 0 {
+			existingVMI = vmi.DeepCopy()
+		}
+
 		vmi.Labels = map[string]string{
 			"k8s-app":            "verrazzano.io",
 			"verrazzano.binding": system,

@@ -4,9 +4,14 @@
 package verrazzano
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -20,6 +25,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: vzapi.Prod,
 		Components: vzapi.ComponentSpec{
+			DNS: dnsComponents.DNS,
 			Kibana: &vzapi.KibanaComponent{
 				MonitoringComponent: monitoringComponent,
 			},
@@ -160,4 +166,22 @@ func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 func TestPrometheusWithStorageOverride(t *testing.T) {
 	prometheus := newPrometheus(&vmiEnabledCR, &resourceRequestValues{Storage: "100Gi"}, nil)
 	assert.Equal(t, "100Gi", prometheus.Storage.Size)
+}
+
+// TestCreateVMI tests a new VMI resources is created in K8s according to the CR
+// GIVEN a Verrazzano CR
+// WHEN I create a new VMI resource
+//  THEN the configuration in the CR is respected
+func TestCreateVMI(t *testing.T) {
+	ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &vmiEnabledCR, false)
+	err := createVMI(ctx)
+	assert.NoError(t, err)
+	vmi := &vmov1.VerrazzanoMonitoringInstance{}
+	namespacedName := types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
+	err = ctx.Client().Get(context.TODO(), namespacedName, vmi)
+	assert.NoError(t, err)
+	assert.Equal(t, "100Gi", vmi.Spec.Elasticsearch.Storage.Size)
+	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
+	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
+	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
 }
