@@ -85,4 +85,6 @@ type Component interface {
 	ComponentUpgrader
 
 	Reconcile(ctx ComponentContext) error
+
+	ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 }

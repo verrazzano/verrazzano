@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -118,6 +119,10 @@ func (i istioComponent) GetMinVerrazzanoVersion() string {
 // Name returns the component name
 func (i istioComponent) Name() string {
 	return ComponentName
+}
+
+func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
 }
 
 func (i istioComponent) Upgrade(context spi.ComponentContext) error {
