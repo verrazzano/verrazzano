@@ -10,7 +10,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	ginkgotypes "github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -33,19 +32,17 @@ var t = framework.NewTestFramework("coherenceworkload")
 
 var _ = t.BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if CurrentSpecReport().State == ginkgotypes.SpecStateInvalid {
-		pkg.Log(pkg.Info, "Setting flag failed to true as BeforeSuite failed")
-		failed = true
-	}
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)

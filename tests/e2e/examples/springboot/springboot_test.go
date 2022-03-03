@@ -11,7 +11,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -54,20 +53,18 @@ var _ = t.BeforeSuite(func() {
 		}
 		return result
 	}, longWaitTimeout, pollingInterval).Should(BeTrue())
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if CurrentSpecReport().State == types.SpecStateInvalid {
-		pkg.Log(pkg.Info, "Setting flag failed to true as BeforeSuite failed")
-		failed = true
-	}
-
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {

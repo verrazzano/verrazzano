@@ -13,7 +13,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -38,6 +37,7 @@ var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 // failed indicates whether any of the tests has failed
 var failed = false
+var beforeSuitePassed = false
 
 var t = framework.NewTestFramework("todo_list")
 
@@ -82,6 +82,7 @@ var _ = t.BeforeSuite(func() {
 	Eventually(func() error {
 		return DeployTodoListApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -289,11 +290,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 })
 
 var _ = t.AfterSuite(func() {
-	if CurrentSpecReport().State == types.SpecStateInvalid {
-		pkg.Log(pkg.Info, "Setting flag failed to true as BeforeSuite failed")
-		failed = true
-	}
-	if failed {
+	if failed || !beforeSuitePassed {
 		err := pkg.ExecuteClusterDumpWithEnvVarConfig()
 		if err != nil {
 			return

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -48,6 +47,7 @@ var _ = t.BeforeSuite(func() {
 		Eventually(func() error {
 			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
+		beforeSuitePassed = true
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 
@@ -62,18 +62,15 @@ var _ = t.BeforeSuite(func() {
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
 
-	if CurrentSpecReport().State == types.SpecStateInvalid {
-		pkg.Log(pkg.Info, "Setting flag failed to true as BeforeSuite failed")
-		failed = true
-	}
-
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {
@@ -98,12 +95,6 @@ var (
 	expectedPodsHelidonConfig = []string{"helidon-config-deployment"}
 	waitTimeout               = 10 * time.Minute
 	pollingInterval           = 30 * time.Second
-)
-
-const (
-	//testNamespace      = "helidon-config"
-	istioNamespace     = "istio-system"
-	ingressServiceName = "istio-ingressgateway"
 )
 
 var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",

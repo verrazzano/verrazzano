@@ -25,14 +25,14 @@ const (
 )
 
 var t = framework.NewTestFramework("helidonsharednamespace")
+var clusterDump = pkg.NewClusterDumpWrapper()
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
 	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, applicationPodPrefix, nil)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	metricsbinding.UndeployApplication(namespace, yamlPath, promConfigJobName)

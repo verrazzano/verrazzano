@@ -31,9 +31,10 @@ const (
 var (
 	t                  = framework.NewTestFramework("todo")
 	generatedNamespace = pkg.GenerateNamespace("todo-list")
+	clusterDump        = pkg.NewClusterDumpWrapper()
 )
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployToDoListExample(namespace)
@@ -55,7 +56,6 @@ var _ = t.BeforeSuite(func() {
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	if !skipUndeploy {

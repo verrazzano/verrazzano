@@ -6,7 +6,6 @@ package pkg
 import (
 	"fmt"
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,11 +17,19 @@ import (
 // - dump if any spec in the suite fails
 // - dump if the aftersuite fails
 type ClusterDumpWrapper struct {
-	failed bool
+	failed            bool
+	beforeSuitePassed bool
 }
 
 func NewClusterDumpWrapper() *ClusterDumpWrapper {
 	return &ClusterDumpWrapper{}
+}
+
+func (c *ClusterDumpWrapper) BeforeSuite(body func()) bool {
+	return ginkgo.BeforeSuite(func() {
+		body()
+		c.beforeSuitePassed = true
+	})
 }
 
 //AfterEach wraps ginkgo.AfterEach
@@ -38,12 +45,7 @@ func (c *ClusterDumpWrapper) AfterEach(body func()) bool {
 // usage: var _ = c.AfterSuite(func() { ...after suite logic... })
 func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 	return ginkgo.AfterSuite(func() {
-		if ginkgo.CurrentSpecReport().State == types.SpecStateInvalid {
-			fmt.Println("Setting flag failed to true as BeforeSuite failed")
-			c.failed = true
-		}
-
-		if c.failed {
+		if c.failed || !c.beforeSuitePassed {
 			ExecuteClusterDumpWithEnvVarSuffix(fmt.Sprintf("fail-%d", time.Now().Unix()))
 		}
 

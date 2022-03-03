@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/oracle/oci-go-sdk/v53/common/auth"
@@ -41,6 +40,7 @@ var region string
 var logSearchClient loggingsearch.LogSearchClient
 
 var failed = false
+var beforeSuitePassed = false
 
 var t = framework.NewTestFramework("logging")
 
@@ -64,14 +64,11 @@ var _ = t.BeforeSuite(func() {
 	var err error
 	logSearchClient, err = getLogSearchClient(region)
 	Expect(err).ShouldNot(HaveOccurred(), "Error configuring OCI SDK client")
+	beforeSuitePassed = true
 })
 
 var _ = t.AfterSuite(func() {
-	if CurrentSpecReport().State == types.SpecStateInvalid {
-		pkg.Log(pkg.Info, "Setting flag failed to true as BeforeSuite failed")
-		failed = true
-	}
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	pkg.Concurrently(

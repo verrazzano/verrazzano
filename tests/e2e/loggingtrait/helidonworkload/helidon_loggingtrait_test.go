@@ -28,12 +28,12 @@ const (
 var kubeConfig = os.Getenv("KUBECONFIG")
 
 var t = framework.NewTestFramework("helidonworkload")
+var clusterDump = pkg.NewClusterDumpWrapper()
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -47,20 +46,19 @@ var _ = t.BeforeSuite(func() {
 	deployFooApplication()
 	deployBarApplication()
 	deployNoIstioApplication()
+	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if CurrentSpecReport().State == types.SpecStateInvalid {
-		pkg.Log(pkg.Info, "Setting flag failed to true as BeforeSuite failed")
-		failed = true
-	}
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	start := time.Now()
