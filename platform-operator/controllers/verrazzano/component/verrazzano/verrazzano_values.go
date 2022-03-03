@@ -137,8 +137,6 @@ type vmoValues struct {
 type loggingValues struct {
 	Name                string `json:"name,omitempty"`
 	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
-	ElasticsearchScheme string `json:"elasticsearchScheme,omitempty"`
-	ElasticsearchPort   string `json:"elasticsearchPort,omitempty"`
 	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
 }
 

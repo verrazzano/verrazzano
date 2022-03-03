@@ -860,9 +860,7 @@ data:
       reload_on_failure true
       slow_flush_log_threshold 120s
 
-      host "#{ENV['OPENSEARCH_HOST']}"
-      scheme "#{ENV['OPENSEARCH_SCHEME']}"
-      port "#{ENV['OPENSEARCH_PORT']}"
+      hosts "#{ENV['OPENSEARCH_HOST']}"
       ca_file "#{ENV['CA_FILE']}"
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
@@ -901,9 +899,7 @@ data:
       reload_on_failure true
       slow_flush_log_threshold 120s
 
-      host "#{ENV['OPENSEARCH_HOST']}"
-      scheme "#{ENV['OPENSEARCH_SCHEME']}"
-      port "#{ENV['OPENSEARCH_PORT']}"
+      hosts "#{ENV['OPENSEARCH_HOST']}"
       ca_file "#{ENV['CA_FILE']}"
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
@@ -1108,12 +1104,8 @@ spec:
               value: "{{ .Values.logging.elasticsearchURL }}"
   {{- else }}
             - name: OPENSEARCH_HOST
-              value: "verrazzano-authproxy-elasticsearch"
+              value: "http://verrazzano-authproxy-elasticsearch:8775"
   {{- end }}
-            - name: OPENSEARCH_SCHEME
-              value: "{{ .Values.logging.elasticsearchScheme }}"
-            - name: OPENSEARCH_PORT
-              value: "{{ .Values.logging.elasticsearchPort }}"
             - name: CLUSTER_NAME
               value: local
             - name: ELASTICSEARCH_USER

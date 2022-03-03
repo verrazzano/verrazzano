@@ -46,9 +46,8 @@ func appendVerrazzanoOverrides(ctx spi.ComponentContext, _ string, _ string, _ s
 	vzkvs = appendVMIOverrides(effectiveCR, &overrides, resourceRequestOverrides, vzkvs)
 
 	// append any fluentd overrides
-	if err := appendFluentdOverrides(effectiveCR, &overrides); err != nil {
-		return kvs, ctx.Log().ErrorfNewErr("Failed appending Fluentd overrides: %v", err)
-	}
+	appendFluentdOverrides(effectiveCR, &overrides)
+
 	// append the security role overrides
 	if err := appendSecurityOverrides(effectiveCR, &overrides); err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed appending Verrazzano security overrides: %v", err)
@@ -224,7 +223,7 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValu
 	return kvs
 }
 
-func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) error {
+func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues) {
 	overrides.Fluentd = &fluentdValues{
 		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
 	}
@@ -233,9 +232,7 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 	if fluentd != nil {
 		overrides.Logging = &loggingValues{}
 		if len(fluentd.ElasticsearchURL) > 0 {
-			if err := setLoggingOverrides(overrides.Logging, fluentd.ElasticsearchURL); err != nil {
-				return err
-			}
+			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
 			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
@@ -271,6 +268,4 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzano
 			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
 		}
 	}
-
-	return nil
 }

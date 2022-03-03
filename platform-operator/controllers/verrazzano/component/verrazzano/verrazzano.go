@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	neturl "net/url"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -209,33 +208,6 @@ func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues,
 		}, nil
 	}
 	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
-}
-
-func newURIComponents(url string) (*uriComponents, error) {
-	parsedURL, err := neturl.Parse(url)
-	if err != nil {
-		return nil, err
-	}
-	uriComp := &uriComponents{}
-	if len(parsedURL.Port()) > 0 {
-		uriComp.port = parsedURL.Port()
-	} else {
-		uriComp.port = searchPort
-	}
-	uriComp.scheme = parsedURL.Scheme
-	uriComp.host = strings.Split(parsedURL.Host, ":")[0]
-	return uriComp, nil
-}
-
-func setLoggingOverrides(values *loggingValues, url string) error {
-	uriComp, err := newURIComponents(url)
-	if err != nil {
-		return err
-	}
-	values.ElasticsearchURL = uriComp.host
-	values.ElasticsearchPort = uriComp.port
-	values.ElasticsearchScheme = uriComp.scheme
-	return nil
 }
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does

@@ -157,23 +157,16 @@ type (
 		SequenceNumber int    `json:"_seq_no"`
 		Status         int    `json:"status"`
 	}
-	uriComponents struct {
-		host   string
-		port   string
-		scheme string
+	ReindexInput struct {
+		SourceName      string
+		DestinationName string
+		NumberOfSeconds string
+	}
+	ReindexInputWithoutQuery struct {
+		SourceName      string
+		DestinationName string
 	}
 )
-
-type ReindexInput struct {
-	SourceName      string
-	DestinationName string
-	NumberOfSeconds string
-}
-
-type ReindexInputWithoutQuery struct {
-	SourceName      string
-	DestinationName string
-}
 
 // The system namespaces used in Verrazzano
 var (

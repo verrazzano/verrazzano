@@ -71,8 +71,6 @@ monitoringOperator:
 
 logging:
   name: fluentd
-  elasticsearchScheme: http
-  elasticsearchPort: 8775
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
 
 fluentd:
