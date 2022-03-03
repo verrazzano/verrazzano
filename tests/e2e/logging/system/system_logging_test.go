@@ -156,6 +156,16 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 
 		valid := true
 		valid = validateCertManagerLogs() && valid
+
+		dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
+		if err != nil {
+			dnsPodExist = false
+			t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
+		}
+		if dnsPodExist {
+			valid = validateExternalDNSLogs() && valid
+		}
+
 		if !valid {
 			// Don't fail for invalid logs until this is stable.
 			t.Logs.Info("Found problems with log records in cert-manager index")
@@ -236,13 +246,21 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			// GIVEN existing system logs
 			// WHEN the Elasticsearch index for the local-path-storage namespace is retrieved
 			// THEN verify that it is found
-			Eventually(func() bool {
-				return pkg.LogIndexFound(localPathStorageIndex)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
 
-			if !validateLocalPathStorageLogs() {
-				// Don't fail for invalid logs until this is stable.
-				t.Logs.Info("Found problems with log records in local-path-storage index")
+			dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
+			if err != nil {
+				dnsPodExist = false
+				t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
+			}
+			if !dnsPodExist {
+				Eventually(func() bool {
+					return pkg.LogIndexFound(localPathStorageIndex)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
+
+				if !validateLocalPathStorageLogs() {
+					// Don't fail for invalid logs until this is stable.
+					t.Logs.Info("Found problems with log records in local-path-storage index")
+				}
 			}
 		})
 	}
@@ -403,6 +421,16 @@ func validateCertManagerLogs() bool {
 		certMgrIndex,
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"cert-manager",
+		searchTimeWindow,
+		noExceptions)
+}
+
+func validateExternalDNSLogs() bool {
+	return validateElasticsearchRecords(
+		allElasticsearchRecordValidator,
+		certMgrIndex,
+		"kubernetes.labels.app_kubernetes_io/instance",
+		"external-dns",
 		searchTimeWindow,
 		noExceptions)
 }
