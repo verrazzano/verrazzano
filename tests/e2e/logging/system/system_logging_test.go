@@ -6,6 +6,7 @@ package system
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -239,26 +240,30 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
-	t.It("contains local-path-storage index with valid records", func() {
-		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the local-path-storage namespace is retrieved
-		// THEN verify that it is found
-		dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
-		if err != nil {
-			dnsPodExist = false
-			t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
-		}
-		if !dnsPodExist {
-			Eventually(func() bool {
-				return pkg.LogIndexFound(localPathStorageIndex)
-			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
+	testEnv := os.Getenv("TEST_ENV")
+	if testEnv != "LRE" {
+		t.It("contains local-path-storage index with valid records", func() {
+			// GIVEN existing system logs
+			// WHEN the Elasticsearch index for the local-path-storage namespace is retrieved
+			// THEN verify that it is found
 
-			if !validateLocalPathStorageLogs() {
-				// Don't fail for invalid logs until this is stable.
-				t.Logs.Info("Found problems with log records in local-path-storage index")
+			dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
+			if err != nil {
+				dnsPodExist = false
+				t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
 			}
-		}
-	})
+			if !dnsPodExist {
+				Eventually(func() bool {
+					return pkg.LogIndexFound(localPathStorageIndex)
+				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
+
+				if !validateLocalPathStorageLogs() {
+					// Don't fail for invalid logs until this is stable.
+					t.Logs.Info("Found problems with log records in local-path-storage index")
+				}
+			}
+		})
+	}
 
 	t.It("contains rancher-operator-system index with valid records", func() {
 		// GIVEN existing system logs

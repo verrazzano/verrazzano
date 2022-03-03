@@ -5,7 +5,6 @@ apiVersion: app.verrazzano.io/v1alpha1
 kind: MetricsTemplate
 metadata:
   name: test-metrics-template
-  namespace: hello-helidon-namespace
 spec:
   workloadSelector:
     apiGroups: ["apps"]
