@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211209212613-c6a2d0dd3",
+              "tag": "0.46.0-20220301064424-ee602c1aa",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "0.46.0-20211209212613-c6a2d0dd3",
+              "tag": "0.46.0-20220301064424-ee602c1aa",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -125,13 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.5.9-20211209021347-2e57ce2a4",
+              "tag": "v2.5.9-20220228142012-806336795",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.5.9-20211209021347-2e57ce2a4"
+              "tag": "v2.5.9-20220228142012-806336795"
             }
           ]
         },
@@ -150,7 +150,7 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.1.2"
+              "tag": "v0.1.3"
             },
             {
               "image": "fleet-agent",
@@ -197,7 +197,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.3.0-20220225175957-5afd166",
+              "tag": "1.3.0-20220301155947-2693a25",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -233,7 +233,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211209212613-c6a2d0dd3",
+              "tag": "0.46.0-20220301064424-ee602c1aa",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
@@ -249,7 +249,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "0.46.0-20211209212613-c6a2d0dd3",
+              "tag": "0.46.0-20220301064424-ee602c1aa",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
@@ -336,7 +336,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.3",
+              "tag": "3.2.5",
               "helmFullImageKey": "image"
             }
           ]

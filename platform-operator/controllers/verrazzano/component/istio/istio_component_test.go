@@ -354,18 +354,43 @@ func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 //  THEN true is returned
 func TestIsReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: IstioNamespace,
-			Name:      IstiodDeployment,
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstiodDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioInressgatewayDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
 		},
-	},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioEressgatewayDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
 	)
 	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, nil, false)

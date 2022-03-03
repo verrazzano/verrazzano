@@ -42,16 +42,6 @@ if [ -z "$6" ]; then
 fi
 GENERATED_BOM_FILE=$6
 
-if [ -f "${BOM_FILE}" ]; then
-  cat ${BOM_FILE} | jq . > /dev/null
-  if [ $? != 0 ]; then
-    echo "[ERROR] BOM template file '${BOM_FILE}' is not a well formed JSON"
-    exit 1
-  fi
-else
-  echo "[ERROR] The BOM template '${BOM_FILE}' does not exist or is not a file"
-fi
-
 cp ${BOM_FILE} ${GENERATED_BOM_FILE}
 
 # Update the BOM file for the application operator and platform operator images.

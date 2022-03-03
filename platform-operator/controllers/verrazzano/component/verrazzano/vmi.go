@@ -6,11 +6,13 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -25,7 +27,7 @@ const (
 
 //createVMI instantiates the VMI resource and the Grafana Dashboards configmap
 func createVMI(ctx spi.ComponentContext) error {
-	if !isVMOEnabled(ctx.EffectiveCR()) {
+	if !vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
 
@@ -93,8 +95,10 @@ func newGrafana(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1
 		},
 		Storage: vmov1.Storage{},
 	}
+	setDefaultStorageSize(cr, storage, &grafana.Storage)
+
 	if vmi != nil {
-		grafana.Storage.PvcNames = vmi.Spec.Grafana.Storage.PvcNames
+		grafana.Storage = vmi.Spec.Grafana.Storage
 	}
 
 	if storage != nil {
@@ -116,9 +120,10 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 		Storage: vmov1.Storage{},
 	}
+	setDefaultStorageSize(cr, storage, &prometheus.Storage)
 
 	if vmi != nil {
-		prometheus.Storage.PvcNames = vmi.Spec.Prometheus.Storage.PvcNames
+		prometheus.Storage = vmi.Spec.Prometheus.Storage
 	}
 
 	if storage != nil {
@@ -126,6 +131,12 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	}
 
 	return prometheus
+}
+
+func setDefaultStorageSize(cr *vzapi.Verrazzano, storage *resourceRequestValues, storageObject *vmov1.Storage) {
+	if cr.Spec.Profile == vzapi.Prod && storage == nil {
+		storageObject.Size = "50Gi"
+	}
 }
 
 func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) (*vmov1.Elasticsearch, error) {
@@ -151,12 +162,12 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
-	if storage != nil {
-		opensearch.Storage.Size = storage.Storage
+	if vmi != nil {
+		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
 	}
 
-	if vmi != nil {
-		opensearch.Storage.PvcNames = vmi.Spec.Elasticsearch.Storage.PvcNames
+	if storage != nil {
+		opensearch.Storage.Size = storage.Storage
 	}
 
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {

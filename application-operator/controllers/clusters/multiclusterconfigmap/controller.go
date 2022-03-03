@@ -15,6 +15,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // Reconciler reconciles a MultiClusterConfigMap object
@@ -25,13 +26,24 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclusterconfigmap.verrazzano.io"
+const (
+	finalizerName = "multiclusterconfigmap.verrazzano.io"
+	kubeSystem    = "kube-system"
+)
 
 // Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
 // mutates it based on the MultiClusterConfigMap, and updates the status of the
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == kubeSystem {
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
 	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)

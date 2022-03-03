@@ -128,7 +128,7 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	if e.vmiHTTPClient == nil {
 		var err error
-		e.vmiHTTPClient, err = pkg.GetBindingVmiHTTPClient(e.binding, kubeconfigPath)
+		e.vmiHTTPClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 		if err != nil {
 			return nil, err
 		}

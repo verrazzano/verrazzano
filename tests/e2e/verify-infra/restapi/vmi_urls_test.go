@@ -92,7 +92,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 				var sysVmiHTTPClient *retryablehttp.Client
 				Eventually(func() (*retryablehttp.Client, error) {
 					var err error
-					sysVmiHTTPClient, err = pkg.GetSystemVmiHTTPClient()
+					sysVmiHTTPClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 					return sysVmiHTTPClient, err
 				}, waitTimeout, pollingInterval).ShouldNot(BeNil(), "Unable to get system VMI HTTP client")
 
@@ -132,7 +132,7 @@ func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryableh
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting ingress from API: %v", err))
 		return false
 	}
-	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0])
+	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 	if !strings.HasPrefix(vmiComponentURL, expectedURLPrefix) {
 		pkg.Log(pkg.Error, fmt.Sprintf("URL '%s' does not have expected prefix: %s", vmiComponentURL, expectedURLPrefix))
 		return false
