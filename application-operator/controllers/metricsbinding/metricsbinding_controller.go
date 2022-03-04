@@ -64,7 +64,7 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	}
 	log, err := clusters.GetResourceLogger("metricsbinding", req.NamespacedName, &metricsBinding)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for metrics binding", err)
+		zap.S().Errorf("Failed to create controller logger for metrics binding resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling metrics binding resource %v, generation %v", req.NamespacedName, metricsBinding.Generation)
@@ -196,7 +196,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 
 	// Verify the Owner Reference exists
 	if len(metricsBinding.OwnerReferences) < 1 {
-		return fmt.Errorf("no Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
+		return fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
 	}
 
 	// Delete scrape config with job name matching resource

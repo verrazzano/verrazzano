@@ -56,7 +56,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mccomponent", req.NamespacedName, &mcComp)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for multi-cluster component", err)
+		zap.S().Errorf("Failed to create controller logger for multi-cluster component resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling multi-cluster component resource %v, generation %v", req.NamespacedName, mcComp.Generation)

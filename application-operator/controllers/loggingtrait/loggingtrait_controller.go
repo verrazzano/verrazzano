@@ -76,7 +76,7 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	}
 	log, err := clusters.GetResourceLogger("loggingtrait", req.NamespacedName, trait)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for logging trait", err)
+		zap.S().Errorf("Failed to create controller logger for logging trait resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling logging trait resource %v, generation %v", req.NamespacedName, trait.Generation)

@@ -60,7 +60,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mcapplicationconfiguration", req.NamespacedName, &mcAppConfig)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for multi-cluster application configuration", err)
+		zap.S().Errorf("Failed to create controller logger for multi-cluster application configuration resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling multi-cluster application configuration resource %v, generation %v", req.NamespacedName, mcAppConfig.Generation)

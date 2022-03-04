@@ -78,7 +78,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mcconfigmap", req.NamespacedName, &vp)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for Verrazzano project", err)
+		zap.S().Errorf("Failed to create controller logger for Verrazzano project resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Verrazzano project resource %v, generation %v", req.NamespacedName, vp.Generation)

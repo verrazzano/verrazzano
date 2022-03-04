@@ -237,7 +237,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log, err := clusters.GetResourceLogger("metricstrait", req.NamespacedName, trait)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for metrics trait", err)
+		zap.S().Errorf("Failed to create controller logger for metrics trait resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling metrics trait resource %v, generation %v", req.NamespacedName, trait.Generation)
@@ -1132,7 +1132,7 @@ func (r *Reconciler) removedTraitReferencesFromOwner(ctx context.Context, ownerR
 		for i := range appConfig.Spec.Components {
 			component := &appConfig.Spec.Components[i]
 			if component.Traits != nil {
-				var remainingTraits []oamv1.ComponentTrait
+				remainingTraits := []oamv1.ComponentTrait{}
 				for _, componentTrait := range component.Traits {
 					remainingTraits = append(remainingTraits, componentTrait)
 					componentTraitUnstructured, err := vznav.ConvertRawExtensionToUnstructured(&componentTrait.Trait)

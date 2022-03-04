@@ -70,7 +70,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("applicationconfiguration", req.NamespacedName, &appConfig)
 	if err != nil {
-		log.Error("Failed to create controller logger for application configuration", err)
+		log.Errorf("Failed to create controller logger for application configuration resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling application configuration resource %v, generation %v", req.NamespacedName, appConfig.Generation)

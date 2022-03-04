@@ -55,7 +55,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mcsecret", req.NamespacedName, &mcSecret)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for multi-cluster secret", err)
+		zap.S().Errorf("Failed to create controller logger for multi-cluster secret resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling multi-cluster secret resource %v, generation %v", req.NamespacedName, mcSecret.Generation)

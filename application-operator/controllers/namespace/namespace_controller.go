@@ -81,7 +81,7 @@ func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 	log, err := clusters.GetResourceLogger("namespace", req.NamespacedName, &ns)
 	if err != nil {
-		zap.S().Error("Failed to create controller logger for namespace", err)
+		zap.S().Errorf("Failed to create controller logger for namespace resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling namespace resource %v, generation %v", req.NamespacedName, ns.Generation)
