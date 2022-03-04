@@ -27,7 +27,8 @@ controller:
     https: 443
 
   # Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/
-  config: {}
+  config:
+    custom-http-errors: 400,404,500,502,503
 
   ## Annotations to be added to the controller config configuration configmap
   ##
@@ -604,7 +605,7 @@ revisionHistoryLimit: 10
 ##
 defaultBackend:
   ##
-  enabled: false
+  enabled: true
 
   name: defaultbackend
   image:
@@ -675,7 +676,8 @@ defaultBackend:
 
   ## Annotations to be added to default backend pods
   ##
-  podAnnotations: {}
+  podAnnotations:
+    traffic.sidecar.istio.io/excludeInboundPorts: "8080"
 
   replicaCount: 1
 
@@ -689,15 +691,26 @@ defaultBackend:
   #   cpu: 10m
   #   memory: 20Mi
 
-  extraVolumeMounts: []
-  ## Additional volumeMounts to the default backend container.
-  #  - name: copy-portal-skins
-  #   mountPath: /var/lib/lemonldap-ng/portal/skins
+  extraVolumeMounts:
+    - name: error-pages
+      mountPath: /www
 
-  extraVolumes: []
-  ## Additional volumes to the default backend pod.
-  #  - name: copy-portal-skins
-  #    emptyDir: {}
+  extraVolumes:
+    - name: error-pages
+      configMap:
+        name: ingress-controller-ingress-nginx-defaultbackend-custom-error-pages
+        items:
+          - key: 400.html
+            path: 400.html
+          - key: 404.html
+            path: 404.html
+          - key: 500.html
+            path: 500.html
+          - key: 502.html
+            path: 502.html
+          - key: 503.html
+            path: 503.html
+
 
   autoscaling:
     enabled: false

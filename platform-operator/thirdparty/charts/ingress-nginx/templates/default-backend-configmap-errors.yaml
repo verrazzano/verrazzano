@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ingress-nginx.defaultBackend.fullname" . }}-custom-error-pages
+data:
+  400.html: |
+    <html>
+    <head><title>400 Not Found</title></head>
+    <body>
+    <center><h1>400 Not Found</h1></center>
+    <hr><center>verrazzano</center>
+    </body>
+    </html>
+  404.html: |
+    <html>
+    <head><title>404 Not Found</title></head>
+    <body>
+    <center><h1>404 Not Found</h1></center>
+    <hr><center>verrazzano</center>
+    </body>
+    </html>
+  500.html: |
+    <html>
+    <head><title>500 Internal Server Error</title></head>
+    <body>
+    <center><h1>500 Internal Server Error</h1></center>
+    <hr><center>verrazzano</center>
+    </body>
+    </html>
+  502.html: |
+    <html>
+    <head><title>502 Internal Server Error</title></head>
+    <body>
+    <center><h1>502 Internal Server Error</h1></center>
+    <hr><center>verrazzano</center>
+    </body>
+    </html>
+  503.html: |
+    <html>
+    <head><title>503 Service Unavailable</title></head>
+    <body>
+    <center><h1>503 Service Unavailable</h1></center>
+    <hr><center>verrazzano</center>
+    </body>
+    </html>
