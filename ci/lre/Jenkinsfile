@@ -262,14 +262,15 @@ pipeline {
 
         stage('Run Acceptance Tests') {
             parallel {
-                stage('verify-infra tests') {
-                    steps {
-                        runGinkgoRandomize(['verify-infra/restapi', 'verify-infra/vmi'])
-                    }
-                }
+                //stage('verify-infra tests') {
+                //    steps {
+                //        runGinkgoRandomize(['verify-infra/restapi', 'verify-infra/vmi'])
+                //    }
+                //}
                 stage('Run examples, logging and metrics tests') {
                     steps {
-                        runGinkgo(['istio/authz', 'security/rbac', 'logging/system', 'logging/helidon',
+                        runGinkgo(['verify-infra/restapi', 'verify-infra/vmi',
+                                   'istio/authz', 'security/rbac', 'logging/system', 'logging/helidon',
                                    'examples/helidon', 'examples/helidonconfig', 'examples/springboot',
                                    'examples/todo', 'examples/bobsbooks', 'metrics/deploymetrics',
                                    'metricsbinding', 'loggingtrait/helidonworkload', 'loggingtrait/weblogicworkload',
@@ -308,15 +309,16 @@ def runGinkgoRandomize(list) {
 }
 
 def runGinkgo(list) {
-    for (int i = 0; i < list.size(); i++) {
-        stage(list[i]) {
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -v --keep-going --no-color ${list[i]}/...
-                """
-            }
-        }
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -p --randomize-all --keep-going --no-color verify-infra/restapi/... verify-infra/vmi/... \
+                   istio/authz/... security/rbac/... logging/system/... logging/helidon/... \
+                   examples/helidon/... examples/helidonconfig/... examples/springboot/... \
+                   examples/todo/... examples/bobsbooks/... metrics/deploymetrics/... \
+                   metricsbinding/... loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
+                   loggingtrait/coherenceworkload/...
+        """
     }
 }
 
