@@ -7,14 +7,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
+
+	batchv1 "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/core/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
