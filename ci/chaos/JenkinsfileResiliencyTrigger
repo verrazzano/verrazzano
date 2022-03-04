@@ -8,6 +8,11 @@ pipeline {
         skipDefaultCheckout true
     }
 
+    triggers {
+        // run this job on master every 3 hours between 6 AM and 6 PM
+        cron(env.BRANCH_NAME == 'master' ? 'H 06-18/3 * * *' : '')
+    }
+
     agent {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
@@ -182,7 +187,7 @@ pipeline {
         }
         failure {
             script {
-                if (env.JOB_NAME == "verrazzano-chaos-tests/master" || env.JOB_NAME ==~ "verrazzano-chaos-tests/release-1.*") {
+                if (env.JOB_NAME == "verrazzano-upgrade-resiliency-tests/master" || env.JOB_NAME ==~ "verrazzano-upgrade-resiliency-tests/release-1.*") {
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
