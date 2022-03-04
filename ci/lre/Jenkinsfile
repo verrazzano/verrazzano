@@ -208,20 +208,24 @@ pipeline {
                             //dev2 lre cluster use bastion host from lre/dev compartment
                             env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
                             env.CLUSTER_IP = "${dev2_private_ip}"
+                            env.SESSION_NAME = "lre-dev2-pf-session"
                             break
                         case "prod" :
                             env.COMPARTMENT_ID = "${prod_lre_compartment_id}"
                             env.CLUSTER_IP = "${prod_private_ip}"
+                            env.SESSION_NAME = "lre-prod-pf-session"
                             break
                         case "test" :
                             //test lre cluster use bastion host from lre/dev compartment
                             env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
                             env.CLUSTER_IP = "${test_private_ip}"
+                            env.SESSION_NAME = "lre-test-pf-session"
                             break
                         default:
                             //dev2 lre cluster use bastion host from lre/dev compartment
                             env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
                             env.CLUSTER_IP = "${dev2_private_ip}"
+                            env.SESSION_NAME = "lre-dev2-pf-session"
                             break
                     }
                     sh '''

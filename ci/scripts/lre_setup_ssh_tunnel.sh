@@ -32,20 +32,30 @@ if [ -z "$BASTION_ID" ]; then
     exit 1
 fi
 
-SESSION_ID=$(oci bastion session create-port-forwarding \
-   --bastion-id $BASTION_ID \
-   --ssh-public-key-file ${ssh_public_key_path} \
-   --session-ttl 7200 \
-   --target-private-ip ${CLUSTER_IP} \
-   --target-port 6443 | jq '.data.id' | sed s/\"//g)
+SESSION_ID=$(oci bastion session list --all --bastion-id $BASTION_ID \
+             --session-lifecycle-state ACTIVE \
+             | jq -r --arg sname ${SESSION_NAME} '.data[] | select(."display-name"==$sname) | .id')
+if [ -z "${SESSION_ID}" ]; then
+    echo "Creating port forwarding bastion session ${SESSION_NAME} "
+    SESSION_ID=$(oci bastion session create-port-forwarding \
+      --bastion-id $BASTION_ID \
+      --ssh-public-key-file ${ssh_public_key_path} \
+      --session-ttl 7200 \
+      --target-private-ip ${CLUSTER_IP} \
+      --display-name ${SESSION_NAME} \
+      --target-port 6443 | jq '.data.id' | sed s/\"//g)
+      sleep 60
+else
+    echo "Reusing existing session ${SESSION_NAME}, OCID: ${SESSION_ID}"
+fi
 
 if [ -z "$SESSION_ID" ]; then
     echo "Failed to create a bastion session"
     exit 1
 fi
 
-echo "Waiting for $SESSION_ID to start"
-sleep 60
+#echo "Waiting for $SESSION_ID to start"
+#sleep 60
 
 COMMAND=`oci bastion session get  --session-id=${SESSION_ID} | \
   jq '.data."ssh-metadata".command' | \
