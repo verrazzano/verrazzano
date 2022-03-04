@@ -310,11 +310,13 @@ def runGinkgoRandomize(list) {
 def runGinkgo(list) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         for (int i = 0; i < list.size(); i++) {
-            stage(list[i]) {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -v --keep-going --no-color ${list[i]}/...
-                """
+            parallel {
+                stage(list[i]) {
+                    sh """
+                        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                        ginkgo -v --keep-going --no-color ${list[i]}/...
+                    """
+                }
             }
         }
     }
