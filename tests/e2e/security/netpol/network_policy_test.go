@@ -61,8 +61,9 @@ var (
 )
 
 var t = framework.NewTestFramework("netpol")
+var clusterDump = pkg.NewClusterDumpWrapper()
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
 	Eventually(func() (*corev1.Namespace, error) {
 		nsLabels := map[string]string{}
@@ -96,7 +97,6 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	// undeploy the applications here

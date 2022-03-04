@@ -30,6 +30,7 @@ var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 // failed indicates whether any of the tests has failed
 var failed = false
+var beforeSuitePassed = false
 
 var t = framework.NewTestFramework("mcnshelidon")
 
@@ -54,6 +55,7 @@ var _ = t.BeforeSuite(func() {
 	Eventually(func() error {
 		return examples.DeployHelloHelidonApp(adminKubeconfig, sourceDir)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -139,7 +141,7 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", Lab
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 })
