@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	batchv1 "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/core/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os/exec"
@@ -912,6 +913,13 @@ func TestUpgradeHelmError(t *testing.T) {
 			return nil
 		})
 
+	// expect a call to list any pending upgrade secrets for the component
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, opts ...client.ListOption) error {
+			return nil
+		})
+
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
 
@@ -1095,6 +1103,92 @@ func TestUpgradeComponent(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
+}
+
+// TestUpgradeComponentWithPendingUpgradeStatus tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an upgrade
+// WHEN the component fails to upgrade since a pending upgrade exists
+// THEN the pending status secret is deleted so the upgrade can proceed
+func TestUpgradeComponentWithPendingUpgradeStatus(t *testing.T) {
+	initUnitTesing()
+	namespace := "verrazzano"
+	name := "test"
+
+	config.SetDefaultBomFilePath(unitTestBomFile)
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	vz := vzapi.Verrazzano{}
+	vz.TypeMeta = metav1.TypeMeta{
+		APIVersion: "install.verrazzano.io/v1alpha1",
+		Kind:       "Verrazzano"}
+	vz.ObjectMeta = metav1.ObjectMeta{
+		Namespace:  namespace,
+		Name:       name,
+		Finalizers: []string{finalizerName},
+	}
+	vz.Spec = vzapi.VerrazzanoSpec{
+		Version: "0.2.0"}
+	vz.Status = vzapi.VerrazzanoStatus{
+		State: vzapi.VzStateUpgrading,
+		Conditions: []vzapi.Condition{
+			{
+				Type: vzapi.CondUpgradeStarted,
+			},
+		},
+		Components: makeVerrazzanoComponentStatusMap(),
+	}
+
+	mockComp := mocks.NewMockComponent(mocker)
+
+	registry.OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			mockComp,
+		}
+	})
+	defer registry.ResetGetComponentsFn()
+
+	config.TestProfilesDir = "../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+
+	// Set mock component expectations
+	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).Times(1)
+	mockComp.EXPECT().Name().Return("testcomp").Times(1)
+
+	// expect a call to list any pending upgrade secrets for the component
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, opts ...client.ListOption) error {
+			secretList.Items = []v1.Secret{{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"name": "testcomp", "status": "pending-upgrade"},
+				},
+			}}
+			return nil
+		})
+
+	// expect a call to delete the secret
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+	// Expect a call to get the status writer and return a mock.
+	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+
+	// Reconcile upgrade
+	reconciler := newVerrazzanoReconciler(mock)
+	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
 }
 
 // TestUpgradeMultipleComponentsOneDisabled tests the reconcileUpgrade method for the following use case

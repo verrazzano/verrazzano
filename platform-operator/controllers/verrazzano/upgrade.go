@@ -4,8 +4,11 @@
 package verrazzano
 
 import (
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/controller"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -16,6 +19,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	kblabels "k8s.io/apimachinery/pkg/labels"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -101,6 +105,8 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			compLog.Oncef("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
 				compLog.Errorf("Error upgrading component %s: %v", compName, err)
+				// check to see whether this is due to a pending upgrade
+				r.resolvePendingUpgrades(compName, compLog)
 				// requeue for 30 to 60 seconds later
 				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
 			}
@@ -136,6 +142,29 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	// Upgrade completely done
 	deleteUpgradeTracker(cr)
 	return ctrl.Result{}, nil
+}
+
+// resolvePendingUpgrdes will delete any helm secrets with a "pending-upgrade" status for the given component
+func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.VerrazzanoLogger) {
+	labelSelector := kblabels.Set{"name": compName, "status": "pending-upgrade"}.AsSelector()
+	helmSecrets := v1.SecretList{}
+	err := r.Client.List(context.TODO(), &helmSecrets, &clipkg.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			compLog.Debugf("No pending upgrade found for component %s.  Re-trying upgrade", compName)
+		} else {
+			compLog.Errorf("Error attempting to determine if upgrade is pending for component %s: %v.  Re-trying upgrade", compName, err)
+		}
+	}
+	// remove any pending upgrade secrets
+	for i := range helmSecrets.Items {
+		err := r.Client.Delete(context.TODO(), &helmSecrets.Items[i], &clipkg.DeleteOptions{})
+		if err != nil {
+			compLog.Errorf("Unable to remove pending upgrade helm secret for component %s: %v", compName, err)
+		} else {
+			compLog.Infof("Resolved pending upgrade for component %s", compName)
+		}
+	}
 }
 
 // isInstalled returns true if Verrazzano is installed

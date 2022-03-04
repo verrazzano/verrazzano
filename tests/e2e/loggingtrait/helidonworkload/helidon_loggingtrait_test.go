@@ -18,17 +18,18 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	namespace            = "hello-helidon-logging"
 	componentsPath       = "testdata/loggingtrait/helidonworkload/helidon-logging-components.yaml"
 	applicationPath      = "testdata/loggingtrait/helidonworkload/helidon-logging-application.yaml"
 	applicationPodName   = "hello-helidon-deployment-"
 	configMapName        = "logging-stdout-hello-helidon-deployment-deployment"
 )
 
-var kubeConfig = os.Getenv("KUBECONFIG")
-
-var t = framework.NewTestFramework("helidonworkload")
-var clusterDump = pkg.NewClusterDumpWrapper()
+var (
+	kubeConfig         = os.Getenv("KUBECONFIG")
+	t                  = framework.NewTestFramework("helidonworkload")
+	generatedNamespace = pkg.GenerateNamespace("hello-helidon-logging")
+	clusterDump        = pkg.NewClusterDumpWrapper()
+)
 
 var _ = clusterDump.BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)

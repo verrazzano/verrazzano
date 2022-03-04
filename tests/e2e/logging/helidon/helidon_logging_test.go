@@ -25,7 +25,10 @@ const (
 	imagePullPollingInterval = 30 * time.Second
 )
 
-var t = framework.NewTestFramework("helidon")
+var (
+	t                  = framework.NewTestFramework("helidon")
+	generatedNamespace = pkg.GenerateNamespace("helidon-logging")
+)
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -33,19 +36,19 @@ var _ = t.BeforeSuite(func() {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace("helidon-logging", nsLabels)
+		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(testNamespace, expectedPodsHelloHelidon)
+		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 	// Verify hello-helidon-workload pod is running
 	Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
@@ -67,15 +70,15 @@ var _ = t.AfterSuite(func() {
 	// undeploy the application here
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteNamespace("helidon-logging")
+		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
@@ -84,10 +87,6 @@ var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-workload"}
 	waitTimeout              = 10 * time.Minute
 	pollingInterval          = 30 * time.Second
-)
-
-const (
-	testNamespace = "helidon-logging"
 )
 
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
@@ -101,7 +100,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// THEN return the host name found in the gateway.
 	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -122,7 +121,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
-		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
+		indexName := fmt.Sprintf("verrazzano-namespace-%s", namespace)
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
@@ -161,9 +160,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 })
 
 func helloHelidonPodsRunning() bool {
-	result, err := pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 	return result
 }

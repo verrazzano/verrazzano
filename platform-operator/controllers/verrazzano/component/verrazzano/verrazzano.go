@@ -111,7 +111,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
 			for _, args := range esInstallArgs {
-				/* This should be uncommented when VZ-5128 is fixed
 				if args.Name == "nodes.data.replicas" {
 					replicas, _ := strconv.Atoi(args.Value)
 					for i := 0; replicas > 0 && i < replicas; i++ {
@@ -120,7 +119,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					}
 					continue
 				}
-				*/
 				if args.Name == "nodes.ingest.replicas" {
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {

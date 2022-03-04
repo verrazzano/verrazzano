@@ -4,7 +4,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: sockshop-appconf
-  namespace: sockshop-logging
   annotations:
     version: v1.0.0
     description: "OAM Sock Shop Application"
@@ -34,7 +33,6 @@ spec:
             kind: LoggingTrait
             metadata:
               name: logging-trait
-              namespace: sockshop-logging
             spec:
               loggingImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2
               loggingConfig: |

@@ -6,14 +6,15 @@ package appconfig
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"go.uber.org/zap"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"testing"
-	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 
@@ -856,7 +857,7 @@ func TestDeleteCertAndSecretWhenAppConfigIsDeleted(t *testing.T) {
 	// Expect a call to delete the cert
 	cli.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
+		DoAndReturn(func(ctx context.Context, cert *certapiv1.Certificate, opt *client.DeleteOptions) error {
 			assert.Equal(constants.IstioSystemNamespace, cert.Namespace)
 			assert.Equal(fmt.Sprintf("%s-%s-cert", testNamespace, testAppConfigName), cert.Name)
 			return nil
