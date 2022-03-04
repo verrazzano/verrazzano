@@ -299,6 +299,8 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", 9090, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "vmi-system-kiali"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", 9090, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test node-exporter ingress rules")
