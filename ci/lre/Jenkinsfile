@@ -1,12 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
-                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
-               [$class: 'BuildDiscarderProperty',
-                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
-                pipelineTriggers([cron('H/5 * * * *')]),
-           ])
+//properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
+//                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
+//               [$class: 'BuildDiscarderProperty',
+//                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
+//                pipelineTriggers([cron('H/5 * * * *')]),
+//           ])
 
 pipeline {
     options {
@@ -262,11 +262,8 @@ pipeline {
 
         stage('Run Acceptance Tests') {
             parallel {
-                stage('verify-infra') {
+                stage('verify-infra tests') {
                     steps {
-                        sh '''
-                            echo ${KUBECONFIG}
-                        '''
                         runGinkgoRandomize(['verify-infra/restapi', 'verify-infra/vmi'])
                     }
                 }
@@ -297,7 +294,7 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomize(list) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         for (int i = 0; i < list.size(); i++) {
             stage(list[i]) {
@@ -310,7 +307,7 @@ def runGinkgoRandomize(testSuitePath) {
     }
 }
 
-def runGinkgo(testSuitePath) {
+def runGinkgo(list) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         for (int i = 0; i < list.size(); i++) {
             stage(list[i]) {
