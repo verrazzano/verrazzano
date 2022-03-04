@@ -58,6 +58,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			if err := comp.Reconcile(spiCtx); err != nil {
 				return newRequeueWithDelay(), err
 			}
+			// After restore '.status.instance' is empty and not updated. Below change will populate the correct values when comp state is Ready
+			if err := r.updateComponentStatus(compContext, "Component is Ready", vzapi.CondInstallComplete); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
 			continue
 		case vzapi.CompStateDisabled:
 			if !comp.IsEnabled(compContext) {
