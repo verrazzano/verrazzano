@@ -1549,7 +1549,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := newRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
