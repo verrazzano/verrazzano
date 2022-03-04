@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -29,7 +30,7 @@ type Reconciler struct {
 	Scheme *runtime.Scheme
 }
 
-const kubeSystem = "kube-system"
+const controllerName = "containerizedworkload"
 
 // SetupWithManager registers our controller with the manager
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -45,7 +46,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Containerized workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -56,7 +59,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("containerizedworkload", req.NamespacedName, &workload)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for containerized workload", err)
+		zap.S().Error("Failed to create controller logger for containerized workload", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling containerized workload resource %v, generation %v", req.NamespacedName, workload.Generation)

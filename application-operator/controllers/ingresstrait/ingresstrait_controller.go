@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"reflect"
 	"strings"
 
@@ -59,7 +61,7 @@ const (
 	wlProxySSLHeaderVal       = "true"
 	destinationRuleAPIVersion = "networking.istio.io/v1alpha3"
 	destinationRuleKind       = "DestinationRule"
-	kubeSystem                = "kube-system"
+	controllerName            = "ingresstrait"
 )
 
 // The port names used by WebLogic operator that do not have http prefix.
@@ -95,7 +97,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Ingress trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -111,7 +115,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("ingresstrait", req.NamespacedName, trait)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for ingress trait", err)
+		zap.S().Error("Failed to create controller logger for ingress trait", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling ingress trait resource %v, generation %v", req.NamespacedName, trait.Generation)

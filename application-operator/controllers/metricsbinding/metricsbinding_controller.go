@@ -6,6 +6,8 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -35,7 +37,7 @@ type Reconciler struct {
 	Scraper string
 }
 
-const kubeSystem = "kube-system"
+const controllerName = "metricsbinding"
 
 // SetupWithManager creates controller for the MetricsBinding
 func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
@@ -49,7 +51,9 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Metrics binding resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -60,7 +64,7 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	}
 	log, err := clusters.GetResourceLogger("metricsbinding", req.NamespacedName, &metricsBinding)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for metrics binding", err)
+		zap.S().Error("Failed to create controller logger for metrics binding", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling metrics binding resource %v, generation %v", req.NamespacedName, metricsBinding.Generation)
@@ -144,7 +148,7 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 
 	// Return error if UID is not found
 	if len(workloadObject.GetUID()) == 0 {
-		err = fmt.Errorf("Could not get UID from workload resource: %s, %s", workloadObject.GetKind(), workloadObject.GetName())
+		err = fmt.Errorf("could not get UID from workload resource: %s, %s", workloadObject.GetKind(), workloadObject.GetName())
 		log.Errorf("Failed to find UID for workload %s: %v", workloadObject.GetName(), err)
 		return err
 	}
@@ -192,7 +196,7 @@ func (r *Reconciler) deleteScrapeConfig(metricsBinding *vzapi.MetricsBinding, co
 
 	// Verify the Owner Reference exists
 	if len(metricsBinding.OwnerReferences) < 1 {
-		return fmt.Errorf("No Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
+		return fmt.Errorf("no Owner Reference found in the MetricsBinding: %s", metricsBinding.GetName())
 	}
 
 	// Delete scrape config with job name matching resource
