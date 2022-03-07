@@ -40,7 +40,7 @@ if [ -z "${SESSION_ID}" ]; then
     SESSION_ID=$(oci bastion session create-port-forwarding \
       --bastion-id $BASTION_ID \
       --ssh-public-key-file ${ssh_public_key_path} \
-      --session-ttl 7200 \
+      --session-ttl 10800 \
       --target-private-ip ${CLUSTER_IP} \
       --display-name ${SESSION_NAME} \
       --target-port 6443 | jq '.data.id' | sed s/\"//g)
