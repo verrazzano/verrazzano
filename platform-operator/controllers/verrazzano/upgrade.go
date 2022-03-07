@@ -103,10 +103,15 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
+			// Check installed enabled component and make sure it is ready
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()
 				compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
-				if !comp.IsReady(compContext) {
+				installed, err := comp.IsInstalled(compContext)
+				if err != nil {
+					return ctrl.Result{}, err
+				}
+				if installed && !comp.IsReady(compContext) {
 					log.Progressf("Component %s is not yet ready", compName)
 					return newRequeueWithDelay(), nil
 				}

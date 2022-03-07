@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -689,13 +691,16 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{},
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+			},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
 
 	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
@@ -728,10 +733,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 
 	// Expect 2 calls to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
-	expectGetServiceAccountExists(mock, name, nil)
 
 	// Expect 2 calls to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect calls to get the status writer and return a mock.
@@ -822,7 +825,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 				},
 			}
 			return nil
-		})
+		}).AnyTimes()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -840,12 +843,12 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.CondUpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
-		})
+		}).AnyTimes()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -915,14 +918,14 @@ func TestUpgradeHelmError(t *testing.T) {
 				},
 			}
 			return nil
-		})
+		}).AnyTimes()
 
 	// expect a call to list any pending upgrade secrets for the component
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, opts ...client.ListOption) error {
 			return nil
-		})
+		}).AnyTimes()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -936,7 +939,7 @@ func TestUpgradeHelmError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1015,7 +1018,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconcileUpgradeLoop(reconciler, &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1080,7 +1083,7 @@ func TestUpgradeComponent(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
-	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
@@ -1174,10 +1177,10 @@ func TestUpgradeComponentWithPendingUpgradeStatus(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
-	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).Times(1)
-	mockComp.EXPECT().Name().Return("testcomp").Times(1)
+	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).AnyTimes()
+	mockComp.EXPECT().Name().Return("testcomp").Times(1).AnyTimes()
 
 	// expect a call to list any pending upgrade secrets for the component
 	mock.EXPECT().
@@ -1189,17 +1192,17 @@ func TestUpgradeComponentWithPendingUpgradeStatus(t *testing.T) {
 				},
 			}}
 			return nil
-		})
+		}).AnyTimes()
 
 	// expect a call to delete the secret
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconcileUpgradeLoop(reconciler, &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1263,15 +1266,15 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Set enabled mock component expectations
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
-	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
-	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(1)
+	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
 	// Set disabled mock component expectations
-	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1)
-	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil)
+	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1).AnyTimes()
+	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil).AnyTimes()
 	mockDisabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
@@ -1294,7 +1297,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconcileUpgradeLoop(reconciler, &vz)
 
 	// Validate the results
 	mocker.Finish()
