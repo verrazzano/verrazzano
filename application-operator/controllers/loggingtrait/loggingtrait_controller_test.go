@@ -6,6 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 	"time"
@@ -317,7 +318,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: kubeSystem, Name: "test-trait-name"}}
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
 	reconciler := newLoggingTraitReconciler(mock, t)
 	result, err := reconciler.Reconcile(request)
 

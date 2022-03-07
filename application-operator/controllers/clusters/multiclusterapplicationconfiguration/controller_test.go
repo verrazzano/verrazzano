@@ -6,6 +6,7 @@ package multiclusterapplicationconfiguration
 import (
 	"context"
 	"encoding/json"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"path/filepath"
 	"testing"
 
@@ -494,7 +495,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := clusterstest.NewRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

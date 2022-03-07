@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	log2 "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -88,7 +89,7 @@ const (
 	loggingMountPath          = "/fluentd/etc/custom.conf"
 	loggingKey                = "custom.conf"
 	fluentdVolumeName         = "fluentd-config-volume"
-	kubeSystem                = "kube-system"
+	controllerName            = "coherenceworkload"
 )
 
 var specLabelsFields = []string{specField, "labels"}
@@ -133,7 +134,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(log2.FieldResourceNamespace, req.Namespace, log2.FieldResourceName, req.Name, log2.FieldController, controllerName)
+		log.Infof("Coherence workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -144,7 +147,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("verrazzanocoherenceworkload", req.NamespacedName, workload)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Coherence workload", err)
+		zap.S().Errorf("Failed to create controller logger for Coherence workload resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Coherence workload resource %v, generation %v", req.NamespacedName, workload.Generation)
