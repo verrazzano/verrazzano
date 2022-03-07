@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -2260,7 +2261,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: kubeSystem, Name: "test-trait-name"}}
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

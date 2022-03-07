@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -40,7 +41,7 @@ const (
 	deploymentKind  = "Deployment"
 	statefulSetKind = "StatefulSet"
 	podKind         = "Pod"
-	kubeSystem      = "kube-system"
+	controllerName  = "metricstrait"
 
 	// In code defaults for metrics trait configuration
 	defaultWLSAdminScrapePort = 7001
@@ -213,7 +214,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
+		log.Infof("Metrics trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -227,7 +230,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log, err := clusters.GetResourceLogger("metricstrait", req.NamespacedName, trait)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for metrics trait", err)
+		zap.S().Errorf("Failed to create controller logger for metrics trait resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling metrics trait resource %v, generation %v", req.NamespacedName, trait.Generation)
