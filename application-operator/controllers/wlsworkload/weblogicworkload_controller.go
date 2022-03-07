@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"math/big"
 	"os"
 	"reflect"
@@ -57,7 +58,7 @@ const (
 	webLogicDomainUIDLabel                = "weblogic.domainUID"
 	webLogicPluginConfigYamlKey           = "WebLogicPlugin.yaml"
 	WDTConfigMapNameSuffix                = "-wdt-config-map"
-	kubeSystem                            = "kube-system"
+	controllerName                        = "weblogicworkload"
 )
 
 const defaultMonitoringExporterData = `
@@ -228,7 +229,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Weblogic workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -240,7 +243,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("verrazzanoweblogicworkload", req.NamespacedName, workload)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for weblogic workload", err)
+		zap.S().Errorf("Failed to create controller logger for weblogic workload resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling weblogic workload resource %v, generation %v", req.NamespacedName, workload.Generation)
