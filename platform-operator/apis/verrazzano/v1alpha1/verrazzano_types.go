@@ -398,15 +398,15 @@ type CoherenceOperatorComponent struct {
 type AlertmanagerComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// location of the Alertmanager ConfigMap
+	// Location of the Alertmanager ConfigMap
 	// +optional
-	AlertmanagerConfig NamespaceName `json:"alertmanagerConfig,omitempty"`
-	// location of the Prometheus rule ConfigMap
+	AlertmanagerConfig *NamespaceName `json:"alertmanagerConfig,omitempty"`
+	// Location of the Prometheus rule ConfigMap
 	// +optional
-	RuleConfig NamespaceName `json:"ruleConfig,omitempty"`
-	// location of the Alertmanager receiver template ConfigMap
+	RuleConfig *NamespaceName `json:"ruleConfig,omitempty"`
+	// Location of the Alertmanager receiver template ConfigMap
 	// +optional
-	ReceiverTemplateConfig NamespaceName `json:"receiverTemplateConfig,omitempty"`
+	ReceiverTemplateConfig *NamespaceName `json:"receiverTemplateConfig,omitempty"`
 }
 
 // ApplicationOperatorComponent specifies the Application Operator configuration
