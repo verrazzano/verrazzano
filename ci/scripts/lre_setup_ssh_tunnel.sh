@@ -60,7 +60,7 @@ fi
 COMMAND=`oci bastion session get  --session-id=${SESSION_ID} | \
   jq '.data."ssh-metadata".command' | \
   sed 's/"//g' | \
-  sed 's|<privateKey>|'"${ssh_private_key_path}"'|g' | \
+  sed 's|<privateKey>|'"${OPC_USER_KEY_FILE}"'|g' | \
   sed 's|<localPort>|6443|g'`
 echo "command = ${COMMAND}"
 if [ -z "$COMMAND" ]; then
