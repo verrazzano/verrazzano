@@ -83,7 +83,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {
 				compLog.Errorf("Failed checking if component %s is installed: %v", compName, err)
-				return newRequeueWithDelay(), err
+				return ctrl.Result{}, err
 			}
 			if installed {
 				compLog.Oncef("Component %s is installed and will be upgraded", compName)
@@ -97,7 +97,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
 				compLog.Errorf("Failed pre-upgrading component %s: %v", compName, err)
-				return newRequeueWithDelay(), err
+				return ctrl.Result{}, err
 			}
 			upgradeContext.state = compStateUpgrade
 
@@ -123,7 +123,6 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePostUpgrade:
 			compLog.Oncef("Component %s post-upgrade running", compName)
 			if err := comp.PostUpgrade(compContext); err != nil {
-				// for now, this will be fatal until upgrade is retry-able
 				return ctrl.Result{}, err
 			}
 			upgradeContext.state = compStateUpgradeDone
