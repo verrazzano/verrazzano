@@ -400,13 +400,13 @@ type AlertmanagerComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// Location of the Alertmanager ConfigMap
 	// +optional
-	AlertmanagerConfig *NamespaceName `json:"alertmanagerConfig,omitempty"`
+	AlertmanagerConfigMap *NamespaceName `json:"alertmanagerConfigMap,omitempty"`
 	// Location of the Prometheus rule ConfigMap
 	// +optional
-	RuleConfig *NamespaceName `json:"ruleConfig,omitempty"`
+	RuleConfigMap *NamespaceName `json:"ruleConfigMap,omitempty"`
 	// Location of the Alertmanager receiver template ConfigMap
 	// +optional
-	ReceiverTemplateConfig *NamespaceName `json:"receiverTemplateConfig,omitempty"`
+	ReceiverTemplateConfigMap *NamespaceName `json:"receiverTemplateConfigMap,omitempty"`
 }
 
 // ApplicationOperatorComponent specifies the Application Operator configuration

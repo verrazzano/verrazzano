@@ -36,18 +36,18 @@ func (in *AlertmanagerComponent) DeepCopyInto(out *AlertmanagerComponent) {
 		*out = new(bool)
 		**out = **in
 	}
-	if in.AlertmanagerConfig != nil {
-		in, out := &in.AlertmanagerConfig, &out.AlertmanagerConfig
+	if in.AlertmanagerConfigMap != nil {
+		in, out := &in.AlertmanagerConfigMap, &out.AlertmanagerConfigMap
 		*out = new(NamespaceName)
 		**out = **in
 	}
-	if in.RuleConfig != nil {
-		in, out := &in.RuleConfig, &out.RuleConfig
+	if in.RuleConfigMap != nil {
+		in, out := &in.RuleConfigMap, &out.RuleConfigMap
 		*out = new(NamespaceName)
 		**out = **in
 	}
-	if in.ReceiverTemplateConfig != nil {
-		in, out := &in.ReceiverTemplateConfig, &out.ReceiverTemplateConfig
+	if in.ReceiverTemplateConfigMap != nil {
+		in, out := &in.ReceiverTemplateConfigMap, &out.ReceiverTemplateConfigMap
 		*out = new(NamespaceName)
 		**out = **in
 	}

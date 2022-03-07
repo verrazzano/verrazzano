@@ -56,7 +56,7 @@ spec:
                   alertmanager:
                     description: Alertmanager configuration
                     properties:
-                      alertmanagerConfig:
+                      alertmanagerConfigMap:
                         description: Location of the Alertmanager ConfigMap
                         properties:
                           name:
@@ -71,7 +71,7 @@ spec:
                         type: object
                       enabled:
                         type: boolean
-                      receiverTemplateConfig:
+                      receiverTemplateConfigMap:
                         description: Location of the Alertmanager receiver template
                           ConfigMap
                         properties:
@@ -85,7 +85,7 @@ spec:
                         - name
                         - namespace
                         type: object
-                      ruleConfig:
+                      ruleConfigMap:
                         description: Location of the Prometheus rule ConfigMap
                         properties:
                           name:
