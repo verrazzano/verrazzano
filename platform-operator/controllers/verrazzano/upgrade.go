@@ -130,8 +130,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			deleteUpgradeTracker(cr)
 			return ctrl.Result{}, nil
 			tracker.vzState = vzStateEnd
-
-		case vzStateEnd:
 		}
 	}
 	return newRequeueWithDelay(), nil
