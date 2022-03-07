@@ -128,11 +128,11 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			}
 			// Upgrade completely done
 			deleteUpgradeTracker(cr)
-			return ctrl.Result{}, nil
 			tracker.vzState = vzStateEnd
 		}
 	}
-	return newRequeueWithDelay(), nil
+	// Upgrade done, no need to requeue
+	return ctrl.Result{}, nil
 }
 
 // resolvePendingUpgrdes will delete any helm secrets with a "pending-upgrade" status for the given component
