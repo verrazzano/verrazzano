@@ -54,7 +54,7 @@ spec:
                 description: Core specifies core Verrazzano configuration
                 properties:
                   alertmanager:
-                    description: CoherenceOperator configuration
+                    description: Alertmanager configuration
                     properties:
                       alertmanagerConfig:
                         description: location of the Alertmanager ConfigMap

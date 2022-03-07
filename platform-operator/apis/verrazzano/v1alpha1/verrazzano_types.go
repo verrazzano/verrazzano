@@ -272,7 +272,7 @@ type ComponentSpec struct {
 	// +optional
 	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
 
-	// CoherenceOperator configuration
+	// Alertmanager configuration
 	// +optional
 	Alertmanager *AlertmanagerComponent `json:"alertmanager,omitempty"`
 
