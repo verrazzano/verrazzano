@@ -1028,6 +1028,7 @@ func TestUpgradeComponent(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	componentName := "testcomp"
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -1060,6 +1061,8 @@ func TestUpgradeComponent(t *testing.T) {
 		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
+	initStates(&vz, vzStateStart, componentName, compStatePreUpgrade)
+
 	mockComp := mocks.NewMockComponent(mocker)
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
@@ -1077,8 +1080,8 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().Name().Return("testcomp").Times(1)
-	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(1)
+	mockComp.EXPECT().Name().Return(componentName).Times(2)
+	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(2)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -1503,4 +1506,11 @@ func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 
 func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte(""), []byte("failure"), errors.New("Helm Error")
+}
+
+func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName string, compState ComponentUpgradeState) {
+	tracker := getUpgradeTracker(cr)
+	tracker.vzState = vzState
+	upgradeContext := tracker.getComponentUpgradeContext(compName)
+	upgradeContext.state = compState
 }

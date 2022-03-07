@@ -25,20 +25,23 @@ import (
 )
 
 const (
-	// vzStart is the state where Verrazzano is starting the upgrade flow
-	vzStart VerrazzanoUpgradeState = "vzStart"
+	// vzStateStart is the state where Verrazzano is starting the upgrade flow
+	vzStateStart VerrazzanoUpgradeState = "vzStart"
 
-	// vzUpgradeComponents is the state where the components are being upgraded
-	vzUpgradeComponents VerrazzanoUpgradeState = "vzUpgradeComponents"
+	// vzStateUpgradeComponents is the state where the components are being upgraded
+	vzStateUpgradeComponents VerrazzanoUpgradeState = "vzUpgradeComponents"
 
-	// vzDoPostUpgrade is the state where Verrazzano is doing a post-upgrade
-	vzDoPostUpgrade VerrazzanoUpgradeState = "vzDoPostUpgrade"
+	// vzStatePostUpgrade is the state where Verrazzano is doing a post-upgrade
+	vzStatePostUpgrade VerrazzanoUpgradeState = "vzDoPostUpgrade"
 
-	// vzWaitPostUpgradeDone is the state when Verrazzano is waiting for postUpgrade to be done
-	vzWaitPostUpgradeDone VerrazzanoUpgradeState = "vzWaitPostUpgradeDone"
+	// vzStateWaitPostUpgradeDone is the state when Verrazzano is waiting for postUpgrade to be done
+	vzStateWaitPostUpgradeDone VerrazzanoUpgradeState = "vzWaitPostUpgradeDone"
 
-	// vzUpgradeDone is the state when upgrade is done
-	vzUpgradeDone VerrazzanoUpgradeState = "vzUpgradeDone"
+	// vzStateUpgradeDone is the state when upgrade is done
+	vzStateUpgradeDone VerrazzanoUpgradeState = "vzUpgradeDone"
+
+	// vzStateEnd is the terminal state
+	vzStateEnd VerrazzanoUpgradeState = "vzStateEnd"
 )
 
 // ComponentUpgradeState identifies the state of a component during upgrade
@@ -63,62 +66,69 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
-	switch tracker.vzState {
-	case vzStart:
-		// Only write the upgrade started message once
-		if !isLastCondition(cr.Status, installv1alpha1.CondUpgradeStarted) {
-			err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
-				installv1alpha1.CondUpgradeStarted)
-			// Always requeue to get a fresh copy of status and avoid potential conflict
-			return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
-		}
-		tracker.vzState = vzUpgradeComponents
-
-	case vzUpgradeComponents:
-		// Upgrade the components
-		res, err := r.upgradeComponents(log, cr, getUpgradeTracker(cr))
-		if err != nil || res.Requeue {
-			return res, err
-		}
-		tracker.vzState = vzDoPostUpgrade
-
-	case vzDoPostUpgrade:
-		// Invoke the global post upgrade function after all components are upgraded.
-		err := postVerrazzanoUpgrade(log, r)
-		if err != nil {
-			log.Errorf("Error running Verrazzano system-level post-upgrade")
-			return newRequeueWithDelay(), err
-		}
-		tracker.vzState = vzWaitPostUpgradeDone
-
-	case vzWaitPostUpgradeDone:
-		spiCtx, err := spi.NewContext(log, r, cr, r.DryRun)
-		if err != nil {
-			return newRequeueWithDelay(), err
-		}
-		for _, comp := range registry.GetComponents() {
-			compName := comp.Name()
-			compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
-			if !comp.IsReady(compContext) {
-				log.Progressf("Post-upgrade is waiting for all components to be ready.  Component %s is not yet ready", compName)
-				return newRequeueWithDelay(), nil
+	for tracker.vzState != vzStateEnd {
+		switch tracker.vzState {
+		case vzStateStart:
+			// Only write the upgrade started message once
+			if !isLastCondition(cr.Status, installv1alpha1.CondUpgradeStarted) {
+				err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
+					installv1alpha1.CondUpgradeStarted)
+				// Always requeue to get a fresh copy of status and avoid potential conflict
+				return newRequeueWithDelay(), err
 			}
-		}
-		tracker.vzState = vzUpgradeDone
+			tracker.vzState = vzStateUpgradeComponents
 
-	case vzUpgradeDone:
-		msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
-		log.Once(msg)
-		cr.Status.Version = targetVersion
-		if err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
-			return newRequeueWithDelay(), err
+		case vzStateUpgradeComponents:
+			// Upgrade the components
+			log.Once("Upgrading all Verrazzano components")
+			res, err := r.upgradeComponents(log, cr, tracker)
+			if err != nil || res.Requeue {
+				return res, err
+			}
+			tracker.vzState = vzStatePostUpgrade
+
+		case vzStatePostUpgrade:
+			// Invoke the global post upgrade function after all components are upgraded.
+			log.Once("Doing Verrazzano post-upgrade processing")
+			err := postVerrazzanoUpgrade(log, r)
+			if err != nil {
+				log.Errorf("Error running Verrazzano system-level post-upgrade")
+				return newRequeueWithDelay(), err
+			}
+			tracker.vzState = vzStateWaitPostUpgradeDone
+
+		case vzStateWaitPostUpgradeDone:
+			log.Progress("Post-upgrade is waiting for all components to be ready")
+			spiCtx, err := spi.NewContext(log, r, cr, r.DryRun)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+			for _, comp := range registry.GetComponents() {
+				compName := comp.Name()
+				compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
+				if !comp.IsReady(compContext) {
+					log.Progressf("Component %s is not yet ready", compName)
+					return newRequeueWithDelay(), nil
+				}
+			}
+			tracker.vzState = vzStateUpgradeDone
+
+		case vzStateUpgradeDone:
+			msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
+			log.Once(msg)
+			cr.Status.Version = targetVersion
+			if err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
+				return newRequeueWithDelay(), err
+			}
+			// Upgrade completely done
+			deleteUpgradeTracker(cr)
+			return ctrl.Result{}, nil
+			tracker.vzState = vzStateEnd
+
+		case vzStateEnd:
 		}
-		// Upgrade completely done
-		deleteUpgradeTracker(cr)
-		return ctrl.Result{}, nil
 	}
-
-	return ctrl.Result{}, nil
+	return newRequeueWithDelay(), nil
 }
 
 // resolvePendingUpgrdes will delete any helm secrets with a "pending-upgrade" status for the given component
@@ -165,7 +175,7 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
-	log.Oncef("Checking if any pods with Istio sidecars need to be restarted")
+	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
 	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
 }
 
@@ -181,7 +191,7 @@ func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
 		vuc = &upgradeTracker{
-			vzState: vzStart,
+			vzState: vzStateStart,
 			gen:     cr.Generation,
 			compMap: make(map[string]*componentUpgradeContext),
 		}

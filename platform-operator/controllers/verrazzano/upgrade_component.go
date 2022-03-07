@@ -19,23 +19,26 @@ import (
 type ComponentUpgradeState string
 
 const (
-	// start is the state when a component is starting the upgrade flow
-	start ComponentUpgradeState = "start"
+	// compStateInit is the state when a component is starting the upgrade flow
+	compStateInit ComponentUpgradeState = "Init"
 
-	// doPreUpgrade is the state when a component does pre-upgrade
-	doPreUpgrade ComponentUpgradeState = "doPreUpgrade"
+	// compStatePreUpgrade is the state when a component does a pre-upgrade
+	compStatePreUpgrade ComponentUpgradeState = "PreUpgrade"
 
-	// doUpgrade is the state where a component does upgrade
-	doUpgrade ComponentUpgradeState = "doUpgrade"
+	// compStateUpgrade is the state where a component does an upgrade
+	compStateUpgrade ComponentUpgradeState = "Upgrade"
 
-	// waitReady is the state when a component is waiting for upgrade ready
-	waitReady ComponentUpgradeState = "waitReady"
+	// compStateWaitReady is the state when a component is waiting for upgrade ready
+	compStateWaitReady ComponentUpgradeState = "WaitReady"
 
-	// doPostUpgrade is the state when a component is doing post upgrade
-	doPostUpgrade ComponentUpgradeState = "doPostUpgrade"
+	// compStatePostUpgrade is the state when a component is doing a post-upgrade
+	compStatePostUpgrade ComponentUpgradeState = "PostUpgrade"
 
-	// upgradeDone is the state when component upgrade is done
-	upgradeDone ComponentUpgradeState = "upgradeDone"
+	// compStateUpgradeDone is the state when component upgrade is done
+	compStateUpgradeDone ComponentUpgradeState = "UpgradeDone"
+
+	// compStateUpgradeSkipped is the state when component upgrade is skipped
+	compStateUpgradeSkipped ComponentUpgradeState = "UpgradeSkipped"
 )
 
 // componentUpgradeContext has the upgrade context for a Verrazzano component upgrade
@@ -51,7 +54,7 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 	}
 
 	// Loop through all of the Verrazzano components and upgrade each one sequentially
-	// - for now, upgrade is blocking
+	// One component at a time is upgraded.
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
@@ -59,27 +62,29 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 		upgradeContext := tracker.getComponentUpgradeContext(compName)
 
 		switch upgradeContext.state {
-		case start:
+		case compStateInit:
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
-			if !installed {
+			if installed {
+				compLog.Oncef("Component %s is installed and will be upgraded", compName)
+				upgradeContext.state = compStatePreUpgrade
+			} else {
 				compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
-				continue
+				upgradeContext.state = compStateUpgradeSkipped
 			}
-			upgradeContext.state = doPreUpgrade
 
-		case doPreUpgrade:
+		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
 				// for now, this will be fatal until upgrade is retry-able
 				return ctrl.Result{}, err
 			}
-			upgradeContext.state = doPreUpgrade
+			upgradeContext.state = compStateUpgrade
 
-		case doUpgrade:
+		case compStateUpgrade:
 			compLog.Oncef("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
 				compLog.Errorf("Error upgrading component %s: %v", compName, err)
@@ -88,26 +93,33 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 				// requeue for 30 to 60 seconds later
 				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
 			}
-			upgradeContext.state = waitReady
+			upgradeContext.state = compStateWaitReady
 
-		case waitReady:
+		case compStateWaitReady:
 			if !comp.IsReady(compContext) {
 				compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
 				return newRequeueWithDelay(), nil
 			}
-			upgradeContext.state = doPostUpgrade
+			upgradeContext.state = compStatePostUpgrade
 
-		case doPostUpgrade:
+		case compStatePostUpgrade:
 			compLog.Oncef("Component %s post-upgrade running", compName)
 			if err := comp.PostUpgrade(compContext); err != nil {
 				// for now, this will be fatal until upgrade is retry-able
 				return ctrl.Result{}, err
 			}
-			upgradeContext.state = upgradeDone
+			upgradeContext.state = compStateUpgradeDone
 
-		case upgradeDone:
+		case compStateUpgradeDone:
 			compLog.Oncef("Component %s has successfully upgraded and is ready", compName)
+
+		case compStateUpgradeSkipped:
 			continue
+		}
+
+		// If the  upgrade is not done and not skipped then requeue
+		if upgradeContext.state != compStateUpgradeDone && upgradeContext.state != compStateUpgradeSkipped {
+			return newRequeueWithDelay(), nil
 		}
 	}
 	return ctrl.Result{}, nil
@@ -118,7 +130,7 @@ func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componen
 	cuc, ok := vuc.compMap[compName]
 	if !ok {
 		cuc = &componentUpgradeContext{
-			state: start,
+			state: compStateInit,
 		}
 		vuc.compMap[compName] = cuc
 	}
