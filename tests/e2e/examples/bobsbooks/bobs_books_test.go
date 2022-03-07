@@ -469,16 +469,6 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 		)
-		// GIVEN a WebLogic application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
-		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-		t.It("Verify recent 'pattern not matched' log records do not exist", func() {
-			Expect(pkg.NoLog(bobsIndexName,
-				[]pkg.Match{
-					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-					{Key: "message", Value: "pattern not matched"}},
-				[]pkg.Match{})).To(BeTrue())
-		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
