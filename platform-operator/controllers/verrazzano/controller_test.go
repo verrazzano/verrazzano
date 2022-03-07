@@ -1798,7 +1798,7 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 
 // expectDeleteServiceAccount expects a call to delete the service account used by install
 func expectDeleteServiceAccount(mock *mocks.MockClient, namespace string, name string) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 }
 
 // expectDeleteNamespace expects a call to delete the verrazzano-system ns
