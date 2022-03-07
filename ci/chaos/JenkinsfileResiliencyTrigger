@@ -7,10 +7,10 @@ def branchSpecificSchedule = getCronSchedule()
 pipeline {
     options {
         skipDefaultCheckout true
+        disableConcurrentBuilds()
     }
 
     triggers {
-        // run this job on master every 2 hours
         cron(branchSpecificSchedule)
     }
 
@@ -387,7 +387,7 @@ def metricBuildDuration() {
 }
 
 def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("jmaron/VZ-5061")) {
+    if (env.BRANCH_NAME.equals("master")) {
         return "H */3 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-")) {
         return "@daily"
