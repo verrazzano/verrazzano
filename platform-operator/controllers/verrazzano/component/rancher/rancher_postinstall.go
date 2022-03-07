@@ -5,7 +5,6 @@ package rancher
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -57,9 +56,9 @@ func resetAdminPassword(c client.Client) (string, error) {
 	if err := c.List(context.TODO(), podList, namespaceMatcher, labelMatcher); err != nil {
 		return "", err
 	}
-	pod := selectFirstRunningPod(podList.Items)
+	pod := selectFirstReadyPod(podList.Items)
 	if pod == nil {
-		return "", errors.New("Failed to reset Rancher admin secret, no running Rancher pods found")
+		return "", fmt.Errorf("Failed to reset Rancher admin secret, no running Rancher pods found")
 	}
 	// Ensure the default Rancher admin user is present
 	_, stderr, err := k8sutil.ExecPod(cli, cfg, pod, common.RancherName, []string{ensureAdminCommand})
@@ -78,18 +77,18 @@ func resetAdminPassword(c client.Client) (string, error) {
 	return password, nil
 }
 
-// selectFirstRunningPod selects the first running pod from the slice and return a pointer, nil if none found
-func selectFirstRunningPod(pods []v1.Pod) *v1.Pod {
+// selectFirstReadyPod selects the first running pod from the slice and return a pointer, nil if none found
+func selectFirstReadyPod(pods []v1.Pod) *v1.Pod {
 	for _, pod := range pods {
-		if isPodRunning(pod) {
+		if isPodReady(pod) {
 			return &pod
 		}
 	}
 	return nil
 }
 
-// isPodRunning determines if the pod is running by checking for a Ready condition with Status equal True
-func isPodRunning(pod v1.Pod) bool {
+// isPodReady determines if the pod is running by checking for a Ready condition with Status equal True
+func isPodReady(pod v1.Pod) bool {
 	conditions := pod.Status.Conditions
 	for j := range conditions {
 		if conditions[j].Type == "Ready" && conditions[j].Status == "True" {
