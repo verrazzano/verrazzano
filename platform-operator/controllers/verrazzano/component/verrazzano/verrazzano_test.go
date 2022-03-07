@@ -1500,10 +1500,8 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			Name:      vmoDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			Replicas:        1,
+			UpdatedReplicas: 1,
 		},
 	})
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
@@ -1532,10 +1530,8 @@ func TestIsReady(t *testing.T) {
 				Name:      verrazzanoConsoleDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1544,10 +1540,8 @@ func TestIsReady(t *testing.T) {
 				Name:      vmoDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1556,10 +1550,8 @@ func TestIsReady(t *testing.T) {
 				Name:      grafanaDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1568,10 +1560,8 @@ func TestIsReady(t *testing.T) {
 				Name:      kibanaDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1580,10 +1570,8 @@ func TestIsReady(t *testing.T) {
 				Name:      prometheusDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1592,10 +1580,8 @@ func TestIsReady(t *testing.T) {
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1604,10 +1590,8 @@ func TestIsReady(t *testing.T) {
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.Deployment{
@@ -1616,10 +1600,8 @@ func TestIsReady(t *testing.T) {
 				Name:      esIngestDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            2,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				Replicas:        2,
+				UpdatedReplicas: 1,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1695,10 +1677,8 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 				Name:      vmoDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 0,
+				Replicas:        1,
+				UpdatedReplicas: 0,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",

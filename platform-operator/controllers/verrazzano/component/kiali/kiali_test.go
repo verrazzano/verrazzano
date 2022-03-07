@@ -57,10 +57,8 @@ func TestIsKialiReady(t *testing.T) {
 			Name:      kialiSystemName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			Replicas:        1,
+			UpdatedReplicas: 1,
 		},
 	})
 
@@ -83,10 +81,8 @@ func TestIsKialiNotReady(t *testing.T) {
 			Name:      kialiSystemName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			Replicas:        1,
+			UpdatedReplicas: 0,
 		},
 	})
 	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))

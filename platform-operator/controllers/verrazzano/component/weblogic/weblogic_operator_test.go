@@ -61,10 +61,8 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			Replicas:        1,
+			UpdatedReplicas: 1,
 		},
 	})
 	assert.True(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
@@ -82,10 +80,8 @@ func TestIsWeblogicOperatorNotReady(t *testing.T) {
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			Replicas:        1,
+			UpdatedReplicas: 0,
 		},
 	})
 	assert.False(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))

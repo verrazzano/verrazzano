@@ -361,10 +361,8 @@ func TestIsReady(t *testing.T) {
 				Name:      IstiodDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -373,10 +371,8 @@ func TestIsReady(t *testing.T) {
 				Name:      IstioInressgatewayDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -385,10 +381,8 @@ func TestIsReady(t *testing.T) {
 				Name:      IstioEressgatewayDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
