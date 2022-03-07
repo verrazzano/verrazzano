@@ -27,6 +27,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -3115,7 +3116,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := newRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newIngressTraitReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

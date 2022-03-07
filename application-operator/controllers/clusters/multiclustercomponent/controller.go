@@ -5,6 +5,8 @@ package multiclustercomponent
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -20,8 +22,8 @@ import (
 )
 
 const (
-	finalizerName = "multiclustercomponent.verrazzano.io"
-	kubeSystem    = "kube-system"
+	finalizerName  = "multiclustercomponent.verrazzano.io"
+	controllerName = "multiclustercomponent"
 )
 
 // Reconciler reconciles a MultiClusterComponent object
@@ -40,7 +42,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
+		log.Infof("Multi-cluster component resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -52,7 +56,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mccomponent", req.NamespacedName, &mcComp)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for multi-cluster component", err)
+		zap.S().Errorf("Failed to create controller logger for multi-cluster component resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling multi-cluster component resource %v, generation %v", req.NamespacedName, mcComp.Generation)
