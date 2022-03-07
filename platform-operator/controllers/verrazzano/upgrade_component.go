@@ -37,9 +37,6 @@ const (
 	// compStateUpgradeDone is the state when component upgrade is done
 	compStateUpgradeDone ComponentUpgradeState = "UpgradeDone"
 
-	// compStateUpgradeSkipped is the state when component upgrade is skipped
-	compStateUpgradeSkipped ComponentUpgradeState = "UpgradeSkipped"
-
 	// compStateEnd is the terminal state
 	compStateEnd ComponentUpgradeState = "End"
 )
