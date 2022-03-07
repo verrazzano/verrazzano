@@ -127,12 +127,12 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 
 // getComponentUpgradeContext gets the upgrade context for the component
 func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componentUpgradeContext {
-	cuc, ok := vuc.compMap[compName]
+	context, ok := vuc.compMap[compName]
 	if !ok {
-		cuc = &componentUpgradeContext{
+		context = &componentUpgradeContext{
 			state: compStateInit,
 		}
-		vuc.compMap[compName] = cuc
+		vuc.compMap[compName] = context
 	}
-	return cuc
+	return context
 }

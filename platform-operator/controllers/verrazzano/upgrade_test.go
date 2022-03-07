@@ -12,6 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
@@ -368,7 +372,7 @@ func TestUpgradeStarted(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(1), result.RequeueAfter)
+	asserts.True(result.RequeueAfter.Seconds() <= 3)
 }
 
 // TestDeleteDuringUpgrade tests the reconcileUpgrade method for the following use case
@@ -567,7 +571,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(1), result.RequeueAfter)
+	asserts.True(result.RequeueAfter.Seconds() <= 3)
 }
 
 // TestUpgradeCompleted tests the reconcileUpgrade method for the following use case
@@ -627,7 +631,7 @@ func TestUpgradeCompleted(t *testing.T) {
 				},
 			}
 			return nil
-		})
+		}).AnyTimes()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -645,7 +649,7 @@ func TestUpgradeCompleted(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
 			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
-		})
+		}).AnyTimes()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -653,7 +657,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -720,7 +724,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 				},
 			}
 			return nil
-		}).Times(2)
+		}).AnyTimes()
 
 	// Expect 2 calls to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -740,7 +744,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
 			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
-		}).Times(2)
+		}).AnyTimes()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -748,9 +752,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	_, err := reconciler.Reconcile(request)
-	asserts.NoError(err)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
+
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
@@ -1028,7 +1031,8 @@ func TestUpgradeComponent(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
-	componentName := "testcomp"
+	// Need to use real component name since upgrade loops through registry
+	componentName := oam.ComponentName
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -1061,7 +1065,7 @@ func TestUpgradeComponent(t *testing.T) {
 		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
-	initStates(&vz, vzStateStart, componentName, compStatePreUpgrade)
+	initStartingStates(&vz, componentName)
 
 	mockComp := mocks.NewMockComponent(mocker)
 
@@ -1080,8 +1084,8 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().Name().Return(componentName).Times(2)
-	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(2)
+	mockComp.EXPECT().Name().Return(componentName).AnyTimes()
+	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -1099,9 +1103,17 @@ func TestUpgradeComponent(t *testing.T) {
 			return nil
 		}).Times(1)
 
-	// Reconcile upgrade
+	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	numComponentStates := 7
+	var err error
+	var result ctrl.Result
+	for i := 0; i < numComponentStates; i++ {
+		result, err = reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+		if err != nil || !result.Requeue {
+			break
+		}
+	}
 
 	// Validate the results
 	mocker.Finish()
@@ -1508,9 +1520,43 @@ func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return []byte(""), []byte("failure"), errors.New("Helm Error")
 }
 
+// initStartingStates inits the starting state for verrazzano and component upgrade
+func initStartingStates(cr *vzapi.Verrazzano, compName string) {
+	initStates(cr, vzStateStart, compName, compStateInit)
+}
+
+// initStates inits the specified state for verrazzano and component upgrade
 func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName string, compState ComponentUpgradeState) {
 	tracker := getUpgradeTracker(cr)
 	tracker.vzState = vzState
 	upgradeContext := tracker.getComponentUpgradeContext(compName)
 	upgradeContext.state = compState
+}
+
+// reconcileUpgradeLoop
+func reconcileUpgradeLoop(reconciler Reconciler, cr *vzapi.Verrazzano) (ctrl.Result, error) {
+	numComponentStates := 7
+	var err error
+	var result ctrl.Result
+	for i := 0; i < numComponentStates; i++ {
+		result, err = reconciler.reconcileUpgrade(vzlog.DefaultLogger(), cr)
+		if err != nil || !result.Requeue {
+			break
+		}
+	}
+	return result, err
+}
+
+// reconcileLoop
+func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, error) {
+	numComponentStates := 7
+	var err error
+	var result ctrl.Result
+	for i := 0; i < numComponentStates; i++ {
+		result, err = reconciler.Reconcile(request)
+		if err != nil || !result.Requeue {
+			break
+		}
+	}
+	return result, err
 }
