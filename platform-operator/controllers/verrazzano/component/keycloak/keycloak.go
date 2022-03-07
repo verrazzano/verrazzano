@@ -9,6 +9,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"text/template"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -20,12 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	"os/exec"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -41,12 +42,9 @@ const (
 	vzSysRealm         = "verrazzano-system"
 	vzUsersGroup       = "verrazzano-users"
 	vzAdminGroup       = "verrazzano-admins"
-	vzMonitorGroup     = "verrazzano-project-monitors"
+	vzMonitorGroup     = "verrazzano-monitors"
 	vzSystemGroup      = "verrazzano-system-users"
 	vzAPIAccessRole    = "vz_api_access"
-	vzConsoleUsersRole = "console_users"
-	vzAdminRole        = "Admin"
-	vzViewerRole       = "Viewer"
 	vzUserName         = "verrazzano"
 	vzInternalPromUser = "verrazzano-prom-internal"
 	vzInternalEsUser   = "verrazzano-es-internal"
@@ -327,14 +325,14 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("configureKeycloakRealm: Admin Group ID = %s", adminGroupID)
 	ctx.Log().Debug("configureKeycloakRealm: Successfully Created Verrazzano Admin Group")
 
-	// Create Verrazzano Project Monitors Group
+	// Create Verrazzano Monitors Group
 	monitorGroup := "groups/" + userGroupID + "/children"
 	monitorGroupName := "name=" + vzMonitorGroup
 	cmd = execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
 	ctx.Log().Debugf("configureKeycloakRealm: Create Verrazzano Monitors Group Cmd = %s", cmd.String())
 	out, err = cmd.CombinedOutput()
 	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitor Group: command output = %s", out)
+		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Monitors Group: command output = %s", out)
 		return err
 	}
 	ctx.Log().Debugf("configureKeycloakRealm: Create Verrazzano Project Monitors Group Output = %s", out)
@@ -372,39 +370,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 	ctx.Log().Debug("configureKeycloakRealm: Successfully Created Verrazzano API Access Role")
 
-	// Create Verrazzano Console Users Role
-	consoleUserRole := "name=" + vzConsoleUsersRole
-	createConsoleUserRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + consoleUserRole
-	ctx.Log().Debugf("configureKeycloakRealm: Create Verrazzano Console Users Role Cmd = %s", createConsoleUserRoleCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createConsoleUserRoleCmd))
-	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Console Users Role: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("configureKeycloakRealm: Successfully Created Verrazzano Console User Role")
-
-	// Create Verrazzano Admin Role
-	adminRole := "name=" + vzAdminRole
-	createVzAdminRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + adminRole
-	ctx.Log().Debugf("configureKeycloakRealm: Create Verrazzano Admin Role Cmd = %s", createVzAdminRoleCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createVzAdminRoleCmd))
-	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Admin Role: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("configureKeycloakRealm: Successfully Created Verrazzano Admin Role")
-
-	// Create Verrazzano Viewer Role
-	viewerRole := "name=" + vzViewerRole
-	createVzViewerRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh create roles -r " + vzSysRealm + " -s " + viewerRole
-	ctx.Log().Debugf("configureKeycloakRealm: Create Verrazzano Viewer Role Cmd = %s", createVzViewerRoleCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(createVzViewerRoleCmd))
-	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error creating Verrazzano Viewer Role: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("configureKeycloakRealm: Successfully Created Verrazzano Viewer Role")
-
 	// Granting vz_api_access role to verrazzano users group
 	grantAPIAccessToVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzAPIAccessRole
 	ctx.Log().Debugf("configureKeycloakRealm: Grant API Access to VZ Users Cmd = %s", grantAPIAccessToVzUserGroupCmd)
@@ -414,36 +379,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 	ctx.Log().Debug("configureKeycloakRealm: Granted Access Role to User Group")
-
-	// Granting console_users role to verrazzano users group
-	grantConsoleRoleToVzUserGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + userGroupID + " --rolename " + vzConsoleUsersRole
-	ctx.Log().Debugf("configureKeycloakRealm: Grant Console Role to Vz Users Cmd = %s", grantConsoleRoleToVzUserGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantConsoleRoleToVzUserGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error granting console users role to Verrazzano users group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("configureKeycloakRealm: Granted Console Role to User Group")
-
-	// Granting admin role to verrazzano admin group
-	grantAdminRoleToVzAdminGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + adminGroupID + " --rolename " + vzAdminRole
-	ctx.Log().Debugf("configureKeycloakRealm: Grant Admin Role to Vz Admin Cmd = %s", grantAdminRoleToVzAdminGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantAdminRoleToVzAdminGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error granting admin role to Verrazzano admin group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("configureKeycloakRealm: Granted Admin Role to Admin Group")
-
-	// Granting viewer role to verrazzano monitor group
-	grantViewerRoleToVzMonitorGroupCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + vzSysRealm + " --gid " + monitorGroupID + " --rolename " + vzViewerRole
-	ctx.Log().Debugf("configureKeycloakRealm: Grant Viewer Role to Monitor Group Cmd = %s", grantViewerRoleToVzMonitorGroupCmd)
-	stdout, stderr, err = k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(grantViewerRoleToVzMonitorGroupCmd))
-	if err != nil {
-		ctx.Log().Errorf("configureKeycloakRealm: Error granting viewer role to Verrazzano monitoring group: stdout = %s, stderr = %s", stdout, stderr)
-		return err
-	}
-	ctx.Log().Debug("configureKeycloakRealm: Granted Viewer Role to monitor Group")
 
 	// Creating Verrazzano User
 	vzUser := "username=" + vzUserName
