@@ -388,7 +388,7 @@ def metricBuildDuration() {
 
 def getCronSchedule() {
     if (env.BRANCH_NAME.equals("jmaron/VZ-5061")) {
-        return "H */2 * * *"
+        return "H */3 * * *"
     } else if (env.BRANCH_NAME.startsWith("release-")) {
         return "@daily"
     }
