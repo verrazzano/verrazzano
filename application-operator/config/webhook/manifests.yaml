@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ---
@@ -16,6 +16,9 @@ webhooks:
       path: /appconfig-defaulter
   failurePolicy: Fail
   name: appconfig-defaulter.kb.io
+  namespaceSelector:
+    matchExpressions:
+      - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
   rules:
   - apiGroups:
     - core.oam.dev
@@ -42,6 +45,9 @@ webhooks:
       path: /validate-oam-verrazzano-io-v1alpha1-ingresstrait
   failurePolicy: Fail
   name: vingresstrait.kb.io
+  namespaceSelector:
+    matchExpressions:
+      - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
   rules:
   - apiGroups:
     - oam.verrazzano.io
