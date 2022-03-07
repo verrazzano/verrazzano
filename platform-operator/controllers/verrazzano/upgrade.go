@@ -44,10 +44,12 @@ const (
 	vzStateEnd VerrazzanoUpgradeState = "vzStateEnd"
 )
 
-// ComponentUpgradeState identifies the state of a component during upgrade
+// VerrazzanoUpgradeState identifies the state of a Verrazzano upgrade operation
 type VerrazzanoUpgradeState string
 
 // upgradeTracker has the upgrade context for the Verrazzano upgrade
+// This tracker keeps an in-memory upgrade state for Verrazzano and the components that
+// are being upgrade.
 type upgradeTracker struct {
 	vzState VerrazzanoUpgradeState
 	gen     int64
@@ -57,15 +59,14 @@ type upgradeTracker struct {
 // upgradeTrackerMap has a map of upgradeTrackers, one entry per Verrazzano CR resource generation
 var upgradeTrackerMap = make(map[string]*upgradeTracker)
 
-// reconcileUpgrade will reconcile
+// reconcileUpgrade will upgrade a Verrazzano installation
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
-
-	tracker := getUpgradeTracker(cr)
 
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
+	tracker := getUpgradeTracker(cr)
 	for tracker.vzState != vzStateEnd {
 		switch tracker.vzState {
 		case vzStateStart:

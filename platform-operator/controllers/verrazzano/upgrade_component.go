@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano
@@ -53,8 +53,7 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 		return newRequeueWithDelay(), err
 	}
 
-	// Loop through all of the Verrazzano components and upgrade each one sequentially
-	// One component at a time is upgraded.
+	// Loop through all of the Verrazzano components, one at at time, and upgrade each one.
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
@@ -85,7 +84,7 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 			upgradeContext.state = compStateUpgrade
 
 		case compStateUpgrade:
-			compLog.Oncef("Component %s upgrade running", compName)
+			compLog.Progressf("Component %s upgrade running", compName)
 			if err := comp.Upgrade(compContext); err != nil {
 				compLog.Errorf("Error upgrading component %s: %v", compName, err)
 				// check to see whether this is due to a pending upgrade
@@ -100,6 +99,7 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 				compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
 				return newRequeueWithDelay(), nil
 			}
+			compLog.Progressf("Component %s is ready after being upgraded", compName)
 			upgradeContext.state = compStatePostUpgrade
 
 		case compStatePostUpgrade:
@@ -111,17 +111,18 @@ func (r *Reconciler) upgradeComponents(log vzlog.VerrazzanoLogger, cr *installv1
 			upgradeContext.state = compStateUpgradeDone
 
 		case compStateUpgradeDone:
-			compLog.Oncef("Component %s has successfully upgraded and is ready", compName)
+			compLog.Oncef("Component %s has successfully upgraded", compName)
 
 		case compStateUpgradeSkipped:
 			continue
 		}
 
-		// If the  upgrade is not done and not skipped then requeue
-		if upgradeContext.state != compStateUpgradeDone && upgradeContext.state != compStateUpgradeSkipped {
+		// If the  upgrade is not done or skipped then requeue
+		if !(upgradeContext.state == compStateUpgradeDone || upgradeContext.state == compStateUpgradeSkipped) {
 			return newRequeueWithDelay(), nil
 		}
 	}
+	// All components have been upgraded
 	return ctrl.Result{}, nil
 }
 
