@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
@@ -9,8 +10,8 @@ pipeline {
     }
 
     triggers {
-        // run this job on master every 3 hours between 6 AM and 6 PM
-        cron(env.BRANCH_NAME == 'jmaron/VZ-5061' ? 'H */3 * * *' : '')
+        // run this job on master every 2 hours
+        cron(branchSpecificSchedule)
     }
 
     agent {
@@ -384,3 +385,13 @@ def metricBuildDuration() {
         }
     }
 }
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("jmaron/VZ-5061")) {
+        return "H */2 * * *"
+    } else if (env.BRANCH_NAME.startsWith("release-")) {
+        return "@daily"
+    }
+    return ""
+}
+
