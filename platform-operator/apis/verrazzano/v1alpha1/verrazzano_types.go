@@ -272,6 +272,10 @@ type ComponentSpec struct {
 	// +optional
 	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
 
+	// CoherenceOperator configuration
+	// +optional
+	Alertmanager *AlertmanagerComponent `json:"alertmanager,omitempty"`
+
 	// ApplicationOperator configuration
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
@@ -388,6 +392,21 @@ type CertManagerComponent struct {
 type CoherenceOperatorComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// AlertmanagerComponent specifies the Alertmanager configuration
+type AlertmanagerComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// location of the Alertmanager ConfigMap
+	// +optional
+	AlertmanagerConfig NamespaceName `json:"alertmanagerConfig,omitempty"`
+	// location of the Prometheus rule ConfigMap
+	// +optional
+	RuleConfig NamespaceName `json:"ruleConfig,omitempty"`
+	// location of the Alertmanager receiver template ConfigMap
+	// +optional
+	ReceiverTemplateConfig NamespaceName `json:"receiverTemplateConfig,omitempty"`
 }
 
 // ApplicationOperatorComponent specifies the Application Operator configuration
@@ -572,6 +591,14 @@ type InstallArgs struct {
 	// +optional
 	// +patchStrategy=replace
 	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
+}
+
+// NamespaceName Identifies a Namespace and Name pair for a resource
+type NamespaceName struct {
+	// Namespace of a resource
+	Namespace string `json:"namespace"`
+	// Name of a resource
+	Name string `json:"name"`
 }
 
 // VolumeMount defines a hostPath type Volume mount

@@ -53,6 +53,52 @@ spec:
               components:
                 description: Core specifies core Verrazzano configuration
                 properties:
+                  alertmanager:
+                    description: CoherenceOperator configuration
+                    properties:
+                      alertmanagerConfig:
+                        description: location of the Alertmanager ConfigMap
+                        properties:
+                          name:
+                            description: Name of a resource
+                            type: string
+                          namespace:
+                            description: Namespace of a resource
+                            type: string
+                        required:
+                        - name
+                        - namespace
+                        type: object
+                      enabled:
+                        type: boolean
+                      receiverTemplateConfig:
+                        description: location of the Alertmanager receiver template
+                          ConfigMap
+                        properties:
+                          name:
+                            description: Name of a resource
+                            type: string
+                          namespace:
+                            description: Namespace of a resource
+                            type: string
+                        required:
+                        - name
+                        - namespace
+                        type: object
+                      ruleConfig:
+                        description: location of the Prometheus rule ConfigMap
+                        properties:
+                          name:
+                            description: Name of a resource
+                            type: string
+                          namespace:
+                            description: Namespace of a resource
+                            type: string
+                        required:
+                        - name
+                        - namespace
+                        type: object
+                    type: object
                   applicationOperator:
                     description: ApplicationOperator configuration
                     properties:
