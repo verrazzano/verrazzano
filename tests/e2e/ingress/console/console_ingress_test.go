@@ -29,15 +29,18 @@ var t = framework.NewTestFramework("ingress")
 
 var _ = t.BeforeSuite(func() {
 	deployApplication()
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	undeployApplication()

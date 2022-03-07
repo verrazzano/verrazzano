@@ -126,6 +126,13 @@ spec:
       ports:
         - port: 9090
           protocol: TCP
+    - from:
+        - podSelector:
+            matchLabels:
+              app: vmi-system-kiali
+      ports:
+        - port: 9090
+          protocol: TCP
 {{- end }}
 ---
 # Network policy for Cert Manager

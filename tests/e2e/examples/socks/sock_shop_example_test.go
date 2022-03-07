@@ -42,10 +42,11 @@ var username, password string
 var (
 	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
+	clusterDump        = pkg.NewClusterDumpWrapper()
 )
 
 // creates the sockshop namespace and applies the components and application yaml
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
@@ -267,7 +268,6 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {})
 
 // undeploys the application, components, and namespace

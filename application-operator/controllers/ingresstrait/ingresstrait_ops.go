@@ -6,7 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +39,7 @@ func Cleanup(appName types.NamespacedName, client client.Client, log vzlog.Verra
 // cleanupCert deletes up the generated certificate for the given app config
 func cleanupCert(certName string, c client.Client, log vzlog.VerrazzanoLogger) (err error) {
 	nsn := types.NamespacedName{Name: certName, Namespace: constants.IstioSystemNamespace}
-	cert := &certapiv1alpha2.Certificate{
+	cert := &certapiv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: nsn.Namespace,
 			Name:      nsn.Name,

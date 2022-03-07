@@ -461,7 +461,13 @@ pipeline {
                         runGinkgoNamespace('examples/helidon', "true", "false", "hello-helidon")
                     }
                 }
-            }
+                // run todo example test to verify upgraded app/weblogic/coherence operators are functioning correctly
+                stage('examples todo') {
+                    steps {
+                        runGinkgoNamespace('examples/todo', "false", "false", "todo-list")
+                    }
+                }
+           }
             post {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true

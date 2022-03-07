@@ -31,6 +31,7 @@ var (
 )
 
 var _ = t.BeforeSuite(func() {
+
 	if !skipDeploy {
 		start := time.Now()
 		pkg.DeploySpringBootApplication(namespace)
@@ -52,15 +53,18 @@ var _ = t.BeforeSuite(func() {
 		}
 		return result
 	}, longWaitTimeout, pollingInterval).Should(BeTrue())
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	if !skipUndeploy {

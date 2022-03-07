@@ -24,18 +24,17 @@ const (
 	configMapName        = "logging-stdout-hello-helidon-deployment-deployment"
 )
 
-var kubeConfig = os.Getenv("KUBECONFIG")
-
 var (
+	kubeConfig         = os.Getenv("KUBECONFIG")
 	t                  = framework.NewTestFramework("helidonworkload")
 	generatedNamespace = pkg.GenerateNamespace("hello-helidon-logging")
+	clusterDump        = pkg.NewClusterDumpWrapper()
 )
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)

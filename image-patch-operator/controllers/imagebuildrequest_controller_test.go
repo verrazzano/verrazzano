@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package controllers
@@ -13,7 +13,7 @@ import (
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/golang/mock/gomock"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	asserts "github.com/stretchr/testify/assert"
 	imagesv1alpha1 "github.com/verrazzano/verrazzano/image-patch-operator/api/images/v1alpha1"
 	"github.com/verrazzano/verrazzano/image-patch-operator/mocks"
@@ -345,7 +345,7 @@ func newScheme() *runtime.Scheme {
 	k8sapps.AddToScheme(scheme)
 	imagesv1alpha1.AddToScheme(scheme)
 	k8score.AddToScheme(scheme)
-	certapiv1alpha2.AddToScheme(scheme)
+	certapiv1.AddToScheme(scheme)
 	k8net.AddToScheme(scheme)
 	istioclient.AddToScheme(scheme)
 	batchv1.AddToScheme(scheme)
