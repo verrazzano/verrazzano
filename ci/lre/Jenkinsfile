@@ -1,12 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-//properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
-//                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
-//               [$class: 'BuildDiscarderProperty',
-//                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
-//                pipelineTriggers([cron('H/5 * * * *')]),
-//           ])
+properties([[$class: 'ThrottleJobProperty', categories: [], limitOneJobWithMatchingParams: false, maxConcurrentPerNode: 1,
+                    maxConcurrentTotal: 1, paramsToUseForLimit: '', throttleEnabled: true, throttleOption: 'project'],
+               [$class: 'BuildDiscarderProperty',
+                strategy: [$class: 'LogRotator', numToKeepStr: '10']],
+                pipelineTriggers([cron('H/5 * * * *')]),
+           ])
 
 pipeline {
     options {
@@ -178,34 +178,6 @@ pipeline {
                 }
             }
         }
-
-        //stage('call ssh-keygen to create public and private keys') {
-            //steps {
-                //script {
-                    //withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
-                    //sh """
-                    //    rm -f ${WORKSPACE}/.ssh/id_rsa*
-                    //    mkdir -p ${WORKSPACE}/.ssh
-                    //    # get the ssh public key
-                    //    ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
-                    //    # convert SSH2 public key into an OpenSSH format
-                    //    ssh-keygen -i -f /tmp/opc_ssh2.pub > ${WORKSPACE}/.ssh/id_rsa.pub
-                    //    #remove old key
-                    //    #ssh-keygen -R ${dev_lre_bastion_ip}
-                    //    # delete the key file if it exists
-                    //    #rm -f ${WORKSPACE}/.ssh/id_rsa*
-                    //    #mkdir -p ${WORKSPACE}/.ssh
-                    //    # call ssh-keygen to create the keys
-                    //    #ssh-keygen -m PEM -N '' -f ${WORKSPACE}/.ssh/id_rsa
-                    //    # export the ssh public key value for LRE cluster
-                    //    export ssh_public_key_path=${WORKSPACE}/.ssh/id_rsa.pub
-                    //    # export the ssh private key file for LRE cluster
-                    //    #export ssh_private_key_path=${WORKSPACE}/.ssh/id_rsa
-                    //    ls -ls ${WORKSPACE}/.ssh
-                    //"""
-                //}
-            //}
-        //}
 
         stage('set up ssh tunnel') {
             steps {
