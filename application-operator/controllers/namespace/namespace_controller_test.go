@@ -732,7 +732,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 
 	// create a request and reconcile it
 	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{Namespace: kubeSystem},
+		NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem},
 	}
 	result, err := nc.Reconcile(req)
 

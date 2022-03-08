@@ -4,11 +4,18 @@
 package helidonpodannotation
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
+
+var namespace string
+
+func init() {
+	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+}
 
 // TestHelidonDeploymentPodAnnotation tests a helidon deployment workload for Prometheus metric scraping with a pod annotation preventing metrics scraping
 func TestHelidonDeploymentPodAnnotation(t *testing.T) {

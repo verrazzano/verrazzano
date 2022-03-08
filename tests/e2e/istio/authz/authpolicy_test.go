@@ -46,16 +46,19 @@ var _ = t.BeforeSuite(func() {
 	deployFooApplication()
 	deployBarApplication()
 	deployNoIstioApplication()
+	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	start := time.Now()

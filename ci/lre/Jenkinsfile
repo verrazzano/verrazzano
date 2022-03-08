@@ -179,27 +179,6 @@ pipeline {
             }
         }
 
-        stage('call ssh-keygen to create public and private keys') {
-            steps {
-                script {
-                    sh """
-                        #remove old key
-                        #ssh-keygen -R ${dev_lre_bastion_ip}
-                        # delete the key file if it exists
-                        rm -f ${WORKSPACE}/.ssh/id_rsa*
-                        mkdir -p ${WORKSPACE}/.ssh
-                        # call ssh-keygen to create the keys
-                        ssh-keygen -m PEM -N '' -f ${WORKSPACE}/.ssh/id_rsa
-                        # export the ssh public key value for LRE cluster
-                        export ssh_public_key_path=${WORKSPACE}/.ssh/id_rsa.pub
-                        # export the ssh private key file for LRE cluster
-                        export ssh_private_key_path=${WORKSPACE}/.ssh/id_rsa
-                        ls -ls ${WORKSPACE}/.ssh
-                    """
-                }
-            }
-        }
-
         stage('set up ssh tunnel') {
             steps {
                 script {
@@ -208,40 +187,58 @@ pipeline {
                             //dev2 lre cluster use bastion host from lre/dev compartment
                             env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
                             env.CLUSTER_IP = "${dev2_private_ip}"
+                            env.SESSION_NAME = "lre-dev2-pf-session"
                             break
                         case "prod" :
                             env.COMPARTMENT_ID = "${prod_lre_compartment_id}"
                             env.CLUSTER_IP = "${prod_private_ip}"
+                            env.SESSION_NAME = "lre-prod-pf-session"
                             break
                         case "test" :
                             //test lre cluster use bastion host from lre/dev compartment
                             env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
                             env.CLUSTER_IP = "${test_private_ip}"
+                            env.SESSION_NAME = "lre-test-pf-session"
                             break
                         default:
                             //dev2 lre cluster use bastion host from lre/dev compartment
                             env.COMPARTMENT_ID = "${dev_lre_compartment_id}"
                             env.CLUSTER_IP = "${dev2_private_ip}"
+                            env.SESSION_NAME = "lre-dev2-pf-session"
                             break
                     }
-                    sh '''
-                        echo "create ssh tunnel"
-                        cd ${GO_REPO_PATH}/verrazzano/
-                        ci/scripts/lre_setup_ssh_tunnel.sh
-                        #wait a bit for the tunnel to be setup
-                        sleep 60
-                        ls -ls ${KUBECONFIG}
-                        sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
-                        cat ${KUBECONFIG}
-                        # updating kubeconfig with sa
-                        cd ${GO_REPO_PATH}/verrazzano/
-                        ci/scripts/update_lre_kubeconfig.sh
+                    withCredentials([sshUserPrivateKey(credentialsId: '5fcc03de-31ce-4566-b11f-9de38e5d98fd', keyFileVariable: 'OPC_USER_KEY_FILE', passphraseVariable: 'OPC_USER_PASSPHRASE', usernameVariable: 'OPC_USERNAME')]) {
+                        sh '''
+                            rm -f ${WORKSPACE}/.ssh/id_rsa*
+                            mkdir -p ${WORKSPACE}/.ssh
+                            # get the ssh public key
+                            ssh-keygen -y -e -f ${OPC_USER_KEY_FILE} > /tmp/opc_ssh2.pub
+                            # convert SSH2 public key into an OpenSSH format
+                            ssh-keygen -i -f /tmp/opc_ssh2.pub > ${WORKSPACE}/.ssh/id_rsa.pub
+                            # export the ssh public key value for LRE cluster
+                            export ssh_public_key_path=${WORKSPACE}/.ssh/id_rsa.pub
+                            ls -ls ${WORKSPACE}/.ssh
+                            echo "cat the private key file"
+                            cat ${OPC_USER_KEY_FILE}
 
-                        echo "run kubectl get nodes"
-                        kubectl get nodes
-                        echo "run kubectl get pods"
-                        kubectl get pods
-                    '''
+                            echo "create ssh tunnel"
+                            cd ${GO_REPO_PATH}/verrazzano/
+                            ci/scripts/lre_setup_ssh_tunnel.sh
+                            #wait a bit for the tunnel to be setup
+                            sleep 60
+                            ls -ls ${KUBECONFIG}
+                            sed -i 's|server:.*|server: https://127.0.0.1:6443|g' $KUBECONFIG
+                            cat ${KUBECONFIG}
+                            # updating kubeconfig with sa
+                            cd ${GO_REPO_PATH}/verrazzano/
+                            ci/scripts/update_lre_kubeconfig.sh
+
+                            echo "run kubectl get nodes"
+                            kubectl get nodes
+                            echo "run kubectl get pods"
+                            kubectl get pods
+                        '''
+                    }
                 }
             }
         }
@@ -333,7 +330,26 @@ pipeline {
                         runGinkgo('metrics/deploymetrics')
                     }
                 }
-
+                stage('poko metricsbinding') {
+                    steps {
+                        runGinkgo('metricsbinding')
+                    }
+                }
+                stage('logging trait helodin workload') {
+                    steps {
+                        runGinkgo('loggingtrait/helidonworkload')
+                    }
+                }
+                stage('logging trait weblogic workload') {
+                    steps {
+                        runGinkgo('loggingtrait/weblogicworkload')
+                    }
+                }
+                stage('logging trait coherence workload') {
+                    steps {
+                        runGinkgo('loggingtrait/coherenceworkload')
+                    }
+                }
             }
             post {
                 always {

@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"context"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"strings"
 	"testing"
@@ -532,7 +533,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	namespacedName := types.NamespacedName{Namespace: kubeSystem, Name: testMetricsBindingName}
+	namespacedName := types.NamespacedName{Namespace: vzconst.KubeSystem, Name: testMetricsBindingName}
 	request := ctrl.Request{NamespacedName: namespacedName}
 	reconciler := newReconciler(cli)
 	result, err := reconciler.Reconcile(request)

@@ -5,7 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: hello-helidon-appconf
-  namespace: hello-helidon-logging
   annotations:
     version: v1.0.0
     description: "Hello Helidon application"
@@ -33,7 +32,6 @@ spec:
             kind: LoggingTrait
             metadata:
               name: logging-trait
-              namespace: hello-helidon-logging
             spec:
               loggingImage: ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2
               loggingConfig: |

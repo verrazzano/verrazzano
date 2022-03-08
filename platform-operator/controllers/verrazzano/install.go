@@ -4,7 +4,7 @@
 package verrazzano
 
 import (
-	"context"
+	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -22,7 +22,13 @@ import (
 // 3. Loop through all components before returning, except for the case
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
-func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.ComponentContext) (ctrl.Result, error) {
+func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+	spiCtx, err := spi.NewContext(vzctx.Log, r, vzctx.ActualCR, r.DryRun)
+	if err != nil {
+		spiCtx.Log().Errorf("Failed to create component context: %v", err)
+		return newRequeueWithDelay(), err
+	}
+
 	cr := spiCtx.ActualCR()
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
@@ -51,6 +57,10 @@ func (r *Reconciler) reconcileComponents(_ context.Context, spiCtx spi.Component
 			compLog.Oncef("Component %s is ready", compName)
 			if err := comp.Reconcile(spiCtx); err != nil {
 				return newRequeueWithDelay(), err
+			}
+			// After restore '.status.instance' is empty and not updated. Below change will populate the correct values when comp state is Ready
+			if err := r.updateComponentStatus(compContext, "Component is Ready", vzapi.CondInstallComplete); err != nil {
+				return ctrl.Result{Requeue: true}, err
 			}
 			continue
 		case vzapi.CompStateDisabled:

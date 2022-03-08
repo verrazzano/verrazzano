@@ -9,23 +9,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io/ioutil"
 	"os"
 	"testing"
 	"text/template"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	istionet "istio.io/api/networking/v1alpha3"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -159,26 +161,13 @@ func TestSuccessfullyCreateNewIngress(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the certificate related to the ingress trait
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "istio-system", Name: "test-space-myapp-cert"}, gomock.Not(gomock.Nil())).
 		Return(k8serrors.NewNotFound(schema.GroupResource{Group: "test-space", Resource: "Certificate"}, "test-space-myapp-cert"))
-	// Expect a call to get the Verrazzano ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
-			return nil
-		})
 	// Expect a call to get the app config and return that it is not found.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "test-space", Name: "myapp"}, gomock.Not(gomock.Nil())).
@@ -755,20 +744,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
-			return nil
-		})
-	// Expect a call to get the Verrazzano ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -845,24 +821,10 @@ func TestFailureToGetWorkload(t *testing.T) {
 				Name:       "test-workload-name"}
 			return nil
 		})
-
-	// Expect a call to get the Verrazzano ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
-			return nil
-		})
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the certificate related to the ingress trait
@@ -938,24 +900,10 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 				Name:       "test-workload-name"}
 			return nil
 		})
-
-	// Expect a call to get the Verrazzano ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
-			return nil
-		})
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the certificate related to the ingress trait
@@ -1113,20 +1061,7 @@ func TestFailureToUpdateStatus(t *testing.T) {
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
-			return nil
-		})
-	// Expect a call to get the Verrazzano ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -2817,7 +2752,7 @@ func newScheme() *runtime.Scheme {
 	k8sapps.AddToScheme(scheme)
 	vzapi.AddToScheme(scheme)
 	k8score.AddToScheme(scheme)
-	certapiv1alpha2.AddToScheme(scheme)
+	certapiv1.AddToScheme(scheme)
 	k8net.AddToScheme(scheme)
 	istioclient.AddToScheme(scheme)
 	return scheme
@@ -3111,20 +3046,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookie(t *test
 	// Expect a call to create the certificate and return success
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, certificate *certapiv1alpha2.Certificate, opts ...client.CreateOption) error {
-			return nil
-		})
-	// Expect a call to get the Verrazzano ingress and return the ingress.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.VzConsoleIngress}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
-			ingress.TypeMeta = metav1.TypeMeta{
-				APIVersion: "networking.k8s.io/v1",
-				Kind:       "ingress"}
-			ingress.ObjectMeta = metav1.ObjectMeta{
-				Namespace:   name.Namespace,
-				Name:        name.Name,
-				Annotations: map[string]string{"external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.my.host.com"}}
+		DoAndReturn(func(ctx context.Context, certificate *certapiv1.Certificate, opts ...client.CreateOption) error {
 			return nil
 		})
 	// Expect a call to get the gateway resource related to the ingress trait and return that it is not found.
@@ -3194,7 +3116,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := newRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newIngressTraitReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 

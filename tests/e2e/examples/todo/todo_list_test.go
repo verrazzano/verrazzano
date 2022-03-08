@@ -31,9 +31,10 @@ const (
 var (
 	t                  = framework.NewTestFramework("todo")
 	generatedNamespace = pkg.GenerateNamespace("todo-list")
+	clusterDump        = pkg.NewClusterDumpWrapper()
 )
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployToDoListExample(namespace)
@@ -55,7 +56,6 @@ var _ = t.BeforeSuite(func() {
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	if !skipUndeploy {
@@ -421,17 +421,6 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 				})
 			},
 		)
-
-		// GIVEN a WebLogic application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
-		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-		t.It("Verify recent 'pattern not matched' log records do not exist", func() {
-			Expect(pkg.NoLog(indexName,
-				[]pkg.Match{
-					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-					{Key: "message", Value: "pattern not matched"}},
-				[]pkg.Match{})).To(BeTrue())
-		})
 	})
 })
 

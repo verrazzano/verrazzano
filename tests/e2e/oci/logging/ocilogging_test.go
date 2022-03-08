@@ -40,6 +40,7 @@ var region string
 var logSearchClient loggingsearch.LogSearchClient
 
 var failed = false
+var beforeSuitePassed = false
 
 var t = framework.NewTestFramework("logging")
 
@@ -63,10 +64,11 @@ var _ = t.BeforeSuite(func() {
 	var err error
 	logSearchClient, err = getLogSearchClient(region)
 	Expect(err).ShouldNot(HaveOccurred(), "Error configuring OCI SDK client")
+	beforeSuitePassed = true
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	pkg.Concurrently(

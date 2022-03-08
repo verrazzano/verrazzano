@@ -19,7 +19,6 @@ const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
 
-	namespace          = "sockshop-logging"
 	componentsPath     = "testdata/loggingtrait/coherenceworkload/coherence-logging-components.yaml"
 	applicationPath    = "testdata/loggingtrait/coherenceworkload/coherence-logging-application.yaml"
 	applicationPodName = "carts-coh-0"
@@ -28,19 +27,24 @@ const (
 
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-var t = framework.NewTestFramework("coherenceworkload")
+var (
+	t                  = framework.NewTestFramework("coherenceworkload")
+	generatedNamespace = pkg.GenerateNamespace("sockshop-logging")
+)
 
 var _ = t.BeforeSuite(func() {
 	loggingtrait.DeployApplication(namespace, componentsPath, applicationPath, applicationPodName, t)
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)

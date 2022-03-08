@@ -17,25 +17,27 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	namespace            = "hello-helidon-namespace"
 	applicationPodPrefix = "hello-helidon-deployment-"
 	yamlPath             = "tests/e2e/metricsbinding/testdata/hello-helidon-deployment.yaml"
 	templatePath         = "tests/e2e/metricsbinding/testdata/hello-helidon-metrics-template.yaml"
-	promConfigJobName    = "hello-helidon-namespace_hello-helidon-deployment_apps_v1_Deployment"
+	promConfigJobName    = "_hello-helidon-deployment_apps_v1_Deployment"
 )
 
-var t = framework.NewTestFramework("helidonnamespaceannotation")
+var (
+	t                  = framework.NewTestFramework("helidonnamespaceannotation")
+	generatedNamespace = pkg.GenerateNamespace("hello-helidon-namespace")
+	clusterDump        = pkg.NewClusterDumpWrapper()
+)
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
 	metricsbinding.DeployApplicationAndTemplate(namespace, yamlPath, templatePath, applicationPodPrefix, map[string]string{"app.verrazzano.io/metrics": "standard-k8s-metrics-template"})
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
-	metricsbinding.UndeployApplication(namespace, yamlPath, promConfigJobName)
+	metricsbinding.UndeployApplication(namespace, yamlPath, namespace+promConfigJobName)
 })
 
 var _ = t.AfterEach(func() {})
@@ -48,7 +50,7 @@ var _ = t.Describe("Verify", Label("f:app-lcm.poko"), func() {
 	t.Context("Verify Prometheus scraped metrics.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Check Prometheus config map for scrape target", func() {
 			Eventually(func() bool {
-				return pkg.IsAppInPromConfig(promConfigJobName)
+				return pkg.IsAppInPromConfig(namespace + promConfigJobName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected application to be found in Prometheus config")
 		})
 		t.It("Retrieve Prometheus scraped metrics for 'hello-helidon-deployment' Pod", func() {
