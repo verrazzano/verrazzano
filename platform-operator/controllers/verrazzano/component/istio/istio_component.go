@@ -127,7 +127,7 @@ func isIstioEnabled(vz *vzapi.Verrazzano) bool {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return nil
 }
 

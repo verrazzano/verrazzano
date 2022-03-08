@@ -6,6 +6,7 @@ package appoper
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 	"strings"
 
@@ -91,9 +92,26 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 
 // IsEnabled applicationOperator-specific enabled check for installation
 func (c applicationOperatorComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.ApplicationOperator
+	return isApplicationOperatorComponent(ctx.EffectiveCR())
+}
+
+func isApplicationOperatorComponent(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.ApplicationOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c applicationOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (i applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isApplicationOperatorComponent(old) && !isApplicationOperatorComponent(new) {
+		return fmt.Errorf("can not disable applicationOperator")
+	}
+	return nil
 }
