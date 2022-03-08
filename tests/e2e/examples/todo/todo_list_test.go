@@ -121,10 +121,21 @@ func undeployToDoListExample() {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/todo-list/todo-list-components.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Wait for pods to terminate")
+	Eventually(func() bool {
+		podsNotRunning, _ := pkg.PodsNotRunning(namespace, []string{"mysql", "tododomain-adminserver"})
+		return podsNotRunning
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, "Wait for finalizer to be removed")
+	Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved(namespace)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	pkg.Log(pkg.Info, "Deleted namespace check")
 	Eventually(func() bool {
@@ -410,17 +421,6 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 				})
 			},
 		)
-
-		// GIVEN a WebLogic application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
-		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-		t.It("Verify recent 'pattern not matched' log records do not exist", func() {
-			Expect(pkg.NoLog(indexName,
-				[]pkg.Match{
-					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-					{Key: "message", Value: "pattern not matched"}},
-				[]pkg.Match{})).To(BeTrue())
-		})
 	})
 })
 

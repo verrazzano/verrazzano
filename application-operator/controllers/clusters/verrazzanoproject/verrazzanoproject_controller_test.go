@@ -6,6 +6,7 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 	"time"
 
@@ -770,7 +771,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	var cli = mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := clusterstest.NewRequest(kubeSystem, "unit-test-verrazzano-helidon-workload")
+	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newVerrazzanoProjectReconciler(cli)
 	result, err := reconciler.Reconcile(request)
 
