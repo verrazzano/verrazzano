@@ -4,6 +4,7 @@
 package vmi_test
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 
@@ -40,7 +41,9 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				client := http.Client{}
+				customTransport := http.DefaultTransport.(*http.Transport).Clone()
+				customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				client := &http.Client{Transport: customTransport}
 				req, err := http.NewRequest("GET", fmt.Sprintf("%s/invalid-url", esURL), nil)
 				if err != nil {
 					return "", err
