@@ -33,10 +33,7 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 		config, k := k8sutilfake.NewClientsetConfig()
 		return config, k, nil
 	}
-
-	podListAllRunning := createRancherPodListWithAllRunning()
-	podListNoneRunning := createRancherPodListWithNoneRunning()
-	podListLastRunning := createRancherPodListWithLastRunning()
+	podList := createRancherPodList()
 	adminSecret := createAdminSecret()
 
 	var tests = []struct {
@@ -56,43 +53,23 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 		{
 			"should be able to reset the admin password",
 			validStdOut,
-			fake.NewFakeClientWithScheme(getScheme(), &podListAllRunning),
+			fake.NewFakeClientWithScheme(getScheme(), &podList),
 			clientConfigFunction,
 			false,
 		},
 		{
 			"should fail when resetting admin password fails",
 			"",
-			fake.NewFakeClientWithScheme(getScheme(), &podListAllRunning),
+			fake.NewFakeClientWithScheme(getScheme(), &podList),
 			clientConfigFunction,
 			true,
 		},
 		{
-			"should fail when no Rancher pods exist",
+			"should fail when no Rancher pod is available",
 			validStdOut,
 			fake.NewFakeClientWithScheme(getScheme()),
 			clientConfigFunction,
 			true,
-		},
-		// GIVEN a cluster with no Rancher pods running
-		// WHEN an attempt is made to create the Rancher admin secret
-		// THEN the request should fail before attempting to invoke commands
-		{
-			"should fail when no Rancher pod is available",
-			validStdOut,
-			fake.NewFakeClientWithScheme(getScheme(), &podListNoneRunning),
-			clientConfigFunction,
-			true,
-		},
-		// GIVEN a cluster with one of several Rancher pods running
-		// WHEN an attempt is made to create the Rancher admin secret
-		// THEN the request should succeed and correct commands invoked on the pod
-		{
-			"should pass when one Rancher pod is available",
-			validStdOut,
-			fake.NewFakeClientWithScheme(getScheme(), &podListLastRunning),
-			clientConfigFunction,
-			false,
 		},
 	}
 
