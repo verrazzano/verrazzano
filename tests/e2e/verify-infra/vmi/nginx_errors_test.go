@@ -5,10 +5,10 @@ package vmi_test
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"net/url"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
