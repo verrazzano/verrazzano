@@ -158,6 +158,5 @@ func checkNGINXErrorPageRH(req *http.Request, expectedStatus int) (string, error
 		pkg.Log(pkg.Error, fmt.Sprintf("Error reading response: %v", err))
 		return "", err
 	}
-
-	return string(httpResp.Body), err
+	return strings.TrimSpace(string(httpResp.Body)), err
 }
