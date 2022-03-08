@@ -148,8 +148,8 @@ func TestIsReady(t *testing.T) {
 				Name:      ComponentName,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -158,8 +158,8 @@ func TestIsReady(t *testing.T) {
 				Name:      rancherWebhookDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -168,8 +168,8 @@ func TestIsReady(t *testing.T) {
 				Name:      rancherOperatorDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -178,8 +178,8 @@ func TestIsReady(t *testing.T) {
 				Name:      fleetAgentDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -188,8 +188,8 @@ func TestIsReady(t *testing.T) {
 				Name:      fleetControllerDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -198,8 +198,8 @@ func TestIsReady(t *testing.T) {
 				Name:      gitjobDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
