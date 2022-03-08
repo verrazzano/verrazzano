@@ -2,16 +2,10 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
         skipDefaultCheckout true
-        disableConcurrentBuilds()
-    }
-
-    triggers {
-        cron(branchSpecificSchedule)
     }
 
     agent {
@@ -385,13 +379,3 @@ def metricBuildDuration() {
         }
     }
 }
-
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "H */3 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-")) {
-        return "@daily"
-    }
-    return ""
-}
-
