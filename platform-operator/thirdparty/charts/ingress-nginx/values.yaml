@@ -710,6 +710,8 @@ defaultBackend:
             path: 307.html
           - key: 308.html
             path: 308.html
+          - key: 400.html
+            path: 400.html
           - key: 401.html
             path: 401.html
           - key: 403.html
@@ -760,6 +762,8 @@ defaultBackend:
             path: 307.htm
           - key: 308.html
             path: 308.htm
+          - key: 400.html
+            path: 400.htm
           - key: 401.html
             path: 401.htm
           - key: 403.html

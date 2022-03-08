@@ -38,6 +38,13 @@ data:
     <center><h1>308 Permanent Redirect</h1></center>
     </body>
     </html>
+  400.html: |
+    <html>
+    <head><title>400 Bad Request</title></head>
+    <body>
+    <center><h1>400 Bad Request</h1></center>
+    </body>
+    </html>
   401.html: |
     <html>
     <head><title>401 Unauthorized</title></head>
