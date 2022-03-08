@@ -53,7 +53,7 @@ var t = framework.NewTestFramework("verify")
 var vzcr *vzapi.Verrazzano
 
 var _ = t.BeforeSuite(func() {
-	// Get the verrazzano CR
+	// Get the Verrazzano CR
 	Eventually(func() error {
 		var err error
 		vzcr, err = pkg.GetVerrazzano()
