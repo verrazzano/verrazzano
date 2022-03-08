@@ -92,10 +92,10 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 
 // IsEnabled applicationOperator-specific enabled check for installation
 func (c applicationOperatorComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isApplicationOperatorComponent(ctx.EffectiveCR())
+	return isApplicationOperatorComponentEnabled(ctx.EffectiveCR())
 }
 
-func isApplicationOperatorComponent(vz *vzapi.Verrazzano) bool {
+func isApplicationOperatorComponentEnabled(vz *vzapi.Verrazzano) bool {
 	comp := vz.Spec.Components.ApplicationOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -110,7 +110,7 @@ func (c applicationOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) erro
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isApplicationOperatorComponent(old) && !isApplicationOperatorComponent(new) {
+	if isApplicationOperatorComponentEnabled(old) && !isApplicationOperatorComponentEnabled(new) {
 		return fmt.Errorf("can not disable applicationOperator")
 	}
 	return nil

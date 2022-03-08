@@ -6,6 +6,7 @@ package authproxy
 import (
 	"context"
 	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -50,11 +51,28 @@ func NewComponent() spi.Component {
 
 // IsEnabled authProxyComponent-specific enabled check for installation
 func (c authProxyComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.AuthProxy
+	return isAuthProxyComponentEnabled(ctx.EffectiveCR())
+}
+
+func isAuthProxyComponentEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.AuthProxy
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c authProxyComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isAuthProxyComponentEnabled(old) && !isAuthProxyComponentEnabled(new) {
+		return fmt.Errorf("can not disable authProxy")
+	}
+	return nil
 }
 
 // IsReady component check
