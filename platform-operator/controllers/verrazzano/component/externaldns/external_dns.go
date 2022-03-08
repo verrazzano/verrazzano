@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -83,11 +83,17 @@ func preInstall(compContext spi.ComponentContext) error {
 }
 
 func isExternalDNSReady(compContext spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+	deployments := []status.PodReadyCheck{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app.kubernetes.io/instance": "external-dns"}.AsSelector(),
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
-	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install

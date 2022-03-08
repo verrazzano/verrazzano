@@ -196,6 +196,7 @@ func newDeployment(name string, updated bool) *appsv1.Deployment {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      name,
+			Labels:    map[string]string{"app.kubernetes.io/instance": "external-dns"},
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
