@@ -104,8 +104,8 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
 					return "", err
 				}
-				return string(httpResp.Body), err
-			}, waitTimeout, pollingInterval).Should(Equal(expected302),
+				return strings.TrimSpace(string(httpResp.Body)), err
+			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected302)),
 				"Expected response to include custom 302 response page")
 		})
 
@@ -145,8 +145,8 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
 					return "", err
 				}
-				return string(httpResp.Body), err
-			}, waitTimeout, pollingInterval).Should(Equal(expected401),
+				return strings.TrimSpace(string(httpResp.Body)), err
+			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected401)),
 				"Expected response to include custom 401 error page")
 		})
 	})
