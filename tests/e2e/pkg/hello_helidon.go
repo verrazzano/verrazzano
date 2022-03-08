@@ -5,6 +5,7 @@ package pkg
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -18,6 +19,8 @@ const (
 	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
 	helidonAppYaml       = "../../../examples/hello-helidon/hello-helidon-app.yaml"
 )
+
+var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
@@ -63,9 +66,26 @@ func UndeployHelloHelidonApplication(namespace string) {
 			return DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
 
+		Log(Info, "Wait for application pods to terminate")
+		gomega.Eventually(func() bool {
+			podsTerminated, _ := PodsNotRunning(namespace, expectedPodsHelloHelidon)
+			return podsTerminated
+		}, helidonWaitTimeout, helidonPollingInterval).Should(gomega.BeTrue())
+
 		Log(Info, fmt.Sprintf("Delete namespace %s", namespace))
 		gomega.Eventually(func() error {
 			return DeleteNamespace(namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Failed to deleted namespace %s", namespace))
+
+		Log(Info, "Wait for namespace finalizer to be removed")
+		gomega.Eventually(func() bool {
+			return CheckNamespaceFinalizerRemoved(namespace)
+		}, helidonWaitTimeout, helidonPollingInterval).Should(gomega.BeTrue())
+
+		Log(Info, "Wait for namespace to be deleted")
+		gomega.Eventually(func() bool {
+			_, err := GetNamespace(namespace)
+			return err != nil && errors.IsNotFound(err)
+		}, helidonWaitTimeout, helidonPollingInterval).Should(gomega.BeTrue())
 	}
 }

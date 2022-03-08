@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/ingresstrait"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
@@ -37,8 +38,8 @@ type Reconciler struct {
 }
 
 const (
-	finalizerName = "appconfig.finalizers.verrazzano.io"
-	kubeSystem    = "kube-system"
+	finalizerName  = "appconfig.finalizers.verrazzano.io"
+	controllerName = "appconfig"
 )
 
 // SetupWithManager registers our controller with the manager
@@ -56,7 +57,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldController, controllerName)
+		log.Infof("Application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -67,7 +70,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("applicationconfiguration", req.NamespacedName, &appConfig)
 	if err != nil {
-		log.Errorf("Failed to create controller logger for application configuration", err)
+		log.Errorf("Failed to create controller logger for application configuration resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling application configuration resource %v, generation %v", req.NamespacedName, appConfig.Generation)

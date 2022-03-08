@@ -9,9 +9,10 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	appsv1 "k8s.io/api/apps/v1"
-	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 	runtime "k8s.io/apimachinery/pkg/runtime"
