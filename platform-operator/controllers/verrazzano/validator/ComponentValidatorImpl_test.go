@@ -9,7 +9,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"go.uber.org/zap"
 )
 
 // TestComponentValidatorImpl_ValidateInstall tests the ValidateInstall function
@@ -30,11 +29,10 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
-	log := zap.S().With("source", "webhook", "operation", "install")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := ComponentValidatorImpl{}
-			if got := c.ValidateInstall(tt.vz, log); !reflect.DeepEqual(got, tt.want) {
+			if got := c.ValidateInstall(tt.vz); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ValidateInstall() = %v, want %v", got, tt.want)
 			}
 		})
@@ -59,11 +57,10 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
-	log := zap.S().With("source", "webhook", "operation", "update")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := ComponentValidatorImpl{}
-			if got := c.ValidateUpdate(tt.vz, tt.vz, log); !reflect.DeepEqual(got, tt.want) {
+			if got := c.ValidateUpdate(tt.vz, tt.vz); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ValidateInstall() = %v, want %v", got, tt.want)
 			}
 		})

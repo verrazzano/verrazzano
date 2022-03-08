@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -123,11 +122,11 @@ func (i istioComponent) Name() string {
 	return ComponentName
 }
 
-func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano, log *zap.SugaredLogger) error {
+func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return nil
 }
 
-func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, log *zap.SugaredLogger) error {
+func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	return nil
 }
 

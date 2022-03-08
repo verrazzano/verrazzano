@@ -39,8 +39,8 @@ var _ webhook.Validator = &Verrazzano{}
 // +k8s:deepcopy-gen=false
 
 type ComponentValidator interface {
-	ValidateInstall(vz *Verrazzano, log *zap.SugaredLogger) []error
-	ValidateUpdate(old *Verrazzano, new *Verrazzano, log *zap.SugaredLogger) []error
+	ValidateInstall(vz *Verrazzano) []error
+	ValidateUpdate(old *Verrazzano, new *Verrazzano) []error
 }
 
 var componentValidator ComponentValidator = nil
@@ -88,7 +88,7 @@ func (v *Verrazzano) ValidateCreate() error {
 
 	// hand the Verrazzano to component validator to validate
 	if componentValidator != nil {
-		if errs := componentValidator.ValidateInstall(v, log); len(errs) > 0 {
+		if errs := componentValidator.ValidateInstall(v); len(errs) > 0 {
 			return combineErrors(errs)
 		}
 	}
@@ -133,7 +133,7 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 
 	// hand the old and new Verrazzano to component validator to validate
 	if componentValidator != nil {
-		if errs := componentValidator.ValidateUpdate(oldResource, v, log); len(errs) > 0 {
+		if errs := componentValidator.ValidateUpdate(oldResource, v); len(errs) > 0 {
 			return combineErrors(errs)
 		}
 	}

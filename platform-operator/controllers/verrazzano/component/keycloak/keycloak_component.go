@@ -4,8 +4,8 @@ package keycloak
 
 import (
 	"context"
+	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"go.uber.org/zap"
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -139,7 +139,12 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // IsEnabled Keycloak-specific enabled check for installation
 func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+	return isKeycloakEnabled(ctx.EffectiveCR())
+}
+
+// isKeycloakEnabled checks keycloak in the specified Verrazzano CR
+func isKeycloakEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -155,12 +160,14 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c KeycloakComponent) ValidateInstall(vz *vzapi.Verrazzano, log *zap.SugaredLogger) error {
-	log.Info()
+func (c KeycloakComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, log *zap.SugaredLogger) error {
+func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isKeycloakEnabled(old) && !isKeycloakEnabled(new) {
+		return fmt.Errorf("can not disable keycloak")
+	}
 	return nil
 }
