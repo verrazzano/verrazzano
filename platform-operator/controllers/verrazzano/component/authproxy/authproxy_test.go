@@ -65,6 +65,7 @@ func TestIsAuthProxyReady(t *testing.T) {
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
+						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
 				}),
@@ -80,6 +81,7 @@ func TestIsAuthProxyReady(t *testing.T) {
 					},
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 1,
+						Replicas:          1,
 						UpdatedReplicas:   0,
 					},
 				}),

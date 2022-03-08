@@ -200,6 +200,7 @@ func newDeployment(name string, updated bool) *appsv1.Deployment {
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
+			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
 	}
@@ -207,6 +208,7 @@ func newDeployment(name string, updated bool) *appsv1.Deployment {
 	if !updated {
 		deployment.Status = appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
+			Replicas:          1,
 			UpdatedReplicas:   0,
 		}
 	}

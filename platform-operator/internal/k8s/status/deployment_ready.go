@@ -21,33 +21,6 @@ type PodReadyCheck struct {
 	LabelSelector  labels.Selector
 }
 
-// DeploymentsReady Check that the named deployments have the minimum number of specified replicas ready and available
-func DeploymentsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployments []types.NamespacedName, expectedReplicas int32, prefix string) bool {
-	for _, namespacedName := range deployments {
-		deployment := appsv1.Deployment{}
-		if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
-			if errors.IsNotFound(err) {
-				log.Progressf("%s is waiting for deployment %v to exist", prefix, namespacedName)
-				return false
-			}
-			log.Errorf("Failed getting deployment %v: %v", namespacedName, err)
-			return false
-		}
-		if deployment.Status.AvailableReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for deployment %s replicas to be %v. Current available replicas is %v", prefix, namespacedName,
-				expectedReplicas, deployment.Status.AvailableReplicas)
-			return false
-		}
-		if deployment.Status.UpdatedReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
-				expectedReplicas, deployment.Status.UpdatedReplicas)
-			return false
-		}
-	}
-	log.Oncef("%s has enough replicas for deployments %v", prefix, deployments)
-	return true
-}
-
 // DeploymentsAreReady check that the named deployments have the minimum number of specified replicas ready and available
 func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, checks []PodReadyCheck, expectedReplicas int32, prefix string) bool {
 	for _, check := range checks {
@@ -95,7 +68,7 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
 		log.Progressf("Found no pods with matching labels selector %v for namespace %s", check.LabelSelector, check.NamespacedName.Namespace)
-		return false
+		return true
 	}
 
 	// Loop through pods identifying pods that are using the latest replicaset revision
@@ -150,5 +123,11 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 			break
 		}
 	}
+
+	if podsReady < expectedReplicas {
+		log.Progressf("Found %d pods with matching labels selector %v for namespace %s when at least %d pods", len(pods.Items), check.LabelSelector, check.NamespacedName.Namespace, expectedReplicas)
+		return false
+	}
+
 	return true
 }

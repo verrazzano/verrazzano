@@ -95,6 +95,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -105,6 +106,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -115,6 +117,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -145,6 +148,7 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
+			Replicas:          1,
 			UpdatedReplicas:   0,
 		},
 	})
@@ -194,6 +198,7 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
+			Replicas:          1,
 			UpdatedReplicas:   0,
 		},
 	})
@@ -432,6 +437,7 @@ func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
+			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
 	}

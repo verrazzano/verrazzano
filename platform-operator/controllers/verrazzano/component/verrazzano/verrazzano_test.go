@@ -1500,8 +1500,9 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			Name:      vmoDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
@@ -1532,6 +1533,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1543,6 +1545,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1554,6 +1557,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1565,6 +1569,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1576,6 +1581,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1587,6 +1593,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1598,6 +1605,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1609,6 +1617,7 @@ func TestIsReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 2,
+				Replicas:          2,
 				UpdatedReplicas:   1,
 			},
 		},

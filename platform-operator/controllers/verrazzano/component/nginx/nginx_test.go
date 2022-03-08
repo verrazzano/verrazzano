@@ -133,6 +133,7 @@ func TestIsNGINXReady(t *testing.T) {
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
+			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
 	},
@@ -144,6 +145,7 @@ func TestIsNGINXReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -163,6 +165,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
+			Replicas:          1,
 			UpdatedReplicas:   0,
 		},
 	},
@@ -173,6 +176,7 @@ func TestIsNGINXNotReady(t *testing.T) {
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 0,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},

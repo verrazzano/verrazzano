@@ -400,6 +400,7 @@ func newDeployment(name string, labels map[string]string, updated bool) *appsv1.
 			Labels:    labels,
 		},
 		Status: appsv1.DeploymentStatus{
+			Replicas:          1,
 			AvailableReplicas: 1,
 			UpdatedReplicas:   1,
 		},
@@ -407,6 +408,7 @@ func newDeployment(name string, labels map[string]string, updated bool) *appsv1.
 
 	if !updated {
 		deployment.Status = appsv1.DeploymentStatus{
+			Replicas:          1,
 			AvailableReplicas: 1,
 			UpdatedReplicas:   0,
 		}
