@@ -34,31 +34,39 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
 					return "", err
 				}
-				req := retryablehttp.Request{}
-				req.URL.Path = "/invalid-url"
+				req, err := http.NewRequest("GET", "/invalid-url", nil)
+				if err != nil {
+					return "", err
+				}
 				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Password: %v", err))
 					return "", err
 				}
 				req.SetBasicAuth(pkg.Username, password)
-				return checkNGINXErrorPageRH(&req, 404)
+				return checkNGINXErrorPage(req)
 			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
 				"Expected response to include custom 404 error page")
 		})
 		t.ItMinimumVersion("Return a 302", minimumVersion, func() {
 			Eventually(func() (string, error) {
-				req := http.Request{}
-				return checkNGINXErrorPage(&req)
+				req, err := http.NewRequest("GET", "", nil)
+				if err != nil {
+					return "", err
+				}
+				return checkNGINXErrorPage(req)
 			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected302)),
 				"Expected response to include custom 302 response page")
 		})
 
 		t.ItMinimumVersion("Return a 401", minimumVersion, func() {
 			Eventually(func() (string, error) {
-				req := http.Request{}
+				req, err := http.NewRequest("GET", "", nil)
+				if err != nil {
+					return "", err
+				}
 				req.SetBasicAuth(pkg.Username, "fake-password")
-				return checkNGINXErrorPage(&req)
+				return checkNGINXErrorPage(req)
 			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected401)),
 				"Expected response to include custom 401 error page")
 		})
