@@ -5,8 +5,8 @@ package vmi_test
 
 import (
 	"fmt"
+	"net/http"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
@@ -40,16 +40,21 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				client, err := elastic.GetVmiHTTPClient(kubeConfigPath)
+				client := http.Client{}
+				req, err := http.NewRequest("GET", fmt.Sprintf("%s/invalid-url", esURL), nil)
 				if err != nil {
-					pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
 					return "", err
 				}
-				req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/invalid-url", esURL), nil)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
-					return "", err
-				}
+				//client, err := elastic.GetVmiHTTPClient(kubeConfigPath)
+				//if err != nil {
+				//	pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
+				//	return "", err
+				//}
+				//req, err := retryablehttp.NewRequest("GET", fmt.Sprintf("%s/invalid-url", esURL), nil)
+				//if err != nil {
+				//	pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
+				//	return "", err
+				//}
 				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Password: %v", err))
@@ -70,90 +75,91 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 			}, waitTimeout, pollingInterval).Should(Equal(expected404),
 				"Expected response to include custom 404 error page")
 		})
+		/*
+			t.ItMinimumVersion("Return a 302", minimumVersion, func() {
+				Eventually(func() (string, error) {
+					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+						return "", err
+					}
+					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+						return "", err
+					}
+					esURL, err := api.GetElasticURL()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
+						return "", err
+					}
+					client, err :=
+					client, err := elastic.GetVmiHTTPClient(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
+						return "", err
+					}
+					req, err := retryablehttp.NewRequest("GET", esURL, nil)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
+						return "", err
+					}
+					response, err := client.Do(req)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
+						return "", err
+					}
+					httpResp, err := pkg.ProcessHTTPResponse(response)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
+						return "", err
+					}
+					return string(httpResp.Body), err
+				}, waitTimeout, pollingInterval).Should(Equal(expected302),
+					"Expected response to include custom 302 response page")
+			})
 
-		t.ItMinimumVersion("Return a 302", minimumVersion, func() {
-			Eventually(func() (string, error) {
-				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					return "", err
-				}
-				api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-					return "", err
-				}
-				esURL, err := api.GetElasticURL()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
-					return "", err
-				}
-				client, err := elastic.GetVmiHTTPClient(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
-					return "", err
-				}
-				req, err := retryablehttp.NewRequest("GET", esURL, nil)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
-					return "", err
-				}
-				response, err := client.Do(req)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
-					return "", err
-				}
-				httpResp, err := pkg.ProcessHTTPResponse(response)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
-					return "", err
-				}
-				return string(httpResp.Body), err
-			}, waitTimeout, pollingInterval).Should(Equal(expected302),
-				"Expected response to include custom 302 response page")
-		})
-
-		t.ItMinimumVersion("Return a 401", minimumVersion, func() {
-			Eventually(func() (string, error) {
-				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					return "", err
-				}
-				api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-					return "", err
-				}
-				esURL, err := api.GetElasticURL()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
-					return "", err
-				}
-				client, err := elastic.GetVmiHTTPClient(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
-					return "", err
-				}
-				req, err := retryablehttp.NewRequest("GET", esURL, nil)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
-					return "", err
-				}
-				req.SetBasicAuth(pkg.Username, "fake-password")
-				response, err := client.Do(req)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
-					return "", err
-				}
-				httpResp, err := pkg.ProcessHTTPResponse(response)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
-					return "", err
-				}
-				return string(httpResp.Body), err
-			}, waitTimeout, pollingInterval).Should(Equal(expected401),
-				"Expected response to include custom 401 error page")
-		})
+			t.ItMinimumVersion("Return a 401", minimumVersion, func() {
+				Eventually(func() (string, error) {
+					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+						return "", err
+					}
+					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+						return "", err
+					}
+					esURL, err := api.GetElasticURL()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
+						return "", err
+					}
+					client, err := elastic.GetVmiHTTPClient(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
+						return "", err
+					}
+					req, err := retryablehttp.NewRequest("GET", esURL, nil)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
+						return "", err
+					}
+					req.SetBasicAuth(pkg.Username, "fake-password")
+					response, err :=
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
+						return "", err
+					}
+					httpResp, err := pkg.ProcessHTTPResponse(response)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
+						return "", err
+					}
+					return string(httpResp.Body), err
+				}, waitTimeout, pollingInterval).Should(Equal(expected401),
+					"Expected response to include custom 401 error page")
+			})*/
 	})
 })
