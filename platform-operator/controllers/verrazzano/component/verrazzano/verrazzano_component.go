@@ -4,7 +4,10 @@
 package verrazzano
 
 import (
+	"fmt"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -118,11 +121,28 @@ func (c verrazzanoComponent) updateElasticsearchResources(ctx spi.ComponentConte
 
 // IsEnabled verrazzano-specific enabled check for installation
 func (c verrazzanoComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Verrazzano
+	return isComponentEnabled(ctx.EffectiveCR())
+}
+
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.Verrazzano
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c verrazzanoComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
+		return fmt.Errorf("can not disable verrazzano")
+	}
+	return nil
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
