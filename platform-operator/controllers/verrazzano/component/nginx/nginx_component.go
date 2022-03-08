@@ -73,7 +73,7 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
-		return fmt.Errorf("can not disable ingress")
+		return fmt.Errorf("can not disable previously enabled ingress")
 	}
 	return nil
 }

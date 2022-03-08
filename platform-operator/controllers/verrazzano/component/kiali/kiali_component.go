@@ -107,7 +107,7 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
-		return fmt.Errorf("can not disable kiali")
+		return fmt.Errorf("can not disable previously enabled kiali")
 	}
 	return nil
 }

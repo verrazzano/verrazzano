@@ -161,7 +161,7 @@ func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
-		return fmt.Errorf("can not disable keycloak")
+		return fmt.Errorf("can not disable previously enabled keycloak")
 	}
 	return nil
 }

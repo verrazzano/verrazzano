@@ -62,7 +62,7 @@ func (c coherenceComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c coherenceComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
-		return fmt.Errorf("can not disable coherenceOperator")
+		return fmt.Errorf("can not disable previously enabled coherenceOperator")
 	}
 	return nil
 }

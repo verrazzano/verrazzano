@@ -134,7 +134,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
-		return fmt.Errorf("can not disable istio")
+		return fmt.Errorf("can not disable previously enabled istio")
 	}
 	return nil
 }

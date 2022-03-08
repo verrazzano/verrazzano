@@ -83,7 +83,7 @@ func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
-		return fmt.Errorf("can not disable keycloak")
+		return fmt.Errorf("can not disable previously enabled keycloak")
 	}
 	return nil
 }
