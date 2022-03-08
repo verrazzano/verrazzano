@@ -60,6 +60,10 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, check
 			log.Errorf("%s failed getting deployment %v: %v", prefix, check.NamespacedName, err)
 			return false
 		}
+		if deployment.Status.Replicas == 0 {
+			log.Oncef("%s deployment is defined with zero replicas. No ready checking is performed.")
+			return true
+		}
 		if deployment.Status.UpdatedReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, check.NamespacedName,
 				expectedReplicas, deployment.Status.UpdatedReplicas)
@@ -88,9 +92,10 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 		return false
 	}
 
-	// If no pods found log a message and return
+	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
 		log.Progressf("Found no pods with matching labels selector %v for namespace %s", check.LabelSelector, check.NamespacedName.Namespace)
+		return false
 	}
 
 	// Loop through pods identifying pods that are using the latest replicaset revision
@@ -121,8 +126,6 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 			savedPods = append(savedPods, pod)
 		}
 	}
-
-	log.Progressf("Saved %d pods for replicaset %s", len(savedPods), rsName)
 
 	var podsReady int32 = 0
 	for _, pod := range savedPods {

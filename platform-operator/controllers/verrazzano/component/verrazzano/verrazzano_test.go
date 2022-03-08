@@ -1528,80 +1528,88 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      verrazzanoConsoleDeployment,
+				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      vmoDeployment,
+				Labels:    map[string]string{"k8s-app": vmoDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      grafanaDeployment,
+				Labels:    map[string]string{"app": "system-grafana"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
+				Labels:    map[string]string{"app": "system-kibana"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "1"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment,
+				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        2,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 2,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1677,8 +1685,8 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 				Name:      vmoDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 0,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   0,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",

@@ -27,8 +27,8 @@ func TestDeploymentsReady(t *testing.T) {
 			Name:      name.Name,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
 		},
 	})
 	assert.True(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 1, ""))
@@ -46,8 +46,8 @@ func TestMultipleReplicasReady(t *testing.T) {
 			Name:      name.Name,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        3,
-			UpdatedReplicas: 3,
+			AvailableReplicas: 3,
+			UpdatedReplicas:   3,
 		},
 	})
 	assert.True(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 3, ""))
@@ -65,8 +65,8 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 			Name:      name.Name,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        3,
-			UpdatedReplicas: 3,
+			AvailableReplicas: 3,
+			UpdatedReplicas:   3,
 		},
 	})
 	assert.True(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 2, ""))
@@ -84,8 +84,8 @@ func TestDeploymentsNotAvailableOrReady(t *testing.T) {
 			Name:      name.Name,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 0,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   0,
 		},
 	})
 	assert.False(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 1, ""))
@@ -103,8 +103,8 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 			Name:      name.Name,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        3,
-			UpdatedReplicas: 1,
+			AvailableReplicas: 3,
+			UpdatedReplicas:   1,
 		},
 	})
 	assert.False(t, DeploymentsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{name}, 2, ""))
@@ -135,8 +135,8 @@ func TestMultipleDeploymentsReplicasReadyBelowThreshold(t *testing.T) {
 				Name:      name1.Name,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        3,
-				UpdatedReplicas: 3,
+				AvailableReplicas: 3,
+				UpdatedReplicas:   3,
 			},
 		},
 		&appsv1.Deployment{
@@ -145,8 +145,8 @@ func TestMultipleDeploymentsReplicasReadyBelowThreshold(t *testing.T) {
 				Name:      name2.Name,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        3,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 3,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -155,8 +155,8 @@ func TestMultipleDeploymentsReplicasReadyBelowThreshold(t *testing.T) {
 				Name:      name3.Name,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        3,
-				UpdatedReplicas: 3,
+				AvailableReplicas: 3,
+				UpdatedReplicas:   3,
 			},
 		},
 	)
@@ -178,8 +178,8 @@ func TestMultipleDeploymentsReplicasReady(t *testing.T) {
 				Name:      name1.Name,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        3,
-				UpdatedReplicas: 3,
+				AvailableReplicas: 3,
+				UpdatedReplicas:   3,
 			},
 		},
 		&appsv1.Deployment{
@@ -188,8 +188,8 @@ func TestMultipleDeploymentsReplicasReady(t *testing.T) {
 				Name:      name2.Name,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        3,
-				UpdatedReplicas: 3,
+				AvailableReplicas: 3,
+				UpdatedReplicas:   3,
 			},
 		},
 		&appsv1.Deployment{
@@ -198,8 +198,8 @@ func TestMultipleDeploymentsReplicasReady(t *testing.T) {
 				Name:      name3.Name,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        3,
-				UpdatedReplicas: 3,
+				AvailableReplicas: 3,
+				UpdatedReplicas:   3,
 			},
 		},
 	)

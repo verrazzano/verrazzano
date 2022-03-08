@@ -6,10 +6,9 @@ package oam
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 )
 

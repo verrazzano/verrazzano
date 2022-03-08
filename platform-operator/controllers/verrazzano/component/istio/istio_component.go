@@ -411,15 +411,6 @@ func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, 
 	return kvs, nil
 }
 
-// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
-func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
-	deployments := []types.NamespacedName{
-		{Name: "istiod", Namespace: namespace},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
-}
-
 func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {
 	// Get the image overrides from the BOM
 	kvs, err := getImageOverrides()

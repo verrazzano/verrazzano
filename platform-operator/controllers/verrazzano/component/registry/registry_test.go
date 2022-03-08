@@ -94,8 +94,8 @@ func TestComponentDependenciesMet(t *testing.T) {
 				Name:      "istiod",
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -104,8 +104,8 @@ func TestComponentDependenciesMet(t *testing.T) {
 				Name:      "istio-ingressgateway",
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -114,8 +114,8 @@ func TestComponentDependenciesMet(t *testing.T) {
 				Name:      "istio-egressgateway",
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:        1,
-				UpdatedReplicas: 1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
@@ -144,8 +144,8 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 			Name:      "istiod",
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 0,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   0,
 		},
 	})
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -193,8 +193,8 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 			Name:      "istiod",
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 0,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   0,
 		},
 	})
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -431,8 +431,8 @@ func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
 			Name:      name,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
 		},
 	}
 }
