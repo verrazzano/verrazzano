@@ -6,6 +6,7 @@ package spi
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -86,6 +87,8 @@ type Component interface {
 
 	Reconcile(ctx ComponentContext) error
 
-	ValidateInstall(vz *vzapi.Verrazzano) error
-	ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
+	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+	ValidateInstall(vz *vzapi.Verrazzano, log *zap.SugaredLogger) error
+	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+	ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano, log *zap.SugaredLogger) error
 }

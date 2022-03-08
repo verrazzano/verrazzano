@@ -6,6 +6,8 @@ package registry
 import (
 	"testing"
 
+	"go.uber.org/zap"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -511,10 +513,10 @@ func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespace
 	return []types.NamespacedName{}
 }
 
-func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano, log *zap.SugaredLogger) error {
 	return nil
 }
 
-func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano, log *zap.SugaredLogger) error {
 	return nil
 }
