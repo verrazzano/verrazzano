@@ -280,10 +280,11 @@ func TestIsMySQLReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
+			Labels:    map[string]string{"app": ComponentName},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
 		},
 	})
 	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
@@ -300,8 +301,8 @@ func TestIsMySQLNotReady(t *testing.T) {
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 0,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   0,
 		},
 	})
 	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))

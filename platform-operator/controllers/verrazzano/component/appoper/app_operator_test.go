@@ -86,7 +86,6 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      "verrazzano-application-operator",
-			Labels:    map[string]string{"app": ComponentName},
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,

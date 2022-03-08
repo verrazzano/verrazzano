@@ -41,7 +41,6 @@ func TestIsCoherenceOperatorNotReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
-			Labels:    map[string]string{"control-plane": "coherence"},
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,

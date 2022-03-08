@@ -80,7 +80,6 @@ func TestIsKialiNotReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      kialiSystemName,
-			Labels:    map[string]string{"app": kialiSystemName},
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,
