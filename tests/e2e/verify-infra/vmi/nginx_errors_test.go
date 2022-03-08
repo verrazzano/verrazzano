@@ -42,9 +42,6 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				customTransport := http.DefaultTransport.(*http.Transport).Clone()
-				customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-				client := &http.Client{Transport: customTransport}
 				req, err := http.NewRequest("GET", fmt.Sprintf("%s/invalid-url", esURL), nil)
 				if err != nil {
 					return "", err
@@ -55,7 +52,9 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					return "", err
 				}
 				req.SetBasicAuth(pkg.Username, password)
-				response, err := client.Do(req)
+				transport := http.DefaultTransport.(*http.Transport).Clone()
+				transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				response, err := transport.RoundTrip(req)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
 					return "", err
@@ -86,15 +85,14 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				customTransport := http.DefaultTransport.(*http.Transport).Clone()
-				customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-				client := &http.Client{Transport: customTransport}
 				req, err := http.NewRequest("GET", esURL, nil)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
 					return "", err
 				}
-				response, err := client.Do(req)
+				transport := http.DefaultTransport.(*http.Transport).Clone()
+				transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				response, err := transport.RoundTrip(req)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
 					return "", err
@@ -126,9 +124,6 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				customTransport := http.DefaultTransport.(*http.Transport).Clone()
-				customTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-				client := &http.Client{Transport: customTransport}
 				req, err := http.NewRequest("GET", esURL, nil)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
@@ -139,7 +134,13 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
 					return "", err
 				}
-				response, err := client.Do(req)
+				transport := http.DefaultTransport.(*http.Transport).Clone()
+				transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				response, err := transport.RoundTrip(req)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
+					return "", err
+				}
 				httpResp, err := pkg.ProcessHTTPResponse(response)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
