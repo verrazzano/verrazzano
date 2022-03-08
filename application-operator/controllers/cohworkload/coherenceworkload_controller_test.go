@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package cohworkload
@@ -1359,6 +1359,24 @@ func TestCreateUpdateDestinationRuleNoLabel(t *testing.T) {
 	workloadLabels := make(map[string]string)
 	err := reconciler.createOrUpdateDestinationRule(context.Background(), ctrl.Log, "test-namespace", namespaceLabels, workloadLabels)
 	assert.NoError(err)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-coherence-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclustersecret
@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/go-logr/logr"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +34,15 @@ const finalizerName = "multiclustersecret.verrazzano.io"
 // success or failure of the changes to the embedded Secret
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclustersecret", req.NamespacedName)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzconst.KubeSystem {
+		logger.Info("Multi-cluster secret resource should not be reconciled in kube-system namespace, ignoring")
+		return reconcile.Result{}, nil
+	}
+
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	result := reconcile.Result{}
 	ctx := context.Background()

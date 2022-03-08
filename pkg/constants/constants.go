@@ -88,3 +88,6 @@ const VMCAgentPollingTimeInterval = 60 * time.Second
 
 // MaxTimesVMCAgentPollingTime - The constant used to set max polling time for vmc agent to determine VMC state
 const MaxTimesVMCAgentPollingTime = 3
+
+// KubeSystem - The name of the kube-system namespace
+const KubeSystem = "kube-system"
