@@ -152,7 +152,7 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					return "", err
 				}
 				return string(httpResp.Body), err
-			}, waitTimeout, pollingInterval).Should(Equal(expected404),
+			}, waitTimeout, pollingInterval).Should(Equal(expected401),
 				"Expected response to include custom 401 error page")
 		})
 	})
