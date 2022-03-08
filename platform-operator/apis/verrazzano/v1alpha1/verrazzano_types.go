@@ -132,6 +132,8 @@ type InstanceInfo struct {
 	GrafanaURL *string `json:"grafanaUrl,omitempty"`
 	// PrometheusURL The Prometheus URL for this Verrazzano installation
 	PrometheusURL *string `json:"prometheusUrl,omitempty"`
+	// AlertmanagerURL The Alertmanager URL for this Verrazzano installation
+	AlertmanagerURL *string `json:"alertmanagerUrl,omitempty"`
 	// KialiURL The Kiali URL for this Verrazzano installation
 	KialiURL *string `json:"kialiUrl,omitempty"`
 }

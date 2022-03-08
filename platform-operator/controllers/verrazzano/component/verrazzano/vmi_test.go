@@ -32,6 +32,9 @@ var vmiEnabledCR = vzapi.Verrazzano{
 			Prometheus: &vzapi.PrometheusComponent{
 				MonitoringComponent: monitoringComponent,
 			},
+			Alertmanager: &vzapi.AlertmanagerComponent{
+				MonitoringComponent: monitoringComponent,
+			},
 			Grafana: &vzapi.GrafanaComponent{
 				MonitoringComponent: monitoringComponent,
 			},
@@ -166,6 +169,15 @@ func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 func TestPrometheusWithStorageOverride(t *testing.T) {
 	prometheus := newPrometheus(&vmiEnabledCR, &resourceRequestValues{Storage: "100Gi"}, nil)
 	assert.Equal(t, "100Gi", prometheus.Storage.Size)
+}
+
+// TestNewAlertmanager tests that storage overrides are applied to Prometheus
+// GIVEN a Verrazzano CR with Alertmanager enabled
+// WHEN I create a new Alertmanager resource
+//  THEN the Alertmanager is enabled
+func TestNewAlertmanager(t *testing.T) {
+	alertmanager := newAlertmanager(&vmiEnabledCR)
+	assert.Equal(t, true, alertmanager.Enabled)
 }
 
 // TestCreateVMI tests a new VMI resources is created in K8s according to the CR

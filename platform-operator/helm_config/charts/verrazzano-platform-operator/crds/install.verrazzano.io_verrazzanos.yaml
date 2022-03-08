@@ -6024,6 +6024,10 @@ spec:
               instance:
                 description: The Verrazzano instance info
                 properties:
+                  alertmanagerUrl:
+                    description: AlertmanagerURL The Alertmanager URL for this Verrazzano
+                      installation
+                    type: string
                   consoleUrl:
                     description: ConsoleURL The Console URL for this Verrazzano installation
                     type: string

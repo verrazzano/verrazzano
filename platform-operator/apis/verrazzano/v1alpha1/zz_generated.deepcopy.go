@@ -616,6 +616,11 @@ func (in *InstanceInfo) DeepCopyInto(out *InstanceInfo) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.AlertmanagerURL != nil {
+		in, out := &in.AlertmanagerURL, &out.AlertmanagerURL
+		*out = new(string)
+		**out = **in
+	}
 	if in.KialiURL != nil {
 		in, out := &in.KialiURL, &out.KialiURL
 		*out = new(string)

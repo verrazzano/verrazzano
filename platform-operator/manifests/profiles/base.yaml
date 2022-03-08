@@ -3,6 +3,8 @@
 spec:
   environmentName: default
   components:
+    alertmanager:
+      enabled: true
     applicationOperator:
       enabled: true
     authProxy:

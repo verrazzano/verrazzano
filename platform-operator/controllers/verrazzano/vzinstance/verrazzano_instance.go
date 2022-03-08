@@ -44,14 +44,15 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 	}
 
 	instanceInfo := &v1alpha1.InstanceInfo{
-		ConsoleURL:    consoleURL,
-		RancherURL:    getComponentIngressURL(ingressList.Items, ctx, rancher.ComponentName, constants.RancherIngress),
-		KeyCloakURL:   getComponentIngressURL(ingressList.Items, ctx, keycloak.ComponentName, constants.KeycloakIngress),
-		ElasticURL:    getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.ElasticsearchIngress),
-		KibanaURL:     getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.KibanaIngress),
-		GrafanaURL:    getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.GrafanaIngress),
-		PrometheusURL: getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.PrometheusIngress),
-		KialiURL:      getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
+		ConsoleURL:      consoleURL,
+		RancherURL:      getComponentIngressURL(ingressList.Items, ctx, rancher.ComponentName, constants.RancherIngress),
+		KeyCloakURL:     getComponentIngressURL(ingressList.Items, ctx, keycloak.ComponentName, constants.KeycloakIngress),
+		ElasticURL:      getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.ElasticsearchIngress),
+		KibanaURL:       getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.KibanaIngress),
+		GrafanaURL:      getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.GrafanaIngress),
+		PrometheusURL:   getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.PrometheusIngress),
+		AlertmanagerURL: getComponentIngressURL(ingressList.Items, ctx, verrazzano.ComponentName, constants.AlertmanagerIngress),
+		KialiURL:        getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
 	}
 	return instanceInfo
 }
