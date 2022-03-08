@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package metricstrait
@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -2100,6 +2101,25 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 	// Expect https to be true for namespaces labeled for istio-injection
 	assert.True(https, "Expected https to be true for namespaces labeled for Istio injection")
 	mocker.Finish()
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: constants.KubeSystem, Name: "test-trait-name"}}
+	reconciler := newMetricsTraitReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }
 
 // newMetricsTraitReconciler creates a new reconciler for testing

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package multiclusterconfigmap
@@ -6,6 +6,7 @@ package multiclusterconfigmap
 import (
 	"context"
 	"github.com/go-logr/logr"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +35,15 @@ const finalizerName = "multiclusterconfigmap.verrazzano.io"
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	logger := r.Log.WithValues("multiclusterconfigmap", req.NamespacedName)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		logger.Info("Multi-cluster configmap resource should not be reconciled in kube-system namespace, ignoring")
+		return reconcile.Result{}, nil
+	}
+
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
 	result := reconcile.Result{}
 	ctx := context.Background()

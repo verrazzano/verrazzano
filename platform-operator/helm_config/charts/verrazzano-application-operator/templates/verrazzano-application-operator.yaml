@@ -336,6 +336,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: verrazzano-application-appconfig-defaulter.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -364,6 +367,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: verrazzano-application-ingresstrait-validator.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -394,7 +400,7 @@ webhooks:
     namespaceSelector:
       matchExpressions:
           - {key: istio-injection, operator: In, values: [enabled]}
-          - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system]}
+          - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system, kube-system]}
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -421,6 +427,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: verrazzano-clusters-verrazzanoproject-validator.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -448,6 +457,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: verrazzano-clusters-multiclusterapplicationconfiguration-validator.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -475,6 +487,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: verrazzano-clusters-multiclustercomponent-validator.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -502,6 +517,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: verrazzano-clusters-multiclusterconfigmap-validator.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
@@ -529,6 +547,9 @@ metadata:
     app: {{ .Values.name }}
 webhooks:
   - name: verrazzano-clusters-multiclustersecret-validator.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
         name: {{ .Values.name }}
