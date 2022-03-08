@@ -151,12 +151,12 @@ func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c rancherComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (r rancherComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return nil
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
 		return fmt.Errorf("can not disable rancher")
 	}
