@@ -125,6 +125,14 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateUpgradeDone:
 			msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
+			for _, comp := range registry.GetComponents() {
+				compName := comp.Name()
+				componentStatus := cr.Status.Components[compName]
+				if componentStatus != nil {
+					log.Oncef("Component %s has been upgraded from generation %v to %v %v", compName, componentStatus.LastReconciledGeneration, cr.Generation, componentStatus.State)
+					componentStatus.LastReconciledGeneration = cr.Generation
+				}
+			}
 			log.Once(msg)
 			cr.Status.Version = targetVersion
 			for _, comp := range registry.GetComponents() {
