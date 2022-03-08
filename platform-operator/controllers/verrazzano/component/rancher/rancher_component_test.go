@@ -269,7 +269,7 @@ func TestPostInstall(t *testing.T) {
 	caSecret := createCASecret()
 	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
-	rancherPodList := createRancherPodListWithAllRunning()
+	rancherPodList := createRancherPodList()
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: common.CattleSystem,
