@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
@@ -18,12 +18,12 @@ import (
 func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 	tests := []struct {
 		name string
-		vz   *v1alpha1.Verrazzano
+		vz   *vzapi.Verrazzano
 		want []error
 	}{
 		{
 			name: "valid CR",
-			vz:   &v1alpha1.Verrazzano{},
+			vz:   &vzapi.Verrazzano{},
 			want: nil,
 		},
 	}
@@ -44,15 +44,32 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 // WHEN ValidateUpdate is called
 // THEN ensure that no error is raised
 func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
+	disabled := false
 	tests := []struct {
-		name string
-		vz   *v1alpha1.Verrazzano
-		want []error
+		name    string
+		old     *vzapi.Verrazzano
+		new     *vzapi.Verrazzano
+		wantErr bool
 	}{
 		{
-			name: "valid CR",
-			vz:   &v1alpha1.Verrazzano{},
-			want: nil,
+			name:    "no change",
+			old:     &vzapi.Verrazzano{},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
@@ -60,8 +77,8 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := ComponentValidatorImpl{}
-			if got := c.ValidateUpdate(tt.vz, tt.vz); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ValidateInstall() = %v, want %v", got, tt.want)
+			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

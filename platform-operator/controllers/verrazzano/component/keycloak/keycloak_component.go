@@ -142,21 +142,20 @@ func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	return isKeycloakEnabled(ctx.EffectiveCR())
 }
 
-// isKeycloakEnabled checks keycloak in the specified Verrazzano CR
-func isKeycloakEnabled(vz *vzapi.Verrazzano) bool {
-	comp := vz.Spec.Components.Keycloak
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
-}
-
 // IsReady component check
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
 		return isKeycloakReady(ctx)
 	}
 	return false
+}
+
+func isKeycloakEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.Keycloak
+	if comp == nil || comp.Enabled == nil {
+		return true
+	}
+	return *comp.Enabled
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed

@@ -6,8 +6,6 @@ package registry
 import (
 	"testing"
 
-	"go.uber.org/zap"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"

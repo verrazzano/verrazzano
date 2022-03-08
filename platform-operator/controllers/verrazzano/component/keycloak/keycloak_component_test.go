@@ -161,25 +161,9 @@ func TestKeycloakComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "no change",
-			old: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Keycloak: &vzapi.KeycloakComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Keycloak: &vzapi.KeycloakComponent{
-							Enabled: &disabled,
-						},
-					},
-				},
-			},
+			name:    "no change",
+			old:     &vzapi.Verrazzano{},
+			new:     &vzapi.Verrazzano{},
 			wantErr: false,
 		},
 	}
