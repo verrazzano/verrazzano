@@ -139,7 +139,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // IsEnabled Keycloak-specific enabled check for installation
 func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isKeycloakEnabled(ctx.EffectiveCR())
+	return isComponentEnabled(ctx.EffectiveCR())
 }
 
 // IsReady component check
@@ -150,7 +150,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func isKeycloakEnabled(vz *vzapi.Verrazzano) bool {
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 	comp := vz.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -165,7 +165,7 @@ func (c KeycloakComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isKeycloakEnabled(old) && !isKeycloakEnabled(new) {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
 		return fmt.Errorf("can not disable keycloak")
 	}
 	return nil

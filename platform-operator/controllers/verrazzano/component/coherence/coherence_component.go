@@ -3,6 +3,8 @@
 package coherence
 
 import (
+	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -38,7 +40,11 @@ func NewComponent() spi.Component {
 
 // IsEnabled Coherence-specific enabled check for installation
 func (c coherenceComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.CoherenceOperator
+	return isComponentEnabled(ctx.EffectiveCR())
+}
+
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.CoherenceOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -51,4 +57,17 @@ func (c coherenceComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isCoherenceOperatorReady(ctx)
 	}
 	return false
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c coherenceComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c coherenceComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
+		return fmt.Errorf("can not disable coherenceOperator")
+	}
+	return nil
 }

@@ -51,10 +51,10 @@ func NewComponent() spi.Component {
 
 // IsEnabled authProxyComponent-specific enabled check for installation
 func (c authProxyComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isAuthProxyComponentEnabled(ctx.EffectiveCR())
+	return isComponentEnabled(ctx.EffectiveCR())
 }
 
-func isAuthProxyComponentEnabled(vz *vzapi.Verrazzano) bool {
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 	comp := vz.Spec.Components.AuthProxy
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -69,7 +69,7 @@ func (c authProxyComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isAuthProxyComponentEnabled(old) && !isAuthProxyComponentEnabled(new) {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
 		return fmt.Errorf("can not disable authProxy")
 	}
 	return nil

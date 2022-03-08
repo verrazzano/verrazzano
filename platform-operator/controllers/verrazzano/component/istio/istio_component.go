@@ -105,7 +105,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled istio-specific enabled check for installation
 func (i istioComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isIstioEnabled(ctx.EffectiveCR())
+	return isComponentEnabled(ctx.EffectiveCR())
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
@@ -118,7 +118,7 @@ func (i istioComponent) Name() string {
 	return ComponentName
 }
 
-func isIstioEnabled(vz *vzapi.Verrazzano) bool {
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 	comp := vz.Spec.Components.Istio
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -133,7 +133,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isIstioEnabled(old) && !isIstioEnabled(new) {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
 		return fmt.Errorf("can not disable istio")
 	}
 	return nil
