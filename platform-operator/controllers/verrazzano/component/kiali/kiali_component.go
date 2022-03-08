@@ -104,11 +104,6 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 	return nil
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c kialiComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return nil
-}
-
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {

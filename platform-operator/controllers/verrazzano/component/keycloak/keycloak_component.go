@@ -158,11 +158,6 @@ func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 	return *comp.Enabled
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c KeycloakComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return nil
-}
-
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {

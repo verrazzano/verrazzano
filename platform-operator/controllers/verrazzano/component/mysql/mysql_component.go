@@ -80,11 +80,6 @@ func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (c mysqlComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return nil
-}
-
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isComponentEnabled(old) && !isComponentEnabled(new) {
