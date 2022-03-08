@@ -4,6 +4,8 @@
 package oam
 
 import (
+	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -39,7 +41,11 @@ func NewComponent() spi.Component {
 
 // IsEnabled OAM-specific enabled check for installation
 func (c oamComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.OAM
+	return isComponentEnabled(ctx.EffectiveCR())
+}
+
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.OAM
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -52,4 +58,17 @@ func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isOAMReady(ctx)
 	}
 	return false
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c oamComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
+		return fmt.Errorf("can not disable oam")
+	}
+	return nil
 }

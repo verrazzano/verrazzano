@@ -4,8 +4,9 @@
 package coherence
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"testing"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 func Test_coherenceComponent_ValidateUpdate(t *testing.T) {

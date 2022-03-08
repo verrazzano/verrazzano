@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package externaldns
+package oam
 
 import (
 	"testing"
@@ -9,7 +9,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
-func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
+func Test_oamComponent_ValidateUpdate(t *testing.T) {
+	disabled := false
 	tests := []struct {
 		name    string
 		old     *vzapi.Verrazzano
@@ -18,34 +19,30 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 	}{
 		{
 			name: "enable",
-			old:  &vzapi.Verrazzano{},
-			new: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						DNS: &vzapi.DNSComponent{
-							OCI: &vzapi.OCI{
-								OCIConfigSecret: "oci-config-secret",
-							},
-						},
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "disable",
 			old: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
-						DNS: &vzapi.DNSComponent{
-							OCI: &vzapi.OCI{
-								OCIConfigSecret: "oci-config-secret",
-							},
+						OAM: &vzapi.OAMComponent{
+							Enabled: &disabled,
 						},
 					},
 				},
 			},
 			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						OAM: &vzapi.OAMComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
 			wantErr: true,
 		},
 		{
