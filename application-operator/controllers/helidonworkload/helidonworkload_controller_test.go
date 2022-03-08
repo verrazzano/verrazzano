@@ -906,6 +906,24 @@ func TestReconcileAlreadyExistsNoUpgrade(t *testing.T) {
 	assert.Equal(false, result.Requeue)
 }
 
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(constants.KubeSystem, "test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
+}
+
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()

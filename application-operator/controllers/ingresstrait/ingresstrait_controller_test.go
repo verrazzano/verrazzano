@@ -2529,6 +2529,24 @@ func newScheme() *runtime.Scheme {
 	return scheme
 }
 
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(constants.KubeSystem, "test-trait")
+	reconciler := newIngressTraitReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
+}
+
 // newIngressTraitReconciler creates a new reconciler for testing
 // c - The Kerberos client to inject into the reconciler
 func newIngressTraitReconciler(c client.Client) Reconciler {
