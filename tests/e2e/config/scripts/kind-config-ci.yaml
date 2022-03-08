@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -12,6 +12,27 @@ nodes:
           extraArgs:
             "service-account-issuer": "kubernetes.default.svc"
             "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+    extraMounts:
+      - hostPath: /var/lib/docker/v8o_cache/at_tests
+        containerPath: /var/lib/containerd
+  - role: worker
+    image: kindest/node:KIND_IMAGE
+    labels:
+      nodeName: "worker1"
+    extraMounts:
+      - hostPath: /var/lib/docker/v8o_cache/at_tests
+        containerPath: /var/lib/containerd
+  - role: worker
+    image: kindest/node:KIND_IMAGE
+    labels:
+      nodeName: "worker2"
+    extraMounts:
+      - hostPath: /var/lib/docker/v8o_cache/at_tests
+        containerPath: /var/lib/containerd
+  - role: worker
+    image: kindest/node:KIND_IMAGE
+    labels:
+      nodeName: "worker3"
     extraMounts:
       - hostPath: /var/lib/docker/v8o_cache/at_tests
         containerPath: /var/lib/containerd
