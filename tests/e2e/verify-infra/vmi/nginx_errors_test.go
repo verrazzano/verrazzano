@@ -50,17 +50,17 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error creating request: %v", err))
 					return "", err
 				}
-				response, err := client.Do(req)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
-					return "", err
-				}
 				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Password: %v", err))
 					return "", err
 				}
 				req.SetBasicAuth(pkg.Username, password)
+				response, err := client.Do(req)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
+					return "", err
+				}
 				httpResp, err := pkg.ProcessHTTPResponse(response)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error reading response from GET %v error: %v", esURL, err))
