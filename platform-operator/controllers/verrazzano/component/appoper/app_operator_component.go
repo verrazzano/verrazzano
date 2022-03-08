@@ -109,7 +109,7 @@ func (c applicationOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) erro
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (i applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if isApplicationOperatorComponentEnabled(old) && !isApplicationOperatorComponentEnabled(new) {
 		return fmt.Errorf("can not disable applicationOperator")
 	}
