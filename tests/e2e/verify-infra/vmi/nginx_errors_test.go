@@ -5,7 +5,6 @@ package vmi_test
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
@@ -21,7 +20,6 @@ import (
 const (
 	minimumVersion = "1.3.0"
 	expected404    = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n</body>\n</html>"
-	expected302    = "<html>\n<head><title>302 Found</title></head>\n<body>\n<center><h1>302 Found</h1></center>\n</body>\n</html>"
 	expected401    = "<html>\n<head><title>401 Unauthorized</title></head>\n<body>\n<center><h1>401 Unauthorized</h1></center>\n</body>\n</html>"
 )
 
@@ -54,35 +52,9 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					return "", err
 				}
 				req.SetBasicAuth(pkg.Username, password)
-				return checkNGINXErrorPageRH(req, 404)
+				return checkNGINXErrorPage(req, 404)
 			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
 				"Expected response to include custom 404 error page")
-		})
-
-		t.ItMinimumVersion("Return a 302", minimumVersion, func() {
-			Eventually(func() (string, error) {
-				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					return "", err
-				}
-				api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-					return "", err
-				}
-				esURL, err := api.GetElasticURL()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
-					return "", err
-				}
-				req, err := retryablehttp.NewRequest("GET", esURL, nil)
-				if err != nil {
-					return "", err
-				}
-				return checkNGINXErrorPageRH(req, 302)
-			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected302)),
-				"Expected response to include custom 302 response page")
 		})
 
 		t.ItMinimumVersion("Return a 401", minimumVersion, func() {
@@ -107,30 +79,14 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					return "", err
 				}
 				req.SetBasicAuth(pkg.Username, "fake-password")
-				return checkNGINXErrorPageRH(req, 401)
+				return checkNGINXErrorPage(req, 401)
 			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected401)),
 				"Expected response to include custom 401 error page")
 		})
 	})
 })
 
-func checkNGINXErrorPage(req *http.Request) (string, error) {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	response, err := transport.RoundTrip(req)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
-		return "", err
-	}
-	httpResp, err := pkg.ProcessHTTPResponse(response)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error reading response: %v", err))
-		return "", err
-	}
-	return strings.TrimSpace(string(httpResp.Body)), err
-}
-
-func checkNGINXErrorPageRH(req *retryablehttp.Request, expectedStatus int) (string, error) {
+func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string, error) {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
