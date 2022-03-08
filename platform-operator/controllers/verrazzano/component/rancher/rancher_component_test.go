@@ -351,3 +351,56 @@ func TestPostInstall(t *testing.T) {
 	assert.IsType(t, spi2.RetryableError{}, component.PostInstall(ctxWithoutIngress))
 	assert.Nil(t, component.PostInstall(ctxWithIngress))
 }
+
+func Test_rancherComponent_ValidateUpdate(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *vzapi.Verrazzano
+		new     *vzapi.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no change",
+			old:     &vzapi.Verrazzano{},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
