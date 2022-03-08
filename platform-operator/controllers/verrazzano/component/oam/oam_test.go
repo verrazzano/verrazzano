@@ -36,10 +36,11 @@ func TestIsOAMOperatorReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ComponentName,
+			Labels:    map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
 		},
 	})
 	assert.True(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
@@ -57,8 +58,8 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:        1,
-			UpdatedReplicas: 0,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   0,
 		},
 	})
 	assert.False(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
