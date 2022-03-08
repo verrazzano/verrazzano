@@ -16,6 +16,11 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
+	podTemplateHashLabel         = "pod-template-hash"
+)
+
 type PodReadyCheck struct {
 	NamespacedName types.NamespacedName
 	LabelSelector  labels.Selector
@@ -80,19 +85,19 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 	var rsName string
 	for _, pod := range pods.Items {
 		// Log error and return if the pod-template-hash label is not found.  This should never happen.
-		if _, ok := pod.Labels["pod-template-hash"]; !ok {
+		if _, ok := pod.Labels[podTemplateHashLabel]; !ok {
 			log.Errorf("Failed to find pod label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
 			return false
 		}
 
-		if pod.Labels["pod-template-hash"] == savedPodTemplateHash {
+		if pod.Labels[podTemplateHashLabel] == savedPodTemplateHash {
 			savedPods = append(savedPods, pod)
 			continue
 		}
 
 		// Get the replica set for the pod given the pod-template-hash
 		var rs appsv1.ReplicaSet
-		rsName = fmt.Sprintf("%s-%s", check.NamespacedName.Name, pod.Labels["pod-template-hash"])
+		rsName = fmt.Sprintf("%s-%s", check.NamespacedName.Name, pod.Labels[podTemplateHashLabel])
 		err := client.Get(context.TODO(), types.NamespacedName{Namespace: check.NamespacedName.Namespace, Name: rsName}, &rs)
 		if err != nil {
 			log.Errorf("Failed to get replicaset %s: %v", check.NamespacedName.Namespace, err)
@@ -100,15 +105,15 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 		}
 
 		// Log error and return if the deployment.kubernetes.io/revision annotation is not found.  This should never happen.
-		if _, ok := pod.Annotations["deployment.kubernetes.io/revision"]; !ok {
+		if _, ok := rs.Annotations[deploymentRevisionAnnotation]; !ok {
 			log.Errorf("Failed to find pod annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
 			return false
 		}
 
-		revision, _ := strconv.Atoi(rs.Annotations["deployment.kubernetes.io/revision"])
+		revision, _ := strconv.Atoi(rs.Annotations[deploymentRevisionAnnotation])
 		if revision > savedRevision {
 			savedRevision = revision
-			savedPodTemplateHash = pod.Labels["pod-template-hash"]
+			savedPodTemplateHash = pod.Labels[podTemplateHashLabel]
 			savedPods = []corev1.Pod{}
 			savedPods = append(savedPods, pod)
 		}

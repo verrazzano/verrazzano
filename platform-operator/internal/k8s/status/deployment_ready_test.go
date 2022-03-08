@@ -47,8 +47,8 @@ func TestDeploymentsReady(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -68,7 +68,7 @@ func TestDeploymentsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   "bar",
 				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
@@ -106,8 +106,8 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -122,7 +122,7 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   "bar",
 				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
@@ -160,8 +160,8 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -176,7 +176,7 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   "bar",
 				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
@@ -214,8 +214,8 @@ func TestMultipleReplicasReady(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -231,8 +231,8 @@ func TestMultipleReplicasReady(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-l6r96",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -247,7 +247,7 @@ func TestMultipleReplicasReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   "bar",
 				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
@@ -285,8 +285,8 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -302,8 +302,8 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-l6r96",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -318,7 +318,7 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   "bar",
 				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
@@ -437,8 +437,8 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
@@ -453,7 +453,7 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   "bar",
 				Name:        "foo-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
 	)
@@ -508,8 +508,8 @@ func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
 				Namespace: "bar",
 				Name:      "foo-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "foo",
+					podTemplateHashLabel: "95d8c5d96",
+					"app":                "foo",
 				},
 			},
 			Status: corev1.PodStatus{
