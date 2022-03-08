@@ -44,7 +44,7 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				req, err := retryablehttp.NewRequest("GET", esURL+"/invalid-url", nil)
+				req, err := http.NewRequest("GET", esURL+"/invalid-url", nil)
 				if err != nil {
 					return "", err
 				}
@@ -76,7 +76,7 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				req, err := retryablehttp.NewRequest("GET", esURL, nil)
+				req, err := http.NewRequest("GET", esURL, nil)
 				if err != nil {
 					return "", err
 				}
@@ -102,7 +102,7 @@ var _ = t.Describe("nginx", Label("f:infra-lcm"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
 					return "", err
 				}
-				req, err := retryablehttp.NewRequest("GET", esURL, nil)
+				req, err := http.NewRequest("GET", esURL, nil)
 				if err != nil {
 					return "", err
 				}
@@ -130,7 +130,7 @@ func checkNGINXErrorPage(req *http.Request) (string, error) {
 	return strings.TrimSpace(string(httpResp.Body)), err
 }
 
-func checkNGINXErrorPageRH(req *retryablehttp.Request, expectedStatus int) (string, error) {
+func checkNGINXErrorPageRH(req *http.Request, expectedStatus int) (string, error) {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
@@ -147,7 +147,8 @@ func checkNGINXErrorPageRH(req *retryablehttp.Request, expectedStatus int) (stri
 		}
 		return true, nil
 	}
-	response, err := c.Do(req)
+	rt := retryablehttp.RoundTripper{Client: c}
+	response, err := rt.RoundTrip(req)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting response: %v", err))
 		return "", err
