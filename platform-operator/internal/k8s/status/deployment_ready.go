@@ -55,6 +55,8 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, check
 	return true
 }
 
+// podsReadyWithLatestRevision checks for an expected number of pods to be using the latest replicaset revision and are
+// running and ready
 func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
 	var pods corev1.PodList
@@ -77,11 +79,17 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 	var savedRevision int
 	var rsName string
 	for _, pod := range pods.Items {
-		// TODO:error if label not found
+		// Log error and return if the pod-template-hash label is not found.  This should never happen.
+		if _, ok := pod.Labels["pod-template-hash"]; !ok {
+			log.Errorf("Failed to find pod label [pod-template-hash] for pod %s/%s", pod.Namespace, pod.Name)
+			return false
+		}
+
 		if pod.Labels["pod-template-hash"] == savedPodTemplateHash {
 			savedPods = append(savedPods, pod)
 			continue
 		}
+
 		// Get the replica set for the pod given the pod-template-hash
 		var rs appsv1.ReplicaSet
 		rsName = fmt.Sprintf("%s-%s", check.NamespacedName.Name, pod.Labels["pod-template-hash"])
@@ -90,7 +98,13 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 			log.Errorf("Failed to get replicaset %s: %v", check.NamespacedName.Namespace, err)
 			return false
 		}
-		// TODO: error if annotation not found
+
+		// Log error and return if the deployment.kubernetes.io/revision annotation is not found.  This should never happen.
+		if _, ok := pod.Annotations["deployment.kubernetes.io/revision"]; !ok {
+			log.Errorf("Failed to find pod annotation [deployment.kubernetes.io/revision] for pod %s/%s", pod.Namespace, pod.Name)
+			return false
+		}
+
 		revision, _ := strconv.Atoi(rs.Annotations["deployment.kubernetes.io/revision"])
 		if revision > savedRevision {
 			savedRevision = revision
@@ -100,6 +114,7 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 		}
 	}
 
+	// Make sure pods using the latest replicaset revision are ready.
 	var podsReady int32 = 0
 	for _, pod := range savedPods {
 		// Check that init containers are ready
@@ -116,6 +131,7 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 				return false
 			}
 		}
+
 		podsReady++
 
 		// No need to look at other pods if the expected replicas is ready
@@ -125,7 +141,7 @@ func podsReadyWithLatestRevision(log vzlog.VerrazzanoLogger, client clipkg.Clien
 	}
 
 	if podsReady < expectedReplicas {
-		log.Progressf("Found %d pods with matching labels selector %v for namespace %s when at least %d pods", len(pods.Items), check.LabelSelector, check.NamespacedName.Namespace, expectedReplicas)
+		log.Progressf("Found %d pods with matching labels selector %v for namespace %s when at least %d pods were expected", len(pods.Items), check.LabelSelector, check.NamespacedName.Namespace, expectedReplicas)
 		return false
 	}
 
