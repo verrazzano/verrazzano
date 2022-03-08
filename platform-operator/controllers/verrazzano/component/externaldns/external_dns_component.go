@@ -4,6 +4,8 @@
 package externaldns
 
 import (
+	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -52,10 +54,27 @@ func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (e externalDNSComponent) IsEnabled(compContext spi.ComponentContext) bool {
-	dns := compContext.EffectiveCR().Spec.Components.DNS
+func (e externalDNSComponent) IsEnabled(ctx spi.ComponentContext) bool {
+	return isComponentEnabled(ctx.EffectiveCR())
+}
+
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
+	dns := vz.Spec.Components.DNS
 	if dns != nil && dns.OCI != nil {
 		return true
 	}
 	return false
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (e externalDNSComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
+		return fmt.Errorf("can not remove OCI from dns")
+	}
+	return nil
 }
