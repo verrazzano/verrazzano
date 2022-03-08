@@ -4,7 +4,10 @@
 package nginx
 
 import (
+	"fmt"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -48,7 +51,11 @@ func NewComponent() spi.Component {
 
 // IsEnabled nginx-specific enabled check for installation
 func (c nginxComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Ingress
+	return isComponentEnabled(ctx.EffectiveCR())
+}
+
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.Ingress
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -61,4 +68,17 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isNginxReady(ctx)
 	}
 	return false
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
+		return fmt.Errorf("can not disable ingress")
+	}
+	return nil
 }
