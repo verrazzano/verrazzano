@@ -57,6 +57,7 @@ const (
 	grafanaDeployment           = "vmi-system-grafana"
 	kibanaDeployment            = "vmi-system-kibana"
 	prometheusDeployment        = "vmi-system-prometheus-0"
+	alertmanagerDeployment      = "vmi-system-alertmanager"
 	verrazzanoConsoleDeployment = "verrazzano-console"
 	vmoDeployment               = "verrazzano-monitoring-operator"
 
@@ -106,6 +107,10 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments, types.NamespacedName{
 			Name: prometheusDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+	}
+	if vzconfig.IsAlertmanagerEnabled(ctx.EffectiveCR()) {
+		deployments = append(deployments, types.NamespacedName{
+			Name: alertmanagerDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
 	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {

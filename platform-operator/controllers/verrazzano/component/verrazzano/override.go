@@ -215,6 +215,10 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValu
 		Requests: storageOverrides,
 	}
 
+	overrides.Alertmanager = &alertmanagerValues{
+		Enabled: vzconfig.IsAlertmanagerEnabled(effectiveCR),
+	}
+
 	overrides.Grafana = &grafanaValues{
 		Enabled:  vzconfig.IsGrafanaEnabled(effectiveCR),
 		Requests: storageOverrides,

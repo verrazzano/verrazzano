@@ -22,6 +22,7 @@ type verrazzanoValues struct {
 	AppBinding         *appBindingValues          `json:"appBinding,omitempty"`
 	ElasticSearch      *elasticsearchValues       `json:"elasticSearch,omitempty"`
 	Prometheus         *prometheusValues          `json:"prometheus,omitempty"`
+	Alertmanager       *alertmanagerValues        `json:"alertmanager,omitempty"`
 	Grafana            *grafanaValues             `json:"grafana,omitempty"`
 	Kibana             *kibanaValues              `json:"kibana,omitempty"`
 	Kiali              *kialiValues               `json:"kiali,omitempty"`
@@ -90,6 +91,10 @@ type esNodeValues struct {
 type prometheusValues struct {
 	Enabled  bool                   `json:"enabled"` // Always write
 	Requests *resourceRequestValues `json:"requests,omitempty"`
+}
+
+type alertmanagerValues struct {
+	Enabled bool `json:"enabled"` // Always write
 }
 
 type kialiValues struct {

@@ -14,6 +14,14 @@ func IsPrometheusEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
+//IsAlertmanagerEnabled - Returns false only if explicitly disabled in the CR
+func IsAlertmanagerEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.Alertmanager != nil && vz.Spec.Components.Alertmanager.Enabled != nil {
+		return *vz.Spec.Components.Alertmanager.Enabled
+	}
+	return true
+}
+
 //IsKibanaEnabled - Returns false only if explicitly disabled in the CR
 func IsKibanaEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {

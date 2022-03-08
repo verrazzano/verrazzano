@@ -157,5 +157,12 @@ func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 		})
 	}
 
+	if vzconfig.IsAlertmanagerEnabled(ctx.EffectiveCR()) {
+		ingressNames = append(ingressNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      constants.AlertmanagerIngress,
+		})
+	}
+
 	return ingressNames
 }

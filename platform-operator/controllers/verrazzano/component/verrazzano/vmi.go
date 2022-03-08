@@ -62,6 +62,7 @@ func createVMI(ctx spi.ComponentContext) error {
 		vmi.Spec.CascadingDelete = true
 		vmi.Spec.Grafana = newGrafana(cr, storage, existingVMI)
 		vmi.Spec.Prometheus = newPrometheus(cr, storage, existingVMI)
+		vmi.Spec.AlertManager = newAlertmanager(cr)
 		opensearch, err := newOpenSearch(cr, storage, existingVMI)
 		if err != nil {
 			return err
@@ -125,6 +126,21 @@ func newPrometheus(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 	}
 
 	return prometheus
+}
+
+func newAlertmanager(cr *vzapi.Verrazzano) vmov1.AlertManager {
+	if cr.Spec.Components.Alertmanager == nil {
+		return vmov1.AlertManager{}
+	}
+	alertmanagerValues := cr.Spec.Components.Alertmanager
+	alertmanager := vmov1.AlertManager{
+		Enabled: alertmanagerValues.Enabled != nil && *alertmanagerValues.Enabled,
+		Resources: vmov1.Resources{
+			RequestMemory: "48Mi",
+		},
+	}
+
+	return alertmanager
 }
 
 func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage) {
