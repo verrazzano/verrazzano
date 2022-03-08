@@ -8,3 +8,5 @@ kibana:
   enabled: false
 prometheus:
   enabled: true
+alertmanager:
+  enabled: true

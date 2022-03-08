@@ -33,6 +33,8 @@ prometheus:
   enabled: true
   requests:
     storage: ""
+alertmanager:
+  enabled: true
 rancher:
   enabled: true
 verrazzanoOperator:

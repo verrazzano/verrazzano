@@ -396,8 +396,7 @@ type CoherenceOperatorComponent struct {
 
 // AlertmanagerComponent specifies the Alertmanager configuration
 type AlertmanagerComponent struct {
-	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	MonitoringComponent `json:",inline"`
 	// Location of the Alertmanager ConfigMap
 	// +optional
 	AlertmanagerConfigMap *NamespaceName `json:"alertmanagerConfigMap,omitempty"`

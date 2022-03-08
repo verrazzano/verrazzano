@@ -34,6 +34,8 @@ monitoringOperator:
   enabled: true
 prometheus:
   enabled: true
+alertmanager:
+  enabled: true
 rancher:
   enabled: true
 verrazzanoOperator:

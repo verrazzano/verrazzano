@@ -404,6 +404,7 @@ func Test_appendVMIValues(t *testing.T) {
 						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Alertmanager:  &vzapi.AlertmanagerComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 					},
 				},
@@ -575,6 +576,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Alertmanager:  &vzapi.AlertmanagerComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
@@ -1589,6 +1591,18 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
+				Name:      alertmanagerDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:            1,
+				ReadyReplicas:       1,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 0,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
 			},
 			Status: appsv1.DeploymentStatus{
@@ -1729,6 +1743,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+		Alertmanager:  &vzapi.AlertmanagerComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 		Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
 	}
 	ctx := spi.NewFakeContext(client, vz, false)

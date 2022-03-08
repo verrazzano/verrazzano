@@ -16,3 +16,5 @@ prometheus:
   enabled: true
   requests:
     storage: 100Gi
+alertmanager:
+  enabled: true

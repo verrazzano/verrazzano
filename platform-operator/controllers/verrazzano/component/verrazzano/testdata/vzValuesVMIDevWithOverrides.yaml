@@ -16,3 +16,5 @@ prometheus:
   enabled: false
   requests:
     storage: ""
+alertmanager:
+  enabled: false
