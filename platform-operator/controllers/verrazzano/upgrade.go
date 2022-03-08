@@ -113,10 +113,10 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 					return ctrl.Result{}, err
 				}
 				if installed && !comp.IsReady(compContext) {
-					log.Progressf("Waiting for component %s to be ready after being upgraded", compName)
+					log.Progressf("Waiting for component %s to be ready after post-upgrade", compName)
 					return newRequeueWithDelay(), nil
 				}
-				log.Oncef("Component %s is ready after being upgraded", compName)
+				log.Oncef("Component %s is ready after post-upgrade", compName)
 
 			}
 			tracker.vzState = vzStateUpgradeDone

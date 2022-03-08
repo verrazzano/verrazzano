@@ -7,11 +7,28 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	compistio "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -19,7 +36,8 @@ import (
 )
 
 const (
-	twoMinutes  = 1 * time.Minute
+	oneMinute   = 1 * time.Minute
+	twoMinutes  = 2 * time.Minute
 	fiveMinutes = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
@@ -28,7 +46,16 @@ const (
 
 var t = framework.NewTestFramework("verify")
 
-var _ = t.BeforeSuite(func() {})
+var vzcr *vzapi.Verrazzano
+
+var _ = t.BeforeSuite(func() {
+	// Get the verrazzano CR
+	Eventually(func() error {
+		var err error
+		vzcr, err = pkg.GetVerrazzano()
+		return err
+	}, oneMinute, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
+})
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
 
@@ -104,7 +131,8 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 	)
 })
 
-var _ = t.Describe("Istio helm releases", func() {
+// Istio no longer uses Helm for 1.10, so make sure all the Helm releases have been deleted
+var _ = t.Describe("Istio helm releases", Label("f:platform-lcm.upgrade"), func() {
 	const (
 		istiod       = "istiod"
 		istioBase    = "istio"
@@ -112,7 +140,7 @@ var _ = t.Describe("Istio helm releases", func() {
 		istioEgress  = "istio-egress"
 		istioCoreDNS = "istiocoredns"
 	)
-	t.DescribeTable("should be removed from the istio-system namepsace post upgrade",
+	t.DescribeTable("should be removed from the istio-system namespace post upgrade",
 		func(release string) {
 			Eventually(func() bool {
 				installed, _ := helm.IsReleaseInstalled(release, constants.IstioSystemNamespace)
@@ -138,3 +166,69 @@ var _ = t.Describe("istioctl verify-install", func() {
 		}, twoMinutes, pollingInterval).Should(BeNil(), "istioctl verify-install return with stderr")
 	})
 })
+
+var _ = t.Describe("Checking if Verrazzano system components are ready, post-upgrade", Label("f:platform-lcm.upgrade"), func() {
+	type workload struct {
+		componentName string
+		workloadName  string
+	}
+
+	Context("Checking deployments", func() {
+		t.DescribeTable("Deployment should be ready post-upgrade",
+			func(namespace string, deploymentName string, componentName string) {
+				Eventually(func() bool {
+					if isDisabled(deploymentName) {
+						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+					}
+					pkg.Log(pkg.Info, fmt.Sprintf("checking deployment %s for component %s", deploymentName, componentName))
+					deployment, err := pkg.GetDeployment(namespace, deploymentName)
+					if err != nil {
+						return false
+					}
+					return deployment.Status.ReadyReplicas > 0
+				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
+			},
+			t.Entry(constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-operator"),
+			t.Entry(constants.VerrazzanoSystemNamespace, authproxy.ComponentName, "verrazzano-authproxy"),
+			t.Entry(constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
+			t.Entry(constants.VerrazzanoSystemNamespace, oam.ComponentName, "oam-kubernetes-runtime"),
+			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
+			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-grafana"),
+			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
+			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kiali"),
+			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kibana"),
+			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-prometheus-0"),
+			t.Entry(constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
+
+			t.Entry(certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager"),
+			t.Entry(certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-cainjector"),
+			t.Entry(certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-webhook"),
+
+			t.Entry(externaldns.ComponentNamespace, externaldns.ComponentName, externaldns.ComponentName),
+
+			t.Entry(compistio.IstioNamespace, compistio.ComponentName, compistio.ComponentName),
+
+			t.Entry(kiali.ComponentNamespace, kiali.ComponentName, kiali.ComponentName),
+
+			t.Entry(mysql.ComponentNamespace, mysql.ComponentName, mysql.ComponentName),
+
+			t.Entry(nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
+			t.Entry(nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
+
+			t.Entry(rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
+			t.Entry(rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),
+			t.Entry("fleet-system", rancher.ComponentName, "fleet-agent"),
+			t.Entry("fleet-system", rancher.ComponentName, "fleet-controller"),
+			t.Entry("fleet-system", rancher.ComponentName, "gitjob"),
+			t.Entry("rancher-operator-system", rancher.ComponentName, "rancher-operator"),
+		)
+	})
+})
+
+func isDisabled(componentName string) bool {
+	comp, ok := vzcr.Status.Components[componentName]
+	if ok {
+		return comp.State == vzapi.CompStateDisabled
+	}
+	return true
+}

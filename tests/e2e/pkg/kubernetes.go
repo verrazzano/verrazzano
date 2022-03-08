@@ -312,6 +312,20 @@ func IsDevProfile() bool {
 	return false
 }
 
+// GetVerrazzano returns the installed Verrazzano
+func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return nil, err
+	}
+	cr, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return cr, nil
+}
+
 // GetVerrazzanoVersion returns the Verrazzano Version
 func GetVerrazzanoVersion() (string, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
