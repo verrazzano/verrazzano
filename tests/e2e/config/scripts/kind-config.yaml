@@ -12,3 +12,15 @@ nodes:
           extraArgs:
             "service-account-issuer": "kubernetes.default.svc"
             "service-account-signing-key-file": "/etc/kubernetes/pki/sa.key"
+  - role: worker
+    image: kindest/node:KIND_IMAGE
+    labels:
+      nodeName: "worker1"
+  - role: worker
+    image: kindest/node:KIND_IMAGE
+    labels:
+      nodeName: "worker2"
+  - role: worker
+    image: kindest/node:KIND_IMAGE
+    labels:
+      nodeName: "worker3"
