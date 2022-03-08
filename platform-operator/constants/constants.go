@@ -142,3 +142,6 @@ const InitializeOperation = "initialize"
 
 // ReconcileLoopRequeueInterval is the interval before reconcile gets called again.
 const ReconcileLoopRequeueInterval = 3 * time.Minute
+
+// VerrazzanoInstallNamespace is the namespace that the platform operator lives in
+const MonitoringNamespace = "verrazzano-install"

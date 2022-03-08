@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 
@@ -15,6 +17,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
@@ -173,14 +177,14 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 		workloadName  string
 	}
 
-	Context("Checking deployments", func() {
+	Context("Checking Deployments for post-upgrade", func() {
 		t.DescribeTable("Deployment should be ready post-upgrade",
 			func(namespace string, deploymentName string, componentName string) {
 				Eventually(func() bool {
 					if isDisabled(deploymentName) {
 						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
 					}
-					pkg.Log(pkg.Info, fmt.Sprintf("checking deployment %s for component %s", deploymentName, componentName))
+					pkg.Log(pkg.Info, fmt.Sprintf("checking Deployment %s for component %s", deploymentName, componentName))
 					deployment, err := pkg.GetDeployment(namespace, deploymentName)
 					if err != nil {
 						return false
@@ -221,6 +225,46 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("fleet-system", rancher.ComponentName, "fleet-controller"),
 			t.Entry("fleet-system", rancher.ComponentName, "gitjob"),
 			t.Entry("rancher-operator-system", rancher.ComponentName, "rancher-operator"),
+		)
+	})
+
+	Context("Checking StatefulSets for post-upgrade", func() {
+		t.DescribeTable("StatefulSet should be ready post-upgrade",
+			func(namespace string, stsName string, componentName string) {
+				Eventually(func() bool {
+					if isDisabled(stsName) {
+						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+					}
+					pkg.Log(pkg.Info, fmt.Sprintf("checking StatefulSet %s for component %s", stsName, componentName))
+					sts, err := pkg.GetStatefulSet(namespace, stsName)
+					if err != nil {
+						return false
+					}
+					return sts.Status.ReadyReplicas > 0
+				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
+			},
+			t.Entry(constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
+			t.Entry(keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
+		)
+	})
+
+	Context("Checking DaemonSets for post-upgrade", func() {
+		t.DescribeTable("DaemonSet should be ready post-upgrade",
+			func(namespace string, dsName string, componentName string) {
+				Eventually(func() bool {
+					if isDisabled(dsName) {
+						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+					}
+					pkg.Log(pkg.Info, fmt.Sprintf("checking DaemonSets %s for component %s", dsName, componentName))
+					ds, err := pkg.GetDaemonSet(namespace, dsName)
+					if err != nil {
+						return false
+					}
+					return ds.Status.NumberReady > 0
+				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("DaemonSet %s for component %s is not ready", dsName, componentName))
+			},
+			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
+			t.Entry(vzconst.VerrazzanoMonitoringNamespace, verrazzano.ComponentName, "node-exporter"),
 		)
 	})
 })
