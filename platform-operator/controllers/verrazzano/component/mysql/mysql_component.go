@@ -4,7 +4,10 @@
 package mysql
 
 import (
+	"fmt"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -56,7 +59,11 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
 func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+	return isComponentEnabled(ctx.EffectiveCR())
+}
+
+func isComponentEnabled(vz *vzapi.Verrazzano) bool {
+	comp := vz.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -71,4 +78,17 @@ func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 // PostInstall calls MySQL postInstall function
 func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c mysqlComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if isComponentEnabled(old) && !isComponentEnabled(new) {
+		return fmt.Errorf("can not disable keycloak")
+	}
+	return nil
 }
