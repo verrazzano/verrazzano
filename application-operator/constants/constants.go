@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -110,3 +110,6 @@ const FluentdElasticsearchUserEnvVar = "ELASTICSEARCH_USER"
 // FluentdElasticsearchPwdEnvVar is the environment variable name used to identify the admin cluster's
 // Elasticsearch password for fluentd
 const FluentdElasticsearchPwdEnvVar = "ELASTICSEARCH_PASSWORD"
+
+// KubeSystem - The name of the kube-system namespace
+const KubeSystem = "kube-system"

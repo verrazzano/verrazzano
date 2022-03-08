@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"path/filepath"
 	"testing"
 
@@ -416,6 +417,24 @@ func doExpectGetMultiClusterConfigMap(cli *mocks.MockClient, mcConfigMapSample c
 			}
 			return nil
 		})
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(constants.KubeSystem, crName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }
 
 // assertConfigMapValid asserts that the metadata and content of the created/updated K8S ConfigMap
