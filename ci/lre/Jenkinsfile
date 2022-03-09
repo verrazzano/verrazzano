@@ -270,11 +270,11 @@ pipeline {
                 stage('Run examples, logging and metrics tests') {
                     steps {
                         runGinkgo(['verify-infra/restapi', 'verify-infra/vmi',
-                                   'istio/authz', 'security/rbac', 'logging/system', 'logging/helidon',
+                                   'security/rbac', 'logging/system', 'logging/helidon',
                                    'examples/helidon', 'examples/helidonconfig', 'examples/springboot',
                                    'examples/todo', 'examples/bobsbooks', 'metrics/deploymetrics',
                                    'metricsbinding', 'loggingtrait/helidonworkload', 'loggingtrait/weblogicworkload',
-                                   'loggingtrait/coherenceworkload'])
+                                   'loggingtrait/coherenceworkload', 'istio/authz'])
                     }
                 }
 		        stage('examples socks') {
@@ -313,11 +313,11 @@ def runGinkgo(list) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -p --keep-going --no-color verify-infra/restapi/... verify-infra/vmi/... \
-                   istio/authz/... security/rbac/... logging/system/... logging/helidon/... \
+                   security/rbac/... logging/system/... logging/helidon/... \
                    examples/helidon/... examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... metrics/deploymetrics/... \
                    metricsbinding/... loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
-                   loggingtrait/coherenceworkload/...
+                   loggingtrait/coherenceworkload/... istio/authz/... 
         """
     }
 }
