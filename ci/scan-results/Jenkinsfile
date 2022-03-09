@@ -63,6 +63,7 @@ pipeline {
                         echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
                         echo "Fetching scan results for branch: ${CLEAN_BRANCH_NAME}"
                         ci/scripts/get_branch_scan_results.sh
+                        python ci/scripts/generate_html_report.py scan-results/latest-periodic/consolidated.csv scan-results/latest-periodic
                     """
                 }
             }
