@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bobsbooks
@@ -442,16 +442,6 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 				})
 			},
 		)
-		// GIVEN a WebLogic application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
-		// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-		It("Verify recent 'pattern not matched' log records do not exist", func() {
-			Expect(pkg.NoLog(bobsIndexName,
-				[]pkg.Match{
-					{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-					{Key: "message", Value: "pattern not matched"}},
-				[]pkg.Match{})).To(BeTrue())
-		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
 			// WHEN the log records are retrieved from the Elasticsearch index
