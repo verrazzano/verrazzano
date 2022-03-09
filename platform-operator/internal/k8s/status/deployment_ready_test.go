@@ -379,33 +379,6 @@ func TestDeploymentsNoneUpdated(t *testing.T) {
 	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
 }
 
-// TestDeploymentsNoReplicas tests a deployment ready status check
-// GIVEN a call validate DeploymentsReady
-// WHEN the target Deployment object does not have any replicas
-// THEN true is returned
-func TestDeploymentsNotUpdated(t *testing.T) {
-	checks := []PodReadyCheck{
-		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
-		},
-	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "bar",
-			Name:      "foo",
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 0,
-			Replicas:          0,
-			UpdatedReplicas:   0,
-		},
-	})
-	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
-}
-
 // TestMultipleReplicasReadyBelowThreshold tests a deployment ready status check
 // GIVEN a call validate DeploymentsReady for more than one replica
 // WHEN the target Deployment object has less than the minimum desired replicas available
