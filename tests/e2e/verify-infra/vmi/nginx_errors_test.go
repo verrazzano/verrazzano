@@ -57,7 +57,7 @@ var _ = t.Describe("nginx error pages", Label("f:infra-lcm"), func() {
 				"Expected response to include custom 404 error page")
 		})
 
-		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, func() {
+		t.ItMinimumVersion("Incorrect password returns a 401", minimumVersion, func() {
 			Eventually(func() (string, error) {
 				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -84,7 +84,7 @@ var _ = t.Describe("nginx error pages", Label("f:infra-lcm"), func() {
 				"Expected response to include custom 401 error page")
 		})
 
-		t.ItMinimumVersion("Incorrect path returns a 404", minimumVersion, func() {
+		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, func() {
 			Eventually(func() (string, error) {
 				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
