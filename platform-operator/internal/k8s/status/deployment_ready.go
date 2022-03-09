@@ -39,7 +39,7 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, check
 			return false
 		}
 		if deployment.Status.Replicas == 0 {
-			log.Oncef("%s deployment is defined with zero replicas. No ready checking is performed.")
+			log.Oncef("%s deployment is defined with zero replicas. No ready checking is performed.", prefix)
 			return true
 		}
 		if deployment.Status.UpdatedReplicas < expectedReplicas {
