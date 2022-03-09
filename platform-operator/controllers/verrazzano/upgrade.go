@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/selection"
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -139,7 +140,10 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 // resolvePendingUpgrdes will delete any helm secrets with a "pending-upgrade" status for the given component
 func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.VerrazzanoLogger) {
-	labelSelector := kblabels.Set{"name": compName, "status": "pending-upgrade"}.AsSelector()
+	nameReq, _ := kblabels.NewRequirement("name", selection.Equals, []string{compName})
+	statusReq, _ := kblabels.NewRequirement("status", selection.NotEquals, []string{"deployed"})
+	labelSelector := kblabels.NewSelector()
+	labelSelector = labelSelector.Add(*nameReq, *statusReq)
 	helmSecrets := v1.SecretList{}
 	err := r.Client.List(context.TODO(), &helmSecrets, &clipkg.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
