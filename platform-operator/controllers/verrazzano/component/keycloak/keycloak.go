@@ -961,7 +961,13 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 	data := templateData{}
 
 	keycloakClients, err := getKeycloakClients(ctx)
-	if err == nil && clientExists(keycloakClients, "verrazzano-pkce") {
+	if err != nil {
+		return err
+	}
+	if clientExists(keycloakClients, "verrazzano-pkce") {
+		if err := updateKeycloakUris(ctx); err != nil {
+			return err
+		}
 		return nil
 	}
 
