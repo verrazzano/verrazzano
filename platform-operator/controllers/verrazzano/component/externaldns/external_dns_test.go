@@ -191,26 +191,25 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 }
 
 // Create a new deployment object for testing
-func newDeployment(name string, ready bool) *appsv1.Deployment {
+func newDeployment(name string, updated bool) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      name,
+			Labels:    map[string]string{"app.kubernetes.io/instance": "external-dns"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	}
 
-	if !ready {
+	if !updated {
 		deployment.Status = appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		}
 	}
 	return deployment

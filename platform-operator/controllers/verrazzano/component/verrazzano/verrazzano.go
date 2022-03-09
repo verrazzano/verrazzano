@@ -28,6 +28,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,26 +87,56 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	// First, check deployments
-	var deployments []types.NamespacedName
+	var deployments []status.PodReadyCheck
 	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: verrazzanoConsoleDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			status.PodReadyCheck{
+				NamespacedName: types.NamespacedName{
+					Name:      verrazzanoConsoleDeployment,
+					Namespace: ComponentNamespace,
+				},
+				LabelSelector: labels.Set{"app": verrazzanoConsoleDeployment}.AsSelector(),
+			})
 	}
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: vmoDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			status.PodReadyCheck{
+				NamespacedName: types.NamespacedName{
+					Name:      vmoDeployment,
+					Namespace: ComponentNamespace,
+				},
+				LabelSelector: labels.Set{"k8s-app": vmoDeployment}.AsSelector(),
+			})
 	}
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: grafanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			status.PodReadyCheck{
+				NamespacedName: types.NamespacedName{
+					Name:      grafanaDeployment,
+					Namespace: ComponentNamespace,
+				},
+				LabelSelector: labels.Set{"app": "system-grafana"}.AsSelector(),
+			})
 	}
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: kibanaDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			status.PodReadyCheck{
+				NamespacedName: types.NamespacedName{
+					Name:      kibanaDeployment,
+					Namespace: ComponentNamespace,
+				},
+				LabelSelector: labels.Set{"app": "system-kibana"}.AsSelector(),
+			})
 	}
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments, types.NamespacedName{
-			Name: prometheusDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+		deployments = append(deployments,
+			status.PodReadyCheck{
+				NamespacedName: types.NamespacedName{
+					Name:      prometheusDeployment,
+					Namespace: ComponentNamespace,
+				},
+				LabelSelector: labels.Set{"app": "system-prometheus"}.AsSelector(),
+			})
 	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
 		if ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
@@ -114,23 +145,35 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 				if args.Name == "nodes.data.replicas" {
 					replicas, _ := strconv.Atoi(args.Value)
 					for i := 0; replicas > 0 && i < replicas; i++ {
-						deployments = append(deployments, types.NamespacedName{
-							Name: fmt.Sprintf("%s-%d", esDataDeployment, i), Namespace: globalconst.VerrazzanoSystemNamespace})
+						deployments = append(deployments,
+							status.PodReadyCheck{
+								NamespacedName: types.NamespacedName{
+									Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
+									Namespace: ComponentNamespace,
+								},
+								LabelSelector: labels.Set{"app": "system-es-data", "index": fmt.Sprintf("%d", i)}.AsSelector(),
+							})
 					}
 					continue
 				}
 				if args.Name == "nodes.ingest.replicas" {
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
-						deployments = append(deployments, types.NamespacedName{
-							Name: esIngestDeployment, Namespace: globalconst.VerrazzanoSystemNamespace})
+						deployments = append(deployments,
+							status.PodReadyCheck{
+								NamespacedName: types.NamespacedName{
+									Name:      esIngestDeployment,
+									Namespace: ComponentNamespace,
+								},
+								LabelSelector: labels.Set{"app": "system-es-ingest"}.AsSelector(),
+							})
 					}
 				}
 			}
 		}
 	}
 
-	if !status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 

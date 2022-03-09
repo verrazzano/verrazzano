@@ -129,24 +129,24 @@ func TestIsNGINXReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ControllerName,
+			Labels:    map[string]string{"app.kubernetes.io/component": "controller"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      backendName,
+				Labels:    map[string]string{"app.kubernetes.io/component": "default-backend"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
@@ -164,10 +164,9 @@ func TestIsNGINXNotReady(t *testing.T) {
 			Name:      ControllerName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	},
 		&appsv1.Deployment{
@@ -176,10 +175,9 @@ func TestIsNGINXNotReady(t *testing.T) {
 				Name:      backendName,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       0,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 1,
+				AvailableReplicas: 0,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
