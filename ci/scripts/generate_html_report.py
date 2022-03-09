@@ -3,6 +3,8 @@
 #
 
 import sys
+from os.path import exists
+
 
 def get_vulnerability_url(id):
     if (id.lower().startswith("cve")) :
@@ -16,8 +18,10 @@ def get_vulnerability_url(id):
     else:
         return id
 
+
 def get_vulnerability_anchor(id):
     return '<a href="' + get_vulnerability_url(id) + '" target="_blank">'+id+'</a>'
+
 
 def write_table_header(headers, html_file):
     heading = "<thead>\n" + "<tr>\n"
@@ -26,12 +30,16 @@ def write_table_header(headers, html_file):
     heading += "</tr>\n </thead>\n"
     html_file.write(heading)
 
+
 def write_table_body(csv_file_path, html_file):
-    a = open(csv_file_path, 'r')
+    if not exists(csv_file_path):
+        print("[WARN] CSV file '%s' does not exist" % csv_file_path)
+        return
+    csv_file = open(csv_file_path, 'r')
     body = "<tbody>\n"
     lineCount = 0
     while True:
-        csv_line = a.readline()
+        csv_line = csv_file.readline()
         if not csv_line:
             break
         row_data = csv_line.split(',')
@@ -45,6 +53,7 @@ def write_table_body(csv_file_path, html_file):
     print("Processed %d lines" % lineCount)
     body += "</tbody>\n"
     html_file.write(body)
+
 
 def write_csv_to_html(headers, csv_file_path, html_file_path):
     html_file = open(html_file_path, 'w')
