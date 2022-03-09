@@ -312,7 +312,7 @@ def runGinkgo(list) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -p --randomize-all --keep-going --no-color verify-infra/restapi/... verify-infra/vmi/... \
+            ginkgo -v -p --keep-going --no-color verify-infra/restapi/... verify-infra/vmi/... \
                    istio/authz/... security/rbac/... logging/system/... logging/helidon/... \
                    examples/helidon/... examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... metrics/deploymetrics/... \
