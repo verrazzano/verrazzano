@@ -577,6 +577,7 @@ spec:
           podSelector:
             matchExpressions:
               - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, vmi-system-kiali]}
+              - {key: k8s-app, operator: In, values: [verrazzano-monitoring-operator]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
