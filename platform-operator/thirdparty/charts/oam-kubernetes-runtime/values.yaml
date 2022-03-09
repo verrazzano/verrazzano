@@ -38,10 +38,8 @@ webhookService:
   type: ClusterIP
   port: 9443
 
-resources:
-  requests:
-    cpu: 100m
-    memory: 20Mi
+# resources will be set via overrides verrazzano/platform-operator/helm_config/overrides/oam-kubernetes-runtime-values.yaml
+resources: {}
 
 nodeSelector: {}
 
