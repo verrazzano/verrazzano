@@ -179,7 +179,7 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
+func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	return true
 }
 

@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
@@ -74,7 +73,7 @@ func FindComponent(releaseName string) (bool, spi.Component) {
 			return true, comp
 		}
 	}
-	return false, &helm.HelmComponent{}
+	return false, nil
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available

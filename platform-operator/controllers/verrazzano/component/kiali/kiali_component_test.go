@@ -50,7 +50,7 @@ func init() {
 //  WHEN The Kiali component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKiali tests the IsEnabled function
@@ -60,7 +60,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKiali(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -70,7 +70,7 @@ func TestIsEnabledNilKiali(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -80,7 +80,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -90,7 +90,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
@@ -101,7 +101,7 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledProdProfile tests the IsEnabled function
@@ -112,7 +112,7 @@ func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.Prod
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledDevProfile tests the IsEnabled function
@@ -123,7 +123,7 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
 	cr.Spec.Profile = vzapi.Dev
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestKialiPostInstallUpdateResources tests the PostInstall function

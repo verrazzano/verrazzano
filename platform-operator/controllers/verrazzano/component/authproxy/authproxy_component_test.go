@@ -48,9 +48,9 @@ func TestIsEnabled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, false, profilesRelativePath)
 			if tt.expectTrue {
-				assert.True(t, NewComponent().IsEnabled(ctx))
+				assert.True(t, NewComponent().IsEnabled(ctx.EffectiveCR()))
 			} else {
-				assert.False(t, NewComponent().IsEnabled(ctx))
+				assert.False(t, NewComponent().IsEnabled(ctx.EffectiveCR()))
 			}
 		})
 	}

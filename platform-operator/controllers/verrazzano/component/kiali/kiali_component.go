@@ -81,12 +81,8 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Kiali-specific enabled check for installation
-func (c kialiComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isComponentEnabled(ctx.EffectiveCR())
-}
-
-func isComponentEnabled(vz *vzapi.Verrazzano) bool {
-	comp := vz.Spec.Components.Kiali
+func (c kialiComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Kiali
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -106,7 +102,7 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isComponentEnabled(old) && !isComponentEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled kiali")
 	}
 	return nil

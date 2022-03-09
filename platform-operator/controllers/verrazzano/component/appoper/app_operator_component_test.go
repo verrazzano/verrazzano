@@ -115,7 +115,7 @@ func newScheme() *runtime.Scheme {
 func TestIsEnabledNilApplicationOperator(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
@@ -123,7 +123,7 @@ func TestIsEnabledNilApplicationOperator(t *testing.T) {
 //  WHEN The ApplicationOperator component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -133,7 +133,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -143,7 +143,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -153,7 +153,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 func getBoolPtr(b bool) *bool {

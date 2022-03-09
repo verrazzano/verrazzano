@@ -138,12 +138,8 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
-func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isComponentEnabled(ctx.EffectiveCR())
-}
-
-func isComponentEnabled(vz *vzapi.Verrazzano) bool {
-	comp := vz.Spec.Components.Rancher
+func (r rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Rancher
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -152,7 +148,7 @@ func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isComponentEnabled(old) && !isComponentEnabled(new) {
+	if r.IsEnabled(old) && !r.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled rancher")
 	}
 	return nil

@@ -58,12 +58,8 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
-func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isComponentEnabled(ctx.EffectiveCR())
-}
-
-func isComponentEnabled(vz *vzapi.Verrazzano) bool {
-	comp := vz.Spec.Components.Keycloak
+func (c mysqlComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -82,7 +78,7 @@ func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isComponentEnabled(old) && !isComponentEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled keycloak")
 	}
 	return nil

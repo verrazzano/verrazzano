@@ -699,7 +699,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			spiCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false, err
 		}
-		if comp.IsEnabled(spiCtx) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
 			return false, nil
 		}
 	}

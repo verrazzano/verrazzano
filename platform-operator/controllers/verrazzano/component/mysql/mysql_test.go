@@ -330,7 +330,7 @@ func TestSQLFileCreatedAndRemoved(t *testing.T) {
 //  WHEN The Keycloak component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
@@ -340,7 +340,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -350,7 +350,7 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -360,7 +360,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -370,7 +370,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
@@ -381,7 +381,7 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledProdProfile tests the IsEnabled function
@@ -392,7 +392,7 @@ func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Prod
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledDevProfile tests the IsEnabled function
@@ -403,7 +403,7 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Dev
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 func getBoolPtr(b bool) *bool {

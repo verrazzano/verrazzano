@@ -54,12 +54,8 @@ func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (e externalDNSComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isComponentEnabled(ctx.EffectiveCR())
-}
-
-func isComponentEnabled(vz *vzapi.Verrazzano) bool {
-	dns := vz.Spec.Components.DNS
+func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	dns := effectiveCR.Spec.Components.DNS
 	if dns != nil && dns.OCI != nil {
 		return true
 	}
@@ -68,7 +64,7 @@ func isComponentEnabled(vz *vzapi.Verrazzano) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isComponentEnabled(old) && !isComponentEnabled(new) {
+	if e.IsEnabled(old) && !e.IsEnabled(new) {
 		return fmt.Errorf("can not remove OCI from dns")
 	}
 	return nil

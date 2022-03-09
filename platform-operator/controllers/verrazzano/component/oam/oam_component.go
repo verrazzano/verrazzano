@@ -40,12 +40,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled OAM-specific enabled check for installation
-func (c oamComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isComponentEnabled(ctx.EffectiveCR())
-}
-
-func isComponentEnabled(vz *vzapi.Verrazzano) bool {
-	comp := vz.Spec.Components.OAM
+func (c oamComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.OAM
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -62,7 +58,7 @@ func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isComponentEnabled(old) && !isComponentEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled oam")
 	}
 	return nil

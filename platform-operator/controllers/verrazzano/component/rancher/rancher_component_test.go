@@ -124,7 +124,7 @@ func TestIsEnabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			r := NewComponent()
-			assert.Equal(t, tt.enabled, r.IsEnabled(tt.ctx))
+			assert.Equal(t, tt.enabled, r.IsEnabled(tt.ctx.EffectiveCR()))
 		})
 	}
 }

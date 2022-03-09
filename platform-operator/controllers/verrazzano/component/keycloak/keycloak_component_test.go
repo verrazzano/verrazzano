@@ -63,7 +63,7 @@ func TestIsEnabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(fake.NewFakeClientWithScheme(k8scheme.Scheme), tt.vz, false)
-			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx))
+			assert.Equal(t, tt.isEnabled, kcComponent.IsEnabled(ctx.EffectiveCR()))
 		})
 	}
 }

@@ -18,8 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
-
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
@@ -283,7 +281,7 @@ func TestNewComponent(t *testing.T) {
 //  WHEN The Nginx component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&vzapi.Verrazzano{}))
 }
 
 // TestIsEnabledNilNginx tests the IsEnabled function
@@ -293,7 +291,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilNginx(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -303,7 +301,7 @@ func TestIsEnabledNilNginx(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -313,7 +311,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(&cr))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -323,7 +321,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(&cr))
 }
 
 func getBoolPtr(b bool) *bool {

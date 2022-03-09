@@ -43,7 +43,7 @@ type ComponentInfo interface {
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(context ComponentContext) bool
 	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(context ComponentContext) bool
+	IsEnabled(effectiveCR *vzapi.Verrazzano) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component

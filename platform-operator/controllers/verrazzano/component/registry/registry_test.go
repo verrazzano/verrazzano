@@ -463,7 +463,7 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
 
-func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
+func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
 	return f.enabled
 }
 

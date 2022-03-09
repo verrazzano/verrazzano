@@ -247,9 +247,9 @@ func (mr *MockComponentInfoMockRecorder) GetMinVerrazzanoVersion() *gomock.Call 
 }
 
 // IsEnabled mocks base method.
-func (m *MockComponentInfo) IsEnabled(arg0 spi.ComponentContext) bool {
+func (m *MockComponentInfo) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsEnabled", arg0)
+	ret := m.ctrl.Call(m, "IsEnabled", effectiveCR)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
@@ -527,9 +527,9 @@ func (mr *MockComponentMockRecorder) Install(arg0 interface{}) *gomock.Call {
 }
 
 // IsEnabled mocks base method.
-func (m *MockComponent) IsEnabled(arg0 spi.ComponentContext) bool {
+func (m *MockComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsEnabled", arg0)
+	ret := m.ctrl.Call(m, "IsEnabled", effectiveCR)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }

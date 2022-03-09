@@ -50,12 +50,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled nginx-specific enabled check for installation
-func (c nginxComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isComponentEnabled(ctx.EffectiveCR())
-}
-
-func isComponentEnabled(vz *vzapi.Verrazzano) bool {
-	comp := vz.Spec.Components.Ingress
+func (c nginxComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Ingress
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -72,7 +68,7 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isComponentEnabled(old) && !isComponentEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled ingress")
 	}
 	return nil

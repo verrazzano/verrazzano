@@ -47,12 +47,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
-func (c certManagerComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	return isComponentEnabled(ctx.EffectiveCR())
-}
-
-func isComponentEnabled(vz *vzapi.Verrazzano) bool {
-	comp := vz.Spec.Components.CertManager
+func (c certManagerComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.CertManager
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -69,7 +65,7 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if isComponentEnabled(old) && !isComponentEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled certManager")
 	}
 	return nil
