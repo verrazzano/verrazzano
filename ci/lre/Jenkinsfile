@@ -74,6 +74,11 @@ pipeline {
 
 	    WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -262,19 +267,9 @@ pipeline {
 
         stage('Run Acceptance Tests') {
             parallel {
-                //stage('verify-infra tests') {
-                //    steps {
-                //        runGinkgoRandomize(['verify-infra/restapi', 'verify-infra/vmi'])
-                //    }
-                //}
                 stage('Run examples, logging and metrics tests') {
                     steps {
-                        runGinkgo(['verify-infra/restapi', 'verify-infra/vmi',
-                                   'security/rbac', 'logging/system', 'logging/helidon',
-                                   'examples/helidon', 'examples/helidonconfig', 'examples/springboot',
-                                   'examples/todo', 'examples/bobsbooks', 'metrics/deploymetrics',
-                                   'metricsbinding', 'loggingtrait/helidonworkload', 'loggingtrait/weblogicworkload',
-                                   'loggingtrait/coherenceworkload', 'istio/authz'])
+                        runGinkgo()
                     }
                 }
 		        stage('examples socks') {
@@ -293,6 +288,19 @@ pipeline {
             }
         }
     }
+    post {
+        always{
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            #archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
+        }
+    }
 }
 
 def runGinkgoRandomize(list) {
@@ -308,7 +316,7 @@ def runGinkgoRandomize(list) {
     }
 }
 
-def runGinkgo(list) {
+def runGinkgo() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
@@ -316,8 +324,8 @@ def runGinkgo(list) {
                    security/rbac/... logging/system/... logging/helidon/... \
                    examples/helidon/... examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... metrics/deploymetrics/... \
-                   metricsbinding/... loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
-                   loggingtrait/coherenceworkload/... istio/authz/...
+                   loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
+                   loggingtrait/coherenceworkload/... istio/authz/... metricsbinding/...
         """
     }
 }
