@@ -27,7 +27,8 @@ controller:
     https: 443
 
   # Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/
-  config: {}
+  config:
+    custom-http-errors: 301,304,307,308,401,403,404,407,408,409,413,414,415,416,418,421,429,431,500,501,502,503,504,505
 
   ## Annotations to be added to the controller config configuration configmap
   ##
