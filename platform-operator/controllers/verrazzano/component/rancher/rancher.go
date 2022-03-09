@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -73,20 +74,51 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 func isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-	var deployments []types.NamespacedName
-	deployments = append(deployments, types.NamespacedName{
-		Name: ComponentName, Namespace: ComponentNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: rancherWebhookDeployment, Namespace: ComponentNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: rancherOperatorDeployment, Namespace: OperatorNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: fleetAgentDeployment, Namespace: fleetSystemNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: fleetControllerDeployment, Namespace: fleetSystemNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: gitjobDeployment, Namespace: fleetSystemNamespace})
+	deployments := []status.PodReadyCheck{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app": ComponentName}.AsSelector(),
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      rancherWebhookDeployment,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app": rancherWebhookDeployment}.AsSelector(),
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      rancherOperatorDeployment,
+				Namespace: OperatorNamespace,
+			},
+			LabelSelector: labels.Set{"app": rancherOperatorDeployment}.AsSelector(),
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      fleetAgentDeployment,
+				Namespace: fleetSystemNamespace,
+			},
+			LabelSelector: labels.Set{"app": fleetAgentDeployment}.AsSelector(),
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      fleetControllerDeployment,
+				Namespace: fleetSystemNamespace,
+			},
+			LabelSelector: labels.Set{"app": fleetControllerDeployment}.AsSelector(),
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      gitjobDeployment,
+				Namespace: fleetSystemNamespace,
+			},
+			LabelSelector: labels.Set{"app": gitjobDeployment}.AsSelector(),
+		},
+	}
 
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(log, c, deployments, 1, prefix)
+	return status.DeploymentsAreReady(log, c, deployments, 1, prefix)
 }
