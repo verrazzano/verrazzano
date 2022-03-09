@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bobsbooks
@@ -358,20 +358,6 @@ var _ = Describe("Verify Bobs Books example application.", func() {
 								{Key: "message", Value: "Self-tuning"}},
 							[]pkg.Match{})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-				})
-			},
-			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
-			// THEN verify that no 'pattern not matched' log record of fluentd-stdout-sidecar is found
-			func() {
-				It("Verify recent 'pattern not matched' log records do not exist", func() {
-					Eventually(func() bool {
-						return pkg.FindLog(bobsIndexName,
-							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
-								{Key: "message", Value: "pattern not matched"}},
-							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Expected to find No pattern not matched log records")
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
