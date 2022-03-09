@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
@@ -28,7 +30,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	compistio "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -57,6 +58,9 @@ var _ = t.BeforeSuite(func() {
 	Eventually(func() error {
 		var err error
 		vzcr, err = pkg.GetVerrazzano()
+		if err != nil {
+			return err
+		}
 		return err
 	}, oneMinute, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
 })
@@ -175,12 +179,16 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 	Context("Checking Deployments for post-upgrade", func() {
 		t.DescribeTable("Deployment should be ready post-upgrade",
 			func(namespace string, componentName string, deploymentName string) {
+				// Currently we have no way of determining if some components are installed by looking at the status (grafana)
+				// Because of this, make this test non-managed cluster only.
+				if vzcr.Spec.Profile == vzapi.ManagedCluster {
+					return
+				}
 				Eventually(func() bool {
-					if isDisabled(deploymentName) {
+					if isDisabled(componentName) {
 						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
 						return true
 					}
-					pkg.Log(pkg.Info, fmt.Sprintf("checking Deployment %s for component %s", deploymentName, componentName))
 					deployment, err := pkg.GetDeployment(namespace, deploymentName)
 					if err != nil {
 						return false
@@ -188,51 +196,56 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					return deployment.Status.ReadyReplicas > 0
 				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
-			t.Entry(constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-operator"),
-			t.Entry(constants.VerrazzanoSystemNamespace, authproxy.ComponentName, "verrazzano-authproxy"),
-			t.Entry(constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
-			t.Entry(constants.VerrazzanoSystemNamespace, oam.ComponentName, "oam-kubernetes-runtime"),
-			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
-			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-grafana"),
-			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
-			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kiali"),
-			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kibana"),
-			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-prometheus-0"),
-			t.Entry(constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
+			t.Entry("Checking Deployment verrazzano-application-operator", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-operator"),
+			t.Entry("Checking Deployment verrazzano-authproxy", constants.VerrazzanoSystemNamespace, authproxy.ComponentName, "verrazzano-authproxy"),
+			t.Entry("Checking Deployment coherence-operator", constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
+			t.Entry("Checking Deployment oam-kubernetes-runtime", constants.VerrazzanoSystemNamespace, oam.ComponentName, "oam-kubernetes-runtime"),
+			t.Entry("Checking Deployment verrazzano-console", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
+			t.Entry("Checking Deployment vmi-system-grafana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-grafana"),
+			t.Entry("Checking Deployment verrazzano-console", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
+			t.Entry("Checking Deployment vmi-system-kibana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kibana"),
+			t.Entry("Checking Deployment vmi-system-prometheus-0", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-prometheus-0"),
+			t.Entry("Checking Deployment weblogic-operator", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
 
-			t.Entry(certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager"),
-			t.Entry(certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-cainjector"),
-			t.Entry(certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-webhook"),
+			t.Entry("Checking Deployment cert-manager", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager"),
+			t.Entry("Checking Deployment cert-manager-cainjector", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-cainjector"),
+			t.Entry("Checking Deployment cert-manager-webhook", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-webhook"),
 
-			t.Entry(externaldns.ComponentNamespace, externaldns.ComponentName, externaldns.ComponentName),
+			t.Entry("Checking Deployment external-dns", externaldns.ComponentNamespace, externaldns.ComponentName, "external-dns"),
 
-			t.Entry(compistio.IstioNamespace, compistio.ComponentName, compistio.ComponentName),
+			t.Entry("Checking Deployment istiod", compistio.IstioNamespace, compistio.ComponentName, "istiod"),
+			t.Entry("Checking Deployment istio-ingressgateway", compistio.IstioNamespace, compistio.ComponentName, "istio-ingressgateway"),
+			t.Entry("Checking Deployment istio-egressgateway", compistio.IstioNamespace, compistio.ComponentName, "istio-egressgateway"),
 
-			t.Entry(kiali.ComponentNamespace, kiali.ComponentName, kiali.ComponentName),
+			t.Entry("Checking Deployment vmi-system-kiali", constants.VerrazzanoSystemNamespace, kiali.ComponentName, "vmi-system-kiali"),
 
-			t.Entry(mysql.ComponentNamespace, mysql.ComponentName, mysql.ComponentName),
+			t.Entry("Checking Deployment mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
 
-			t.Entry(nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
-			t.Entry(nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
+			t.Entry("Checking Deployment ingress-controller-ingress-nginx-controller", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-controller"),
+			t.Entry("Checking Deployment ingress-controller-ingress-nginx-defaultbackend", nginx.ComponentNamespace, nginx.ComponentName, "ingress-controller-ingress-nginx-defaultbackend"),
 
-			t.Entry(rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
-			t.Entry(rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),
-			t.Entry("fleet-system", rancher.ComponentName, "fleet-agent"),
-			t.Entry("fleet-system", rancher.ComponentName, "fleet-controller"),
-			t.Entry("fleet-system", rancher.ComponentName, "gitjob"),
-			t.Entry("rancher-operator-system", rancher.ComponentName, "rancher-operator"),
+			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher"),
+			t.Entry("Checking Deployment rancher", rancher.ComponentNamespace, rancher.ComponentName, "rancher-webhook"),
+			t.Entry("Checking Deployment fleet-agent", "fleet-system", rancher.ComponentName, "fleet-agent"),
+			t.Entry("Checking Deployment fleet-controller", "fleet-system", rancher.ComponentName, "fleet-controller"),
+			t.Entry("Checking Deployment gitjob", "fleet-system", rancher.ComponentName, "gitjob"),
+			t.Entry("Checking Deployment rancher-operator", "rancher-operator-system", rancher.ComponentName, "rancher-operator"),
 		)
 	})
 
 	Context("Checking StatefulSets for post-upgrade", func() {
 		t.DescribeTable("StatefulSet should be ready post-upgrade",
 			func(namespace string, componentName string, stsName string) {
+				// Currently we have no way of determining if some components are installed by looking at the status (grafana)
+				// Because of this, make this test non-managed cluster only.
+				if vzcr.Spec.Profile == vzapi.ManagedCluster {
+					return
+				}
 				Eventually(func() bool {
-					if isDisabled(stsName) {
+					if isDisabled(componentName) {
 						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
 						return true
 					}
-					pkg.Log(pkg.Info, fmt.Sprintf("checking StatefulSet %s for component %s", stsName, componentName))
 					sts, err := pkg.GetStatefulSet(namespace, stsName)
 					if err != nil {
 						return false
@@ -240,20 +253,24 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					return sts.Status.ReadyReplicas > 0
 				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
 			},
-			t.Entry(constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
-			t.Entry(keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
+			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
+			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
 		)
 	})
 
 	Context("Checking DaemonSets for post-upgrade", func() {
 		t.DescribeTable("DaemonSet should be ready post-upgrade",
 			func(namespace string, componentName string, dsName string) {
+				// Currently we have no way of determining if some components are installed by looking at the status (grafana)
+				// Because of this, make this test non-managed cluster only.
+				if vzcr.Spec.Profile == vzapi.ManagedCluster {
+					return
+				}
 				Eventually(func() bool {
-					if isDisabled(dsName) {
+					if isDisabled(componentName) {
 						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
 						return true
 					}
-					pkg.Log(pkg.Info, fmt.Sprintf("checking DaemonSets %s for component %s", dsName, componentName))
 					ds, err := pkg.GetDaemonSet(namespace, dsName)
 					if err != nil {
 						return false
@@ -261,8 +278,8 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					return ds.Status.NumberReady > 0
 				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("DaemonSet %s for component %s is not ready", dsName, componentName))
 			},
-			t.Entry(constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
-			t.Entry(vzconst.VerrazzanoMonitoringNamespace, verrazzano.ComponentName, "node-exporter"),
+			t.Entry("Checking StatefulSet fluentd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
+			t.Entry("Checking StatefulSet node-exporter", vzconst.VerrazzanoMonitoringNamespace, verrazzano.ComponentName, "node-exporter"),
 		)
 	})
 })
