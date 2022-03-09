@@ -398,8 +398,8 @@ pipeline {
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
                             # Uninstall VZ
                             kubectl delete verrazzano my-verrazzano
-                            kubectl get vz -o jsonpath='{.items}' | jq '. | length' > /dev/null 2>&1
-                            if [ \$? -eq 0 ]; then
+                            len=\$(kubectl get vz -o json | jq '.items | length')
+                            if [ \$len -eq 0 ]; then
                                 echo "# successfully deleted verrazzano"
                             fi
                         fi
