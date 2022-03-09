@@ -55,7 +55,11 @@ def write_table_body(csv_file_path, html_file):
     html_file.write(body)
 
 
-def write_csv_to_html(headers, csv_file_path, html_file_path):
+def write_csv_to_html(headers, csv_file_path, html_dir):
+    if not exists(html_dir):
+        print("[WARN] Directory to write html report '%s' does not exist" % html_dir)
+        return
+    html_file_path = html_dir + "/consolidated-scan-report.html"
     html_file = open(html_file_path, 'w')
     html_file.write("<table>\n")
     write_table_header(headers, html_file)
