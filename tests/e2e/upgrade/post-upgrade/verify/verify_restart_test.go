@@ -172,17 +172,13 @@ var _ = t.Describe("istioctl verify-install", func() {
 })
 
 var _ = t.Describe("Checking if Verrazzano system components are ready, post-upgrade", Label("f:platform-lcm.upgrade"), func() {
-	type workload struct {
-		componentName string
-		workloadName  string
-	}
-
 	Context("Checking Deployments for post-upgrade", func() {
 		t.DescribeTable("Deployment should be ready post-upgrade",
-			func(namespace string, deploymentName string, componentName string) {
+			func(namespace string, componentName string, deploymentName string) {
 				Eventually(func() bool {
 					if isDisabled(deploymentName) {
 						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+						return true
 					}
 					pkg.Log(pkg.Info, fmt.Sprintf("checking Deployment %s for component %s", deploymentName, componentName))
 					deployment, err := pkg.GetDeployment(namespace, deploymentName)
@@ -230,10 +226,11 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 
 	Context("Checking StatefulSets for post-upgrade", func() {
 		t.DescribeTable("StatefulSet should be ready post-upgrade",
-			func(namespace string, stsName string, componentName string) {
+			func(namespace string, componentName string, stsName string) {
 				Eventually(func() bool {
 					if isDisabled(stsName) {
 						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+						return true
 					}
 					pkg.Log(pkg.Info, fmt.Sprintf("checking StatefulSet %s for component %s", stsName, componentName))
 					sts, err := pkg.GetStatefulSet(namespace, stsName)
@@ -250,10 +247,11 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 
 	Context("Checking DaemonSets for post-upgrade", func() {
 		t.DescribeTable("DaemonSet should be ready post-upgrade",
-			func(namespace string, dsName string, componentName string) {
+			func(namespace string, componentName string, dsName string) {
 				Eventually(func() bool {
 					if isDisabled(dsName) {
 						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+						return true
 					}
 					pkg.Log(pkg.Info, fmt.Sprintf("checking DaemonSets %s for component %s", dsName, componentName))
 					ds, err := pkg.GetDaemonSet(namespace, dsName)
