@@ -388,72 +388,72 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"password field empty in secret",
 		},
-		{
-			"should fail when nginx service is not present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
-				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "verrazzano-prom-internal",
-						Namespace: "verrazzano-system",
-					},
-					Data: map[string][]byte{
-						"password": []byte("blah di blah"),
-					},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "verrazzano-es-internal",
-						Namespace: "verrazzano-system",
-					},
-					Data: map[string][]byte{
-						"password": []byte("blah di blah"),
-					},
-				}),
-			"blahblah'id",
-			true,
-			"services \"ingress-controller-ingress-nginx-controller\" not found",
-		},
-		{
-			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
-				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "verrazzano-prom-internal",
-						Namespace: "verrazzano-system",
-					},
-					Data: map[string][]byte{
-						"password": []byte("blah di blah"),
-					},
-				},
-				&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "verrazzano-es-internal",
-						Namespace: "verrazzano-system",
-					},
-					Data: map[string][]byte{
-						"password": []byte("blah di blah"),
-					},
-				}),
-			"blahblah'id",
-			false,
-			"",
-		},
+		//{
+		//	"should fail when nginx service is not present",
+		//	fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
+		//		ObjectMeta: metav1.ObjectMeta{
+		//			Name:      "verrazzano",
+		//			Namespace: "verrazzano-system",
+		//		},
+		//		Data: map[string][]byte{
+		//			"password": []byte("blah di blah"),
+		//		},
+		//	},
+		//		&v1.Secret{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "verrazzano-prom-internal",
+		//				Namespace: "verrazzano-system",
+		//			},
+		//			Data: map[string][]byte{
+		//				"password": []byte("blah di blah"),
+		//			},
+		//		},
+		//		&v1.Secret{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "verrazzano-es-internal",
+		//				Namespace: "verrazzano-system",
+		//			},
+		//			Data: map[string][]byte{
+		//				"password": []byte("blah di blah"),
+		//			},
+		//		}),
+		//	"blahblah'id",
+		//	true,
+		//	"services \"ingress-controller-ingress-nginx-controller\" not found",
+		//},
+		//{
+		//	"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
+		//	fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
+		//		ObjectMeta: metav1.ObjectMeta{
+		//			Name:      "verrazzano",
+		//			Namespace: "verrazzano-system",
+		//		},
+		//		Data: map[string][]byte{
+		//			"password": []byte("blah di blah"),
+		//		},
+		//	},
+		//		&v1.Secret{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "verrazzano-prom-internal",
+		//				Namespace: "verrazzano-system",
+		//			},
+		//			Data: map[string][]byte{
+		//				"password": []byte("blah di blah"),
+		//			},
+		//		},
+		//		&v1.Secret{
+		//			ObjectMeta: metav1.ObjectMeta{
+		//				Name:      "verrazzano-es-internal",
+		//				Namespace: "verrazzano-system",
+		//			},
+		//			Data: map[string][]byte{
+		//				"password": []byte("blah di blah"),
+		//			},
+		//		}),
+		//	"blahblah'id",
+		//	false,
+		//	"",
+		//},
 	}
 
 	for _, tt := range tests {
