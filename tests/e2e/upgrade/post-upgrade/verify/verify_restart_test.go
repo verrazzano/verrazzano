@@ -194,7 +194,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return deployment.Status.ReadyReplicas > 0
-				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
+				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
 			t.Entry("Checking Deployment verrazzano-application-operator", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-operator"),
 			t.Entry("Checking Deployment verrazzano-authproxy", constants.VerrazzanoSystemNamespace, authproxy.ComponentName, "verrazzano-authproxy"),
@@ -251,7 +251,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return sts.Status.ReadyReplicas > 0
-				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
+				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
 			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
@@ -276,7 +276,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return ds.Status.NumberReady > 0
-				}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("DaemonSet %s for component %s is not ready", dsName, componentName))
+				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("DaemonSet %s for component %s is not ready", dsName, componentName))
 			},
 			t.Entry("Checking StatefulSet fluentd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
 			t.Entry("Checking StatefulSet node-exporter", vzconst.VerrazzanoMonitoringNamespace, verrazzano.ComponentName, "node-exporter"),
