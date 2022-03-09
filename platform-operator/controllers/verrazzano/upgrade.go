@@ -137,7 +137,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	return ctrl.Result{}, nil
 }
 
-// resolvePendingUpgrdes will delete any helm secrets with a "pending-upgrade" status for the given component
+// resolvePendingUpgrades will delete any helm secrets with a "pending-upgrade" status for the given component
 func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.VerrazzanoLogger) {
 	labelSelector := kblabels.Set{"name": compName, "status": "pending-upgrade"}.AsSelector()
 	helmSecrets := v1.SecretList{}

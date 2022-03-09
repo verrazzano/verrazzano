@@ -193,9 +193,24 @@ func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 // BuildImageOverrides builds the image overrides array for the subComponent.
 // Each override has an array of 1-n Helm Key:Value pairs
 func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
+	kvs, _, err := b.BuildImageStrings(subComponentName)
+	return kvs, err
+}
+
+// GetImageNameList build the image names and return a list of image names
+func (b *Bom) GetImageNameList(subComponentName string) ([]string, error) {
+	_, images, err := b.BuildImageStrings(subComponentName)
+	return images, err
+}
+
+// BuildImageStrings builds the image overrides array for the subComponent.
+// Each override has an array of 1-n Helm Key:Value pairs
+// Also return the set of fully constructed image names
+func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, error) {
+	var fullImageNames []string
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
-		return nil, errors.New("unknown subcomponent " + subComponentName)
+		return nil, nil, errors.New("unknown subcomponent " + subComponentName)
 	}
 
 	// Loop through the images used by this subcomponent, building
@@ -262,6 +277,7 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 		}
 
 		fullImagePath := fullImageBldr.String()
+		fullImageNames = append(fullImageNames, fullImagePath)
 
 		// If the image path Key is present the create the kv with the full image path
 		if imageBom.HelmFullImageKey != "" {
@@ -278,7 +294,7 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 			})
 		}
 	}
-	return kvs, nil
+	return kvs, fullImageNames, nil
 }
 
 // ResolveRegistry resolves the registry name using the ENV var if it exists.

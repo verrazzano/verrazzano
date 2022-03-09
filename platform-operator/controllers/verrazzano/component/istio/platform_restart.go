@@ -1,0 +1,138 @@
+package istio
+
+import (
+	"context"
+	"errors"
+	"strings"
+	"time"
+
+	"k8s.io/apimachinery/pkg/labels"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzString "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+// RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
+// in all of the Istio injected system namespaces
+func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
+	// Get the latest Istio proxy image name from the bom
+	proxyImage, err := getIstioProxyImageFromBom()
+	if err != nil {
+		return log.ErrorfNewErr("Restart components cannot find Istio proxy image in BOM: %v", err)
+	}
+
+	// Restart all the deployments in the injected system namespaces
+	var deploymentList appsv1.DeploymentList
+	err = client.List(context.TODO(), &deploymentList)
+	if err != nil {
+		return err
+	}
+	for index := range deploymentList.Items {
+		deployment := &deploymentList.Items[index]
+
+		// Check if deployment is in an Istio injected system namespace
+		if vzString.SliceContainsString(namespaces, deployment.Namespace) {
+			if deployment.Spec.Paused {
+				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
+			}
+			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+			if err := client.Update(context.TODO(), deployment); err != nil {
+				return err
+			}
+		}
+	}
+	log.Info("Restarted system Deployments in istio injected namespaces")
+
+	// Restart all the StatefulSet in the injected system namespaces
+	statefulSetList := appsv1.StatefulSetList{}
+	err = client.List(context.TODO(), &statefulSetList)
+	if err != nil {
+		return err
+	}
+	for index := range statefulSetList.Items {
+		statefulSet := &statefulSetList.Items[index]
+
+		// Check if StatefulSet is in an Istio injected system namespace
+		if vzString.SliceContainsString(namespaces, statefulSet.Namespace) {
+			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
+				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			statefulSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+			if err := client.Update(context.TODO(), statefulSet); err != nil {
+				return err
+			}
+		}
+	}
+	log.Info("Restarted system Statefulsets in istio injected namespaces")
+
+	// Restart all the DaemonSets in the injected system namespaces
+	var daemonSetList appsv1.DaemonSetList
+	err = client.List(context.TODO(), &daemonSetList)
+	if err != nil {
+		return err
+	}
+	for index := range daemonSetList.Items {
+		daemonSet := &daemonSetList.Items[index]
+
+		// Check if DaemonSet is in an Istio injected system namespace
+		if vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
+			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+			}
+			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+			if err := client.Update(context.TODO(), daemonSet); err != nil {
+				return err
+			}
+		}
+	}
+	log.Info("Restarted system DaemonSets in istio injected namespaces")
+	return nil
+}
+
+// doesPodContainOldIstioSidecar returns true if any pods contain an old Istio proxy sidecar
+func doesPodContainOldIstioSidecar(pods v1.PodList, istioProxyImageName string) bool {
+	for _, pod := range pods.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
+				// doesn't match the Istio proxy in the BOM
+				if 0 != strings.Compare(container.Image, istioProxyImageName) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// Get the Istio proxy image from the Istiod subcomponent in the BOM
+func getIstioProxyImageFromBom() (string, error) {
+	// Create a Bom and get the Key Value overrides
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return "", err
+	}
+	images, err := bomFile.GetImageNameList(subcompIstiod)
+	for i, image := range images {
+		if strings.Contains(image, "proxyv2") {
+			return images[i], nil
+		}
+	}
+	return "", errors.New("Failed to find Istio proxy image in the BOM for Istiod")
+}
+
+func getMatchingPods() {
+	selector := labels.NewSelector()
+	selector = selector.Add(*componentNameReq, *appNameReq)
+	err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: workload.Namespace, LabelSelector: selector})
+}
