@@ -1616,8 +1616,8 @@ func TestIsReady(t *testing.T) {
 				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 2,
-				Replicas:          2,
+				AvailableReplicas: 1,
+				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
 		},
@@ -1684,16 +1684,17 @@ func TestIsReady(t *testing.T) {
 
 // TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when the VMO deployment is not available
+//  WHEN I call isVerrazzanoReady when the Verrazzano console deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme,
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      vmoDeployment,
+				Name:      verrazzanoConsoleDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
+				Replicas:          1,
 				AvailableReplicas: 1,
 				UpdatedReplicas:   0,
 			},
