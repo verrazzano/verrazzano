@@ -1170,8 +1170,8 @@ func TestUpgradeComponent(t *testing.T) {
 
 // TestUpgradeComponentWithBlockingStatus tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an upgrade
-// WHEN the component fails to upgrade since a pending upgrade exists
-// THEN the pending status secret is deleted so the upgrade can proceed
+// WHEN the component fails to upgrade since a status other than "deployed" exists
+// THEN the offending secret is deleted so the upgrade can proceed
 func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
@@ -1226,7 +1226,7 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).AnyTimes()
 	mockComp.EXPECT().Name().Return("testcomp").Times(1).AnyTimes()
 
-	// expect a call to list any pending upgrade secrets for the component
+	// expect a call to list any secrets with a status other than "deployed" for the component
 	statuses := []string{"unknown", "uninstalled", "superseded", "failed", "uninstalling", "pending-install", "pending-upgrade", "pending-rollback"}
 	n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(statuses))))
 	status := statuses[int(n.Int64())]
