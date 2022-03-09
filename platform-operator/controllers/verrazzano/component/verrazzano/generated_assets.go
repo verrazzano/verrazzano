@@ -515,7 +515,7 @@ func manifestsDashboardsWeblogicWeblogic_dashboardJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "manifests/dashboards/weblogic/weblogic_dashboard.json", size: 100819, mode: os.FileMode(420), modTime: time.Unix(1646240198, 0)}
+	info := bindataFileInfo{name: "manifests/dashboards/weblogic/weblogic_dashboard.json", size: 100819, mode: os.FileMode(420), modTime: time.Unix(1646174971, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

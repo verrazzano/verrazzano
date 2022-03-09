@@ -61,6 +61,7 @@ ENV_NAME=verrazzano-platform-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 GO_BINDATA_VERSION ?= $(shell go list -m -f '{{.Version}}' 'github.com/go-bindata/go-bindata/v3' )
+ASSETS_TIMESTAMP=1646174971
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
@@ -134,7 +135,7 @@ endif
 
 .PHONY: assets
 assets: go-bindata
-	$(GO_BINDATA) -pkg verrazzano -o generated_assets.go ./manifests/dashboards/...
+	$(GO_BINDATA) -modtime ${ASSETS_TIMESTAMP} -pkg verrazzano -o generated_assets.go ./manifests/dashboards/...
 	echo '// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 	echo '// Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 	mv ./generated_assets.go ./controllers/verrazzano/component/verrazzano/
