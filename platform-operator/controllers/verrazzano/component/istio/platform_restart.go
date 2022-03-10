@@ -126,9 +126,12 @@ func getIstioProxyImageFromBom() (string, error) {
 	// Create a Bom and get the Key Value overrides
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return "", err
+		return "", errors.New("Failed to get access to the BOM")
 	}
 	images, err := bomFile.GetImageNameList(subcompIstiod)
+	if err != nil {
+		return "", errors.New("Failed to get the images for Istiod")
+	}
 	for i, image := range images {
 		if strings.Contains(image, "proxyv2") {
 			return images[i], nil
