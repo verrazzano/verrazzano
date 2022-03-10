@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"reflect"
 	"strings"
 )
 
@@ -53,6 +54,8 @@ type Framework struct {
 	Namespace             *v1.Namespace   // Every test has at least one namespace unless creation is skipped
 	namespacesToDelete    []*v1.Namespace // Some tests have more than one.
 
+	KubeConfig string // Custome kube config
+
 	// afterEaches is a map of name to function to be called after each test.  These are not
 	// cleared.  The call order is randomized so that no dependencies can grow between
 	// the various afterEaches
@@ -72,19 +75,25 @@ type AfterEachActionFunc func(f *Framework, failed bool)
 // NewDefaultFramework makes a new framework and sets up a BeforeEach/AfterEach for
 // you (you can write additional before/after each functions).
 func NewDefaultFramework(baseName string) *Framework {
-	return NewFramework(baseName, nil)
+	return NewFramework(baseName, "", nil)
+}
+
+// NewDefaultFrameworkWithKubeConfig is similar NewDefaultFramework, with additional support for custom kube configuration
+func NewDefaultFrameworkWithKubeConfig(baseName string, kubeConfig string) *Framework {
+	return NewFramework(baseName, kubeConfig, nil)
 }
 
 // NewFramework creates a test framework.
-func NewFramework(baseName string, client clientset.Interface) *Framework {
+func NewFramework(baseName string, kubeconfig string, client clientset.Interface) *Framework {
 	metricsIndex, _ := metrics.NewLogger(baseName, metrics.MetricsIndex)
 	logIndex, _ := metrics.NewLogger(baseName, metrics.TestLogIndex)
 
 	f := &Framework{
-		BaseName:  strings.ToLower(baseName),
-		ClientSet: client,
-		Metrics:   metricsIndex,
-		Logs:      logIndex,
+		BaseName:   strings.ToLower(baseName),
+		ClientSet:  client,
+		Metrics:    metricsIndex,
+		Logs:       logIndex,
+		KubeConfig: kubeconfig,
 	}
 	f.UniqueName = pkg.GenerateNamespace(strings.ToLower(baseName))
 
@@ -92,6 +101,7 @@ func NewFramework(baseName string, client clientset.Interface) *Framework {
 		if !failed {
 			return
 		}
+		// TODO: Explore the things we would like to handle here. For example, capturing the cluster dump
 	})
 
 	ginkgo.BeforeEach(f.BeforeEach)
@@ -106,16 +116,28 @@ func (f *Framework) BeforeEach() {
 
 	if f.ClientSet == nil {
 		ginkgo.By("Creating a kubernetes client")
-		config, err := k8sutil.GetKubeConfig()
+
+		var config *rest.Config
+		var err error
+		if f.KubeConfig != "" {
+			config, err = k8sutil.GetKubeConfigGivenPath(f.KubeConfig)
+		} else {
+			config, err = k8sutil.GetKubeConfig()
+		}
 		ExpectNoError(err)
 
 		f.clientConfig = rest.CopyConfig(config)
 
+		// TODO: We need one for the custom kube config
 		f.ClientSet, err = k8sutil.GetKubernetesClientset()
 		ExpectNoError(err)
 
 		f.DynamicClient, err = dynamic.NewForConfig(config)
 		ExpectNoError(err)
+	}
+
+	if !f.SkipNamespaceCreation {
+		// TODO: create namespace
 	}
 }
 
@@ -135,9 +157,13 @@ func (f *Framework) AddAfterEach(name string, fn AfterEachActionFunc) {
 // AfterEach deletes the namespace, after reading its events.
 func (f *Framework) AfterEach() {
 	// If BeforeEach never started AfterEach should be skipped.
-	// Currently some tests under e2e/storage have this condition.
 	if !f.beforeEachStarted {
 		return
+	}
+
+	// ClientSet should not be nil, indicates a bad state for the remaining tests
+	if f.ClientSet == nil {
+		panic(fmt.Sprintf("The ClientSet defined by the framework must not be nil in AfterEach"))
 	}
 }
 
@@ -148,4 +174,143 @@ func (f *Framework) ClientConfig() *rest.Config {
 	ret.ContentType = runtime.ContentTypeJSON
 	ret.AcceptContentTypes = runtime.ContentTypeJSON
 	return ret
+}
+
+// Wrapper functions from ginkgo_wrapper
+
+// It wraps Ginkgo It to emit a metric
+func (f *Framework) It(text string, args ...interface{}) bool {
+	if args == nil {
+		ginkgo.Fail("Unsupported args type - expected non-nil")
+	}
+	body := args[len(args)-1]
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
+	fn := func() {
+		metrics.Emit(f.Metrics.With(metrics.Status, metrics.Started))
+		reflect.ValueOf(body).Call([]reflect.Value{})
+	}
+
+	args[len(args)-1] = ginkgo.Offset(1)
+	args = append(args, fn)
+	return ginkgo.It(text, args...)
+}
+
+// Describe wraps Ginkgo Describe to emit a metric
+func (f *Framework) Describe(text string, args ...interface{}) bool {
+	if args == nil {
+		ginkgo.Fail("Unsupported args type - expected non-nil")
+	}
+	body := args[len(args)-1]
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
+	fn := func() {
+		metrics.Emit(f.Metrics.With(metrics.Status, metrics.Started))
+		reflect.ValueOf(body).Call([]reflect.Value{})
+		metrics.Emit(f.Metrics.With(metrics.Duration, metrics.DurationMillis()))
+	}
+	args[len(args)-1] = ginkgo.Offset(1)
+	args = append(args, fn)
+	return ginkgo.Describe(text, args...)
+}
+
+// By wraps Ginkgo By to emit a metric
+func (f *Framework) By(text string, args ...func()) {
+	if len(args) > 1 {
+		panic("More than just one callback per By, please")
+	}
+	metrics.Emit(f.Metrics.With(metrics.Status, metrics.Started))
+	if len(args) == 1 {
+		if !isBodyFunc(args[0]) {
+			ginkgo.Fail("Unsupported body type - expected function")
+		}
+		fn := func() {
+			reflect.ValueOf(args[0]).Call([]reflect.Value{})
+		}
+		ginkgo.By(text, fn)
+	} else {
+		ginkgo.By(text)
+	}
+}
+
+// DescribeTable - wrapper function for Ginkgo DescribeTable
+func (f *Framework) DescribeTable(text string, args ...interface{}) bool {
+	if args == nil {
+		ginkgo.Fail("Unsupported args type - expected non-nil")
+	}
+	body := args[0]
+	if !isBodyFunc(body) {
+		ginkgo.Fail("Unsupported body type - expected function")
+	}
+	funcType := reflect.TypeOf(body)
+	fn := reflect.MakeFunc(funcType, func(args []reflect.Value) (results []reflect.Value) {
+		metrics.Emit(f.Metrics.With(metrics.Status, metrics.Started))
+		rv := reflect.ValueOf(body).Call(args)
+		metrics.Emit(f.Metrics.With(metrics.Duration, metrics.DurationMillis()))
+		return rv
+	})
+	args[0] = fn.Interface()
+	return ginkgo.DescribeTable(text, args...)
+}
+
+// Entry - wrapper function for Ginkgo Entry
+func (f *Framework) Entry(description interface{}, args ...interface{}) ginkgo.TableEntry {
+	// insert an Offset into the args, but not as the last item, so that the right code location is reported
+	fn := args[len(args)-1]
+	args[len(args)-1] = ginkgo.Offset(6) // need to go 6 up the stack to get the caller
+	args = append(args, fn)
+	return ginkgo.Entry(description, args...)
+}
+
+// Fail - wrapper function for Ginkgo Fail
+func (f *Framework) Fail(message string, callerSkip ...int) {
+	ginkgo.Fail(message, callerSkip...)
+}
+
+// Context - wrapper function for Ginkgo Context
+func (f *Framework) Context(text string, args ...interface{}) bool {
+	return f.Describe(text, args...)
+}
+
+// When - wrapper function for Ginkgo When
+func (f *Framework) When(text string, args ...interface{}) bool {
+	return ginkgo.When(text, args...)
+}
+
+// SynchronizedBeforeSuite - wrapper function for Ginkgo SynchronizedBeforeSuite
+func (f *Framework) SynchronizedBeforeSuite(process1Body func() []byte, allProcessBody func([]byte)) bool {
+	return ginkgo.SynchronizedBeforeSuite(process1Body, allProcessBody)
+}
+
+// SynchronizedAfterSuite - wrapper function for Ginkgo SynchronizedAfterSuite
+func (f *Framework) SynchronizedAfterSuite(allProcessBody func(), process1Body func()) bool {
+	return ginkgo.SynchronizedAfterSuite(allProcessBody, process1Body)
+}
+
+//	JustBeforeEach - wrapper function for Ginkgo JustBeforeEach
+func (f *Framework) JustBeforeEach(args ...interface{}) bool {
+	return ginkgo.JustBeforeEach(args...)
+}
+
+// JustAfterEach - wrapper function for Ginkgo JustAfterEach
+func (f *Framework) JustAfterEach(args ...interface{}) bool {
+	return ginkgo.JustAfterEach(args...)
+}
+
+//BeforeAll - wrapper function for Ginkgo BeforeAll
+func (f *Framework) BeforeAll(args ...interface{}) bool {
+	return ginkgo.BeforeAll(args...)
+}
+
+//AfterAll - wrapper function for Ginkgo AfterAll
+func (f *Framework) AfterAll(args ...interface{}) bool {
+	return ginkgo.AfterAll(args...)
+}
+
+// isBodyFunc - return boolean indicating if the interface is a function
+func isBodyFunc(body interface{}) bool {
+	bodyType := reflect.TypeOf(body)
+	return bodyType.Kind() == reflect.Func
 }

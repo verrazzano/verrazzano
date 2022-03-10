@@ -68,14 +68,14 @@ var _ = ginkgo.AfterSuite(func() {
 	}
 })
 
-var _ = ginkgo.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oam",
+var _ = f.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
 	// Verify hello-helidon-deployment pod is running
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig are created
 	// THEN the expected pod must be running in the test namespace
-	ginkgo.Describe("hello-helidon-deployment pod", func() {
-		ginkgo.It("is running", func() {
+	f.Describe("hello-helidon-deployment pod", func() {
+		f.It("is running", func() {
 			framework.EventuallyBeTrue(helloHelidonPodsRunning, longWaitTimeout, longPollingInterval)
 		})
 	})
@@ -86,7 +86,7 @@ var _ = ginkgo.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oa
 	// GIVEN the Istio gateway for the hello-helidon namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	ginkgo.It("Get host from gateway.", ginkgo.Label("f:mesh.ingress"), func() {
+	f.It("Get host from gateway.", ginkgo.Label("f:mesh.ingress"), func() {
 		framework.EventuallyNotEmpty(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
@@ -97,8 +97,8 @@ var _ = ginkgo.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oa
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig with ingress trait are created
 	// THEN the application endpoint must be accessible
-	ginkgo.Describe("for Ingress.", ginkgo.Label("f:mesh.ingress"), func() {
-		ginkgo.It("Access /greet App Url.", func() {
+	f.Describe("for Ingress.", ginkgo.Label("f:mesh.ingress"), func() {
+		f.It("Access /greet App Url.", func() {
 			url := fmt.Sprintf("https://%s/greet", host)
 			framework.EventuallyBeTrue(func() bool {
 				return appEndpointAccessible(url, host)
@@ -110,8 +110,8 @@ var _ = ginkgo.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oa
 	// GIVEN OAM hello-helidon app is deployed
 	// WHEN the component and appconfig without metrics-trait(using default) are created
 	// THEN the application metrics must be accessible
-	ginkgo.Describe("for Metrics.", ginkgo.Label("f:observability.monitoring.prom"), func() {
-		ginkgo.It("Retrieve Prometheus scraped metrics", func() {
+	f.Describe("for Metrics.", ginkgo.Label("f:observability.monitoring.prom"), func() {
+		f.It("Retrieve Prometheus scraped metrics", func() {
 			pkg.Concurrently(
 				func() {
 					framework.EventuallyBeTrue(appMetricsExists, longWaitTimeout, longPollingInterval)
@@ -132,14 +132,14 @@ var _ = ginkgo.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oa
 		})
 	})
 
-	ginkgo.Describe("Logging.", ginkgo.Label("f:observability.logging.es"), func() {
+	f.Describe("Logging.", ginkgo.Label("f:observability.logging.es"), func() {
 
 		indexName := "verrazzano-namespace-" + namespace
 
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
-		ginkgo.It("Verify Elasticsearch index exists", func() {
+		f.It("Verify Elasticsearch index exists", func() {
 			framework.EventuallyBeTrue(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval, "Expected to find log index for hello helidon")
@@ -148,7 +148,7 @@ var _ = ginkgo.Describe("Hello Helidon OAM App test", ginkgo.Label("f:app-lcm.oa
 		// GIVEN an application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
-		ginkgo.It("Verify recent Elasticsearch log record exists", func() {
+		f.It("Verify recent Elasticsearch log record exists", func() {
 			framework.EventuallyBeTrue(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/name": "hello-helidon-appconf",

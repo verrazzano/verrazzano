@@ -4,9 +4,12 @@
 package add
 
 import (
-	"github.com/onsi/ginkgo/v2"
+	"fmt"
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/framework"
+	"os"
+	"time"
 )
 
 // Add function that sums two integers
@@ -14,14 +17,40 @@ func Add(a, b int) int {
 	return a + b
 }
 
-var f = framework.NewDefaultFramework("add")
+const (
+	shortWaitTimeout     = 10 * time.Minute
+	shortPollingInterval = 10 * time.Second
+)
 
-var _ = ginkgo.Describe("Adding", func() {
-	ginkgo.Describe("Add", func() {
-		ginkgo.It("adds two numbers together to form a sum", func() {
-			sum := Add(2, 2)
-			gomega.Expect(sum).To(gomega.Equal(4))
+var kubeConfig = os.Getenv("TEST_KUBECONFIG")
+var f = framework.NewDefaultFrameworkWithKubeConfig("add", kubeConfig)
+
+// Label integration to allow --label-filter to filter the tests based on the label using a query
+// We might need to consider only the labels starting with f: for the dashboard
+var _ = f.Describe("This is a top level describe", Label("integration", "f:app-lcm.oam"), func() {
+
+	BeforeEach(func() {
+		// Create the namespace, deploy the application
+	})
+
+	AfterEach(func() {
+		// Clean test
+	})
+
+	f.It("This is the second level, spec", func() {
+		fmt.Println("Start running the test spec")
+		f.By("adds two numbers together to form a sum")
+		gomega.Expect(Add(2, 2) == 4).To(gomega.BeTrue())
+
+		f.By("By with function", func() {
+			gomega.Expect(Add(2, 2)).To(gomega.Equal(4))
 		})
+
+		f.By("By with function and Eventually")
+		gomega.Eventually(func() bool {
+			return true
+		}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+		fmt.Println("End of running the test spec")
 	})
 	framework.Emit(f.Metrics.With(framework.Duration, framework.DurationMillis()))
 })

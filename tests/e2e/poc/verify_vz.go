@@ -4,17 +4,15 @@
 package poc
 
 import (
-	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/tests/e2e/framework"
 	"time"
 )
 
-var _ = ginkgo.Describe("Verify Verrazzano [Feature:Client]", func() {
+var f = framework.NewDefaultFramework("client-test")
 
-	f := framework.NewDefaultFramework("client-test")
-
-	ginkgo.It("Should check that the kubernetes client is reachable", func() {
-		ginkgo.By("seeing if the verrazzano-system namespace is reachable.")
+var _ = f.Describe("Verify Verrazzano [Feature:Client]", func() {
+	f.It("Should check that the kubernetes client is reachable", func() {
+		f.By("seeing if the verrazzano-system namespace is reachable.")
 		framework.EventuallyBeTrue(func() (bool, error) {
 			return doesNamespaceExist(f.ClientSet, "verrazzano-system")
 		}, 3*time.Minute, 5*time.Second)
