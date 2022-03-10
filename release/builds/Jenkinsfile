@@ -250,7 +250,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                        oci --region us-phoenix-1 os object copy --force --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region us-phoenix-1 os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_ZIP_OBJECT_NAME} \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}.zip
 
