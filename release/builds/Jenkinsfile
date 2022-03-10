@@ -55,7 +55,7 @@ pipeline {
 
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         PERIODIC_JOB_OBJECT_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
-        PRODUCT_ZIP_OBJECT_NAME = "verrazzano.zip"
+        PERIODIC_PRODUCT_ZIP_OBJECT_NAME = "verrazzano_periodic.zip"
 
     }
 
@@ -251,12 +251,12 @@ pipeline {
                 script {
                     sh """
                         oci --region us-phoenix-1 os object copy --force --namespace ${OCI_OS_NAMESPACE} \
-                          -bn ${OCI_OS_BUCKET} --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PRODUCT_ZIP_OBJECT_NAME} \
+                          -bn ${OCI_OS_BUCKET} --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_ZIP_OBJECT_NAME} \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}.zip
 
                         oci --region us-phoenix-1 os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
-                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/verrazzano-commit.txt \
+                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/verrazzano_periodic-commit.txt \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-commit.txt
                     """
                 }
