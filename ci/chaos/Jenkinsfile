@@ -62,7 +62,7 @@ pipeline {
         choice (name: 'CHAOS_TEST_TYPE',
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
-                choices: [ "helm.chart.corrupted", "vpo.killed", "uninstall.failed.upgrade" ])
+                choices: [ "vpo.killed", "helm.chart.corrupted", "uninstall.failed.upgrade" ])
     }
 
     environment {
