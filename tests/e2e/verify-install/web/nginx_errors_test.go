@@ -126,7 +126,7 @@ func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
 		return "", err
 	}
-	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec //#gosec G402
 	c, err := elastic.GetVmiHTTPClient(kubeConfigPath)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
