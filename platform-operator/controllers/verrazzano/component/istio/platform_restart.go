@@ -6,16 +6,19 @@ import (
 	"strings"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,6 +30,8 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	if err != nil {
 		return log.ErrorfNewErr("Restart components cannot find Istio proxy image in BOM: %v", err)
 	}
+
+	goClient, err := k8sutil.GetGoClient(log)
 
 	// Restart all the deployments in the injected system namespaces
 	var deploymentList appsv1.DeploymentList
@@ -131,8 +136,11 @@ func getIstioProxyImageFromBom() (string, error) {
 	return "", errors.New("Failed to find Istio proxy image in the BOM for Istiod")
 }
 
-func getMatchingPods() {
+func getMatchingPods(log vzlog.VerrazzanoLogger, clientSet *kubernetes.Clientset, ns string, selector labels.Selector) (*v1.PodList, error) {
 	selector := labels.NewSelector()
-	selector = selector.Add(*componentNameReq, *appNameReq)
-	err := r.Client.List(ctx, &deploymentList, &client.ListOptions{Namespace: workload.Namespace, LabelSelector: selector})
+	pods, err := clientSet.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, log.ErrorfNewErr("Failed listing pods by label selector: %v", err)
+	}
+	return pods, nil
 }

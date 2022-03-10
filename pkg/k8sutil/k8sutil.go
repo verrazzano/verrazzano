@@ -8,6 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
@@ -19,8 +24,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
-	"os"
-	"path/filepath"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
@@ -207,4 +210,20 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 	}
 
 	return stdout.String(), stderr.String(), nil
+}
+
+// GetGoClient returns a go-client
+func GetGoClient(log vzlog.VerrazzanoLogger) (*kubernetes.Clientset, error) {
+	config, err := controllerruntime.GetConfig()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfig: %v", err)
+		return nil, err
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Errorf("Failed to get clientset: %v", err)
+		return nil, err
+	}
+	return kubeClient, err
 }
