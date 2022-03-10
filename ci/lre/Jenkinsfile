@@ -334,7 +334,7 @@ def runGinkgoRandomize() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color verify-infra/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} verify-infra/...
          """
     }
 }
@@ -343,7 +343,7 @@ def runGinkgo() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -p --keep-going --no-color --timeout=2h \
+            ginkgo -v -p --keep-going --no-color --timeout=2h ${GINKGO_REPORT_ARGS} \
                    security/rbac/... logging/system/... logging/helidon/... \
                    examples/helidon/... examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... \
@@ -357,7 +357,7 @@ def runGinkgoNoParallel() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color \
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} \
                    istio/authz/... metrics.deploymetrics/...
         """
     }
