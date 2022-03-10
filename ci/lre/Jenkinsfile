@@ -320,12 +320,12 @@ def runGinkgo() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color \
+            ginkgo -v -p --keep-going --no-color \
                    security/rbac/... logging/system/... logging/helidon/... \
                    examples/helidon/... examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... metrics/deploymetrics/... \
                    loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
-                   loggingtrait/coherenceworkload/... istio/authz/... metricsbinding/...
+                   loggingtrait/coherenceworkload/... metricsbinding/...
         """
     }
 }
