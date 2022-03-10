@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -401,14 +401,19 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	if err := yaml.Unmarshal(buff.Bytes(), ciObject); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to unmarshal yaml: %v", err)
 	}
+	// Create a copy of the object for the case where it's an update, as what we generate will get wiped out on the
+	// GET operation if the resource exists
+	getCIObj := *ciObject
 
 	// Update or create the unstructured object
 	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), ciObject, func() error {
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &getCIObj, func() error {
+		getCIObj.Object["spec"] = ciObject.Object["spec"]
 		return nil
 	}); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
 	}
+	// TODO: renew all certificates if operation == controllerutil.OperationResultUpdated?
 	return nil
 }
 
@@ -469,15 +474,15 @@ func createCAResources(compContext spi.ComponentContext) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: caClusterIssuerName,
 		},
-		Spec: certv1.IssuerSpec{
+	}
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
+		clusterIssuer.Spec = certv1.IssuerSpec{
 			IssuerConfig: certv1.IssuerConfig{
 				CA: &certv1.CAIssuer{
 					SecretName: vzCertCA.SecretName,
 				},
 			},
-		},
-	}
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &clusterIssuer, func() error {
+		}
 		return nil
 	}); err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
