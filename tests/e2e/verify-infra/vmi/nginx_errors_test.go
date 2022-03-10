@@ -5,6 +5,7 @@ package vmi_test
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
@@ -125,11 +126,13 @@ func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
 		return "", err
 	}
+	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	c, err := elastic.GetVmiHTTPClient(kubeConfigPath)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
 		return "", err
 	}
+	c.HTTPClient.Transport = transport
 	c.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp.StatusCode == expectedStatus {
 			return false, nil
