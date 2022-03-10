@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/vmi"
 	"net/http"
 	"time"
 
@@ -31,6 +32,8 @@ var t = framework.NewTestFramework("web")
 var serverURL string
 var isManagedClusterProfile bool
 var isTestSupported bool
+var elastic *vmi.Elastic
+
 var _ = t.BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
@@ -58,6 +61,8 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
+
+	elastic = vmi.GetElastic("system")
 })
 
 var _ = t.AfterSuite(func() {
