@@ -307,16 +307,12 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(list) {
+def runGinkgoRandomize() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        for (int i = 0; i < list.size(); i++) {
-            stage(list[i]) {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color verify-infra/...
-                """
-            }
-        }
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -p --randomize-all -v --keep-going --no-color verify-infra/...
+         """
     }
 }
 
