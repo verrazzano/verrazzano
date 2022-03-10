@@ -9,19 +9,6 @@ import (
 	"testing"
 )
 
-//var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
-//	// setup some common setup for the Suite
-//	return nil
-//}, func(data []byte) {
-//	// Stuff to run on all Ginkgo nodes
-//})
-//
-//var _ = ginkgo.SynchronizedAfterSuite(func() {
-//	//Common Cleanup Stuff
-//}, func() {
-//	//Registered Cleanup things for a specific Suite
-//})
-
 func RunE2ETests(t *testing.T) {
 	//Do some logging setup, etc.
 

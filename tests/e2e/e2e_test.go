@@ -8,18 +8,10 @@ import (
 	"os"
 	"testing"
 	"time"
-
 	//import tests
-	_ "github.com/verrazzano/verrazzano/tests/e2e/examples/add"
-	_ "github.com/verrazzano/verrazzano/tests/e2e/examples/helidon"
-	_ "github.com/verrazzano/verrazzano/tests/e2e/poc"
-
 )
 
 func TestMain(m *testing.M) {
-
-	// define framework.TestContext.RepoRoot then uncomment below
-	//testfiles.AddFileSource(testfiles.RootFileSource{Root: framework.TestContext.RepoRoot})
 	rand.Seed(time.Now().UnixNano())
 	os.Exit(m.Run())
 }
