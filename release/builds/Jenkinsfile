@@ -46,12 +46,12 @@ pipeline {
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
-        OCI_CLI_REGION = "us-phoenix-1"
 
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         PERIODIC_JOB_OBJECT_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
@@ -253,12 +253,12 @@ pipeline {
                     // by the time the images are pushed to OCR (next build stage), and the release stage2, which uses
                     // these objects, is run.
                     sh """
-                        oci --region us-phoenix-1 os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_ZIP_OBJECT_NAME} \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}.zip
 
-                        oci --region us-phoenix-1 os object copy --namespace ${OCI_OS_NAMESPACE} \
+                        oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
                           --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/verrazzano_periodic-commit.txt \
                           --destination-object-name ${CLEAN_BRANCH_NAME}/verrazzano_${params.TARGET_VERSION}-commit.txt
