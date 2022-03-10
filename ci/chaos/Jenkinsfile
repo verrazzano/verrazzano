@@ -4,6 +4,7 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
@@ -19,6 +20,10 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
+    }
+
+    triggers {
+        cron(branchSpecificSchedule)
     }
 
     parameters {
@@ -789,4 +794,13 @@ def restartExampleApps() {
 
         kubectl rollout restart deployment -n hello-helidon
     """
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("jmaron/VZ-5061-kibana-failures")) {
+        return "H */1 * * *"
+    } else if (env.BRANCH_NAME.startsWith("release-1")) {
+        return "@daily"
+    }
+    return ""
 }
