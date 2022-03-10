@@ -399,8 +399,8 @@ pipeline {
 
                         ## dump out uninstall logs
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
                         echo "Listing all pods in all namespaces after uninstall"
                         kubectl get pods --all-namespaces
                         echo "-----------------------------------------------------"
