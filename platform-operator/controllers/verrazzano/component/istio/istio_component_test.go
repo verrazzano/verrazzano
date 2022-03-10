@@ -43,6 +43,72 @@ var crEnabled = installv1alpha1.Verrazzano{
 		Components: installv1alpha1.ComponentSpec{
 			Istio: &installv1alpha1.IstioComponent{
 				Enabled: getBoolPtr(true),
+				Ingress: &installv1alpha1.IstioIngressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-ingressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Egress: &installv1alpha1.IstioEgressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-egressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -57,6 +123,72 @@ var crInstall = &installv1alpha1.Verrazzano{
 					Name:  "arg1",
 					Value: "val1",
 				}},
+				Ingress: &installv1alpha1.IstioIngressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-ingressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Egress: &installv1alpha1.IstioEgressSection{
+					Kubernetes: &installv1alpha1.IstioKubernetesSection{
+						CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+							Replicas: 2,
+							Affinity: &v1.Affinity{
+								PodAntiAffinity: &v1.PodAntiAffinity{
+									RequiredDuringSchedulingIgnoredDuringExecution: nil,
+									PreferredDuringSchedulingIgnoredDuringExecution: []v1.WeightedPodAffinityTerm{
+										{
+											Weight: 100,
+											PodAffinityTerm: v1.PodAffinityTerm{
+												LabelSelector: &metav1.LabelSelector{
+													MatchLabels: nil,
+													MatchExpressions: []metav1.LabelSelectorRequirement{
+														{
+															Key:      "app",
+															Operator: "In",
+															Values: []string{
+																"istio-egressgateway",
+															},
+														},
+													},
+												},
+												Namespaces:  nil,
+												TopologyKey: "kubernetes.io/hostname",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -222,18 +354,43 @@ func TestAppendIstioOverridesNoRegistryOverride(t *testing.T) {
 //  THEN true is returned
 func TestIsReady(t *testing.T) {
 
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: IstioNamespace,
-			Name:      IstiodDeployment,
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstiodDeployment,
+				Labels:    map[string]string{"app": IstiodDeployment},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioInressgatewayDeployment,
+				Labels:    map[string]string{"app": IstioInressgatewayDeployment},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
 		},
-	},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: IstioNamespace,
+				Name:      IstioEressgatewayDeployment,
+				Labels:    map[string]string{"app": IstioEressgatewayDeployment},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
 	)
 	var iComp istioComponent
 	compContext := spi.NewFakeContext(fakeClient, nil, false)

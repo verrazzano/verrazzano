@@ -1,11 +1,10 @@
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: carts
-  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -41,16 +40,15 @@ spec:
               serviceMonitor:
                 enabled: true
 # these additional metrics ports are commented out here and elsewhere until VZ-3760 is fixed
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: catalog
-  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -78,10 +76,10 @@ spec:
             metrics:
               enabled: true
           ports:
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
             - name: http
               port: 7001
               service:
@@ -94,7 +92,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: orders
-  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -129,16 +126,15 @@ spec:
                 port: 7001
               serviceMonitor:
                 enabled: true
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: payment
-  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -177,16 +173,15 @@ spec:
                 port: 7001
               serviceMonitor:
                 enabled: true
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: shipping
-  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -225,16 +220,15 @@ spec:
               port: 1408
               service:
                 name: shipping
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: users
-  namespace: sockshop
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -269,7 +263,7 @@ spec:
                 port: 7001
               serviceMonitor:
                 enabled: true
-#            - name: metrics
-#              port: 9612
-#              serviceMonitor:
-#                enabled: true
+            - name: metrics
+              port: 9612
+              serviceMonitor:
+                enabled: true

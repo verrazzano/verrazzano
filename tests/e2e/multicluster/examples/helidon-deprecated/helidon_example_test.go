@@ -38,6 +38,7 @@ var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 
 // failed indicates whether any of the tests has failed
 var failed = false
+var beforeSuitePassed = false
 
 var t = framework.NewTestFramework("mchelidon")
 
@@ -68,6 +69,7 @@ var _ = t.BeforeSuite(func() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInCluster(appFile, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -88,7 +90,11 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the app is not deployed to the admin cluster consistently for some length of time
 		t.It("Does not have application placed", func() {
 			Consistently(func() bool {
-				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				result, err := examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, consistentlyDuration, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -107,7 +113,11 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the app is deployed to the managed cluster
 		t.It("Has application placed", func() {
 			Eventually(func() bool {
-				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				result, err := examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -134,7 +144,11 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 			})
 			t.It("Does not have application placed", func() {
 				Eventually(func() bool {
-					return examples.VerifyHelloHelidonInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+					result, err := examples.VerifyHelloHelidonInCluster(kubeconfig, false, false, testProjectName, testNamespace)
+					if err != nil {
+						AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+					}
+					return result
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			})
 		}
@@ -196,14 +210,22 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 		t.It("App should be removed from managed cluster", func() {
 			Eventually(func() bool {
 				// app should not be placed in the managed cluster
-				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, false, testProjectName, testNamespace)
+				result, err := examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, false, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.It("App should be placed in admin cluster", func() {
 			Eventually(func() bool {
 				// app should be placed in the admin cluster
-				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, true, testProjectName, testProjectName)
+				result, err := examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, true, testProjectName, testProjectName)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -224,7 +246,11 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the app is not deployed to the admin cluster
 		t.It("Admin cluster does not have application placed", func() {
 			Eventually(func() bool {
-				return examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				result, err := examples.VerifyHelloHelidonInCluster(adminKubeconfig, true, false, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
@@ -233,7 +259,11 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 		// THEN expect that the app is now deployed to the cluster
 		t.It("Managed cluster again has application placed", func() {
 			Eventually(func() bool {
-				return examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				result, err := examples.VerifyHelloHelidonInCluster(managedKubeconfig, false, true, testProjectName, testNamespace)
+				if err != nil {
+					AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+				}
+				return result
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 	})
@@ -272,7 +302,7 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 })

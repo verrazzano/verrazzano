@@ -1,4 +1,4 @@
-// Copyright (C) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package integ_test
@@ -123,7 +123,7 @@ var _ = Describe("Install with enable/disable component", func() {
 		Expect(stderr).To(Equal(""))
 
 		Eventually(func() bool {
-			return checkAllComponentStates(vzapi.Disabled)
+			return checkAllComponentStates(vzapi.CompStateDisabled)
 		}, "10s", "1s").Should(BeTrue())
 	})
 	It("Verrazzano CR should have preInstalling or installing components", func() {
@@ -131,14 +131,14 @@ var _ = Describe("Install with enable/disable component", func() {
 		Expect(stderr).To(Equal(""))
 
 		Eventually(func() bool {
-			return checkAllComponentStates(vzapi.PreInstalling, vzapi.Installing)
+			return checkAllComponentStates(vzapi.CompStatePreInstalling, vzapi.CompStateInstalling)
 
 		}, "30s", "1s").Should(BeTrue())
 	})
 })
 
 // Check if Verrazzano CR has one matching state all components being tested
-func checkAllComponentStates(states ...vzapi.StateType) bool {
+func checkAllComponentStates(states ...vzapi.CompStateType) bool {
 	if !checkStates(coherence.ComponentName, states...) {
 		return false
 	}
@@ -149,7 +149,7 @@ func checkAllComponentStates(states ...vzapi.StateType) bool {
 }
 
 // Check if Verrazzano CR has one matching state for specified component
-func checkStates(compName string, states ...vzapi.StateType) bool {
+func checkStates(compName string, states ...vzapi.CompStateType) bool {
 	vzcr, err := K8sClient.GetVerrazzano(vzResourceNamespace, vzResourceName)
 	if err != nil {
 		return false

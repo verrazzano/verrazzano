@@ -5,6 +5,11 @@ package metricsbinding
 
 import (
 	"context"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -20,14 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"strings"
-	"testing"
-	"time"
 )
 
 // TestReconcilerSetupWithManager test the creation of the metrics trait reconciler.
@@ -74,7 +75,7 @@ func TestGetMetricsTemplate(t *testing.T) {
 			return nil
 		})
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	template, err := reconciler.getMetricsTemplate(localMetricsBinding, log)
 	assert.NoError(err, "Expected no error getting the MetricsTemplate from the MetricsBinding")
 	assert.NotNil(template)
@@ -144,7 +145,7 @@ func TestCreateScrapeConfig(t *testing.T) {
 			return nil
 		})
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding, configMap, log)
 	assert.NoError(err, "Expected no error creating the scrape config")
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
@@ -210,7 +211,7 @@ func TestUpdateScrapeConfig(t *testing.T) {
 		})
 
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.createOrUpdateScrapeConfig(localMetricsBinding, configMap, log)
 	assert.NoError(err, "Expected no error updating the scrape config")
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
@@ -255,7 +256,7 @@ func TestDeleteScrapeConfig(t *testing.T) {
 		})
 
 	assert.True(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.deleteScrapeConfig(localMetricsBinding, configMap, log)
 	assert.NoError(err, "Expected no error deleting the scrape config")
 	assert.False(strings.Contains(configMap.Data["prometheus.yml"], formatJobName(createJobName(localMetricsBinding))))
@@ -299,7 +300,7 @@ func TestMutatePrometheusScrapeConfig(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil)).Return(nil)
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	err = reconciler.mutatePrometheusScrapeConfig(context.TODO(), localMetricsBinding, reconciler.deleteScrapeConfig, log)
 	assert.NoError(err, "Expected no error mutating the scrape config")
 }
@@ -365,10 +366,10 @@ func TestReconcileBindingCreateOrUpdate(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(nil)
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	controllerResult, err := reconciler.reconcileBindingCreateOrUpdate(context.TODO(), localMetricsBinding, log)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
-	assert.Equal(controllerResult, ctrl.Result{})
+	assert.True(controllerResult.Requeue)
 }
 
 // TestReconcileBindingDelete tests the reconciliation for a deletion
@@ -414,7 +415,7 @@ func TestReconcileBindingDelete(t *testing.T) {
 
 	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
 
-	log := vzlog.DefaultLogger().GetZapLogger()
+	log := vzlog.DefaultLogger()
 	controllerResult, err := reconciler.reconcileBindingDelete(context.TODO(), localMetricsBinding, log)
 	assert.NoError(err, "Expected no error reconciling the Deployment")
 	assert.Equal(controllerResult, ctrl.Result{})
@@ -494,8 +495,7 @@ func TestCreateDeployment(t *testing.T) {
 
 	// Validate the results
 	assert.NoError(err)
-	assert.Equal(false, result.Requeue)
-	assert.Equal(time.Duration(0), result.RequeueAfter)
+	assert.True(result.Requeue)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
@@ -522,4 +522,24 @@ func newReconciler(c client.Client) Reconciler {
 		Scraper: "istio-system/prometheus",
 	}
 	return reconciler
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	namespacedName := types.NamespacedName{Namespace: vzconst.KubeSystem, Name: testMetricsBindingName}
+	request := ctrl.Request{NamespacedName: namespacedName}
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

@@ -6,16 +6,16 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -51,55 +51,70 @@ type accessCheckConfig struct {
 }
 
 var (
-	expectedPods         = []string{"netpol-test"}
-	waitTimeout          = 15 * time.Minute
-	pollingInterval      = 30 * time.Second
-	shortWaitTimeout     = 30 * time.Second
-	shortPollingInterval = 10 * time.Second
+	expectedPods             = []string{"netpol-test"}
+	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
+	waitTimeout              = 15 * time.Minute
+	pollingInterval          = 30 * time.Second
+	shortWaitTimeout         = 30 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	generatedNamespace       = pkg.GenerateNamespace("hello-helidon")
 )
 
 var t = framework.NewTestFramework("netpol")
+var clusterDump = pkg.NewClusterDumpWrapper()
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
 	Eventually(func() (*corev1.Namespace, error) {
 		nsLabels := map[string]string{}
 		return pkg.CreateNamespace(testNamespace, nsLabels)
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
+
+	start = time.Now()
+	pkg.DeployHelloHelidonApplication(namespace, "")
+
+	pkg.Log(pkg.Info, "Verify test pod is running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(testNamespace, expectedPods)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		}
+		return result
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+
+	pkg.Log(pkg.Info, "hello-helidon pod")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		}
+		return result
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
-	// undeploy the application here
+	// undeploy the applications here
 	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
-
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
+
+	start = time.Now()
+	pkg.UndeployHelloHelidonApplication(namespace)
+	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
-	// Verify test pod is running
-	// GIVEN netpol-test is deployed
-	// WHEN the pod is created
-	// THEN the expected pod must be running in the test namespace
-	t.Describe("Verify test pod is running", func() {
-		t.It("and waiting for expected pod must be running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(testNamespace, expectedPods)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
 
 	// GIVEN a Verrazzano deployment
 	// WHEN access is attempted between pods within the ingress rules of the Verrazzano network policies
@@ -147,6 +162,11 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test istiod-verrazzano-system ingress failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", istiodMetricsPort, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test istiod-verrazzano-system ingress failed: reason = %s", err))
+			},
+			func() {
+				pkg.Log(pkg.Info, "Test istiod application namespace ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "hello-helidon"}}, generatedNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, "istio-system", 15012, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test istiod application namespace ingress failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test keycloak ingress rules")
@@ -274,6 +294,8 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-grafana"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", 9090, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "vmi-system-kiali"}}, "verrazzano-system", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-prometheus"}}, "verrazzano-system", 9090, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-prometheus ingress rules failed: reason = %s", err))
 			},
 			func() {
 				pkg.Log(pkg.Info, "Test node-exporter ingress rules")
@@ -309,7 +331,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 	// WHEN access is attempted between pods that violate the rules of the Verrazzano network policies
 	// THEN the attempted access should fail
 	t.It("Negative Test NetworkPolicy Rules", func() {
-		pkg.Concurrently(
+		assertions := []func(){
 			func() {
 				pkg.Log(pkg.Info, "Negative test rancher ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "rancher"}}, "cattle-system", 80, false)
@@ -371,11 +393,6 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-monitoring-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
-				pkg.Log(pkg.Info, "Negative test verrazzano-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-operator"}}, "verrazzano-system", 8000, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-operator ingress rules failed: reason = %s", err))
-			},
-			func() {
 				pkg.Log(pkg.Info, "Negative test vmi-system-es-master ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "system-es-master"}}, "verrazzano-system", 9200, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-es-master ingress rules failed: reason = %s", err))
@@ -420,6 +437,18 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "kiali"}}, "verrazzano-system", envoyStatsMetricsPort, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test kiali ingress rules failed: reason = %s", err))
 			},
+		}
+
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
+			assertions = append(assertions, func() {
+				pkg.Log(pkg.Info, "Negative test verrazzano-operator ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-operator"}}, "verrazzano-system", 8000, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-operator ingress rules failed: reason = %s", err))
+			})
+		}
+
+		pkg.Concurrently(
+			assertions...,
 		)
 	})
 })

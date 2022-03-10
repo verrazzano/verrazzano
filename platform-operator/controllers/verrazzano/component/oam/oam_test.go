@@ -3,12 +3,11 @@
 package oam
 
 import (
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -27,46 +26,45 @@ var crEnabled = vzapi.Verrazzano{
 	},
 }
 
-// TestIsOAMOperatorReady tests the IsOAMReady function
-// GIVEN a call to IsOAMReady
+// TestIsOAMOperatorReady tests the isOAMReady function
+// GIVEN a call to isOAMReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsOAMOperatorReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      oamOperatorDeploymentName,
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
+			Labels:    map[string]string{"app.kubernetes.io/name": "oam-kubernetes-runtime"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
-	assert.True(t, IsOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
-// TestIsOAMOperatorNotReady tests the IsOAMReady function
-// GIVEN a call to IsOAMReady
+// TestIsOAMOperatorNotReady tests the isOAMReady function
+// GIVEN a call to isOAMReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsOAMOperatorNotReady(t *testing.T) {
 
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      oamOperatorDeploymentName,
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	})
-	assert.False(t, IsOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, false)))
 }
 
 // TestIsEnabledNilOAM tests the IsEnabled function

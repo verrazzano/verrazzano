@@ -4,6 +4,7 @@
 package deploymetrics
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
@@ -28,14 +29,15 @@ var shortPollingInterval = 10 * time.Second
 var shortWaitTimeout = 5 * time.Minute
 var longWaitTimeout = 15 * time.Minute
 var longPollingInterval = 30 * time.Second
+var imagePullWaitTimeout = 40 * time.Minute
+var imagePullPollingInterval = 30 * time.Second
 
 var t = framework.NewTestFramework("deploymetrics")
 
-var _ = t.BeforeSuite(func() {
+var clusterDump = pkg.NewClusterDumpWrapper()
+var _ = clusterDump.BeforeSuite(func() {
 	deployMetricsApplication()
 })
-
-var clusterDump = pkg.NewClusterDumpWrapper()
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	undeployMetricsApplication()
@@ -62,6 +64,19 @@ func deployMetricsApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
+
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(testNamespace, expectedPodsDeploymetricsApp)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+
+	pkg.Log(pkg.Info, "Verify deploymetrics-workload pod is running")
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", testNamespace, err))
+		}
+		return result
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
@@ -78,6 +93,11 @@ func undeployMetricsApplication() {
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+	pkg.Log(pkg.Info, "Wait for pods to terminate")
+	Eventually(func() bool {
+		podsNotRunning, _ := pkg.PodsNotRunning(testNamespace, expectedPodsDeploymetricsApp)
+		return podsNotRunning
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	Eventually(func() bool {
 		return pkg.IsAppInPromConfig(promConfigJobName)
@@ -88,31 +108,20 @@ func undeployMetricsApplication() {
 		return pkg.DeleteNamespace(testNamespace)
 	}, longWaitTimeout, longPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
 	Eventually(func() bool {
-		ns, err := pkg.GetNamespace(testNamespace)
-		if err == nil {
-			finalizeErr := pkg.RemoveNamespaceFinalizers(ns)
-			if finalizeErr != nil {
-				return false
-			}
-		}
-		return err != nil && errors.IsNotFound(err)
+		return pkg.CheckNamespaceFinalizerRemoved(testNamespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	pkg.Log(pkg.Info, "Waiting for namespace deletion")
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace(testNamespace)
+		return err != nil && errors.IsNotFound(err)
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
 var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), func() {
-	// Verify deploymetrics-workload pod is running
-	// GIVEN deploymetrics app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	t.Context("app deployment", func() {
-		t.It("and waiting for expected pods must be running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
 
 	t.Context("for Prometheus Config.", Label("f:observability.monitoring.prom"), func() {
 		t.It("Verify that Prometheus Config Data contains deploymetrics-appconf_default_deploymetrics_deploymetrics-deployment", func() {

@@ -5,8 +5,11 @@ package multiclusterconfigmap
 
 import (
 	"context"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,8 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 )
 
 // Reconciler reconciles a MultiClusterConfigMap object
@@ -27,14 +28,40 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclusterconfigmap.verrazzano.io"
+const (
+	finalizerName  = "multiclusterconfigmap.verrazzano.io"
+	controllerName = "multiclusterconfigmap"
+)
 
 // Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
 // mutates it based on the MultiClusterConfigMap, and updates the status of the
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	res, err := r.doReconcile(req)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Multi-cluster application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
+	ctx := context.Background()
+	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
+	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
+	if err != nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("mcconfigmap", req.NamespacedName, &mcConfigMap)
+	if err != nil {
+		zap.S().Error("Failed to create controller logger for multi-cluster config map resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling multi-cluster config map resource %v, generation %v", req.NamespacedName, mcConfigMap.Generation)
+
+	res, err := r.doReconcile(ctx, mcConfigMap, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -44,23 +71,16 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	log.Oncef("Finished reconciling multi-cluster config map %v", req.NamespacedName)
+
 	return ctrl.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the MC config map
-func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "mcconfigmap")
-	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
-	result := reconcile.Result{}
-	ctx := context.Background()
-	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
-	if err != nil {
-		return result, clusters.IgnoreNotFoundWithLog(err, log)
-	}
-
+func (r *Reconciler) doReconcile(ctx context.Context, mcConfigMap clustersv1alpha1.MultiClusterConfigMap, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	// delete the wrapped resource since MC is being deleted
 	if !mcConfigMap.ObjectMeta.DeletionTimestamp.IsZero() {
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
 		if err != nil {
 			log.Errorf("Failed to delete associated configmap and finalizer: %v", err)
 		}
@@ -73,17 +93,17 @@ func (r *Reconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
 			// This must be done whether the resource is placed in this cluster or not, because we
 			// could be in an admin cluster and receive cluster level statuses from managed clusters,
 			// which can change our effective state
-			err = r.Status().Update(ctx, &mcConfigMap)
+			err := r.Status().Update(ctx, &mcConfigMap)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 		// if this mc config map is no longer placed on this cluster, remove the associated config map
-		err = clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
+		err := clusters.DeleteAssociatedResource(ctx, r.Client, &mcConfigMap, finalizerName, &corev1.ConfigMap{}, types.NamespacedName{Namespace: mcConfigMap.Namespace, Name: mcConfigMap.Name})
 		return ctrl.Result{}, err
 	}
 
-	log.Debugw("MultiClusterConfigMap create or update with underlying ConfigMap",
+	log.Debug("MultiClusterConfigMap create or update with underlying ConfigMap",
 		"ConfigMap", mcConfigMap.Spec.Template.Metadata.Name,
 		"placement", mcConfigMap.Spec.Placement.Clusters[0].Name)
 	// Immutable ConfigMaps are not supported - we need a webhook to validate, or add the support

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package login
@@ -69,7 +69,7 @@ func login(streams genericclioptions.IOStreams, args []string, kubernetesInterfa
 
 	// Obtain the certificate authority data in the form of byte stream
 	caData, err := extractCAData(kubernetesInterface)
-	if err != nil && err.Error() != "secrets \"system-tls\" not found" {
+	if err != nil && err.Error() != "tls secrets not found" {
 		return err
 	}
 
@@ -235,7 +235,7 @@ func checkNonEmptyJWTData(jwtData map[string]interface{}) bool {
 }
 
 // Obtain the certificate authority data
-// certificate authority data is stored as a secret named system-tls in verrazzano-system namespace
+// certificate authority data is stored as a secret named tls-rancher-ingress in cattle-system namespace
 // Use client cmd to extract the secret
 func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 	var cert []byte
@@ -245,8 +245,8 @@ func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 		return cert, err
 	}
 
-	secret, err := kclientset.CoreV1().Secrets("verrazzano-system").Get(context.Background(),
-		"system-tls",
+	secret, err := kclientset.CoreV1().Secrets("cattle-system").Get(context.Background(),
+		"tls-rancher-ingress",
 		metav1.GetOptions{},
 	)
 

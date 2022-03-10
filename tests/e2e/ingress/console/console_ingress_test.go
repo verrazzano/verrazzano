@@ -29,15 +29,18 @@ var t = framework.NewTestFramework("ingress")
 
 var _ = t.BeforeSuite(func() {
 	deployApplication()
+	beforeSuitePassed = true
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	undeployApplication()
@@ -96,6 +99,15 @@ func deployApplication() {
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	// Verify cidomain-adminserver and mysql pods are running
+	Eventually(func() bool {
+		result, err := pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
+		if err != nil {
+			AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		}
+		return result
+	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
 
@@ -111,10 +123,21 @@ func undeployApplication() {
 		return pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Wait for application pods to terminate")
+	Eventually(func() bool {
+		podsTerminated, _ := pkg.PodsNotRunning(namespace, []string{"mysql", "cidomain-adminserver"})
+		return podsTerminated
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
+	Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved(namespace)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
@@ -126,17 +149,6 @@ func undeployApplication() {
 var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload"), func() {
 
-	t.Context("deployment.", func() {
-		// GIVEN the app is deployed
-		// WHEN the running pods are checked
-		// THEN the adminserver and mysql pods should be found running
-		t.It("Verify 'cidomain-adminserver' and 'mysql' pods are running", func() {
-			Eventually(func() bool {
-				return pkg.PodsRunning(namespace, []string{"mysql", "cidomain-adminserver"})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-		})
-	})
-
 	t.Context("Ingress.", Label("f:mesh.ingress",
 		"f:ui.console"), func() {
 		var host = ""
@@ -145,7 +157,7 @@ var _ = t.Describe("console-ingress app test", Label("f:app-lcm.oam",
 		// GIVEN the Istio gateway for the test namespace
 		// WHEN GetHostnameFromGateway is called
 		// THEN return the host name found in the gateway.
-		t.It("Get host from gateway.", func() {
+		t.BeforeEach(func() {
 			Eventually(func() (string, error) {
 				host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 				return host, err

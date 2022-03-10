@@ -5,6 +5,7 @@ package wlsworkload
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
 
@@ -1440,7 +1441,7 @@ func TestCreateDestinationRuleCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1475,7 +1476,7 @@ func TestCreateDestinationRuleNoCreate(t *testing.T) {
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1491,7 +1492,7 @@ func TestCreateDestinationRuleNoOamLabel(t *testing.T) {
 	namespaceLabels := make(map[string]string)
 	namespaceLabels["istio-injection"] = "enabled"
 	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to generate destination rule name", err.Error())
 }
 
@@ -1505,7 +1506,7 @@ func TestCreateDestinationRuleNoIstioLabel(t *testing.T) {
 	reconciler := Reconciler{}
 	namespaceLabels := make(map[string]string)
 	workloadLabels := make(map[string]string)
-	err := reconciler.createDestinationRule(context.Background(), zap.S(), "test-namespace", namespaceLabels, workloadLabels)
+	err := reconciler.createDestinationRule(context.Background(), vzlog.DefaultLogger(), "test-namespace", namespaceLabels, workloadLabels)
 	assert.NoError(err)
 }
 
@@ -1555,7 +1556,7 @@ func TestCreateRuntimeEncryptionSecretCreate(t *testing.T) {
 
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), vzlog.DefaultLogger(), "test-namespace", "test-secret", workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1587,7 +1588,7 @@ func TestCreateRuntimeEncryptionSecretNoCreate(t *testing.T) {
 
 	workloadLabels := make(map[string]string)
 	workloadLabels["app.oam.dev/name"] = "test-app"
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), vzlog.DefaultLogger(), "test-namespace", "test-secret", workloadLabels)
 	mocker.Finish()
 	assert.NoError(err)
 }
@@ -1601,7 +1602,7 @@ func TestCreateRuntimeEncryptionSecretNoOamLabel(t *testing.T) {
 
 	reconciler := Reconciler{}
 	workloadLabels := make(map[string]string)
-	err := reconciler.createRuntimeEncryptionSecret(context.Background(), zap.S(), "test-namespace", "test-secret", workloadLabels)
+	err := reconciler.createRuntimeEncryptionSecret(context.Background(), vzlog.DefaultLogger(), "test-namespace", "test-secret", workloadLabels)
 	assert.Equal("OAM app name label missing from metadata, unable to create owner reference to appconfig", err.Error())
 }
 
@@ -2149,4 +2150,23 @@ func TestReconcileStartDomain(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

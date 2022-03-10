@@ -6,6 +6,7 @@ package multiclustersecret
 import (
 	"context"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -435,4 +436,22 @@ func newSecretReconciler(c client.Client) Reconciler {
 		Log:    zap.S().With("test"),
 		Scheme: clusters.NewScheme(),
 	}
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	reconciler := newSecretReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

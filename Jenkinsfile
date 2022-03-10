@@ -46,7 +46,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
@@ -147,21 +147,6 @@ pipeline {
                             sleep(30)
                             sh """
                             echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-                }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
                             """
                         }
                     }
@@ -404,24 +389,6 @@ pipeline {
             }
         }
 
-        stage('Integration Tests') {
-            when { not { buildingTag() } }
-            steps {
-                integrationTests("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/*-cluster-dump/**,**/install.sh.log', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
         stage('Skip acceptance tests if commit message contains skip-at') {
             steps {
                 script {
@@ -617,10 +584,10 @@ pipeline {
                 rm archive.zip
             """
             script {
-                if (isPagerDutyEnabled() && env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*") {
+                if (isPagerDutyEnabled() && (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*")) {
                     pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                 }
-                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-*" || env.BRANCH_NAME ==~ "mark/*") {
+                if (env.JOB_NAME == "verrazzano/master" || env.JOB_NAME ==~ "verrazzano/release-1.*" || env.BRANCH_NAME ==~ "mark/*") {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
@@ -647,28 +614,6 @@ def moveContentToGoRepoPath() {
         rm -rf ${GO_REPO_PATH}/verrazzano
         mkdir -p ${GO_REPO_PATH}/verrazzano
         tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-    """
-}
-
-// Called in Stage Integration Tests steps
-def integrationTests(dockerImageTag) {
-    sh """
-        if [ "${params.SIMULATE_FAILURE}" == "true" ]; then
-            echo "Simulate failure from a stage"
-            exit 1
-        fi
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-
-        make cleanup-cluster
-        make create-cluster KIND_CONFIG="kind-config-ci.yaml"
-        ../ci/scripts/setup_kind_for_jenkins.sh
-        make integ-test CLUSTER_DUMP_LOCATION=${WORKSPACE}/platform-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
-        ../build/copy-junit-output.sh ${WORKSPACE}
-        cd ${GO_REPO_PATH}/verrazzano/application-operator
-        make cleanup-cluster
-        make integ-test KIND_CONFIG="kind-config-ci.yaml" CLUSTER_DUMP_LOCATION=${WORKSPACE}/application-operator-integ-cluster-dump DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
-        ../build/copy-junit-output.sh ${WORKSPACE}
-        make cleanup-cluster
     """
 }
 

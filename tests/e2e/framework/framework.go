@@ -163,7 +163,7 @@ func (f *Framework) AfterEach() {
 
 	// ClientSet should not be nil, indicates a bad state for the remaining tests
 	if f.ClientSet == nil {
-		panic(fmt.Sprintf("The ClientSet defined by the framework must not be nil in AfterEach"))
+		panic("The ClientSet defined by the framework must not be nil in AfterEach")
 	}
 }
 

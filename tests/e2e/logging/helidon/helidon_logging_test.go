@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,13 +18,18 @@ import (
 )
 
 const (
-	longWaitTimeout      = 20 * time.Minute
-	longPollingInterval  = 20 * time.Second
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
+	longWaitTimeout          = 20 * time.Minute
+	longPollingInterval      = 20 * time.Second
+	shortPollingInterval     = 10 * time.Second
+	shortWaitTimeout         = 5 * time.Minute
+	imagePullWaitTimeout     = 40 * time.Minute
+	imagePullPollingInterval = 30 * time.Second
 )
 
-var t = framework.NewTestFramework("helidon")
+var (
+	t                  = framework.NewTestFramework("helidon")
+	generatedNamespace = pkg.GenerateNamespace("helidon-logging")
+)
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -31,41 +37,72 @@ var _ = t.BeforeSuite(func() {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
 			"istio-injection":    "enabled"}
-		return pkg.CreateNamespace("helidon-logging", nsLabels)
+		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	Eventually(func() bool {
+		return pkg.ContainerImagePullWait(namespace, expectedPodsHelloHelidon)
+	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
+	// Verify hello-helidon-workload pod is running
+	Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
 var failed = false
+var beforeSuitePassed = false
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
 var _ = t.AfterSuite(func() {
-	if failed {
+	if failed || !beforeSuitePassed {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 	// undeploy the application here
 	start := time.Now()
+
+	pkg.Log(pkg.Info, "Delete application")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	pkg.Log(pkg.Info, "Wait for application pods to terminate")
+	Eventually(func() bool {
+		podsTerminated, _ := pkg.PodsNotRunning("helidon-logging", expectedPodsHelloHelidon)
+		return podsTerminated
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	pkg.Log(pkg.Info, "Delete namespace")
 	Eventually(func() error {
-		return pkg.DeleteNamespace("helidon-logging")
+		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
+	Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved("helidon-logging")
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	pkg.Log(pkg.Info, "Wait for namespace to be deleted")
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace("helidon-logging")
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
@@ -75,21 +112,8 @@ var (
 	pollingInterval          = 30 * time.Second
 )
 
-const (
-	testNamespace = "helidon-logging"
-)
-
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {
-	// Verify hello-helidon-workload pod is running
-	// GIVEN OAM hello-helidon app is deployed
-	// WHEN the component and appconfig are created
-	// THEN the expected pod must be running in the test namespace
-	t.Describe("hello-helidon-workload pod", func() {
-		t.It("is running", func() {
-			Eventually(helloHelidonPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
-		})
-	})
 
 	var host = ""
 	var err error
@@ -97,9 +121,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// GIVEN the Istio gateway for the helidon-logging namespace
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
-	t.It("Get host from gateway.", func() {
+	t.BeforeEach(func() {
 		Eventually(func() (string, error) {
-			host, err = k8sutil.GetHostnameFromGateway(testNamespace, "")
+			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
 		}, shortWaitTimeout, shortPollingInterval).Should(Not(BeEmpty()))
 	})
@@ -120,7 +144,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), func() {
-		indexName := fmt.Sprintf("verrazzano-namespace-%s", testNamespace)
+		indexName := fmt.Sprintf("verrazzano-namespace-%s", namespace)
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
@@ -159,5 +183,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 })
 
 func helloHelidonPodsRunning() bool {
-	return pkg.PodsRunning(testNamespace, expectedPodsHelloHelidon)
+	result, err := pkg.PodsRunning(namespace, expectedPodsHelloHelidon)
+	if err != nil {
+		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+	}
+	return result
 }

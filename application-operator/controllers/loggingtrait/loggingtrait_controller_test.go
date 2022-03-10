@@ -6,6 +6,8 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 	"time"
 
@@ -230,7 +232,7 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 		})
 
 	reconciler := newLoggingTraitReconciler(mock, t)
-	result, err := reconciler.reconcileTraitDelete(context.TODO(), zap.S(), &trait)
+	result, err := reconciler.reconcileTraitDelete(context.TODO(), vzlog.DefaultLogger(), &trait)
 
 	// Validate the results
 	mocker.Finish()
@@ -306,4 +308,22 @@ func newDeployment(deploymentName string, namespaceName string, workloadName str
 			},
 		},
 	}
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
+	reconciler := newLoggingTraitReconciler(mock, t)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

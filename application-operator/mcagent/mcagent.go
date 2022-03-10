@@ -6,7 +6,6 @@ package mcagent
 import (
 	"context"
 	"fmt"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"io/ioutil"
 	"os"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
@@ -74,7 +74,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	// Get the secret
 	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCAgentSecret, Namespace: constants.VerrazzanoSystemNamespace}, &secret)
 	if err != nil {
-		if clusters.IgnoreNotFoundWithLog(err, s.Log) == nil && s.AgentSecretFound {
+		if client.IgnoreNotFound(err) == nil && s.AgentSecretFound {
 			s.Log.Debugf("the secret %s in namespace %s was deleted", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
 			s.AgentSecretFound = false
 			s.AgentSecretValid = false
@@ -252,7 +252,7 @@ func (s *Syncer) updateDeployment(name string) {
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
-		if clusters.IgnoreNotFoundWithLog(regErr, s.Log) != nil {
+		if client.IgnoreNotFound(regErr) != nil {
 			return
 		}
 	} else {
@@ -285,7 +285,7 @@ func (s *Syncer) configureLogging() {
 	regSecret := corev1.Secret{}
 	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
 	if regErr != nil {
-		if clusters.IgnoreNotFoundWithLog(regErr, s.Log) != nil {
+		if client.IgnoreNotFound(regErr) != nil {
 			return
 		}
 	}
@@ -331,7 +331,7 @@ func (s *Syncer) updateLoggingDaemonSet(regSecret corev1.Secret, ds *appsv1.Daem
 const (
 	defaultClusterName   = constants.DefaultClusterName
 	defaultElasticURL    = "http://verrazzano-authproxy-elasticsearch:8775"
-	defaultSecretName    = "verrazzano"
+	defaultSecretName    = "verrazzano-es-internal" //nolint:gosec //#gosec G101
 	esConfigMapName      = "fluentd-es-config"
 	esConfigMapURLKey    = "es-url"
 	esConfigMapSecretKey = "es-secret"
@@ -454,7 +454,7 @@ func (s *Syncer) GetAPIServerURL() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzConsoleIngress, err)
 	}
-	return fmt.Sprintf("https://%s", ingress.Spec.TLS[0].Hosts[0]), nil
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }
 
 // GetPrometheusHost returns the prometheus host for Verrazzano instance.
@@ -464,7 +464,7 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
 	}
-	return ingress.Spec.TLS[0].Hosts[0], nil
+	return ingress.Spec.Rules[0].Host, nil
 }
 
 // getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR

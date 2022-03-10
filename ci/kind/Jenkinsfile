@@ -42,7 +42,7 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: true)
         string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: 'master',
+                defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
         booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
@@ -112,6 +112,11 @@ pipeline {
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "kind"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
+
+        // used to generate Ginkgo test reports
+        TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
     }
 
     stages {
@@ -168,21 +173,6 @@ pipeline {
                         }
                     }
                 }
-                script {
-                    try {
-                        sh """
-                            echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "OCR docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                                echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
-                            """
-                        }
-                    }
-	            }
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
@@ -387,6 +377,14 @@ pipeline {
                                 runGinkgo('metrics/deploymetrics')
                             }
                         }
+                        stage('system logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-logging"
+                            }
+                            steps {
+                                runGinkgo('logging/system')
+                            }
+                        }
                         stage('examples logging helidon') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-logging-helidon"
@@ -488,6 +486,14 @@ pipeline {
                                 runGinkgo('loggingtrait/coherenceworkload')
                             }
                         }
+                        stage('poko metricsbinding') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/metricsbinding"
+                            }
+                            steps {
+                                runGinkgo('metricsbinding')
+                            }
+                        }
                     }
                     post {
                         always {
@@ -533,8 +539,15 @@ pipeline {
                     dumpVerrazzanoApiLogs()
                 }
             }
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png', allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
+            sh """
+                # Copy the generated test reports to WORKSPACE to archive them
+                mkdir -p ${TEST_REPORT_DIR}
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
+            """
+            archiveArtifacts artifacts: "**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*-cluster-dump/**,**/Screenshot*.png,**/${TEST_REPORT}", allowEmptyArchive: true
+            junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
             script {
                 if (params.EMIT_METRICS) {
                     withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
@@ -576,7 +589,7 @@ def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
                 export KUBECONFIG="${kubeConfig}"
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
@@ -585,7 +598,7 @@ def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
             sh """
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
+                SOCKS_SHOP_VARIANT=${variant} ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}"  examples/socks/...
             """
         }
 }
@@ -594,7 +607,7 @@ def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }

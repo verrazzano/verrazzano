@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strings"
 
@@ -35,6 +37,7 @@ const (
 	loggingMountPath          = "/fluentd/etc/custom.conf"
 	loggingKey                = "custom.conf"
 	defaultMode         int32 = 400
+	controllerName            = "loggingtrait"
 )
 
 // LoggingTraitReconciler reconciles a LoggingTrait object
@@ -55,7 +58,30 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
 func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	res, err := r.doReconcile(req)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Logging trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
+	ctx := context.Background()
+	var err error
+	var trait *oamv1alpha1.LoggingTrait
+	if trait, err = r.fetchTrait(ctx, req.NamespacedName, zap.S()); err != nil || trait == nil {
+		return clusters.IgnoreNotFoundWithLog(err, zap.S())
+	}
+	log, err := clusters.GetResourceLogger("loggingtrait", req.NamespacedName, trait)
+	if err != nil {
+		zap.S().Errorf("Failed to create controller logger for logging trait resource: %v", err)
+		return clusters.NewRequeueWithDelay(), nil
+	}
+	log.Oncef("Reconciling logging trait resource %v, generation %v", req.NamespacedName, trait.Generation)
+
+	res, err := r.doReconcile(ctx, trait, log)
 	if clusters.ShouldRequeue(res) {
 		return res, nil
 	}
@@ -65,20 +91,13 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 		return clusters.NewRequeueWithDelay(), nil
 	}
 
+	log.Oncef("Finished reconciling logging trait %v", req.NamespacedName)
+
 	return ctrl.Result{}, nil
 }
 
 // doReconcile performs the reconciliation operations for the logging trait
-func (r *LoggingTraitReconciler) doReconcile(req ctrl.Request) (ctrl.Result, error) {
-	var err error
-	ctx := context.Background()
-	log := r.Log.With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldController, "loggingtrait")
-
-	var trait *oamv1alpha1.LoggingTrait
-	if trait, err = r.fetchTrait(ctx, req.NamespacedName, log); err != nil || trait == nil {
-		return reconcile.Result{}, client.IgnoreNotFound(err)
-	}
-
+func (r *LoggingTraitReconciler) doReconcile(ctx context.Context, trait *oamv1alpha1.LoggingTrait, log vzlog.VerrazzanoLogger) (ctrl.Result, error) {
 	if trait.DeletionTimestamp.IsZero() {
 		result, supported, err := r.reconcileTraitCreateOrUpdate(ctx, log, trait)
 		if err != nil {
@@ -98,7 +117,7 @@ func (r *LoggingTraitReconciler) doReconcile(req ctrl.Request) (ctrl.Result, err
 }
 
 // reconcileTraitDelete reconciles a logging trait that is being deleted.
-func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log *zap.SugaredLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, error) {
+func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log vzlog.VerrazzanoLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, error) {
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)
 	if err != nil || workload == nil {
@@ -260,9 +279,7 @@ func (r *LoggingTraitReconciler) fetchTrait(ctx context.Context, name types.Name
 	return &trait, nil
 }
 
-func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(
-	ctx context.Context, log *zap.SugaredLogger, trait *oamv1alpha1.LoggingTrait) (
-	ctrl.Result, bool, error) {
+func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(ctx context.Context, log vzlog.VerrazzanoLogger, trait *oamv1alpha1.LoggingTrait) (ctrl.Result, bool, error) {
 
 	// Retrieve the workload the trait is related to
 	workload, err := vznav.FetchWorkloadFromTrait(ctx, r, log, trait)

@@ -41,7 +41,7 @@ import (
 )
 
 var testScheme = newScheme()
-var logger = vzlog.DefaultLogger().GetZapLogger()
+var logger = vzlog.DefaultLogger()
 
 // newScheme creates a new scheme that includes this package's object to use for testing
 func newScheme() *runtime.Scheme {
@@ -717,6 +717,29 @@ func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
 			asserts.Contains(ds.Spec.Template.ObjectMeta.Annotations, vzconst.VerrazzanoRestartAnnotation)
 			return nil
 		})
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	asserts := assert.New(t)
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	nc, err := newTestController(mock)
+	asserts.NoError(err)
+
+	// create a request and reconcile it
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem},
+	}
+	result, err := nc.Reconcile(req)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.Nil(err)
+	asserts.True(result.IsZero())
 }
 
 // Fake manager for unit testing

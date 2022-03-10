@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -19,14 +18,12 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
-	// ComponentName is the name of the component
-	ComponentName = "kiali-server"
-
 	kialiHostName    = "kiali.vmi.system"
 	kialiSystemName  = "vmi-system-kiali"
 	kialiServicePort = "20001"
@@ -35,12 +32,18 @@ const (
 )
 
 // isKialiReady checks if the Kiali deployment is ready
-func isKialiReady(ctx spi.ComponentContext, _ string, namespace string) bool {
-	deployments := []types.NamespacedName{
-		{Name: kialiSystemName, Namespace: namespace},
+func isKialiReady(ctx spi.ComponentContext) bool {
+	deployments := []status.PodReadyCheck{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      kialiSystemName,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app": kialiSystemName}.AsSelector(),
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides Build the set of Kiali overrides for the helm install
@@ -98,7 +101,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Spec.TLS = []v1.IngressTLS{
 			{
 				Hosts:      []string{kialiHostName},
-				SecretName: constants.VerrazzanoSystemTLSSecretName,
+				SecretName: "system-tls-kiali",
 			},
 		}
 		ingress.Spec.Rules = []v1.IngressRule{ingRule}
@@ -106,6 +109,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		if ingress.Annotations == nil {
 			ingress.Annotations = make(map[string]string)
 		}
+		ingress.Annotations["kubernetes.io/tls-acme"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/proxy-body-size"] = "6M"
 		ingress.Annotations["nginx.ingress.kubernetes.io/rewrite-target"] = "/$2"
 		ingress.Annotations["nginx.ingress.kubernetes.io/secure-backends"] = "false"

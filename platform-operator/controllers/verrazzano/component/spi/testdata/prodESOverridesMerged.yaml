@@ -18,6 +18,22 @@ spec:
   components:
     applicationOperator:
       enabled: true
+    authProxy:
+      enabled: true
+      kubernetes:
+        replicas: 2
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                          - verrazzano-authproxy
+                  topologyKey: kubernetes.io/hostname
     certManager:
       enabled: true
       certificate:
@@ -46,10 +62,12 @@ spec:
           value: "6"
         - name: nodes.data.requests.memory
           value: "32G"
+        - name: nodes.data.requests.storage
+          value: "50Gi"
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
-      elasticsearchSecret: verrazzano
+      elasticsearchSecret: verrazzano-es-internal
     grafana:
       enabled: true
     ingress:
@@ -57,6 +75,36 @@ spec:
       type: LoadBalancer
     istio:
       enabled: true
+      ingress:
+        kubernetes:
+          replicas: 2
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+      egress:
+        kubernetes:
+          replicas: 2
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
     kiali:
       enabled: true
     keycloak:
@@ -71,8 +119,5 @@ spec:
       enabled: true
     verrazzano:
       enabled: true
-      installArgs:
-        - name: api.replicas
-          value: "2"
     weblogicOperator:
       enabled: true

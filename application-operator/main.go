@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -67,7 +67,7 @@ func init() {
 	_ = wls.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = certapiv1alpha2.AddToScheme(scheme)
+	_ = certapiv1.AddToScheme(scheme)
 }
 
 const defaultScraperName = "verrazzano-system/vmi-system-prometheus-0"
@@ -243,10 +243,8 @@ func main() {
 			KubeClient:  kubeClient,
 			IstioClient: istioClientSet,
 			Defaulters: []webhooks.AppConfigDefaulter{
-				&webhooks.MetricsTraitDefaulter{},
-				&webhooks.NetPolicyDefaulter{
-					Client:          mgr.GetClient(),
-					NamespaceClient: kubeClient.CoreV1().Namespaces(),
+				&webhooks.MetricsTraitDefaulter{
+					Client: mgr.GetClient(),
 				},
 			},
 		}

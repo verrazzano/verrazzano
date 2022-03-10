@@ -7,6 +7,8 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"go.uber.org/zap"
@@ -36,7 +38,7 @@ func FetchTrait(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, 
 // The trait's workload reference is populated by the OAM runtime when the trait resource
 // is created.  This provides a way for the trait's controller to locate the workload resource
 // that was generated from the common applicationconfiguration resource.
-func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log *zap.SugaredLogger, trait oam.Trait) (*unstructured.Unstructured, error) {
+func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, trait oam.Trait) (*unstructured.Unstructured, error) {
 	var workload = &unstructured.Unstructured{}
 	workload.SetAPIVersion(trait.GetWorkloadReference().APIVersion)
 	workload.SetKind(trait.GetWorkloadReference().Kind)
@@ -50,22 +52,7 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log *zap.Sug
 		return nil, err
 	}
 
-	// Getting kind of helidon workload i.e. "VerrazzanoHelidonWorkload"
-	helidonWorkloadKind := reflect.TypeOf(vzapi.VerrazzanoHelidonWorkload{}).Name()
-
-	// This is required only if the workload wraps unstructured data
-	if IsVerrazzanoWorkloadKind(workload) && (helidonWorkloadKind != workload.GetKind()) {
-		// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
-		workload, err = FetchContainedWorkload(ctx, cli, workload)
-		if err != nil {
-			if !k8serrors.IsNotFound(err) {
-				log.Errorf("Failed to fetch contained workload %s: %v", workloadKey, err)
-			}
-			return nil, err
-		}
-	}
-
-	return workload, nil
+	return FetchWorkloadResource(ctx, cli, log, workload)
 }
 
 // IsWeblogicWorkloadKind returns true if the trait references a Verrazzano WebLogic workload kind
@@ -73,4 +60,25 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log *zap.Sug
 func IsWeblogicWorkloadKind(trait oam.Trait) bool {
 	kind := trait.GetWorkloadReference().Kind
 	return kind == "VerrazzanoWebLogicWorkload"
+}
+
+// FetchWorkloadResource fetches the underlying resource created by the workload.
+func FetchWorkloadResource(ctx context.Context, cli client.Reader, log vzlog.VerrazzanoLogger, workload *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	// Getting kind of helidon workload i.e. "VerrazzanoHelidonWorkload"
+	helidonWorkloadKind := reflect.TypeOf(vzapi.VerrazzanoHelidonWorkload{}).Name()
+	// If the workload does not wrap unstructured data
+	if !IsVerrazzanoWorkloadKind(workload) || (helidonWorkloadKind == workload.GetKind()) {
+		return workload, nil
+	}
+
+	// this is one of our wrapper workloads so we need to unwrap and pull out the real workload
+	resource, err := FetchContainedWorkload(ctx, cli, workload)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			log.Errorf("Failed to fetch contained workload %s: %v", client.ObjectKey{Name: workload.GetName(), Namespace: workload.GetNamespace()}, err)
+		}
+		return nil, err
+	}
+
+	return resource, nil
 }

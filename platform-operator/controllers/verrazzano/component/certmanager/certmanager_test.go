@@ -5,6 +5,8 @@ package certmanager
 
 import (
 	"context"
+	"testing"
+
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -15,18 +17,19 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
-	profileDir = "../../../../manifests/profiles"
+	profileDir    = "../../../../manifests/profiles"
+	testNamespace = "testNamespace"
 )
 
 // default CA object
 var ca = vzapi.CA{
 	SecretName:               "testSecret",
-	ClusterResourceNamespace: namespace,
+	ClusterResourceNamespace: testNamespace,
 }
 
 // Default Acme object
@@ -132,7 +135,7 @@ func TestIsCertManagerDisabled(t *testing.T) {
 // WHEN a VZ spec is passed with defaults
 // THEN the values created properly
 func TestAppendCertManagerOverrides(t *testing.T) {
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profileDir), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
 }
@@ -144,9 +147,10 @@ func TestAppendCertManagerOverrides(t *testing.T) {
 func TestAppendCertManagerOverridesWithInstallArgs(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
-	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, namespace, "", []bom.KeyValue{})
+	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
+	assert.Contains(t, kvs, bom.KeyValue{Key: clusterResourceNamespaceKey, Value: testNamespace})
 }
 
 // TestCertManagerPreInstall tests the PreInstall fn
@@ -173,30 +177,30 @@ func TestCertManagerPreInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestIsCertManagerReady tests the IsReady function
-// GIVEN a call to IsReady
+// TestIsCertManagerReady tests the isCertManagerReady function
+// GIVEN a call to isCertManagerReady
 // WHEN the deployment object has enough replicas available
 // THEN true is returned
 func TestIsCertManagerReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		newDeployment(certManagerDeploymentName, true),
-		newDeployment(cainjectorDeploymentName, true),
-		newDeployment(webhookDeploymentName, true),
+		newDeployment(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}, true),
+		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, true),
+		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, true),
 	)
-	assert.True(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
+	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
 
-// TestIsCertManagerNotReady tests the IsReady function
-// GIVEN a call to IsReady
+// TestIsCertManagerNotReady tests the isCertManagerReady function
+// GIVEN a call to isCertManagerReady
 // WHEN the deployment object does not have enough replicas available
 // THEN false is returned
 func TestIsCertManagerNotReady(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
-		newDeployment(certManagerDeploymentName, false),
-		newDeployment(cainjectorDeploymentName, false),
-		newDeployment(webhookDeploymentName, false),
+		newDeployment(certManagerDeploymentName, map[string]string{"app": certManagerDeploymentName}, false),
+		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, false),
+		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, false),
 	)
-	assert.False(t, fakeComponent.IsReady(spi.NewFakeContext(client, nil, false)))
+	assert.False(t, isCertManagerReady(spi.NewFakeContext(client, nil, false)))
 }
 
 // TestIsCANil tests the isCA function
@@ -259,6 +263,89 @@ func TestIsCABothPopulated(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestCreateCAResources tests the createCAResources function.
+func TestCreateCAResources(t *testing.T) {
+	// GIVEN that a secret with the cluster CA certificate does not exist
+	// WHEN a call is made to create the CA resources
+	// THEN the call succeeds and an Issuer, Certificate, and ClusterIssuer have been created
+	localvz := vz.DeepCopy()
+	localvz.Spec.Components.CertManager.Certificate.CA = ca
+
+	scheme := k8scheme.Scheme
+	certv1.AddToScheme(scheme)
+	client := fake.NewFakeClientWithScheme(scheme)
+
+	err := createCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	assert.NoError(t, err)
+
+	// validate that the Issuer, Certificate, and ClusterIssuer were created
+	exists, err := issuerExists(client, caSelfSignedIssuerName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	exists, err = certificateExists(client, caCertificateName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	exists, err = clusterIssuerExists(client, caClusterIssuerName)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+
+	// GIVEN that a secret with the cluster CA certificate exists
+	// WHEN a call is made to create the CA resources
+	// THEN the call succeeds and only a ClusterIssuer has been created
+	secret := v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      localvz.Spec.Components.CertManager.Certificate.CA.SecretName,
+			Namespace: localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace,
+		},
+	}
+	client = fake.NewFakeClientWithScheme(scheme, &secret)
+
+	err = createCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	assert.NoError(t, err)
+
+	// validate that only the ClusterIssuer was created
+	exists, err = issuerExists(client, caSelfSignedIssuerName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	exists, err = certificateExists(client, caCertificateName, localvz.Spec.Components.CertManager.Certificate.CA.ClusterResourceNamespace)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	exists, err = clusterIssuerExists(client, caClusterIssuerName)
+	assert.NoError(t, err)
+	assert.True(t, exists)
+}
+
+// issuerExists returns true if the Issuer with the name and namespace exists.
+func issuerExists(client clipkg.Client, name string, namespace string) (bool, error) {
+	issuer := certv1.Issuer{}
+	if err := client.Get(context.TODO(), clipkg.ObjectKey{Name: name, Namespace: namespace}, &issuer); err != nil {
+		return false, clipkg.IgnoreNotFound(err)
+	}
+	return true, nil
+}
+
+// clusterIssuerExists returns true if the ClusterIssuer with the name exists.
+func clusterIssuerExists(client clipkg.Client, name string) (bool, error) {
+	clusterIssuer := certv1.ClusterIssuer{}
+	if err := client.Get(context.TODO(), clipkg.ObjectKey{Name: name}, &clusterIssuer); err != nil {
+		return false, clipkg.IgnoreNotFound(err)
+	}
+	return true, nil
+}
+
+// certificateExists returns true if the Certificate with the name and namespace exists.
+func certificateExists(client clipkg.Client, name string, namespace string) (bool, error) {
+	cert := certv1.Certificate{}
+	if err := client.Get(context.TODO(), clipkg.ObjectKey{Name: name, Namespace: namespace}, &cert); err != nil {
+		return false, clipkg.IgnoreNotFound(err)
+	}
+	return true, nil
+}
+
 // TestPostInstallCA tests the PostInstall function
 // GIVEN a call to PostInstall
 //  WHEN the cert type is CA
@@ -292,7 +379,7 @@ func TestPostInstallAcme(t *testing.T) {
 	client.Create(context.TODO(), &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "ociDNSSecret",
-			Namespace: namespace,
+			Namespace: ComponentNamespace,
 		},
 	})
 	err := fakeComponent.PostInstall(spi.NewFakeContext(client, localvz, false))
@@ -305,26 +392,25 @@ func fakeBash(_ ...string) (string, string, error) {
 }
 
 // Create a new deployment object for testing
-func newDeployment(name string, ready bool) *appsv1.Deployment {
+func newDeployment(name string, labels map[string]string, updated bool) *appsv1.Deployment {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
+			Namespace: ComponentNamespace,
 			Name:      name,
+			Labels:    labels,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			Replicas:          1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
 		},
 	}
 
-	if !ready {
+	if !updated {
 		deployment.Status = appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			Replicas:          1,
+			AvailableReplicas: 1,
+			UpdatedReplicas:   0,
 		}
 	}
 	return deployment

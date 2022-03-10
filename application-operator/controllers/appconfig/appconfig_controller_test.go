@@ -6,14 +6,15 @@ package appconfig
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	certapiv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"go.uber.org/zap"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"testing"
-	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 
@@ -63,7 +64,7 @@ func newReconciler(c client.Client) Reconciler {
 func newRequest(namespace string, name string) ctrl.Request {
 	return ctrl.Request{
 		NamespacedName: types.NamespacedName{
-			Namespace: testNamespace,
+			Namespace: namespace,
 			Name:      name,
 		},
 	}
@@ -856,7 +857,7 @@ func TestDeleteCertAndSecretWhenAppConfigIsDeleted(t *testing.T) {
 	// Expect a call to delete the cert
 	cli.EXPECT().
 		Delete(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, cert *certapiv1alpha2.Certificate, opt *client.DeleteOptions) error {
+		DoAndReturn(func(ctx context.Context, cert *certapiv1.Certificate, opt *client.DeleteOptions) error {
 			assert.Equal(constants.IstioSystemNamespace, cert.Namespace)
 			assert.Equal(fmt.Sprintf("%s-%s-cert", testNamespace, testAppConfigName), cert.Name)
 			return nil
@@ -890,4 +891,22 @@ func TestDeleteCertAndSecretWhenAppConfigIsDeleted(t *testing.T) {
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
 	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, testAppConfigName)
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }

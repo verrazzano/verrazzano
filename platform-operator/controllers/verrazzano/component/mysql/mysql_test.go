@@ -7,16 +7,14 @@ import (
 	"os"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -255,7 +253,7 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vzconst.KeycloakNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
 			secret.Name = secretName
 			secret.Data = map[string][]byte{}
@@ -273,44 +271,43 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 	assert.NotEmpty(t, bom.FindKV(kvs, busyboxImageTagKey))
 }
 
-// TestIsMySQLReady tests the isReady function
-// GIVEN a call to isReady
+// TestIsMySQLReady tests the isMySQLReady function
+// GIVEN a call to isMySQLReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconst.KeycloakNamespace,
+			Namespace: ComponentNamespace,
 			Name:      ComponentName,
+			Labels:    map[string]string{"app": ComponentName},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
-	assert.True(t, isReady(spi.NewFakeContext(fakeClient, nil, false), ComponentName, vzconst.KeycloakNamespace))
+	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-// TestIsMySQLNotReady tests the isReady function
-// GIVEN a call to isReady
+// TestIsMySQLNotReady tests the isMySQLReady function
+// GIVEN a call to isMySQLReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsMySQLNotReady(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconst.KeycloakNamespace,
+			Namespace: ComponentNamespace,
 			Name:      ComponentName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	})
-	assert.False(t, isReady(spi.NewFakeContext(fakeClient, nil, false), "", vzconst.KeycloakNamespace))
+	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 // TestSQLFileCreatedAndRemoved tests the creation and deletion of the mysql db init file

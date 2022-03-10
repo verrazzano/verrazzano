@@ -145,7 +145,7 @@ type VerrazzanoStatus struct {
 	// The latest available observations of an object's current state.
 	Conditions []Condition `json:"conditions,omitempty"`
 	// State of the Verrazzano custom resource
-	State StateType `json:"state,omitempty"`
+	State VzStateType `json:"state,omitempty"`
 	// States of the individual installed components
 	Components ComponentStatusMap `json:"components,omitempty"`
 }
@@ -159,7 +159,7 @@ type ComponentStatusDetails struct {
 	// Information about the current state of a component
 	Conditions []Condition `json:"conditions,omitempty"`
 	// The version of Verrazzano that is installed
-	State StateType `json:"state,omitempty"`
+	State CompStateType `json:"state,omitempty"`
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
 }
@@ -168,35 +168,35 @@ type ComponentStatusDetails struct {
 type ConditionType string
 
 const (
-	// PreInstall means an install about to start.
-	PreInstall ConditionType = "PreInstall"
+	// CondPreInstall means an install about to start.
+	CondPreInstall ConditionType = "PreInstall"
 
-	// InstallStarted means an install is in progress.
-	InstallStarted ConditionType = "InstallStarted"
+	// CondInstallStarted means an install is in progress.
+	CondInstallStarted ConditionType = "InstallStarted"
 
-	// InstallComplete means the install job has completed its execution successfully
-	InstallComplete ConditionType = "InstallComplete"
+	// CondInstallComplete means the install job has completed its execution successfully
+	CondInstallComplete ConditionType = "InstallComplete"
 
-	// InstallFailed means the install job has failed during execution.
-	InstallFailed ConditionType = "InstallFailed"
+	// CondInstallFailed means the install job has failed during execution.
+	CondInstallFailed ConditionType = "InstallFailed"
 
-	// UninstallStarted means an uninstall is in progress.
-	UninstallStarted ConditionType = "UninstallStarted"
+	// CondUninstallStarted means an uninstall is in progress.
+	CondUninstallStarted ConditionType = "UninstallStarted"
 
-	// UninstallComplete means the uninstall job has completed its execution successfully
-	UninstallComplete ConditionType = "UninstallComplete"
+	// CondUninstallComplete means the uninstall job has completed its execution successfully
+	CondUninstallComplete ConditionType = "UninstallComplete"
 
-	// UninstallFailed means the uninstall job has failed during execution.
-	UninstallFailed ConditionType = "UninstallFailed"
+	// CondUninstallFailed means the uninstall job has failed during execution.
+	CondUninstallFailed ConditionType = "UninstallFailed"
 
-	// UpgradeStarted means that an upgrade has been started.
-	UpgradeStarted ConditionType = "UpgradeStarted"
+	// CondUpgradeStarted means that an upgrade has been started.
+	CondUpgradeStarted ConditionType = "UpgradeStarted"
 
-	// UpgradeFailed means the upgrade has failed during execution.
-	UpgradeFailed ConditionType = "UpgradeFailed"
+	// CondUpgradeFailed means the upgrade has failed during execution.
+	CondUpgradeFailed ConditionType = "UpgradeFailed"
 
-	// UpgradeComplete means the upgrade has completed successfully
-	UpgradeComplete ConditionType = "UpgradeComplete"
+	// CondUpgradeComplete means the upgrade has completed successfully
+	CondUpgradeComplete ConditionType = "UpgradeComplete"
 )
 
 // Condition describes current state of an install.
@@ -213,39 +213,53 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
-// StateType identifies the state of an install/uninstall/upgrade
-type StateType string
+// type VzStateType string identifies the state of a Verrazzano installation
+type VzStateType string
 
 const (
-	// Disabled is the state for when a component is not currently installed
-	Disabled StateType = "Disabled"
+	// VzStateInstalling is the state when an install is in progress
+	VzStateInstalling VzStateType = "Installing"
 
-	// PreInstalling is the state when an install is about to be started
-	PreInstalling StateType = "PreInstalling"
+	// VzStateUninstalling is the state when an uninstall is in progress
+	VzStateUninstalling VzStateType = "Uninstalling"
 
-	// Installing is the state when an install is in progress
-	Installing StateType = "Installing"
+	// VzStateUpgrading is the state when an upgrade is in progress
+	VzStateUpgrading VzStateType = "Upgrading"
 
-	// Uninstalling is the state when an uninstall is in progress
-	Uninstalling StateType = "Uninstalling"
+	// VzStateReady is the state when a Verrazzano resource can perform an uninstall or upgrade
+	VzStateReady VzStateType = "Ready"
 
-	// Upgrading is the state when an upgrade is in progress
-	Upgrading StateType = "Upgrading"
+	// VzStateFailed is the state when an install/uninstall/upgrade has failed
+	VzStateFailed VzStateType = "Failed"
+)
 
-	// Updating is the state when a component configuration update is being applied
-	Updating StateType = "Updating"
+// CompStateType identifies the state of a component
+type CompStateType string
 
-	// Error is the state when a Verrazzano resource has experienced an error that may leave it in an unstable state
-	Error StateType = "Error"
+const (
+	// CompStateDisabled is the state for when a component is not currently installed
+	CompStateDisabled CompStateType = "Disabled"
 
-	// Ready is the state when a Verrazzano resource can perform an uninstall or upgrade
-	Ready StateType = "Ready"
+	// CompStatePreInstalling is the state when an install is about to be started
+	CompStatePreInstalling CompStateType = "PreInstalling"
 
-	// Quiescing state when waiting for stable condition to start uninstall
-	Quiescing StateType = "Quiescing"
+	// CompStateInstalling is the state when an install is in progress
+	CompStateInstalling CompStateType = "Installing"
 
-	// Failed is the state when an install/uninstall/upgrade has failed
-	Failed StateType = "Failed"
+	// CompStateUninstalling is the state when an uninstall is in progress
+	CompStateUninstalling CompStateType = "Uninstalling"
+
+	// CompStateUpgrading is the state when an upgrade is in progress
+	CompStateUpgrading CompStateType = "Upgrading"
+
+	// CompStateError is the state when a Verrazzano resource has experienced an error that may leave it in an unstable state
+	CompStateError CompStateType = "Error"
+
+	// CompStateReady is the state when a Verrazzano resource can perform an uninstall or upgrade
+	CompStateReady CompStateType = "Ready"
+
+	// CompStateFailed is the state when an install/uninstall/upgrade has failed
+	CompStateFailed CompStateType = "Failed"
 )
 
 // ComponentSpec contains a set of components used by Verrazzano
@@ -257,6 +271,10 @@ type ComponentSpec struct {
 	// CoherenceOperator configuration
 	// +optional
 	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
+
+	// Alertmanager configuration
+	// +optional
+	Alertmanager *AlertmanagerComponent `json:"alertmanager,omitempty"`
 
 	// ApplicationOperator configuration
 	// +optional
@@ -376,6 +394,21 @@ type CoherenceOperatorComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// AlertmanagerComponent specifies the Alertmanager configuration
+type AlertmanagerComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// Location of the Alertmanager ConfigMap
+	// +optional
+	AlertmanagerConfigMap *NamespaceName `json:"alertmanagerConfigMap,omitempty"`
+	// Location of the Prometheus rule ConfigMap
+	// +optional
+	RuleConfigMap *NamespaceName `json:"ruleConfigMap,omitempty"`
+	// Location of the Alertmanager receiver template ConfigMap
+	// +optional
+	ReceiverTemplateConfigMap *NamespaceName `json:"receiverTemplateConfigMap,omitempty"`
+}
+
 // ApplicationOperatorComponent specifies the Application Operator configuration
 type ApplicationOperatorComponent struct {
 	// +optional
@@ -454,6 +487,16 @@ type IngressNginxComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 }
 
+// IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
+type IstioIngressSection struct {
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+}
+
+// IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
+type IstioEgressSection struct {
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+}
+
 // IstioKubernetesSection specifies the Kubernetes resources that can be customized for Istio.
 type IstioKubernetesSection struct {
 	CommonKubernetesSpec `json:",inline"`
@@ -469,7 +512,9 @@ type IstioComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// +optional
-	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+	Ingress *IstioIngressSection `json:"ingress,omitempty"`
+	// +optional
+	Egress *IstioEgressSection `json:"egress,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
@@ -546,6 +591,14 @@ type InstallArgs struct {
 	// +optional
 	// +patchStrategy=replace
 	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
+}
+
+// NamespaceName Identifies a Namespace and Name pair for a resource
+type NamespaceName struct {
+	// Namespace of a resource
+	Namespace string `json:"namespace"`
+	// Name of a resource
+	Name string `json:"name"`
 }
 
 // VolumeMount defines a hostPath type Volume mount

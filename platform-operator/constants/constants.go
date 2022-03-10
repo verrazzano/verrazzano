@@ -98,7 +98,7 @@ const RancherIngress = "rancher"
 // KialiIngress is the name of the ingress for Kiali
 const KialiIngress = "vmi-system-kiali"
 
-//  KeycloakNamespace is the keycloak namespace name
+// KeycloakNamespace is the keycloak namespace name
 const KeycloakNamespace = "keycloak"
 
 // KeycloakIngress - the name of the ingress for Keycloak console and api
@@ -110,17 +110,17 @@ const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
 // VerrazzanoAuthProxyServicePort is the port exposed by the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServicePort = 8775
 
-// VerrazzanoSystemTLSSecretName is the name of the system TLS secret
-const VerrazzanoSystemTLSSecretName = "system-tls"
-
-// The default name for install environment
+// DefaultEnvironmentName is the default name for install environment
 const DefaultEnvironmentName = "default"
 
-// Verrazzano version string for 1.0.0
+// VerrazzanoVersion1_0_0 is the Verrazzano version string for 1.0.0
 const VerrazzanoVersion1_0_0 = "1.0.0"
 
-// Verrazzano version string for 1.1.0
+// VerrazzanoVersion1_1_0 is the Verrazzano version string for 1.1.0
 const VerrazzanoVersion1_1_0 = "1.1.0"
+
+// VerrazzanoVersion1_3_0 is the Verrazzano version string for 1.2.0
+const VerrazzanoVersion1_3_0 = "1.3.0"
 
 // UpgradeRetryVersion is the restart version annotation field
 const UpgradeRetryVersion = "verrazzano.io/upgrade-retry-version"

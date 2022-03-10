@@ -5,16 +5,14 @@ package nginx
 import (
 	"testing"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -131,28 +129,28 @@ func TestIsNGINXReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
 			Name:      ControllerName,
+			Labels:    map[string]string{"app.kubernetes.io/component": "controller"},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      backendName,
+				Labels:    map[string]string{"app.kubernetes.io/component": "default-backend"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
-	assert.True(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), ComponentName, ComponentNamespace))
+	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
@@ -166,10 +164,9 @@ func TestIsNGINXNotReady(t *testing.T) {
 			Name:      ControllerName,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	},
 		&appsv1.Deployment{
@@ -178,14 +175,13 @@ func TestIsNGINXNotReady(t *testing.T) {
 				Name:      backendName,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       0,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 1,
+				AvailableReplicas: 0,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
-	assert.False(t, IsReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 // TestPostInstallWithPorts tests the PostInstall function

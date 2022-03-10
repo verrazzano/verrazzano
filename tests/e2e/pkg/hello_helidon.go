@@ -5,7 +5,7 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -16,14 +16,15 @@ const (
 	helidonPollingInterval = 10 * time.Second
 	helidonWaitTimeout     = 5 * time.Minute
 
-	helidonComponentYaml = "../testdata/hello-helidon-comp.template"
-	helidonAppYaml       = "../testdata/hello-helidon-app.template"
+	helidonComponentYaml = "../../../examples/hello-helidon/hello-helidon-comp.yaml"
+	helidonAppYaml       = "../../../examples/hello-helidon/hello-helidon-app.yaml"
 )
+
+var expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}
 
 // DeployHelloHelidonApplication deploys the Hello Helidon example application. It accepts an optional
 // OCI Log ID that is added as an annotation on the namespace to test the OCI Logging service integration.
-func DeployHelloHelidonApplication(yamlApplier *k8sutil.YAMLApplier, namespace string, ociLogID string) {
-	values := map[string]interface{}{"Namespace": namespace}
+func DeployHelloHelidonApplication(namespace string, ociLogID string) {
 	Log(Info, "Deploy Hello Helidon Application")
 	Log(Info, fmt.Sprintf("Create namespace %s", namespace))
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -42,33 +43,49 @@ func DeployHelloHelidonApplication(yamlApplier *k8sutil.YAMLApplier, namespace s
 
 	Log(Info, "Create Hello Helidon component resource")
 	gomega.Eventually(func() error {
-		return yamlApplier.ApplyFTDefaultConfig(helidonComponentYaml, values)
+		return CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
 
 	Log(Info, "Create Hello Helidon application resource")
 	gomega.Eventually(func() error {
-		return yamlApplier.ApplyFTDefaultConfig(helidonAppYaml, values)
+		return CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 }
 
 // UndeployHelloHelidonApplication undeploys the Hello Helidon example application.
-func UndeployHelloHelidonApplication(yamlApplier *k8sutil.YAMLApplier, namespace string) {
-	values := map[string]interface{}{"Namespace": namespace}
+func UndeployHelloHelidonApplication(namespace string) {
 	Log(Info, "Undeploy Hello Helidon Application")
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Hello Helidon application")
 		gomega.Eventually(func() error {
-			return yamlApplier.DeleteFTDefaultConfig(helidonAppYaml, values)
+			return DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 
 		Log(Info, "Delete Hello Helidon components")
 		gomega.Eventually(func() error {
-			return yamlApplier.DeleteFTDefaultConfig(helidonComponentYaml, values)
+			return DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
+
+		Log(Info, "Wait for application pods to terminate")
+		gomega.Eventually(func() bool {
+			podsTerminated, _ := PodsNotRunning(namespace, expectedPodsHelloHelidon)
+			return podsTerminated
+		}, helidonWaitTimeout, helidonPollingInterval).Should(gomega.BeTrue())
 
 		Log(Info, fmt.Sprintf("Delete namespace %s", namespace))
 		gomega.Eventually(func() error {
 			return DeleteNamespace(namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), fmt.Sprintf("Failed to deleted namespace %s", namespace))
+
+		Log(Info, "Wait for namespace finalizer to be removed")
+		gomega.Eventually(func() bool {
+			return CheckNamespaceFinalizerRemoved(namespace)
+		}, helidonWaitTimeout, helidonPollingInterval).Should(gomega.BeTrue())
+
+		Log(Info, "Wait for namespace to be deleted")
+		gomega.Eventually(func() bool {
+			_, err := GetNamespace(namespace)
+			return err != nil && errors.IsNotFound(err)
+		}, helidonWaitTimeout, helidonPollingInterval).Should(gomega.BeTrue())
 	}
 }

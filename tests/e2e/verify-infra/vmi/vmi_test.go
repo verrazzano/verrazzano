@@ -93,7 +93,7 @@ var (
 var _ = t.BeforeSuite(func() {
 	var err error
 
-	httpClient, err = pkg.GetSystemVmiHTTPClient()
+	httpClient, err = pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
@@ -154,7 +154,11 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 	} else {
 		t.It("Elasticsearch endpoint should be accessible", Label("f:mesh.ingress"), func() {
 			elasticPodsRunning := func() bool {
-				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
+				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-es-master", verrazzanoNamespace, err))
+				}
+				return result
 			}
 			Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
 			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
@@ -213,7 +217,11 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.logging.kibana"), func() {
 			kibanaPodsRunning := func() bool {
-				return pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-kibana", verrazzanoNamespace, err))
+				}
+				return result
 			}
 			Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "kibana pods did not all show up")
 			Expect(ingressURLs).To(HaveKey("vmi-system-kibana"), "Ingress vmi-system-kibana not found")
@@ -318,7 +326,7 @@ func assertOidcIngressByName(key string) {
 }
 
 func assertOidcIngress(url string) {
-	unauthHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+	unauthHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 	Expect(err).ToNot(HaveOccurred())
 	pkg.Concurrently(
 		func() {
@@ -369,7 +377,7 @@ func assertDashboard(url string) {
 	fmt.Println("Grafana URL in browseGrafanaDashboard ", searchURL)
 
 	searchDashboard := func() bool {
-		vmiHTTPClient, err := pkg.GetSystemVmiHTTPClient()
+		vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
 			return false

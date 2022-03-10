@@ -4,11 +4,18 @@
 package statefulsetworkload
 
 import (
+	"flag"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 )
+
+var namespace string
+
+func init() {
+	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
+}
 
 // TestHelidonStatefulSetWorkload tests a helidon statefulset workload for Prometheus metric scraping
 func TestHelidonStatefulSetWorkload(t *testing.T) {

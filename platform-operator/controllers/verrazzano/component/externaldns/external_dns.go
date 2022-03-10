@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -23,13 +23,10 @@ import (
 
 // ComponentName is the name of the component
 const (
-	ComponentName             = "external-dns"
-	externalDNSNamespace      = "cert-manager"
-	externalDNSDeploymentName = "external-dns"
-	ociSecretFileName         = "oci.yaml"
-	dnsGlobal                 = "GLOBAL" //default
-	dnsPrivate                = "PRIVATE"
-	imagePullSecretHelmKey    = "global.imagePullSecrets[0]"
+	ociSecretFileName      = "oci.yaml"
+	dnsGlobal              = "GLOBAL" //default
+	dnsPrivate             = "PRIVATE"
+	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -39,8 +36,8 @@ func preInstall(compContext spi.ComponentContext) error {
 		return nil
 	}
 
-	compContext.Log().Debug("Creating namespace %s namespace if necessary", externalDNSNamespace)
-	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: externalDNSNamespace}}
+	compContext.Log().Debug("Creating namespace %s namespace if necessary", ComponentNamespace)
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
 	}); err != nil {
@@ -63,7 +60,7 @@ func preInstall(compContext spi.ComponentContext) error {
 	// Attach compartment field to secret and apply it in the external DNS namespace
 	externalDNSSecret := v1.Secret{}
 	compContext.Log().Debug("Creating the external DNS secret")
-	externalDNSSecret.Namespace = externalDNSNamespace
+	externalDNSSecret.Namespace = ComponentNamespace
 	externalDNSSecret.Name = dnsSecret.Name
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &externalDNSSecret, func() error {
 		externalDNSSecret.Data = make(map[string][]byte)
@@ -85,12 +82,18 @@ func preInstall(compContext spi.ComponentContext) error {
 	return nil
 }
 
-func isReady(compContext spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: externalDNSDeploymentName, Namespace: externalDNSNamespace},
+func isExternalDNSReady(compContext spi.ComponentContext) bool {
+	deployments := []status.PodReadyCheck{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app.kubernetes.io/instance": "external-dns"}.AsSelector(),
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
-	return status.DeploymentsReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install

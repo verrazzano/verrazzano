@@ -56,8 +56,8 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	assert.Equalf(expectedIstioProxyImage, kvs[2].Value, "Did not get expected istioProxyImage Value")
 }
 
-// TestIsApplicationOperatorReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
+// TestIsApplicationOperatorReady tests the isApplicationOperatorReady function
+// GIVEN a call to isApplicationOperatorReady
 //  WHEN the deployment object has enough replicas available
 //  THEN true is returned
 func TestIsApplicationOperatorReady(t *testing.T) {
@@ -66,19 +66,19 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      "verrazzano-application-operator",
+			Labels:    map[string]string{"app": ComponentName},
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
-	assert.True(t, IsApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-// TestIsApplicationOperatorNotReady tests the IsApplicationOperatorReady function
-// GIVEN a call to IsApplicationOperatorReady
+// TestIsApplicationOperatorNotReady tests the isApplicationOperatorReady function
+// GIVEN a call to isApplicationOperatorReady
 //  WHEN the deployment object does NOT have enough replicas available
 //  THEN false is returned
 func TestIsApplicationOperatorNotReady(t *testing.T) {
@@ -89,13 +89,12 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			Name:      "verrazzano-application-operator",
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	})
-	assert.False(t, IsApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false), "", constants.VerrazzanoSystemNamespace))
+	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
 //  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function

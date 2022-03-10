@@ -12,22 +12,20 @@ import (
 	"strings"
 	"time"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-
-	"github.com/verrazzano/verrazzano/pkg/istio"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,6 +35,12 @@ const ComponentName = "istio"
 
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
+
+// IstioInressgatewayDeployment is the name of the istio ingressgateway deployment
+const IstioInressgatewayDeployment = "istio-ingressgateway"
+
+// IstioEressgatewayDeployment is the name of the istio egressgateway deployment
+const IstioEressgatewayDeployment = "istio-egressgateway"
 
 const istioGlobalHubKey = "global.hub"
 
@@ -130,7 +134,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	vz := context.EffectiveCR()
 	defer os.Remove(tmpFile.Name())
 	if vz.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio, vz.Spec.Profile)
+		istioOperatorYaml, err := BuildIstioOperatorYaml(vz.Spec.Components.Istio)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
@@ -161,11 +165,31 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: IstiodDeployment, Namespace: IstioNamespace},
+	deployments := []status.PodReadyCheck{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      IstiodDeployment,
+				Namespace: IstioNamespace,
+			},
+			LabelSelector: labels.Set{"app": IstiodDeployment}.AsSelector(),
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      IstioInressgatewayDeployment,
+				Namespace: IstioNamespace,
+			},
+			LabelSelector: labels.Set{"app": IstioInressgatewayDeployment}.AsSelector(),
+		},
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      IstioEressgatewayDeployment,
+				Namespace: IstioNamespace,
+			},
+			LabelSelector: labels.Set{"app": IstioEressgatewayDeployment}.AsSelector(),
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // GetDependencies returns the dependencies of this component
@@ -385,15 +409,6 @@ func AppendIstioOverrides(_ spi.ComponentContext, releaseName string, _ string, 
 	}
 
 	return kvs, nil
-}
-
-// IstiodReadyCheck Determines if istiod is up and has a minimum number of available replicas
-func IstiodReadyCheck(ctx spi.ComponentContext, _ string, namespace string) bool {
-	deployments := []types.NamespacedName{
-		{Name: "istiod", Namespace: namespace},
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string, additionalValues ...bom.KeyValue) (string, error) {

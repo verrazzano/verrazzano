@@ -45,7 +45,7 @@ type LabelerPodWebhook struct {
 
 // Handle is the handler for the mutating webhook
 func (a *LabelerPodWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceNamespace, req.Name, vzlog.FieldWebhook, "metrics-binding-labeler-pod")
+	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "metrics-binding-labeler-pod")
 	log.Debug("metrics-binding-labeler-pod webhook called")
 	return a.handlePodResource(req, log)
 }
