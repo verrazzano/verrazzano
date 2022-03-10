@@ -358,7 +358,7 @@ def runGinkgoNoParallel() {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} \
-                   istio/authz/... metrics.deploymetrics/...
+                   istio/authz/... metrics/deploymetrics/...
         """
     }
 }
