@@ -59,6 +59,12 @@ pipeline {
         ssh_public_key_path = "${WORKSPACE}/.ssh/id_rsa.pub"
         ssh_private_key_path = "${WORKSPACE}/.ssh/id_rsa"
 
+        // Used for dumping cluster from inside tests
+        DUMP_KUBECONFIG="${KUBECONFIG}"
+        DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-dumps"
+
+
         //used to emit metrics
         SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -268,21 +274,33 @@ pipeline {
         stage('Run Acceptance Tests') {
             parallel {
                 stage('verify-infra tests') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra"
+                    }
                     steps {
                         runGinkgoRandomize()
                     }
                 }
                 stage('Run examples, logging and metrics tests') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples"
+                    }
                     steps {
                         runGinkgo()
                     }
                 }
                 stage('Run non parallel tests') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nonparallel-tests"
+                    }
                     steps {
                         runGinkgoNoParallel()
                     }
                 }
 		        stage('examples socks') {
+                    environment {
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/socks"
+                    }
                     steps {
                         runSocksVariant('helidon')
                         runSocksVariant('micronaut')
