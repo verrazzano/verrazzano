@@ -38,12 +38,13 @@ const (
 
 var t = framework.NewTestFramework("rbac")
 
-var _ = t.BeforeSuite(func() {
+var _, _ = t.SynchronizedBeforeSuite(func() []byte {
 	pkg.Log(pkg.Info, "Create namespace")
 	Eventually(func() (*corev1.Namespace, error) {
 		return pkg.CreateNamespace(rbacTestNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-})
+	return []byte{}
+}, func(x []byte) {})
 
 var failed = false
 var _ = t.AfterEach(func() {
