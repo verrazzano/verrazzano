@@ -5,7 +5,6 @@ package web_test
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
@@ -45,7 +44,9 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 				}
 				req, err := retryablehttp.NewRequest("GET", esURL+"/invalid-url", nil)
 				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
 					return "", err
+
 				}
 				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
 				if err != nil {
@@ -77,6 +78,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 				}
 				req, err := retryablehttp.NewRequest("GET", esURL, nil)
 				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
 					return "", err
 				}
 				req.SetBasicAuth(pkg.Username, "fake-password")
@@ -105,6 +107,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 				badHost := strings.Replace(vzURL, "verrazzano", "badhost", 1)
 				req, err := retryablehttp.NewRequest("GET", badHost, nil)
 				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
 					return "", err
 				}
 				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
@@ -126,13 +129,11 @@ func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
 		return "", err
 	}
-	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec //#gosec G402
-	c, err := elastic.GetVmiHTTPClient(kubeConfigPath)
+	c, err := pkg.GetVerrazzanoHTTPClient(kubeConfigPath)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
 		return "", err
 	}
-	c.HTTPClient.Transport = transport
 	c.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp.StatusCode == expectedStatus {
 			return false, nil
