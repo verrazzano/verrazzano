@@ -219,7 +219,8 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 	// registry/repository/image.tag
 	var kvs []KeyValue
 	for _, imageBom := range sc.Images {
-		fullImageBldr := strings.Builder{}
+		partialImageNameBldr := strings.Builder{}
+		fullImageNameBldr := strings.Builder{}
 		registry := b.ResolveRegistry(sc, imageBom)
 		repo := b.ResolveRepo(sc, imageBom)
 
@@ -232,9 +233,11 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 				Value: registry,
 			})
 		} else {
-			fullImageBldr.WriteString(registry)
-			fullImageBldr.WriteString(slash)
+			partialImageNameBldr.WriteString(registry)
+			partialImageNameBldr.WriteString(slash)
 		}
+		fullImageNameBldr.WriteString(registry)
+		fullImageNameBldr.WriteString(slash)
 
 		// Either write the repo name Key Value, or append it to the full image path
 		if imageBom.HelmRepoKey != "" {
@@ -243,9 +246,11 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 				Value: repo,
 			})
 		} else {
-			fullImageBldr.WriteString(repo)
-			fullImageBldr.WriteString(slash)
+			partialImageNameBldr.WriteString(repo)
+			partialImageNameBldr.WriteString(slash)
 		}
+		fullImageNameBldr.WriteString(repo)
+		fullImageNameBldr.WriteString(slash)
 
 		// If the Registry/Repo key is defined then set it
 		if imageBom.HelmRegistryAndRepoKey != "" {
@@ -262,8 +267,9 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 				Value: imageBom.ImageName,
 			})
 		} else {
-			fullImageBldr.WriteString(imageBom.ImageName)
+			partialImageNameBldr.WriteString(imageBom.ImageName)
 		}
+		fullImageNameBldr.WriteString(imageBom.ImageName)
 
 		// Either write the tag name Key Value, or append it to the full image path
 		if imageBom.HelmTagKey != "" {
@@ -272,27 +278,28 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 				Value: imageBom.ImageTag,
 			})
 		} else {
-			fullImageBldr.WriteString(tagSep)
-			fullImageBldr.WriteString(imageBom.ImageTag)
+			partialImageNameBldr.WriteString(tagSep)
+			partialImageNameBldr.WriteString(imageBom.ImageTag)
 		}
 
-		fullImagePath := fullImageBldr.String()
-		fullImageNames = append(fullImageNames, fullImagePath)
+		// This partial image path may be a subset of the full image name or the entire image path
+		partialImagePath := partialImageNameBldr.String()
 
-		// If the image path Key is present the create the kv with the full image path
+		// If the image path Key is present the create the kv with the partial image path
 		if imageBom.HelmFullImageKey != "" {
 			kvs = append(kvs, KeyValue{
 				Key:   imageBom.HelmFullImageKey,
-				Value: fullImagePath,
+				Value: partialImagePath,
 			})
 		}
 		// Default the image Key if there are no specified tags.  Keycloak theme needs this
 		if len(kvs) == 0 {
 			kvs = append(kvs, KeyValue{
 				Key:   defaultImageKey,
-				Value: fullImagePath,
+				Value: partialImagePath,
 			})
 		}
+		fullImageNames = append(fullImageNames, fullImageNameBldr.String())
 	}
 	return kvs, fullImageNames, nil
 }
