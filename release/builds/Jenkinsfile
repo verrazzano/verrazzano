@@ -249,6 +249,9 @@ pipeline {
             }
             steps {
                 script {
+                    // NOTE - this copy operation is asynchronous. The assumption here is that it will complete
+                    // by the time the images are pushed to OCR (next build stage), and the release stage2, which uses
+                    // these objects, is run.
                     sh """
                         oci --region us-phoenix-1 os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
