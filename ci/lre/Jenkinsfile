@@ -339,7 +339,7 @@ def runGinkgoNoParallel() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -p --keep-going --no-color \
+            ginkgo -v --keep-going --no-color \
                    security/rbac/... istio/authz/... metrics.deploymetrics/...
         """
     }
