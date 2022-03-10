@@ -267,6 +267,11 @@ pipeline {
 
         stage('Run Acceptance Tests') {
             parallel {
+                stage('verify-infra tests') {
+                    steps {
+                        runGinkgoRandomize()
+                    }
+                }
                 stage('Run examples, logging and metrics tests') {
                     steps {
                         runGinkgo()
@@ -308,7 +313,7 @@ def runGinkgoRandomize(list) {
             stage(list[i]) {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${list[i]}/...
+                    ginkgo -p --randomize-all -v --keep-going --no-color verify-infra/...
                 """
             }
         }
@@ -319,7 +324,7 @@ def runGinkgo() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color verify-infra/restapi/... verify-infra/vmi/... \
+            ginkgo -v --keep-going --no-color \
                    security/rbac/... logging/system/... logging/helidon/... \
                    examples/helidon/... examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... metrics/deploymetrics/... \
