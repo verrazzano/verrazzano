@@ -162,6 +162,8 @@ type ComponentStatusDetails struct {
 	State CompStateType `json:"state,omitempty"`
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
+	// The generation of the last VZ resource the Component was reconciled against
+	LastReconciledGeneration int64 `json:"lastReconciledGeneration,omitempty"`
 }
 
 // ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with kubectl wait

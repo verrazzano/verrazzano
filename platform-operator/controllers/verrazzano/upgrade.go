@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/selection"
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -126,6 +127,14 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
 			log.Once(msg)
 			cr.Status.Version = targetVersion
+			for _, comp := range registry.GetComponents() {
+				compName := comp.Name()
+				componentStatus := cr.Status.Components[compName]
+				if componentStatus != nil {
+					log.Oncef("Component %s has been upgraded from generation %v to %v %v", compName, componentStatus.LastReconciledGeneration, cr.Generation, componentStatus.State)
+					componentStatus.LastReconciledGeneration = cr.Generation
+				}
+			}
 			if err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 				return newRequeueWithDelay(), err
 			}
