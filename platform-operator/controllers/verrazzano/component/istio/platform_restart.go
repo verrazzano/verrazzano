@@ -1,3 +1,6 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package istio
 
 import (
@@ -8,8 +11,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -26,14 +27,18 @@ import (
 // in all of the Istio injected system namespaces
 func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
 	// Get the latest Istio proxy image name from the bom
-	proxyImage, err := getIstioProxyImageFromBom()
+	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
 		return log.ErrorfNewErr("Restart components cannot find Istio proxy image in BOM: %v", err)
 	}
-
+	// Get the go client so we can bypass the cache and get directly from etcd
 	goClient, err := k8sutil.GetGoClient(log)
+	if err != nil {
+		return err
+	}
 
 	// Restart all the deployments in the injected system namespaces
+	log.Oncef("Restarting system Deployments that have an old Istio sidecar so that the pods get the new Isio sidecar")
 	var deploymentList appsv1.DeploymentList
 	err = client.List(context.TODO(), &deploymentList)
 	if err != nil {
@@ -42,21 +47,33 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	for index := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
 
-		// Check if deployment is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, deployment.Namespace) {
-			if deployment.Spec.Paused {
-				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
-			}
-			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), deployment); err != nil {
-				return err
-			}
+		// Ignore deployment if it is NOT in an Istio injected system namespace
+		if !vzString.SliceContainsString(namespaces, deployment.Namespace) {
+			continue
 		}
+		// Get the pods for this deployment
+		podList, err := getMatchingPods(log, goClient, deployment.Namespace, deployment.Spec.Selector)
+		if err != nil {
+			return err
+		}
+		// Check if any pods contain the old Istio proxy image
+		if !doesPodContainOldIstioSidecar(podList, istioProxyImage) {
+			continue
+		}
+		// Annotate the deployment to do a restart of the pods
+		if deployment.Spec.Paused {
+			return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
+		}
+		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		if err := client.Update(context.TODO(), deployment); err != nil {
+			return log.ErrorfNewErr("Failed, error updating deployment %s annotation to restart pods to get new Istio sidecar", deployment.Name)
+		}
+		log.Infof("Updated deployment %s annotation to restart pods to get new Istio sidecar", deployment.Name)
 	}
-	log.Info("Restarted system Deployments in istio injected namespaces")
+	log.Oncef("Finished restarting system Deployments in istio injected namespaces to pick up new Isio sidecar")
 
 	// Restart all the StatefulSet in the injected system namespaces
 	statefulSetList := appsv1.StatefulSetList{}
@@ -104,22 +121,6 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	return nil
 }
 
-// doesPodContainOldIstioSidecar returns true if any pods contain an old Istio proxy sidecar
-func doesPodContainOldIstioSidecar(pods v1.PodList, istioProxyImageName string) bool {
-	for _, pod := range pods.Items {
-		for _, container := range pod.Spec.Containers {
-			if strings.Contains(container.Image, "proxyv2") {
-				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
-				// doesn't match the Istio proxy in the BOM
-				if 0 != strings.Compare(container.Image, istioProxyImageName) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 // Get the Istio proxy image from the Istiod subcomponent in the BOM
 func getIstioProxyImageFromBom() (string, error) {
 	// Create a Bom and get the Key Value overrides
@@ -136,11 +137,27 @@ func getIstioProxyImageFromBom() (string, error) {
 	return "", errors.New("Failed to find Istio proxy image in the BOM for Istiod")
 }
 
-func getMatchingPods(log vzlog.VerrazzanoLogger, clientSet *kubernetes.Clientset, ns string, selector labels.Selector) (*v1.PodList, error) {
-	selector := labels.NewSelector()
-	pods, err := clientSet.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
+// doesPodContainOldIstioSidecar returns true if any pods contain an old Istio proxy sidecar
+func doesPodContainOldIstioSidecar(podList *v1.PodList, istioProxyImageName string) bool {
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
+				// doesn't match the Istio proxy in the BOM
+				if 0 != strings.Compare(container.Image, istioProxyImageName) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// Get the matching pods in namespace given a selector
+func getMatchingPods(log vzlog.VerrazzanoLogger, client *kubernetes.Clientset, ns string, selector *metav1.LabelSelector) (*v1.PodList, error) {
+	podList, err := client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed listing pods by label selector: %v", err)
 	}
-	return pods, nil
+	return podList, nil
 }
