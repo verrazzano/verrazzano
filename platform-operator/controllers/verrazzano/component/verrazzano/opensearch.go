@@ -123,6 +123,7 @@ const applicationISMPayloadTemplate = `{
 }`
 
 const reindexPayload = `{
+  "conflicts": "proceed",
   "source": {
     "index": "{{ .SourceName }}",
     "query": {
@@ -141,6 +142,7 @@ const reindexPayload = `{
 }`
 
 const reindexPayloadWithoutQuery = `{
+  "conflicts": "proceed",
   "source": {
     "index": "{{ .SourceName }}"
   },
