@@ -5,8 +5,11 @@ package keycloak
 import (
 	"context"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -46,7 +49,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Key
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendKeycloakOverrides,
 			IngressNames: []types.NamespacedName{

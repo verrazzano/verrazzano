@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -42,7 +44,7 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     appendVerrazzanoOverrides,
 			ImagePullSecretKeyname:  vzImagePullSecretKeyName,
 			SupportsOperatorInstall: true,
-			Dependencies:            []string{istio.ComponentName, nginx.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 		},
 	}
 }

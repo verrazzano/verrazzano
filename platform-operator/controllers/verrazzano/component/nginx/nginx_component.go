@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -44,7 +43,7 @@ func NewComponent() spi.Component {
 			PreInstallFunc:          PreInstall,
 			AppendOverridesFunc:     AppendOverrides,
 			PostInstallFunc:         PostInstall,
-			Dependencies:            []string{istio.ComponentName},
+			Dependencies:            []string{},
 		},
 	}
 }
