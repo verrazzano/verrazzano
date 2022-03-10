@@ -24,7 +24,7 @@ const (
 	expected401    = "<html>\n<head><title>401 Unauthorized</title></head>\n<body>\n<center><h1>401 Unauthorized</h1></center>\n</body>\n</html>"
 )
 
-var _ = t.Describe("nginx error pages", Label("f:infra-lcm"), func() {
+var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
 	t.Context("test that an", func() {
 		t.ItMinimumVersion("Incorrect path returns a 404", minimumVersion, func() {
 			Eventually(func() (string, error) {
