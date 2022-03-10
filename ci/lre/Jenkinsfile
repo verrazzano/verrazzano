@@ -277,6 +277,11 @@ pipeline {
                         runGinkgo()
                     }
                 }
+                stage('Run non parallel tests') {
+                    steps {
+                        runGinkgoNoParallel()
+                    }
+                }
 		        stage('examples socks') {
                     steps {
                         runSocksVariant('helidon')
@@ -321,15 +326,24 @@ def runGinkgo() {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -p --keep-going --no-color \
-                   security/rbac/... logging/system/... logging/helidon/... \
+                   logging/system/... logging/helidon/... \
                    examples/helidon/... examples/helidonconfig/... examples/springboot/... \
-                   examples/todo/... examples/bobsbooks/... metrics/deploymetrics/... \
+                   examples/todo/... examples/bobsbooks/... \
                    loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
                    loggingtrait/coherenceworkload/... metricsbinding/...
         """
     }
 }
 
+def runGinkgoNoParallel() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v -p --keep-going --no-color \
+                   security/rbac/... istio/authz/... metrics.deploymetrics/...
+        """
+    }
+}
 def runSocksVariant(variant) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
