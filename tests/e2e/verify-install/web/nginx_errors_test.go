@@ -27,98 +27,104 @@ const (
 var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
 	t.Context("test that an", func() {
 		t.ItMinimumVersion("Incorrect path returns a 404", minimumVersion, func() {
-			Eventually(func() (string, error) {
-				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					return "", err
-				}
-				api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-					return "", err
-				}
-				esURL, err := api.GetElasticURL()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
-					return "", err
-				}
-				req, err := retryablehttp.NewRequest("GET", esURL+"/invalid-url", nil)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
-					return "", err
-				}
-				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Password: %v", err))
-					return "", err
-				}
-				req.SetBasicAuth(pkg.Username, password)
-				return checkNGINXErrorPage(req, 404)
-			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
-				"Expected response to include custom 404 error page")
+			if !pkg.IsManagedClusterProfile() {
+				Eventually(func() (string, error) {
+					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+						return "", err
+					}
+					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+						return "", err
+					}
+					esURL, err := api.GetElasticURL()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
+						return "", err
+					}
+					req, err := retryablehttp.NewRequest("GET", esURL+"/invalid-url", nil)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
+						return "", err
+					}
+					password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Password: %v", err))
+						return "", err
+					}
+					req.SetBasicAuth(pkg.Username, password)
+					return checkNGINXErrorPage(req, 404)
+				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
+					"Expected response to include custom 404 error page")
+			}
 		})
 
 		t.ItMinimumVersion("Incorrect password returns a 401", minimumVersion, func() {
-			Eventually(func() (string, error) {
-				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					return "", err
-				}
-				api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-					return "", err
-				}
-				esURL, err := api.GetElasticURL()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
-					return "", err
-				}
-				req, err := retryablehttp.NewRequest("GET", esURL, nil)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
-					return "", err
-				}
-				req.SetBasicAuth(pkg.Username, "fake-password")
-				return checkNGINXErrorPage(req, 401)
-			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected401)),
-				"Expected response to include custom 401 error page")
+			if !pkg.IsManagedClusterProfile() {
+				Eventually(func() (string, error) {
+					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+						return "", err
+					}
+					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+						return "", err
+					}
+					esURL, err := api.GetElasticURL()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Elasticsearch URL: %v", err))
+						return "", err
+					}
+					req, err := retryablehttp.NewRequest("GET", esURL, nil)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
+						return "", err
+					}
+					req.SetBasicAuth(pkg.Username, "fake-password")
+					return checkNGINXErrorPage(req, 401)
+				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected401)),
+					"Expected response to include custom 401 error page")
+			}
 		})
 
 		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, func() {
-			Eventually(func() (string, error) {
-				kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-					return "", err
-				}
-				api, err := pkg.GetAPIEndpoint(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
-					return "", err
-				}
-				vzURL, err := api.GetVerrazzanoIngressURL()
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Ingress URL: %v", err))
-					return "", err
-				}
-				badHost := strings.Replace(vzURL, "verrazzano", "badhost", 1)
-				req, err := retryablehttp.NewRequest("GET", badHost, nil)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
-					return "", err
-				}
-				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Password: %v", err))
-					return "", err
-				}
-				req.SetBasicAuth(pkg.Username, password)
-				return checkNGINXErrorPage(req, 404)
-			}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
-				"Expected response to include custom 404 error page")
+			if !pkg.IsManagedClusterProfile() {
+				Eventually(func() (string, error) {
+					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+						return "", err
+					}
+					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+						return "", err
+					}
+					vzURL, err := api.GetVerrazzanoIngressURL()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Ingress URL: %v", err))
+						return "", err
+					}
+					badHost := strings.Replace(vzURL, "verrazzano", "badhost", 1)
+					req, err := retryablehttp.NewRequest("GET", badHost, nil)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
+						return "", err
+					}
+					password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Password: %v", err))
+						return "", err
+					}
+					req.SetBasicAuth(pkg.Username, password)
+					return checkNGINXErrorPage(req, 404)
+				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
+					"Expected response to include custom 404 error page")
+			}
 		})
 	})
 })
