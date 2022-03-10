@@ -1131,7 +1131,8 @@ func TestIsKeycloakReady(t *testing.T) {
 					Name:      ComponentName,
 				},
 				Status: appsv1.StatefulSetStatus{
-					ReadyReplicas: 1,
+					ReadyReplicas:   1,
+					UpdatedReplicas: 1,
 				},
 			}),
 			true,
