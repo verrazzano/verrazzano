@@ -5,7 +5,6 @@ package rancher
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -57,16 +56,16 @@ func resetAdminPassword(c client.Client) (string, error) {
 	if err := c.List(context.TODO(), podList, namespaceMatcher, labelMatcher); err != nil {
 		return "", err
 	}
-	if len(podList.Items) < 1 {
-		return "", errors.New("Failed to reset Rancher admin secret, no Rancher pods found")
+	pod := selectFirstReadyPod(podList.Items)
+	if pod == nil {
+		return "", fmt.Errorf("Failed to reset Rancher admin secret, no running Rancher pods found")
 	}
-	pod := podList.Items[0]
-	// Ensure the default rancer admin user is present
-	_, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{ensureAdminCommand})
+	// Ensure the default Rancher admin user is present
+	_, stderr, err := k8sutil.ExecPod(cli, cfg, pod, common.RancherName, []string{ensureAdminCommand})
 	if err != nil {
 		return "", fmt.Errorf("Failed execing into Rancher pod %s: %v", stderr, err)
 	}
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, &pod, common.RancherName, []string{resetPasswordCommand})
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, pod, common.RancherName, []string{resetPasswordCommand})
 	if err != nil {
 		return "", err
 	}
@@ -76,6 +75,27 @@ func resetAdminPassword(c client.Client) (string, error) {
 		return "", fmt.Errorf("Failed to reset Rancher admin password: %s", stderr)
 	}
 	return password, nil
+}
+
+// selectFirstReadyPod selects the first running pod from the slice and return a pointer, nil if none found
+func selectFirstReadyPod(pods []v1.Pod) *v1.Pod {
+	for _, pod := range pods {
+		if isPodReady(pod) {
+			return &pod
+		}
+	}
+	return nil
+}
+
+// isPodReady determines if the pod is running by checking for a Ready condition with Status equal True
+func isPodReady(pod v1.Pod) bool {
+	conditions := pod.Status.Conditions
+	for j := range conditions {
+		if conditions[j].Type == "Ready" && conditions[j].Status == "True" {
+			return true
+		}
+	}
+	return false
 }
 
 // hack to parse the stdout of Rancher reset password
