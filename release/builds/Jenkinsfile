@@ -107,7 +107,7 @@ pipeline {
                 }
             }
         }
-/*
+
         stage('Pipeline inputs validation') {
             steps {
                 script {
@@ -237,7 +237,7 @@ pipeline {
                 }
             }
         }
-*/
+
         stage('Copy Product Zip to Release') {
             when {
                 // When the Verrazzano builds are not run as part of this release job, the GENERATE_TARBALL which
@@ -263,7 +263,7 @@ pipeline {
                 }
             }
         }
-/*
+
         stage('Push images to OCR') {
             when {
                 allOf {
@@ -291,7 +291,5 @@ pipeline {
                 }
             }
         }
-
- */
     }
 }
