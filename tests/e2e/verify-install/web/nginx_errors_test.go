@@ -5,6 +5,7 @@ package web_test
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/hashicorp/go-retryablehttp"
 	"net/http"
@@ -46,7 +47,6 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
 					return "", err
-
 				}
 				password, err := pkg.GetVerrazzanoPasswordInCluster(kubeConfigPath)
 				if err != nil {
@@ -124,16 +124,13 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 })
 
 func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string, error) {
-	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-		return "", err
-	}
-	c, err := pkg.GetVerrazzanoHTTPClient(kubeConfigPath)
+	transport := &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec //#gosec G402
+	c, err := pkg.GetVerrazzanoRetryableHTTPClient()
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
 		return "", err
 	}
+	c.HTTPClient.Transport = transport
 	c.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		if resp.StatusCode == expectedStatus {
 			return false, nil
