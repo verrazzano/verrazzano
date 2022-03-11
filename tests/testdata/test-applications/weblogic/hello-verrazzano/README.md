@@ -10,7 +10,7 @@ Sample WebLogic application, for testing the VerrazzanoWebLogicWorkload.
 The bash script setup/build.sh creates the auxiliary image for model in image deployment, by including the sample application under wlsdeploy/applications.
 
     $ cd <application root directory>
-    $ mvn clean build
+    $ mvn clean package
     $ cd setup; ./build.sh <container registry>/<image>:<version>
 
 The application doesn't validate any feature, it just includes a welcome page.

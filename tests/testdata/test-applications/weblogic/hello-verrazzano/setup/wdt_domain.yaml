@@ -12,7 +12,7 @@ topology:
       ListenPort: '7001'
 appDeployments:
   Application:
-    ToDoApp:
+    HelloApp:
       SourcePath: wlsdeploy/applications/hello.war
       ModuleType: war
       Target: 'AdminServer'
