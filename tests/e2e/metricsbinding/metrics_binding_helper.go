@@ -63,6 +63,12 @@ func UndeployApplication(namespace string, yamlPath string, promConfigJobName st
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
+	pkg.Log(pkg.Info, "Wait for namespace finalizer to be removed")
+	gomega.Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved(namespace)
+	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
+
+	pkg.Log(pkg.Info, "Wait for namespace to be deleted")
 	gomega.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)

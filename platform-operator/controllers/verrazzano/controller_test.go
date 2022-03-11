@@ -1766,7 +1766,7 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 			clusterRoleBinding.RoleRef = crb.RoleRef
 			clusterRoleBinding.Subjects = crb.Subjects
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectGetServiceAccountExists expects a call to get the service account for the Verrazzano with the given
@@ -1779,7 +1779,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 			newSA := rbac.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectGetVerrazzanoExists expects a call to get a Verrazzano with the given namespace and name, and returns
@@ -1793,7 +1793,7 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
 			verrazzano.Status = verrazzanoToUse.Status
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectDeleteServiceAccount expects a call to delete the service account used by install
