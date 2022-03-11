@@ -343,6 +343,11 @@ pipeline {
                     # Get the install job in verrazzano-install namespace
                     kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
 
+                    echo "dumping out the VZ CR Before upgrade:"
+                    kubectl describe verrazzano my-verrazzano
+                    echo "dumping out the VMI Before upgrade"
+                    kubectl describe vmi system -n verrazzano-system
+
                     # Do the upgrade
                     echo "Following is the verrazzano CR file with the new version:"
                     cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
@@ -350,8 +355,6 @@ pipeline {
 
                     echo "CHAOS TEST TYPE = ${params.CHAOS_TEST_TYPE}"
 
-                    ## This test will fail.  2 JIRAs have been opened
-                    ##  VZ-5023 & VZ5024
                     if [[ "vpo.killed" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # Wait 15 seconds then kill vpo
@@ -361,15 +364,15 @@ pipeline {
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
                         kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-before-vpo-killed-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                         echo "dumping out the VZ CR Before VPO is killed:"
-                        kubectl get verrazzano my-verrazzano -o yaml
+                        kubectl describe verrazzano my-verrazzano
                         echo "dumping out the VMI Before VPO is killed"
-                        kubectl get vmi system -n verrazzano-system -o yaml
+                        kubectl describe vmi system -n verrazzano-system
                         kubectl -n verrazzano-install delete po \$POD
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         echo "dumping out the VZ CR After VPO is restarted:"
-                        kubectl get verrazzano my-verrazzano -o yaml
+                        kubectl describe verrazzano my-verrazzano
                         echo "dumping out the VMI After VPO is restarted"
-                        kubectl get vmi system -n verrazzano-system -o yaml
+                        kubectl describe vmi system -n verrazzano-system
                         kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                         echo "VPO \$POD successfully restarted"
                         ##  Test to crash VPO twice but once was good enough to surface errors
