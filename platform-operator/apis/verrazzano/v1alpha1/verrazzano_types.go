@@ -340,6 +340,10 @@ type ComponentSpec struct {
 	// Verrazzano configuration
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
+
+	// Operator Lifecycle Manager configuration
+	// +optional
+	OLM *OLMComponent `json:"olm,omitempty"`
 }
 
 // MonitoringComponent Common configuration for monitoring components
@@ -411,6 +415,12 @@ type AuthProxyComponent struct {
 
 // OAMComponent specifies the OAM configuration
 type OAMComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// OLMComponent specifies the Operator Lifecycle Manager configuration
+type OLMComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 }
