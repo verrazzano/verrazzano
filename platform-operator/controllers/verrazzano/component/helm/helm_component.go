@@ -179,8 +179,18 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
-func (h HelmComponent) IsEnabled(context spi.ComponentContext) bool {
+func (h HelmComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	return true
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	return nil
 }
 
 // Install installs the component using Helm
@@ -189,21 +199,9 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 	// Resolve the namespace
 	resolvedNamespace := h.resolveNamespace(context.EffectiveCR().Namespace)
 
-	failed, err := helm.IsReleaseFailed(h.ReleaseName, resolvedNamespace)
-	if err != nil {
-		return err
-	}
-	if failed {
-		// Chart install failed, reset the chart to start over
-		// NOTE: we'll likely have to put in some more logic akin to what we do for the scripts, see
-		//       reset_chart() in the common.sh script.  Recovering chart state can be a bit difficult, we
-		//       may need to draw on both the 'ls' and 'status' output for that.
-		helm.Uninstall(context.Log(), h.ReleaseName, resolvedNamespace, context.IsDryRun())
-	}
-
 	var kvs []bom.KeyValue
 	// check for global image pull secret
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
+	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}

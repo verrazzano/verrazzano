@@ -1,8 +1,10 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # Network policy for Elasticsearch master single pod installation
-# Ingress: allow from auth proxy to port 9200
+# Ingress:
+#          allow from Verrazzano Monitoring Operator to port 9200
+#          allow from auth proxy to port 9200
 #          allow from Kibana to port 9200
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
@@ -20,6 +22,14 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Allow ingress from Verrazzano Monitoring Operator
+    - from:
+      - podSelector:
+          matchLabels:
+            k8s-app: verrazzano-monitoring-operator
+      ports:
+      - port: 9200
+        protocol: TCP
     - from:
         - namespaceSelector:
             matchLabels:
@@ -62,6 +72,7 @@ spec:
 
 # Network policy for Elasticsearch master
 # Ingress: allow from ES pods to port 9300
+#          allow from Verrazzano Monitoring Operator to port 9200
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -76,6 +87,14 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Allow ingress from Verrazzano Monitoring Operator
+    - from:
+        - podSelector:
+            matchLabels:
+              k8s-app: verrazzano-monitoring-operator
+      ports:
+        - port: 9200
+          protocol: TCP
     # Allow ingress from ES pods to cluster port
     - from:
         - podSelector:

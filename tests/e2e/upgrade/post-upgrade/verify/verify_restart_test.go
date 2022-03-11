@@ -7,37 +7,32 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	compistio "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -186,7 +181,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				}
 				Eventually(func() bool {
 					if isDisabled(componentName) {
-						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+						pkg.Log(pkg.Info, fmt.Sprintf("Skipping disabled component %s", componentName))
 						return true
 					}
 					deployment, err := pkg.GetDeployment(namespace, deploymentName)
@@ -196,13 +191,13 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					return deployment.Status.ReadyReplicas > 0
 				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
-			t.Entry("Checking Deployment verrazzano-application-operator", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-operator"),
-			t.Entry("Checking Deployment verrazzano-authproxy", constants.VerrazzanoSystemNamespace, authproxy.ComponentName, "verrazzano-authproxy"),
 			t.Entry("Checking Deployment coherence-operator", constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
 			t.Entry("Checking Deployment oam-kubernetes-runtime", constants.VerrazzanoSystemNamespace, oam.ComponentName, "oam-kubernetes-runtime"),
+			t.Entry("Checking Deployment verrazzano-application-operator", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-operator"),
+			t.Entry("Checking Deployment verrazzano-authproxy", constants.VerrazzanoSystemNamespace, authproxy.ComponentName, "verrazzano-authproxy"),
 			t.Entry("Checking Deployment verrazzano-console", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
+			t.Entry("Checking Deployment verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-monitoring-operator"),
 			t.Entry("Checking Deployment vmi-system-grafana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-grafana"),
-			t.Entry("Checking Deployment verrazzano-console", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
 			t.Entry("Checking Deployment vmi-system-kibana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kibana"),
 			t.Entry("Checking Deployment vmi-system-prometheus-0", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-prometheus-0"),
 			t.Entry("Checking Deployment weblogic-operator", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
@@ -233,6 +228,39 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 		)
 	})
 
+	Context("Checking optional Deployments for post-upgrade", func() {
+		t.DescribeTable("Deployment should be ready post-upgrade",
+			func(namespace string, componentName string, deploymentName string) {
+				// Currently we have no way of determining if some components are installed by looking at the status (grafana)
+				// Because of this, make this test non-managed cluster only.
+				if vzcr.Spec.Profile == vzapi.ManagedCluster {
+					return
+				}
+				Eventually(func() bool {
+					if isDisabled(componentName) {
+						pkg.Log(pkg.Info, fmt.Sprintf("Skipping disabled component %s", componentName))
+						return true
+					}
+					deployment, err := pkg.GetDeployment(namespace, deploymentName)
+					if err != nil {
+						// Deployment is optional, ignore if not found
+						// For example es-data and es-ingest won't be there for dev profile
+						if errors.IsNotFound(err) {
+							pkg.Log(pkg.Info, fmt.Sprintf("Skipping optional deployment %s since it is not found", deploymentName))
+							return true
+						}
+						return false
+					}
+					return deployment.Status.ReadyReplicas > 0
+				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
+			},
+			t.Entry("Checking Deployment vmi-system-es-data-0", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-0"),
+			t.Entry("Checking Deployment vmi-system-es-data-1", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-1"),
+			t.Entry("Checking Deployment vmi-system-es-data-2", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-2"),
+			t.Entry("Checking Deployment vmi-system-es-ingest", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-ingest"),
+		)
+	})
+
 	Context("Checking StatefulSets for post-upgrade", func() {
 		t.DescribeTable("StatefulSet should be ready post-upgrade",
 			func(namespace string, componentName string, stsName string) {
@@ -243,7 +271,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				}
 				Eventually(func() bool {
 					if isDisabled(componentName) {
-						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+						pkg.Log(pkg.Info, fmt.Sprintf("Skipping disabled component %s", componentName))
 						return true
 					}
 					sts, err := pkg.GetStatefulSet(namespace, stsName)

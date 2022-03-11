@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/selection"
+
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -125,6 +127,14 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", cr.Spec.Version)
 			log.Once(msg)
 			cr.Status.Version = targetVersion
+			for _, comp := range registry.GetComponents() {
+				compName := comp.Name()
+				componentStatus := cr.Status.Components[compName]
+				if componentStatus != nil {
+					log.Oncef("Component %s has been upgraded from generation %v to %v %v", compName, componentStatus.LastReconciledGeneration, cr.Generation, componentStatus.State)
+					componentStatus.LastReconciledGeneration = cr.Generation
+				}
+			}
 			if err := r.updateStatus(log, cr, msg, installv1alpha1.CondUpgradeComplete); err != nil {
 				return newRequeueWithDelay(), err
 			}
@@ -137,9 +147,12 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 	return ctrl.Result{}, nil
 }
 
-// resolvePendingUpgrades will delete any helm secrets with a "pending-upgrade" status for the given component
+// resolvePendingUpgrdes will delete any helm secrets with a status other than "deployed" for the given component
 func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.VerrazzanoLogger) {
-	labelSelector := kblabels.Set{"name": compName, "status": "pending-upgrade"}.AsSelector()
+	nameReq, _ := kblabels.NewRequirement("name", selection.Equals, []string{compName})
+	statusReq, _ := kblabels.NewRequirement("status", selection.NotEquals, []string{"deployed"})
+	labelSelector := kblabels.NewSelector()
+	labelSelector = labelSelector.Add(*nameReq, *statusReq)
 	helmSecrets := v1.SecretList{}
 	err := r.Client.List(context.TODO(), &helmSecrets, &clipkg.ListOptions{LabelSelector: labelSelector})
 	if err != nil {

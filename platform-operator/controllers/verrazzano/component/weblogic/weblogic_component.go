@@ -4,7 +4,10 @@
 package weblogic
 
 import (
+	"fmt"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -42,12 +45,20 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled WebLogic-specific enabled check for installation
-func (c weblogicComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.WebLogicOperator
+func (c weblogicComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.WebLogicOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("can not disable previously enabled weblogicOperator")
+	}
+	return nil
 }
 
 // IsReady component check
