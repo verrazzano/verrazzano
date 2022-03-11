@@ -6,6 +6,7 @@ package bom
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -220,7 +221,6 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 	var kvs []KeyValue
 	for _, imageBom := range sc.Images {
 		partialImageNameBldr := strings.Builder{}
-		fullImageNameBldr := strings.Builder{}
 		registry := b.ResolveRegistry(sc, imageBom)
 		repo := b.ResolveRepo(sc, imageBom)
 
@@ -236,8 +236,6 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 			partialImageNameBldr.WriteString(registry)
 			partialImageNameBldr.WriteString(slash)
 		}
-		fullImageNameBldr.WriteString(registry)
-		fullImageNameBldr.WriteString(slash)
 
 		// Either write the repo name Key Value, or append it to the full image path
 		if imageBom.HelmRepoKey != "" {
@@ -249,8 +247,6 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 			partialImageNameBldr.WriteString(repo)
 			partialImageNameBldr.WriteString(slash)
 		}
-		fullImageNameBldr.WriteString(repo)
-		fullImageNameBldr.WriteString(slash)
 
 		// If the Registry/Repo key is defined then set it
 		if imageBom.HelmRegistryAndRepoKey != "" {
@@ -269,7 +265,6 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 		} else {
 			partialImageNameBldr.WriteString(imageBom.ImageName)
 		}
-		fullImageNameBldr.WriteString(imageBom.ImageName)
 
 		// Either write the tag name Key Value, or append it to the full image path
 		if imageBom.HelmTagKey != "" {
@@ -299,7 +294,9 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 				Value: partialImagePath,
 			})
 		}
-		fullImageNames = append(fullImageNames, fullImageNameBldr.String())
+		// Add the full image name to the list
+		fullImageName := fmt.Sprintf("%s/%s/%s:%s", repo, registry, imageBom.ImageName, imageBom.ImageTag)
+		fullImageNames = append(fullImageNames, fullImageName)
 	}
 	return kvs, fullImageNames, nil
 }
