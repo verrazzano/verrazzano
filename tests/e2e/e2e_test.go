@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 	"time"
-	//import tests
+	//import tests here
 )
 
 func TestMain(m *testing.M) {

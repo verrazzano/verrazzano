@@ -10,10 +10,8 @@ import (
 )
 
 func RunE2ETests(t *testing.T) {
-	//Do some logging setup, etc.
 
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	// Disable skipped tests unless they are explicitly requested.
 
 	ginkgo.RunSpecs(t, "Verrazzano e2e tests")
 }
