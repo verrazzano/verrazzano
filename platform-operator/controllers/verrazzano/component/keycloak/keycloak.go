@@ -28,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -1247,12 +1248,15 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	statefulsetName := []types.NamespacedName{
+	statefulset := []status.PodReadyCheck{
 		{
-			Namespace: ComponentNamespace,
-			Name:      ComponentName,
+			NamespacedName: types.NamespacedName{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app.kubernetes.io/name": ComponentName}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
+	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
 }

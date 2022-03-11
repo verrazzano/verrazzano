@@ -183,12 +183,18 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
 			for _, args := range esInstallArgs {
 				if args.Name == "nodes.master.replicas" {
-					var statefulsets []types.NamespacedName
+					var statefulsets []status.PodReadyCheck
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
-						statefulsets = append(statefulsets, types.NamespacedName{
-							Name: esMasterStatefulset, Namespace: globalconst.VerrazzanoSystemNamespace})
-						if !status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
+						statefulsets = append(statefulsets,
+							status.PodReadyCheck{
+								NamespacedName: types.NamespacedName{
+									Name:      esMasterStatefulset,
+									Namespace: ComponentNamespace,
+								},
+								LabelSelector: labels.Set{"app": "system-es-master"}.AsSelector(),
+							})
+						if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
 							return false
 						}
 					}
@@ -199,16 +205,28 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	}
 
 	// Finally, check daemonsets
-	var daemonsets []types.NamespacedName
+	var daemonsets []status.PodReadyCheck
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets, types.NamespacedName{
-			Name: nodeExporterDaemonset, Namespace: globalconst.VerrazzanoMonitoringNamespace})
+		daemonsets = append(daemonsets,
+			status.PodReadyCheck{
+				NamespacedName: types.NamespacedName{
+					Name:      nodeExporterDaemonset,
+					Namespace: globalconst.VerrazzanoMonitoringNamespace,
+				},
+				LabelSelector: labels.Set{"app": nodeExporterDaemonset}.AsSelector(),
+			})
 	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
-		daemonsets = append(daemonsets, types.NamespacedName{
-			Name: fluentDaemonset, Namespace: globalconst.VerrazzanoSystemNamespace})
+		daemonsets = append(daemonsets,
+			status.PodReadyCheck{
+				NamespacedName: types.NamespacedName{
+					Name:      fluentDaemonset,
+					Namespace: ComponentNamespace,
+				},
+				LabelSelector: labels.Set{"app": fluentDaemonset}.AsSelector(),
+			})
 	}
-	if !status.DaemonSetsReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
+	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
 		return false
 	}
 
