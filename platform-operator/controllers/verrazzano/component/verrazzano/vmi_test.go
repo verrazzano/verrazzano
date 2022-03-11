@@ -89,7 +89,7 @@ func TestNewVMIResources(t *testing.T) {
 	assert.Equal(t, "128Mi", prometheus.Resources.RequestMemory)
 	assert.Equal(t, "50Gi", prometheus.Storage.Size)
 
-	opensearch, err := newOpenSearch(&vmiEnabledCR, r, nil)
+	opensearch, err := newOpenSearch(&vmiEnabledCR, r, nil, true)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, opensearch.MasterNode.Replicas)
 	assert.EqualValues(t, 2, opensearch.IngestNode.Replicas)
@@ -121,7 +121,7 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 		},
 	}
 
-	_, err := newOpenSearch(crBadArgs, r, nil)
+	_, err := newOpenSearch(crBadArgs, r, nil, false)
 	assert.Error(t, err)
 }
 
@@ -184,4 +184,46 @@ func TestCreateVMI(t *testing.T) {
 	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
 	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
 	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
+}
+
+// TestHasDataNodeStorageOverride tests the detection of data node storage overrides
+// GIVEN a Verrazzano CR
+// WHEN I check for data node storage overrides
+//  THEN hasDataNodeStorageOverride returns true or false depending on the CR values
+func TestHasDataNodeStorageOverride(t *testing.T) {
+	var tests = []struct {
+		name        string
+		cr          *vzapi.Verrazzano
+		hasOverride bool
+	}{
+		{
+			"no override when not enabled",
+			&vzapi.Verrazzano{},
+			false,
+		},
+		{
+			"detects override when override is used",
+			&vmiEnabledCR,
+			true,
+		},
+		{
+			"no detected override when none are present",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							MonitoringComponent: monitoringComponent,
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.hasOverride, hasDataNodeStorageOverride(tt.cr))
+		})
+	}
 }
