@@ -1,0 +1,9 @@
+olm:
+  image: 
+  tag:
+  imagePullPolicy:
+
+catalog:
+  image:
+  tag:
+  publisher:
