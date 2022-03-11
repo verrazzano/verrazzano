@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -92,7 +93,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, func() {
-			if !pkg.IsManagedClusterProfile() {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
