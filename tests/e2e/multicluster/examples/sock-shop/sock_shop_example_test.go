@@ -26,6 +26,7 @@ const (
 	testNamespace        = "mc-sockshop"
 	testProjectName      = "sockshop"
 	testCluster          = "SockShop"
+	testApp              = "carts-coh"
 )
 
 var clusterName = os.Getenv("MANAGED_CLUSTER_NAME")
@@ -166,7 +167,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 				Eventually(func() bool {
 					m := make(map[string]string)
-					m["cluster"] = testCluster
+					m["app"] = testApp
 					m[clusterNameMetricsLabel] = clusterName
 					return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
@@ -176,7 +177,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 				Eventually(func() bool {
 					m := make(map[string]string)
-					m["cluster"] = testCluster
+					m["app"] = testApp
 					m[clusterNameMetricsLabel] = "DNE"
 					return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
@@ -186,7 +187,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 				Eventually(func() bool {
 					m := make(map[string]string)
-					m["cluster"] = testCluster
+					m["app"] = testApp
 					m[clusterNameMetricsLabel] = clusterName
 					return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
