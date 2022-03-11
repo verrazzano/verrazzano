@@ -147,7 +147,7 @@ func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string
 		if resp.StatusCode == expectedStatus {
 			return false, nil
 		}
-		pkg.Log(pkg.Info, fmt.Sprintf("Request returned response code: %i, error: %v", resp.StatusCode, err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Request returned response code: %v, error: %v", resp.StatusCode, err))
 		return true, err
 	}
 	response, err := c.Do(req)
