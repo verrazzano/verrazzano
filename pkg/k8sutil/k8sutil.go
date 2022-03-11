@@ -47,6 +47,19 @@ var ClientConfig ClientConfigFunc = func() (*restclient.Config, kubernetes.Inter
 	return cfg, c, nil
 }
 
+// fakeClient is for unit testing
+var fakeClient kubernetes.Interface
+
+// SetFakeClient for unit tests
+func SetFakeClient(client kubernetes.Interface) {
+	fakeClient = client
+}
+
+// CleanFakeClient for unit tests
+func ClearFakeClient() {
+	fakeClient = nil
+}
+
 // GetKubeConfigLocation Helper function to obtain the default kubeConfig location
 func GetKubeConfigLocation() (string, error) {
 	if testKubeConfig := os.Getenv(EnvVarTestKubeConfig); len(testKubeConfig) > 0 {
@@ -213,7 +226,10 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 }
 
 // GetGoClient returns a go-client
-func GetGoClient(log vzlog.VerrazzanoLogger) (*kubernetes.Clientset, error) {
+func GetGoClient(log vzlog.VerrazzanoLogger) (kubernetes.Interface, error) {
+	if fakeClient != nil {
+		return fakeClient, nil
+	}
 	config, err := controllerruntime.GetConfig()
 	if err != nil {
 		log.Errorf("Failed to get kubeconfig: %v", err)

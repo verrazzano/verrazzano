@@ -39,8 +39,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 
 	// Restart all the deployments in the injected system namespaces
 	log.Oncef("Restarting system Deployments that have an old Istio sidecar so that the pods get the new Isio sidecar")
-	var deploymentList appsv1.DeploymentList
-	err = client.List(context.TODO(), &deploymentList)
+	deploymentList, err := goClient.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -157,7 +156,7 @@ func doesPodContainOldIstioSidecar(podList *v1.PodList, istioProxyImageName stri
 }
 
 // Get the matching pods in namespace given a selector
-func getMatchingPods(log vzlog.VerrazzanoLogger, client *kubernetes.Clientset, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
+func getMatchingPods(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
 	// Conver the resource labelselector to a go-client label selector
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
