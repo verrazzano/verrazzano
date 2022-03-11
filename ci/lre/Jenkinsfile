@@ -345,10 +345,10 @@ def runGinkgo() {
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -v -p --keep-going --no-color --timeout=2h ${GINKGO_REPORT_ARGS} \
                    security/rbac/... logging/system/... logging/helidon/... \
-                   examples/helidon/... examples/helidonconfig/... examples/springboot/... \
+                   examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... \
                    loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
-                   loggingtrait/coherenceworkload/... metricsbinding/...
+                   loggingtrait/coherenceworkload/... metricsbinding/... examples/helidon/...
         """
     }
 }
