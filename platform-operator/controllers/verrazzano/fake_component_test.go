@@ -3,6 +3,7 @@
 package verrazzano
 
 import (
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"reflect"
 	"strconv"
 
@@ -99,7 +100,7 @@ func (f fakeComponent) IsReady(x spi.ComponentContext) bool {
 	return getBool(f.ready, "ready")
 }
 
-func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
+func (f fakeComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 	return getBool(f.enabled, "enabled")
 }
 
