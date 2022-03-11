@@ -323,7 +323,7 @@ def runGinkgoRandomize() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color --timeout=3h ${GINKGO_REPORT_ARGS} \
+            ginkgo -p -v --keep-going --no-color --timeout=3h ${GINKGO_REPORT_ARGS} \
                 verify-infra/... security/rbac/... istio/authz/... \
                 metrics/deploymetrics/... metricsbinding/...
          """
