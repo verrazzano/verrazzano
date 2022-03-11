@@ -158,13 +158,6 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
-	if storage != nil && len(storage.Storage) > 0 {
-		opensearch.Storage.Size = storage.Storage
-	}
-	if vmi != nil {
-		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
-	}
-
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
 		var intVal int32
 		_, err := fmt.Sscan(arg.Value, &intVal)
@@ -200,6 +193,14 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		case "nodes.data.requests.storage":
 			opensearch.Storage.Size = arg.Value
 		}
+	}
+
+	if storage != nil && len(storage.Storage) > 0 && opensearch.Storage.Size == "" {
+		opensearch.Storage.Size = storage.Storage
+	}
+
+	if vmi != nil {
+		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
 	}
 
 	return opensearch, nil
