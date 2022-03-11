@@ -295,7 +295,7 @@ func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, 
 			})
 		}
 		// Add the full image name to the list
-		fullImageName := fmt.Sprintf("%s/%s/%s:%s", repo, registry, imageBom.ImageName, imageBom.ImageTag)
+		fullImageName := fmt.Sprintf("%s/%s/%s:%s", registry, repo, imageBom.ImageName, imageBom.ImageTag)
 		fullImageNames = append(fullImageNames, fullImageName)
 	}
 	return kvs, fullImageNames, nil
