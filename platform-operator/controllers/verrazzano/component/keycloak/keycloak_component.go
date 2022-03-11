@@ -168,3 +168,15 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	}
 	return nil
 }
+
+// GetCertificateNames - gets the names of the ingresses associated with this component
+func (c KeycloakComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certificateNames []types.NamespacedName
+
+	certificateNames = append(certificateNames, types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      fmt.Sprintf("%s-secret", ctx.EffectiveCR().Spec.EnvironmentName),
+	})
+
+	return certificateNames
+}

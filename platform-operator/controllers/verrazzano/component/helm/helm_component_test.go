@@ -7,11 +7,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -41,6 +43,16 @@ type genericHelmTestRunner struct {
 	stdOut []byte
 	stdErr []byte
 	err    error
+}
+
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = k8scheme.AddToScheme(testScheme)
+	//_ = clientgoscheme.AddToScheme(testScheme)
+	_ = v1alpha1.AddToScheme(testScheme)
+	_ = certv1.AddToScheme(testScheme)
+	// +kubebuilder:scaffold:testScheme
 }
 
 // Run genericHelmTestRunner executor

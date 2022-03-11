@@ -37,6 +37,10 @@ type rancherComponent struct {
 	helm.HelmComponent
 }
 
+var certificates = []types.NamespacedName{
+	{Name: "tls-rancher-ingress", Namespace: ComponentNamespace},
+}
+
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
@@ -49,6 +53,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
+			Certificates:            certificates,
 			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 			IngressNames: []types.NamespacedName{
 				{

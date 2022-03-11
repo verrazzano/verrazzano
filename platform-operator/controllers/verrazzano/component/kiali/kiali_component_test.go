@@ -3,8 +3,8 @@
 package kiali
 
 import (
-	"testing"
-
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 var crEnabled = vzapi.Verrazzano{
@@ -41,7 +42,7 @@ func init() {
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
-
+	_ = certapiv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
 }
 
@@ -145,10 +146,20 @@ func TestKialiPostInstallUpdateResources(t *testing.T) {
 	ingress := &v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: constants.KialiIngress, Namespace: constants.VerrazzanoSystemNamespace},
 	}
+
+	time := metav1.Now()
+	cert := &certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
+		Status: certapiv1.CertificateStatus{
+			Conditions: []certapiv1.CertificateCondition{
+				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+			},
+		},
+	}
 	authPol := &istioclisec.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kiali-authzpol"},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol, cert)
 	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }
@@ -169,7 +180,17 @@ func TestKialiPostInstallCreateResources(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(testScheme)
+
+	time := metav1.Now()
+	cert := &certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
+		Status: certapiv1.CertificateStatus{
+			Conditions: []certapiv1.CertificateCondition{
+				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+			},
+		},
+	}
+	fakeClient := fake.NewFakeClientWithScheme(testScheme, cert)
 	err := NewComponent().PostInstall(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
 }

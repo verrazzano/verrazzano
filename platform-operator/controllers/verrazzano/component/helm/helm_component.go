@@ -5,10 +5,6 @@ package helm
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -20,8 +16,11 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"io/ioutil"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 // HelmComponent struct needed to implement a component
@@ -83,7 +82,12 @@ type HelmComponent struct {
 
 	// The minimum required Verrazzano version.
 	MinVerrazzanoVersion string
-	IngressNames         []types.NamespacedName
+
+	// Ingress names associated with the component
+	IngressNames []types.NamespacedName
+
+	// Certificates associated with the component
+	Certificates []types.NamespacedName
 }
 
 // Verify that HelmComponent implements Component
@@ -141,6 +145,11 @@ func (h HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
 }
 
+// GetCertificateNames returns the list of expected certificates used by this component
+func (h HelmComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+	return h.Certificates
+}
+
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by this component
 func (h HelmComponent) GetMinVerrazzanoVersion() string {
 	if len(h.MinVerrazzanoVersion) == 0 {
@@ -180,10 +189,11 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	}
 
 	ns := h.resolveNamespace(context.EffectiveCR().Namespace)
-	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); deployed {
-		return true
+	if deployed, _ := helm.IsReleaseDeployed(h.ReleaseName, ns); !deployed {
+		return false
 	}
-	return false
+
+	return true
 }
 
 // IsEnabled Indicates whether a component is enabled for installation
@@ -248,6 +258,15 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
+		}
+	}
+
+	certsNotReady := spi.CheckCertificatesReady(context, h.Certificates)
+	if len(certsNotReady) > 0 {
+		context.Log().Infof("Certificates not ready for component %s: %v", h.ReleaseName, certsNotReady)
+		return ctrlerrors.RetryableError{
+			Source:    h.ReleaseName,
+			Operation: "Check if certificates are ready",
 		}
 	}
 

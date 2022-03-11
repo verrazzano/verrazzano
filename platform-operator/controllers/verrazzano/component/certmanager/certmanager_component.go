@@ -4,6 +4,7 @@
 package certmanager
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"fmt"
 	"path/filepath"
 
@@ -53,11 +54,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.CertManager
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+	return vzconfig.IsCertManagerEnabled(effectiveCR)
 }
 
 // IsReady component check
