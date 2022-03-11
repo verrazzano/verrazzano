@@ -162,6 +162,19 @@ func Test_dependencyValidation(t *testing.T) {
 			},
 			numberOfErrors: 8,
 		},
+		{
+			name: "disabled istio",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Istio: &vzapi.IstioComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			numberOfErrors: 6,
+		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()

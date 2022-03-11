@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -47,7 +49,7 @@ func NewComponent() spi.Component {
 			PreInstallFunc:          PreInstall,
 			AppendOverridesFunc:     AppendOverrides,
 			PostInstallFunc:         PostInstall,
-			Dependencies:            []string{},
+			Dependencies:            []string{istio.ComponentName},
 		},
 	}
 }
