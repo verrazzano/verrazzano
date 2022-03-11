@@ -49,7 +49,7 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 14, "Wrong number of components")
+	assert.Len(comps, 15, "Wrong number of components")
 	assert.Equal(comps[0].Name(), oam.ComponentName)
 	assert.Equal(comps[1].Name(), weblogic.ComponentName)
 	assert.Equal(comps[2].Name(), appoper.ComponentName)
