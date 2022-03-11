@@ -4,7 +4,10 @@
 package certmanager
 
 import (
+	"fmt"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -44,8 +47,8 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
-func (c certManagerComponent) IsEnabled(compContext spi.ComponentContext) bool {
-	comp := compContext.EffectiveCR().Spec.Components.CertManager
+func (c certManagerComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.CertManager
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -58,4 +61,12 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isCertManagerReady(ctx)
 	}
 	return false
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("can not disable previously enabled certManager")
+	}
+	return nil
 }

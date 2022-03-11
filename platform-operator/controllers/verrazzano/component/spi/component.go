@@ -43,7 +43,7 @@ type ComponentInfo interface {
 	// IsReady Indicates whether or not a component is available and ready
 	IsReady(context ComponentContext) bool
 	// IsEnabled Indicates whether or a component is enabled for installation
-	IsEnabled(context ComponentContext) bool
+	IsEnabled(effectiveCR *vzapi.Verrazzano) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component
@@ -75,6 +75,14 @@ type ComponentUpgrader interface {
 	PostUpgrade(context ComponentContext) error
 }
 
+// ComponentValidator interface defines validation operations for components that support it
+type ComponentValidator interface {
+	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+	ValidateInstall(vz *vzapi.Verrazzano) error
+	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+	ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
+}
+
 // Generate mocs for the spi.Component interface for use in tests.
 //go:generate mockgen -destination=../../../../mocks/component_mock.go -package=mocks -copyright_file=../../../../hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi Component
 
@@ -83,6 +91,7 @@ type Component interface {
 	ComponentInfo
 	ComponentInstaller
 	ComponentUpgrader
+	ComponentValidator
 
 	Reconcile(ctx ComponentContext) error
 }

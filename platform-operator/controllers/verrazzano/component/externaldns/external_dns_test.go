@@ -71,7 +71,7 @@ var fakeComponent = externalDNSComponent{}
 func TestIsExternalDNSEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = &vzapi.OCI{}
-	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
+	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
 }
 
 // TestIsExternalDNSDisabled tests the IsEnabled fn
@@ -79,7 +79,7 @@ func TestIsExternalDNSEnabled(t *testing.T) {
 // WHEN OCI DNS is disabled
 // THEN the function returns true
 func TestIsExternalDNSDisabled(t *testing.T) {
-	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, false)))
+	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, vz, false).EffectiveCR()))
 }
 
 // TestIsExternalDNSReady tests the isExternalDNSReady fn
