@@ -1,9 +1,9 @@
 // Copyright (c) 2020, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package com.oracle.verrazzano.hello;
+package io.verrazzano.hello;
 
-import com.oracle.verrazzano.hello.resource.Greetings;
+import io.verrazzano.hello.resource.Greetings;
 
 import java.util.HashSet;
 import java.util.Set;
