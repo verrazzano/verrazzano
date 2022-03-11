@@ -360,12 +360,16 @@ pipeline {
                         sleep 15
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
                         kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-before-vpo-killed-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-                        echo "dumping out the VZ CR:"
+                        echo "dumping out the VZ CR Before VPO is killed:"
                         kubectl get verrazzano my-verrazzano -o yaml
-                        echo "dumping out the VMI"
+                        echo "dumping out the VMI Before VPO is killed"
                         kubectl get vmi system -n verrazzano-system -o yaml
                         kubectl -n verrazzano-install delete po \$POD
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
+                        echo "dumping out the VZ CR After VPO is restarted:"
+                        kubectl get verrazzano my-verrazzano -o yaml
+                        echo "dumping out the VMI After VPO is restarted"
+                        kubectl get vmi system -n verrazzano-system -o yaml
                         kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
                         echo "VPO \$POD successfully restarted"
                         ##  Test to crash VPO twice but once was good enough to surface errors
