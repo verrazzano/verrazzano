@@ -21,8 +21,8 @@ const ComponentName = "cert-manager"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = "cert-manager"
 
-// ComponentJsonName is the josn name of the verrazzano component in CRD
-const ComponentJsonName = "certManager"
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "certManager"
 
 // certManagerComponent represents an CertManager component
 type certManagerComponent struct {
@@ -37,7 +37,7 @@ func NewComponent() spi.Component {
 	return certManagerComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
-			JsonName:                ComponentJsonName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -71,7 +71,7 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }

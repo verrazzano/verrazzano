@@ -29,8 +29,8 @@ type HelmComponent struct {
 	// ReleaseName is the helm chart release name
 	ReleaseName string
 
-	// JsonName is the josn name of the verrazzano component in CRD
-	JsonName string
+	// JSONName is the josn name of the verrazzano component in CRD
+	JSONName string
 
 	// ChartDir is the helm chart directory
 	ChartDir string
@@ -127,8 +127,8 @@ func (h HelmComponent) Name() string {
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD
-func (h HelmComponent) GetJsonName() string {
-	return h.JsonName
+func (h HelmComponent) GetJSONName() string {
+	return h.JSONName
 }
 
 // GetDependencies returns the Dependencies of this component

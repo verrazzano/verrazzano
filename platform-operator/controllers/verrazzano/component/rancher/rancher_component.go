@@ -30,8 +30,8 @@ const ComponentName = common.RancherName
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = common.CattleSystem
 
-// ComponentJsonName is the josn name of the verrazzano component in CRD
-const ComponentJsonName = "rancher"
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "rancher"
 
 type rancherComponent struct {
 	helm.HelmComponent
@@ -41,7 +41,7 @@ func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
 			ReleaseName:             common.RancherName,
-			JsonName:                ComponentJsonName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -154,7 +154,7 @@ func (r rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }

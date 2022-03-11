@@ -31,8 +31,8 @@ const ComponentName = "keycloak"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.KeycloakNamespace
 
-// ComponentJsonName is the josn name of the verrazzano component in CRD
-const ComponentJsonName = "keycloak"
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "keycloak"
 
 // KeycloakComponent represents an Keycloak component
 type KeycloakComponent struct {
@@ -47,7 +47,7 @@ func NewComponent() spi.Component {
 	return KeycloakComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
-			JsonName:                ComponentJsonName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -164,7 +164,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }

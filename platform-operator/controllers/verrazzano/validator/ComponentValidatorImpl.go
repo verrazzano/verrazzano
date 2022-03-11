@@ -70,10 +70,10 @@ func dependencyValidation(effectiveCR *v1alpha1.Verrazzano) []error {
 			for _, dependencyName := range comp.GetDependencies() {
 				found, dependency := registry.FindComponent(dependencyName)
 				if !found {
-					errs = append(errs, fmt.Errorf("dependency not found for %s: %s", comp.Name(), dependencyName))
+					errs = append(errs, fmt.Errorf("dependency not found for %s: %s", comp.GetJSONName(), dependencyName))
 				}
 				if !dependency.IsEnabled(effectiveCR) {
-					errs = append(errs, fmt.Errorf("dependency not enabled for %s: %s", comp.Name(), dependencyName))
+					errs = append(errs, fmt.Errorf("dependency not enabled for %s: %s", comp.GetJSONName(), dependency.GetJSONName()))
 				}
 			}
 		}

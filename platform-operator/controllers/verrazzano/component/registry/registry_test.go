@@ -455,7 +455,7 @@ func (f fakeComponent) Name() string {
 	return f.name
 }
 
-func (f fakeComponent) GetJsonName() string {
+func (f fakeComponent) GetJSONName() string {
 	return f.name
 }
 

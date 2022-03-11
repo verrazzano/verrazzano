@@ -592,9 +592,9 @@ func (m *MockComponent) Name() string {
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD
-func (m *MockComponent) GetJsonName() string {
+func (m *MockComponent) GetJSONName() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetJsonName")
+	ret := m.ctrl.Call(m, "GetJSONName")
 	ret0, _ := ret[0].(string)
 	return ret0
 }

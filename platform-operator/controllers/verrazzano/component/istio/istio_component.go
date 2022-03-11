@@ -35,8 +35,8 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "istio"
 
-// ComponentJsonName is the josn name of the verrazzano component in CRD
-const ComponentJsonName = "istio"
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "istio"
 
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
@@ -74,8 +74,8 @@ type istioComponent struct {
 }
 
 // GetJsonName returns the josn name of the verrazzano component in CRD
-func (i istioComponent) GetJsonName() string {
-	return ComponentJsonName
+func (i istioComponent) GetJSONName() string {
+	return ComponentJSONName
 }
 
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
@@ -138,7 +138,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }
