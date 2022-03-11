@@ -9,14 +9,14 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
@@ -39,11 +39,17 @@ func resetWriteFileFunc() {
 
 // isAuthProxyReady checks if the AuthProxy deployment is ready
 func isAuthProxyReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+	deployments := []status.PodReadyCheck{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app": ComponentName}.AsSelector(),
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install

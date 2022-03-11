@@ -146,54 +146,72 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      ComponentName,
+				Labels:    map[string]string{"app": ComponentName},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      rancherWebhookDeployment,
+				Labels:    map[string]string{"app": rancherWebhookDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: OperatorNamespace,
 				Name:      rancherOperatorDeployment,
+				Labels:    map[string]string{"app": rancherOperatorDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fleetSystemNamespace,
 				Name:      fleetAgentDeployment,
+				Labels:    map[string]string{"app": fleetAgentDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fleetSystemNamespace,
 				Name:      fleetControllerDeployment,
+				Labels:    map[string]string{"app": fleetControllerDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fleetSystemNamespace,
 				Name:      gitjobDeployment,
+				Labels:    map[string]string{"app": gitjobDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
@@ -203,11 +221,19 @@ func TestIsReady(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      ComponentName,
 			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 0,
+				Replicas:          1,
+			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      rancherWebhookDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 0,
+				Replicas:          1,
 			},
 		},
 		&appsv1.Deployment{
@@ -215,11 +241,19 @@ func TestIsReady(t *testing.T) {
 				Namespace: OperatorNamespace,
 				Name:      rancherOperatorDeployment,
 			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 0,
+				Replicas:          1,
+			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fleetSystemNamespace,
 				Name:      fleetAgentDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 0,
+				Replicas:          1,
 			},
 		},
 		&appsv1.Deployment{
@@ -227,11 +261,19 @@ func TestIsReady(t *testing.T) {
 				Namespace: fleetSystemNamespace,
 				Name:      fleetControllerDeployment,
 			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 0,
+				Replicas:          1,
+			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: fleetSystemNamespace,
 				Name:      gitjobDeployment,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 0,
+				Replicas:          1,
 			},
 		},
 	)
@@ -269,7 +311,7 @@ func TestPostInstall(t *testing.T) {
 	caSecret := createCASecret()
 	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
-	rancherPodList := createRancherPodList()
+	rancherPodList := createRancherPodListWithAllRunning()
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: common.CattleSystem,

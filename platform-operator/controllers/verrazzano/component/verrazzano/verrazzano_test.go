@@ -1500,10 +1500,9 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			Name:      vmoDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
@@ -1530,96 +1529,96 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      verrazzanoConsoleDeployment,
+				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      vmoDeployment,
+				Labels:    map[string]string{"k8s-app": vmoDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      grafanaDeployment,
+				Labels:    map[string]string{"app": "system-grafana"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
+				Labels:    map[string]string{"app": "system-kibana"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "1"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment,
+				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            2,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1628,10 +1627,8 @@ func TestIsReady(t *testing.T) {
 				Name:      fluentDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberReady:            1,
+				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
-				NumberUnavailable:      0,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1640,20 +1637,19 @@ func TestIsReady(t *testing.T) {
 				Name:      nodeExporterDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberReady:            1,
+				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
-				NumberUnavailable:      0,
 			},
 		},
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": "system-es-master"},
 			},
 			Status: appsv1.StatefulSetStatus{
 				ReadyReplicas:   1,
-				CurrentReplicas: 2,
+				UpdatedReplicas: 1,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
@@ -1685,20 +1681,19 @@ func TestIsReady(t *testing.T) {
 
 // TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when the VMO deployment is not available
+//  WHEN I call isVerrazzanoReady when the Verrazzano console deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme,
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      vmoDeployment,
+				Name:      verrazzanoConsoleDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 0,
+				Replicas:          1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   0,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",

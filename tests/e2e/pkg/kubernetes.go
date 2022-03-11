@@ -128,6 +128,21 @@ func ListDeployments(namespace string) (*appsv1.DeploymentList, error) {
 	return deployments, nil
 }
 
+// DoesDeploymentExist returns whether a deployment with the given name and namespace exists for the cluster
+func DoesDeploymentExist(namespace string, name string) (bool, error) {
+	deployments, err := ListDeployments(namespace)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed listing deployments in cluster for namespace %s: %v", namespace, err))
+		return false, err
+	}
+	for i := range deployments.Items {
+		if strings.HasPrefix(deployments.Items[i].Name, name) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // GetDeployment returns a deployment with the given name and namespace
 func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment, error) {
 	// Get the Kubernetes clientset
@@ -143,19 +158,34 @@ func GetDeployment(namespace string, deploymentName string) (*appsv1.Deployment,
 	return deployment, nil
 }
 
-// DoesDeploymentExist returns whether a deployment with the given name and namespace exists for the cluster
-func DoesDeploymentExist(namespace string, name string) (bool, error) {
-	deployments, err := ListDeployments(namespace)
+// GetStatefulSet returns a StatefulSet with the given name and namespace
+func GetStatefulSet(namespace string, stsName string) (*appsv1.StatefulSet, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
-		Log(Error, fmt.Sprintf("Failed listing deployments in cluster for namespace %s: %v", namespace, err))
-		return false, err
+		return nil, err
 	}
-	for i := range deployments.Items {
-		if strings.HasPrefix(deployments.Items[i].Name, name) {
-			return true, nil
-		}
+	sts, err := clientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), stsName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get StatefulSet %s from namespace %s: %v ", stsName, namespace, err))
+		return nil, err
 	}
-	return false, nil
+	return sts, nil
+}
+
+// GetDaemonSet returns a GetDaemonSet with the given name and namespace
+func GetDaemonSet(namespace string, daemonSetName string) (*appsv1.DaemonSet, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	daemonset, err := clientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get DaemonSet %s from namespace %s: %v ", daemonSetName, namespace, err))
+		return nil, err
+	}
+	return daemonset, nil
 }
 
 // ListNodes returns the list of nodes for the cluster
@@ -310,6 +340,20 @@ func IsDevProfile() bool {
 		return true
 	}
 	return false
+}
+
+// GetVerrazzano returns the installed Verrazzano
+func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return nil, err
+	}
+	cr, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return cr, nil
 }
 
 // GetVerrazzanoVersion returns the Verrazzano Version

@@ -22,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
@@ -39,11 +40,17 @@ const (
 
 // isMySQLReady checks to see if the MySQL component is in ready state
 func isMySQLReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{Name: ComponentName, Namespace: ComponentNamespace},
+	deployments := []status.PodReadyCheck{
+		{
+			NamespacedName: types.NamespacedName{
+				Name:      ComponentName,
+				Namespace: ComponentNamespace,
+			},
+			LabelSelector: labels.Set{"app": ComponentName}.AsSelector(),
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides

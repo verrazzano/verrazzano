@@ -575,6 +575,20 @@ spec:
             matchLabels:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
+            matchLabels:
+              k8s-app: verrazzano-monitoring-operator
+    - ports:
+        - port: 15012
+          protocol: TCP
+      from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano-managed: "true"
+              istio-injection: enabled
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: {{ .Release.Namespace }}
+          podSelector:
             matchExpressions:
               - {key: app, operator: In, values: [system-prometheus, fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, vmi-system-kiali]}
         - namespaceSelector:

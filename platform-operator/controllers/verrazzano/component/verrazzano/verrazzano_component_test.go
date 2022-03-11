@@ -4,6 +4,7 @@ package verrazzano
 
 import (
 	"context"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,15 @@ var crEnabled = vzapi.Verrazzano{
 			},
 		},
 	},
+}
+
+// genericTestRunner is used to run generic OS commands with expected results
+type genericTestRunner struct {
+}
+
+// Run genericTestRunner executor
+func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return nil, nil, nil
 }
 
 // fakeUpgrade override the upgrade function during unit tests
@@ -131,8 +141,14 @@ func TestUpgrade(t *testing.T) {
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
 	}, false)
 	config.SetDefaultBomFilePath(testBomFilePath)
+	helmcli.SetCmdRunner(genericTestRunner{})
+	defer helmcli.SetDefaultRunner()
 	helm.SetUpgradeFunc(fakeUpgrade)
 	defer helm.SetDefaultUpgradeFunc()
+	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }

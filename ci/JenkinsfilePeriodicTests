@@ -251,6 +251,7 @@ pipeline {
                         }
                     }
                 }
+                /*
                 stage('Upgrade Resiliency tests') {
                     steps {
                         script {
@@ -264,6 +265,7 @@ pipeline {
                         }
                     }
                 }
+                */
                 stage('Kind Acceptance Tests on 1.19 Non-Calico') {
                     steps {
                         script {
