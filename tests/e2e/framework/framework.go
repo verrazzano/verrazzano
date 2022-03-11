@@ -30,11 +30,6 @@ import (
 	"strings"
 )
 
-//const (
-//	// DefaultNamespaceDeletionTimeout is timeout duration for waiting for a namespace deletion.
-//	DefaultNamespaceDeletionTimeout = 5 * time.Minute
-//)
-
 // Framework supports common operations used by e2e tests; it will keep a client & a namespace for you.
 // Eventual goal is to merge this with integration test framework.
 type Framework struct {
@@ -101,7 +96,6 @@ func NewFramework(baseName string, kubeconfig string, client clientset.Interface
 		if !failed {
 			return
 		}
-		// TODO: Explore the things we would like to handle here. For example, capturing the cluster dump
 	})
 
 	ginkgo.BeforeEach(f.BeforeEach)
@@ -128,16 +122,11 @@ func (f *Framework) BeforeEach() {
 
 		f.clientConfig = rest.CopyConfig(config)
 
-		// TODO: We need one for the custom kube config
 		f.ClientSet, err = k8sutil.GetKubernetesClientset()
 		ExpectNoError(err)
 
 		f.DynamicClient, err = dynamic.NewForConfig(config)
 		ExpectNoError(err)
-	}
-
-	if !f.SkipNamespaceCreation {
-		// TODO: create namespace
 	}
 }
 
@@ -176,8 +165,7 @@ func (f *Framework) ClientConfig() *rest.Config {
 	return ret
 }
 
-// Wrapper functions from ginkgo_wrapper
-
+// Ginkgo wrapper functions start from here
 // It wraps Ginkgo It to emit a metric
 func (f *Framework) It(text string, args ...interface{}) bool {
 	if args == nil {
