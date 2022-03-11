@@ -22,6 +22,9 @@ const ComponentName = "coherence-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJsonName is the josn name of the verrazzano component in CRD
+const ComponentJsonName = "coherenceOperator"
+
 type coherenceComponent struct {
 	helm.HelmComponent
 }
@@ -30,6 +33,7 @@ func NewComponent() spi.Component {
 	return coherenceComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JsonName:                ComponentJsonName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -61,7 +65,7 @@ func (c coherenceComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c coherenceComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled coherenceOperator")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
 	}
 	return nil
 }

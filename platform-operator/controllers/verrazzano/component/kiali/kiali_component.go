@@ -25,6 +25,9 @@ const ComponentName = "kiali-server"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJsonName is the josn name of the verrazzano component in CRD
+const ComponentJsonName = "kiali"
+
 type kialiComponent struct {
 	helm.HelmComponent
 }
@@ -37,6 +40,7 @@ func NewComponent() spi.Component {
 	return kialiComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JsonName:                ComponentJsonName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -105,7 +109,7 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled kiali")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
 	}
 	return nil
 }

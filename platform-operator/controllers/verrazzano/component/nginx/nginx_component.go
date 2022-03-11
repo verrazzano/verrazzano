@@ -21,6 +21,9 @@ const ComponentName = "ingress-controller"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = "ingress-nginx"
 
+// ComponentJsonName is the josn name of the verrazzano component in CRD
+const ComponentJsonName = "ingress"
+
 // nginxComponent represents an Nginx component
 type nginxComponent struct {
 	helm.HelmComponent
@@ -34,6 +37,7 @@ func NewComponent() spi.Component {
 	return nginxComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JsonName:                ComponentJsonName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "ingress-nginx"), // Note name is different than release name
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -68,7 +72,7 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled ingress")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
 	}
 	return nil
 }

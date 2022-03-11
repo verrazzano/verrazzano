@@ -5,8 +5,9 @@ package oam
 
 import (
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -21,6 +22,9 @@ const ComponentName = "oam-kubernetes-runtime"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJsonName is the josn name of the verrazzano component in CRD
+const ComponentJsonName = "oam"
+
 type oamComponent struct {
 	helm.HelmComponent
 }
@@ -29,6 +33,7 @@ func NewComponent() spi.Component {
 	return oamComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JsonName:                ComponentJsonName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -60,7 +65,7 @@ func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled oam")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJsonName)
 	}
 	return nil
 }
