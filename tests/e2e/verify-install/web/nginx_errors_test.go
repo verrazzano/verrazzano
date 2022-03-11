@@ -138,10 +138,17 @@ func checkNGINXErrorPage(req *retryablehttp.Request, expectedStatus int) (string
 	}
 	c.HTTPClient.Transport = transport
 	c.CheckRetry = func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		if resp == nil {
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Request returned a nil response, error: %v", err))
+			}
+			return true, err
+		}
 		if resp.StatusCode == expectedStatus {
 			return false, nil
 		}
-		return true, nil
+		pkg.Log(pkg.Info, fmt.Sprintf("Request returned response code: %i, error: %v", resp.StatusCode, err))
+		return true, err
 	}
 	response, err := c.Do(req)
 	if err != nil {
