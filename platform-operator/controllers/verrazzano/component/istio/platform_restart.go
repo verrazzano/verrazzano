@@ -160,6 +160,10 @@ func doesPodContainOldIstioSidecar(podList *v1.PodList, istioProxyImageName stri
 func getMatchingPods(log vzlog.VerrazzanoLogger, client *kubernetes.Clientset, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
 	// Conver the resource labelselector to a go-client label selector
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		return nil, log.ErrorfNewErr("Failed converting metav1.LabelSelector to labels.Selector: %v", err)
+	}
+
 	podList, err := client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
 		return nil, log.ErrorfNewErr("Failed listing pods by label selector: %v", err)
