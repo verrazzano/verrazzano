@@ -324,8 +324,8 @@ def runGinkgoRandomize() {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p -v --keep-going --no-color --timeout=3h ${GINKGO_REPORT_ARGS} \
-                verify-infra/... security/rbac/... istio/authz/... \
-                metrics/deploymetrics/... metricsbinding/...
+                verify-infra/... security/rbac/...  \
+                metricsbinding/... metrics/deploymetrics/...
          """
     }
 }
@@ -339,7 +339,7 @@ def runGinkgo() {
                    examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... \
                    loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
-                   loggingtrait/coherenceworkload/...  examples/helidon/...
+                   loggingtrait/coherenceworkload/...  examples/helidon/... istio/authz/...
         """
     }
 }
