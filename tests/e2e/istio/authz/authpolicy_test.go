@@ -41,14 +41,15 @@ var shortPollingInterval = 10 * time.Second
 
 var t = framework.NewTestFramework("authz")
 
-var _ = t.BeforeSuite(func() {
+var _ = t.SynchronizedBeforeSuite(func() []byte {
 	start := time.Now()
 	deployFooApplication()
 	deployBarApplication()
 	deployNoIstioApplication()
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
-})
+	return []byte{}
+}, func(x []byte) {})
 
 var failed = false
 var beforeSuitePassed = false

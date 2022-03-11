@@ -35,9 +35,16 @@ var imagePullPollingInterval = 30 * time.Second
 var t = framework.NewTestFramework("deploymetrics")
 
 var clusterDump = pkg.NewClusterDumpWrapper()
-var _ = clusterDump.BeforeSuite(func() {
+
+var _ = t.SynchronizedBeforeSuite(func() []byte {
 	deployMetricsApplication()
-})
+	return []byte{}
+}, func(x []byte) {})
+
+//var _ = clusterDump.BeforeSuite(func() {
+//	deployMetricsApplication()
+//})
+
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	undeployMetricsApplication()
