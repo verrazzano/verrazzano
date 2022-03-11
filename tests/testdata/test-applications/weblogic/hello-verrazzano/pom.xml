@@ -7,10 +7,10 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.oracle.verrazzano.weblogic.application</groupId>
-  <artifactId>hello</artifactId>
+  <artifactId>hello-verrazzano</artifactId>
   <version>0.1-SNAPSHOT</version>
   <packaging>war</packaging>
-  <name>hello</name>
+  <name>hello-verrazzano</name>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
