@@ -161,7 +161,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 	t.Context("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		// VZ-3012: Coherence metric fix available only from 1.3.0
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersionForKubeConfig(adminKubeconfig, "1.3.0"); ok {
 			t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
 				Eventually(func() bool {
