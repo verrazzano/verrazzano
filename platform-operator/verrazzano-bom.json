@@ -415,6 +415,23 @@
           ]
         }
       ]
+    },
+    {
+      "name": "operator-lifecycle-manager",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "operator-lifecycle-manager",
+          "images": [
+            {
+              "image": "operator-lifecycle-manager",
+              "tag": "0.19.1",
+              "helmFullImageKey": "olm.imageName",
+              "helmTagKey": "olm.imageVersion"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
