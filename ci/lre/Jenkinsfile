@@ -323,8 +323,7 @@ def runGinkgoRandomize() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} \
-                   verify-infra/... metrics/deploymetrics/... metricsbinding/...
+            ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} verify-infra/...
          """
     }
 }
@@ -338,7 +337,8 @@ def runGinkgo() {
                    examples/helidonconfig/... examples/springboot/... \
                    examples/todo/... examples/bobsbooks/... \
                    loggingtrait/helidonworkload/... loggingtrait/weblogicworkload/... \
-                   loggingtrait/coherenceworkload/...  examples/helidon/...
+                   loggingtrait/coherenceworkload/... metrics/deploymetrics/... \
+                   metricsbinding/... examples/helidon/...
         """
     }
 }
