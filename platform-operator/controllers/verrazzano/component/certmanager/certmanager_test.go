@@ -61,7 +61,7 @@ var fakeComponent = certManagerComponent{}
 func TestIsCertManagerEnabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(true)
-	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
+	assert.True(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
 }
 
 // TestIsOCIDNS tests whether the Effective CR is using OCI DNS
@@ -127,7 +127,7 @@ func TestCleanTempFiles(t *testing.T) {
 func TestIsCertManagerDisabled(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.CertManager.Enabled = getBoolPtr(false)
-	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false)))
+	assert.False(t, fakeComponent.IsEnabled(spi.NewFakeContext(nil, localvz, false).EffectiveCR()))
 }
 
 // TestAppendCertManagerOverrides tests the AppendOverrides fn

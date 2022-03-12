@@ -107,7 +107,7 @@ func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, check
 	}
 
 	if podsReady < expectedReplicas {
-		log.Progressf("%s is waiting for deployment %s podss to be %v. Current available pods are %v", prefix, check.NamespacedName,
+		log.Progressf("%s is waiting for deployment %s pods to be %v. Current available pods are %v", prefix, check.NamespacedName,
 			expectedReplicas, podsReady)
 		return false
 	}
