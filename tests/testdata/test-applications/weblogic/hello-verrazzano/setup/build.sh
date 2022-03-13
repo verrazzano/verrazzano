@@ -21,7 +21,7 @@ if [ -f weblogic-deploy.zip ]; then
     echo 'Using existing weblogic-deploy.zip...'
 else
     echo 'Downloading weblogic-deploy.zip...'
-    wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/weblogic-deploy-tooling-2.1.0/weblogic-deploy.zip
+    wget https://github.com/oracle/weblogic-deploy-tooling/releases/download/release-2.1.0/weblogic-deploy.zip
 fi
 
 echo 'Download WebLogic Image Tool...'

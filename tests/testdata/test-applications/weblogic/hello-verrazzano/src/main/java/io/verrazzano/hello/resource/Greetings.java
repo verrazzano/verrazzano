@@ -9,10 +9,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+@Path("greetings")
 public class Greetings {
 
     @GET
-    @Path("/greet")
+    @Path("/message")
     @Produces((MediaType.TEXT_PLAIN))
     public Response sayHello() {
 	  return Response.status(200).entity("Hello Verrazzano").build();
