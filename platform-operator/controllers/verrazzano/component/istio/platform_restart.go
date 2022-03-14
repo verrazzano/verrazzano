@@ -6,9 +6,10 @@ package istio
 import (
 	"context"
 	"errors"
+	"strconv"
 	"strings"
-	"time"
 
+	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -24,7 +25,7 @@ import (
 
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
-func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
+func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client, cr *installv1alpha1.Verrazzano) error {
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
@@ -65,15 +66,16 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 			deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-		deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(cr)
 		if err := client.Update(context.TODO(), deployment); err != nil {
 			return log.ErrorfNewErr("Failed, error updating deployment %s annotation to force a pod restart", deployment.Name)
 		}
-		log.Infof("Updated deployment %s annotation causing a pod restart to get new Istio sidecar", deployment.Name)
+		log.Oncef("Updated deployment %s annotation causing a pod restart to get new Istio sidecar", deployment.Name)
 	}
 	log.Oncef("Finished restarting system Deployments in istio injected namespaces to pick up new Isio sidecar")
 
 	// Restart all the StatefulSets in the injected system namespaces
+	log.Oncef("Restarting system StatefulSets that have an old Istio sidecar so that the pods get the new Isio sidecar")
 	statefulSetList, err := goClient.AppsV1().StatefulSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -97,15 +99,16 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 		if sts.Spec.Template.ObjectMeta.Annotations == nil {
 			sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-		sts.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		sts.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(cr)
 		if err := client.Update(context.TODO(), sts); err != nil {
 			return log.ErrorfNewErr("Failed, error updating StatefulSet %s annotation to force a pod restart", sts.Name)
 		}
-		log.Infof("Updated StatefulSet %s annotation causing a pod restart to get new Istio sidecar", sts.Name)
+		log.Oncef("Updated StatefulSet %s annotation causing a pod restart to get new Istio sidecar", sts.Name)
 	}
-	log.Info("Restarted system Statefulsets in istio injected namespaces")
+	log.Oncef("Restarted system Statefulsets in istio injected namespaces")
 
 	// Restart all the DaemonSets in the injected system namespaces
+	log.Oncef("Restarting system DaemonSets that have an old Istio sidecar so that the pods get the new Isio sidecar")
 	daemonSetList, err := goClient.AppsV1().DaemonSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -129,13 +132,13 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 		if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 			daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 		}
-		daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(cr)
 		if err := client.Update(context.TODO(), daemonSet); err != nil {
 			return log.ErrorfNewErr("Failed, error updating DaemonSet %s annotation to force a pod restart", daemonSet.Name)
 		}
-		log.Infof("Updated DaemonSet %s annotation causing a pod restart to get new Istio sidecar", daemonSet.Name)
+		log.Oncef("Updated DaemonSet %s annotation causing a pod restart to get new Istio sidecar", daemonSet.Name)
 	}
-	log.Info("Restarted system DaemonSets in istio injected namespaces")
+	log.Oncef("Restarted system DaemonSets in istio injected namespaces")
 	return nil
 }
 
@@ -187,4 +190,9 @@ func getMatchingPods(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns
 		return nil, log.ErrorfNewErr("Failed listing pods by label selector: %v", err)
 	}
 	return podList, nil
+}
+
+// Use the CR generation so that we only restart the workloads once
+func buildRestartAnnotationString(cr *installv1alpha1.Verrazzano) string {
+	return strconv.Itoa(int(cr.Generation))
 }
