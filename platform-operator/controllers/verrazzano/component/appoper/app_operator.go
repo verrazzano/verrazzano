@@ -21,6 +21,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	helmManagedByLabel             = "app.kubernetes.io/managed-by"
+	helmReleaseNameAnnotation      = "meta.helm.sh/release-name"
+	helmReleaseNamespaceAnnotation = "meta.helm.sh/release-namespace"
+)
+
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
 // of the verrazzano-application-operator image when set.
 func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -99,7 +105,7 @@ func applyCRDYaml(c client.Client) error {
 // Add label/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the
 // trait definitions were included in the helm charts crds directory, and they did not get installed with the required
 // label/annotations.  Adding the label/annotations allows helm upgrade to proceed without errors.
-func labelTraitDefinitions(c client.Client) error {
+func labelAnnotateTraitDefinitions(c client.Client) error {
 	traitDefinitions := []string{
 		"ingresstraits.oam.verrazzano.io",
 		"loggingtraits.oam.verrazzano.io",
@@ -116,13 +122,13 @@ func labelTraitDefinitions(c client.Client) error {
 		if trait.Labels == nil {
 			trait.Labels = map[string]string{}
 		}
-		trait.Labels["app.kubernetes.io/managed-by"] = "Helm"
+		trait.Labels[helmManagedByLabel] = "Helm"
 		// Add annotations required by Helm
 		if trait.Annotations == nil {
 			trait.Annotations = map[string]string{}
 		}
-		trait.Annotations["meta.helm.sh/release-name"] = ComponentName
-		trait.Annotations["meta.helm.sh/release-namespace"] = ComponentNamespace
+		trait.Annotations[helmReleaseNameAnnotation] = ComponentName
+		trait.Annotations[helmReleaseNamespaceAnnotation] = ComponentNamespace
 
 		err = c.Update(context.TODO(), &trait)
 		if err != nil {
@@ -135,7 +141,7 @@ func labelTraitDefinitions(c client.Client) error {
 // Add label/annotations required by Helm to the Verrazzano installed workload definitions.  Originally, the
 // workload definitions were included in the helm charts crds directory, and they did not get installed with the required
 // label/annotations.  Adding the label/annotations allows helm upgrade to proceed without errors.
-func labelWorkloadDefinitions(c client.Client) error {
+func labelAnnotateWorkloadDefinitions(c client.Client) error {
 	workloadDefinitions := []string{
 		"coherences.coherence.oracle.com",
 		"deployments.apps",
@@ -155,13 +161,13 @@ func labelWorkloadDefinitions(c client.Client) error {
 		if workload.Labels == nil {
 			workload.Labels = map[string]string{}
 		}
-		workload.Labels["app.kubernetes.io/managed-by"] = "Helm"
+		workload.Labels[helmManagedByLabel] = "Helm"
 		// Add annotations required by Helm
 		if workload.Annotations == nil {
 			workload.Annotations = map[string]string{}
 		}
-		workload.Annotations["meta.helm.sh/release-name"] = ComponentName
-		workload.Annotations["meta.helm.sh/release-namespace"] = ComponentNamespace
+		workload.Annotations[helmReleaseNameAnnotation] = ComponentName
+		workload.Annotations[helmReleaseNamespaceAnnotation] = ComponentNamespace
 
 		err = c.Update(context.TODO(), &workload)
 		if err != nil {

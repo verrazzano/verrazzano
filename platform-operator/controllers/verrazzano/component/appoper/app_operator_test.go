@@ -130,11 +130,11 @@ func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
 	assert.Error(t, applyCRDYaml(fakeClient))
 }
 
-// TestLabelTraitDefinitions tests the labelTraitDefinitions function
-// GIVEN a call to labelTraitDefinitions
+// TestLabelAnnotateTraitDefinitions tests the labelAnnotateTraitDefinitions function
+// GIVEN a call to labelAnnotateTraitDefinitions
 // WHEN trait definitions do not have expected Helm label/annotations
 // THEN the trait definitions are updated with the expected Helm label/annotations
-func TestLabelTraitDefinitions(t *testing.T) {
+func TestLabelAnnotateTraitDefinitions(t *testing.T) {
 	scheme := runtime.NewScheme()
 	oam.AddToScheme(scheme)
 
@@ -155,7 +155,7 @@ func TestLabelTraitDefinitions(t *testing.T) {
 			},
 		},
 	)
-	assert.NoError(t, labelTraitDefinitions(fakeClient))
+	assert.NoError(t, labelAnnotateTraitDefinitions(fakeClient))
 	trait := oamv1alpha2.TraitDefinition{}
 	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "ingresstraits.oam.verrazzano.io"}, &trait))
 	checkTraitDefinition(t, &trait)
@@ -167,11 +167,11 @@ func TestLabelTraitDefinitions(t *testing.T) {
 	checkTraitDefinition(t, &trait)
 }
 
-// TestLabelWorkloadDefinitions tests the labelWorkloadDefinitions function
-// GIVEN a call to labelWorkloadDefinitions
+// TestLabelAnnotateWorkloadDefinitions tests the labelAnnotateWorkloadDefinitions function
+// GIVEN a call to labelAnnotateWorkloadDefinitions
 // WHEN workload definitions do not have expected Helm label/annotations
 // THEN the workload definitions are updated with the expected Helm label/annotations
-func TestLabelWorkloadDefinitions(t *testing.T) {
+func TestLabelAnnotateWorkloadDefinitions(t *testing.T) {
 	scheme := runtime.NewScheme()
 	oam.AddToScheme(scheme)
 
@@ -207,7 +207,7 @@ func TestLabelWorkloadDefinitions(t *testing.T) {
 			},
 		},
 	)
-	assert.NoError(t, labelWorkloadDefinitions(fakeClient))
+	assert.NoError(t, labelAnnotateWorkloadDefinitions(fakeClient))
 	workload := oamv1alpha2.WorkloadDefinition{}
 	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "coherences.coherence.oracle.com"}, &workload))
 	checkWorkloadDefinition(t, &workload)
@@ -229,15 +229,13 @@ func TestLabelWorkloadDefinitions(t *testing.T) {
 }
 
 func checkTraitDefinition(t *testing.T, trait *oamv1alpha2.TraitDefinition) {
-	assert.Contains(t, trait.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, trait.Annotations["meta.helm.sh/release-name"], ComponentName)
-	assert.Contains(t, trait.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
-
+	assert.Contains(t, trait.Labels[helmManagedByLabel], "Helm")
+	assert.Contains(t, trait.Annotations[helmReleaseNameAnnotation], ComponentName)
+	assert.Contains(t, trait.Annotations[helmReleaseNamespaceAnnotation], ComponentNamespace)
 }
 
 func checkWorkloadDefinition(t *testing.T, trait *oamv1alpha2.WorkloadDefinition) {
-	assert.Contains(t, trait.Labels["app.kubernetes.io/managed-by"], "Helm")
-	assert.Contains(t, trait.Annotations["meta.helm.sh/release-name"], ComponentName)
-	assert.Contains(t, trait.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
-
+	assert.Contains(t, trait.Labels[helmManagedByLabel], "Helm")
+	assert.Contains(t, trait.Annotations[helmReleaseNameAnnotation], ComponentName)
+	assert.Contains(t, trait.Annotations[helmReleaseNamespaceAnnotation], ComponentNamespace)
 }
