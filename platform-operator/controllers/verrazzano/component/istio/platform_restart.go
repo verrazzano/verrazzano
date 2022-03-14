@@ -73,7 +73,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	}
 	log.Oncef("Finished restarting system Deployments in istio injected namespaces to pick up new Isio sidecar")
 
-	// Restart all the StatefulSet in the injected system namespaces
+	// Restart all the StatefulSets in the injected system namespaces
 	statefulSetList, err := goClient.AppsV1().StatefulSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err

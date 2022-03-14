@@ -647,6 +647,7 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	// Setup fake client to provide workloads for restart platform testing
 	goClient, err := initFakeClient()
+	asserts.NoError(err)
 	k8sutil.SetFakeClient(goClient)
 
 	defer config.Set(config.Get())
@@ -743,6 +744,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 
 	// Setup fake client to provide workloads for restart platform testing
 	goClient, err := initFakeClient()
+	asserts.NoError(err)
 	k8sutil.SetFakeClient(goClient)
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
@@ -841,6 +843,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	// Setup fake client to provide workloads for restart platform testing
 	goClient, err := initFakeClient()
+	asserts.NoError(err)
 	k8sutil.SetFakeClient(goClient)
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
@@ -1103,6 +1106,7 @@ func TestUpgradeComponent(t *testing.T) {
 
 	// Setup fake client to provide workloads for restart platform testing
 	goClient, err := initFakeClient()
+	asserts.NoError(err)
 	k8sutil.SetFakeClient(goClient)
 
 	vz := vzapi.Verrazzano{}
@@ -1288,6 +1292,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Setup fake client to provide workloads for restart platform testing
 	goClient, err := initFakeClient()
+	asserts.NoError(err)
 	k8sutil.SetFakeClient(goClient)
 
 	vz := vzapi.Verrazzano{}
@@ -2029,8 +2034,8 @@ func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, er
 	return result, err
 }
 
+// initFakeClient inits a fake go-client and loads it with fake resources
 func initFakeClient() (kubernetes.Interface, error) {
-
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testDeployment",
@@ -2057,12 +2062,5 @@ func initFakeClient() (kubernetes.Interface, error) {
 		},
 	}
 	clientSet := gofake.NewSimpleClientset(dep, pod)
-
-	//
-	//
-	//newdep, err := client.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Create(
-	//	context.TODO(), dep, metav1.CreateOptions{})
-	//
-	//fmt.Println(newdep.Namespace)
 	return clientSet, nil
 }
