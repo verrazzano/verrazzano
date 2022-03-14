@@ -55,7 +55,11 @@ var _ = t.BeforeSuite(func() {
 	ingressRules := ingress.Spec.Rules
 	serverURL = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 	var err error
-	isTestSupported, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isTestSupported, err = pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
