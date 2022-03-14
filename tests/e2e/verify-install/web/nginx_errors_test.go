@@ -25,18 +25,13 @@ const (
 	expected401    = "<html>\n<head><title>401 Unauthorized</title></head>\n<body>\n<center><h1>401 Unauthorized</h1></center>\n</body>\n</html>"
 )
 
-var kubeconfigPath string
-
-var _ = t.BeforeSuite(func() {
-	var err error
-	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-})
-
 var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
 	t.Context("test that an", func() {
+		var err error
+		kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
 		t.ItMinimumVersion("Incorrect path returns a 404", minimumVersion, kubeconfigPath, func() {
 			if !pkg.IsManagedClusterProfile() {
 				Eventually(func() (string, error) {
