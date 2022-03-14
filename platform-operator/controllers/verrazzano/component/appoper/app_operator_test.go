@@ -104,7 +104,7 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 func TestIsApplyCRDYamlValid(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "../../../../helm_config"
-	assert.Nil(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+	assert.Nil(t, applyCRDYaml(fakeClient))
 }
 
 //  TestIsApplyCRDYamlInvalidPath tests the ApplyCRDYaml function
@@ -114,7 +114,7 @@ func TestIsApplyCRDYamlValid(t *testing.T) {
 func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "./testdata"
-	assert.Error(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+	assert.Error(t, applyCRDYaml(fakeClient))
 }
 
 //  TestIsApplyCRDYamlInvalidChart tests the ApplyCRDYaml function
@@ -124,5 +124,5 @@ func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
 func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "invalidPath"
-	assert.Error(t, ApplyCRDYaml(nil, fakeClient, "", "", ""))
+	assert.Error(t, applyCRDYaml(fakeClient))
 }

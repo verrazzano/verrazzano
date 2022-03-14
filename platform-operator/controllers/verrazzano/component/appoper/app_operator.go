@@ -4,19 +4,19 @@
 package appoper
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/labels"
-
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -90,8 +90,83 @@ func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {
+func applyCRDYaml(c client.Client) error {
 	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
 	yamlApplier := k8sutil.NewYAMLApplier(c, "")
 	return yamlApplier.ApplyD(path)
+}
+
+// Add labels/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the
+// trait definitions were included in the helm charts crds directory, and they did not get installed with the required
+// labels/annotations.  Adding the labels/annotations allows helm upgrade to proceed without errors.
+func labelTraitDefinitions(ctx spi.ComponentContext) error {
+	traitDefinitions := []string{
+		"ingresstraits.oam.verrazzano.io",
+		"loggingtraits.oam.verrazzano.io",
+		"metricstraits.oam.verrazzano.io",
+	}
+
+	for _, traitDefinition := range traitDefinitions {
+		trait := oamv1alpha2.TraitDefinition{}
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: traitDefinition}, &trait)
+		if err != nil {
+			return err
+		}
+		// Add label required by Helm
+		if trait.Labels == nil {
+			trait.Labels = map[string]string{}
+		}
+		trait.Labels["app.kubernetes.io/managed-by"] = "Helm"
+		// Add annotations required by Helm
+		if trait.Annotations == nil {
+			trait.Annotations = map[string]string{}
+		}
+		trait.Annotations["meta.helm.sh/release-name"] = ComponentName
+		trait.Annotations["meta.helm.sh/release-namespace"] = ComponentNamespace
+
+		err = ctx.Client().Update(context.TODO(), &trait)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Add labels/annotations required by Helm to the Verrazzano installed workload definitions.  Originally, the
+// workload definitions were included in the helm charts crds directory, and they did not get installed with the required
+// labels/annotations.  Adding the labels/annotations allows helm upgrade to proceed without errors.
+func labelWorkloadDefinitions(ctx spi.ComponentContext) error {
+	workloadDefinitions := []string{
+		"coherences.coherence.oracle.com",
+		"deployments.apps",
+		"domains.weblogic.oracle",
+		"verrazzanocoherenceworkloads.oam.verrazzano.io",
+		"verrazzanohelidonworkloads.oam.verrazzano.io",
+		"verrazzanoweblogicworkloads.oam.verrazzano.io",
+	}
+
+	for _, workloadDefinition := range workloadDefinitions {
+		workload := oamv1alpha2.WorkloadDefinition{}
+		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: workloadDefinition}, &workload)
+		if err != nil {
+			return err
+		}
+		// Add label required by Helm
+		if workload.Labels == nil {
+			workload.Labels = map[string]string{}
+		}
+		workload.Labels["app.kubernetes.io/managed-by"] = "Helm"
+		// Add annotations required by Helm
+		if workload.Annotations == nil {
+			workload.Annotations = map[string]string{}
+		}
+		workload.Annotations["meta.helm.sh/release-name"] = ComponentName
+		workload.Annotations["meta.helm.sh/release-namespace"] = ComponentNamespace
+
+		err = ctx.Client().Update(context.TODO(), &workload)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
