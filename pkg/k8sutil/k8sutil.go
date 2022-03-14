@@ -55,7 +55,7 @@ func SetFakeClient(client kubernetes.Interface) {
 	fakeClient = client
 }
 
-// CleanFakeClient for unit tests
+// ClearFakeClient for unit tests
 func ClearFakeClient() {
 	fakeClient = nil
 }

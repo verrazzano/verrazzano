@@ -67,9 +67,9 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 		}
 		deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
 		if err := client.Update(context.TODO(), deployment); err != nil {
-			return log.ErrorfNewErr("Failed, error updating deployment %s annotation to restart pods to get new Istio sidecar", deployment.Name)
+			return log.ErrorfNewErr("Failed, error updating deployment %s annotation to force a pod restart", deployment.Name)
 		}
-		log.Infof("Updated deployment %s annotation to restart pods to get new Istio sidecar", deployment.Name)
+		log.Infof("Updated deployment %s annotation causing a pod restart to get new Istio sidecar", deployment.Name)
 	}
 	log.Oncef("Finished restarting system Deployments in istio injected namespaces to pick up new Isio sidecar")
 
@@ -78,22 +78,30 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	for index := range statefulSetList.Items {
-		statefulSet := &statefulSetList.Items[index]
+		sts := &statefulSetList.Items[index]
 
-		// Check if StatefulSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, statefulSet.Namespace) {
-			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
-				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), statefulSet); err != nil {
-				return err
-			}
+		// Ignore StatefulSet if it is NOT in an Istio injected system namespace
+		if !vzString.SliceContainsString(namespaces, sts.Namespace) {
+			continue
 		}
+		// Get the pods for this StatefulSet
+		podList, err := getMatchingPods(log, goClient, sts.Namespace, sts.Spec.Selector)
+		if err != nil {
+			return err
+		}
+		// Check if any pods contain the old Istio proxy image
+		if !doesPodContainOldIstioSidecar(podList, istioProxyImage) {
+			continue
+		}
+		if sts.Spec.Template.ObjectMeta.Annotations == nil {
+			sts.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		sts.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		if err := client.Update(context.TODO(), sts); err != nil {
+			return log.ErrorfNewErr("Failed, error updating StatefulSet %s annotation to force a pod restart", sts.Name)
+		}
+		log.Infof("Updated StatefulSet %s annotation causing a pod restart to get new Istio sidecar", sts.Name)
 	}
 	log.Info("Restarted system Statefulsets in istio injected namespaces")
 
@@ -102,22 +110,30 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	for index := range daemonSetList.Items {
 		daemonSet := &daemonSetList.Items[index]
 
-		// Check if DaemonSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
-			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
-				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), daemonSet); err != nil {
-				return err
-			}
+		// Ignore StatefulSet if it is NOT in an Istio injected system namespace
+		if !vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
+			continue
 		}
+		// Get the pods for this DaemonSet
+		podList, err := getMatchingPods(log, goClient, daemonSet.Namespace, daemonSet.Spec.Selector)
+		if err != nil {
+			return err
+		}
+		// Check if any pods contain the old Istio proxy image
+		if !doesPodContainOldIstioSidecar(podList, istioProxyImage) {
+			continue
+		}
+		if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
+			daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+		}
+		daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
+		if err := client.Update(context.TODO(), daemonSet); err != nil {
+			return log.ErrorfNewErr("Failed, error updating DaemonSet %s annotation to force a pod restart", daemonSet.Name)
+		}
+		log.Infof("Updated DaemonSet %s annotation causing a pod restart to get new Istio sidecar", daemonSet.Name)
 	}
 	log.Info("Restarted system DaemonSets in istio injected namespaces")
 	return nil
