@@ -105,7 +105,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 		}
 		log.Oncef("Updated StatefulSet %s annotation causing a pod restart to get new Istio sidecar", sts.Name)
 	}
-	log.Oncef("Restarted system Statefulsets in istio injected namespaces")
+	log.Oncef("Finished restarting system Statefulsets in istio injected namespaces")
 
 	// Restart all the DaemonSets in the injected system namespaces
 	log.Oncef("Restarting system DaemonSets that have an old Istio sidecar so that the pods get the new Isio sidecar")
@@ -138,7 +138,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 		}
 		log.Oncef("Updated DaemonSet %s annotation causing a pod restart to get new Istio sidecar", daemonSet.Name)
 	}
-	log.Oncef("Restarted system DaemonSets in istio injected namespaces")
+	log.Oncef("Finished restarting system DaemonSets in istio injected namespaces")
 	return nil
 }
 
