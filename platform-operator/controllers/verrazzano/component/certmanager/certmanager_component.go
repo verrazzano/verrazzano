@@ -4,8 +4,8 @@
 package certmanager
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
