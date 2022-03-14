@@ -98,7 +98,7 @@ func (e *Elastic) Connect() bool {
 func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string) ([]byte, error) {
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
-	client, err := e.getVmiHTTPClient(kubeconfigPath)
+	client, err := e.GetVmiHTTPClient(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error getting HTTP client: %v", err))
 		return nil, err
@@ -125,7 +125,7 @@ func (e *Elastic) retryGet(url, username, password string, kubeconfigPath string
 	return httpResp.Body, nil
 }
 
-func (e *Elastic) getVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
+func (e *Elastic) GetVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	if e.vmiHTTPClient == nil {
 		var err error
 		e.vmiHTTPClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)

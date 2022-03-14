@@ -31,6 +31,7 @@ var t = framework.NewTestFramework("web")
 var serverURL string
 var isManagedClusterProfile bool
 var isTestSupported bool
+
 var _ = t.BeforeSuite(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset

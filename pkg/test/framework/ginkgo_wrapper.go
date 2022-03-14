@@ -89,6 +89,19 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 	return ginkgo.It(text, args...)
 }
 
+func (t *TestFramework) ItMinimumVersion(text string, version string, args ...interface{}) bool {
+	supported, err := pkg.IsVerrazzanoMinVersion(version)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
+		return false
+	}
+	if !supported {
+		pkg.Log(pkg.Info, fmt.Sprintf("Skipping test because Verrazzano version is less than %s", version))
+		return true
+	}
+	return t.It(text, args...)
+}
+
 // Describe wraps Ginkgo Describe to emit a metric
 func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	if args == nil {
