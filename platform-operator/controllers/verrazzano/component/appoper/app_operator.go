@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -115,6 +116,11 @@ func labelAnnotateTraitDefinitions(c client.Client) error {
 	for _, traitDefinition := range traitDefinitions {
 		trait := oamv1alpha2.TraitDefinition{}
 		err := c.Get(context.TODO(), types.NamespacedName{Name: traitDefinition}, &trait)
+		// loggingtraits was not installed in earlier versions of Verrazzano so just
+		// continue on to next trait definition in that case.
+		if errors.IsNotFound(err) && traitDefinition == "loggingtraits.oam.verrazzano.io" {
+			continue
+		}
 		if err != nil {
 			return err
 		}
