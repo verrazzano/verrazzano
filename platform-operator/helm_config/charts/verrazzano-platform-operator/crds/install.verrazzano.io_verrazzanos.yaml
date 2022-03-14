@@ -4222,6 +4222,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  olm:
+                    description: Operator Lifecycle Manager configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   prometheus:
                     description: Prometheus configuration
                     properties:
