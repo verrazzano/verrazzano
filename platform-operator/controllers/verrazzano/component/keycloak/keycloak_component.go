@@ -4,6 +4,8 @@ package keycloak
 
 import (
 	"context"
+	"fmt"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -136,8 +138,8 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 }
 
 // IsEnabled Keycloak-specific enabled check for installation
-func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+func (c KeycloakComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -150,4 +152,12 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isKeycloakReady(ctx)
 	}
 	return false
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("can not disable previously enabled keycloak")
+	}
+	return nil
 }

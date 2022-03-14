@@ -4,9 +4,6 @@
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def branchSpecificSchedule = getCronSchedule()
-def tests = ["vpo.killed", "helm.chart.corrupted", "uninstall.failed.upgrade"]
-Collections.shuffle(tests)
 
 pipeline {
     options {
@@ -24,17 +21,13 @@ pipeline {
         }
     }
 
-    triggers {
-        cron(branchSpecificSchedule)
-    }
-
     parameters {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: [ "1.20", "1.19", "1.21" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.1.1',
+                defaultValue: 'v1.0.0',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
@@ -64,7 +57,7 @@ pipeline {
         choice (name: 'CHAOS_TEST_TYPE',
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
-                choices: tests)
+                choices: [ "uninstall.failed.upgrade", "helm.chart.corrupted", "vpo.killed" ])
     }
 
     environment {
@@ -393,7 +386,6 @@ pipeline {
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
                         # wait for the expected error message
-                        # TODO - set a limit to wait?
                         until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
                         do
                             echo "Waiting for the error message ..."
@@ -408,40 +400,30 @@ pipeline {
                         # Move values.yaml so helm install of Verrazzano will fail
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak"
-                        # sleep 5 minutes to let the helm upgrade error manifest
+                        # wait for the expected error message
                         until [ `kubectl logs -l app=verrazzano-platform-operator -n verrazzano-install --tail -1 | grep "Failed running Helm command for release verrazzano" | wc -l` -gt 0 ]
                         do
                             echo "Waiting for the error message ..."
                             sleep 30
                         done
-                        # Make sure the upgrade is still in progress
-                        vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
-                        if [[ \${vz_status} == "UpgradeStarted" ]]; then
-                            # Uninstall VZ
-                            kubectl delete verrazzano my-verrazzano
-                        fi
-                    fi
+                        # Upgrade is in Error State, Uninstall
 
-                    if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
-                    then
-                        # wait for the upgrade to complete
-                        # Turn it off for now, Upgrade Fails
-                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        # Uninstall VZ
+                        kubectl delete verrazzano my-verrazzano
+
+                        ## dump out uninstall logs
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
+                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                        echo "Listing all pods in all namespaces after uninstall"
+                        kubectl get pods --all-namespaces
+                        echo "-----------------------------------------------------"
 
 
-                        # Dump the resource to debug
-                        kubectl get -o yaml verrazzano/my-verrazzano || true
+                        # verify Uninstall
+                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
 
-                        # ideally we don't need to wait here
-                        sleep 15
-                        echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                        helm list -A
-
-                        # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-                        kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-
-                        echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-                        cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
                     fi
                 """
             }
@@ -803,13 +785,4 @@ def restartExampleApps() {
 
         kubectl rollout restart deployment -n hello-helidon
     """
-}
-
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("jmaron/VZ-5061-kibana-failures")) {
-        return "H */1 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@daily"
-    }
-    return ""
 }
