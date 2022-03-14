@@ -27,8 +27,7 @@ const (
 
 var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
 	t.Context("test that an", func() {
-		var err error
-		kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
