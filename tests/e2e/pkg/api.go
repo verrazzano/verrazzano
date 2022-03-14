@@ -183,3 +183,12 @@ func (api *APIEndpoint) GetElasticURL() (string, error) {
 	}
 	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }
+
+//GetVerrazzanoIngressURL fetches Verrazzano-Ingress endpoint URL
+func (api *APIEndpoint) GetVerrazzanoIngressURL() (string, error) {
+	ingress, err := api.GetIngress("verrazzano-system", "verrazzano-ingress")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
+}
