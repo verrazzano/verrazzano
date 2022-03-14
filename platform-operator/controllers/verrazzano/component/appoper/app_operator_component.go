@@ -43,7 +43,6 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
-			PreUpgradeFunc:          ApplyCRDYaml,
 		},
 	}
 }
