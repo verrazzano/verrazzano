@@ -31,12 +31,12 @@ var (
 	tmpFilePrefix        = "operator-lifecycle-manager-overrides-"
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
-	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+	// tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
 )
 
-func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
-}
+// func resetWriteFileFunc() {
+// 	writeFileFunc = ioutil.WriteFile
+// }
 
 // isOLMReady checks if the OLM deployments are in the ready state
 func isOLMReady(ctx spi.ComponentContext) bool {
