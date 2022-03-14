@@ -1,0 +1,18 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+domainInfo:
+  AdminUserName: '@@SECRET:__weblogic-credentials__:username@@'
+  AdminPassword: '@@SECRET:__weblogic-credentials__:password@@'
+  ServerStartMode: 'prod'
+topology:
+  Name: '@@ENV:DOMAIN_UID@@'
+  AdminServerName: 'AdminServer'
+  Server:
+    'AdminServer':
+      ListenPort: '7001'
+appDeployments:
+  Application:
+    HelloApp:
+      SourcePath: wlsdeploy/applications/hello.war
+      ModuleType: war
+      Target: 'AdminServer'
