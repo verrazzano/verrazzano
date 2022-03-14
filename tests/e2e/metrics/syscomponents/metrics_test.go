@@ -5,10 +5,11 @@ package syscomponents
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -101,7 +102,7 @@ var _ = t.BeforeSuite(func() {
 		}
 	}
 
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeConfig)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -221,7 +222,7 @@ func verifyEnvoyStats(metricName string) bool {
 func getClusterNameMetricLabel() string {
 	if clusterNameMetricsLabel == "" {
 		// ignore error getting the metric label - we'll just use the default value returned
-		lbl, err := pkg.GetClusterNameMetricLabel()
+		lbl, err := pkg.GetClusterNameMetricLabel(adminKubeConfig)
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster name metric label: %s", err.Error()))
 		}
