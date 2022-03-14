@@ -4,19 +4,22 @@
 package appoper
 
 import (
+	"context"
 	"os"
 	"testing"
 
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 const testBomFilePath = "../../testdata/test_bom.json"
@@ -97,7 +100,7 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-//  TestIsApplyCRDYamlValid tests the ApplyCRDYaml function
+//  TestIsApplyCRDYamlValid tests the applyCRDYaml function
 //  GIVEN a call to ApplyCRDYaml
 //  WHEN the yaml is valid
 //  THEN no error is returned
@@ -107,7 +110,7 @@ func TestIsApplyCRDYamlValid(t *testing.T) {
 	assert.Nil(t, applyCRDYaml(fakeClient))
 }
 
-//  TestIsApplyCRDYamlInvalidPath tests the ApplyCRDYaml function
+//  TestIsApplyCRDYamlInvalidPath tests the applyCRDYaml function
 //  GIVEN a call to ApplyCRDYaml
 //  WHEN the path is invalid
 //  THEN an appropriate error is returned
@@ -117,7 +120,7 @@ func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
 	assert.Error(t, applyCRDYaml(fakeClient))
 }
 
-//  TestIsApplyCRDYamlInvalidChart tests the ApplyCRDYaml function
+//  TestIsApplyCRDYamlInvalidChart tests the applyCRDYaml function
 //  GIVEN a call to ApplyCRDYaml
 //  WHEN the yaml is invalid
 //  THEN an appropriate error is returned
@@ -125,4 +128,116 @@ func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "invalidPath"
 	assert.Error(t, applyCRDYaml(fakeClient))
+}
+
+// TestLabelTraitDefinitions tests the labelTraitDefinitions function
+// GIVEN a call to labelTraitDefinitions
+// WHEN trait definitions do not have expected Helm label/annotations
+// THEN the trait definitions are updated with the expected Helm label/annotations
+func TestLabelTraitDefinitions(t *testing.T) {
+	scheme := runtime.NewScheme()
+	oam.AddToScheme(scheme)
+
+	fakeClient := fake.NewFakeClientWithScheme(scheme,
+		&oamv1alpha2.TraitDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ingresstraits.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.TraitDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "loggingtraits.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.TraitDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "metricstraits.oam.verrazzano.io",
+			},
+		},
+	)
+	assert.NoError(t, labelTraitDefinitions(fakeClient))
+	trait := oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "ingresstraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+	trait = oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "loggingtraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+	trait = oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "metricstraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+}
+
+// TestLabelWorkloadDefinitions tests the labelWorkloadDefinitions function
+// GIVEN a call to labelWorkloadDefinitions
+// WHEN workload definitions do not have expected Helm label/annotations
+// THEN the workload definitions are updated with the expected Helm label/annotations
+func TestLabelWorkloadDefinitions(t *testing.T) {
+	scheme := runtime.NewScheme()
+	oam.AddToScheme(scheme)
+
+	fakeClient := fake.NewFakeClientWithScheme(scheme,
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "coherences.coherence.oracle.com",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "deployments.apps",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "domains.weblogic.oracle",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "verrazzanocoherenceworkloads.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "verrazzanohelidonworkloads.oam.verrazzano.io",
+			},
+		},
+		&oamv1alpha2.WorkloadDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "verrazzanoweblogicworkloads.oam.verrazzano.io",
+			},
+		},
+	)
+	assert.NoError(t, labelWorkloadDefinitions(fakeClient))
+	workload := oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "coherences.coherence.oracle.com"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "deployments.apps"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "domains.weblogic.oracle"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanocoherenceworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanohelidonworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanoweblogicworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+}
+
+func checkTraitDefinition(t *testing.T, trait *oamv1alpha2.TraitDefinition) {
+	assert.Contains(t, trait.Labels["app.kubernetes.io/managed-by"], "Helm")
+	assert.Contains(t, trait.Annotations["meta.helm.sh/release-name"], ComponentName)
+	assert.Contains(t, trait.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
+
+}
+
+func checkWorkloadDefinition(t *testing.T, trait *oamv1alpha2.WorkloadDefinition) {
+	assert.Contains(t, trait.Labels["app.kubernetes.io/managed-by"], "Helm")
+	assert.Contains(t, trait.Annotations["meta.helm.sh/release-name"], ComponentName)
+	assert.Contains(t, trait.Annotations["meta.helm.sh/release-namespace"], ComponentNamespace)
+
 }

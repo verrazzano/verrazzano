@@ -96,10 +96,10 @@ func applyCRDYaml(c client.Client) error {
 	return yamlApplier.ApplyD(path)
 }
 
-// Add labels/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the
+// Add label/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the
 // trait definitions were included in the helm charts crds directory, and they did not get installed with the required
-// labels/annotations.  Adding the labels/annotations allows helm upgrade to proceed without errors.
-func labelTraitDefinitions(ctx spi.ComponentContext) error {
+// label/annotations.  Adding the label/annotations allows helm upgrade to proceed without errors.
+func labelTraitDefinitions(c client.Client) error {
 	traitDefinitions := []string{
 		"ingresstraits.oam.verrazzano.io",
 		"loggingtraits.oam.verrazzano.io",
@@ -108,7 +108,7 @@ func labelTraitDefinitions(ctx spi.ComponentContext) error {
 
 	for _, traitDefinition := range traitDefinitions {
 		trait := oamv1alpha2.TraitDefinition{}
-		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: traitDefinition}, &trait)
+		err := c.Get(context.TODO(), types.NamespacedName{Name: traitDefinition}, &trait)
 		if err != nil {
 			return err
 		}
@@ -124,7 +124,7 @@ func labelTraitDefinitions(ctx spi.ComponentContext) error {
 		trait.Annotations["meta.helm.sh/release-name"] = ComponentName
 		trait.Annotations["meta.helm.sh/release-namespace"] = ComponentNamespace
 
-		err = ctx.Client().Update(context.TODO(), &trait)
+		err = c.Update(context.TODO(), &trait)
 		if err != nil {
 			return err
 		}
@@ -132,10 +132,10 @@ func labelTraitDefinitions(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// Add labels/annotations required by Helm to the Verrazzano installed workload definitions.  Originally, the
+// Add label/annotations required by Helm to the Verrazzano installed workload definitions.  Originally, the
 // workload definitions were included in the helm charts crds directory, and they did not get installed with the required
-// labels/annotations.  Adding the labels/annotations allows helm upgrade to proceed without errors.
-func labelWorkloadDefinitions(ctx spi.ComponentContext) error {
+// label/annotations.  Adding the label/annotations allows helm upgrade to proceed without errors.
+func labelWorkloadDefinitions(c client.Client) error {
 	workloadDefinitions := []string{
 		"coherences.coherence.oracle.com",
 		"deployments.apps",
@@ -147,7 +147,7 @@ func labelWorkloadDefinitions(ctx spi.ComponentContext) error {
 
 	for _, workloadDefinition := range workloadDefinitions {
 		workload := oamv1alpha2.WorkloadDefinition{}
-		err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: workloadDefinition}, &workload)
+		err := c.Get(context.TODO(), types.NamespacedName{Name: workloadDefinition}, &workload)
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func labelWorkloadDefinitions(ctx spi.ComponentContext) error {
 		workload.Annotations["meta.helm.sh/release-name"] = ComponentName
 		workload.Annotations["meta.helm.sh/release-namespace"] = ComponentNamespace
 
-		err = ctx.Client().Update(context.TODO(), &workload)
+		err = c.Update(context.TODO(), &workload)
 		if err != nil {
 			return err
 		}

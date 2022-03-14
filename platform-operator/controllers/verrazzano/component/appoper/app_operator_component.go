@@ -60,11 +60,11 @@ func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error
 	if err != nil {
 		return err
 	}
-	err = labelTraitDefinitions(ctx)
+	err = labelTraitDefinitions(ctx.Client())
 	if err != nil {
 		return err
 	}
-	return labelWorkloadDefinitions(ctx)
+	return labelWorkloadDefinitions(ctx.Client())
 }
 
 // PostUpgrade processing for the application-operator
