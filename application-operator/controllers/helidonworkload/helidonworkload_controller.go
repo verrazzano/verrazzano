@@ -72,7 +72,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
 	if req.Namespace == vzconst.KubeSystem {
-		log.Info("Application config resource should not be reconciled in kube-system namespace, ignoring")
+		log.Info("Helidon workload resource should not be reconciled in kube-system namespace, ignoring")
 		return reconcile.Result{}, nil
 	}
 
