@@ -5,12 +5,13 @@ package todo_list
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -226,7 +227,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 	t.Context("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		t.It("Verify scrape_duration_seconds metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
@@ -236,7 +237,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 		})
 
 		t.It("Verify DNE scrape_duration_seconds metrics does not exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace
@@ -246,7 +247,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 		})
 
 		t.It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel()
+			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 			Eventually(func() bool {
 				m := make(map[string]string)
 				m["namespace"] = testNamespace

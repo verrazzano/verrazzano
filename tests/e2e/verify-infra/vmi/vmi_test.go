@@ -162,7 +162,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			}
 			Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
 			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
-			//Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
+			// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
 			Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
 			Expect(ingressURLs).To(HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
 			assertOidcIngressByName("vmi-system-es-ingest")
@@ -357,11 +357,21 @@ func elasticConnected() bool {
 }
 
 func elasticHealth() bool {
-	return elastic.CheckHealth()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		return false
+	}
+	return elastic.CheckHealth(kubeconfigPath)
 }
 
 func elasticIndicesHealth() bool {
-	return elastic.CheckIndicesHealth()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		return false
+	}
+	return elastic.CheckIndicesHealth(kubeconfigPath)
 }
 
 func elasticTLSSecret() bool {

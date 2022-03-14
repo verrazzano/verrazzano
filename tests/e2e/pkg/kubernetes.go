@@ -357,12 +357,7 @@ func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
 }
 
 // GetVerrazzanoVersion returns the Verrazzano Version
-func GetVerrazzanoVersion() (string, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-		return "", err
-	}
+func GetVerrazzanoVersion(kubeconfigPath string) (string, error) {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
@@ -375,8 +370,8 @@ func GetVerrazzanoVersion() (string, error) {
 }
 
 // IsVerrazzanoMinVersion returns true if the Verrazzano version >= minVersion
-func IsVerrazzanoMinVersion(minVersion string) (bool, error) {
-	vzVersion, err := GetVerrazzanoVersion()
+func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion(kubeconfigPath)
 	if err != nil {
 		return false, err
 	}
@@ -999,7 +994,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 	return auth.Status.Allowed, auth.Status.Reason, nil
 }
 
-//GetTokenForServiceAccount returns the token associated with service account
+// GetTokenForServiceAccount returns the token associated with service account
 func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 	serviceAccount, err := GetServiceAccount(namespace, sa)
 	if err != nil {
