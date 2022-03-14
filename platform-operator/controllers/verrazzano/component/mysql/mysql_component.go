@@ -4,6 +4,7 @@
 package mysql
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -21,6 +22,9 @@ const ComponentName = "mysql"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.KeycloakNamespace
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "keycloak.mysql"
+
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
 	helm.HelmComponent
@@ -34,6 +38,7 @@ func NewComponent() spi.Component {
 	return mysqlComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -41,7 +46,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:     appendMySQLOverrides,
-			Dependencies:            []string{},
+			Dependencies:            []string{istio.ComponentName},
 		},
 	}
 }
