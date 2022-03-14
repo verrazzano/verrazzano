@@ -5,6 +5,8 @@ package kubernetes_test
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -12,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 const waitTimeout = 15 * time.Minute
@@ -40,8 +41,8 @@ var expectedNonVMIPodsVerrazzanoSystem = []string{
 }
 
 // comment out while debugging so it does not break master
-//"vmi-system-prometheus",
-//"vmi-system-prometheus-gw"}
+// "vmi-system-prometheus",
+// "vmi-system-prometheus-gw"}
 
 var _ = t.AfterEach(func() {})
 
@@ -107,7 +108,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		}
-		if isMinVersion1_3_0, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !isMinVersion1_3_0 {
+		if isMinVersion1_3_0, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !isMinVersion1_3_0 {
 			componentsArgs = append(componentsArgs, t.Entry("includes verrazzano-operator", "verrazzano-operator", true))
 		}
 
@@ -183,7 +184,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		t.DescribeTable("VMI components that don't exist in older versions are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
-					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0")
+					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 					if !ok {
 						// skip test
 						fmt.Printf("Skipping Kiali check since version < 1.1.0")
@@ -226,7 +227,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 				},
 			}
 
-			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
+			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !ok {
 				assertions = append(assertions, func() {
 					Eventually(func() bool { return checkPodsRunning("verrazzano-system", []string{"verrazzano-operator"}) }, waitTimeout, pollingInterval).
 						Should(BeTrue())

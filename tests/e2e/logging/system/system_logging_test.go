@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -381,8 +382,14 @@ func validateVMOLogs() bool {
 }
 
 func validateVOLogs() bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		return false
+	}
+
 	// VO not installed in 1.3.0+
-	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0"); !ok {
+	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); !ok {
 		return validateElasticsearchRecords(
 			allElasticsearchRecordValidator,
 			systemIndex,
@@ -666,7 +673,7 @@ func logLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 		pkg.Log(pkg.Info, "Log record has missing or empty level field")
 		return false
 	}
-	//level := val.(string)
+	// level := val.(string)
 	// Put this validation back in when the OAM logging is fixed.
 	// if strings.EqualFold(level, "debug") || strings.EqualFold(level, "dbg") || strings.EqualFold(level, "d") {
 	// 	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid debug level: %s", level))
@@ -674,10 +681,10 @@ func logLevelElasticsearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 	// }
 	// There is an Istio proxy error that causes this to fail.
 	// Put this validation back in when that is addressed.
-	//if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
+	// if strings.EqualFold(level, "error") || strings.EqualFold(level, "err") || strings.EqualFold(level, "e") {
 	//	pkg.Log(pkg.Info, fmt.Sprintf("Log record has invalid error level: %s", level))
 	//	valid = false
-	//}
+	// }
 
 	return true
 }

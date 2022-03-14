@@ -34,7 +34,8 @@ const verrazzanoSystemNamespace = "verrazzano-system"
 
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var vmiEsIngressURL = getVmiEsIngressURL()
-var externalEsURL = pkg.GetExternalElasticSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
+var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
+var externalEsURL = pkg.GetExternalElasticSearchURL(adminKubeconfig)
 
 var t = framework.NewTestFramework("register_test")
 
@@ -86,7 +87,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("no longer has a ClusterRoleBinding for a managed cluster", func() {
-			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -100,7 +101,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has a ClusterRoleBinding for a managed cluster", func() {
-			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -186,7 +187,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected metrics from managed cluster", func() {
-			clusterNameMetricsLabel := getClusterNameMetricLabel()
+			clusterNameMetricsLabel := getClusterNameMetricLabel(adminKubeconfig)
 			pkg.Log(pkg.Info, fmt.Sprintf("Looking for metric with label %s with value %s", clusterNameMetricsLabel, managedClusterName))
 			Eventually(func() bool {
 				return pkg.MetricsExist("up", clusterNameMetricsLabel, managedClusterName)
@@ -194,7 +195,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("Fluentd should point to the correct ES", func() {
-			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0")
+			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -383,12 +384,12 @@ func assertRegistrationSecret() {
 }
 
 func getVmiEsIngressURL() string {
-	return fmt.Sprintf("%s:443", pkg.GetSystemElasticSearchIngressURL(os.Getenv("ADMIN_KUBECONFIG")))
+	return fmt.Sprintf("%s:443", pkg.GetSystemElasticSearchIngressURL(adminKubeconfig))
 }
 
-func getClusterNameMetricLabel() string {
+func getClusterNameMetricLabel(kubeconfigPath string) string {
 	// ignore error getting the metric label - we'll just use the default value returned
-	lbl, err := pkg.GetClusterNameMetricLabel()
+	lbl, err := pkg.GetClusterNameMetricLabel(kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting cluster name metric label: %s", err.Error()))
 	}
