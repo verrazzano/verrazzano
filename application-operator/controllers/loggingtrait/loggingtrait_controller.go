@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package loggingtrait
@@ -6,6 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"strings"
 
@@ -53,9 +54,18 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
 func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	log := r.Log.WithValues("loggingtrait", req.NamespacedName)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzconst.KubeSystem {
+		log.Info("Logging trait resource should not be reconciled in kube-system namespace, ignoring")
+		return reconcile.Result{}, nil
+	}
+
 	var err error
 	ctx := context.Background()
-	log := r.Log.WithValues("loggingtrait", req.NamespacedName)
 
 	var trait *oamv1alpha1.LoggingTrait
 	if trait, err = r.fetchTrait(ctx, req.NamespacedName); err != nil || trait == nil {

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package loggingtrait
@@ -6,6 +6,7 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"testing"
 	"time"
 
@@ -236,6 +237,25 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	// Create and make the request
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
+	reconciler := newLoggingTraitReconciler(cli, t)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.Nil(err)
+	assert.True(result.IsZero())
 }
 
 // convertToUnstructured converts an object to an Unstructured version

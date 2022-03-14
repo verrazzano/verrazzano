@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package containerizedworkload
@@ -39,8 +39,17 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile checks restart version annotations on an ContainerizedWorkload and
 // restarts as needed.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
 	log := r.Log.WithValues("containerizedworkload", req.NamespacedName)
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzconst.KubeSystem {
+		log.Info("Containerized workload resource should not be reconciled in kube-system namespace, ignoring")
+		return reconcile.Result{}, nil
+	}
+
+	ctx := context.Background()
 	log.Info("Reconciling ContainerizedWorkload")
 
 	// fetch the ContainerizedWorkload

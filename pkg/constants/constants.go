@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -88,3 +88,6 @@ const VMCAgentPollingTimeInterval = 60 * time.Second
 
 // MaxTimesVMCAgentPollingTime - The constant used to set max polling time for vmc agent to determine VMC state
 const MaxTimesVMCAgentPollingTime = 3
+
+// KubeSystem - The name of the kube-system namespace
+const KubeSystem = "kube-system"
