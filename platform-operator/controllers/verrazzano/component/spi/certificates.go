@@ -6,6 +6,7 @@ import (
 	"context"
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,32 +14,47 @@ import (
 	"sort"
 )
 
-func CheckCertificatesReady(ctx ComponentContext, certificates []types.NamespacedName) (notReady []types.NamespacedName) {
+// CertificatesAreReady Checks the list of named objects to see if there are matching
+// Cert-Manager Certificate objects, and checks if those are in a Ready state.
+//
+// ctx				A valid ComponentContext for the operation
+// certificates		A list of NamespacedNames; this should be names of expected Certificate objects
+//
+// Returns true and an empty list of names if all certs are ready, false and a list of certificate names that are
+// NOT in the ready state
+func CertificatesAreReady(ctx ComponentContext, certificates []types.NamespacedName) (ready bool, certsNotReady []types.NamespacedName) {
 	if len(certificates) == 0 {
-		return []types.NamespacedName{}
+		return true, []types.NamespacedName{}
 	}
 
 	log := ctx.Log()
 	if !vzconfig.IsCertManagerEnabled(ctx.EffectiveCR()) {
 		log.Oncef("Cert-Manager disabled, skipping certificates check")
-		return []types.NamespacedName{}
+		return true, []types.NamespacedName{}
 	}
 
 	ctx.Log().Oncef("Checking certificates status for %v", certificates)
 	client := ctx.Client()
 	for _, name := range certificates {
-		ready, err := CertficateIsReady(client, name)
+		ready, err := IsCertficateIsReady(log, client, name)
 		if err != nil {
 			log.Errorf("Error getting certificate %s: %s", name, err)
 		}
 		if !ready {
-			notReady = append(notReady, name)
+			certsNotReady = append(certsNotReady, name)
 		}
 	}
-	return notReady
+	return len(certsNotReady) == 0, certsNotReady
 }
 
-func CertficateIsReady(client clipkg.Client, name types.NamespacedName) (bool, error) {
+// IsCertficateIsReady Checks if a Cert-Manager Certificate object with the specified NamespacedName
+// can be found in the cluster, and if it is in a Ready state.
+//
+// Returns
+// - true/nil if a matching Certificate object is found and Ready
+// - false/nil if a matching Certifiate object is found and not Ready
+// - false/error if an unexpected error has occurred
+func IsCertficateIsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, name types.NamespacedName) (bool, error) {
 	cert := &certapiv1.Certificate{}
 	if err := client.Get(context.TODO(), name, cert); err != nil {
 		if errors.IsNotFound(err) {
@@ -48,14 +64,19 @@ func CertficateIsReady(client clipkg.Client, name types.NamespacedName) (bool, e
 	}
 	certConditions := cert.Status.Conditions
 	if len(certConditions) > 0 {
-		sort.Slice(certConditions, func(i, j int) bool {
-			return certConditions[i].LastTransitionTime.After(
-				certConditions[j].LastTransitionTime.Time)
-		})
+		if len(certConditions) > 1 {
+			// Typically, I've only seen one condition in the Certificate object, but if there's
+			// more than one sort the copy so the most recent is first
+			sort.Slice(certConditions, func(i, j int) bool {
+				return certConditions[i].LastTransitionTime.After(
+					certConditions[j].LastTransitionTime.Time)
+			})
+		}
 		mostRecent := certConditions[0]
 		if mostRecent.Status == cmmeta.ConditionTrue && mostRecent.Type == certapiv1.CertificateConditionReady {
 			return true, nil
 		}
+		log.Errorf("Certificate %s not ready, reason: %s, message: ", name, mostRecent.Reason, mostRecent.Message)
 	}
 	return false, nil
 }

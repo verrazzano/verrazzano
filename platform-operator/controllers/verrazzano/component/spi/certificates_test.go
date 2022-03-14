@@ -17,18 +17,22 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TestCheckCertificatesReady Tests the CertificatesAreReady func
+// GIVEN a Verrazzano instance with CertManager enabled
+// WHEN I call CertificatesAreReady with a list of cert names where both are ready
+// THEN false and an empty list of names is returned
 func TestCheckCertificatesReady(t *testing.T) {
 
 	certNames := []types.NamespacedName{
 		{Name: "mycert", Namespace: "verrazzano-system"},
 		{Name: "mycert2", Namespace: "verrazzano-system"},
 	}
-	trueVal := true
+	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
 		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CertManager: &v1alpha1.CertManagerComponent{Enabled: &trueVal},
+				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
 			},
 		},
 	}
@@ -61,22 +65,30 @@ func TestCheckCertificatesReady(t *testing.T) {
 		},
 	)
 	ctx := NewFakeContext(client, vz, false)
-	notReady := CheckCertificatesReady(ctx, certNames)
-	assert.Len(t, notReady, 0)
+	allReady, notReadyCerts := CertificatesAreReady(ctx, certNames)
+	assert.True(t, allReady)
+	assert.Len(t, notReadyCerts, 0)
 }
 
+// TestCheckCertificatesNotReady Tests the CertificatesAreReady func
+// GIVEN a Verrazzano instance with CertManager enabled
+// WHEN I call CertificatesAreReady with a list of cert names where one is ready and one isn't
+// THEN false and the returned list of names has the name of the cert that isn't ready
 func TestCheckCertificatesNotReady(t *testing.T) {
 
 	certNames := []types.NamespacedName{
 		{Name: "mycert", Namespace: "verrazzano-system"},
 		{Name: "mycert2", Namespace: "verrazzano-system"},
 	}
-	trueVal := true
+	notReadyExpected := []types.NamespacedName{
+		certNames[1],
+	}
+	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
 		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
-				CertManager: &v1alpha1.CertManagerComponent{Enabled: &trueVal},
+				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
 			},
 		},
 	}
@@ -107,6 +119,56 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 		},
 	)
 	ctx := NewFakeContext(client, vz, false)
-	notReady := CheckCertificatesReady(ctx, certNames)
-	assert.Len(t, notReady, 1)
+	allReady, notReadyActual := CertificatesAreReady(ctx, certNames)
+	assert.False(t, allReady)
+	assert.Equal(t, notReadyExpected, notReadyActual)
+}
+
+// TestCheckCertificatesNotReadyCertManagerDisabled Tests the CertificatesAreReady func
+// GIVEN a Verrazzano instance with CertManager disabled
+// WHEN I call CertificatesAreReady with a non-empty certs list
+// THEN true and an empty list of names is returned
+func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
+	certNames := []types.NamespacedName{
+		{Name: "mycert", Namespace: "verrazzano-system"},
+		{Name: "mycert2", Namespace: "verrazzano-system"},
+	}
+
+	cmEnabled := false
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
+			},
+		},
+	}
+
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := NewFakeContext(client, vz, false)
+	allReady, notReadyActual := CertificatesAreReady(ctx, certNames)
+	assert.True(t, allReady)
+	assert.Len(t, notReadyActual, 0)
+}
+
+// TestCheckCertificatesNotReadyNoCertsPassed Tests the CertificatesAreReady func
+// GIVEN a Verrazzano instance with CertManager enabled
+// WHEN I call CertificatesAreReady with an empty certs list
+// THEN true and an empty list of names is returned
+func TestCheckCertificatesNotReadyNoCertsPassed(t *testing.T) {
+	cmEnabled := true
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
+			},
+		},
+	}
+
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := NewFakeContext(client, vz, false)
+	allReady, notReady := CertificatesAreReady(ctx, []types.NamespacedName{})
+	assert.Len(t, notReady, 0)
+	assert.True(t, allReady)
 }
