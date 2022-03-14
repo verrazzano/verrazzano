@@ -18,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -75,8 +74,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	log.Oncef("Finished restarting system Deployments in istio injected namespaces to pick up new Isio sidecar")
 
 	// Restart all the StatefulSet in the injected system namespaces
-	statefulSetList := appsv1.StatefulSetList{}
-	err = client.List(context.TODO(), &statefulSetList)
+	statefulSetList, err := goClient.AppsV1().StatefulSets("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
@@ -97,8 +98,10 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client c
 	log.Info("Restarted system Statefulsets in istio injected namespaces")
 
 	// Restart all the DaemonSets in the injected system namespaces
-	var daemonSetList appsv1.DaemonSetList
-	err = client.List(context.TODO(), &daemonSetList)
+	daemonSetList, err := goClient.AppsV1().DaemonSets("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
