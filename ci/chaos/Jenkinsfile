@@ -351,6 +351,12 @@ pipeline {
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         echo "Wait 15 seconds and kill VPO \$POD"
                         sleep 15
+                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
+                        kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-before-vpo-killed-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                        echo "dumping out the VZ CR:"
+                        kubectl get verrazzano my-verrazzano -o yaml
+                        echo "dumping out the VMI"
+                        kubectl get vmi system -n verrazzano-system -o yaml
                         kubectl -n verrazzano-install delete po \$POD
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
                         kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
@@ -380,7 +386,7 @@ pipeline {
                         kubectl -n verrazzano-install exec \$POD -- /bin/bash -c "mv /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml.bak /verrazzano/platform-operator/helm_config/charts/verrazzano/values.yaml"
                     fi
 
-                   if [[ "uninstall.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                    if [[ "uninstall.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # Move values.yaml so helm install of Verrazzano will fail
                         POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
@@ -391,31 +397,18 @@ pipeline {
                             echo "Waiting for the error message ..."
                             sleep 30
                         done
-                        # Upgrade is in Error State, Uninstall
-
-                        # Uninstall VZ
-                        kubectl delete verrazzano my-verrazzano
-
-                        ## dump out uninstall logs
-                        mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
-                        kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
-                        kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
-                        echo "Listing all pods in all namespaces after uninstall"
-                        kubectl get pods --all-namespaces
-                        echo "-----------------------------------------------------"
-
-
-                        # verify Uninstall
-                        ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
-                        ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
-
+                        # Make sure the upgrade is still in progress
+                        vz_status=\$(kubectl get vz -o jsonpath='{.items[0].status.conditions[?(@.type=="UpgradeStarted")].type}')
+                        if [[ \${vz_status} == "UpgradeStarted" ]]; then
+                            # Uninstall VZ
+                            kubectl delete verrazzano my-verrazzano
+                        fi
                     fi
 
-                 if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
+                    if [[ "uninstall.failed.upgrade" != ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # wait for the upgrade to complete
                         kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-
 
                         # Dump the resource to debug
                         kubectl get -o yaml verrazzano/my-verrazzano || true
@@ -431,7 +424,7 @@ pipeline {
                         echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
                         cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
                     fi
-                   """
+                """
             }
             post {
                 always {
