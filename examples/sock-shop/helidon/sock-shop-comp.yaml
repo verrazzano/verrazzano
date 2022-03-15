@@ -39,7 +39,6 @@ spec:
                 port: 7001
               serviceMonitor:
                 enabled: true
-# these additional metrics ports are commented out here and elsewhere until VZ-3760 is fixed
             - name: metrics
               port: 9612
               serviceMonitor:

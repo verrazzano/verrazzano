@@ -27,7 +27,9 @@ spec:
             metadata:
               name: carts-metrics
             spec:
-              port: 7001
+              ports:
+                - port: 8080
+                - port: 9612
     - componentName: catalog
       traits:
         - trait:
@@ -46,7 +48,9 @@ spec:
             metadata:
               name: catalog-metrics
             spec:
-              port: 7001
+              ports:
+                - port: 8080
+                - port: 9612
     - componentName: orders
       traits:
         - trait:
@@ -65,7 +69,9 @@ spec:
             metadata:
               name: orders-metrics
             spec:
-              port: 7001
+              ports:
+                - port: 8080
+                - port: 9612
     - componentName: payment
       traits:
         - trait:
@@ -84,7 +90,9 @@ spec:
             metadata:
               name: payment-metrics
             spec:
-              port: 7001
+              ports:
+                - port: 8080
+                - port: 9612
     - componentName: shipping
       traits:
         - trait:
@@ -103,7 +111,9 @@ spec:
             metadata:
               name: shipping-metrics
             spec:
-              port: 7001
+              ports:
+                - port: 8080
+                - port: 9612
     - componentName: users
       traits:
         - trait:
@@ -130,4 +140,6 @@ spec:
             metadata:
               name: users-metrics
             spec:
-              port: 7001
+              ports:
+                - port: 8080
+                - port: 9612
