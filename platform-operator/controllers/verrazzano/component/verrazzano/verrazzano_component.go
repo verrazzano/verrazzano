@@ -111,8 +111,9 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
-	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
+	// populate the ingress and certificate names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 

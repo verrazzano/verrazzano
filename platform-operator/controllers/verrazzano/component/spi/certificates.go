@@ -76,7 +76,7 @@ func IsCertficateIsReady(log vzlog.VerrazzanoLogger, client clipkg.Client, name 
 		if mostRecent.Status == cmmeta.ConditionTrue && mostRecent.Type == certapiv1.CertificateConditionReady {
 			return true, nil
 		}
-		log.Errorf("Certificate %s not ready, reason: %s, message: ", name, mostRecent.Reason, mostRecent.Message)
+		log.Infof("Certificate %s not ready, reason: %s, message: %s", name, mostRecent.Reason, mostRecent.Message)
 	}
 	return false, nil
 }

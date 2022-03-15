@@ -4,6 +4,8 @@ package verrazzano
 
 import (
 	"context"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"os/exec"
 	"testing"
 
@@ -121,6 +123,17 @@ func TestPostInstall(t *testing.T) {
 	for _, ingressName := range vzIngressNames {
 		client.Create(context.TODO(), &v1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
+		})
+	}
+	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
+		time := metav1.Now()
+		client.Create(context.TODO(), &certv1.Certificate{
+			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
+			Status: certv1.CertificateStatus{
+				Conditions: []certv1.CertificateCondition{
+					{Type: certv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+				},
+			},
 		})
 	}
 	err = vzComp.PostInstall(ctx)
