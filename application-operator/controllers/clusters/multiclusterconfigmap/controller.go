@@ -44,7 +44,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// If this is the case then return success
 	if req.Namespace == constants.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
-		log.Infof("Multi-cluster application configuration resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		log.Infof("Multi-cluster ConfigMap resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
