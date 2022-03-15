@@ -145,14 +145,14 @@ type verrazzanoLogger struct {
 	// trashMessages is a set of log messages that can never be displayed again
 	trashMessages map[string]bool
 
-	// lastLog keeps track of the last logged message
-	*lastLog
+	// progressHistory is a map of progress log messages that are displayed periodically
+	progressHistory map[string]*logEvent
 }
 
-// lastLog tracks the last message logged
-type lastLog struct {
-	// lastLogTime is the last time the message was logged
-	lastLogTime *time.Time
+// lastLog tracks the last message logged for progress messages
+type logEvent struct {
+	// logTime is the last time the message was logged
+	logTime *time.Time
 
 	// msgLogged is the message that was logged
 	msgLogged string
@@ -234,9 +234,10 @@ func (c *LogContext) EnsureLogger(key string, sLogger SugaredLogger, zap *zap.Su
 	log, ok := c.loggerMap[key]
 	if !ok {
 		log = &verrazzanoLogger{
-			context:       c,
-			frequencySecs: 60,
-			trashMessages: make(map[string]bool),
+			context:         c,
+			frequencySecs:   60,
+			trashMessages:   make(map[string]bool),
+			progressHistory: make(map[string]*logEvent),
 		}
 		c.loggerMap[key] = log
 	}
@@ -289,33 +290,31 @@ func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 	if ok {
 		return
 	}
-	// Log now if the message changed or wait time exceeded
-	logNow := true
 
-	// If this is log once save in trash so it is never logged again
+	// If this is log "once", log it and save in trash so it is never logged again, then return
 	if once {
-		v.trashMessages[msg] = true
-	}
-
-	// If we have already logged a message then ...
-	if v.lastLog != nil {
-		// If message did not change then check if time to log
-		if msg == v.lastLog.msgLogged {
-			waitSecs := time.Duration(v.frequencySecs) * time.Second
-			nextLogTime := v.lastLog.lastLogTime.Add(waitSecs)
-			logNow = now.Equal(nextLogTime) || now.After(nextLogTime)
-		} else {
-			// This is a new message.  Never display the old one again
-			v.trashMessages[v.lastLog.msgLogged] = true
-		}
-	}
-
-	// Log the message and save it in lastlog
-	if logNow {
 		v.sLogger.Info(msg)
-		v.lastLog = &lastLog{
-			lastLogTime: &now,
-			msgLogged:   msg,
+		v.trashMessages[msg] = true
+		return
+	}
+
+	// If this message has already been logged, then check if time to log again
+	history := v.progressHistory[msg]
+	if history != nil {
+		waitSecs := time.Duration(v.frequencySecs) * time.Second
+		nextLogTime := history.logTime.Add(waitSecs)
+
+		// Log now if the message wait time exceeded
+		if now.Equal(nextLogTime) || now.After(nextLogTime) {
+			v.sLogger.Info(msg)
+			history.logTime = &now
+		}
+	} else {
+		// This is a new message log it
+		v.sLogger.Info(msg)
+		v.progressHistory[msg] = &logEvent{
+			logTime:   &now,
+			msgLogged: msg,
 		}
 	}
 }
