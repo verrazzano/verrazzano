@@ -5,8 +5,9 @@ package istio
 
 import (
 	"context"
-	"fmt"
 	"testing"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -17,17 +18,18 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// unitTestBomFIle is used for unit test
-const unitTestBomFile = "../../../../verrazzano-bom.json"
+const (
+	unitTestBomFile = "../../../../verrazzano-bom.json"
+	oldIstioImage   = "proxyv2.old"
+)
 
 // TestRestartAllWorkloadTypes tests the RestartComponents method for the following use case
 // GIVEN a request to RestartComponents a component
-// WHEN where the fake client has deployments, statefulset, and daemonsets that need to be restarted
-// THEN the upgrade completes normally and the correct spi.Component upgrade methods have not been invoked for the disabled component
+// WHEN where the fake client has deployments, statefulsets, and daemonsets that need to be restarted
+// THEN the workloads have the restart annotation with the Verraazano CR generation as the value
 func TestRestartAllWorkloadTypes(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -36,25 +38,68 @@ func TestRestartAllWorkloadTypes(t *testing.T) {
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Setup fake client to provide workloads for restart platform testing
-	goClient, err := initFakeClient()
-	asserts.NoError(err)
-	k8sutil.SetFakeClient(goClient)
+	clientSet := fake.NewSimpleClientset(initFakePod(oldIstioImage), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err = RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
 
 	// Validate the results
 	asserts.NoError(err)
-	dep, err := goClient.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "testDeployment", metav1.GetOptions{})
+	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
 	asserts.NoError(err)
-	fmt.Printf(dep.Name)
+	val, _ := dep.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	asserts.Equal("1", val, "Incorrect Deployment restart annotation")
+
+	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	val, _ = sts.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	asserts.Equal("1", val, "Incorrect StatefulSet restart annotation")
+
+	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	val, _ = daemonSet.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	asserts.Equal("1", val, "Incorrect DaemonSet restart annotation")
 }
 
-// initFakeClient inits a fake go-client and loads it with fake resources
-func initFakeClient() (kubernetes.Interface, error) {
-	dep := &appsv1.Deployment{
+// TestNoRestartAllWorkloadTypes tests the RestartComponents method for the following use case
+// GIVEN a request to RestartComponents a component
+// WHEN where the fake client has deployments, statefulsets, and daemonsets that do not need to be restarted
+// THEN the workloads should not have the restart annotation with the Verraazano CR generation as the value
+func TestNoRestartAllWorkloadTypes(t *testing.T) {
+	asserts := assert.New(t)
+	config.SetDefaultBomFilePath(unitTestBomFile)
+
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Setup fake client to provide workloads for restart platform testing
+	clientSet := fake.NewSimpleClientset(initFakePod("someimage"), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+	k8sutil.SetFakeClient(clientSet)
+
+	namespaces := []string{constants.VerrazzanoSystemNamespace}
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
+
+	// Validate the results
+	asserts.NoError(err)
+	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(dep.Spec.Template.Annotations, "Incorrect Deployment restart annotation")
+
+	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(sts.Spec.Template.Annotations, "Incorrect StatefulSet restart annotation")
+
+	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
+	asserts.NoError(err)
+	asserts.Nil(daemonSet.Spec.Template.Annotations, "Incorrect DaemonSet restart annotation")
+}
+
+// initFakeDeployment inits a fake Deployment
+func initFakeDeployment() *appsv1.Deployment {
+	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      "test",
 			Namespace: "verrazzano-system",
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -64,9 +109,13 @@ func initFakeClient() (kubernetes.Interface, error) {
 			},
 		},
 	}
-	sts := &appsv1.StatefulSet{
+}
+
+// initFakeStatefulSet inits a fake StatefulSet
+func initFakeStatefulSet() *appsv1.StatefulSet {
+	return &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      "test",
 			Namespace: "verrazzano-system",
 		},
 		Spec: appsv1.StatefulSetSpec{
@@ -76,9 +125,13 @@ func initFakeClient() (kubernetes.Interface, error) {
 			},
 		},
 	}
-	daemonSet := &appsv1.DaemonSet{
+}
+
+// initFakeDaemonSet inits a fake DaemonSet
+func initFakeDaemonSet() *appsv1.DaemonSet {
+	return &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testDeployment",
+			Name:      "test",
 			Namespace: "verrazzano-system",
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -87,7 +140,11 @@ func initFakeClient() (kubernetes.Interface, error) {
 			},
 		},
 	}
-	pod := &v1.Pod{
+}
+
+// initFakePod inits a fake Pod
+func initFakePod(image string) *v1.Pod {
+	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testPod",
 			Namespace: "verrazzano-system",
@@ -95,11 +152,9 @@ func initFakeClient() (kubernetes.Interface, error) {
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{{
-				Name:  "proxy",
-				Image: "proxyv2.old",
+				Name:  "c1",
+				Image: image,
 			}},
 		},
 	}
-	clientSet := fake.NewSimpleClientset(dep, pod, sts, daemonSet)
-	return clientSet, nil
 }
