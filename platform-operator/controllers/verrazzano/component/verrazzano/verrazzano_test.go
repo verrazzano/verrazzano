@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -71,7 +72,7 @@ func init() {
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
-
+	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
 }
 

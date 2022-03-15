@@ -38,6 +38,10 @@ var _ spi.Component = kialiComponent{}
 
 const kialiOverridesFile = "kiali-server-values.yaml"
 
+var certificates = []types.NamespacedName{
+	{Name: "system-tls-kiali", Namespace: ComponentNamespace},
+}
+
 func NewComponent() spi.Component {
 	return kialiComponent{
 		helm.HelmComponent{
@@ -52,6 +56,7 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
+			Certificates:            certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,

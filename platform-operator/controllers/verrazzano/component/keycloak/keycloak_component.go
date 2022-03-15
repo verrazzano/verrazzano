@@ -133,6 +133,8 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		}
 	}
 
+	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -141,6 +143,8 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
+	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return updateKeycloakUris(ctx)
 }
 
@@ -167,4 +171,16 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
+}
+
+// GetCertificateNames - gets the names of the ingresses associated with this component
+func (c KeycloakComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certificateNames []types.NamespacedName
+
+	certificateNames = append(certificateNames, types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      fmt.Sprintf("%s-secret", ctx.EffectiveCR().Spec.EnvironmentName),
+	})
+
+	return certificateNames
 }
