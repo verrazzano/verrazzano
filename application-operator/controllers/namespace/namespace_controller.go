@@ -69,7 +69,7 @@ func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	// If this is the case then return success
 	if req.NamespacedName.Name == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
-		log.Infof("Namespace resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName.Name)
+		log.Infof("Namespace resource %v should not be reconciled, ignoring", req.NamespacedName.Name)
 		return reconcile.Result{}, nil
 	}
 
