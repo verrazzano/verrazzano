@@ -252,7 +252,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		if err != nil {
 			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
-		// VZ-3012: Coherence metric fix available only from 1.3.0
+		// Coherence metric fix available only from 1.3.0
 		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
 			t.It("Retrieve Prometheus scraped metrics", func() {
 				if getVariant() == "helidon" {
