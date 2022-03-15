@@ -455,6 +455,10 @@ func (f fakeComponent) Name() string {
 	return f.name
 }
 
+func (f fakeComponent) GetJSONName() string {
+	return f.GetJSONName()
+}
+
 func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }

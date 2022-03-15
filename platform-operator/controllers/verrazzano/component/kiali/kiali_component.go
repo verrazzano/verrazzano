@@ -5,8 +5,12 @@ package kiali
 
 import (
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -23,6 +27,9 @@ const ComponentName = "kiali-server"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "kiali"
+
 type kialiComponent struct {
 	helm.HelmComponent
 }
@@ -35,13 +42,14 @@ func NewComponent() spi.Component {
 	return kialiComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
-			Dependencies:            []string{nginx.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_1_0,
 			IngressNames: []types.NamespacedName{
@@ -103,7 +111,7 @@ func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) e
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled kiali")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }

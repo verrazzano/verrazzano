@@ -23,6 +23,9 @@ const ComponentName = "weblogic-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "weblogicOperator"
+
 type weblogicComponent struct {
 	helm.HelmComponent
 }
@@ -31,6 +34,7 @@ func NewComponent() spi.Component {
 	return weblogicComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -56,7 +60,7 @@ func (c weblogicComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled weblogicOperator")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }
