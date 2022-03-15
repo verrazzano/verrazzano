@@ -45,6 +45,30 @@ func TestLog(t *testing.T) {
 	DeleteLogContext(rKey)
 }
 
+// TestLog2 tests the ProgressLogger function periodic logging
+// GIVEN a ProgressLogger with a frequency of 3 seconds
+// WHEN log is called 5 times in 5 seconds to log the 2 messages
+// THEN ensure that 2 messages are logged twice each
+func TestLog2(t *testing.T) {
+	msg := "test1"
+	msg2 := "test2"
+	logger := fakeLogger{expectedMsg: msg2}
+	const rKey = "testns/test"
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(3)
+
+	// 5 calls to log should result in only 2 log messages being written
+	// since the frequency is 3 secs
+	for i := 0; i < 5; i++ {
+		l.Progress(msg)
+		l.Progress(msg2)
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+	assert.Equal(t, 4, logger.count)
+	assert.Equal(t, logger.expectedMsg, logger.actualMsg)
+	DeleteLogContext(rKey)
+}
+
 // TestLogRepeat tests the ProgressLogger function ignore repeated logs
 // GIVEN a ProgressLogger with a frequency of 2 seconds
 // WHEN log is called 5 times with 1 message and no sleep
