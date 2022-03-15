@@ -1,11 +1,13 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package namespace
 
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -23,11 +25,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const namespaceControllerFinalizer = "verrazzano.io/namespace"
+const (
+	namespaceControllerFinalizer = "verrazzano.io/namespace"
+	namespaceField               = "namespace"
+	controllerName               = "namespace"
+)
 
-const namespaceField = "namespace"
-
-// Reconciler reconciles a Verrazzano object
+// NamespaceController Reconciler reconciles a Verrazzano object
 type NamespaceController struct {
 	client.Client
 	scheme     *runtime.Scheme
@@ -59,6 +63,16 @@ func (nc *NamespaceController) setupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile - Watches for and manages namespace activity as it relates to Verrazzano platform services
 func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.NamespacedName.Name == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Namespace resource %v should not be reconciled, ignoring", req.NamespacedName.Name)
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	// fetch the namespace
 	ns := corev1.Namespace{}
@@ -67,7 +81,7 @@ func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 	log, err := clusters.GetResourceLogger("namespace", req.NamespacedName, &ns)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for namespace", err)
+		zap.S().Errorf("Failed to create controller logger for namespace resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling namespace resource %v, generation %v", req.NamespacedName, ns.Generation)

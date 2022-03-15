@@ -10,7 +10,8 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"reflect"
@@ -37,7 +38,8 @@ import (
 )
 
 const (
-	labelKey = "verrazzanohelidonworkloads.oam.verrazzano.io"
+	labelKey       = "verrazzanohelidonworkloads.oam.verrazzano.io"
+	controllerName = "helidonworkload"
 )
 
 var (
@@ -67,6 +69,16 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Reconcile reconciles a VerrazzanoHelidonWorkload resource. It fetches the embedded DeploymentSpec, mutates it to add
 // scopes and traits, and then writes out the apps/Deployment (or deletes it if the workload is being deleted).
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Helidon workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	// fetch the workload
 	var workload vzapi.VerrazzanoHelidonWorkload
@@ -75,7 +87,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", req.NamespacedName, &workload)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Helidon workload", err)
+		zap.S().Errorf("Failed to create controller logger for Helidon workload resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Helidon workload resource %v, generation %v", req.NamespacedName, workload.Generation)

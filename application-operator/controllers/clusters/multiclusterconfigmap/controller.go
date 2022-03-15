@@ -7,6 +7,8 @@ import (
 	"context"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -15,6 +17,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // Reconciler reconciles a MultiClusterConfigMap object
@@ -25,13 +28,26 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclusterconfigmap.verrazzano.io"
+const (
+	finalizerName  = "multiclusterconfigmap.verrazzano.io"
+	controllerName = "multiclusterconfigmap"
+)
 
 // Reconcile reconciles a MultiClusterConfigMap resource. It fetches the embedded ConfigMap,
 // mutates it based on the MultiClusterConfigMap, and updates the status of the
 // MultiClusterConfigMap to reflect the success or failure of the changes to the embedded resource
 // Currently it does NOT support Immutable ConfigMap resources
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Multi-cluster ConfigMap resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var mcConfigMap clustersv1alpha1.MultiClusterConfigMap
 	err := r.fetchMultiClusterConfigMap(ctx, req.NamespacedName, &mcConfigMap)
@@ -40,7 +56,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mcconfigmap", req.NamespacedName, &mcConfigMap)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for multi-cluster config map", err)
+		zap.S().Error("Failed to create controller logger for multi-cluster config map resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling multi-cluster config map resource %v, generation %v", req.NamespacedName, mcConfigMap.Generation)

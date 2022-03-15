@@ -6,13 +6,15 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	k8scorev1 "k8s.io/api/core/v1"
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +37,8 @@ type Reconciler struct {
 	Scraper string
 }
 
+const controllerName = "metricsbinding"
+
 // SetupWithManager creates controller for the MetricsBinding
 func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 	return k8scontroller.NewControllerManagedBy(mgr).For(&vzapi.MetricsBinding{}).Complete(r)
@@ -43,6 +47,16 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
 // No kubebuilder annotations are used as the application RBAC for the application operator is now manually managed.
 func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Metrics binding resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	metricsBinding := vzapi.MetricsBinding{}
 	if err := r.Client.Get(context.TODO(), req.NamespacedName, &metricsBinding); err != nil {
@@ -50,7 +64,7 @@ func (r *Reconciler) Reconcile(req k8scontroller.Request) (k8scontroller.Result,
 	}
 	log, err := clusters.GetResourceLogger("metricsbinding", req.NamespacedName, &metricsBinding)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for metrics binding", err)
+		zap.S().Errorf("Failed to create controller logger for metrics binding resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling metrics binding resource %v, generation %v", req.NamespacedName, metricsBinding.Generation)
@@ -134,7 +148,7 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 
 	// Return error if UID is not found
 	if len(workloadObject.GetUID()) == 0 {
-		err = fmt.Errorf("Could not get UID from workload resource: %s, %s", workloadObject.GetKind(), workloadObject.GetName())
+		err = fmt.Errorf("could not get UID from workload resource: %s, %s", workloadObject.GetKind(), workloadObject.GetName())
 		log.Errorf("Failed to find UID for workload %s: %v", workloadObject.GetName(), err)
 		return err
 	}

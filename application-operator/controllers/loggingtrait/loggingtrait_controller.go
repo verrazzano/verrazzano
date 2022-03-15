@@ -7,7 +7,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
 	"strings"
 
@@ -35,6 +37,7 @@ const (
 	loggingMountPath          = "/fluentd/etc/custom.conf"
 	loggingKey                = "custom.conf"
 	defaultMode         int32 = 400
+	controllerName            = "loggingtrait"
 )
 
 // LoggingTraitReconciler reconciles a LoggingTrait object
@@ -55,6 +58,16 @@ type LoggingTraitReconciler struct {
 // +kubebuilder:rbac:groups=apps,resources=pods,verbs=get;list;watch;update;patch;delete
 
 func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Logging trait resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var err error
 	var trait *oamv1alpha1.LoggingTrait
@@ -63,7 +76,7 @@ func (r *LoggingTraitReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error
 	}
 	log, err := clusters.GetResourceLogger("loggingtrait", req.NamespacedName, trait)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for logging trait", err)
+		zap.S().Errorf("Failed to create controller logger for logging trait resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling logging trait resource %v, generation %v", req.NamespacedName, trait.Generation)

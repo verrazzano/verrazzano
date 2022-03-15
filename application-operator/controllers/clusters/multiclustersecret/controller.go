@@ -7,6 +7,8 @@ import (
 	"context"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -15,6 +17,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // Reconciler reconciles a MultiClusterSecret object
@@ -25,12 +28,25 @@ type Reconciler struct {
 	AgentChannel chan clusters.StatusUpdateMessage
 }
 
-const finalizerName = "multiclustersecret.verrazzano.io"
+const (
+	finalizerName  = "multiclustersecret.verrazzano.io"
+	controllerName = "multiclustersecret"
+)
 
 // Reconcile reconciles a MultiClusterSecret resource. It fetches the embedded Secret, mutates it
 // based on the MultiClusterSecret, and updates the status of the MultiClusterSecret to reflect the
 // success or failure of the changes to the embedded Secret
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == constants.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Multi-cluster secret resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var mcSecret clustersv1alpha1.MultiClusterSecret
 	err := r.fetchMultiClusterSecret(ctx, req.NamespacedName, &mcSecret)
@@ -39,7 +55,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mcsecret", req.NamespacedName, &mcSecret)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for multi-cluster secret", err)
+		zap.S().Errorf("Failed to create controller logger for multi-cluster secret resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling multi-cluster secret resource %v, generation %v", req.NamespacedName, mcSecret.Generation)

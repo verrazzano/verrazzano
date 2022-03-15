@@ -9,6 +9,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzConstants "github.com/verrazzano/verrazzano/pkg/constants"
 	log2 "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -35,6 +36,7 @@ const (
 	projectMonitorGroupTemplate = "verrazzano-project-%s-monitors"
 	finalizerName               = "project.verrazzano.io"
 	managedClusterRole          = "verrazzano-managed-cluster"
+	controllerName              = "verrazzanoproject"
 )
 
 // Reconciler reconciles a VerrazzanoProject object
@@ -56,6 +58,16 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 // It fetches its namespaces if the VerrazzanoProject is in the verrazzano-mc namespace
 // and create namespaces in the local cluster.
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+
+	// We do not want any resource to get reconciled if it is in namespace kube-system
+	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
+	// If this is the case then return success
+	if req.Namespace == vzConstants.KubeSystem {
+		log := zap.S().With(log2.FieldResourceNamespace, req.Namespace, log2.FieldResourceName, req.Name, log2.FieldController, controllerName)
+		log.Infof("Verrazzano project resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		return reconcile.Result{}, nil
+	}
+
 	ctx := context.Background()
 	var vp clustersv1alpha1.VerrazzanoProject
 	err := r.Get(ctx, req.NamespacedName, &vp)
@@ -66,7 +78,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("mcconfigmap", req.NamespacedName, &vp)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for Verrazzano project", err)
+		zap.S().Errorf("Failed to create controller logger for Verrazzano project resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling Verrazzano project resource %v, generation %v", req.NamespacedName, vp.Generation)

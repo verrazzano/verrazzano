@@ -719,6 +719,29 @@ func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
 		})
 }
 
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	asserts := assert.New(t)
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	nc, err := newTestController(mock)
+	asserts.NoError(err)
+
+	// create a request and reconcile it
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: vzconst.KubeSystem},
+	}
+	result, err := nc.Reconcile(req)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.Nil(err)
+	asserts.True(result.IsZero())
+}
+
 // Fake manager for unit testing
 type fakeManager struct {
 	client.Client
