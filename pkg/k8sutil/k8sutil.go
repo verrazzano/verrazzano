@@ -91,7 +91,13 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	if err != nil {
 		return clientset, err
 	}
-	clientset, err = kubernetes.NewForConfig(config)
+	return GetKubernetesClientsetWithConfig(config)
+}
+
+// GetKubernetesClientsetWithConfig returns the Kubernetes clientset for the given configuration
+func GetKubernetesClientsetWithConfig(config *rest.Config) (*kubernetes.Clientset, error) {
+	var clientset *kubernetes.Clientset
+	clientset, err := kubernetes.NewForConfig(config)
 	return clientset, err
 }
 
