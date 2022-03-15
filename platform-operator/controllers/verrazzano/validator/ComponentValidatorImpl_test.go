@@ -173,7 +173,7 @@ func Test_dependencyValidation(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 6,
+			numberOfErrors: 7,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
