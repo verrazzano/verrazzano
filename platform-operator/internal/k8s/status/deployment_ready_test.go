@@ -10,7 +10,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -27,7 +26,6 @@ func TestDeploymentsReady(t *testing.T) {
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -80,13 +78,17 @@ func TestDeploymentsReady(t *testing.T) {
 // WHEN the target Deployment object has a minimum of number of containers ready
 // THEN false is returned
 func TestDeploymentsContainerNotReady(t *testing.T) {
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
 	checks := []PodReadyCheck{
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -94,6 +96,9 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: selector,
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -134,13 +139,17 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 // WHEN the target Deployment object has a minimum of number of init containers ready
 // THEN false is returned
 func TestDeploymentsInitContainerNotReady(t *testing.T) {
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
 	checks := []PodReadyCheck{
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -148,6 +157,9 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: selector,
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -194,7 +206,6 @@ func TestMultipleReplicasReady(t *testing.T) {
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -265,7 +276,6 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -384,13 +394,17 @@ func TestDeploymentsNoneUpdated(t *testing.T) {
 // WHEN the target Deployment object has less than the minimum desired replicas available
 // THEN false is returned
 func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
 	checks := []PodReadyCheck{
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -398,6 +412,9 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: selector,
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 3,
@@ -455,13 +472,17 @@ func TestDeploymentsReadyDeploymentNotFound(t *testing.T) {
 // WHEN the target ReplicaSet object is not found
 // THEN false is returned
 func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
 	checks := []PodReadyCheck{
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -469,6 +490,9 @@ func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
 				Name:      "foo",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: selector,
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,

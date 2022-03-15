@@ -15,8 +15,6 @@ import (
 	"strings"
 	"text/template"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -246,21 +244,18 @@ func isCertManagerReady(context spi.ComponentContext) bool {
 				Name:      certManagerDeploymentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app": certManagerDeploymentName}.AsSelector(),
 		},
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      cainjectorDeploymentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app": "cainjector"}.AsSelector(),
 		},
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      webhookDeploymentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app": "webhook"}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())

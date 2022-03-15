@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strconv"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,7 +39,7 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, check
 				expectedReplicas, deployment.Status.AvailableReplicas)
 			return false
 		}
-		if !podsReadyDeployment(log, client, check, expectedReplicas, prefix) {
+		if !podsReadyDeployment(log, client, check, deployment.Spec.Selector, expectedReplicas, prefix) {
 			return false
 		}
 		log.Oncef("%s has enough replicas for deployment %v", prefix, check.NamespacedName)
@@ -47,16 +49,16 @@ func DeploymentsAreReady(log vzlog.VerrazzanoLogger, client clipkg.Client, check
 
 // podsReadyDeployment checks for an expected number of pods to be using the latest replicaset revision and are
 // running and ready
-func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, expectedReplicas int32, prefix string) bool {
+func podsReadyDeployment(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := getPodsList(log, client, check)
+	pods := getPodsList(log, client, check, selector)
 	if pods == nil {
 		return false
 	}
 
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
-		log.Progressf("Found no pods with matching labels selector %v for namespace %s", check.LabelSelector, check.NamespacedName.Namespace)
+		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, check.NamespacedName.Namespace)
 		return true
 	}
 

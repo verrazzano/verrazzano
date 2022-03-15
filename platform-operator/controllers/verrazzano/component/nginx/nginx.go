@@ -17,7 +17,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,14 +37,12 @@ func isNginxReady(context spi.ComponentContext) bool {
 				Name:      ControllerName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app.kubernetes.io/component": "controller"}.AsSelector(),
 		},
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      backendName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app.kubernetes.io/component": "default-backend"}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())

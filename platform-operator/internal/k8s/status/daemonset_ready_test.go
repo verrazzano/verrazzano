@@ -6,12 +6,10 @@ package status
 import (
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -21,10 +19,18 @@ import (
 
 func TestDaemonSetsReady(t *testing.T) {
 
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
 	enoughReplicas := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: selector,
 		},
 		Status: appsv1.DaemonSetStatus{
 			NumberAvailable:        1,
@@ -36,6 +42,9 @@ func TestDaemonSetsReady(t *testing.T) {
 			Name:      "foo",
 			Namespace: "bar",
 		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: selector,
+		},
 		Status: appsv1.DaemonSetStatus{
 			NumberAvailable:        2,
 			UpdatedNumberScheduled: 2,
@@ -46,6 +55,9 @@ func TestDaemonSetsReady(t *testing.T) {
 			Name:      "foo",
 			Namespace: "bar",
 		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: selector,
+		},
 		Status: appsv1.DaemonSetStatus{
 			NumberAvailable:        0,
 			UpdatedNumberScheduled: 1,
@@ -55,6 +67,9 @@ func TestDaemonSetsReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: selector,
 		},
 		Status: appsv1.DaemonSetStatus{
 			NumberAvailable:        1,
@@ -144,7 +159,6 @@ func TestDaemonSetsReady(t *testing.T) {
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 

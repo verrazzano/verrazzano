@@ -23,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -193,21 +192,18 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 				Name:      IstiodDeployment,
 				Namespace: IstioNamespace,
 			},
-			LabelSelector: labels.Set{"app": IstiodDeployment}.AsSelector(),
 		},
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      IstioInressgatewayDeployment,
 				Namespace: IstioNamespace,
 			},
-			LabelSelector: labels.Set{"app": IstioInressgatewayDeployment}.AsSelector(),
 		},
 		{
 			NamespacedName: types.NamespacedName{
 				Name:      IstioEressgatewayDeployment,
 				Namespace: IstioNamespace,
 			},
-			LabelSelector: labels.Set{"app": IstioEressgatewayDeployment}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())

@@ -6,8 +6,6 @@ package status
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	corev1 "k8s.io/api/core/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -23,10 +21,18 @@ import (
 
 func TestStatefulsetReady(t *testing.T) {
 
+	selector := &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": "foo",
+		},
+	}
 	enoughReplicas := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
 		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   1,
@@ -38,6 +44,9 @@ func TestStatefulsetReady(t *testing.T) {
 			Name:      "foo",
 			Namespace: "bar",
 		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
+		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   2,
 			UpdatedReplicas: 2,
@@ -48,6 +57,9 @@ func TestStatefulsetReady(t *testing.T) {
 			Name:      "foo",
 			Namespace: "bar",
 		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
+		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   0,
 			UpdatedReplicas: 1,
@@ -57,6 +69,9 @@ func TestStatefulsetReady(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Selector: selector,
 		},
 		Status: appsv1.StatefulSetStatus{
 			ReadyReplicas:   1,
@@ -146,7 +161,6 @@ func TestStatefulsetReady(t *testing.T) {
 				Name:      "foo",
 				Namespace: "bar",
 			},
-			LabelSelector: labels.Set{"app": "foo"}.AsSelector(),
 		},
 	}
 

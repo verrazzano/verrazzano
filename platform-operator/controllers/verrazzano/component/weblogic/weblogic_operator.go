@@ -13,7 +13,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -79,7 +78,6 @@ func isWeblogicOperatorReady(ctx spi.ComponentContext) bool {
 				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app": ComponentName}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

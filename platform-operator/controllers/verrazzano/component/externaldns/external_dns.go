@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -89,7 +88,6 @@ func isExternalDNSReady(compContext spi.ComponentContext) bool {
 				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app.kubernetes.io/instance": "external-dns"}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())

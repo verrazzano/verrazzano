@@ -17,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -90,7 +89,6 @@ func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app": ComponentName}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

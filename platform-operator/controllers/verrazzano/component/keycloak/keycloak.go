@@ -28,7 +28,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -1254,7 +1253,6 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app.kubernetes.io/name": ComponentName}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

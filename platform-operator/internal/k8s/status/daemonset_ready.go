@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +42,7 @@ func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, checks
 				expectedNodes, daemonset.Status.NumberAvailable)
 			return false
 		}
-		if !podsReadyDaemonSet(log, client, check, expectedNodes, prefix) {
+		if !podsReadyDaemonSet(log, client, check, daemonset.Spec.Selector, expectedNodes, prefix) {
 			return false
 		}
 		log.Oncef("%s has enough nodes for daemonsets %v", prefix, check.NamespacedName)
@@ -50,16 +52,16 @@ func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, checks
 
 // podsReadyDaemonSet checks for an expected number of pods to be using the latest controllerRevision resource and are
 // running and ready
-func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, expectedNodes int32, prefix string) bool {
+func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, selector *metav1.LabelSelector, expectedNodes int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := getPodsList(log, client, check)
+	pods := getPodsList(log, client, check, selector)
 	if pods == nil {
 		return false
 	}
 
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
-		log.Progressf("Found no pods with matching labels selector %v for namespace %s", check.LabelSelector, check.NamespacedName.Namespace)
+		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, check.NamespacedName.Namespace)
 		return true
 	}
 

@@ -28,7 +28,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -95,7 +94,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					Name:      verrazzanoConsoleDeployment,
 					Namespace: ComponentNamespace,
 				},
-				LabelSelector: labels.Set{"app": verrazzanoConsoleDeployment}.AsSelector(),
 			})
 	}
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
@@ -105,7 +103,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					Name:      vmoDeployment,
 					Namespace: ComponentNamespace,
 				},
-				LabelSelector: labels.Set{"k8s-app": vmoDeployment}.AsSelector(),
 			})
 	}
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
@@ -115,7 +112,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					Name:      grafanaDeployment,
 					Namespace: ComponentNamespace,
 				},
-				LabelSelector: labels.Set{"app": "system-grafana"}.AsSelector(),
 			})
 	}
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
@@ -125,7 +121,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					Name:      kibanaDeployment,
 					Namespace: ComponentNamespace,
 				},
-				LabelSelector: labels.Set{"app": "system-kibana"}.AsSelector(),
 			})
 	}
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
@@ -135,7 +130,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					Name:      prometheusDeployment,
 					Namespace: ComponentNamespace,
 				},
-				LabelSelector: labels.Set{"app": "system-prometheus"}.AsSelector(),
 			})
 	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
@@ -151,7 +145,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 									Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
 									Namespace: ComponentNamespace,
 								},
-								LabelSelector: labels.Set{"app": "system-es-data", "index": fmt.Sprintf("%d", i)}.AsSelector(),
 							})
 					}
 					continue
@@ -165,7 +158,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 									Name:      esIngestDeployment,
 									Namespace: ComponentNamespace,
 								},
-								LabelSelector: labels.Set{"app": "system-es-ingest"}.AsSelector(),
 							})
 					}
 				}
@@ -192,7 +184,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 									Name:      esMasterStatefulset,
 									Namespace: ComponentNamespace,
 								},
-								LabelSelector: labels.Set{"app": "system-es-master"}.AsSelector(),
 							})
 						if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
 							return false
@@ -213,7 +204,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					Name:      nodeExporterDaemonset,
 					Namespace: globalconst.VerrazzanoMonitoringNamespace,
 				},
-				LabelSelector: labels.Set{"app": nodeExporterDaemonset}.AsSelector(),
 			})
 	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
@@ -223,7 +213,6 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					Name:      fluentDaemonset,
 					Namespace: ComponentNamespace,
 				},
-				LabelSelector: labels.Set{"app": fluentDaemonset}.AsSelector(),
 			})
 	}
 	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {

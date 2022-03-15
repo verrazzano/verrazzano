@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
@@ -45,7 +44,6 @@ func isAuthProxyReady(ctx spi.ComponentContext) bool {
 				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app": ComponentName}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

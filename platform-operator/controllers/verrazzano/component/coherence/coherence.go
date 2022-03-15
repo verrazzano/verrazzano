@@ -8,7 +8,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -20,7 +19,6 @@ func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"control-plane": "coherence"}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

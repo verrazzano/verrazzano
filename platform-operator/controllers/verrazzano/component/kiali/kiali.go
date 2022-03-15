@@ -18,7 +18,6 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
@@ -39,7 +38,6 @@ func isKialiReady(ctx spi.ComponentContext) bool {
 				Name:      kialiSystemName,
 				Namespace: ComponentNamespace,
 			},
-			LabelSelector: labels.Set{"app": kialiSystemName}.AsSelector(),
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
