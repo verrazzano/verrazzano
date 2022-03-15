@@ -22,6 +22,7 @@
         <!-- Versions of the third party libraries -->
         <coherence.version>21.12.2</coherence.version>
         <coherence.springboot.starter.version>3.1.0</coherence.springboot.starter.version>
+        <jib.goal>dockerBuild</jib.goal>
     </properties>
 
     <dependencies>
@@ -58,5 +59,60 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>container</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.google.cloud.tools</groupId>
+                        <artifactId>jib-maven-plugin</artifactId>
+                        <version>2.7.1</version>
+                        <configuration>
+                            <from>
+                                <image>
+                                    baseimage
+                                </image>
+                            </from>
+                            <to>
+                                <image>container-registry</image>
+                                <tags>
+                                    <tag>image-tag</tag>
+                                </tags>
+                            </to>
+                            <container>
+                                <!-- good defaults intended for containers -->
+                                <jvmFlags>
+                                    <jvmFlag>-server</jvmFlag>
+                                    <jvmFlag>-Djava.awt.headless=true</jvmFlag>
+                                    <jvmFlag>-XshowSettings:all</jvmFlag>
+                                    <jvmFlag>-XX:+PrintCommandLineFlags</jvmFlag>
+                                    <jvmFlag>-XX:+UnlockDiagnosticVMOptions</jvmFlag>
+                                    <jvmFlag>-XX:InitialRAMPercentage=70</jvmFlag>
+                                    <jvmFlag>-XX:MinRAMPercentage=70</jvmFlag>
+                                    <jvmFlag>-XX:MaxRAMPercentage=70</jvmFlag>
+                                </jvmFlags>
+                                <ports>
+                                    <port>9612</port>
+                                    <port>7001</port>
+                                </ports>
+                                <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+                            </container>
+                            <containerizingMode>packaged</containerizingMode>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>dockerBuild</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

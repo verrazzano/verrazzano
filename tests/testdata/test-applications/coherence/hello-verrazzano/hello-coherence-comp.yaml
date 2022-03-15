@@ -1,0 +1,45 @@
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: hello
+  namespace: hello-coherence
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoCoherenceWorkload
+    spec:
+      template:
+        metadata:
+          name: hello-coh
+        spec:
+          labels:
+            app: hello-coh
+            version: v1
+          cluster: HelloCoherence
+          role: hello
+          replicas: 1
+          image: registry/image:tag
+          imagePullPolicy: IfNotPresent
+          application:
+            main: io.verrazzano.coherence.hello.HelloApplication
+            args:
+              - "--port=8080"
+              - "--coherence.server.startup-timeout=5m"
+          jvm:
+            memory:
+              heapSize: 2g
+          coherence:
+            logLevel: 9
+            metrics:
+              enabled: true
+          ports:
+            - name: http
+              port: 7001
+              service:
+                name: hello
+                port: 7001
+              serviceMonitor:
+                enabled: true
