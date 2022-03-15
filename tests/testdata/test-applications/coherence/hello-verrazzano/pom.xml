@@ -12,7 +12,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>verrazzano.example</groupId>
+    <groupId>io.verrazzano.coherence.samples</groupId>
     <artifactId>coherence-spring-boot</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>coherence-spring-boot</name>
