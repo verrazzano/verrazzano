@@ -9,9 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -47,7 +46,6 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
-			PreUpgradeFunc:          ApplyCRDYaml,
 		},
 	}
 }
@@ -58,6 +56,19 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 		return isApplicationOperatorReady(context)
 	}
 	return false
+}
+
+// PreUpgrade processing for the application-operator
+func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	err := applyCRDYaml(ctx.Client())
+	if err != nil {
+		return err
+	}
+	err = labelAnnotateTraitDefinitions(ctx.Client())
+	if err != nil {
+		return err
+	}
+	return labelAnnotateWorkloadDefinitions(ctx.Client())
 }
 
 // PostUpgrade processing for the application-operator

@@ -4,21 +4,28 @@
 package appoper
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"k8s.io/apimachinery/pkg/labels"
-
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	helmManagedByLabel             = "app.kubernetes.io/managed-by"
+	helmReleaseNameAnnotation      = "meta.helm.sh/release-name"
+	helmReleaseNamespaceAnnotation = "meta.helm.sh/release-namespace"
 )
 
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
@@ -90,8 +97,88 @@ func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
-func ApplyCRDYaml(log vzlog.VerrazzanoLogger, c client.Client, _ string, _ string, _ string) error {
+func applyCRDYaml(c client.Client) error {
 	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
 	yamlApplier := k8sutil.NewYAMLApplier(c, "")
 	return yamlApplier.ApplyD(path)
+}
+
+// Add label/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the
+// trait definitions were included in the helm charts crds directory, and they did not get installed with the required
+// label/annotations.  Adding the label/annotations allows helm upgrade to proceed without errors.
+func labelAnnotateTraitDefinitions(c client.Client) error {
+	traitDefinitions := []string{
+		"ingresstraits.oam.verrazzano.io",
+		"loggingtraits.oam.verrazzano.io",
+		"metricstraits.oam.verrazzano.io",
+	}
+
+	for _, traitDefinition := range traitDefinitions {
+		trait := oamv1alpha2.TraitDefinition{}
+		err := c.Get(context.TODO(), types.NamespacedName{Name: traitDefinition}, &trait)
+		// loggingtraits was not installed in earlier versions of Verrazzano so just
+		// continue on to next trait definition in that case.
+		if errors.IsNotFound(err) && traitDefinition == "loggingtraits.oam.verrazzano.io" {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		// Add label required by Helm
+		if trait.Labels == nil {
+			trait.Labels = map[string]string{}
+		}
+		trait.Labels[helmManagedByLabel] = "Helm"
+		// Add annotations required by Helm
+		if trait.Annotations == nil {
+			trait.Annotations = map[string]string{}
+		}
+		trait.Annotations[helmReleaseNameAnnotation] = ComponentName
+		trait.Annotations[helmReleaseNamespaceAnnotation] = ComponentNamespace
+
+		err = c.Update(context.TODO(), &trait)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Add label/annotations required by Helm to the Verrazzano installed workload definitions.  Originally, the
+// workload definitions were included in the helm charts crds directory, and they did not get installed with the required
+// label/annotations.  Adding the label/annotations allows helm upgrade to proceed without errors.
+func labelAnnotateWorkloadDefinitions(c client.Client) error {
+	workloadDefinitions := []string{
+		"coherences.coherence.oracle.com",
+		"deployments.apps",
+		"domains.weblogic.oracle",
+		"verrazzanocoherenceworkloads.oam.verrazzano.io",
+		"verrazzanohelidonworkloads.oam.verrazzano.io",
+		"verrazzanoweblogicworkloads.oam.verrazzano.io",
+	}
+
+	for _, workloadDefinition := range workloadDefinitions {
+		workload := oamv1alpha2.WorkloadDefinition{}
+		err := c.Get(context.TODO(), types.NamespacedName{Name: workloadDefinition}, &workload)
+		if err != nil {
+			return err
+		}
+		// Add label required by Helm
+		if workload.Labels == nil {
+			workload.Labels = map[string]string{}
+		}
+		workload.Labels[helmManagedByLabel] = "Helm"
+		// Add annotations required by Helm
+		if workload.Annotations == nil {
+			workload.Annotations = map[string]string{}
+		}
+		workload.Annotations[helmReleaseNameAnnotation] = ComponentName
+		workload.Annotations[helmReleaseNamespaceAnnotation] = ComponentNamespace
+
+		err = c.Update(context.TODO(), &workload)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
