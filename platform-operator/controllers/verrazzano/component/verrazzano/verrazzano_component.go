@@ -21,11 +21,22 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-// ComponentName is the name of the component
-const ComponentName = "verrazzano"
+const (
+	// ComponentName is the name of the component
+	ComponentName = "verrazzano"
 
-// ComponentNamespace is the namespace of the component
-const ComponentNamespace = constants.VerrazzanoSystemNamespace
+	// ComponentNamespace is the namespace of the component
+	ComponentNamespace = constants.VerrazzanoSystemNamespace
+
+	// vzImagePullSecretKeyName is the Helm key name for the VZ chart image pull secret
+	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
+
+	// Certificate names
+	osCertificateName         = "system-tls-es-ingest"
+	grafanaCertificateName    = "system-tls-grafana"
+	osdCertificateName        = "system-tls-kibana"
+	prometheusCertificateName = "system-tls-prometheus"
+)
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano"
@@ -33,8 +44,6 @@ const ComponentJSONName = "verrazzano"
 type verrazzanoComponent struct {
 	helm.HelmComponent
 }
-
-const vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
 func NewComponent() spi.Component {
 	return verrazzanoComponent{
@@ -102,8 +111,9 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 // PostInstall - post-install, clean up temp files
 func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
-	// populate the ingress names before calling PostInstall on Helm component because those will be needed there
+	// populate the ingress and certificate names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
@@ -175,4 +185,44 @@ func (c verrazzanoComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	}
 
 	return ingressNames
+}
+
+// GetCertificateNames - gets the names of the ingresses associated with this component
+func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certificateNames []types.NamespacedName
+
+	certificateNames = append(certificateNames, types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      fmt.Sprintf("%s-secret", ctx.EffectiveCR().Spec.EnvironmentName),
+	})
+
+	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      osCertificateName,
+		})
+	}
+
+	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      grafanaCertificateName,
+		})
+	}
+
+	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      osdCertificateName,
+		})
+	}
+
+	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+		certificateNames = append(certificateNames, types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      prometheusCertificateName,
+		})
+	}
+
+	return certificateNames
 }

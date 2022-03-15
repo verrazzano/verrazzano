@@ -262,6 +262,11 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 	return []types.NamespacedName{}
 }
 
+// GetCertificateNames returns the list of expected certificates used by this component
+func (i istioComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
+}
+
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
 	// Check if the component is installed before trying to upgrade
 	found, err := helm.IsReleaseInstalled(IstioCoreDNSReleaseName, constants.IstioSystemNamespace)
