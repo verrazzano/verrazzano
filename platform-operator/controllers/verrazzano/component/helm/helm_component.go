@@ -261,8 +261,8 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 		}
 	}
 
-	if readyStatus, certsNotReady := spi.CertificatesAreReady(context, h.Certificates); !readyStatus {
-		context.Log().Infof("Certificates not ready for component %s: %v", h.ReleaseName, certsNotReady)
+	if readyStatus, certsNotReady := status.CertificatesAreReady(context.Client(), context.Log(), context.EffectiveCR(), h.Certificates); !readyStatus {
+		context.Log().Progressf("Certificates not ready for component %s: %v", h.ReleaseName, certsNotReady)
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if certificates are ready",

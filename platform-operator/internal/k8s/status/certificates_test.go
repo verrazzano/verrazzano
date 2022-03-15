@@ -1,8 +1,13 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package spi
+package status
 
 import (
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"testing"
 	"time"
 
@@ -16,6 +21,17 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func getScheme() *runtime.Scheme {
+	var testScheme = runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(testScheme)
+
+	_ = vzapi.AddToScheme(testScheme)
+	_ = clustersv1alpha1.AddToScheme(testScheme)
+
+	_ = certv1.AddToScheme(testScheme)
+	return testScheme
+}
 
 // TestCheckCertificatesReady Tests the CertificatesAreReady func
 // GIVEN a Verrazzano instance with CertManager enabled
@@ -42,7 +58,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 	time2 := metav1.NewTime(now.Add(-180 * time.Second))
 	time3 := metav1.NewTime(now)
 
-	client := fake.NewFakeClientWithScheme(testScheme,
+	client := fake.NewFakeClientWithScheme(getScheme(),
 		&certv1.Certificate{
 			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
@@ -64,8 +80,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 			},
 		},
 	)
-	ctx := NewFakeContext(client, vz, false)
-	allReady, notReadyCerts := CertificatesAreReady(ctx, certNames)
+	allReady, notReadyCerts := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.True(t, allReady)
 	assert.Len(t, notReadyCerts, 0)
 }
@@ -97,7 +112,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 	time1 := metav1.NewTime(now.Add(-300 * time.Second))
 	time3 := metav1.NewTime(now)
 
-	client := fake.NewFakeClientWithScheme(testScheme,
+	client := fake.NewFakeClientWithScheme(getScheme(),
 		&certv1.Certificate{
 			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
@@ -118,8 +133,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 			},
 		},
 	)
-	ctx := NewFakeContext(client, vz, false)
-	allReady, notReadyActual := CertificatesAreReady(ctx, certNames)
+	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.False(t, allReady)
 	assert.Equal(t, notReadyExpected, notReadyActual)
 }
@@ -144,9 +158,8 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := NewFakeContext(client, vz, false)
-	allReady, notReadyActual := CertificatesAreReady(ctx, certNames)
+	client := fake.NewFakeClientWithScheme(getScheme())
+	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.True(t, allReady)
 	assert.Len(t, notReadyActual, 0)
 }
@@ -166,9 +179,8 @@ func TestCheckCertificatesNotReadyNoCertsPassed(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(testScheme)
-	ctx := NewFakeContext(client, vz, false)
-	allReady, notReady := CertificatesAreReady(ctx, []types.NamespacedName{})
+	client := fake.NewFakeClientWithScheme(getScheme())
+	allReady, notReady := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, []types.NamespacedName{})
 	assert.Len(t, notReady, 0)
 	assert.True(t, allReady)
 }

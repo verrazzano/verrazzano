@@ -277,9 +277,6 @@ func getMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-
 	mock.EXPECT().
 		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {

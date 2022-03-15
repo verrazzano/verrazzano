@@ -1,12 +1,13 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package spi
+package status
 
 import (
 	"context"
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -22,19 +23,17 @@ import (
 //
 // Returns true and an empty list of names if all certs are ready, false and a list of certificate names that are
 // NOT in the ready state
-func CertificatesAreReady(ctx ComponentContext, certificates []types.NamespacedName) (ready bool, certsNotReady []types.NamespacedName) {
+func CertificatesAreReady(client clipkg.Client, log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, certificates []types.NamespacedName) (ready bool, certsNotReady []types.NamespacedName) {
 	if len(certificates) == 0 {
 		return true, []types.NamespacedName{}
 	}
 
-	log := ctx.Log()
-	if !vzconfig.IsCertManagerEnabled(ctx.EffectiveCR()) {
+	if !vzconfig.IsCertManagerEnabled(vz) {
 		log.Oncef("Cert-Manager disabled, skipping certificates check")
 		return true, []types.NamespacedName{}
 	}
 
-	ctx.Log().Oncef("Checking certificates status for %v", certificates)
-	client := ctx.Client()
+	log.Oncef("Checking certificates status for %v", certificates)
 	for _, name := range certificates {
 		ready, err := IsCertficateIsReady(log, client, name)
 		if err != nil {
