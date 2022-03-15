@@ -6,6 +6,8 @@ package validator
 import (
 	"testing"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
@@ -41,7 +43,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 0,
+			numberOfErrors: 8,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
@@ -100,7 +102,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 1,
+			numberOfErrors: 5,
 		},
 		{
 			name: "disabled cert and ingress",
@@ -117,7 +119,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 2,
+			numberOfErrors: 10,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
@@ -128,6 +130,60 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 			got := c.ValidateUpdate(tt.old, tt.new)
 			if len(got) != tt.numberOfErrors {
 				t.Errorf("ValidateUpdate() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
+			}
+		})
+	}
+}
+
+func Test_dependencyValidation(t *testing.T) {
+	tests := []struct {
+		name           string
+		vz             *vzapi.Verrazzano
+		numberOfErrors int
+	}{
+		{
+			name:           "default CR",
+			vz:             &vzapi.Verrazzano{},
+			numberOfErrors: 0,
+		},
+		{
+			name: "disabled cert and ingress",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: &disabled,
+						},
+						Ingress: &vzapi.IngressNginxComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			numberOfErrors: 8,
+		},
+		{
+			name: "disabled istio",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Istio: &vzapi.IstioComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			numberOfErrors: 7,
+		},
+	}
+	config.TestProfilesDir = "../../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			effectiveCR, _ := transform.GetEffectiveCR(tt.vz)
+			got := dependencyValidation(effectiveCR)
+			if len(got) != tt.numberOfErrors {
+				t.Errorf("dependencyValidation() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
 			}
 		})
 	}
