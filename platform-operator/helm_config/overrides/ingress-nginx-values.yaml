@@ -9,7 +9,7 @@ controller:
   config:
     client-body-buffer-size: 64k
     proxy-buffer-size: 8k
-    custom-http-errors: 301,304,307,308,400,401,403,404,407,408,409,413,414,415,416,418,421,429,431,500,501,502,503,504,505
+    custom-http-errors: 301,304,307,308,401,403,404,407,408,409,413,414,415,416,418,421,429,431,500,501,502,503,504,505
   metrics:
     enabled: true
   publishService:
@@ -25,6 +25,25 @@ controller:
     traffic.sidecar.istio.io/excludeInboundPorts: "80,443"
     traffic.sidecar.istio.io/includeInboundPorts: ""
     sidecar.istio.io/rewriteAppHTTPProbers: "true"
+  volumeMounts:
+    - mountPath: /etc/nginx/template
+      name: nginx-template
+      readOnly: true
+    - mountPath: /usr/local/nginx/html
+      name: custom-400-error
+  volumes:
+    - name: nginx-template
+      configMap:
+        name: ingress-controller-ingress-nginx-controller-template
+        items:
+          - key: nginx.tmpl
+            path: nginx.tmpl
+    - name: custom-400-error
+      configMap:
+        name: ingress-controller-ingress-nginx-controller-template
+        items:
+          - key: 400.html
+            path: 400.html
 defaultBackend:
   # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
   # the bill of materials file (verrazzano-bom.json).
