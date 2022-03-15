@@ -140,6 +140,89 @@ func TestPostInstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestPostInstallCertsNotReady tests the Verrazzano PostInstall call
+// GIVEN a Verrazzano component
+//  WHEN I call PostInstall and the certificates aren't ready
+//  THEN a retryable error is returned
+func TestPostInstallCertsNotReady(t *testing.T) {
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: dnsComponents,
+		},
+	}, false)
+	vzComp := NewComponent()
+
+	// PostInstall will fail because the expected VZ ingresses are not present in cluster
+	err := vzComp.PostInstall(ctx)
+	assert.IsType(t, spi2.RetryableError{}, err)
+
+	// now get all the ingresses for VZ and add them to the fake K8S and ensure that PostInstall succeeds
+	// when all the ingresses are present in the cluster
+	vzIngressNames := vzComp.(verrazzanoComponent).GetIngressNames(ctx)
+	for _, ingressName := range vzIngressNames {
+		client.Create(context.TODO(), &v1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
+		})
+	}
+	for _, certName := range vzComp.(verrazzanoComponent).GetCertificateNames(ctx) {
+		time := metav1.Now()
+		client.Create(context.TODO(), &certv1.Certificate{
+			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
+			Status: certv1.CertificateStatus{
+				Conditions: []certv1.CertificateCondition{
+					{Type: certv1.CertificateConditionIssuing, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+				},
+			},
+		})
+	}
+	err = vzComp.PostInstall(ctx)
+
+	expectedErr := spi2.RetryableError{
+		Source:    vzComp.Name(),
+		Operation: "Check if certificates are ready",
+	}
+	assert.Error(t, err)
+	assert.Equal(t, expectedErr, err)
+}
+
+// TestGetCertificateNames tests the Verrazzano GetCertificateNames call
+// GIVEN a Verrazzano component
+//  WHEN I call GetCertificateNames
+//  THEN the correct number of certificate names are returned based on what is enabled
+func TestGetCertificateNames(t *testing.T) {
+	vmiEnabled := false
+	vz := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: vzapi.ComponentSpec{
+				DNS: &vzapi.DNSComponent{
+					External: &vzapi.External{Suffix: "blah"},
+				},
+				Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+				Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &vmiEnabled}},
+			},
+		},
+	}
+	client := fake.NewFakeClientWithScheme(testScheme)
+	ctx := spi.NewFakeContext(client, &vz, false)
+	vzComp := NewComponent()
+
+	certNames := vzComp.GetCertificateNames(ctx)
+	assert.Len(t, certNames, 1, "Unexpected number of cert names")
+
+	vmiEnabled = true
+	vz.Spec.Components.Grafana.Enabled = &vmiEnabled
+	vz.Spec.Components.Prometheus.Enabled = &vmiEnabled
+	vz.Spec.Components.Kibana.Enabled = &vmiEnabled
+	vz.Spec.Components.Elasticsearch.Enabled = &vmiEnabled
+
+	certNames = vzComp.GetCertificateNames(ctx)
+	assert.Len(t, certNames, 5, "Unexpected number of cert names")
+}
+
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
 //  WHEN I call Upgrade
