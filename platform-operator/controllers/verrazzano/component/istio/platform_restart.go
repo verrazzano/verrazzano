@@ -43,12 +43,13 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	}
 	for index := range deploymentList.Items {
 		deployment := &deploymentList.Items[index]
-		log.Oncef("Checking if Deployment %s has a pod with an old Istio sidecar proxy", deployment.Name)
 
 		// Ignore deployment if it is NOT in an Istio injected system namespace
 		if !vzString.SliceContainsString(namespaces, deployment.Namespace) {
 			continue
 		}
+		log.Oncef("Checking if Deployment %s has a pod with an old Istio sidecar proxy", deployment.Name)
+
 		// Get the pods for this deployment
 		podList, err := getMatchingPods(log, goClient, deployment.Namespace, deployment.Spec.Selector)
 		if err != nil {
@@ -82,12 +83,13 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	}
 	for index := range statefulSetList.Items {
 		sts := &statefulSetList.Items[index]
-		log.Oncef("Checking if StatefulSet %s has a pod with an old Istio sidecar proxy", sts.Name)
 
 		// Ignore StatefulSet if it is NOT in an Istio injected system namespace
 		if !vzString.SliceContainsString(namespaces, sts.Namespace) {
 			continue
 		}
+		log.Oncef("Checking if StatefulSet %s has a pod with an old Istio sidecar proxy", sts.Name)
+
 		// Get the pods for this StatefulSet
 		podList, err := getMatchingPods(log, goClient, sts.Namespace, sts.Spec.Selector)
 		if err != nil {
@@ -117,12 +119,13 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	}
 	for index := range daemonSetList.Items {
 		daemonSet := &daemonSetList.Items[index]
-		log.Oncef("Checking if DaemonSet %s has a pod with an old Istio sidecar proxy", daemonSet.Name)
 
 		// Ignore StatefulSet if it is NOT in an Istio injected system namespace
 		if !vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
 			continue
 		}
+		log.Oncef("Checking if DaemonSet %s has a pod with an old Istio sidecar proxy", daemonSet.Name)
+
 		// Get the pods for this DaemonSet
 		podList, err := getMatchingPods(log, goClient, daemonSet.Namespace, daemonSet.Spec.Selector)
 		if err != nil {
