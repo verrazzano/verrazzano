@@ -247,9 +247,9 @@ func (mr *MockComponentInfoMockRecorder) GetMinVerrazzanoVersion() *gomock.Call 
 }
 
 // IsEnabled mocks base method.
-func (m *MockComponentInfo) IsEnabled(arg0 spi.ComponentContext) bool {
+func (m *MockComponentInfo) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsEnabled", arg0)
+	ret := m.ctrl.Call(m, "IsEnabled", effectiveCR)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
@@ -527,9 +527,9 @@ func (mr *MockComponentMockRecorder) Install(arg0 interface{}) *gomock.Call {
 }
 
 // IsEnabled mocks base method.
-func (m *MockComponent) IsEnabled(arg0 spi.ComponentContext) bool {
+func (m *MockComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsEnabled", arg0)
+	ret := m.ctrl.Call(m, "IsEnabled", effectiveCR)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
@@ -679,4 +679,18 @@ func (m *MockComponent) Upgrade(arg0 spi.ComponentContext) error {
 func (mr *MockComponentMockRecorder) Upgrade(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upgrade", reflect.TypeOf((*MockComponent)(nil).Upgrade), arg0)
+}
+
+func (m *MockComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateInstall", vz, nil)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (m *MockComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateUpdate", old, new, nil)
+	ret0, _ := ret[0].(error)
+	return ret0
 }

@@ -5,8 +5,6 @@ package spi
 // Default implementation of the ComponentContext interface
 
 import (
-	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -15,18 +13,13 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	// implicit base profile (defaults)
-	baseProfile = "base"
-)
-
 var _ ComponentContext = componentContext{}
 
 // NewContext creates a ComponentContext from a raw CR
 func NewContext(log vzlog.VerrazzanoLogger, c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool) (ComponentContext, error) {
 
 	// Generate the effective CR based ond the declared profile and any overrides in the user-supplied one
-	effectiveCR, err := getEffectiveCR(actualCR)
+	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +46,7 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		defer func() { config.TestProfilesDir = "" }()
 
 		var err error
-		effectiveCR, err = getEffectiveCR(actualCR)
+		effectiveCR, err = transform.GetEffectiveCR(actualCR)
 		if err != nil {
 			log.Errorf("Failed, unexpected error building fake context: %v", err)
 			return nil
@@ -68,39 +61,6 @@ func NewFakeContext(c clipkg.Client, actualCR *vzapi.Verrazzano, dryRun bool, pr
 		operation:   "",
 		component:   "",
 	}
-}
-
-// getEffectiveCR Creates an "effective" Verrazzano CR based on the user defined resource merged with the profile definitions
-// - Effective CR == base profile + declared profiles + ActualCR (in order)
-// - last definition wins
-func getEffectiveCR(actualCR *vzapi.Verrazzano) (*vzapi.Verrazzano, error) {
-	if actualCR == nil {
-		return nil, nil
-	}
-	// Identify the set of profiles, base + declared
-	profiles := []string{baseProfile, string(vzapi.Prod)}
-	if len(actualCR.Spec.Profile) > 0 {
-		profiles = append([]string{baseProfile}, strings.Split(string(actualCR.Spec.Profile), ",")...)
-	}
-	var profileFiles []string
-	for _, profile := range profiles {
-		profileFiles = append(profileFiles, config.GetProfile(profile))
-	}
-	// Merge the profile files into an effective profile YAML string
-	effectiveCR, err := transform.MergeProfiles(actualCR, profileFiles...)
-	if err != nil {
-		return nil, err
-	}
-	effectiveCR.Status = vzapi.VerrazzanoStatus{} // Don't replicate the CR status in the effective config
-	// if Certificate in CertManager is empty, set it to default CA
-	var emptyCertConfig = vzapi.Certificate{}
-	if effectiveCR.Spec.Components.CertManager.Certificate == emptyCertConfig {
-		effectiveCR.Spec.Components.CertManager.Certificate.CA = vzapi.CA{
-			SecretName:               "verrazzano-ca-certificate-secret",
-			ClusterResourceNamespace: "cert-manager",
-		}
-	}
-	return effectiveCR, nil
 }
 
 type componentContext struct {

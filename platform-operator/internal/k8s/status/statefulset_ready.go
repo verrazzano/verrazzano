@@ -15,7 +15,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// StatefulSetsAreeady Check that the named statefulsets have the minimum number of specified replicas ready and available
+// StatefulSetsAreReady Check that the named statefulsets have the minimum number of specified replicas ready and available
 func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, checks []PodReadyCheck, expectedReplicas int32, prefix string) bool {
 	for _, check := range checks {
 		statefulset := appsv1.StatefulSet{}

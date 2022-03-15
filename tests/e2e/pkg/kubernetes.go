@@ -356,8 +356,8 @@ func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
 	return cr, nil
 }
 
-// getVerrazzanoVersionForKubeConfig returns the Verrazzano Version for a given kubeconfigPath
-func getVerrazzanoVersionForKubeConfig(kubeconfigPath string) (string, error) {
+// GetVerrazzanoVersion returns the Verrazzano Version
+func GetVerrazzanoVersion(kubeconfigPath string) (string, error) {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
@@ -370,18 +370,8 @@ func getVerrazzanoVersionForKubeConfig(kubeconfigPath string) (string, error) {
 }
 
 // IsVerrazzanoMinVersion returns true if the Verrazzano version >= minVersion
-func IsVerrazzanoMinVersion(minVersion string) (bool, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-		return false, err
-	}
-	return IsVerrazzanoMinVersionForKubeConfig(kubeconfigPath, minVersion)
-}
-
-// IsVerrazzanoMinVersion returns true if the Verrazzano version >= minVersion for a given kubeconfigPath
-func IsVerrazzanoMinVersionForKubeConfig(kubeconfigPath string, minVersion string) (bool, error) {
-	vzVersion, err := getVerrazzanoVersionForKubeConfig(kubeconfigPath)
+func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion(kubeconfigPath)
 	if err != nil {
 		return false, err
 	}
@@ -1004,7 +994,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 	return auth.Status.Allowed, auth.Status.Reason, nil
 }
 
-//GetTokenForServiceAccount returns the token associated with service account
+// GetTokenForServiceAccount returns the token associated with service account
 func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 	serviceAccount, err := GetServiceAccount(namespace, sa)
 	if err != nil {
