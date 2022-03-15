@@ -48,17 +48,17 @@ func TestRestartAllWorkloadTypes(t *testing.T) {
 	asserts.NoError(err)
 	dep, err := clientSet.AppsV1().Deployments("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
 	asserts.NoError(err)
-	val, _ := dep.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	val := dep.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
 	asserts.Equal("1", val, "Incorrect Deployment restart annotation")
 
 	sts, err := clientSet.AppsV1().StatefulSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
 	asserts.NoError(err)
-	val, _ = sts.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	val = sts.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
 	asserts.Equal("1", val, "Incorrect StatefulSet restart annotation")
 
 	daemonSet, err := clientSet.AppsV1().DaemonSets("verrazzano-system").Get(context.TODO(), "test", metav1.GetOptions{})
 	asserts.NoError(err)
-	val, _ = daemonSet.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
+	val = daemonSet.Spec.Template.Annotations[vzconst.VerrazzanoRestartAnnotation]
 	asserts.Equal("1", val, "Incorrect DaemonSet restart annotation")
 }
 
