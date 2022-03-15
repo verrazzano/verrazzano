@@ -89,8 +89,8 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 	return ginkgo.It(text, args...)
 }
 
-func (t *TestFramework) ItMinimumVersion(text string, version string, args ...interface{}) bool {
-	supported, err := pkg.IsVerrazzanoMinVersion(version)
+func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfigPath string, args ...interface{}) bool {
+	supported, err := pkg.IsVerrazzanoMinVersion(version, kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 		return false
@@ -211,12 +211,12 @@ func (t *TestFramework) JustAfterEach(args ...interface{}) bool {
 	return ginkgo.JustAfterEach(args...)
 }
 
-//BeforeAll - wrapper function for Ginkgo BeforeAll
+// BeforeAll - wrapper function for Ginkgo BeforeAll
 func (t *TestFramework) BeforeAll(args ...interface{}) bool {
 	return ginkgo.BeforeAll(args...)
 }
 
-//AfterAll - wrapper function for Ginkgo AfterAll
+// AfterAll - wrapper function for Ginkgo AfterAll
 func (t *TestFramework) AfterAll(args ...interface{}) bool {
 	return ginkgo.AfterAll(args...)
 }

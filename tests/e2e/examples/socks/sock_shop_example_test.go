@@ -246,24 +246,35 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(And(pkg.HasStatus(http.StatusOK), pkg.BodyContains("For all those leg lovers out there.")))
 	})
 
-	// this is marked pending until VZ-3760 is fixed
-	PDescribe("Verify Prometheus scraped metrics", func() {
-		t.It("Retrieve Prometheus scraped metrics", func() {
-			pkg.Concurrently(
-				func() {
-					Eventually(appMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
-				},
-				func() {
+	// Verify Prometheus scraped metrics
+	t.Context("Metrics", Label("f:observability.monitoring.prom"), func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
+		// Coherence metric fix available only from 1.3.0
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
+			t.It("Retrieve Prometheus scraped metrics", func() {
+				if getVariant() == "helidon" {
+					pkg.Concurrently(
+						func() {
+							Eventually(appMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(appComponentMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+						func() {
+							Eventually(appConfigMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
+						},
+					)
+				} else {
 					Eventually(coherenceMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(appComponentMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(appConfigMetricExists, waitTimeout, pollingInterval).Should(BeTrue())
-				},
-			)
-		})
+				}
+			})
+		}
 	})
 
 })
@@ -353,7 +364,7 @@ func sockshopPodsRunning() bool {
 
 // appMetricExists checks whether app related metrics are available
 func appMetricExists() bool {
-	return pkg.MetricsExist("base_jvm_uptime_seconds", "cluster", "SockShop")
+	return pkg.MetricsExist("base_jvm_uptime_seconds", "app", "carts-coh")
 }
 
 func coherenceMetricExists() bool {

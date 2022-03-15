@@ -165,8 +165,8 @@ func (e *Elastic) CheckTLSSecret() bool {
 
 // CheckHealth checks the health status of Elasticsearch cluster
 // Returns true if the health status is green otherwise false
-func (e *Elastic) CheckHealth() bool {
-	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+func (e *Elastic) CheckHealth(kubeconfigPath string) bool {
+	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 		return false
@@ -196,8 +196,8 @@ func (e *Elastic) CheckHealth() bool {
 
 // CheckIndicesHealth checks the health status of indices in a cluster
 // Returns true if the health status of all the indices is green otherwise false
-func (e *Elastic) CheckIndicesHealth() bool {
-	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
+func (e *Elastic) CheckIndicesHealth(kubeconfigPath string) bool {
+	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 		return false
@@ -234,8 +234,8 @@ func (e *Elastic) CheckIndicesHealth() bool {
 	return true
 }
 
-////Check the Elasticsearch certificate
-//func (e *Elastic) CheckCertificate() bool {
+// //Check the Elasticsearch certificate
+// func (e *Elastic) CheckCertificate() bool {
 //	certList, _ := pkg.ListCertificates("verrazzano-system")
 //	for _, cert := range certList.Items {
 //		if cert.Name == fmt.Sprintf("%v-tls", e.binding) {
@@ -249,7 +249,7 @@ func (e *Elastic) CheckIndicesHealth() bool {
 //		}
 //	}
 //	return false
-//}
+// }
 
 // CheckIngress checks the Elasticsearch Ingress
 func (e *Elastic) CheckIngress() bool {

@@ -27,7 +27,11 @@ const (
 
 var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
 	t.Context("test that an", func() {
-		t.ItMinimumVersion("Incorrect path returns a 404", minimumVersion, func() {
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
+		t.ItMinimumVersion("Incorrect path returns a 404", minimumVersion, kubeconfigPath, func() {
 			if !pkg.IsManagedClusterProfile() {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -62,7 +66,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 			}
 		})
 
-		t.ItMinimumVersion("Incorrect password returns a 401", minimumVersion, func() {
+		t.ItMinimumVersion("Incorrect password returns a 401", minimumVersion, kubeconfigPath, func() {
 			if !pkg.IsManagedClusterProfile() {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -92,7 +96,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 			}
 		})
 
-		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, func() {
+		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, kubeconfigPath, func() {
 			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
