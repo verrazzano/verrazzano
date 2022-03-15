@@ -30,7 +30,7 @@ type PodReadyCheck struct {
 func getPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, selector *metav1.LabelSelector) *corev1.PodList {
 	labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
-		log.Errorf("Failed to convert LabelSelector: %v", check.NamespacedName.Namespace, err)
+		log.Errorf("Failed to convert LabelSelector %v for %v: %v", selector, check.NamespacedName, err)
 		return nil
 	}
 	var pods corev1.PodList
