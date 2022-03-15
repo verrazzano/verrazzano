@@ -164,45 +164,45 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 
 		// VZ-3012: Coherence metric fix available only from 1.3.0
 		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig); ok {
-		t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
-			Eventually(func() bool {
-				m := make(map[string]string)
-				m["app"] = testApp
-				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
-		})
+			t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
+				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+				Eventually(func() bool {
+					m := make(map[string]string)
+					m["app"] = testApp
+					m[clusterNameMetricsLabel] = clusterName
+					return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find base_jvm_uptime_seconds metric")
+			})
 
-		t.It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
-			Eventually(func() bool {
-				m := make(map[string]string)
-				m["app"] = testApp
-				m[clusterNameMetricsLabel] = "DNE"
-				return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
-		})
+			t.It("Verify DNE base_jvm_uptime_seconds metrics does not exist for managed cluster", func() {
+				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+				Eventually(func() bool {
+					m := make(map[string]string)
+					m["app"] = testApp
+					m[clusterNameMetricsLabel] = "DNE"
+					return pkg.MetricsExistInCluster("base_jvm_uptime_seconds", m, adminKubeconfig)
+				}, longWaitTimeout, longPollingInterval).Should(BeFalse(), "Not expected to find base_jvm_uptime_seconds metric")
+			})
 
-		t.It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
-			Eventually(func() bool {
-				m := make(map[string]string)
-				m["app"] = testApp
-				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
-		})
+			t.It("Verify vendor_requests_count_total metrics exist for managed cluster", func() {
+				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+				Eventually(func() bool {
+					m := make(map[string]string)
+					m["app"] = testApp
+					m[clusterNameMetricsLabel] = clusterName
+					return pkg.MetricsExistInCluster("vendor_requests_count_total", m, adminKubeconfig)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find vendor_requests_count_total metric")
+			})
 
-		t.It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
-			clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
-			Eventually(func() bool {
-				m := make(map[string]string)
-				m["namespace"] = testNamespace
-				m[clusterNameMetricsLabel] = clusterName
-				return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
-		})
+			t.It("Verify container_cpu_cfs_periods_total metrics exist for managed cluster", func() {
+				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+				Eventually(func() bool {
+					m := make(map[string]string)
+					m["namespace"] = testNamespace
+					m[clusterNameMetricsLabel] = clusterName
+					return pkg.MetricsExistInCluster("container_cpu_cfs_periods_total", m, adminKubeconfig)
+				}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find container_cpu_cfs_periods_total metric")
+			})
 
 			t.It("Verify coherence metrics exist for managed cluster", func() {
 				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
