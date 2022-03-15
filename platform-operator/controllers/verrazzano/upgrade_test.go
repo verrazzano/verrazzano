@@ -14,7 +14,14 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
+	gofake "k8s.io/client-go/kubernetes/fake"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -638,6 +645,11 @@ func TestUpgradeCompleted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
@@ -647,9 +659,6 @@ func TestUpgradeCompleted(t *testing.T) {
 		}
 	})
 	defer registry.ResetGetComponentsFn()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -733,6 +742,11 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComponent{
@@ -743,9 +757,6 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 		}
 	})
 	defer registry.ResetGetComponentsFn()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -830,6 +841,11 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComponent{},
@@ -839,9 +855,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -1091,6 +1104,11 @@ func TestUpgradeComponent(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	vz := vzapi.Verrazzano{}
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -1137,9 +1155,6 @@ func TestUpgradeComponent(t *testing.T) {
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
@@ -1153,7 +1168,6 @@ func TestUpgradeComponent(t *testing.T) {
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
 	reconciler := newVerrazzanoReconciler(mock)
 	numComponentStates := 7
-	var err error
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
 		result, err = reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
@@ -1276,6 +1290,11 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	vz := vzapi.Verrazzano{}
 	vz.TypeMeta = metav1.TypeMeta{
 		APIVersion: "install.verrazzano.io/v1alpha1",
@@ -1328,9 +1347,6 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -2016,4 +2032,35 @@ func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, er
 		}
 	}
 	return result, err
+}
+
+// initFakeClient inits a fake go-client and loads it with fake resources
+func initFakeClient() (kubernetes.Interface, error) {
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testDeployment",
+			Namespace: "verrazzano-system",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: nil,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "foo"},
+			},
+		},
+	}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testPod",
+			Namespace: "verrazzano-system",
+			Labels:    map[string]string{"app": "foo"},
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{{
+				Name:  "c1",
+				Image: "myimage",
+			}},
+		},
+	}
+	clientSet := gofake.NewSimpleClientset(dep, pod)
+	return clientSet, nil
 }
