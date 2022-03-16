@@ -26,9 +26,16 @@ import (
 	"k8s.io/client-go/dynamic"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"os"
 	"reflect"
 	"strings"
 )
+
+// Default labels for the namespace
+var nsLabels = map[string]string{
+	"verrazzano-managed": "true",
+	"istio-injection":    "enabled",
+}
 
 // Framework supports common operations used by e2e tests; it will keep a client & a namespace for you.
 // Eventual goal is to merge this with integration test framework.
@@ -41,7 +48,7 @@ type Framework struct {
 	UniqueName string
 
 	clientConfig *rest.Config
-	ClientSet    clientset.Interface
+	ClientSet    *clientset.Clientset
 
 	DynamicClient dynamic.Interface
 
@@ -49,7 +56,9 @@ type Framework struct {
 	Namespace             *v1.Namespace   // Every test has at least one namespace unless creation is skipped
 	namespacesToDelete    []*v1.Namespace // Some tests have more than one.
 
-	KubeConfig string // Custome kube config
+	NamespaceAnnotations map[string]string
+
+	KubeConfig string // Custom kube config
 
 	// afterEaches is a map of name to function to be called after each test.  These are not
 	// cleared.  The call order is randomized so that no dependencies can grow between
@@ -79,7 +88,7 @@ func NewDefaultFrameworkWithKubeConfig(baseName string, kubeConfig string) *Fram
 }
 
 // NewFramework creates a test framework.
-func NewFramework(baseName string, kubeconfig string, client clientset.Interface) *Framework {
+func NewFramework(baseName string, kubeconfig string, client *clientset.Clientset) *Framework {
 	metricsIndex, _ := metrics.NewLogger(baseName, metrics.MetricsIndex)
 	logIndex, _ := metrics.NewLogger(baseName, metrics.TestLogIndex)
 
@@ -122,15 +131,21 @@ func (f *Framework) BeforeEach() {
 
 		f.clientConfig = rest.CopyConfig(config)
 
-		f.ClientSet, err = k8sutil.GetKubernetesClientset()
+		f.ClientSet, err = k8sutil.GetKubernetesClientsetWithConfig(config)
 		ExpectNoError(err)
 
 		f.DynamicClient, err = dynamic.NewForConfig(config)
 		ExpectNoError(err)
+
+		// Create namespace for the tests
+		if !f.SkipNamespaceCreation {
+			ns, _ := f.CreateNamespace(f.UniqueName, nsLabels, f.ClientSet, f.NamespaceAnnotations)
+			f.AddNamespacesToDelete(ns)
+		}
 	}
 }
 
-// AddAfterEach is a way to add a function to be called after every test.  The execution order is intentionally random
+// AddAfterEach is a way to add a function to be called after every test. The execution order is intentionally random
 // to avoid growing dependencies.  If you register the same name twice, it is a coding error and will panic.
 func (f *Framework) AddAfterEach(name string, fn AfterEachActionFunc) {
 	if _, ok := f.afterEaches[name]; ok {
@@ -163,6 +178,37 @@ func (f *Framework) ClientConfig() *rest.Config {
 	ret.ContentType = runtime.ContentTypeJSON
 	ret.AcceptContentTypes = runtime.ContentTypeJSON
 	return ret
+}
+
+// CreateNamespace creates the namespace specified by the name
+func (f *Framework) CreateNamespace(name string, labels map[string]string, client *clientset.Clientset, annotations map[string]string) (*v1.Namespace, error) {
+	return pkg.CreateNamespaceWithClientSet(name, labels, client, annotations)
+}
+
+// AddNamespacesToDelete adds one or more namespaces to be deleted when the test
+// completes.
+func (f *Framework) AddNamespacesToDelete(namespaces ...*v1.Namespace) {
+	for _, ns := range namespaces {
+		if ns == nil {
+			continue
+		}
+		f.namespacesToDelete = append(f.namespacesToDelete, ns)
+	}
+}
+
+// DeleteNamespace deletes the namespace specified by the name
+func (f *Framework) DeleteNamespace(name string) {
+	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
+		pkg.Log(pkg.Info, fmt.Sprintf("DeleteNamespace %s, test is running with custom service account and "+
+			"therefore namespace won't be deleted by the test", name))
+		return
+	}
+	pkg.DeleteNamespaceWithClientSet(name, f.ClientSet)
+}
+
+// CheckNSFinalizersRemoved checks whether the namespace finalizers are removed
+func (f *Framework) CheckNSFinalizersRemoved(name string) bool {
+	return pkg.CheckNSFinalizerRemoved(name, f.ClientSet)
 }
 
 // Ginkgo wrapper functions start from here

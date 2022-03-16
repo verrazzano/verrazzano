@@ -5,10 +5,7 @@ package io.verrazzano.coherence.hello;
 
 import com.oracle.coherence.spring.configuration.annotation.CoherenceMap;
 
-import com.tangosol.net.Coherence;
 import com.tangosol.net.NamedMap;
-
-import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,15 +17,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequestMapping("/hello")
 public class HelloController {
-
-    @Autowired
-    private Coherence coherence;
 
     @CoherenceMap
     private NamedMap<String, Message> messages;
 
-    @GetMapping("/hello")
+    @GetMapping("/verrazzano")
     public String greet() {
         if (!messages.isEmpty()) {
             StringBuilder sb = new StringBuilder();

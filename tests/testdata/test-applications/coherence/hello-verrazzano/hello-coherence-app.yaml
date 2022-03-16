@@ -7,21 +7,27 @@ metadata:
   name: hello-appconf
   annotations:
     version: v1.0.0
-    description: "Sample application to validate deployment of VerrazzanoWebLogicWorkload"
+    description: "Sample application to validate deployment of VerrazzanoCoherenceWorkload"
 spec:
   components:
-    - componentName: hello-domain
+    - componentName: hello
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
-            kind: MetricsTrait
-            spec:
-              scraper: verrazzano-system/vmi-system-prometheus-0
-        - trait:
-            apiVersion: oam.verrazzano.io/v1alpha1
             kind: IngressTrait
+            metadata:
+              name: hello-ingress
             spec:
               rules:
                 - paths:
-                    - path: "/hello"
+                    - path: "/"
                       pathType: Prefix
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            metadata:
+              name: hello-metrics
+            spec:
+              ports:
+                - port: 8080
+                - port: 9612
