@@ -455,6 +455,10 @@ func (f fakeComponent) Name() string {
 	return f.name
 }
 
+func (f fakeComponent) GetJSONName() string {
+	return f.GetJSONName()
+}
+
 func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }
@@ -517,4 +521,8 @@ func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 
 func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
 	return nil
+}
+
+func (f fakeComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
 }

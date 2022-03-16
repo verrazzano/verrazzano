@@ -9,9 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -28,6 +27,9 @@ const ComponentName = "verrazzano-application-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "applicationOperator"
+
 type applicationOperatorComponent struct {
 	helm.HelmComponent
 }
@@ -36,6 +38,7 @@ func NewComponent() spi.Component {
 	return applicationOperatorComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetHelmChartsDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -43,7 +46,6 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:     AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0]",
 			Dependencies:            []string{oam.ComponentName, istio.ComponentName},
-			PreUpgradeFunc:          ApplyCRDYaml,
 		},
 	}
 }
@@ -54,6 +56,19 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 		return isApplicationOperatorReady(context)
 	}
 	return false
+}
+
+// PreUpgrade processing for the application-operator
+func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	err := applyCRDYaml(ctx.Client())
+	if err != nil {
+		return err
+	}
+	err = labelAnnotateTraitDefinitions(ctx.Client())
+	if err != nil {
+		return err
+	}
+	return labelAnnotateWorkloadDefinitions(ctx.Client())
 }
 
 // PostUpgrade processing for the application-operator
@@ -103,7 +118,7 @@ func (c applicationOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) b
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled applicationOperator")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }

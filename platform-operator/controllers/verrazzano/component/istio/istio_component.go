@@ -10,22 +10,18 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzString "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,6 +30,9 @@ import (
 
 // ComponentName is the name of the component
 const ComponentName = "istio"
+
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "istio"
 
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
@@ -55,6 +54,9 @@ const IstioCoreDNSReleaseName = "istiocoredns"
 // HelmScrtType is the secret type that helm uses to specify its releases
 const HelmScrtType = "helm.sh/release.v1"
 
+// subcompIstiod is the Istiod subcomponent in the bom
+const subcompIstiod = "istiod"
+
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -68,6 +70,11 @@ type istioComponent struct {
 
 	// Internal monitor object for peforming `istioctl` operations in the background
 	monitor installMonitor
+}
+
+// GetJsonName returns the josn name of the verrazzano component in CRD
+func (i istioComponent) GetJSONName() string {
+	return ComponentJSONName
 }
 
 type upgradeFuncSig func(log vzlog.VerrazzanoLogger, imageOverrideString string, overridesFiles ...string) (stdout []byte, stderr []byte, err error)
@@ -130,7 +137,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled istio")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }
@@ -255,78 +262,9 @@ func (i istioComponent) GetIngressNames(_ spi.ComponentContext) []types.Namespac
 	return []types.NamespacedName{}
 }
 
-// RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
-// in all of the Istio injected system namespaces
-func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, client clipkg.Client) error {
-	// Restart all the deployments in the injected system namespaces
-	var deploymentList appsv1.DeploymentList
-	err := client.List(context.TODO(), &deploymentList)
-	if err != nil {
-		return err
-	}
-	for index := range deploymentList.Items {
-		deployment := &deploymentList.Items[index]
-
-		// Check if deployment is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, deployment.Namespace) {
-			if deployment.Spec.Paused {
-				return log.ErrorfNewErr("Failed, deployment %s can't be restarted because it is paused", deployment.Name)
-			}
-			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), deployment); err != nil {
-				return err
-			}
-		}
-	}
-	log.Info("Restarted system Deployments in istio injected namespaces")
-
-	// Restart all the StatefulSet in the injected system namespaces
-	statefulSetList := appsv1.StatefulSetList{}
-	err = client.List(context.TODO(), &statefulSetList)
-	if err != nil {
-		return err
-	}
-	for index := range statefulSetList.Items {
-		statefulSet := &statefulSetList.Items[index]
-
-		// Check if StatefulSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, statefulSet.Namespace) {
-			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
-				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), statefulSet); err != nil {
-				return err
-			}
-		}
-	}
-	log.Info("Restarted system Statefulsets in istio injected namespaces")
-
-	// Restart all the DaemonSets in the injected system namespaces
-	var daemonSetList appsv1.DaemonSetList
-	err = client.List(context.TODO(), &daemonSetList)
-	if err != nil {
-		return err
-	}
-	for index := range daemonSetList.Items {
-		daemonSet := &daemonSetList.Items[index]
-
-		// Check if DaemonSet is in an Istio injected system namespace
-		if vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
-			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
-				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-			if err := client.Update(context.TODO(), daemonSet); err != nil {
-				return err
-			}
-		}
-	}
-	log.Info("Restarted system DaemonSets in istio injected namespaces")
-	return nil
+// GetCertificateNames returns the list of expected certificates used by this component
+func (i istioComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
 }
 
 func deleteIstioCoreDNS(context spi.ComponentContext) error {
@@ -455,7 +393,6 @@ func buildOverridesString(log vzlog.VerrazzanoLogger, client clipkg.Client, name
 
 // Get the image overrides from the BOM
 func getImageOverrides() ([]bom.KeyValue, error) {
-	const subcompIstiod = "istiod"
 	subComponentNames := []string{subcompIstiod}
 
 	// Create a Bom and get the Key Value overrides

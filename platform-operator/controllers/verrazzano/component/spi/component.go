@@ -48,6 +48,10 @@ type ComponentInfo interface {
 	GetMinVerrazzanoVersion() string
 	// GetIngressNames returns a list of names of the ingresses associated with the component
 	GetIngressNames(context ComponentContext) []types.NamespacedName
+	// GetCertificateNames returns a list of names of the TLS certificates associated with the component
+	GetCertificateNames(context ComponentContext) []types.NamespacedName
+	// GetJsonName returns the josn name of the verrazzano component in CRD
+	GetJSONName() string
 }
 
 // ComponentInstaller interface defines installs operations for components that support it

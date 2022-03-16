@@ -5,6 +5,7 @@ package certmanager
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -21,6 +22,9 @@ const ComponentName = "cert-manager"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = "cert-manager"
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "certManager"
+
 // certManagerComponent represents an CertManager component
 type certManagerComponent struct {
 	helm.HelmComponent
@@ -34,6 +38,7 @@ func NewComponent() spi.Component {
 	return certManagerComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), "cert-manager"),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -42,17 +47,14 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
+			Dependencies:            []string{},
 		},
 	}
 }
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
-	comp := effectiveCR.Spec.Components.CertManager
-	if comp == nil || comp.Enabled == nil {
-		return true
-	}
-	return *comp.Enabled
+	return vzconfig.IsCertManagerEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -66,7 +68,7 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled certManager")
+		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
 }
