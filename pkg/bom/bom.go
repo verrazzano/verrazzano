@@ -6,6 +6,7 @@ package bom
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -193,9 +194,24 @@ func (b *Bom) GetSubcomponentImageCount(subComponentName string) int {
 // BuildImageOverrides builds the image overrides array for the subComponent.
 // Each override has an array of 1-n Helm Key:Value pairs
 func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
+	kvs, _, err := b.BuildImageStrings(subComponentName)
+	return kvs, err
+}
+
+// GetImageNameList build the image names and return a list of image names
+func (b *Bom) GetImageNameList(subComponentName string) ([]string, error) {
+	_, images, err := b.BuildImageStrings(subComponentName)
+	return images, err
+}
+
+// BuildImageStrings builds the image overrides array for the subComponent.
+// Each override has an array of 1-n Helm Key:Value pairs
+// Also return the set of fully constructed image names
+func (b *Bom) BuildImageStrings(subComponentName string) ([]KeyValue, []string, error) {
+	var fullImageNames []string
 	sc, ok := b.subComponentMap[subComponentName]
 	if !ok {
-		return nil, errors.New("unknown subcomponent " + subComponentName)
+		return nil, nil, errors.New("unknown subcomponent " + subComponentName)
 	}
 
 	// Loop through the images used by this subcomponent, building
@@ -204,7 +220,7 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 	// registry/repository/image.tag
 	var kvs []KeyValue
 	for _, imageBom := range sc.Images {
-		fullImageBldr := strings.Builder{}
+		partialImageNameBldr := strings.Builder{}
 		registry := b.ResolveRegistry(sc, imageBom)
 		repo := b.ResolveRepo(sc, imageBom)
 
@@ -217,8 +233,8 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 				Value: registry,
 			})
 		} else {
-			fullImageBldr.WriteString(registry)
-			fullImageBldr.WriteString(slash)
+			partialImageNameBldr.WriteString(registry)
+			partialImageNameBldr.WriteString(slash)
 		}
 
 		// Either write the repo name Key Value, or append it to the full image path
@@ -228,8 +244,8 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 				Value: repo,
 			})
 		} else {
-			fullImageBldr.WriteString(repo)
-			fullImageBldr.WriteString(slash)
+			partialImageNameBldr.WriteString(repo)
+			partialImageNameBldr.WriteString(slash)
 		}
 
 		// If the Registry/Repo key is defined then set it
@@ -247,7 +263,7 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 				Value: imageBom.ImageName,
 			})
 		} else {
-			fullImageBldr.WriteString(imageBom.ImageName)
+			partialImageNameBldr.WriteString(imageBom.ImageName)
 		}
 
 		// Either write the tag name Key Value, or append it to the full image path
@@ -257,28 +273,32 @@ func (b *Bom) BuildImageOverrides(subComponentName string) ([]KeyValue, error) {
 				Value: imageBom.ImageTag,
 			})
 		} else {
-			fullImageBldr.WriteString(tagSep)
-			fullImageBldr.WriteString(imageBom.ImageTag)
+			partialImageNameBldr.WriteString(tagSep)
+			partialImageNameBldr.WriteString(imageBom.ImageTag)
 		}
 
-		fullImagePath := fullImageBldr.String()
+		// This partial image path may be a subset of the full image name or the entire image path
+		partialImagePath := partialImageNameBldr.String()
 
-		// If the image path Key is present the create the kv with the full image path
+		// If the image path Key is present the create the kv with the partial image path
 		if imageBom.HelmFullImageKey != "" {
 			kvs = append(kvs, KeyValue{
 				Key:   imageBom.HelmFullImageKey,
-				Value: fullImagePath,
+				Value: partialImagePath,
 			})
 		}
 		// Default the image Key if there are no specified tags.  Keycloak theme needs this
 		if len(kvs) == 0 {
 			kvs = append(kvs, KeyValue{
 				Key:   defaultImageKey,
-				Value: fullImagePath,
+				Value: partialImagePath,
 			})
 		}
+		// Add the full image name to the list
+		fullImageName := fmt.Sprintf("%s/%s/%s:%s", registry, repo, imageBom.ImageName, imageBom.ImageTag)
+		fullImageNames = append(fullImageNames, fullImageName)
 	}
-	return kvs, nil
+	return kvs, fullImageNames, nil
 }
 
 // ResolveRegistry resolves the registry name using the ENV var if it exists.

@@ -38,6 +38,14 @@ func IsIstioEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
+// IsCertManagerEnabled - Returns false only if CertManager is explictly disabled by the user
+func IsCertManagerEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.CertManager != nil && vz.Spec.Components.CertManager.Enabled != nil {
+		return *vz.Spec.Components.CertManager.Enabled
+	}
+	return true
+}
+
 //IsKialiEnabled - Returns false only if explicitly disabled in the CR
 func IsKialiEnabled(vz *vzapi.Verrazzano) bool {
 	if vz != nil && vz.Spec.Components.Kiali != nil && vz.Spec.Components.Kiali.Enabled != nil {

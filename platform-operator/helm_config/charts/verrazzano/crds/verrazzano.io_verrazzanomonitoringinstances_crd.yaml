@@ -16,414 +16,452 @@ spec:
     listKind: VerrazzanoMonitoringInstanceList
     plural: verrazzanomonitoringinstances
     shortNames:
-      - vmi
+    - vmi
     singular: verrazzanomonitoringinstance
   scope: Namespaced
   versions:
-    - name: v1
-      schema:
-        openAPIV3Schema:
-          description: VerrazzanoMonitoringInstance Represents a CRD
-          properties:
-            apiVersion:
-              description: 'APIVersion defines the versioned schema of this representation
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: VerrazzanoMonitoringInstance Represents a CRD
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
               of an object. Servers should convert recognized schemas to the latest
               internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-              type: string
-            kind:
-              description: 'Kind is a string value representing the REST resource this
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
               object represents. Servers may infer this from the endpoint the client
               submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-              type: string
-            metadata:
-              type: object
-            spec:
-              description: VerrazzanoMonitoringInstanceSpec defines the attributes a
-                user can specify when creating a VerrazzanoMonitoringInstance
-              properties:
-                alertmanager:
-                  description: Prometheus details
-                  properties:
-                    config:
-                      type: string
-                    configMap:
-                      type: string
-                    enabled:
-                      type: boolean
-                    replicas:
-                      format: int32
-                      type: integer
-                    resources:
-                      description: Resources details
-                      properties:
-                        limitCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        limitMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        maxSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        minSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                      type: object
-                    versionsConfigMap:
-                      type: string
-                  required:
-                    - enabled
-                  type: object
-                api:
-                  description: API details
-                  properties:
-                    replicas:
-                      format: int32
-                      type: integer
-                  type: object
-                autoSecret:
-                  description: auto generate a SSL certificate
-                  type: boolean
-                cascadingDelete:
-                  description: CascadingDelete for cascade deletion of related objects
-                    when the VerrazzanoMonitoringInstance is deleted
-                  type: boolean
-                contactemail:
-                  type: string
-                elasticsearch:
-                  description: Elasticsearch details
-                  properties:
-                    dataNode:
-                      description: ElasticsearchNode Type details
-                      properties:
-                        javaOpts:
-                          type: string
-                        replicas:
-                          format: int32
-                          type: integer
-                        resources:
-                          description: Resources details
-                          properties:
-                            limitCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            limitMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            maxSizeDisk:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            minSizeDisk:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                          type: object
-                      required:
-                        - javaOpts
-                      type: object
-                    enabled:
-                      type: boolean
-                    ingestNode:
-                      description: ElasticsearchNode Type details
-                      properties:
-                        javaOpts:
-                          type: string
-                        replicas:
-                          format: int32
-                          type: integer
-                        resources:
-                          description: Resources details
-                          properties:
-                            limitCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            limitMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            maxSizeDisk:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            minSizeDisk:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                          type: object
-                      required:
-                        - javaOpts
-                      type: object
-                    masterNode:
-                      description: ElasticsearchNode Type details
-                      properties:
-                        javaOpts:
-                          type: string
-                        replicas:
-                          format: int32
-                          type: integer
-                        resources:
-                          description: Resources details
-                          properties:
-                            limitCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            limitMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            maxSizeDisk:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            minSizeDisk:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestCPU:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                            requestMemory:
-                              pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                              type: string
-                          type: object
-                      required:
-                        - javaOpts
-                      type: object
-                    storage:
-                      description: Storage details
-                      properties:
-                        availabilityDomain:
-                          type: string
-                        pvcNames:
-                          items:
-                            type: string
-                          type: array
-                        size:
-                          type: string
-                      type: object
-                  required:
-                    - enabled
-                  type: object
-                grafana:
-                  description: Grafana details
-                  properties:
-                    dashboardsConfigMap:
-                      type: string
-                    datasourcesConfigMap:
-                      type: string
-                    enabled:
-                      type: boolean
-                    resources:
-                      description: Resources details
-                      properties:
-                        limitCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        limitMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        maxSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        minSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                      type: object
-                    storage:
-                      description: Storage details
-                      properties:
-                        availabilityDomain:
-                          type: string
-                        pvcNames:
-                          items:
-                            type: string
-                          type: array
-                        size:
-                          type: string
-                      type: object
-                  required:
-                    - enabled
-                  type: object
-                ingressTargetDNSName:
-                  description: Will use this as the target in ingress annotations, use
-                    this when using OCI LB and external-dns so that we point to the
-                    svc CNAME created
-                  type: string
-                kibana:
-                  description: Kibana details
-                  properties:
-                    enabled:
-                      type: boolean
-                    replicas:
-                      format: int32
-                      type: integer
-                    resources:
-                      description: Resources details
-                      properties:
-                        limitCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        limitMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        maxSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        minSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                      type: object
-                  required:
-                    - enabled
-                  type: object
-                lock:
-                  description: If lock, controller will not sync/process the VerrazzanoMonitoringInstance
-                    env
-                  type: boolean
-                natGatewayIPs:
-                  items:
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VerrazzanoMonitoringInstanceSpec defines the attributes a
+              user can specify when creating a VerrazzanoMonitoringInstance
+            properties:
+              alertmanager:
+                description: Prometheus details
+                properties:
+                  config:
                     type: string
-                  type: array
-                prometheus:
-                  description: Prometheus details
-                  properties:
-                    configMap:
-                      type: string
-                    enabled:
-                      type: boolean
-                    http2Enabled:
-                      type: boolean
-                    replicas:
-                      format: int32
-                      type: integer
-                    resources:
-                      description: Resources details
-                      properties:
-                        limitCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        limitMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        maxSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        minSizeDisk:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestCPU:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                        requestMemory:
-                          pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-                          type: string
-                      type: object
-                    retentionPeriod:
-                      format: int32
-                      type: integer
-                    rulesConfigMap:
-                      type: string
-                    rulesVersionsConfigMap:
-                      type: string
-                    storage:
-                      description: Storage details
-                      properties:
-                        availabilityDomain:
-                          type: string
-                        pvcNames:
-                          items:
+                  configMap:
+                    type: string
+                  enabled:
+                    type: boolean
+                  replicas:
+                    format: int32
+                    type: integer
+                  resources:
+                    description: Resources details
+                    properties:
+                      limitCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      limitMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      maxSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      minSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                    type: object
+                  versionsConfigMap:
+                    type: string
+                required:
+                - enabled
+                type: object
+              api:
+                description: API details
+                properties:
+                  replicas:
+                    format: int32
+                    type: integer
+                type: object
+              autoSecret:
+                description: auto generate a SSL certificate
+                type: boolean
+              cascadingDelete:
+                description: CascadingDelete for cascade deletion of related objects
+                  when the VerrazzanoMonitoringInstance is deleted
+                type: boolean
+              contactemail:
+                type: string
+              elasticsearch:
+                description: Elasticsearch details
+                properties:
+                  dataNode:
+                    description: ElasticsearchNode Type details
+                    properties:
+                      javaOpts:
+                        type: string
+                      replicas:
+                        format: int32
+                        type: integer
+                      resources:
+                        description: Resources details
+                        properties:
+                          limitCPU:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                             type: string
-                          type: array
-                        size:
+                          limitMemory:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          maxSizeDisk:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          minSizeDisk:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          requestCPU:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          requestMemory:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                        type: object
+                      storage:
+                        description: Storage details
+                        properties:
+                          availabilityDomain:
+                            type: string
+                          pvcNames:
+                            items:
+                              type: string
+                            type: array
+                          size:
+                            type: string
+                        type: object
+                    required:
+                    - javaOpts
+                    type: object
+                  enabled:
+                    type: boolean
+                  ingestNode:
+                    description: ElasticsearchNode Type details
+                    properties:
+                      javaOpts:
+                        type: string
+                      replicas:
+                        format: int32
+                        type: integer
+                      resources:
+                        description: Resources details
+                        properties:
+                          limitCPU:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          limitMemory:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          maxSizeDisk:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          minSizeDisk:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          requestCPU:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          requestMemory:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                        type: object
+                      storage:
+                        description: Storage details
+                        properties:
+                          availabilityDomain:
+                            type: string
+                          pvcNames:
+                            items:
+                              type: string
+                            type: array
+                          size:
+                            type: string
+                        type: object
+                    required:
+                    - javaOpts
+                    type: object
+                  masterNode:
+                    description: ElasticsearchNode Type details
+                    properties:
+                      javaOpts:
+                        type: string
+                      replicas:
+                        format: int32
+                        type: integer
+                      resources:
+                        description: Resources details
+                        properties:
+                          limitCPU:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          limitMemory:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          maxSizeDisk:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          minSizeDisk:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          requestCPU:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                          requestMemory:
+                            pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                            type: string
+                        type: object
+                      storage:
+                        description: Storage details
+                        properties:
+                          availabilityDomain:
+                            type: string
+                          pvcNames:
+                            items:
+                              type: string
+                            type: array
+                          size:
+                            type: string
+                        type: object
+                    required:
+                    - javaOpts
+                    type: object
+                  storage:
+                    description: Storage details
+                    properties:
+                      availabilityDomain:
+                        type: string
+                      pvcNames:
+                        items:
                           type: string
-                      type: object
-                    versionsConfigMap:
-                      type: string
-                  required:
-                    - enabled
-                  type: object
-                secretsName:
-                  description: a secret which contains secrets VerrazzanoMonitoringInstance
-                    needs to startup examples being username, password, tls.crt, tls.key
+                        type: array
+                      size:
+                        type: string
+                    type: object
+                required:
+                - enabled
+                type: object
+              grafana:
+                description: Grafana details
+                properties:
+                  dashboardsConfigMap:
+                    type: string
+                  datasourcesConfigMap:
+                    type: string
+                  enabled:
+                    type: boolean
+                  resources:
+                    description: Resources details
+                    properties:
+                      limitCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      limitMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      maxSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      minSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                    type: object
+                  storage:
+                    description: Storage details
+                    properties:
+                      availabilityDomain:
+                        type: string
+                      pvcNames:
+                        items:
+                          type: string
+                        type: array
+                      size:
+                        type: string
+                    type: object
+                required:
+                - enabled
+                type: object
+              ingressTargetDNSName:
+                description: Will use this as the target in ingress annotations, use
+                  this when using OCI LB and external-dns so that we point to the
+                  svc CNAME created
+                type: string
+              kibana:
+                description: Kibana details
+                properties:
+                  enabled:
+                    type: boolean
+                  replicas:
+                    format: int32
+                    type: integer
+                  resources:
+                    description: Resources details
+                    properties:
+                      limitCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      limitMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      maxSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      minSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                    type: object
+                required:
+                - enabled
+                type: object
+              lock:
+                description: If lock, controller will not sync/process the VerrazzanoMonitoringInstance
+                  env
+                type: boolean
+              natGatewayIPs:
+                items:
                   type: string
-                serviceType:
-                  description: Service type for component services
-                  type: string
-                uri:
-                  description: the external endpoint or uniform resource identifier
-                  type: string
-                versioning:
-                  description: Version details
-                  properties:
-                    currentVersion:
-                      type: string
-                    desiredVersion:
-                      type: string
-                  type: object
-              required:
-                - alertmanager
-                - autoSecret
-                - cascadingDelete
-                - elasticsearch
-                - grafana
-                - ingressTargetDNSName
-                - kibana
-                - lock
-                - prometheus
-                - secretsName
-                - serviceType
-              type: object
-            status:
-              description: VerrazzanoMonitoringInstanceStatus Object tracks the current
-                running VerrazzanoMonitoringInstance state
-              properties:
-                creationTime:
-                  format: date-time
-                  type: string
-                envName:
-                  description: The name of the operator environment in which this VerrazzanoMonitoringInstance
-                    instance lives
-                  type: string
-                hash:
-                  format: int32
-                  type: integer
-                state:
-                  type: string
-              required:
-                - envName
-                - hash
-                - state
-              type: object
-          required:
-            - metadata
-            - spec
-            - status
-          type: object
-      served: true
-      storage: true
+                type: array
+              prometheus:
+                description: Prometheus details
+                properties:
+                  configMap:
+                    type: string
+                  enabled:
+                    type: boolean
+                  http2Enabled:
+                    type: boolean
+                  replicas:
+                    format: int32
+                    type: integer
+                  resources:
+                    description: Resources details
+                    properties:
+                      limitCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      limitMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      maxSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      minSizeDisk:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestCPU:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                      requestMemory:
+                        pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
+                        type: string
+                    type: object
+                  retentionPeriod:
+                    format: int32
+                    type: integer
+                  rulesConfigMap:
+                    type: string
+                  rulesVersionsConfigMap:
+                    type: string
+                  storage:
+                    description: Storage details
+                    properties:
+                      availabilityDomain:
+                        type: string
+                      pvcNames:
+                        items:
+                          type: string
+                        type: array
+                      size:
+                        type: string
+                    type: object
+                  versionsConfigMap:
+                    type: string
+                required:
+                - enabled
+                type: object
+              secretsName:
+                description: a secret which contains secrets VerrazzanoMonitoringInstance
+                  needs to startup examples being username, password, tls.crt, tls.key
+                type: string
+              serviceType:
+                description: Service type for component services
+                type: string
+              storageClass:
+                type: string
+              uri:
+                description: the external endpoint or uniform resource identifier
+                type: string
+              versioning:
+                description: Version details
+                properties:
+                  currentVersion:
+                    type: string
+                  desiredVersion:
+                    type: string
+                type: object
+            required:
+            - alertmanager
+            - autoSecret
+            - cascadingDelete
+            - elasticsearch
+            - grafana
+            - ingressTargetDNSName
+            - kibana
+            - lock
+            - prometheus
+            - secretsName
+            - serviceType
+            type: object
+          status:
+            description: VerrazzanoMonitoringInstanceStatus Object tracks the current
+              running VerrazzanoMonitoringInstance state
+            properties:
+              creationTime:
+                format: date-time
+                type: string
+              envName:
+                description: The name of the operator environment in which this VerrazzanoMonitoringInstance
+                  instance lives
+                type: string
+              hash:
+                format: int32
+                type: integer
+              state:
+                type: string
+            required:
+            - envName
+            - hash
+            - state
+            type: object
+        required:
+        - metadata
+        - spec
+        - status
+        type: object
+    served: true
+    storage: true
 status:
   acceptedNames:
     kind: ""

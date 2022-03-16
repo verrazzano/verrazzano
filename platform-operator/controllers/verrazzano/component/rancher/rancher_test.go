@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -59,6 +60,7 @@ func getScheme() *runtime.Scheme {
 	_ = networking.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
 	_ = v1.AddToScheme(scheme)
+	_ = certv1.AddToScheme(scheme)
 	return scheme
 }
 

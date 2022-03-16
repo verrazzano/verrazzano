@@ -67,9 +67,9 @@ func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == vzconst.KubeSystem {
+	if req.NamespacedName.Name == vzconst.KubeSystem {
 		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
-		log.Infof("Namespace resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
+		log.Infof("Namespace resource %v should not be reconciled, ignoring", req.NamespacedName.Name)
 		return reconcile.Result{}, nil
 	}
 
