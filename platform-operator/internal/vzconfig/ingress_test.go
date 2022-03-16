@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package vzconfig
 
@@ -175,10 +175,21 @@ func TestGetIngressNodePortIP(t *testing.T) {
 			},
 		},
 	}
-	const expectedIP = "127.0.0.1"
-	ip, err := GetIngressIP(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
+
+	const expectedIP = "11.22.33.44"
+	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: globalconst.IngressNamespace,
+			Name:      vpoconst.NGINXControllerServiceName,
+		},
+		Spec: corev1.ServiceSpec{
+			ExternalIPs: []string{"11.22.33.44"},
+		},
+	})
+	ip, err := GetIngressIP(fakeClient, vz)
 	assert.NoError(t, err)
 	assert.Equal(t, expectedIP, ip)
+
 }
 
 // TestGetIngressLoadBalancerNoAddressFound tests the GetIngressIP function

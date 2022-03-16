@@ -1426,6 +1426,12 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
 			service.Spec.Type = corev1.ServiceTypeNodePort
+			service.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+				{
+					IP:       "11.22.33.44",
+					Hostname: "myhost",
+				},
+			}
 			return nil
 		})
 
@@ -1433,7 +1439,7 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "default.127.0.0.1.nip.io", suffix)
+	assert.Equal(t, "default.11.22.33.44.nip.io", suffix)
 
 	// Validate the results
 	mocker.Finish()
