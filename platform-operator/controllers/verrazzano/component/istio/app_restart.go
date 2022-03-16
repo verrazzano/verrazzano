@@ -67,7 +67,7 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 	// Get the pods using the label selector
 	podList, err := goClient.CoreV1().Pods(appConfig.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
-		return log.ErrorfNewErr("Failed to list pods for Domain %s in namespace %s: %v", wlName, appConfig.Namespace, err)
+		return log.ErrorfNewErr("Failed to list pods for Domain %s/%s: %v", appConfig.Namespace, wlName, err)
 	}
 
 	// Check if any pods contain the old Istio proxy image
@@ -177,6 +177,9 @@ func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 
 		// Get the pods using the label selector
 		podList, err := goClient.CoreV1().Pods(appConfig.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
+		if err != nil {
+			return log.ErrorfNewErr("Failed to list pods for AppConfig %s/%s: %v", appConfig.Namespace, appConfig.Name, err)
+		}
 
 		// Check if any pods contain the old Istio proxy image
 		found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
