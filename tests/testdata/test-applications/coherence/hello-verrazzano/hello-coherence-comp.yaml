@@ -5,7 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
   name: hello
-  namespace: hello-coherence
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -13,17 +12,15 @@ spec:
     spec:
       template:
         metadata:
-          name: hello-coh
+          name: hello
         spec:
-          labels:
-            app: hello-coh
-            version: v1
           cluster: HelloCoherence
-          role: hello
           replicas: 1
           image: registry/image:tag
           imagePullPolicy: IfNotPresent
           application:
+            type: spring
+            springBootFatJar: /coherence-spring-boot.jar
             main: io.verrazzano.coherence.hello.HelloApplication
             args:
               - "--port=8080"
@@ -37,9 +34,13 @@ spec:
               enabled: true
           ports:
             - name: http
-              port: 7001
+              port: 8080
               service:
                 name: hello
-                port: 7001
+                port: 8080
+              serviceMonitor:
+                enabled: true
+            - name: metrics
+              port: 9612
               serviceMonitor:
                 enabled: true

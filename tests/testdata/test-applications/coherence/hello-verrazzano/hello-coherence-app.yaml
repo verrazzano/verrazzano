@@ -5,7 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: hello-appconf
-  namespace: hello-coherence
   annotations:
     version: v1.0.0
     description: "Sample application to validate deployment of VerrazzanoCoherenceWorkload"
@@ -21,7 +20,7 @@ spec:
             spec:
               rules:
                 - paths:
-                    - path: "/hello"
+                    - path: "/"
                       pathType: Prefix
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
@@ -30,5 +29,5 @@ spec:
               name: hello-metrics
             spec:
               ports:
-                - port: 7001
+                - port: 8080
                 - port: 9612

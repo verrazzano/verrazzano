@@ -5,7 +5,6 @@ apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
   name: hello-appconf
-  namespace: hello-wls
   annotations:
     version: v1.0.0
     description: "Sample application to validate deployment of VerrazzanoWebLogicWorkload"
