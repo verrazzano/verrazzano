@@ -142,13 +142,18 @@ func initFakeDaemonSet() *appsv1.DaemonSet {
 	}
 }
 
-// initFakePod inits a fake Pod
+// initFakePod inits a fake Pod with specified image
 func initFakePod(image string) *v1.Pod {
+	return initFakePodWithLabels(image, map[string]string{"app": "foo"})
+}
+
+// initFakePodWithLabels inits a fake Pod with specified image and labels
+func initFakePodWithLabels(image string, labels map[string]string) *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testPod",
 			Namespace: "verrazzano-system",
-			Labels:    map[string]string{"app": "foo"},
+			Labels:    labels,
 		},
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{{
