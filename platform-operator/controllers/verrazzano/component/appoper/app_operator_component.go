@@ -61,7 +61,7 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 
 // PreUpgrade processing for the application-operator
 func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	err := common.ApplyCRDYaml(ctx.Client())
+	err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir())
 	if err != nil {
 		return err
 	}

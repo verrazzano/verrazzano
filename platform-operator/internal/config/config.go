@@ -21,6 +21,8 @@ const (
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
 	helmVzChartsDirSuffix        = "/platform-operator/helm_config/charts/verrazzano"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
+	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
+	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
 )
 
@@ -118,6 +120,22 @@ func GetHelmAppOpChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-application-operator")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmAppOpChartsDirSuffix)
+}
+
+// GetHelmKialiChartsDir returns the Kiali helm charts dir
+func GetHelmKialiChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/kiali-server")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmKialiChartsDirSuffix)
+}
+
+// GetHelmOamChartsDir returns the oam-kubernetes-runtime helm charts dir
+func GetHelmOamChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/oam-kubernetes-runtime")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmOamChartsDirSuffix)
 }
 
 // GetHelmOverridesDir returns the helm overrides dir

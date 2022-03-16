@@ -7,14 +7,12 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -80,7 +78,7 @@ func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 // PreUpgrade Kiali-pre-upgrade processing
 func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Kiali pre-upgrade")
-	return common.ApplyCRDYaml(ctx.Client())
+	return common.ApplyCRDYaml(ctx, config.GetHelmKialiChartsDir())
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress

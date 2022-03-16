@@ -72,5 +72,5 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 
 // PreUpgrade OAM-pre-upgrade processing
 func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return common.ApplyCRDYaml(ctx.Client())
+	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
 }

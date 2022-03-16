@@ -6,6 +6,8 @@ package common
 import (
 	"testing"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -19,7 +21,7 @@ import (
 func TestIsApplyCRDYamlValid(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "../../../../helm_config"
-	assert.Nil(t, ApplyCRDYaml(fakeClient))
+	assert.Nil(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, false), config.GetHelmAppOpChartsDir()))
 }
 
 //  TestIsApplyCRDYamlInvalidPath tests the applyCRDYaml function
@@ -29,7 +31,7 @@ func TestIsApplyCRDYamlValid(t *testing.T) {
 func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "./testdata"
-	assert.Error(t, ApplyCRDYaml(fakeClient))
+	assert.Error(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, false), ""))
 }
 
 //  TestIsApplyCRDYamlInvalidChart tests the applyCRDYaml function
@@ -39,5 +41,5 @@ func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
 func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
 	config.TestHelmConfigDir = "invalidPath"
-	assert.Error(t, ApplyCRDYaml(fakeClient))
+	assert.Error(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, false), ""))
 }

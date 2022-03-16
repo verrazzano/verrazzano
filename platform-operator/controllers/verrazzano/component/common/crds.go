@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-func ApplyCRDYaml(c client.Client) error {
-	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
-	yamlApplier := k8sutil.NewYAMLApplier(c, "")
+func ApplyCRDYaml(ctx spi.ComponentContext, helmChartsDir string) error {
+	path := filepath.Join(helmChartsDir, "/crds")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	ctx.Log().Oncef("Applying yaml for crds in %s", path)
 	return yamlApplier.ApplyD(path)
 }
