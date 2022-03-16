@@ -36,11 +36,11 @@ const ComponentJSONName = "istio"
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
 
-// IstioInressgatewayDeployment is the name of the istio ingressgateway deployment
-const IstioInressgatewayDeployment = "istio-ingressgateway"
+// IstioIngressgatewayDeployment is the name of the istio ingressgateway deployment
+const IstioIngressgatewayDeployment = "istio-ingressgateway"
 
-// IstioEressgatewayDeployment is the name of the istio egressgateway deployment
-const IstioEressgatewayDeployment = "istio-egressgateway"
+// IstioEgressgatewayDeployment is the name of the istio egressgateway deployment
+const IstioEgressgatewayDeployment = "istio-egressgateway"
 
 const istioGlobalHubKey = "global.hub"
 
@@ -192,11 +192,11 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 			Namespace: IstioNamespace,
 		},
 		{
-			Name:      IstioInressgatewayDeployment,
+			Name:      IstioIngressgatewayDeployment,
 			Namespace: IstioNamespace,
 		},
 		{
-			Name:      IstioEressgatewayDeployment,
+			Name:      IstioEgressgatewayDeployment,
 			Namespace: IstioNamespace,
 		},
 	}
