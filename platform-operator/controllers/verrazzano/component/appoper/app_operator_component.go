@@ -12,6 +12,7 @@ import (
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
@@ -60,7 +61,7 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 
 // PreUpgrade processing for the application-operator
 func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	err := applyCRDYaml(ctx.Client())
+	err := common.ApplyCRDYaml(ctx.Client())
 	if err != nil {
 		return err
 	}
