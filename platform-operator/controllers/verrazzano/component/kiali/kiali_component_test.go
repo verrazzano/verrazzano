@@ -3,6 +3,8 @@
 package kiali
 
 import (
+	"testing"
+
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
@@ -10,6 +12,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/networking/v1"
@@ -17,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 var crEnabled = vzapi.Verrazzano{
@@ -220,6 +222,18 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 	fakeClient := fake.NewFakeClientWithScheme(testScheme, ingress, authPol)
 	err := NewComponent().PostUpgrade(spi.NewFakeContext(fakeClient, vz, false))
 	assert.Nil(t, err)
+}
+
+// TestPreUpgrade tests the Kiali PreUpgrade call
+// GIVEN a Kiali component
+//  WHEN I call PreUpgrade with defaults
+//  THEN no error is returned
+func TestPreUpgrade(t *testing.T) {
+	// The actual pre-upgrade testing is performed by the underlying unit tests	, this just adds coverage
+	// for the Component interface hook
+	config.TestHelmConfigDir = "../../../../helm_config"
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), nil, false))
+	assert.NoError(t, err)
 }
 
 func getBoolPtr(b bool) *bool {

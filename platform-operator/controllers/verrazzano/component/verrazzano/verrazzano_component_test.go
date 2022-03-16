@@ -64,8 +64,9 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 //  WHEN I call PreUpgrade with defaults
 //  THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
-	// The actual pre-upgrade testing is performed by the TestFixupFluentdDaemonset unit tests, this just adds coverage
+	// The actual pre-upgrade testing is performed by the underlying unit tests	, this just adds coverage
 	// for the Component interface hook
+	config.TestHelmConfigDir = "../../../../helm_config"
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &vzapi.Verrazzano{}, false))
 	assert.NoError(t, err)
 }

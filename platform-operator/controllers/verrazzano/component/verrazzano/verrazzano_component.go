@@ -88,8 +88,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(),
-		c.ReleaseName, resolveVerrazzanoNamespace(c.ChartNamespace), c.ChartDir)
+	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(), ComponentNamespace)
 }
 
 // InstallUpgrade Verrazzano component upgrade processing

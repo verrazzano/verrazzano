@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
@@ -234,12 +235,15 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
+func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
+	if err := common.ApplyCRDYaml(client); err != nil {
+		return err
+	}
 	if err := importToHelmChart(client); err != nil {
 		return err
 	}
 	if err := ensureVMISecret(client); err != nil {
-
+		return err
 	}
 	return fixupFluentdDaemonset(log, client, namespace)
 }

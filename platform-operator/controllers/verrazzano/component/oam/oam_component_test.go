@@ -6,8 +6,15 @@ package oam
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+var testScheme = runtime.NewScheme()
 
 func Test_oamComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
@@ -60,4 +67,16 @@ func Test_oamComponent_ValidateUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestPreUpgrade tests the OAM PreUpgrade call
+// GIVEN an OAM component
+//  WHEN I call PreUpgrade with defaults
+//  THEN no error is returned
+func TestPreUpgrade(t *testing.T) {
+	// The actual pre-upgrade testing is performed by the underlying unit tests	, this just adds coverage
+	// for the Component interface hook
+	config.TestHelmConfigDir = "../../../../helm_config"
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), nil, false))
+	assert.NoError(t, err)
 }

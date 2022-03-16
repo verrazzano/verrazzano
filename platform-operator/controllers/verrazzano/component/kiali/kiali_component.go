@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -74,6 +75,12 @@ func (c kialiComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 	return c.HelmComponent.PostInstall(ctx)
+}
+
+// PreUpgrade Kiali-pre-upgrade processing
+func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	ctx.Log().Debugf("Kiali pre-upgrade")
+	return common.ApplyCRDYaml(ctx.Client())
 }
 
 // PostUpgrade Kiali-post-upgrade processing, create or update the Kiali ingress
