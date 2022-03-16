@@ -4,10 +4,13 @@ package verrazzano
 
 import (
 	"context"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"os/exec"
 	"testing"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/stretchr/testify/assert"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -327,6 +330,8 @@ func getBoolPtr(b bool) *bool {
 
 func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
+	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
+	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
 	tests := []struct {
 		name    string
 		old     *vzapi.Verrazzano
@@ -367,11 +372,122 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			new:     &vzapi.Verrazzano{},
 			wantErr: false,
 		},
+		{
+			name: "emptyDir to PVC in defaultVolumeSource",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "PVC to emptyDir in volumeSource",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "resize pvc in defaultVolumeSource",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc1Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+					VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc2Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "resize pvc in ESInstallArgs",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: []vzapi.InstallArgs{
+								{
+									Name:  "nodes.data.requests.storage",
+									Value: "1Gi",
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: []vzapi.InstallArgs{
+								{
+									Name:  "nodes.data.requests.storage",
+									Value: "2Gi",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
-			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+			err := c.ValidateUpdate(tt.old, tt.new)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

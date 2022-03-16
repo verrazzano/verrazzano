@@ -210,7 +210,7 @@ func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "PVC to emptyDir in volumeSource",
+			name: "PVC to emptyDir in defaultVolumeSource",
 			old: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					DefaultVolumeSource: &corev1.VolumeSource{
@@ -228,7 +228,7 @@ func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "resize pvc in volumeSource",
+			name: "resize pvc in defaultVolumeSource",
 			old: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					DefaultVolumeSource: &corev1.VolumeSource{
@@ -270,7 +270,7 @@ func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "change storage class in volumeSource",
+			name: "change storage class in defaultVolumeSource",
 			old: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					DefaultVolumeSource: &corev1.VolumeSource{

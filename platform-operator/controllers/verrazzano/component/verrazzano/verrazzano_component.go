@@ -149,7 +149,40 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
+	// compare the storage overrides and reject if the type or size is different
+	oldSetting, err := findStorageOverride(old)
+	if err != nil {
+		return err
+	}
+	newSetting, err := findStorageOverride(new)
+	if err != nil {
+		return err
+	}
+	if oldSetting == nil && newSetting != nil || oldSetting != nil && newSetting == nil {
+		return fmt.Errorf("can not change default volume")
+	}
+	if oldSetting != nil && newSetting != nil {
+		if oldSetting.Storage != newSetting.Storage {
+			return fmt.Errorf("can not change default volume size")
+		}
+	}
+	if getOpenSearchDataNodeStorageOverride(old) != getOpenSearchDataNodeStorageOverride(new) {
+		return fmt.Errorf("can not change nodes.data.requests.storage in elasticsearch installArgs")
+	}
 	return nil
+}
+
+func getOpenSearchDataNodeStorageOverride(cr *vzapi.Verrazzano) string {
+	openSearch := cr.Spec.Components.Elasticsearch
+	if openSearch == nil {
+		return ""
+	}
+	for _, arg := range openSearch.ESInstallArgs {
+		if arg.Name == "nodes.data.requests.storage" {
+			return arg.Value
+		}
+	}
+	return ""
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
