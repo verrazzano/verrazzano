@@ -26,21 +26,12 @@ controller:
     traffic.sidecar.istio.io/includeInboundPorts: ""
     sidecar.istio.io/rewriteAppHTTPProbers: "true"
   volumeMounts:
-    - mountPath: /etc/nginx/template
-      name: nginx-template
-      readOnly: true
     - mountPath: /usr/local/nginx/html
       name: custom-400-error
   volumes:
-    - name: nginx-template
-      configMap:
-        name: ingress-controller-ingress-nginx-controller-template
-        items:
-          - key: nginx.tmpl
-            path: nginx.tmpl
     - name: custom-400-error
       configMap:
-        name: ingress-controller-ingress-nginx-controller-template
+        name: ingress-controller-ingress-nginx-defaultbackend-custom-error-pages
         items:
           - key: 400.html
             path: 400.html
