@@ -31,6 +31,12 @@ func createVMI(ctx spi.ComponentContext) error {
 		return nil
 	}
 
+	effectiveCR := ctx.EffectiveCR()
+	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	}
+
 	if err := createGrafanaConfigMaps(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
 	}
@@ -68,6 +74,8 @@ func createVMI(ctx spi.ComponentContext) error {
 		}
 		vmi.Spec.Elasticsearch = *opensearch
 		vmi.Spec.Kibana = newOpenSearchDashboards(cr)
+		vmi.Spec.IngressTargetDNSName = dnsSuffix
+		vmi.Spec.URI = dnsSuffix
 		return nil
 	})
 	if err != nil {
