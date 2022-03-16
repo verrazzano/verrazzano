@@ -21,8 +21,9 @@ import (
 
 const (
 	minimumVersion = "1.3.0"
-	expected404    = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n</body>\n</html>"
+	expected400    = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n</body>\n</html>"
 	expected401    = "<html>\n<head><title>401 Unauthorized</title></head>\n<body>\n<center><h1>401 Unauthorized</h1></center>\n</body>\n</html>"
+	expected404    = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n</body>\n</html>"
 )
 
 var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
@@ -125,6 +126,36 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 					return checkNGINXErrorPage(req, 404)
 				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
 					"Expected response to include custom 404 error page")
+			}
+		})
+
+		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, func() {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" {
+				Eventually(func() (string, error) {
+					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+						return "", err
+					}
+					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
+						return "", err
+					}
+					vzURL, err := api.GetVerrazzanoIngressURL()
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano Ingress URL: %v", err))
+						return "", err
+					}
+					clusterIP := strings.Replace(vzURL, "verrazzano.", "", 1)
+					req, err := retryablehttp.NewRequest("GET", clusterIP+"/../../", nil)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("Error creating Request: %v", err))
+						return "", err
+					}
+					return checkNGINXErrorPage(req, 400)
+				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected400)),
+					"Expected response to include custom 400 error page")
 			}
 		})
 	})
