@@ -1327,9 +1327,6 @@ stream {
             {{ range $errCode := $location.CustomHTTPErrors }}
             error_page {{ $errCode }} = @custom_{{ $location.DefaultBackendUpstreamName }}_{{ $errCode }};{{ end }}
 
-            error_page 400 /400.html;
-
-
             {{ if (eq $location.BackendProtocol "FCGI") }}
             include /etc/nginx/fastcgi_params;
             {{ end }}

@@ -13,5 +13,5 @@ data:
     <center><h1>400 Bad Request</h1></center>
     </body>
     </html>
-  nginx.txt: |
-    {{- .Files.Get "platform-operator/thirdparty/charts/ingress-nginx/nginx.tmpl" | indent 4 }}
+  nginx.tmpl: |
+    {{ (.Files.Glob "platform-operator/thirdparty/charts/ingress-nginx/nginx.tmpl").AsConfig }}
