@@ -12,11 +12,11 @@ The bash script setup/build.sh creates the auxiliary image for model in image de
     $ cd <application root directory>
     $ mvn clean package
     $ cd setup; ./build.sh <container registry>/<image>:<version>
-    $ docker push <image registry>/<image>:<version>
+    $ docker image push <image registry>/<image>:<version>
 
-## Deploy the sample application
+## Deploy the sample application to Verrazzano
 
-Create a namespace for the sample application nd add a label identifying the namespace as managed by Verrazzano.
+Create a namespace for the sample application and add a label identifying the namespace as managed by Verrazzano. To run this application in the default namespace, skip creating the namespace and do not specify the namespace in all the kubectl commands below.
 
     $ kubectl create namespace hello-wls
     $ kubectl label namespace hello-wls verrazzano-managed=true istio-injection=enabled
@@ -42,8 +42,8 @@ Create the secrets for the WebLogic domain:
 Deploy the application, by applying the sample resource
 
     $ Set the registry URL for the sample application in hello-wls-comp.yaml
-    $ kubectl apply -f <application directory>/hello-wls-comp.yaml
-    $ kubectl apply -f <application directory>/hello-wls-app.yaml
+    $ kubectl apply -f <application directory>/hello-wls-comp.yaml -n hello-wls
+    $ kubectl apply -f <application directory>/hello-wls-app.yaml -n hello-wls
 
 Wait for the sample application to be ready.
 
@@ -65,14 +65,15 @@ Get the EXTERNAL_IP address of the istio-ingressgateway service.
 Access the application
 
     $ curl -sk https://${HOST}/hello/verrazzano/greetings/message --resolve ${HOST}:443:${ADDRESS}
+
 If you are using nip.io, then you do not need to include --resolve.
 
 
 Undeploy the application
 To undeploy the application, delete the OAM resources for the sample
 
-    $ kubectl delete -f <application directory>/hello-wls-app.yaml
-    $ kubectl delete -f <application directory>/hello-wls-comp.yaml
+    $ kubectl delete -f <application directory>/hello-wls-app.yaml -n hello-wls
+    $ kubectl delete -f <application directory>/hello-wls-comp.yaml -n hello-wls
 
 Delete the namespace hello-wls after the application pods are terminated. The secrets created for the WebLogic domain also will be deleted.
 
