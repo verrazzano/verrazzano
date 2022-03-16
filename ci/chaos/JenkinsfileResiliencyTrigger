@@ -2,10 +2,12 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
         skipDefaultCheckout true
+        timestamps ()
     }
 
     agent {
@@ -16,6 +18,10 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
+    }
+
+    triggers {
+        cron(branchSpecificSchedule)
     }
 
     parameters {
@@ -378,4 +384,13 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+        return "H */2 * * *"
+    } else if (env.BRANCH_NAME.startsWith("release-1")) {
+        return "@daily"
+    }
+    return ""
 }
