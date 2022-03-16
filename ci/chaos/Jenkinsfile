@@ -402,6 +402,22 @@ pipeline {
                         if [[ \${vz_status} == "UpgradeStarted" ]]; then
                             # Uninstall VZ
                             kubectl delete verrazzano my-verrazzano
+
+                            ## dump out uninstall logs
+                            mkdir -p ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs
+                            kubectl logs --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall.log --tail -1
+                            kubectl describe pod --selector=job-name=verrazzano-uninstall-my-verrazzano -n verrazzano-install > ${WORKSPACE}/verrazzano-platform-operator/scripts/uninstall/build/logs/verrazzano-uninstall-job-pod.out
+                            echo "Listing all pods in all namespaces after uninstall"
+                            kubectl get pods --all-namespaces
+                            echo "-----------------------------------------------------"
+
+
+                            # verify Uninstall
+                            ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
+                            ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources
+                        else
+                            echo "Upgrade should still be in progress.  Exiting with error"
+                            exit 1
                         fi
                     fi
 
