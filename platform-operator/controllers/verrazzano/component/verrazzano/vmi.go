@@ -60,8 +60,8 @@ func createVMI(ctx spi.ComponentContext) error {
 			"verrazzano.binding": system,
 		}
 		cr := ctx.EffectiveCR()
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
+		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, dnsSuffix)
+		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, dnsSuffix)
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = ComponentName
@@ -74,8 +74,6 @@ func createVMI(ctx spi.ComponentContext) error {
 		}
 		vmi.Spec.Elasticsearch = *opensearch
 		vmi.Spec.Kibana = newOpenSearchDashboards(cr)
-		vmi.Spec.IngressTargetDNSName = dnsSuffix
-		vmi.Spec.URI = dnsSuffix
 		return nil
 	})
 	if err != nil {
