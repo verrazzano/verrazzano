@@ -28,7 +28,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -87,55 +86,40 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 
 	// First, check deployments
-	var deployments []status.PodReadyCheck
+	var deployments []types.NamespacedName
 	if vzconfig.IsConsoleEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
-			status.PodReadyCheck{
-				NamespacedName: types.NamespacedName{
-					Name:      verrazzanoConsoleDeployment,
-					Namespace: ComponentNamespace,
-				},
-				LabelSelector: labels.Set{"app": verrazzanoConsoleDeployment}.AsSelector(),
+			types.NamespacedName{
+				Name:      verrazzanoConsoleDeployment,
+				Namespace: ComponentNamespace,
 			})
 	}
 	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
-			status.PodReadyCheck{
-				NamespacedName: types.NamespacedName{
-					Name:      vmoDeployment,
-					Namespace: ComponentNamespace,
-				},
-				LabelSelector: labels.Set{"k8s-app": vmoDeployment}.AsSelector(),
+			types.NamespacedName{
+				Name:      vmoDeployment,
+				Namespace: ComponentNamespace,
 			})
 	}
 	if vzconfig.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
-			status.PodReadyCheck{
-				NamespacedName: types.NamespacedName{
-					Name:      grafanaDeployment,
-					Namespace: ComponentNamespace,
-				},
-				LabelSelector: labels.Set{"app": "system-grafana"}.AsSelector(),
+			types.NamespacedName{
+				Name:      grafanaDeployment,
+				Namespace: ComponentNamespace,
 			})
 	}
 	if vzconfig.IsKibanaEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
-			status.PodReadyCheck{
-				NamespacedName: types.NamespacedName{
-					Name:      kibanaDeployment,
-					Namespace: ComponentNamespace,
-				},
-				LabelSelector: labels.Set{"app": "system-kibana"}.AsSelector(),
+			types.NamespacedName{
+				Name:      kibanaDeployment,
+				Namespace: ComponentNamespace,
 			})
 	}
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		deployments = append(deployments,
-			status.PodReadyCheck{
-				NamespacedName: types.NamespacedName{
-					Name:      prometheusDeployment,
-					Namespace: ComponentNamespace,
-				},
-				LabelSelector: labels.Set{"app": "system-prometheus"}.AsSelector(),
+			types.NamespacedName{
+				Name:      prometheusDeployment,
+				Namespace: ComponentNamespace,
 			})
 	}
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
@@ -146,12 +130,9 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					replicas, _ := strconv.Atoi(args.Value)
 					for i := 0; replicas > 0 && i < replicas; i++ {
 						deployments = append(deployments,
-							status.PodReadyCheck{
-								NamespacedName: types.NamespacedName{
-									Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
-									Namespace: ComponentNamespace,
-								},
-								LabelSelector: labels.Set{"app": "system-es-data", "index": fmt.Sprintf("%d", i)}.AsSelector(),
+							types.NamespacedName{
+								Name:      fmt.Sprintf("%s-%d", esDataDeployment, i),
+								Namespace: ComponentNamespace,
 							})
 					}
 					continue
@@ -160,12 +141,9 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
 						deployments = append(deployments,
-							status.PodReadyCheck{
-								NamespacedName: types.NamespacedName{
-									Name:      esIngestDeployment,
-									Namespace: ComponentNamespace,
-								},
-								LabelSelector: labels.Set{"app": "system-es-ingest"}.AsSelector(),
+							types.NamespacedName{
+								Name:      esIngestDeployment,
+								Namespace: ComponentNamespace,
 							})
 					}
 				}
@@ -183,16 +161,13 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 			esInstallArgs := ctx.EffectiveCR().Spec.Components.Elasticsearch.ESInstallArgs
 			for _, args := range esInstallArgs {
 				if args.Name == "nodes.master.replicas" {
-					var statefulsets []status.PodReadyCheck
+					var statefulsets []types.NamespacedName
 					replicas, _ := strconv.Atoi(args.Value)
 					if replicas > 0 {
 						statefulsets = append(statefulsets,
-							status.PodReadyCheck{
-								NamespacedName: types.NamespacedName{
-									Name:      esMasterStatefulset,
-									Namespace: ComponentNamespace,
-								},
-								LabelSelector: labels.Set{"app": "system-es-master"}.AsSelector(),
+							types.NamespacedName{
+								Name:      esMasterStatefulset,
+								Namespace: ComponentNamespace,
 							})
 						if !status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsets, 1, prefix) {
 							return false
@@ -205,25 +180,19 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 	}
 
 	// Finally, check daemonsets
-	var daemonsets []status.PodReadyCheck
+	var daemonsets []types.NamespacedName
 	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		daemonsets = append(daemonsets,
-			status.PodReadyCheck{
-				NamespacedName: types.NamespacedName{
-					Name:      nodeExporterDaemonset,
-					Namespace: globalconst.VerrazzanoMonitoringNamespace,
-				},
-				LabelSelector: labels.Set{"app": nodeExporterDaemonset}.AsSelector(),
+			types.NamespacedName{
+				Name:      nodeExporterDaemonset,
+				Namespace: globalconst.VerrazzanoMonitoringNamespace,
 			})
 	}
 	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) && getProfile(ctx.EffectiveCR()) != vzapi.ManagedCluster {
 		daemonsets = append(daemonsets,
-			status.PodReadyCheck{
-				NamespacedName: types.NamespacedName{
-					Name:      fluentDaemonset,
-					Namespace: ComponentNamespace,
-				},
-				LabelSelector: labels.Set{"app": fluentDaemonset}.AsSelector(),
+			types.NamespacedName{
+				Name:      fluentDaemonset,
+				Namespace: ComponentNamespace,
 			})
 	}
 	if !status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix) {
