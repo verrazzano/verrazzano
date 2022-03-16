@@ -31,6 +31,12 @@ func createVMI(ctx spi.ComponentContext) error {
 		return nil
 	}
 
+	effectiveCR := ctx.EffectiveCR()
+	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	}
+
 	if err := createGrafanaConfigMaps(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
 	}
@@ -54,8 +60,8 @@ func createVMI(ctx spi.ComponentContext) error {
 			"verrazzano.binding": system,
 		}
 		cr := ctx.EffectiveCR()
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
+		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, dnsSuffix)
+		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, dnsSuffix)
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = ComponentName

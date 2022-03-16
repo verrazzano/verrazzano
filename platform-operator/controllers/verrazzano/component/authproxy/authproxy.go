@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -51,7 +52,6 @@ func isAuthProxyReady(ctx spi.ComponentContext) bool {
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := ctx.EffectiveCR()
-
 	// Overrides object to store any user overrides
 	overrides := authProxyValues{}
 
@@ -66,6 +66,19 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return nil, err
 	}
 	overrides.Config.DNSSuffix = dnsSuffix
+
+	ingressType, err := vzconfig.GetServiceType(effectiveCR)
+	if err != nil {
+		return nil, err
+	}
+	switch ingressType {
+	case vzapi.NodePort:
+		for _, ports := range effectiveCR.Spec.Components.Ingress.Ports {
+			if ports.Port == 443 {
+				dnsSuffix = fmt.Sprintf("%s:%s", dnsSuffix, strconv.Itoa(int(ports.NodePort)))
+			}
+		}
+	}
 
 	overrides.Proxy = &proxyValues{
 		OidcProviderHost:          fmt.Sprintf("keycloak.%s.%s", overrides.Config.EnvName, dnsSuffix),
