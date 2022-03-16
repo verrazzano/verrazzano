@@ -10,54 +10,55 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // StatefulSetsAreReady Check that the named statefulsets have the minimum number of specified replicas ready and available
-func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, checks []PodReadyCheck, expectedReplicas int32, prefix string) bool {
-	for _, check := range checks {
+func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
+	for _, namespacedName := range namespacedNames {
 		statefulset := appsv1.StatefulSet{}
-		if err := client.Get(context.TODO(), check.NamespacedName, &statefulset); err != nil {
+		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("%s is waiting for statefulset %v to exist", prefix, check.NamespacedName)
+				log.Progressf("%s is waiting for statefulset %v to exist", prefix, namespacedName)
 				// StatefulSet not found
 				return false
 			}
-			log.Errorf("Failed getting statefulset %v: %v", check.NamespacedName, err)
+			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
 			return false
 		}
 		if statefulset.Status.UpdatedReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, check.NamespacedName,
+			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
 				expectedReplicas, statefulset.Status.ReadyReplicas)
 			return false
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, check.NamespacedName,
+			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
 				expectedReplicas, statefulset.Status.ReadyReplicas)
 			return false
 		}
-		if !podsReadyStatefulSet(log, client, check, expectedReplicas, prefix) {
+		if !podsReadyStatefulSet(log, client, namespacedName, statefulset.Spec.Selector, expectedReplicas, prefix) {
 			return false
 		}
-		log.Oncef("%s has enough replicas for statefulsets %v", prefix, check.NamespacedName)
+		log.Oncef("%s has enough replicas for statefulsets %v", prefix, namespacedName)
 	}
 	return true
 }
 
 // podsReadyStatefulSet checks for an expected number of pods to be using the latest controllerRevision resource and are
 // running and ready
-func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, expectedReplicas int32, prefix string) bool {
+func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := getPodsList(log, client, check)
+	pods := getPodsList(log, client, namespacedName, selector)
 	if pods == nil {
 		return false
 	}
 
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
-		log.Progressf("Found no pods with matching labels selector %v for namespace %s", check.LabelSelector, check.NamespacedName.Namespace)
+		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
 		return true
 	}
 
@@ -79,9 +80,9 @@ func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client clipkg.Client, chec
 
 		// Get the controllerRevision resource for the pod given the controller-revision-hash label
 		var cr appsv1.ControllerRevision
-		err := client.Get(context.TODO(), types.NamespacedName{Namespace: check.NamespacedName.Namespace, Name: pod.Labels[controllerRevisionHashLabel]}, &cr)
+		err := client.Get(context.TODO(), types.NamespacedName{Namespace: namespacedName.Namespace, Name: pod.Labels[controllerRevisionHashLabel]}, &cr)
 		if err != nil {
-			log.Errorf("Failed to get controllerRevision %s: %v", check.NamespacedName, err)
+			log.Errorf("Failed to get controllerRevision %s: %v", namespacedName, err)
 			return false
 		}
 
@@ -100,7 +101,7 @@ func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client clipkg.Client, chec
 	}
 
 	if podsReady < expectedReplicas {
-		log.Progressf("%s is waiting for statefulset %s pods to be %v. Current available pods are %v", prefix, check.NamespacedName,
+		log.Progressf("%s is waiting for statefulset %s pods to be %v. Current available pods are %v", prefix, namespacedName,
 			expectedReplicas, podsReady)
 		return false
 	}

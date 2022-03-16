@@ -367,8 +367,8 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
-				Name:      IstioInressgatewayDeployment,
-				Labels:    map[string]string{"app": IstioInressgatewayDeployment},
+				Name:      IstioIngressgatewayDeployment,
+				Labels:    map[string]string{"app": IstioIngressgatewayDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -379,8 +379,8 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
-				Name:      IstioEressgatewayDeployment,
-				Labels:    map[string]string{"app": IstioEressgatewayDeployment},
+				Name:      IstioEgressgatewayDeployment,
+				Labels:    map[string]string{"app": IstioEgressgatewayDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,

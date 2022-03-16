@@ -11,55 +11,56 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DaemonSetsAreReady Check that the named daemonsets have the minimum number of specified nodes ready and available
-func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, checks []PodReadyCheck, expectedNodes int32, prefix string) bool {
-	for _, check := range checks {
+func DaemonSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedNodes int32, prefix string) bool {
+	for _, namespacedName := range namespacedNames {
 		daemonset := appsv1.DaemonSet{}
-		if err := client.Get(context.TODO(), check.NamespacedName, &daemonset); err != nil {
+		if err := client.Get(context.TODO(), namespacedName, &daemonset); err != nil {
 			if errors.IsNotFound(err) {
-				log.Progressf("%s is waiting for daemonsets %v to exist", prefix, check.NamespacedName)
+				log.Progressf("%s is waiting for daemonsets %v to exist", prefix, namespacedName)
 				// StatefulSet not found
 				return false
 			}
-			log.Errorf("Failed getting daemonset %v: %v", check.NamespacedName, err)
+			log.Errorf("Failed getting daemonset %v: %v", namespacedName, err)
 			return false
 		}
 		if daemonset.Status.UpdatedNumberScheduled < expectedNodes {
-			log.Progressf("%s is waiting for daemonset %s nodes to be %v. Current updated nodes is %v", prefix, check.NamespacedName,
+			log.Progressf("%s is waiting for daemonset %s nodes to be %v. Current updated nodes is %v", prefix, namespacedName,
 				expectedNodes, daemonset.Status.NumberAvailable)
 			return false
 		}
 
 		if daemonset.Status.NumberAvailable < expectedNodes {
-			log.Progressf("%s is waiting for daemonset %s nodes to be %v. Current available nodes is %v", prefix, check.NamespacedName,
+			log.Progressf("%s is waiting for daemonset %s nodes to be %v. Current available nodes is %v", prefix, namespacedName,
 				expectedNodes, daemonset.Status.NumberAvailable)
 			return false
 		}
-		if !podsReadyDaemonSet(log, client, check, expectedNodes, prefix) {
+		if !podsReadyDaemonSet(log, client, namespacedName, daemonset.Spec.Selector, expectedNodes, prefix) {
 			return false
 		}
-		log.Oncef("%s has enough nodes for daemonsets %v", prefix, check.NamespacedName)
+		log.Oncef("%s has enough nodes for daemonsets %v", prefix, namespacedName)
 	}
 	return true
 }
 
 // podsReadyDaemonSet checks for an expected number of pods to be using the latest controllerRevision resource and are
 // running and ready
-func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, expectedNodes int32, prefix string) bool {
+func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedNodes int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := getPodsList(log, client, check)
+	pods := getPodsList(log, client, namespacedName, selector)
 	if pods == nil {
 		return false
 	}
 
 	// If no pods found log a progress message and return
 	if len(pods.Items) == 0 {
-		log.Progressf("Found no pods with matching labels selector %v for namespace %s", check.LabelSelector, check.NamespacedName.Namespace)
+		log.Progressf("Found no pods with matching labels selector %v for namespace %s", selector, namespacedName.Namespace)
 		return true
 	}
 
@@ -81,10 +82,10 @@ func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, check 
 
 		// Get the controllerRevision resource for the pod given the controller-revision-hash label
 		var cr appsv1.ControllerRevision
-		crName := fmt.Sprintf("%s-%s", check.NamespacedName.Name, pod.Labels[controllerRevisionHashLabel])
-		err := client.Get(context.TODO(), types.NamespacedName{Namespace: check.NamespacedName.Namespace, Name: crName}, &cr)
+		crName := fmt.Sprintf("%s-%s", namespacedName.Name, pod.Labels[controllerRevisionHashLabel])
+		err := client.Get(context.TODO(), types.NamespacedName{Namespace: namespacedName.Namespace, Name: crName}, &cr)
 		if err != nil {
-			log.Errorf("Failed to get controllerRevision %s: %v", check.NamespacedName, err)
+			log.Errorf("Failed to get controllerRevision %s: %v", namespacedName, err)
 			return false
 		}
 
@@ -103,7 +104,7 @@ func podsReadyDaemonSet(log vzlog.VerrazzanoLogger, client clipkg.Client, check 
 	}
 
 	if podsReady < expectedNodes {
-		log.Progressf("%s is waiting for daemonset %s pods to be %v. Current available pods are %v", prefix, check.NamespacedName,
+		log.Progressf("%s is waiting for daemonset %s pods to be %v. Current available pods are %v", prefix, namespacedName,
 			expectedNodes, podsReady)
 		return false
 	}

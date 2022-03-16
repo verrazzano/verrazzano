@@ -23,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,11 +36,11 @@ const ComponentJSONName = "istio"
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
 
-// IstioInressgatewayDeployment is the name of the istio ingressgateway deployment
-const IstioInressgatewayDeployment = "istio-ingressgateway"
+// IstioIngressgatewayDeployment is the name of the istio ingressgateway deployment
+const IstioIngressgatewayDeployment = "istio-ingressgateway"
 
-// IstioEressgatewayDeployment is the name of the istio egressgateway deployment
-const IstioEressgatewayDeployment = "istio-egressgateway"
+// IstioEgressgatewayDeployment is the name of the istio egressgateway deployment
+const IstioEgressgatewayDeployment = "istio-egressgateway"
 
 const istioGlobalHubKey = "global.hub"
 
@@ -187,27 +186,18 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      IstiodDeployment,
-				Namespace: IstioNamespace,
-			},
-			LabelSelector: labels.Set{"app": IstiodDeployment}.AsSelector(),
+			Name:      IstiodDeployment,
+			Namespace: IstioNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      IstioInressgatewayDeployment,
-				Namespace: IstioNamespace,
-			},
-			LabelSelector: labels.Set{"app": IstioInressgatewayDeployment}.AsSelector(),
+			Name:      IstioIngressgatewayDeployment,
+			Namespace: IstioNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      IstioEressgatewayDeployment,
-				Namespace: IstioNamespace,
-			},
-			LabelSelector: labels.Set{"app": IstioEressgatewayDeployment}.AsSelector(),
+			Name:      IstioEgressgatewayDeployment,
+			Namespace: IstioNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
