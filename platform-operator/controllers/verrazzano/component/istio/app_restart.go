@@ -24,7 +24,7 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
-		return log.ErrorfNewErr("Restart components cannot find Istio proxy image in BOM: %v", err)
+		return log.ErrorfNewErr("Failed, restart components cannot find Istio proxy image in BOM: %v", err)
 	}
 
 	// get all the app configs
@@ -66,6 +66,9 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 
 	// Get the pods using the label selector
 	podList, err := goClient.CoreV1().Pods(appConfig.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return log.ErrorfNewErr("Failed to list pods for Domain %s in namespace %s: %v", wlName, appConfig.Namespace, err)
+	}
 
 	// Check if any pods contain the old Istio proxy image
 	found, oldImage := doesPodContainOldIstioSidecar(podList, istioProxyImage)
@@ -148,7 +151,7 @@ func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
-		return log.ErrorfNewErr("Restart components cannot find Istio proxy image in BOM: %v", err)
+		return log.ErrorfNewErr("Failed, restart components cannot find Istio proxy image in BOM: %v", err)
 	}
 
 	// get the go client so we can bypass the cache and get directly from etcd
