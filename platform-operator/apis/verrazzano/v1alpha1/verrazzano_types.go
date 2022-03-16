@@ -93,6 +93,9 @@ type CommonKubernetesSpec struct {
 	// Affinity specifies the group of affinity scheduling rules
 	// +optional
 	Affinity *corev1.Affinity `json:"affinity,omitempty"`
+	// Resources set the Kubernetes resource requirements
+	// +optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano
@@ -485,6 +488,11 @@ type IstioIngressSection struct {
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
+// IstioIngressSection specifies the specific config options available for the Istio Pilot service
+type IstioPilotSection struct {
+	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
+}
+
 // IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
 type IstioEgressSection struct {
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
@@ -493,6 +501,9 @@ type IstioEgressSection struct {
 // IstioKubernetesSection specifies the Kubernetes resources that can be customized for Istio.
 type IstioKubernetesSection struct {
 	CommonKubernetesSpec `json:",inline"`
+	// Service Allows customizing the Kubernetes service configuration
+	// +optional
+	Service *corev1.ServiceSpec `json:"service,omitempty"`
 }
 
 // IstioComponent specifies the Istio configuration
@@ -508,6 +519,8 @@ type IstioComponent struct {
 	Ingress *IstioIngressSection `json:"ingress,omitempty"`
 	// +optional
 	Egress *IstioEgressSection `json:"egress,omitempty"`
+	// +optional
+	Pilot *IstioPilotSection `json:"pilot,omitempty"`
 }
 
 // KeycloakComponent specifies the Keycloak configuration
