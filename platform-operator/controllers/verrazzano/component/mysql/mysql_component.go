@@ -4,8 +4,11 @@
 package mysql
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"fmt"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -81,5 +84,23 @@ func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
+	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	if bom.FindKV(oldSetting, "persistence.enabled") != bom.FindKV(newSetting, "persistence.enabled") {
+		return fmt.Errorf("can not change persistence type in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "persistence.size") != bom.FindKV(newSetting, "persistence.size") {
+		return fmt.Errorf("can not change persistence volume size in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "persistence.storageClass") != bom.FindKV(newSetting, "persistence.storageClass") {
+		return fmt.Errorf("can not change persistence storage class in component: %s", ComponentJSONName)
+	}
 	return nil
 }
