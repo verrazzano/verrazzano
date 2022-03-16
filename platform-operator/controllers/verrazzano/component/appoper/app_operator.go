@@ -83,12 +83,10 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 
 // isApplicationOperatorReady checks if the application operator deployment is ready
 func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

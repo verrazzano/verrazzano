@@ -13,12 +13,10 @@ import (
 
 // IsCoherenceOperatorReady checks if the COH operator deployment is ready
 func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

@@ -22,22 +22,18 @@ const podTemplateHashLabel = "pod-template-hash"
 // annotation used to identify the revision of a replicaset
 const deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 
-type PodReadyCheck struct {
-	NamespacedName types.NamespacedName
-}
-
 // getPodsList retrieves a list of pods for a given namespace and labels selector
-func getPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, check PodReadyCheck, selector *metav1.LabelSelector) *corev1.PodList {
+func getPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector) *corev1.PodList {
 	labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
-		log.Errorf("Failed to convert LabelSelector %v for %v: %v", selector, check.NamespacedName, err)
+		log.Errorf("Failed to convert LabelSelector %v for %v: %v", selector, namespacedName, err)
 		return nil
 	}
 	var pods corev1.PodList
 	err = client.List(context.TODO(), &pods,
-		&clipkg.ListOptions{Namespace: check.NamespacedName.Namespace, LabelSelector: labelSelector})
+		&clipkg.ListOptions{Namespace: namespacedName.Namespace, LabelSelector: labelSelector})
 	if err != nil {
-		log.Errorf("Failed listing pods in namespace %s: %v", check.NamespacedName.Namespace, err)
+		log.Errorf("Failed listing pods in namespace %s: %v", namespacedName.Namespace, err)
 		return nil
 	}
 

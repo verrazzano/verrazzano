@@ -186,24 +186,18 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      IstiodDeployment,
-				Namespace: IstioNamespace,
-			},
+			Name:      IstiodDeployment,
+			Namespace: IstioNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      IstioInressgatewayDeployment,
-				Namespace: IstioNamespace,
-			},
+			Name:      IstioInressgatewayDeployment,
+			Namespace: IstioNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      IstioEressgatewayDeployment,
-				Namespace: IstioNamespace,
-			},
+			Name:      IstioEressgatewayDeployment,
+			Namespace: IstioNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())

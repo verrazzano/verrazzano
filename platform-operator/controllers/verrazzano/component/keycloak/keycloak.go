@@ -1247,12 +1247,10 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	statefulset := []status.PodReadyCheck{
+	statefulset := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

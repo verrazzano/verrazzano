@@ -82,12 +82,10 @@ func preInstall(compContext spi.ComponentContext) error {
 }
 
 func isExternalDNSReady(compContext spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())

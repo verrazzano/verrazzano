@@ -72,12 +72,10 @@ func WeblogicOperatorPreInstall(ctx spi.ComponentContext, _ string, namespace st
 }
 
 func isWeblogicOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

@@ -73,42 +73,30 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 func isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      rancherWebhookDeployment,
-				Namespace: ComponentNamespace,
-			},
+			Name:      rancherWebhookDeployment,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      rancherOperatorDeployment,
-				Namespace: OperatorNamespace,
-			},
+			Name:      rancherOperatorDeployment,
+			Namespace: OperatorNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      fleetAgentDeployment,
-				Namespace: fleetSystemNamespace,
-			},
+			Name:      fleetAgentDeployment,
+			Namespace: fleetSystemNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      fleetControllerDeployment,
-				Namespace: fleetSystemNamespace,
-			},
+			Name:      fleetControllerDeployment,
+			Namespace: fleetSystemNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      gitjobDeployment,
-				Namespace: fleetSystemNamespace,
-			},
+			Name:      gitjobDeployment,
+			Namespace: fleetSystemNamespace,
 		},
 	}
 

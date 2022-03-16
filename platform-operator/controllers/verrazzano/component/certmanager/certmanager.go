@@ -238,24 +238,18 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
 func isCertManagerReady(context spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      certManagerDeploymentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      certManagerDeploymentName,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      cainjectorDeploymentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      cainjectorDeploymentName,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      webhookDeploymentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      webhookDeploymentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())

@@ -32,12 +32,10 @@ const (
 
 // isKialiReady checks if the Kiali deployment is ready
 func isKialiReady(ctx spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      kialiSystemName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      kialiSystemName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

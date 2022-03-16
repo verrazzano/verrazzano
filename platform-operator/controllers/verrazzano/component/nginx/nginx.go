@@ -31,18 +31,14 @@ const (
 )
 
 func isNginxReady(context spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ControllerName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ControllerName,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      backendName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      backendName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())

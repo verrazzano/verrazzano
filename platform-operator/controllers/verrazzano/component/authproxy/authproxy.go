@@ -38,12 +38,10 @@ func resetWriteFileFunc() {
 
 // isAuthProxyReady checks if the AuthProxy deployment is ready
 func isAuthProxyReady(ctx spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())

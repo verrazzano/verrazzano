@@ -153,96 +153,94 @@ func TestDaemonSetsReady(t *testing.T) {
 		Revision: 1,
 	}
 
-	podCheckValid := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 
 	var tests = []struct {
 		name     string
 		c        client.Client
-		n        []PodReadyCheck
+		n        []types.NamespacedName
 		ready    bool
 		expected int32
 	}{
 		{
 			"should be ready when daemonset has enough replicas and pod is ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, readyPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			true,
 			1,
 		},
 		{
 			"should be ready when daemonset has enough replicas and one pod of two pods is ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicasMultiple, notReadyContainerPod, readyPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			true,
 			1,
 		},
 		{
 			"should be not ready when expected pods ready not reached",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicasMultiple, readyPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			false,
 			2,
 		},
 		{
 			"should be not ready when daemonset has enough replicas but pod init container pods is not ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, notReadyInitContainerPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when daemonset has enough replicas but pod container pods is not ready",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, notReadyContainerPod, controllerRevision),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when daemonset not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when controller-revision-hash label not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, noPodHashLabel),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when controllerrevision resource not found",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, enoughReplicas, readyPod),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when daemonset doesn't have enough ready replicas",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, notEnoughReadyReplicas),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be not ready when daemonset doesn't have enough updated replicas",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme, notEnoughUpdatedReplicas),
-			podCheckValid,
+			namespacedName,
 			false,
 			1,
 		},
 		{
 			"should be ready when no PodReadyCheck provided",
 			fake.NewFakeClientWithScheme(k8scheme.Scheme),
-			[]PodReadyCheck{},
+			[]types.NamespacedName{},
 			true,
 			1,
 		},

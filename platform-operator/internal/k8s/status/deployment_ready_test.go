@@ -20,12 +20,10 @@ import (
 // WHEN the target Deployment object has a minimum of desired available replicas
 // THEN true is returned
 func TestDeploymentsReady(t *testing.T) {
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -70,7 +68,7 @@ func TestDeploymentsReady(t *testing.T) {
 			},
 		},
 	)
-	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
 
 // TestDeploymentsContainerNotReady tests a deployment ready status check
@@ -83,12 +81,10 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 			"app": "foo",
 		},
 	}
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -131,7 +127,7 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 			},
 		},
 	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
 
 // TestDeploymentsInitContainerNotReady tests a deployment ready status check
@@ -144,12 +140,10 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 			"app": "foo",
 		},
 	}
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -192,7 +186,7 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 			},
 		},
 	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
 
 // TestMultipleReplicasReady tests a deployment ready status check
@@ -200,12 +194,10 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 // WHEN the target Deployment object has met the minimum of desired available replicas > 1
 // THEN true is returned
 func TestMultipleReplicasReady(t *testing.T) {
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -262,7 +254,7 @@ func TestMultipleReplicasReady(t *testing.T) {
 			},
 		},
 	)
-	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 2, ""))
+	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 2, ""))
 }
 
 // TestMultipleReplicasReadyAboveThreshold tests a deployment ready status check
@@ -270,12 +262,10 @@ func TestMultipleReplicasReady(t *testing.T) {
 // WHEN the target Deployment object has more than the minimum desired replicas available
 // THEN true is returned
 func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -332,7 +322,7 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 			},
 		},
 	)
-	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
 
 // TestDeploymentsNoneAvailable tests a deployment ready status check
@@ -340,12 +330,10 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 // WHEN the target Deployment object does not have a minimum number of desired available replicas
 // THEN false is returned
 func TestDeploymentsNoneAvailable(t *testing.T) {
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
@@ -359,7 +347,7 @@ func TestDeploymentsNoneAvailable(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	})
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
 
 // TestDeploymentsNoneUpdated tests a deployment ready status check
@@ -367,12 +355,10 @@ func TestDeploymentsNoneAvailable(t *testing.T) {
 // WHEN the target Deployment object does not have a minimum number of desired updated replicas
 // THEN false is returned
 func TestDeploymentsNoneUpdated(t *testing.T) {
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
@@ -386,7 +372,7 @@ func TestDeploymentsNoneUpdated(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	})
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
 
 // TestMultipleReplicasReadyBelowThreshold tests a deployment ready status check
@@ -399,12 +385,10 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 			"app": "foo",
 		},
 	}
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -447,7 +431,7 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 			},
 		},
 	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 3, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 3, ""))
 }
 
 // TestDeploymentsReadyDeploymentNotFound tests a deployment ready status check
@@ -455,16 +439,14 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 // WHEN the target Deployment object is not found
 // THEN false is returned
 func TestDeploymentsReadyDeploymentNotFound(t *testing.T) {
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
 
 // TestDeploymentsReadyReplicaSetNotFound tests a deployment ready status check
@@ -477,12 +459,10 @@ func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
 			"app": "foo",
 		},
 	}
-	checks := []PodReadyCheck{
+	namespacedName := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      "foo",
-				Namespace: "bar",
-			},
+			Name:      "foo",
+			Namespace: "bar",
 		},
 	}
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
@@ -518,5 +498,5 @@ func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
 			},
 		},
 	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, checks, 1, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
 }
