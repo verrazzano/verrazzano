@@ -143,7 +143,7 @@ func startDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNam
 
 // RestartAllApps restarts all the applications
 func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	log.Progressf("RestartApps: restarting all apps")
+	log.Progressf("Restarting all OAM applications that have an old Istio proxy sidecar")
 
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
@@ -165,7 +165,7 @@ func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 
 	// check each app config to see if any of the pods have old Istio proxy images
 	for _, appConfig := range appConfigs.Items {
-		log.Debugf("RestartApps: found appConfig %s", appConfig.Name)
+		log.Oncef("Checking OAM Application %s pods for an old Istio proxy sidecar", appConfig.Name)
 
 		// Get the pods for this appconfig
 		appConfNameReq, _ := labels.NewRequirement("app.oam.dev/name", selection.Equals, []string{appConfig.Name})
@@ -181,7 +181,7 @@ func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 			continue
 		}
 
-		log.Oncef("Restarting OAM Application %s which has a pod with an old Istio proxy %s", appConfig.Name, oldImage)
+		log.Oncef("Restarting OAM Application %s which has a pod with an old Istio proxy sidecar %s", appConfig.Name, oldImage)
 
 		// Set the update the restart version
 		var ac oam.ApplicationConfiguration
@@ -191,7 +191,7 @@ func RestartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 			if ac.ObjectMeta.Annotations == nil {
 				ac.ObjectMeta.Annotations = make(map[string]string)
 			}
-			log.Progressf("RestartApps: setting restart version for appconfig %s to %s ...  Old version is %s", appConfig.Name,
+			log.Progressf("Setting restart version for appconfig %s to %s. Previous version is %s", appConfig.Name,
 				restartVersion, ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation])
 			ac.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 			return nil

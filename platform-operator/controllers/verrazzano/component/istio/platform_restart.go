@@ -36,7 +36,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	}
 
 	// Restart all the deployments in the injected system namespaces
-	log.Oncef("Restarting system Deployments that have an old Istio sidecar so that the pods get the new Isio sidecar")
+	log.Oncef("Restarting system Deployments that have an old Istio proxy sidecar so that the pods get the new Isio sidecar")
 	deploymentList, err := goClient.AppsV1().Deployments("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, deployment.Namespace) {
 			continue
 		}
-		log.Oncef("Checking if Deployment %s has a pod with an old Istio sidecar proxy", deployment.Name)
+		log.Oncef("Checking if Deployment %s has a pod with an old Istio proxy sidecar", deployment.Name)
 
 		// Get the pods for this deployment
 		podList, err := getMatchingPods(log, goClient, deployment.Namespace, deployment.Spec.Selector)
@@ -76,7 +76,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	log.Oncef("Finished restarting system Deployments to pick up the new Isio sidecar")
 
 	// Restart all the StatefulSets in the injected system namespaces
-	log.Oncef("Restarting system StatefulSets that have an old Istio sidecar so that the pods get the new Isio sidecar")
+	log.Oncef("Restarting system StatefulSets that have an old Istio proxy sidecar so that the pods get the new Isio sidecar")
 	statefulSetList, err := goClient.AppsV1().StatefulSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, sts.Namespace) {
 			continue
 		}
-		log.Oncef("Checking if StatefulSet %s has a pod with an old Istio sidecar proxy", sts.Name)
+		log.Oncef("Checking if StatefulSet %s has a pod with an old Istio proxy sidecar", sts.Name)
 
 		// Get the pods for this StatefulSet
 		podList, err := getMatchingPods(log, goClient, sts.Namespace, sts.Spec.Selector)
@@ -112,7 +112,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 	log.Oncef("Finished restarting system Statefulsets to pick up new Isio sidecar")
 
 	// Restart all the DaemonSets in the injected system namespaces
-	log.Oncef("Restarting system DaemonSets that have an old Istio sidecar so that the pods get the new Isio sidecar")
+	log.Oncef("Restarting system DaemonSets that have an old Istio proxy sidecar so that the pods get the new Isio sidecar")
 	daemonSetList, err := goClient.AppsV1().DaemonSets("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -124,7 +124,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		if !vzString.SliceContainsString(namespaces, daemonSet.Namespace) {
 			continue
 		}
-		log.Oncef("Checking if DaemonSet %s has a pod with an old Istio sidecar proxy", daemonSet.Name)
+		log.Oncef("Checking if DaemonSet %s has a pod with an old Istio proxy sidecar", daemonSet.Name)
 
 		// Get the pods for this DaemonSet
 		podList, err := getMatchingPods(log, goClient, daemonSet.Namespace, daemonSet.Spec.Selector)
