@@ -9,25 +9,20 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
-
+	"github.com/stretchr/testify/assert"
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type testAppConfigInfo struct {
@@ -37,195 +32,173 @@ type testAppConfigInfo struct {
 	workloadName  string
 }
 
-// TestDoNotStopWebLogic tests the StopDomainsUsingOldEnvoy method for the following use case
-// GIVEN a request to StopDomainsUsingOldEnvoy
-// WHEN where there are no WebLogic domains with an old Istio sidecar
-// THEN the WebLogic workloads should not be updated with a stop annotation
-func TestDoNotStopWebLogic(t *testing.T) {
+// TestWebLogicStopStart tests the starting and stopping of WebLogic
+// GIVEN a AppConfig that contains WebLogic workloads
+// WHEN the WebLogic pods have old Istio envoy sidecar, then the domain should be stopped
+// AND WHEN the  WebLogic pods do NOT have an old Istio envoy sidecar, then the domain should NOT be stopped
+// THEN IF the domain was stopped, then it should be started
+func TestWebLogicStopStart(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Setup fake client to provide workloads for restart platform testing
-	clientSet := fake.NewSimpleClientset(initFakePod(oldIstioImage), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
-	k8sutil.SetFakeClient(clientSet)
-
-	err := StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), getNoAppRestartMock(t))
-
-	// Validate the results
-	asserts.NoError(err)
-}
-
-// TestStopWebLogic tests the StopDomainsUsingOldEnvoy method for the following use case
-// GIVEN a request to StopDomainsUsingOldEnvoy
-// WHEN where there are WebLogic domains with an old Istio sidecar
-// THEN the WebLogic workloads should be updated with a stop annotation
-func TestStopWebLogic(t *testing.T) {
-	asserts := assert.New(t)
-	config.SetDefaultBomFilePath(unitTestBomFile)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Setup fake client to provide workloads for restart platform testing
-	wlName := "test"
-	appConfigName := "myApp"
-	podLabels := map[string]string{"verrazzano.io/workload-type": "weblogic",
-		"app.oam.dev/component": wlName,
-		"app.oam.dev/name":      appConfigName}
-
-	clientSet := fake.NewSimpleClientset(initFakePodWithLabels(oldIstioImage, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
-	k8sutil.SetFakeClient(clientSet)
-
-	config := testAppConfigInfo{
-		namespace:     constants.VerrazzanoSystemNamespace,
-		appConfigName: appConfigName,
-		workloadKind:  vzconst.VerrazzanoWebLogicWorkloadKind,
-		workloadName:  wlName,
+	tests := []struct {
+		name                   string
+		expectGetAndUpdate     bool
+		image                  string
+		initialLifeCycleAction string
+		updatedLifeCycleAction string
+		f                      func(mock *mocks.MockClient) error
+	}{
+		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		{
+			name:                   "StopWebLogic",
+			expectGetAndUpdate:     true,
+			image:                  oldIstioImage,
+			initialLifeCycleAction: "",
+			updatedLifeCycleAction: vzconst.LifecycleActionStop,
+			f: func(mock *mocks.MockClient) error {
+				return StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)
+			},
+		},
+		// Test NOT stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		{
+			name:                   "DoNotStopWebLogic",
+			expectGetAndUpdate:     false,
+			image:                  "randomImage",
+			initialLifeCycleAction: "",
+			f: func(mock *mocks.MockClient) error {
+				return StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)
+			},
+		},
+		// Test starting WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		{
+			name:                   "StartWebLogic",
+			expectGetAndUpdate:     true,
+			image:                  oldIstioImage,
+			initialLifeCycleAction: vzconst.LifecycleActionStop,
+			updatedLifeCycleAction: vzconst.LifecycleActionStart,
+			f: func(mock *mocks.MockClient) error {
+				return StartDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+		// Test NOT starting WebLogic because workload is missing stop annotation
+		{
+			name:                   "DoNotStopWebLogic",
+			image:                  oldIstioImage,
+			expectGetAndUpdate:     true,
+			initialLifeCycleAction: "",
+			f: func(mock *mocks.MockClient) error {
+				return StartDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
 	}
-	expectListAppConfigs(t, mock, config)
-	expectGetWebLogicWorkload(t, mock, wlName, "")
-	expectUpdateWebLogicWorkload(t, mock, wlName, vzconst.LifecycleActionStop)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mocker := gomock.NewController(t)
+			mock := mocks.NewMockClient(mocker)
 
-	err := StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)
+			defer config.Set(config.Get())
+			config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	// Validate the results
-	asserts.NoError(err)
-}
+			// Setup fake client to provide workloads for restart platform testing
+			wlName := "test"
+			appConfigName := "myApp"
+			podLabels := map[string]string{"verrazzano.io/workload-type": "weblogic",
+				"app.oam.dev/component": wlName,
+				"app.oam.dev/name":      appConfigName}
 
-// TestStartWebLogic tests the StartDomainsStoppedByUpgrade method for the following use case
-// GIVEN a request to StartDomainsStoppedByUpgrade
-// WHEN where there are WebLogic domains were stopped by upgrade
-// THEN the WebLogic workloads should be updated with a start annotation
-func TestStartWebLogic(t *testing.T) {
-	asserts := assert.New(t)
-	config.SetDefaultBomFilePath(unitTestBomFile)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
+			clientSet := fake.NewSimpleClientset(initFakePodWithLabels(test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+			k8sutil.SetFakeClient(clientSet)
 
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+			config := testAppConfigInfo{
+				namespace:     constants.VerrazzanoSystemNamespace,
+				appConfigName: appConfigName,
+				workloadKind:  vzconst.VerrazzanoWebLogicWorkloadKind,
+				workloadName:  wlName,
+			}
+			expectListAppConfigs(t, mock, config)
+			if test.expectGetAndUpdate {
+				expectGetWebLogicWorkload(t, mock, wlName, test.initialLifeCycleAction)
+				expectUpdateWebLogicWorkload(t, mock, wlName, test.updatedLifeCycleAction)
+			}
 
-	// Setup fake client to provide workloads for restart platform testing
-	wlName := "test"
-	appConfigName := "myApp"
-	podLabels := map[string]string{"verrazzano.io/workload-type": "weblogic",
-		"app.oam.dev/component": wlName,
-		"app.oam.dev/name":      appConfigName}
+			err := test.f(mock)
 
-	clientSet := fake.NewSimpleClientset(initFakePodWithLabels(oldIstioImage, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
-	k8sutil.SetFakeClient(clientSet)
-
-	config := testAppConfigInfo{
-		namespace:     constants.VerrazzanoSystemNamespace,
-		appConfigName: appConfigName,
-		workloadKind:  vzconst.VerrazzanoWebLogicWorkloadKind,
-		workloadName:  wlName,
-	}
-	expectListAppConfigs(t, mock, config)
-	expectGetWebLogicWorkload(t, mock, wlName, vzconst.LifecycleActionStop)
-	expectUpdateWebLogicWorkload(t, mock, wlName, vzconst.LifecycleActionStart)
-
-	version := "1"
-	err := StartDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, version)
-
-	// Validate the results
-	asserts.NoError(err)
-}
-
-// TestStartWebLogic tests the StartDomainsStoppedByUpgrade method for the following use case
-// GIVEN a request to StartDomainsStoppedByUpgrade
-// WHEN where there are not WebLogic domains were stopped by upgrade
-// THEN the WebLogic workloads should not be updated with a start annotation
-func TestDoNotStartWebLogic(t *testing.T) {
-	asserts := assert.New(t)
-	config.SetDefaultBomFilePath(unitTestBomFile)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Setup fake client to provide workloads for restart platform testing
-	wlName := "test"
-	appConfigName := "myApp"
-	podLabels := map[string]string{"verrazzano.io/workload-type": "weblogic",
-		"app.oam.dev/component": wlName,
-		"app.oam.dev/name":      appConfigName}
-
-	clientSet := fake.NewSimpleClientset(initFakePodWithLabels(oldIstioImage, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
-	k8sutil.SetFakeClient(clientSet)
-
-	config := testAppConfigInfo{
-		namespace:     constants.VerrazzanoSystemNamespace,
-		appConfigName: appConfigName,
-		workloadKind:  vzconst.VerrazzanoWebLogicWorkloadKind,
-		workloadName:  wlName,
-	}
-	expectListAppConfigs(t, mock, config)
-	expectGetWebLogicWorkload(t, mock, wlName, "")
-
-	version := "1"
-	err := StartDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, version)
-
-	// Validate the results
-	asserts.NoError(err)
-}
-
-// TestRestartHelidonApps tests the RestartAllApps method for the following use case
-// GIVEN a request to RestartAllApps
-// WHEN where there are Helidon applications
-// THEN the AppConfig should be annotated with a restart version
-func TestRestartHelidonApps(t *testing.T) {
-	asserts := assert.New(t)
-	config.SetDefaultBomFilePath(unitTestBomFile)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Setup fake client to provide workloads for restart platform testing
-	wlName := "test"
-	appConfigName := "myApp"
-	podLabels := map[string]string{"verrazzano.io/workload-type": "weblogic",
-		"app.oam.dev/component": wlName,
-		"app.oam.dev/name":      appConfigName}
-
-	clientSet := fake.NewSimpleClientset(initFakePodWithLabels(oldIstioImage, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
-	k8sutil.SetFakeClient(clientSet)
-
-	config := testAppConfigInfo{
-		namespace:     constants.VerrazzanoSystemNamespace,
-		appConfigName: appConfigName,
-		workloadKind:  vzconst.VerrazzanoHelidonWorkloadKind,
-		workloadName:  wlName,
-	}
-	version := "1"
-	expectListAppConfigs(t, mock, config)
-	expectGetAppConfig(t, mock, appConfigName, vzconst.RestartVersionAnnotation, version)
-	expectUpdateAppConfig(t, mock, vzconst.RestartVersionAnnotation, version)
-
-	err := RestartAllApps(vzlog.DefaultLogger(), mock, version)
-
-	// Validate the results
-	asserts.NoError(err)
-}
-func getNoAppRestartMock(t *testing.T) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oam.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
+			// Validate the results
+			asserts.NoError(err)
 		})
+	}
+}
 
-	return mock
+// TestHelidonStopStart tests the starting and stopping of Helidon
+// GIVEN a AppConfig that contains Helidon workloads
+// WHEN the Helidon pods have old Istio envoy sidecar, then the pods should be restarted
+// AND WHEN the Helidon pods do NOT have old Istio envoy sidecar, then the pods should NOT be restarted
+// THEN IF the domain was stopped, then it should be started
+func TestHelidonStopStart(t *testing.T) {
+	asserts := assert.New(t)
+	config.SetDefaultBomFilePath(unitTestBomFile)
+
+	tests := []struct {
+		name               string
+		expectGetAndUpdate bool
+		image              string
+		f                  func(mock *mocks.MockClient) error
+	}{
+		// Test restarting Helidon workload because it has an old Istio image
+		{
+			name:               "RestartHelidon",
+			expectGetAndUpdate: true,
+			image:              oldIstioImage,
+			f: func(mock *mocks.MockClient) error {
+				return RestartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+		// Test restarting Helidon workload because it doesn't have an old Istio image
+		{
+			name:               "DoNotRestartHelidon",
+			expectGetAndUpdate: false,
+			image:              "randomImage",
+			f: func(mock *mocks.MockClient) error {
+				return RestartAllApps(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			mocker := gomock.NewController(t)
+			mock := mocks.NewMockClient(mocker)
+
+			defer config.Set(config.Get())
+			config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+			// Setup fake client to provide workloads for restart platform testing
+			wlName := "test"
+			appConfigName := "myApp"
+			podLabels := map[string]string{"app.oam.dev/name": appConfigName}
+
+			clientSet := fake.NewSimpleClientset(initFakePodWithLabels(test.image, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+			k8sutil.SetFakeClient(clientSet)
+
+			config := testAppConfigInfo{
+				namespace:     constants.VerrazzanoSystemNamespace,
+				appConfigName: appConfigName,
+				workloadKind:  vzconst.VerrazzanoHelidonWorkloadKind,
+				workloadName:  wlName,
+			}
+			expectListAppConfigs(t, mock, config)
+			version := "1"
+			if test.expectGetAndUpdate {
+				expectGetAppConfig(t, mock, appConfigName, vzconst.RestartVersionAnnotation, version)
+				expectUpdateAppConfig(t, mock, vzconst.RestartVersionAnnotation, version)
+			}
+
+			err := test.f(mock)
+
+			// Validate the results
+			asserts.NoError(err)
+		})
+	}
 }
 
 func expectListAppConfigs(_ *testing.T, mock *mocks.MockClient, config testAppConfigInfo) {
