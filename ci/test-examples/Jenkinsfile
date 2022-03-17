@@ -88,7 +88,6 @@ pipeline {
                 stage('Build WebLogic Application') {
                     steps {
                         sh """
-                            ls ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/
                             cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/hello-weblogic
                             mvn -B -s $MAVEN_SETTINGS clean install
                             cd setup
@@ -105,11 +104,10 @@ pipeline {
                     post {
                         always {
                              sh """
-                                 ls ${WORKSPACE}
                                  mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_scanning-report-grype.json
                                  mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_scanning-report-trivy.json
                              """
-                            archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/*scanning-report*.json', allowEmptyArchive: true
                         }
                     }
                 }
@@ -133,11 +131,10 @@ pipeline {
                     post {
                         always {
                              sh """
-                                ls ${WORKSPACE}
                                  mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_coherence_scanning-report-grype.json
                                  mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_coherence_scanning-report-trivy.json
                              """
-                            archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/*scanning-report*.json', allowEmptyArchive: true
                         }
                     }
                 }
