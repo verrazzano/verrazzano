@@ -96,6 +96,9 @@ type CommonKubernetesSpec struct {
 	// Resources set the Kubernetes resource requirements
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+	// Annotations specifies pod annotations to apply
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano
@@ -485,16 +488,22 @@ type IngressNginxComponent struct {
 
 // IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
 type IstioIngressSection struct {
+	// Kubernetes overrides for the Istio Ingressgateway
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
-// IstioIngressSection specifies the specific config options available for the Istio Pilot service
+// IstioPilotSection specifies the specific config options available for the Istio Pilot service
 type IstioPilotSection struct {
+	// Kubernetes overrides for Istio Pilot
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
 // IstioEgressSection specifies the specific config options available for the Istio Egress Gateways.
 type IstioEgressSection struct {
+	// Kubernetes overrides for the Istio Egressgateway
+	// +optional
 	Kubernetes *IstioKubernetesSection `json:"kubernetes,omitempty"`
 }
 
@@ -503,7 +512,13 @@ type IstioKubernetesSection struct {
 	CommonKubernetesSpec `json:",inline"`
 	// Service Allows customizing the Kubernetes service configuration
 	// +optional
-	Service *corev1.ServiceSpec `json:"service,omitempty"`
+	Service *KubernetesServiceSection `json:"service,omitempty"`
+}
+
+// KubernetesServiceSection specifies common Kubernetes Service settings that can be customized
+type KubernetesServiceSection struct {
+	Annotations map[string]string   `json:"annotations,omitempty"`
+	Spec        *corev1.ServiceSpec `json:"spec,omitempty"`
 }
 
 // IstioComponent specifies the Istio configuration

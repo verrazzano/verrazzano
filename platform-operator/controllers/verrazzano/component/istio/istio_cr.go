@@ -42,6 +42,19 @@ apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
+    pilot:
+      k8s:
+        replicaCount: {{.PilotReplicaCount}}
+        affinity:
+{{ multiLineIndent 10 .PilotAffinity }}
+        service:
+{{ multiLineIndent 10 .PilotService }}
+        serviceAnnotations:
+{{ multiLineIndent 10 .PilotServiceAnnotations }}
+        podAnnotations:
+{{ multiLineIndent 10 .PilotPodAnnotations }}
+        resources:
+{{ multiLineIndent 10 .PilotResources }}
     egressGateways:
       - name: istio-egressgateway
         enabled: true
@@ -49,6 +62,14 @@ spec:
           replicaCount: {{.EgressReplicaCount}}
           affinity:
 {{ multiLineIndent 12 .EgressAffinity }}
+          service:
+{{ multiLineIndent 12 .EgressService }}
+          serviceAnnotations:
+{{ multiLineIndent 12 .EgressServiceAnnotations }}
+          podAnnotations:
+{{ multiLineIndent 12 .EgressPodAnnotations }}
+          resources:
+{{ multiLineIndent 12 .EgressResources }}
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
@@ -61,14 +82,36 @@ spec:
           {{- end}}
           affinity:
 {{ multiLineIndent 12 .IngressAffinity }}
+          service:
+{{ multiLineIndent 12 .IngressService }}
+          serviceAnnotations:
+{{ multiLineIndent 12 .IngressServiceAnnotations }}
+          podAnnotations:
+{{ multiLineIndent 12 .IngressPodAnnotations }}
+          resources:
+{{ multiLineIndent 12 .IngressResources }}
 `
 
 type ReplicaData struct {
-	IngressReplicaCount uint32
-	EgressReplicaCount  uint32
-	IngressAffinity     string
-	EgressAffinity      string
-	ExternalIps         string
+	PilotReplicaCount         uint32
+	PilotResources            string
+	PilotService              string
+	PilotPodAnnotations       string
+	PilotServiceAnnotations   string
+	PilotAffinity             string
+	IngressReplicaCount       uint32
+	IngressResources          string
+	IngressPodAnnotations     string
+	IngressService            string
+	IngressServiceAnnotations string
+	IngressAffinity           string
+	EgressReplicaCount        uint32
+	EgressResources           string
+	EgressPodAnnotations      string
+	EgressService             string
+	EgressServiceAnnotations  string
+	EgressAffinity            string
+	ExternalIps               string
 }
 
 // BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
@@ -146,15 +189,82 @@ func fixExternalIPYaml(yaml string) string {
 func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) (string, error) {
 	var data = ReplicaData{}
 
+	data.PilotReplicaCount = istioComponent.Pilot.Kubernetes.Replicas
 	data.IngressReplicaCount = istioComponent.Ingress.Kubernetes.Replicas
 	data.EgressReplicaCount = istioComponent.Egress.Kubernetes.Replicas
 
-	if istioComponent.Ingress.Kubernetes.Affinity != nil {
-		yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Affinity)
+	if istioComponent.Pilot.Kubernetes.Affinity != nil {
+		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Affinity)
 		if err != nil {
 			return "", err
 		}
-		data.IngressAffinity = string(yml)
+		data.PilotAffinity = string(yml)
+	}
+
+	if istioComponent.Pilot.Kubernetes.Service != nil {
+		if istioComponent.Pilot.Kubernetes.Service.Spec != nil {
+			yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Service.Spec)
+			if err != nil {
+				return "", err
+			}
+			data.PilotService = string(yml)
+		}
+		if len(istioComponent.Pilot.Kubernetes.Service.Annotations) > 0 {
+			yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Service.Annotations)
+			if err != nil {
+				return "", err
+			}
+			data.PilotServiceAnnotations = string(yml)
+		}
+	}
+
+	if istioComponent.Pilot.Kubernetes.Service != nil {
+		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Service.Spec)
+		if err != nil {
+			return "", err
+		}
+		data.PilotService = string(yml)
+	}
+
+	if istioComponent.Pilot.Kubernetes.Resources != nil {
+		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Resources)
+		if err != nil {
+			return "", err
+		}
+		data.PilotResources = string(yml)
+	}
+
+	if istioComponent.Pilot.Kubernetes.Affinity != nil {
+		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Affinity)
+		if err != nil {
+			return "", err
+		}
+		data.PilotAffinity = string(yml)
+	}
+
+	if istioComponent.Ingress.Kubernetes.Service != nil {
+		if istioComponent.Ingress.Kubernetes.Service.Spec != nil {
+			yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Service.Spec)
+			if err != nil {
+				return "", err
+			}
+			data.IngressService = string(yml)
+		}
+		if len(istioComponent.Ingress.Kubernetes.Service.Annotations) > 0 {
+			yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Service.Annotations)
+			if err != nil {
+				return "", err
+			}
+			data.IngressServiceAnnotations = string(yml)
+		}
+	}
+
+	if istioComponent.Ingress.Kubernetes.Resources != nil {
+		yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Resources)
+		if err != nil {
+			return "", err
+		}
+		data.IngressResources = string(yml)
 	}
 
 	if istioComponent.Egress.Kubernetes.Affinity != nil {
@@ -163,6 +273,31 @@ func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) 
 			return "", err
 		}
 		data.EgressAffinity = string(yml)
+	}
+
+	if istioComponent.Egress.Kubernetes.Service != nil {
+		if istioComponent.Egress.Kubernetes.Service.Spec != nil {
+			yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Service.Spec)
+			if err != nil {
+				return "", err
+			}
+			data.EgressService = string(yml)
+		}
+		if len(istioComponent.Egress.Kubernetes.Service.Annotations) > 0 {
+			yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Service.Annotations)
+			if err != nil {
+				return "", err
+			}
+			data.EgressServiceAnnotations = string(yml)
+		}
+	}
+
+	if istioComponent.Egress.Kubernetes.Resources != nil {
+		yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Resources)
+		if err != nil {
+			return "", err
+		}
+		data.EgressResources = string(yml)
 	}
 
 	data.ExternalIps = ""
