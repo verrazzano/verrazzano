@@ -331,6 +331,10 @@ type ComponentSpec struct {
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
 
+	// PrometheusOperator configuration
+	// +optional
+	PrometheusOperator *PrometheusOperatorComponent `json:"prometheusOperator,omitempty"`
+
 	// Rancher configuration
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
@@ -374,6 +378,12 @@ type GrafanaComponent struct {
 // PrometheusComponent specifies the Prometheus configuration.
 type PrometheusComponent struct {
 	MonitoringComponent `json:",inline"`
+}
+
+// PrometheusOperatorComponent specifies the Prometheus Operator configuration
+type PrometheusOperatorComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // CertManagerComponent specifies the core CertManagerComponent config.
