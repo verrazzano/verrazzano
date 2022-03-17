@@ -6,6 +6,7 @@ package mysql
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -101,6 +102,17 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	}
 	if bom.FindKV(oldSetting, "persistence.storageClass") != bom.FindKV(newSetting, "persistence.storageClass") {
 		return fmt.Errorf("can not change persistence storage class in component: %s", ComponentJSONName)
+	}
+	// Reject any other edits for now
+	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+		return fmt.Errorf("Update not allowed for %s", ComponentJSONName)
+	}
+	return nil
+}
+
+func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if vz != nil && vz.Spec.Components.Keycloak != nil {
+		return vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
 	}
 	return nil
 }

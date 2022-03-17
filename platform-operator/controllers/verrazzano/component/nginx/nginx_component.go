@@ -6,7 +6,10 @@ package nginx
 import (
 	"fmt"
 	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
 	"path/filepath"
+	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
@@ -76,6 +79,27 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+	}
+	oldType, _ := vzconfig.GetServiceType(old)
+	newType, _ := vzconfig.GetServiceType(new)
+	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) ||
+		!reflect.DeepEqual(c.getPorts(old), c.getPorts(new)) ||
+		oldType != newType {
+		return fmt.Errorf("Update not allowed for %s", ComponentJSONName)
+	}
+	return nil
+}
+
+func (c nginxComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if vz != nil && vz.Spec.Components.Ingress != nil {
+		return vz.Spec.Components.Ingress.NGINXInstallArgs
+	}
+	return nil
+}
+
+func (c nginxComponent) getPorts(vz *vzapi.Verrazzano) []corev1.ServicePort {
+	if vz != nil && vz.Spec.Components.Ingress != nil {
+		return vz.Spec.Components.Ingress.Ports
 	}
 	return nil
 }

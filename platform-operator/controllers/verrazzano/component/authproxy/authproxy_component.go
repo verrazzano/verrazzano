@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"reflect"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -67,6 +68,16 @@ func (c authProxyComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(c.getKubernetesSettings(old), c.getKubernetesSettings(new)) {
+		return fmt.Errorf("Updates not allowed for kubernetes field in %s", c.GetJSONName())
+	}
+	return nil
+}
+
+func (c authProxyComponent) getKubernetesSettings(vz *vzapi.Verrazzano) *vzapi.AuthProxyKubernetesSection {
+	if vz.Spec.Components.AuthProxy != nil {
+		return vz.Spec.Components.AuthProxy.Kubernetes
 	}
 	return nil
 }

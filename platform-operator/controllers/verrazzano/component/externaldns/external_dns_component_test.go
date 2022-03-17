@@ -30,7 +30,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErr: true, // For now, any changes to the DNS component are rejected
 		},
 		{
 			name: "disable",
@@ -53,6 +53,104 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 			old:     &vzapi.Verrazzano{},
 			new:     &vzapi.Verrazzano{},
 			wantErr: false,
+		},
+		{
+			name: "default-to-external",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{Suffix: "foo.com"},
+						},
+					},
+				},
+			},
+			wantErr: true, // For now, any changes to the DNS component are rejected
+		},
+		{
+			name: "oci-to-external",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							OCI: &vzapi.OCI{
+								OCIConfigSecret: "oci-config-secret",
+							},
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{Suffix: "foo.com"},
+						},
+					},
+				},
+			},
+			wantErr: true, // For now, any changes to the DNS component are rejected
+		},
+		{
+			name: "oci-to-wildcard",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							OCI: &vzapi.OCI{
+								OCIConfigSecret: "oci-config-secret",
+							},
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							Wildcard: &vzapi.Wildcard{Domain: "xip.io"},
+						},
+					},
+				},
+			},
+			wantErr: true, // For now, any changes to the DNS component are rejected
+		},
+		{
+			name: "default-to-wildcard",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							Wildcard: &vzapi.Wildcard{Domain: "xip.io"},
+						},
+					},
+				},
+			},
+			wantErr: true, // For now, any changes to the DNS component are rejected
+		},
+		{
+			name: "wildcard-to-wildcard",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							Wildcard: &vzapi.Wildcard{Domain: "sslip.io"},
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							Wildcard: &vzapi.Wildcard{Domain: "xip.io"},
+						},
+					},
+				},
+			},
+			wantErr: true, // For now, any changes to the DNS component are rejected
 		},
 	}
 	for _, tt := range tests {

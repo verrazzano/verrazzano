@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"reflect"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -169,6 +170,19 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+	}
+
+	// Reject any other edits for now
+	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+		return fmt.Errorf("Update not allowed for %s", ComponentJSONName)
+	}
+
+	return nil
+}
+
+func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if vz != nil && vz.Spec.Components.Keycloak != nil {
+		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
 	}
 	return nil
 }
