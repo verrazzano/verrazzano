@@ -84,63 +84,57 @@ pipeline {
         }
 
         stage('Build Test Applications') {
-            stage ('WebLogic Application') {
-                stages {
-                    stage('Build WebLogic Application') {
-                        steps {
-                            sh """
-                                ${WORKSPACE}/tests/testdata/test-applications/weblogic/hello-weblogic
-                                mvn -B -s $MAVEN_SETTINGS clean install
-                                cd setup
-                                ./build.sh ${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}
-                                docker push ${env.REPO}/${env.TODO_WEBLOGIC}:${env.VERSION}
-                            """
-                        }
+            stages {
+                stage('Build WebLogic Application') {
+                    steps {
+                        sh """
+                            ${WORKSPACE}/tests/testdata/test-applications/weblogic/hello-weblogic
+                            mvn -B -s $MAVEN_SETTINGS clean install
+                            cd setup
+                            ./build.sh ${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}
+                            docker push ${env.REPO}/${env.TODO_WEBLOGIC}:${env.VERSION}
+                        """
                     }
+                }
 
-                    stage('Scan WebLogic Application') {
-                        steps {
-                            scanContainerImage("${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}")
-                        }
-                        post {
-                            always {
-                                 sh """
-                                     mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_scanning-report-grype.json
-                                     mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_scanning-report-trivy.json
-                                 """
-                                archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
-                            }
+                stage('Scan WebLogic Application') {
+                    steps {
+                        scanContainerImage("${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}")
+                    }
+                    post {
+                        always {
+                             sh """
+                                 mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_scanning-report-grype.json
+                                 mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_scanning-report-trivy.json
+                             """
+                            archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
                         }
                     }
                 }
-            }
 
-            stage ('Coherence Application') {
-                stages {
-                    stage('Build Coherence Application') {
-                        steps {
-                            sh """
-                                ${WORKSPACE}/tests/testdata/test-applications/coherence/hello-coherence
-                                mvn -B -s $MAVEN_SETTINGS clean install
-                                oci os object get -bn ${BUCKET_NAME} --file ${JDK11_BUNDLE} --name ${JDK11_BUNDLE}
-                                docker build -t ${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION} .
-                                docker push ${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION}
-                            """
-                        }
+                stage('Build Coherence Application') {
+                    steps {
+                        sh """
+                            ${WORKSPACE}/tests/testdata/test-applications/coherence/hello-coherence
+                            mvn -B -s $MAVEN_SETTINGS clean install
+                            oci os object get -bn ${BUCKET_NAME} --file ${JDK11_BUNDLE} --name ${JDK11_BUNDLE}
+                            docker build -t ${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION} .
+                            docker push ${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION}
+                        """
                     }
+                }
 
-                    stage('Scan Coherence Application') {
-                        steps {
-                            scanContainerImage("${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION}")
-                        }
-                        post {
-                            always {
-                                 sh """
-                                     mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_coherence_scanning-report-grype.json
-                                     mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_coherence_scanning-report-trivy.json
-                                 """
-                                archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
-                            }
+                stage('Scan Coherence Application') {
+                    steps {
+                        scanContainerImage("${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION}")
+                    }
+                    post {
+                        always {
+                             sh """
+                                 mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_coherence_scanning-report-grype.json
+                                 mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_coherence_scanning-report-trivy.json
+                             """
+                            archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
                         }
                     }
                 }
