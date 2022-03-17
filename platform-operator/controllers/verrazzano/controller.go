@@ -966,7 +966,7 @@ func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
 		log.Errorf("Failed to get service %v: %v", nsn, err)
 		return "", err
 	}
-	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
+	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer || nginxService.Spec.Type == corev1.ServiceTypeNodePort {
 		nginxIngress := nginxService.Status.LoadBalancer.Ingress
 		if len(nginxIngress) == 0 {
 			// In case of OLCNE, need to obtain the External IP from the Spec
@@ -976,8 +976,6 @@ func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
 			return nginxService.Spec.ExternalIPs[0], nil
 		}
 		return nginxIngress[0].IP, nil
-	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
-		return "127.0.0.1", nil
 	}
 	err = fmt.Errorf("Failed because of unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
 	log.Errorf("%v", err)

@@ -5,7 +5,6 @@ package vzconfig
 import (
 	"context"
 	"fmt"
-
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -88,7 +87,7 @@ func GetIngressIP(client client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if serviceType == vzapi.LoadBalancer {
+	if serviceType == vzapi.LoadBalancer || serviceType == vzapi.NodePort {
 		svc := v1.Service{}
 		if err := client.Get(context.TODO(), types.NamespacedName{Name: vpoconst.NGINXControllerServiceName, Namespace: globalconst.IngressNamespace}, &svc); err != nil {
 			return "", err

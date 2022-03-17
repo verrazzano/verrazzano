@@ -6,7 +6,6 @@ package nginx
 import (
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -122,5 +121,6 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if cr.Spec.Components.Ingress == nil {
 		return []vzapi.InstallArgs{}
 	}
+
 	return cr.Spec.Components.Ingress.NGINXInstallArgs
 }

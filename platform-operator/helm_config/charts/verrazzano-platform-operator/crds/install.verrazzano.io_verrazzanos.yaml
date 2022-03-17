@@ -53,52 +53,6 @@ spec:
               components:
                 description: Core specifies core Verrazzano configuration
                 properties:
-                  alertmanager:
-                    description: Alertmanager configuration
-                    properties:
-                      alertmanagerConfigMap:
-                        description: Location of the Alertmanager ConfigMap
-                        properties:
-                          name:
-                            description: Name of a resource
-                            type: string
-                          namespace:
-                            description: Namespace of a resource
-                            type: string
-                        required:
-                        - name
-                        - namespace
-                        type: object
-                      enabled:
-                        type: boolean
-                      receiverTemplateConfigMap:
-                        description: Location of the Alertmanager receiver template
-                          ConfigMap
-                        properties:
-                          name:
-                            description: Name of a resource
-                            type: string
-                          namespace:
-                            description: Namespace of a resource
-                            type: string
-                        required:
-                        - name
-                        - namespace
-                        type: object
-                      ruleConfigMap:
-                        description: Location of the Prometheus rule ConfigMap
-                        properties:
-                          name:
-                            description: Name of a resource
-                            type: string
-                          namespace:
-                            description: Namespace of a resource
-                            type: string
-                        required:
-                        - name
-                        - namespace
-                        type: object
-                    type: object
                   applicationOperator:
                     description: ApplicationOperator configuration
                     properties:
@@ -4270,6 +4224,12 @@ spec:
                     type: object
                   prometheus:
                     description: Prometheus configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
+                  prometheusOperator:
+                    description: PrometheusOperator configuration
                     properties:
                       enabled:
                         type: boolean
