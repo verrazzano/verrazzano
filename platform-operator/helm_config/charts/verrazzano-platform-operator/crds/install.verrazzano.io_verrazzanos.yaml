@@ -4228,6 +4228,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  prometheusOperator:
+                    description: PrometheusOperator configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   rancher:
                     description: Rancher configuration
                     properties:
