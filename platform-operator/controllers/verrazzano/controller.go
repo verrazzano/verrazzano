@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"os"
 	"strings"
 	"time"
@@ -299,6 +300,18 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return r.procDelete(context.TODO(), log, vz)
 	}
 
+	if operatorVersion, ok := restartUpgradeWithNewerOperator(vz.Spec.Version); ok {
+		// upgrade needs to be restarted due to newer operator
+		log.Infof("Upgrade is being restarted and will upgrade to version %s", operatorVersion)
+		vz.Spec.Version = operatorVersion
+		err := r.Client.Update(context.TODO(), vz)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+
+		return newRequeueWithDelay(), nil
+	}
+
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -316,6 +329,11 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 	log.Debug("Entering ProcFailedState")
 	ctx := context.TODO()
 
+	// Update uninstall status
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
+
 	// Determine if the user specified to retry upgrade
 	retry, err := r.retryUpgrade(ctx, vz)
 	if err != nil {
@@ -323,16 +341,36 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 		return newRequeueWithDelay(), err
 	}
 
+	// if annotations didn't trigger a retry, see if a newer version of BOM should
+	if !retry {
+		if operatorVersion, ok := restartUpgradeWithNewerOperator(vz.Spec.Version); ok {
+			// can use the current VPO to attempt an upgrade
+			vz.Spec.Version = operatorVersion
+			err = r.Client.Update(ctx, vz)
+			if err != nil {
+				return newRequeueWithDelay(), err
+			}
+
+			retry = true
+		}
+	}
+
 	if retry {
 		// Log the retry and set the CompStateType to ready, then requeue
-		log.Debugf("Restart Version annotation has changed, retrying upgrade")
+		log.Debugf("Restart Version annotation has changed or a new VPO installed, retrying upgrade")
 		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
-	// Update uninstall status
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
+	// If no retry specified by annotations, attempt to upgrade using current VPO version
+	if err := installv1alpha1.ValidateVersion(vzctx.ActualCR.Spec.Version); err != nil {
+		// new version is not nil, but we couldn't parse it
+		return newRequeueWithDelay(), err
+	} else {
+		// Log the retry and set the CompStateType to ready, then requeue
+		log.Debugf("Retrying upgrade")
+		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
 	return ctrl.Result{}, nil
@@ -551,6 +589,19 @@ func buildClusterRoleBindingName(namespace string, name string) string {
 // buildInternalConfigMapName returns the name of the internal configmap associated with an install resource.
 func buildInternalConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-internal", name)
+}
+
+func restartUpgradeWithNewerOperator (vzVersion string) (string, bool) {
+	bomVersion, err := installv1alpha1.GetCurrentBomVersion()
+	if err != nil {
+		return "", false
+	}
+	currentVersion, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		return "", false
+	}
+
+	return bomVersion.ToString(), bomVersion.CompareTo(currentVersion) > 0
 }
 
 // updateStatus updates the status in the Verrazzano CR
