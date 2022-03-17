@@ -88,7 +88,7 @@ pipeline {
                 stage('Build WebLogic Application') {
                     steps {
                         sh """
-                            ${WORKSPACE}/tests/testdata/test-applications/weblogic/hello-weblogic
+                            cd ${WORKSPACE}/tests/testdata/test-applications/weblogic/hello-weblogic
                             mvn -B -s $MAVEN_SETTINGS clean install
                             cd setup
                             ./build.sh ${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}
@@ -115,7 +115,7 @@ pipeline {
                 stage('Build Coherence Application') {
                     steps {
                         sh """
-                            ${WORKSPACE}/tests/testdata/test-applications/coherence/hello-coherence
+                            cd ${WORKSPACE}/tests/testdata/test-applications/coherence/hello-coherence
                             mvn -B -s $MAVEN_SETTINGS clean install
                             oci os object get -bn ${BUCKET_NAME} --file ${JDK11_BUNDLE} --name ${JDK11_BUNDLE}
                             docker build -t ${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION} .
