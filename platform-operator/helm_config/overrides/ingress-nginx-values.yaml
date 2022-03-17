@@ -25,10 +25,10 @@ controller:
     traffic.sidecar.istio.io/excludeInboundPorts: "80,443"
     traffic.sidecar.istio.io/includeInboundPorts: ""
     sidecar.istio.io/rewriteAppHTTPProbers: "true"
-  volumeMounts:
+  extraVolumeMounts:
     - mountPath: /usr/local/nginx/html
       name: custom-400-error
-  volumes:
+  extraVolumes:
     - name: custom-400-error
       configMap:
         name: ingress-controller-ingress-nginx-defaultbackend-custom-error-pages
