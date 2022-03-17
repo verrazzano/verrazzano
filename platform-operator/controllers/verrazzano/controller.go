@@ -300,12 +300,18 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return r.procDelete(context.TODO(), log, vz)
 	}
 
-	if operatorVersion, ok := restartUpgradeWithNewerOperator(vz.Spec.Version); ok {
+	if operatorVersion, isNewerOperator := restartUpgradeWithNewerOperator(vz.Spec.Version); isNewerOperator {
 		// upgrade needs to be restarted due to newer operator
 		log.Infof("Upgrade is being restarted and will upgrade to version %s", operatorVersion)
 		vz.Spec.Version = operatorVersion
 		err := r.Client.Update(context.TODO(), vz)
 		if err != nil {
+			log.Errorf("Update of VZ to version %s failed. Error: %v", operatorVersion, err)
+			return newRequeueWithDelay(), err
+		}
+		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		if err != nil {
+			log.Errorf("Update of VZ status to ready failed. Error: %v", err)
 			return newRequeueWithDelay(), err
 		}
 
