@@ -453,13 +453,18 @@ func validateGrafanaLogs() bool {
 }
 
 func validateOpenSearchLogs() bool {
-	return validateElasticsearchRecords(
-		noLevelElasticsearchRecordValidator,
-		systemIndex,
-		"kubernetes.labels.app.keyword",
-		"system-kibana",
-		searchTimeWindow,
-		noExceptions)
+	valid := true
+	openSearchAppComponents := []string{"system-kibana", "system-es-data", "system-es-master", "system-es-ingest"}
+	for _, appLabel := range openSearchAppComponents {
+		valid = validateElasticsearchRecords(
+			noLevelElasticsearchRecordValidator,
+			systemIndex,
+			"kubernetes.labels.app.keyword",
+			appLabel,
+			searchTimeWindow,
+			noExceptions) && valid
+	}
+	return valid
 }
 
 func validateWeblogicOperatorLogs() bool {
