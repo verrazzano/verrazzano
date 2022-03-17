@@ -4,7 +4,10 @@
 package externaldns
 
 import (
+	"fmt"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -37,6 +40,7 @@ func NewComponent() spi.Component {
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "external-dns-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_0_0,
+			Dependencies:            []string{},
 		},
 	}
 }
@@ -52,10 +56,18 @@ func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (e externalDNSComponent) IsEnabled(compContext spi.ComponentContext) bool {
-	dns := compContext.EffectiveCR().Spec.Components.DNS
+func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	dns := effectiveCR.Spec.Components.DNS
 	if dns != nil && dns.OCI != nil {
 		return true
 	}
 	return false
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	if e.IsEnabled(old) && !e.IsEnabled(new) {
+		return fmt.Errorf("can not remove OCI from dns")
+	}
+	return nil
 }

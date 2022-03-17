@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -972,6 +973,20 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		return err
 	}
 	ctx.Log().Debugf("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
+	cr := ctx.EffectiveCR()
+	ingressType, err := vzconfig.GetServiceType(cr)
+	if err != nil {
+		return nil
+	}
+	switch ingressType {
+	case vzapi.NodePort:
+		for _, ports := range cr.Spec.Components.Ingress.Ports {
+			if ports.Port == 443 {
+				dnsSubDomain = fmt.Sprintf("%s:%s", dnsSubDomain, strconv.Itoa(int(ports.NodePort)))
+			}
+		}
+	}
+
 	data.DNSSubDomain = dnsSubDomain
 
 	// use template to get populate template with data
@@ -980,7 +995,6 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 	if err != nil {
 		return err
 	}
-
 	err = t.Execute(&b, &data)
 	if err != nil {
 		return err
@@ -1247,12 +1261,12 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	statefulsetName := []types.NamespacedName{
+	statefulset := []types.NamespacedName{
 		{
-			Namespace: ComponentNamespace,
 			Name:      ComponentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.StatefulsetReady(ctx.Log(), ctx.Client(), statefulsetName, 1, prefix)
+	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
 }

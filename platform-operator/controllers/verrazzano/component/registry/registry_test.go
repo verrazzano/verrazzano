@@ -455,6 +455,10 @@ func (f fakeComponent) Name() string {
 	return f.name
 }
 
+func (f fakeComponent) GetJSONName() string {
+	return f.name
+}
+
 func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }
@@ -463,7 +467,7 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
 
-func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
+func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
 	return f.enabled
 }
 
@@ -508,5 +512,17 @@ func (f fakeComponent) Reconcile(_ spi.ComponentContext) error {
 }
 
 func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
+}
+
+func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }

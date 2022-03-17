@@ -9,6 +9,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -71,7 +72,7 @@ func init() {
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
-
+	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
 }
 
@@ -1627,10 +1628,8 @@ func TestIsReady(t *testing.T) {
 				Name:      fluentDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberReady:            1,
+				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
-				NumberUnavailable:      0,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1639,20 +1638,19 @@ func TestIsReady(t *testing.T) {
 				Name:      nodeExporterDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberReady:            1,
+				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
-				NumberUnavailable:      0,
 			},
 		},
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": "system-es-master"},
 			},
 			Status: appsv1.StatefulSetStatus{
 				ReadyReplicas:   1,
-				CurrentReplicas: 2,
+				UpdatedReplicas: 1,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",

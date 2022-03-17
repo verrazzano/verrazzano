@@ -4,11 +4,16 @@
 package mysql
 
 import (
+	"fmt"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -19,6 +24,9 @@ const ComponentName = "mysql"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.KeycloakNamespace
+
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "keycloak.mysql"
 
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
@@ -33,6 +41,7 @@ func NewComponent() spi.Component {
 	return mysqlComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -55,8 +64,8 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
-func (c mysqlComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+func (c mysqlComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -71,4 +80,27 @@ func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 // PostInstall calls MySQL postInstall function
 func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
+	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	if bom.FindKV(oldSetting, "persistence.enabled") != bom.FindKV(newSetting, "persistence.enabled") {
+		return fmt.Errorf("can not change persistence type in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "persistence.size") != bom.FindKV(newSetting, "persistence.size") {
+		return fmt.Errorf("can not change persistence volume size in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "persistence.storageClass") != bom.FindKV(newSetting, "persistence.storageClass") {
+		return fmt.Errorf("can not change persistence storage class in component: %s", ComponentJSONName)
+	}
+	return nil
 }

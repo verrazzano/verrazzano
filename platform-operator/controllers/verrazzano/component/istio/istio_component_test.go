@@ -277,9 +277,6 @@ func getMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-
 	mock.EXPECT().
 		List(gomock.Any(), &v1.SecretList{}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, options *client.ListOptions) error {
@@ -370,8 +367,8 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
-				Name:      IstioInressgatewayDeployment,
-				Labels:    map[string]string{"app": IstioInressgatewayDeployment},
+				Name:      IstioIngressgatewayDeployment,
+				Labels:    map[string]string{"app": IstioIngressgatewayDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -382,8 +379,8 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: IstioNamespace,
-				Name:      IstioEressgatewayDeployment,
-				Labels:    map[string]string{"app": IstioEressgatewayDeployment},
+				Name:      IstioEgressgatewayDeployment,
+				Labels:    map[string]string{"app": IstioEgressgatewayDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -404,7 +401,7 @@ func TestIsReady(t *testing.T) {
 func TestIsEnabledNilIstio(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
@@ -412,7 +409,7 @@ func TestIsEnabledNilIstio(t *testing.T) {
 //  WHEN The Istio component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &installv1alpha1.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &installv1alpha1.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -422,7 +419,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -432,7 +429,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -442,9 +439,62 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Istio.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 func getBoolPtr(b bool) *bool {
 	return &b
+}
+
+func Test_istioComponent_ValidateUpdate(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *installv1alpha1.Verrazzano
+		new     *installv1alpha1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &installv1alpha1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no change",
+			old:     &installv1alpha1.Verrazzano{},
+			new:     &installv1alpha1.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

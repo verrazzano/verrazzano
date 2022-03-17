@@ -357,12 +357,7 @@ func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
 }
 
 // GetVerrazzanoVersion returns the Verrazzano Version
-func GetVerrazzanoVersion() (string, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-		return "", err
-	}
+func GetVerrazzanoVersion(kubeconfigPath string) (string, error) {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
@@ -375,8 +370,8 @@ func GetVerrazzanoVersion() (string, error) {
 }
 
 // IsVerrazzanoMinVersion returns true if the Verrazzano version >= minVersion
-func IsVerrazzanoMinVersion(minVersion string) (bool, error) {
-	vzVersion, err := GetVerrazzanoVersion()
+func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion(kubeconfigPath)
 	if err != nil {
 		return false, err
 	}
@@ -501,7 +496,11 @@ func GetNamespace(name string) (*corev1.Namespace, error) {
 	if err != nil {
 		return nil, err
 	}
+	return GetNamespaceWithClientSet(name, clientset)
+}
 
+// GetNamespaceWithClientSet returns a namespace for the given Clientset
+func GetNamespaceWithClientSet(name string, clientset *kubernetes.Clientset) (*corev1.Namespace, error) {
 	return clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{})
 }
 
@@ -570,8 +569,18 @@ func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, 
 }
 
 func CreateNamespaceWithAnnotations(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	return CreateNamespaceWithClientSet(name, labels, clientset, annotations)
+}
+
+// CreateNamespaceWithClientSet creates a namespace using the given Clientset
+func CreateNamespaceWithClientSet(name string, labels map[string]string, clientset *kubernetes.Clientset, annotations map[string]string) (*corev1.Namespace, error) {
 	if len(os.Getenv(k8sutil.EnvVarTestKubeConfig)) > 0 {
-		existingNamespace, err := GetNamespace(name)
+		existingNamespace, err := GetNamespaceWithClientSet(name, clientset)
 		if err != nil {
 			Log(Error, fmt.Sprintf("CreateNamespace %s, error while getting existing namespace: %v", name, err))
 			return nil, err
@@ -580,16 +589,8 @@ func CreateNamespaceWithAnnotations(name string, labels map[string]string, annot
 		if existingNamespace != nil && existingNamespace.Name == name {
 			return existingNamespace, nil
 		}
-
 		return nil, fmt.Errorf("CreateNamespace %s, test is running with custom service account and namespace must be pre-created", name)
 	}
-
-	// Get the Kubernetes clientset
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return nil, err
-	}
-
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -602,7 +603,6 @@ func CreateNamespaceWithAnnotations(name string, labels map[string]string, annot
 		Log(Error, fmt.Sprintf("CreateNamespace %s error: %v", name, err))
 		return nil, err
 	}
-
 	return ns, nil
 }
 
@@ -638,11 +638,15 @@ func DeleteNamespaceInCluster(name string, kubeconfigPath string) error {
 	if err != nil {
 		return err
 	}
-	err = clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return DeleteNamespaceWithClientSet(name, clientset)
+}
+
+// DeleteNamespaceWithClientSet deletes the namespace using the given Clientset
+func DeleteNamespaceWithClientSet(name string, clientset *kubernetes.Clientset) error {
+	err := clientset.CoreV1().Namespaces().Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to delete namespace %s: %v", name, err))
 	}
-
 	return err
 }
 
@@ -999,7 +1003,7 @@ func CanIForAPIGroupForServiceAccountOrUser(saOrUserOCID string, namespace strin
 	return auth.Status.Allowed, auth.Status.Reason, nil
 }
 
-//GetTokenForServiceAccount returns the token associated with service account
+// GetTokenForServiceAccount returns the token associated with service account
 func GetTokenForServiceAccount(sa string, namespace string) ([]byte, error) {
 	serviceAccount, err := GetServiceAccount(namespace, sa)
 	if err != nil {

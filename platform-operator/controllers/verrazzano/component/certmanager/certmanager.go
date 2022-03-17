@@ -15,8 +15,6 @@ import (
 	"strings"
 	"text/template"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -240,27 +238,18 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
 func isCertManagerReady(context spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      certManagerDeploymentName,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app": certManagerDeploymentName}.AsSelector(),
+			Name:      certManagerDeploymentName,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      cainjectorDeploymentName,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app": "cainjector"}.AsSelector(),
+			Name:      cainjectorDeploymentName,
+			Namespace: ComponentNamespace,
 		},
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      webhookDeploymentName,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app": "webhook"}.AsSelector(),
+			Name:      webhookDeploymentName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())

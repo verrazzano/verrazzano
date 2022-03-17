@@ -31,6 +31,12 @@ func createVMI(ctx spi.ComponentContext) error {
 		return nil
 	}
 
+	effectiveCR := ctx.EffectiveCR()
+	dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
+	}
+
 	if err := createGrafanaConfigMaps(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("failed to create grafana configmaps: %v", err)
 	}
@@ -54,15 +60,15 @@ func createVMI(ctx spi.ComponentContext) error {
 			"verrazzano.binding": system,
 		}
 		cr := ctx.EffectiveCR()
-		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
-		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, values.Config.DNSSuffix)
+		vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", values.Config.EnvName, dnsSuffix)
+		vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", values.Config.EnvName, dnsSuffix)
 		vmi.Spec.ServiceType = "ClusterIP"
 		vmi.Spec.AutoSecret = true
 		vmi.Spec.SecretsName = ComponentName
 		vmi.Spec.CascadingDelete = true
 		vmi.Spec.Grafana = newGrafana(cr, storage, existingVMI)
 		vmi.Spec.Prometheus = newPrometheus(cr, storage, existingVMI)
-		opensearch, err := newOpenSearch(cr, storage, existingVMI)
+		opensearch, err := newOpenSearch(cr, storage, existingVMI, hasDataNodeStorageOverride(ctx.ActualCR()))
 		if err != nil {
 			return err
 		}
@@ -135,7 +141,21 @@ func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage
 	}
 }
 
-func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance) (*vmov1.Elasticsearch, error) {
+func hasDataNodeStorageOverride(cr *vzapi.Verrazzano) bool {
+	openSearch := cr.Spec.Components.Elasticsearch
+	if openSearch == nil {
+		return false
+	}
+	for _, arg := range openSearch.ESInstallArgs {
+		if arg.Name == "nodes.data.requests.storage" {
+			return true
+		}
+	}
+
+	return false
+}
+
+func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, useDataOverride bool) (*vmov1.Elasticsearch, error) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}
@@ -156,13 +176,6 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 				RequestMemory: "2.5Gi",
 			},
 		},
-	}
-
-	if storage != nil && len(storage.Storage) > 0 {
-		opensearch.Storage.Size = storage.Storage
-	}
-	if vmi != nil {
-		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
 	}
 
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
@@ -200,6 +213,15 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		case "nodes.data.requests.storage":
 			opensearch.Storage.Size = arg.Value
 		}
+	}
+
+	// Use the volume claim override IFF it is present AND the user did not specify a data node storage override
+	if !useDataOverride && storage != nil && len(storage.Storage) > 0 {
+		opensearch.Storage.Size = storage.Storage
+	}
+
+	if vmi != nil {
+		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
 	}
 
 	return opensearch, nil

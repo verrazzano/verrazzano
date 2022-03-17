@@ -93,7 +93,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStatePostUpgrade:
 			// Invoke the global post upgrade function after all components are upgraded.
 			log.Once("Doing Verrazzano post-upgrade processing")
-			err := postVerrazzanoUpgrade(log, r)
+			err := postVerrazzanoUpgrade(log, r, cr)
 			if err != nil {
 				log.Errorf("Error running Verrazzano system-level post-upgrade")
 				return newRequeueWithDelay(), err
@@ -193,9 +193,9 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 }
 
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
-func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
+func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr *installv1alpha1.Verrazzano) error {
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), client)
+	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation)
 }
 
 // getNSNKey gets the key for the verrazzano resource

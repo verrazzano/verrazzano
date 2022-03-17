@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -42,13 +43,21 @@ const (
 
 	pollingInterval = 10 * time.Second
 	envoyImage      = "proxyv2:1.10"
+	minimumVersion  = "1.1.0"
 )
 
 var t = framework.NewTestFramework("verify")
 
 var vzcr *vzapi.Verrazzano
+var kubeconfigPath string
 
 var _ = t.BeforeSuite(func() {
+	var err error
+	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+
 	// Get the Verrazzano CR
 	Eventually(func() error {
 		var err error
@@ -64,24 +73,10 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 
-	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
-	MinimumVerrazzanoIt := func(description string, f interface{}) {
-		supported, err := pkg.IsVerrazzanoMinVersion("1.1.0")
-		if err != nil {
-			Fail(err.Error())
-		}
-		// Only run tests if Verrazzano is not at least version 1.1.0
-		if supported {
-			t.It(description, f)
-		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.1.0", description))
-		}
-	}
-
 	// GIVEN the verrazzano-system namespace
 	// WHEN the container images are retrieved
 	// THEN verify that each pod that uses istio has the correct istio proxy image
-	MinimumVerrazzanoIt("pods in verrazzano-system have correct istio proxy image", func() {
+	t.ItMinimumVersion("pods in verrazzano-system have correct istio proxy image", minimumVersion, kubeconfigPath, func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.VerrazzanoSystemNamespace, envoyImage)
 		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
@@ -90,7 +85,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	// GIVEN the ingress-nginx namespace
 	// WHEN the container images are retrieved
 	// THEN verify that each pod that uses istio has the correct istio proxy image
-	MinimumVerrazzanoIt("pods in ingress-nginx have correct istio proxy image", func() {
+	t.ItMinimumVersion("pods in ingress-nginx have correct istio proxy image", minimumVersion, kubeconfigPath, func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.IngressNginxNamespace, envoyImage)
 		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
@@ -99,7 +94,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	// GIVEN the keycloak namespace
 	// WHEN the container images are retrieved
 	// THEN verify that each pod that uses istio has the correct istio proxy image
-	MinimumVerrazzanoIt("pods in keycloak have correct istio proxy image", func() {
+	t.ItMinimumVersion("pods in keycloak have correct istio proxy image", minimumVersion, kubeconfigPath, func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.KeycloakNamespace, envoyImage)
 		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")

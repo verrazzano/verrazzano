@@ -5,6 +5,8 @@ package rancher
 
 import (
 	"fmt"
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"io"
 	"net/http"
 	"os"
@@ -124,7 +126,7 @@ func TestIsEnabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			r := NewComponent()
-			assert.Equal(t, tt.enabled, r.IsEnabled(tt.ctx))
+			assert.Equal(t, tt.enabled, r.IsEnabled(tt.ctx.EffectiveCR()))
 		})
 	}
 }
@@ -318,10 +320,20 @@ func TestPostInstall(t *testing.T) {
 			Name:      constants.RancherIngress,
 		},
 	}
+	time := metav1.Now()
+	cert := certapiv1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: certificates[0].Name, Namespace: certificates[0].Namespace},
+		Status: certapiv1.CertificateStatus{
+			Conditions: []certapiv1.CertificateCondition{
+				{Type: certapiv1.CertificateConditionReady, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
+			},
+		},
+	}
+
 	clientWithoutIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList)
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
 
-	clientWithIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList, &ingress)
+	clientWithIngress := fake.NewFakeClientWithScheme(getScheme(), &caSecret, &rootCASecret, &adminSecret, &rancherPodList, &ingress, &cert)
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
 
 	// mock the pod executor when resetting the Rancher admin password
@@ -350,4 +362,57 @@ func TestPostInstall(t *testing.T) {
 	component := NewComponent()
 	assert.IsType(t, spi2.RetryableError{}, component.PostInstall(ctxWithoutIngress))
 	assert.Nil(t, component.PostInstall(ctxWithIngress))
+}
+
+func Test_rancherComponent_ValidateUpdate(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *vzapi.Verrazzano
+		new     *vzapi.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no change",
+			old:     &vzapi.Verrazzano{},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

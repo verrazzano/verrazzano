@@ -18,7 +18,6 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
@@ -33,13 +32,10 @@ const (
 
 // isKialiReady checks if the Kiali deployment is ready
 func isKialiReady(ctx spi.ComponentContext) bool {
-	deployments := []status.PodReadyCheck{
+	deployments := []types.NamespacedName{
 		{
-			NamespacedName: types.NamespacedName{
-				Name:      kialiSystemName,
-				Namespace: ComponentNamespace,
-			},
-			LabelSelector: labels.Set{"app": kialiSystemName}.AsSelector(),
+			Name:      kialiSystemName,
+			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
