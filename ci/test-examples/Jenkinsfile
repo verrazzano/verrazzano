@@ -93,7 +93,7 @@ pipeline {
                             mvn -B -s $MAVEN_SETTINGS clean install
                             cd setup
                             ./build.sh ${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}
-                            docker push ${env.REPO}/${env.TODO_WEBLOGIC}:${env.VERSION}
+                            docker push ${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}
                         """
                     }
                 }
