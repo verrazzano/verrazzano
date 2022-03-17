@@ -1480,3 +1480,176 @@ func generateTestPrivateKeyWithType(keyType string) ([]byte, error) {
 	)
 	return keyPEM, nil
 }
+
+// TestNodePortWithIstioExternalIPSNotSet tests cr spec with NodePort with istio externalIps not set
+// GIVEN a Verrazzano spec containing NodePort type
+// WHEN validateExternalIPSForNodePort is called
+// THEN failure is returned from validateExternalIPSForNodePort
+func TestNodePortWithIstioExternalIPSNotSet(t *testing.T) {
+	vz := &VerrazzanoSpec{
+		Profile: "dev",
+		Components: ComponentSpec{
+			Ingress: &IngressNginxComponent{
+				Type: NodePort,
+				NGINXInstallArgs: []InstallArgs{
+					{
+						Name:      nginxExternalIPKey,
+						ValueList: []string{"1.2.3.4"},
+					},
+				},
+				Ports: []corev1.ServicePort{
+					{
+						Name:     "port1",
+						Protocol: "TCP",
+						Port:     8000,
+					},
+				},
+			},
+			Istio: &IstioComponent{
+				IstioInstallArgs: []InstallArgs{
+					{
+						Name: istioExternalIPKey,
+					},
+				},
+			},
+		},
+	}
+	err := validateExternalIPSForNodePort(vz)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "At least one istio external ips need to be set as an array for the key \"gateways.istio-ingressgateway.externalIPs\"")
+}
+
+// TestNodePortWithNginxExternalIPSNotSet tests cr spec with NodePort with nginx externalIps not set
+// GIVEN a Verrazzano spec containing NodePort type
+// WHEN validateExternalIPSForNodePort is called
+// THEN failure is returned from validateExternalIPSForNodePort
+func TestNodePortWithNginxExternalIPSNotSet(t *testing.T) {
+	vz := &VerrazzanoSpec{
+		Profile: "dev",
+		Components: ComponentSpec{
+			Ingress: &IngressNginxComponent{
+				Type: NodePort,
+				NGINXInstallArgs: []InstallArgs{
+					{
+						Name: nginxExternalIPKey,
+					},
+				},
+				Ports: []corev1.ServicePort{
+					{
+						Name:     "port1",
+						Protocol: "TCP",
+						Port:     8000,
+					},
+				},
+			},
+			Istio: &IstioComponent{
+				IstioInstallArgs: []InstallArgs{
+					{
+						Name:      istioExternalIPKey,
+						ValueList: []string{"1.2.3.4"},
+					},
+				},
+			},
+		},
+	}
+	err := validateExternalIPSForNodePort(vz)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "At least one nginx external ips need to be set as an array for the key \"controller.service.externalIPs\"")
+}
+
+// TestNodePortWithNoExternalIPS tests cr spec with NodePort with no externalIps set
+// GIVEN a Verrazzano spec containing NodePort type
+// WHEN validateExternalIPSForNodePort is called
+// THEN failure is returned from validateExternalIPSForNodePort
+func TestNodePortWithNoExternalIPS(t *testing.T) {
+	vz := &VerrazzanoSpec{
+		Profile: "dev",
+		Components: ComponentSpec{
+			Ingress: &IngressNginxComponent{
+				Type: NodePort,
+				Ports: []corev1.ServicePort{
+					{
+						Name:     "port1",
+						Protocol: "TCP",
+						Port:     8000,
+					},
+				},
+			},
+		},
+	}
+	err := validateExternalIPSForNodePort(vz)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "External ips for nginx was not set")
+}
+
+// TestNodePortWithInvalidNginxExternalIPS tests cr spec with NodePort with invalid externalIps fot nginx
+// GIVEN a Verrazzano spec containing NodePort type
+// WHEN validateExternalIPSForNodePort is called
+// THEN failure is returned from validateExternalIPSForNodePort
+func TestNodePortWithInvalidNginxExternalIPS(t *testing.T) {
+	invalidIP := "1.2.3.4.5"
+	vz := &VerrazzanoSpec{
+		Profile: "dev",
+		Components: ComponentSpec{
+			Ingress: &IngressNginxComponent{
+				Type: NodePort,
+				NGINXInstallArgs: []InstallArgs{
+					{
+						Name:      nginxExternalIPKey,
+						ValueList: []string{invalidIP},
+					},
+				},
+				Ports: []corev1.ServicePort{
+					{
+						Name:     "port1",
+						Protocol: "TCP",
+						Port:     8000,
+					},
+				},
+			},
+		},
+	}
+	err := validateExternalIPSForNodePort(vz)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("Controller external service key \"controller.service.externalIPs\" with IP \"%s\" is of invalid format. Must be a proper IP address format", invalidIP))
+}
+
+// TestNodePortWithInvalidIstioExternalIPS tests cr spec with NodePort with invalid externalIps fot istio
+// GIVEN a Verrazzano spec containing NodePort type
+// WHEN validateExternalIPSForNodePort is called
+// THEN failure is returned from validateExternalIPSForNodePort
+func TestNodePortWithInvalidIstioExternalIPS(t *testing.T) {
+	invalidIP := "1.2.3.4.5"
+	vz := &VerrazzanoSpec{
+		Profile: "dev",
+		Components: ComponentSpec{
+			Ingress: &IngressNginxComponent{
+				Type: NodePort,
+				NGINXInstallArgs: []InstallArgs{
+					{
+						Name:      nginxExternalIPKey,
+						ValueList: []string{"1.2.3.4"},
+					},
+				},
+				Ports: []corev1.ServicePort{
+					{
+						Name:     "port1",
+						Protocol: "TCP",
+						Port:     8000,
+					},
+				},
+			},
+			Istio: &IstioComponent{
+				IstioInstallArgs: []InstallArgs{
+					{
+						Name:      istioExternalIPKey,
+						ValueList: []string{invalidIP},
+					},
+				},
+			},
+		},
+	}
+	err := validateExternalIPSForNodePort(vz)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), fmt.Sprintf("Gateway external service key \"gateways.istio-ingressgateway.externalIPs\" with IP \"%s\" is of invalid format. Must be a proper IP address format", invalidIP))
+}
