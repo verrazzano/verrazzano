@@ -7,6 +7,10 @@ import (
 	"context"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/types"
+
+	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
@@ -46,18 +50,30 @@ func TestNoRestart(t *testing.T) {
 	asserts.NoError(err)
 }
 
-func TestRestartWebLogic(t *testing.T) {
+func TestStopWebLogic(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	// Setup fake client to provide workloads for restart platform testing
-	clientSet := fake.NewSimpleClientset(initFakePod(oldIstioImage), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
+	wlName := "test"
+	appConfigName := "myApp"
+	podLabels := map[string]string{"verrazzano.io/workload-type": "weblogic",
+		"app.oam.dev/component": wlName,
+		"app.oam.dev/name":      appConfigName}
+
+	clientSet := fake.NewSimpleClientset(initFakePodWithLabels(oldIstioImage, podLabels), initFakeDeployment(), initFakeStatefulSet(), initFakeDaemonSet())
 	k8sutil.SetFakeClient(clientSet)
 
-	StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), getWebLogicAppMock(t, "test", constants.VerrazzanoSystemNamespace))
+	expectListWebLogicAppConfigs(t, mock, appConfigName, wlName, constants.VerrazzanoSystemNamespace)
+	expectGetWebLogicWorkload(t, mock, wlName, "")
+	expectUpdateWebLogicWorkload(t, mock, wlName, vzconst.LifecycleActionStop)
+
+	StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
 	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1)
@@ -79,24 +95,21 @@ func getNoAppRestartMock(t *testing.T) *mocks.MockClient {
 	return mock
 }
 
-func getWebLogicAppMock(t *testing.T, name string, namespace string) *mocks.MockClient {
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-
+func expectListWebLogicAppConfigs(_ *testing.T, mock *mocks.MockClient, appConfigName string, wlName string, namespace string) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *oam.ApplicationConfigurationList, opts ...client.ListOption) error {
 			appconfig := oam.ApplicationConfiguration{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      name,
+					Name:      appConfigName,
 					Namespace: namespace,
 				},
-				Spec: oam.ApplicationConfigurationSpec{},
 				Status: oam.ApplicationConfigurationStatus{
 					Workloads: []oam.WorkloadStatus{{
 						Reference: oamrt.TypedReference{
 							Kind: vzconst.VerrazzanoWebLogicWorkloadKind,
+							Name: wlName,
 						},
 					}},
 				},
@@ -105,6 +118,27 @@ func getWebLogicAppMock(t *testing.T, name string, namespace string) *mocks.Mock
 			list.Items = append(list.Items, appconfig)
 			return nil
 		})
+}
 
-	return mock
+func expectGetWebLogicWorkload(_ *testing.T, mock *mocks.MockClient, wlName string, lifecycleAction string) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: wlName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, wl *vzapp.VerrazzanoWebLogicWorkload) error {
+			if len(lifecycleAction) > 0 {
+				wl.Annotations = map[string]string{}
+				wl.Annotations[vzconst.LifecycleActionAnnotation] = lifecycleAction
+			}
+			return nil
+		})
+}
+
+func expectUpdateWebLogicWorkload(t *testing.T, mock *mocks.MockClient, wlName string, lifecycleAction string) {
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wl *vzapp.VerrazzanoWebLogicWorkload, opts ...client.UpdateOption) error {
+			if len(lifecycleAction) > 0 {
+				assert.Equal(t, lifecycleAction, wl.Annotations[vzconst.LifecycleActionAnnotation], "Incorrect WebLogic lifecycle action")
+			}
+			return nil
+		})
 }
