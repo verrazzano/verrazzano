@@ -4,17 +4,20 @@
 package wlsworkload
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
-	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"math/big"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
+
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -61,8 +64,9 @@ const (
 	controllerName                        = "weblogicworkload"
 )
 
-const defaultMonitoringExporterData = `
+const defaultMonitoringExporterTemplate = `
   {
+    {{.ImageSetting}}"imagePullPolicy": "IfNotPresent",
     "configuration": {
       "domainQualifier": true,
       "metricsNameSnakeCase": true,
@@ -169,10 +173,14 @@ const defaultMonitoringExporterData = `
            }
         }
       ]
-    },
-    "imagePullPolicy": "IfNotPresent"
+    }
   }
 `
+
+type defaultMonitoringExporterTemplateData struct {
+	ImageSetting string
+}
+
 const defaultWDTConfigMapData = `
   {
     "resources": {
@@ -863,9 +871,32 @@ func addDefaultMonitoringExporter(weblogic *unstructured.Unstructured) error {
 }
 
 func getDefaultMonitoringExporter() (interface{}, error) {
-	bytes := []byte(defaultMonitoringExporterData)
+	// get ImageSetting
+	imageSetting := ""
+	if value, ok := os.LookupEnv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); ok {
+		imageSetting = fmt.Sprintf("\"image\": \"%s\",\n    ", value)
+	}
+
+	// Create the buffer and the cluster issuer data struct
+	templateData := defaultMonitoringExporterTemplateData{
+		ImageSetting: imageSetting,
+	}
+
+	// Parse the template string and create the template object
+	template, err := template.New("defaultMonitoringExporter").Parse(defaultMonitoringExporterTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute the template object with the given data
+	var buff bytes.Buffer
+	err = template.Execute(&buff, &templateData)
+	if err != nil {
+		return nil, err
+	}
+
 	var monitoringExporter map[string]interface{}
-	json.Unmarshal(bytes, &monitoringExporter)
+	json.Unmarshal(buff.Bytes(), &monitoringExporter)
 	result, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&monitoringExporter)
 	if err != nil {
 		return nil, err

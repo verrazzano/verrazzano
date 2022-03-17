@@ -308,6 +308,17 @@
               "helmFullImageKey": "image"
             }
           ]
+        },
+        {
+          "repository": "oracle",
+          "name": "weblogic-monitoring-exporter",
+          "images": [
+            {
+              "image": "weblogic-monitoring-exporter",
+              "tag": "2.0.4",
+              "helmFullImageKey": "weblogicMonitoringExporterImage"
+            }
+          ]
         }
       ]
     },
