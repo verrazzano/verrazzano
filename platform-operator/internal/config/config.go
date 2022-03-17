@@ -190,11 +190,6 @@ func GetDefaultBOMFilePath() string {
 	return filepath.Join(GetPlatformDir(), defaultBomFilename)
 }
 
-// GetManifestsDir() return the manifests dir
-func GetManifestsDir() string {
-	return filepath.Join(instance.VerrazzanoRootDir, manifestsDirSuffix)
-}
-
 func GetInjectedSystemNamespaces() []string {
 	return []string{constants.VerrazzanoSystemNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
 }
