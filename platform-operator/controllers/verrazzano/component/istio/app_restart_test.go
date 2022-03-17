@@ -34,9 +34,12 @@ type testAppConfigInfo struct {
 
 // TestWebLogicStopStart tests the starting and stopping of WebLogic
 // GIVEN a AppConfig that contains WebLogic workloads
-// WHEN the WebLogic pods have old Istio envoy sidecar, then the domain should be stopped
-// AND WHEN the  WebLogic pods do NOT have an old Istio envoy sidecar, then the domain should NOT be stopped
-// THEN IF the domain was stopped, then it should be started
+// WHEN the WebLogic pods have old Istio envoy sidecar
+// THEN the domain should be stopped
+// WHEN the WebLogic pods do NOT have an old Istio envoy sidecar
+// THEN the domain should NOT be stopped
+// IF the domain was stopped
+// THEN it should be started after upgrade
 func TestWebLogicStopStart(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -132,9 +135,10 @@ func TestWebLogicStopStart(t *testing.T) {
 
 // TestHelidonStopStart tests the starting and stopping of Helidon
 // GIVEN a AppConfig that contains Helidon workloads
-// WHEN the Helidon pods have old Istio envoy sidecar, then the pods should be restarted
-// AND WHEN the Helidon pods do NOT have old Istio envoy sidecar, then the pods should NOT be restarted
-// THEN IF the domain was stopped, then it should be started
+// WHEN the Helidon pods have old Istio envoy sidecar
+// THEN the pods should be restarted
+// WHEN the Helidon pods do NOT have old Istio envoy sidecar
+// THEN the pods should NOT be restarted
 func TestHelidonStopStart(t *testing.T) {
 	asserts := assert.New(t)
 	config.SetDefaultBomFilePath(unitTestBomFile)
