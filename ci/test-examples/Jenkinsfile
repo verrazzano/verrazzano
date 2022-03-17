@@ -88,7 +88,10 @@ pipeline {
                 stage('Build WebLogic Application') {
                     steps {
                         sh """
-                            cd ${WORKSPACE}/tests/testdata/test-applications/weblogic/hello-weblogic
+                            cd ${WORKSPACE}
+                            ls
+                            ls ${WORKSPACE}/tests/testdata/test-applications/weblogic/
+                            cd tests/testdata/test-applications/weblogic/hello-weblogic
                             mvn -B -s $MAVEN_SETTINGS clean install
                             cd setup
                             ./build.sh ${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}
