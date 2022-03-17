@@ -88,10 +88,8 @@ pipeline {
                 stage('Build WebLogic Application') {
                     steps {
                         sh """
-                            cd ${WORKSPACE}
-                            ls
-                            ls ${WORKSPACE}/tests/testdata/test-applications/weblogic/
-                            cd tests/testdata/test-applications/weblogic/hello-weblogic
+                            ls ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/
+                            cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/hello-weblogic
                             mvn -B -s $MAVEN_SETTINGS clean install
                             cd setup
                             ./build.sh ${env.REPO}/${env.HELLO_WEBLOGIC}:${env.VERSION}
@@ -107,6 +105,7 @@ pipeline {
                     post {
                         always {
                              sh """
+                                 ls ${WORKSPACE}
                                  mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_weblogic_scanning-report-grype.json
                                  mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_weblogic_scanning-report-trivy.json
                              """
@@ -118,7 +117,7 @@ pipeline {
                 stage('Build Coherence Application') {
                     steps {
                         sh """
-                            cd ${WORKSPACE}/tests/testdata/test-applications/coherence/hello-coherence
+                            cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/coherence/hello-coherence
                             mvn -B -s $MAVEN_SETTINGS clean install
                             oci os object get -bn ${BUCKET_NAME} --file ${JDK11_BUNDLE} --name ${JDK11_BUNDLE}
                             docker build -t ${env.REPO}/${env.HELLO_COHERENCE}:${env.VERSION} .
@@ -134,6 +133,7 @@ pipeline {
                     post {
                         always {
                              sh """
+                                ls ${WORKSPACE}
                                  mv ${WORKSPACE}/scanning-report-grype.json	${WORKSPACE}/hello_coherence_scanning-report-grype.json
                                  mv ${WORKSPACE}/scanning-report-trivy.json	${WORKSPACE}/hello_coherence_scanning-report-trivy.json
                              """
