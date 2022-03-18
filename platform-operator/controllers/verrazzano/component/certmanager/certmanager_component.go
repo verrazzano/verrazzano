@@ -72,11 +72,12 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Can not disable %s", ComponentJSONName)
 	}
 	if !reflect.DeepEqual(c.getCertificateSettings(old), c.getCertificateSettings(new)) {
-		return fmt.Errorf("Updates not allowed for certificate settings not allowed for %s", c.GetJSONName())
+		return fmt.Errorf("Updates to certificate settings not allowed for %s", c.GetJSONName())
 	}
 	return nil
 }

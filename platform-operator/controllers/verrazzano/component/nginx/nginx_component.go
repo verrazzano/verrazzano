@@ -77,15 +77,26 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Block all changes for now, particularly around storage changes
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
-	oldType, _ := vzconfig.GetServiceType(old)
-	newType, _ := vzconfig.GetServiceType(new)
-	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) ||
-		!reflect.DeepEqual(c.getPorts(old), c.getPorts(new)) ||
-		oldType != newType {
-		return fmt.Errorf("Update not allowed for %s", ComponentJSONName)
+	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+		return fmt.Errorf("Updates to nginxInstallArgs not allowed for %s", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(c.getPorts(old), c.getPorts(new)) {
+		return fmt.Errorf("Updates to ports not allowed for %s", ComponentJSONName)
+	}
+	oldType, err := vzconfig.GetServiceType(old)
+	if err != nil {
+		return err
+	}
+	newType, err := vzconfig.GetServiceType(new)
+	if err != nil {
+		return err
+	}
+	if oldType != newType {
+		return fmt.Errorf("Updates to service type not allowed for %s", ComponentJSONName)
 	}
 	return nil
 }

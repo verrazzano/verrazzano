@@ -144,16 +144,19 @@ func (c verrazzanoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow disabling active components
 	if err := c.checkEnabled(old, new); err != nil {
 		return err
 	}
-	if err := compareFluentd(old, new); err != nil {
-		return err
+	if !reflect.DeepEqual(getVzInstallArgs(old), getVzInstallArgs(new)) {
+		return fmt.Errorf("Update to installArgs not allowed for %s", ComponentJSONName)
 	}
-	if err := compareOpensearch(old, new); err != nil {
-		return err
-	}
+	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
 	if err := compareStorageOverrides(old, new); err != nil {
+		return err
+	}
+	// Do not allow Fluentd changes for now
+	if err := compareFluentd(old, new); err != nil {
 		return err
 	}
 	return nil
@@ -180,55 +183,49 @@ func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 	return nil
 }
 
-func compareOpensearch(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
-		return fmt.Errorf("can not disable Opensearch when previously enabled %s", ComponentJSONName)
-	}
-	if getOpenSearchDataNodeStorageOverride(old) != getOpenSearchDataNodeStorageOverride(new) {
-		return fmt.Errorf("can not change nodes.data.requests.storage in elasticsearch installArgs")
-	}
-	if !reflect.DeepEqual(getVzInstallArgs(old), getVzInstallArgs(new)) {
-		return fmt.Errorf("Update to installArgs not allowed for %s", ComponentJSONName)
-	}
-	if !reflect.DeepEqual(getESInstallArgs(old), getESInstallArgs(new)) {
-		return fmt.Errorf("Opensearch updates not allowed for %s", ComponentJSONName)
-	}
-	return nil
-}
-
 func compareFluentd(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow fluentd to be disabled
 	if vzconfig.IsFluentdEnabled(old) && !vzconfig.IsFluentdEnabled(new) {
-		return fmt.Errorf("can not disable Fluentd when previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Can not disable fluentd")
 	}
-	if !deepEqualFluentd(old.Spec.Components.Fluentd, new.Spec.Components.Fluentd) {
-		return fmt.Errorf("Fluentd updates not allowed for %s component", ComponentJSONName)
+	// Do not allow any other changes to fluentd for now
+	oldFD := old.Spec.Components.Fluentd
+	newFD := new.Spec.Components.Fluentd
+	compName := "fluentd"
+	if !reflect.DeepEqual(getFluentdOCI(oldFD), getFluentdOCI(newFD)) {
+		return fmt.Errorf("Updates to OCI configuration not allowed for %s", compName)
+	}
+	if getFluentdEsURL(oldFD) != getFluentdEsURL(newFD) ||
+		getFluentdEsSecret(oldFD) != getFluentdEsSecret(newFD) {
+		return fmt.Errorf("Updates to Elasticsearch/Opensearch configuration not allowed for %s", compName)
+	}
+	if !reflect.DeepEqual(getFluentdExtraVolumeMounts(oldFD), getFluentdExtraVolumeMounts(newFD)) {
+		return fmt.Errorf("Updates to extraVolumeMounts not allowed for %s", compName)
 	}
 	return nil
 }
 
 func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow disabling of any component post-install for now
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Can not disable %s", ComponentJSONName)
+	}
+	if vzconfig.IsConsoleEnabled(old) && !vzconfig.IsConsoleEnabled(new) {
+		return fmt.Errorf("Can not disable the Console %s", ComponentJSONName)
+	}
+	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
+		return fmt.Errorf("can not disable Opensearch when previously enabled %s", ComponentJSONName)
 	}
 	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
-		return fmt.Errorf("can not disable Grafana when previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Can not disable grafana")
 	}
 	if vzconfig.IsPrometheusEnabled(old) && !vzconfig.IsPrometheusEnabled(new) {
-		return fmt.Errorf("can not disable Prometheus when previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Can not disable prometheus")
 	}
 	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
-		return fmt.Errorf("can not disable Kibana when previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Can not disable kibana")
 	}
 	return nil
-}
-
-func deepEqualFluentd(old *vzapi.FluentdComponent, new *vzapi.FluentdComponent) bool {
-	if !reflect.DeepEqual(getFluentdOCI(old), getFluentdOCI(new)) ||
-		getFluentdEsURL(old) != getFluentdEsURL(new) || getFluentdEsSecret(old) != getFluentdEsSecret(new) ||
-		!reflect.DeepEqual(getFluentdExtraVolumeMounts(old), getFluentdExtraVolumeMounts(new)) {
-		return false
-	}
-	return true
 }
 
 func getFluentdExtraVolumeMounts(fluentd *vzapi.FluentdComponent) []vzapi.VolumeMount {
@@ -259,29 +256,9 @@ func getFluentdEsSecret(fluentd *vzapi.FluentdComponent) string {
 	return ""
 }
 
-func getOpenSearchDataNodeStorageOverride(cr *vzapi.Verrazzano) string {
-	openSearch := cr.Spec.Components.Elasticsearch
-	if openSearch == nil {
-		return ""
-	}
-	for _, arg := range openSearch.ESInstallArgs {
-		if arg.Name == "nodes.data.requests.storage" {
-			return arg.Value
-		}
-	}
-	return ""
-}
-
 func getVzInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Verrazzano != nil {
 		return vz.Spec.Components.Verrazzano.InstallArgs
-	}
-	return nil
-}
-
-func getESInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
-	if vz != nil && vz.Spec.Components.Elasticsearch != nil {
-		return vz.Spec.Components.Elasticsearch.ESInstallArgs
 	}
 	return nil
 }

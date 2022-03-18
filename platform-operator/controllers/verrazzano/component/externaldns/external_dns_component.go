@@ -67,12 +67,12 @@ func (e externalDNSComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	// This is essentially a check for all DNS changes, for now
-	if !reflect.DeepEqual(old.Spec.Components.DNS, new.Spec.Components.DNS) {
-		return fmt.Errorf("Updates not allowed for dns field")
+	// Do not allow any changes except to enable the component post-install
+	if e.IsEnabled(old) && !e.IsEnabled(new) {
+		return fmt.Errorf("Can not disable the OCI DNS configuration")
 	}
-	/*if e.IsEnabled(old) && !e.IsEnabled(new) {
-		return fmt.Errorf("can not remove OCI from dns")
-	}*/
+	if !reflect.DeepEqual(old.Spec.Components.DNS, new.Spec.Components.DNS) {
+		return fmt.Errorf("Updates not allowed for DNS")
+	}
 	return nil
 }

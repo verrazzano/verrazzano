@@ -137,23 +137,19 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if old.Spec.Components.Istio == nil && new.Spec.Components.Istio == nil {
-		return nil
-	}
-
+	// Do not allow any changes except to enable the component post-install
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Can not disable %s", ComponentJSONName)
 	}
-
 	// Reject any other edits
 	if !reflect.DeepEqual(i.getInstallArgs(old), i.getInstallArgs(new)) {
-		return fmt.Errorf("Update to installArgs not allowed for %s", ComponentJSONName)
+		return fmt.Errorf("Updates to installArgs not allowed for %s", ComponentJSONName)
 	}
 	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {
-		return fmt.Errorf("Update to ingress not allowed for %s", ComponentJSONName)
+		return fmt.Errorf("Updates to ingress not allowed for %s", ComponentJSONName)
 	}
 	if !reflect.DeepEqual(i.getEgressSettings(old), i.getEgressSettings(new)) {
-		return fmt.Errorf("Update to egress not allowed for %s", ComponentJSONName)
+		return fmt.Errorf("Updates to egress not allowed for %s", ComponentJSONName)
 	}
 	return nil
 }
