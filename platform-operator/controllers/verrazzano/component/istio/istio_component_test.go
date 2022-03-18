@@ -505,3 +505,131 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 		})
 	}
 }
+
+func Test_istioComponent_ValidateInstall(t *testing.T) {
+	tests := []struct {
+		name    string
+		vz      *installv1alpha1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "IstioComponentEmpty",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallArgsEmpty",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallMissingKey",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:      "foo",
+									ValueList: []string{"1.1.1.1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallMissingIP",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:  "gateways.istio-ingressgateway.externalIPs",
+									Value: "1.1.1.1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallInvalidIP",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:      "gateways.istio-ingressgateway.externalIPs",
+									ValueList: []string{"1.1.1.1.1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallValidConfig",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:      "gateways.istio-ingressgateway.externalIPs",
+									ValueList: []string{"1.2.3.4"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
