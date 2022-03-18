@@ -772,7 +772,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
 
-	os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "my-weblogic-monitoring-exporter:b")
+	os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "")
 	defer os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE")
 
 	// expect call to fetch existing WebLogic Domain
@@ -1692,7 +1692,7 @@ func validateDefaultMonitoringExporter(u *unstructured.Unstructured, t *testing.
 	asserts.Nil(t, err, "Expect no error finding monitoringExporter in WebLogic domain CR")
 	asserts.True(t, found, "Found monitoringExporter in WebLogic domain CR")
 	imageName, _, _ := unstructured.NestedFieldNoCopy(u.Object, append(specMonitoringExporterFields, "image")...)
-	if value, ok := os.LookupEnv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); ok {
+	if value := os.Getenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); len(value) > 0 {
 		asserts.Equal(t, value, imageName, "monitoringExporter.image should match in WebLogic domain CR")
 	} else {
 		asserts.Equal(t, nil, imageName, "monitoringExporter.image should match in WebLogic domain CR")

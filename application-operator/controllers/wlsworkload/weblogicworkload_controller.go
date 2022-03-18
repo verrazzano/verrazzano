@@ -873,7 +873,7 @@ func addDefaultMonitoringExporter(weblogic *unstructured.Unstructured) error {
 func getDefaultMonitoringExporter() (interface{}, error) {
 	// get ImageSetting
 	imageSetting := ""
-	if value, ok := os.LookupEnv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); ok {
+	if value := os.Getenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); len(value) > 0 {
 		imageSetting = fmt.Sprintf("\"image\": \"%s\",\n    ", value)
 	}
 
