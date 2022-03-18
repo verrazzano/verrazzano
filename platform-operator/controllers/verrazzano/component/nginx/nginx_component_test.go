@@ -61,3 +61,126 @@ func Test_nginxComponent_ValidateUpdate(t *testing.T) {
 		})
 	}
 }
+
+func Test_nginxComponent_ValidateInstall(t *testing.T) {
+	tests := []struct {
+		name    string
+		vz      *vzapi.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "NginxInstallArgsEmpty",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NginxInstallArgsMissingKey",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+							NGINXInstallArgs: []vzapi.InstallArgs{
+								{
+									Name:      "foo",
+									ValueList: []string{"1.1.1.1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NginxInstallArgsMissingIP",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+							NGINXInstallArgs: []vzapi.InstallArgs{
+								{
+									Name:  "controller.service.externalIPs",
+									Value: "1.1.1.1.1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NginxInstallArgsMissingIPInList",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+							NGINXInstallArgs: []vzapi.InstallArgs{
+								{
+									Name:      "controller.service.externalIPs",
+									ValueList: []string{""},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NginxInstallArgsInvalidIP",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+							NGINXInstallArgs: []vzapi.InstallArgs{
+								{Name: "controller.service.externalIPs"},
+								{ValueList: []string{"1.1.1.1.1"}},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "NginxInstallArgsValidConfig",
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Ingress: &vzapi.IngressNginxComponent{
+							Type: vzapi.NodePort,
+							NGINXInstallArgs: []vzapi.InstallArgs{
+								{
+									Name:      "controller.service.externalIPs",
+									ValueList: []string{"1.1.1.1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
