@@ -146,6 +146,16 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
+
+	// Recreate the keycloak realms when using ephemeral storage, the configuration
+	// is lost when the MySQL pod recycles.
+	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource == nil {
+		err := configureKeycloakRealms(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	return updateKeycloakUris(ctx)
 }
 
