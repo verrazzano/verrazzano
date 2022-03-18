@@ -12,7 +12,6 @@ import (
 const (
 	rootDir                      = "/verrazzano"
 	platformDirSuffix            = "/platform-operator"
-	manifestsDirSuffix           = "/platform-operator/manifests"
 	profilesDirSuffix            = "/platform-operator/manifests/profiles"
 	installDirSuffix             = "/platform-operator/scripts/install"
 	thirdPartyDirSuffix          = "/platform-operator/thirdparty/charts"
