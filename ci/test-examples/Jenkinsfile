@@ -33,8 +33,8 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = 'us-phoenix-1'
 
-        HELLO_WEBLOGIC = 'hello-weblogic'
-        HELLO_COHERENCE = 'hello-coherence'
+        HELLO_WEBLOGIC = 'weblogic-app'
+        HELLO_COHERENCE = 'coherence-app'
         VERSION = get_image_tag()
 
         // access to GitHub Packages Maven Repository
