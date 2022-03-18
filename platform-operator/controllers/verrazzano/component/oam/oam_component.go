@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
@@ -68,4 +68,9 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
+}
+
+// PreUpgrade OAM-pre-upgrade processing
+func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
 }

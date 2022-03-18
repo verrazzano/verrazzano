@@ -7,11 +7,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -91,12 +89,6 @@ func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
-}
-
-func applyCRDYaml(c client.Client) error {
-	path := filepath.Join(config.GetHelmAppOpChartsDir(), "/crds")
-	yamlApplier := k8sutil.NewYAMLApplier(c, "")
-	return yamlApplier.ApplyD(path)
 }
 
 // Add label/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the
