@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net"
 	"os"
 	"reflect"
 	"strings"
@@ -51,8 +50,6 @@ const (
 	fluentdExpectedKeyPath          = "/root/.oci/key"
 	fluentdOCIKeyFileEntry          = "key_file=/root/.oci/key"
 	validateTempFilePattern         = "validate-"
-	nginxExternalIPKey              = "controller.service.externalIPs"
-	istioExternalIPKey              = "gateways.istio-ingressgateway.externalIPs"
 )
 
 // OCI DNS Secret Auth
@@ -426,54 +423,4 @@ func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string
 
 	return currentSemVer.IsEqualTo(requestedSemVer) || currentSemVer.IsGreatherThan(requestedSemVer)
 
-}
-
-//validateExternalIPSForNodePort checks that externalIPs are set when Type=NodePort
-func validateExternalIPSForNodePort(spec *VerrazzanoSpec) error {
-	var nginxExternalIPInputs, istioExternalIPInputs bool
-	if spec.Components.Ingress != nil {
-		if spec.Components.Ingress.Type == NodePort {
-			if spec.Components.Ingress.NGINXInstallArgs != nil {
-				for _, installarg := range spec.Components.Ingress.NGINXInstallArgs {
-					if installarg.Name == nginxExternalIPKey {
-						nginxExternalIPInputs = true
-						if len(installarg.ValueList) < 1 {
-							return fmt.Errorf("At least one nginx external ips need to be set as an array for the key \"%v\"", installarg.Name)
-						}
-						if net.ParseIP(installarg.ValueList[0]) == nil {
-							return fmt.Errorf("Controller external service key \"%v\" with IP \"%v\" is of invalid format. Must be a proper IP address format", installarg.Name, installarg.ValueList[0])
-						}
-					}
-				}
-			}
-
-			if spec.Components.Istio != nil {
-				if spec.Components.Istio.IstioInstallArgs != nil {
-					for _, installarg := range spec.Components.Istio.IstioInstallArgs {
-						if installarg.Name == istioExternalIPKey {
-							istioExternalIPInputs = true
-							if len(installarg.ValueList) < 1 {
-								return fmt.Errorf("At least one istio external ips need to be set as an array for the key \"%v\"", installarg.Name)
-							}
-							if net.ParseIP(installarg.ValueList[0]) == nil {
-								return fmt.Errorf("Gateway external service key \"%v\" with IP \"%v\" is of invalid format. Must be a proper IP address format", installarg.Name, installarg.ValueList[0])
-							}
-						}
-					}
-				}
-
-			}
-
-			if !nginxExternalIPInputs {
-				return fmt.Errorf("External ips for nginx was not set")
-			}
-			if !istioExternalIPInputs {
-				return fmt.Errorf("External ips for istio was not set")
-			}
-			if !nginxExternalIPInputs && !istioExternalIPInputs {
-				return fmt.Errorf("External ips need to be set for nginx and istio ingress")
-			}
-		}
-	}
-	return nil
 }

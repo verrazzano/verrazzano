@@ -5,6 +5,7 @@ package nginx
 
 import (
 	"fmt"
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -77,4 +78,9 @@ func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, c.Name())
 }

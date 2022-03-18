@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -130,7 +131,7 @@ func (i istioComponent) Name() string {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return nil
+	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, i.Name())
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

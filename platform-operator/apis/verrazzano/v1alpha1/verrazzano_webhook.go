@@ -86,10 +86,6 @@ func (v *Verrazzano) ValidateCreate() error {
 		return err
 	}
 
-	if err := validateExternalIPSForNodePort(&v.Spec); err != nil {
-		return err
-	}
-
 	// hand the Verrazzano to component validator to validate
 	if componentValidator != nil {
 		if errs := componentValidator.ValidateInstall(v); len(errs) > 0 {
