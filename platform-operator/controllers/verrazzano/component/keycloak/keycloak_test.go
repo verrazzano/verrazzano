@@ -354,6 +354,10 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 
+	defaultBashFunc := func(inArgs ...string) (string, string, error) {
+		return "", "", nil
+	}
+
 	var tests = []struct {
 		name        string
 		c           client.Client
@@ -361,6 +365,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		isErr       bool
 		errContains string
 		execFunc    func(command string, args ...string) *exec.Cmd
+		bashFunc    bashFuncSig
 	}{
 		{
 			"should fail when login fails",
@@ -369,6 +374,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"secrets \"keycloak-http\" not found",
 			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is empty",
@@ -377,6 +383,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"Component Keycloak failed; user group ID from Keycloak is zero length",
 			fakeCreateUserGroupCommandFail,
+			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
@@ -385,6 +392,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"failed parsing output returned from Users Group",
 			fakeCreateUserGroupParseCommandFail,
+			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret is not present",
@@ -393,6 +401,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"secrets \"verrazzano\" not found",
 			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret has no password",
@@ -409,6 +418,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"password field empty in secret",
 			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail when nginx service is not present",
@@ -443,6 +453,44 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			true,
 			"services \"ingress-controller-ingress-nginx-controller\" not found",
 			fakeConfigureRealmCommands,
+			defaultBashFunc,
+		},
+		{
+			"bashFunc fails during updateKeycloakURIs",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "verrazzano",
+					Namespace: "verrazzano-system",
+				},
+				Data: map[string][]byte{
+					"password": []byte("blah di blah"),
+				},
+			},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-prom-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-es-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				}),
+			"blahblah'id",
+			true,
+			"updateKeycloakURIs failed",
+			fakeConfigureRealmCommands,
+			func(inArgs ...string) (string, string, error) {
+				return "", "Command failed", fmt.Errorf("updateKeycloakURIs failed")
+			},
 		},
 		{
 			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
@@ -477,6 +525,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			false,
 			"",
 			fakeConfigureRealmCommands,
+			defaultBashFunc,
 		},
 	}
 
@@ -484,9 +533,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
 			execCommand = tt.execFunc
-			bashFunc = func(inArgs ...string) (string, string, error) {
-				return "", "", nil
-			}
+			bashFunc = tt.bashFunc
 			defer func() { bashFunc = vzos.RunBash }()
 			k8sutilfake.PodSTDOUT = tt.stdout
 			err := configureKeycloakRealms(ctx)

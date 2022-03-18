@@ -4,9 +4,13 @@
 package certmanager
 
 import (
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
@@ -71,4 +75,56 @@ func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
 	}
 	return nil
+}
+
+// PreInstall runs before cert-manager components are installed
+// The cert-manager namespace is created
+// The cert-manager manifest is patched if needed and applied to create necessary CRDs
+func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error {
+	// If it is a dry-run, do nothing
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager PreInstall dry run")
+		return nil
+	}
+
+	// create cert-manager namespace
+	compContext.Log().Debug("Adding label needed by network policies to cert-manager namespace")
+	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
+		return nil
+	}); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
+	}
+
+	// Apply the cert-manager manifest, patching if needed
+	compContext.Log().Debug("Applying cert-manager crds")
+	err := c.applyManifest(compContext)
+	if err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to apply the cert-manager manifest: %v", err)
+	}
+	return nil
+}
+
+// PostInstall applies necessary cert-manager resources after the install has occurred
+// In the case of an Acme cert, we install Acme resources
+// In the case of a CA cert, we install CA resources
+func (c certManagerComponent) PostInstall(compContext spi.ComponentContext) error {
+	// If it is a dry-run, do nothing
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager PostInstall dry run")
+		return nil
+	}
+	return c.createOrUpdateClusterIssuer(compContext)
+}
+
+// PostUpgrade applies necessary cert-manager resources after upgrade has occurred
+// In the case of an Acme cert, we install/update Acme resources
+// In the case of a CA cert, we install/update CA resources
+func (c certManagerComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	// If it is a dry-run, do nothing
+	if compContext.IsDryRun() {
+		compContext.Log().Debug("cert-manager PostInstall dry run")
+		return nil
+	}
+	return c.createOrUpdateClusterIssuer(compContext)
 }
