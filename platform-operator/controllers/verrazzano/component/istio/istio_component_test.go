@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/golang/mock/gomock"
@@ -27,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	gofake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -253,6 +256,10 @@ func TestPostUpgrade(t *testing.T) {
 	assert := assert.New(t)
 
 	comp := istioComponent{}
+
+	// Setup fake client to provide workloads for restart platform testing
+	clientSet := gofake.NewSimpleClientset()
+	k8sutil.SetFakeClient(clientSet)
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(fakeRunner{})
