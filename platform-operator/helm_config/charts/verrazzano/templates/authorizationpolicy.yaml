@@ -186,7 +186,7 @@ spec:
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
-            ports: ["15090"]
+            ports: ["15090", "5601"]
 {{- end }}
 
 ---
