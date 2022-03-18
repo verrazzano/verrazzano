@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -88,8 +86,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return verrazzanoPreUpgrade(ctx.Log(), ctx.Client(),
-		c.ReleaseName, resolveVerrazzanoNamespace(c.ChartNamespace), c.ChartDir)
+	return verrazzanoPreUpgrade(ctx, ComponentNamespace)
 }
 
 // InstallUpgrade Verrazzano component upgrade processing
@@ -166,23 +163,7 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 			return fmt.Errorf("can not change default volume size")
 		}
 	}
-	if getOpenSearchDataNodeStorageOverride(old) != getOpenSearchDataNodeStorageOverride(new) {
-		return fmt.Errorf("can not change nodes.data.requests.storage in elasticsearch installArgs")
-	}
 	return nil
-}
-
-func getOpenSearchDataNodeStorageOverride(cr *vzapi.Verrazzano) string {
-	openSearch := cr.Spec.Components.Elasticsearch
-	if openSearch == nil {
-		return ""
-	}
-	for _, arg := range openSearch.ESInstallArgs {
-		if arg.Name == "nodes.data.requests.storage" {
-			return arg.Value
-		}
-	}
-	return ""
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component

@@ -29,6 +29,8 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts", GetHelmChartsDir(), "GetHelmChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano", GetHelmVzChartsDir(), "GetHelmVzChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano-application-operator", GetHelmAppOpChartsDir(), "GetHelmAppOpChartsDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts/kiali-server", GetHelmKialiChartsDir(), "GetHelmAppOpChartsDir() is incorrect")
+	asserts.Equal("/verrazzano/platform-operator/thirdparty/charts/oam-kubernetes-runtime", GetHelmOamChartsDir(), "GetHelmAppOpChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/overrides", GetHelmOverridesDir(), "GetHelmOverridesDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/scripts/install", GetInstallDir(), "GetInstallDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator", GetPlatformDir(), "GetPlatformDir() is incorrect")
