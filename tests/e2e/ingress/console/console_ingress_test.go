@@ -47,7 +47,7 @@ var _ = t.AfterSuite(func() {
 })
 
 func deployApplication() {
-	pkg.Log(pkg.Info, "Deploy test application")
+	t.Logs.Info("Deploy test application")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
 	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
@@ -62,7 +62,7 @@ func deployApplication() {
 		return err != nil && errors.IsNotFound(err)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -70,32 +70,32 @@ func deployApplication() {
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Docker repository secret")
+	t.Logs.Info("Create Docker repository secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
+	t.Logs.Info("Create WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create database credentials secret")
+	t.Logs.Info("Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create encryption credentials secret")
+	t.Logs.Info("Create encryption credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreatePasswordSecret(namespace, "tododomain-runtime-encrypt-secret", wlsPass, map[string]string{"weblogic.domainUID": "cidomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create component resources")
+	t.Logs.Info("Create component resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/components.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create application resources")
+	t.Logs.Info("Create application resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
@@ -112,29 +112,29 @@ func deployApplication() {
 }
 
 func undeployApplication() {
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for application pods to terminate")
+	t.Logs.Info("Wait for application pods to terminate")
 	Eventually(func() bool {
 		podsTerminated, _ := pkg.PodsNotRunning(namespace, []string{"mysql", "cidomain-adminserver"})
 		return podsTerminated
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
+	t.Logs.Info("Wait for Finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
