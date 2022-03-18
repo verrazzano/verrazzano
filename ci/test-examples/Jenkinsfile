@@ -24,7 +24,6 @@ pipeline {
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_REPO = 'ghcr.io'
         DOCKER_REPO_URL = "https://${DOCKER_REPO}"
-
         NETRC_FILE = credentials('netrc')
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -33,6 +32,7 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = 'us-phoenix-1'
 
+        // image names and tags are created from these variables:
         HELLO_WEBLOGIC = 'weblogic-app'
         HELLO_COHERENCE = 'coherence-app'
         VERSION = get_image_tag()
@@ -79,6 +79,7 @@ pipeline {
                     mkdir -p $HOME/.m2/repository/com
                     tar xz -C $HOME/.m2/repository/com -f /build-shared-files/oracle-maven.tar.gz
                     sudo yum -y install wget
+                    echo "${DOCKER_CREDS_PSW}" | docker login ghcr.io -u ${DOCKER_CREDS_USR} --password-stdin
                 """
             }
         }
@@ -90,14 +91,10 @@ pipeline {
                         sh """
                             cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/hello-weblogic
                             mvn -B -s $MAVEN_SETTINGS clean install
+                            cd setup
+                            ./build.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
+                            docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
                         """
-                         withDockerRegistry(credentialsId: params.DOCKER_REPO_CREDS, url: env.DOCKER_REPO_URL) {
-                             sh """
-                                 cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/weblogic/hello-weblogic/setup
-                                 ./build.sh ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
-                                 docker image push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_WEBLOGIC}:${VERSION}
-                             """
-                         }
                     }
                 }
 
@@ -122,15 +119,9 @@ pipeline {
                             cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/coherence/hello-coherence
                             mvn -B -s $MAVEN_SETTINGS clean install
                             oci os object get -bn ${BUCKET_NAME} --file ${JDK11_BUNDLE} --name ${JDK11_BUNDLE}
+                            docker build -t ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_COHERENCE}:${VERSION} .
+                            docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_COHERENCE}:${VERSION}
                         """
-
-                         withDockerRegistry(credentialsId: params.DOCKER_REPO_CREDS, url: env.DOCKER_REPO_URL) {
-                             sh """
-                                cd ${WORKSPACE}/verrazzano/tests/testdata/test-applications/coherence/hello-coherence
-                                docker build -t ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_COHERENCE}:${VERSION} .
-                                docker push ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${HELLO_COHERENCE}:${VERSION}
-                             """
-                         }
                     }
                 }
 
