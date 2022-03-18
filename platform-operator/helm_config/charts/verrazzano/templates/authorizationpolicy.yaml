@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 #
@@ -186,7 +186,7 @@ spec:
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.monitoringOperator.name }}"]
       to:
         - operation:
-            ports: ["15090"]
+            ports: ["15090", "5601"]
 {{- end }}
 
 ---
