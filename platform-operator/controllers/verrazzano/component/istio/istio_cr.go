@@ -6,6 +6,7 @@ package istio
 import (
 	"bytes"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 	"text/template"
 
@@ -42,107 +43,113 @@ apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
   components:
-    pilot:
-      k8s:
-        replicaCount: {{.PilotReplicaCount}}
-        affinity:
-{{ multiLineIndent 10 .PilotAffinity }}
-        service:
-{{ multiLineIndent 10 .PilotService }}
-        serviceAnnotations:
-{{ multiLineIndent 10 .PilotServiceAnnotations }}
-        podAnnotations:
-{{ multiLineIndent 10 .PilotPodAnnotations }}
-        resources:
-{{ multiLineIndent 10 .PilotResources }}
     egressGateways:
       - name: istio-egressgateway
         enabled: true
         k8s:
+          {{- if .EgressReplicaCount }}
           replicaCount: {{.EgressReplicaCount}}
+          {{- end }}
+          {{- if .EgressAffinity }}
           affinity:
 {{ multiLineIndent 12 .EgressAffinity }}
+          {{- end}}
+          {{- if .EgressService }}
           service:
 {{ multiLineIndent 12 .EgressService }}
+          {{- end}}
+          {{- if .EgressServiceAnnotations }}
           serviceAnnotations:
 {{ multiLineIndent 12 .EgressServiceAnnotations }}
-          podAnnotations:
-{{ multiLineIndent 12 .EgressPodAnnotations }}
+          {{- end}}
+          {{- if .EgressResources }}
           resources:
 {{ multiLineIndent 12 .EgressResources }}
+          {{- end}}
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
         k8s:
+        {{- if .IngressReplicaCount }}
           replicaCount: {{.IngressReplicaCount}}
-          {{- if .ExternalIps }}
-          service:
-            externalIPs:
-              {{.ExternalIps}}
-          {{- end}}
+        {{- end }}
+        {{- if .IngressAffinity }}
           affinity:
 {{ multiLineIndent 12 .IngressAffinity }}
+        {{- end }}
+        {{- if .IngressService }}
           service:
 {{ multiLineIndent 12 .IngressService }}
+        {{- end }}
+        {{- if .IngressServiceAnnotations }}
           serviceAnnotations:
 {{ multiLineIndent 12 .IngressServiceAnnotations }}
-          podAnnotations:
-{{ multiLineIndent 12 .IngressPodAnnotations }}
+        {{- end }}
+        {{- if .IngressResources }}
           resources:
 {{ multiLineIndent 12 .IngressResources }}
+        {{- end }}
+{{- if or .PilotReplicaCount .PilotAffinity .PilotService .PilotServiceAnnotations }}
+    pilot:
+      k8s:
+        {{- if .PilotReplicaCount }}
+        replicaCount: {{.PilotReplicaCount}}
+        {{- end }}
+        {{- if .PilotAffinity }}
+        affinity:
+{{ multiLineIndent 10 .PilotAffinity }}
+        {{- end }}
+        {{- if .PilotService }}
+        service:
+{{ multiLineIndent 10 .PilotService }}
+        {{- end }}
+        {{- if .PilotServiceAnnotations }}
+        serviceAnnotations:
+{{ multiLineIndent 10 .PilotServiceAnnotations }}
+        {{- end }}
+        {{- if .PilotResources }}
+        resources:
+{{ multiLineIndent 10 .PilotResources }}
+        {{- end }}
+{{- end }}
 `
 
-type ReplicaData struct {
+// replicaData is a temp structure used to fill in the template
+type replicaData struct {
 	PilotReplicaCount         uint32
 	PilotResources            string
 	PilotService              string
-	PilotPodAnnotations       string
 	PilotServiceAnnotations   string
 	PilotAffinity             string
 	IngressReplicaCount       uint32
 	IngressResources          string
-	IngressPodAnnotations     string
 	IngressService            string
 	IngressServiceAnnotations string
 	IngressAffinity           string
 	EgressReplicaCount        uint32
 	EgressResources           string
-	EgressPodAnnotations      string
 	EgressService             string
 	EgressServiceAnnotations  string
 	EgressAffinity            string
-	ExternalIps               string
 }
 
-// BuildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
+// buildIstioOperatorYaml builds the IstioOperator CR YAML that will be passed as an override to istioctl
 // Transform the Verrazzano CR istioComponent provided by the user onto an IstioOperator formatted YAML
-func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
+func buildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	// All generated YAML will be indented 6 spaces
 	const leftMargin = 0
-	const leftMarginExtIP = 12
 
-	var externalIPYAMLTemplateValue = ""
+	//var externalIPYAMLTemplateValue = ""
+	externalIPs := []string{}
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
-	expandedYamls := []string{}
+	expandedInstallArgYamls := []string{}
 	for _, arg := range comp.IstioInstallArgs {
 		values := arg.ValueList
 		if len(values) == 0 {
 			values = []string{arg.Value}
 		}
-
 		if arg.Name == ExternalIPArg {
-			// We want the YAML in the following format, so pass a short arg name
-			// because it is going to be rendered in the go template externalIPTemplate
-			//   externalIPs:
-			//   - 1.2.3.4
-			//
-			const shortArgExternalIPs = "externalIPs"
-			yaml, err := vzyaml.Expand(leftMarginExtIP, true, shortArgExternalIPs, values...)
-			if err != nil {
-				return "", err
-			}
-			// This is handled seperately
-			externalIPYAMLTemplateValue = yaml
+			externalIPs = values
 			continue
 		} else {
 			valueName := fmt.Sprintf("spec.values.%s", arg.Name)
@@ -150,17 +157,17 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 			if err != nil {
 				return "", err
 			}
-			expandedYamls = append(expandedYamls, yaml)
+			expandedInstallArgYamls = append(expandedInstallArgYamls, yaml)
 		}
 	}
-	gatewayYaml, err := configureGateways(comp, fixExternalIPYaml(externalIPYAMLTemplateValue))
+	overridesYaml, err := processIstioOverrides(comp, externalIPs)
 	if err != nil {
 		return "", err
 	}
-	expandedYamls = append(expandedYamls, gatewayYaml)
+	expandedInstallArgYamls = append(expandedInstallArgYamls, overridesYaml)
 	// Merge all of the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
-	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
+	merged, err := vzyaml.ReplacementMerge(expandedInstallArgYamls...)
 	if err != nil {
 		return "", err
 	}
@@ -168,143 +175,120 @@ func BuildIstioOperatorYaml(comp *vzapi.IstioComponent) (string, error) {
 	return merged, nil
 }
 
-// Change the YAML from
-//       externalIPs
-//       - 1.2.3.4
-//       - 1.3.4.6
-//
-//  to
-//       - 1.2.3.4
-//       - 1.3.4.6
-//
-func fixExternalIPYaml(yaml string) string {
-	segs := strings.SplitN(yaml, "\n", 2)
-	if len(segs) == 2 {
-		return segs[1]
-	}
-	return ""
-}
-
 // value replicas and create Istio gateway yaml
-func configureGateways(istioComponent *vzapi.IstioComponent, externalIP string) (string, error) {
-	var data = ReplicaData{}
+func processIstioOverrides(istioComponent *vzapi.IstioComponent, externalIPs []string) (string, error) {
+	var data = replicaData{}
 
-	data.PilotReplicaCount = istioComponent.Pilot.Kubernetes.Replicas
-	data.IngressReplicaCount = istioComponent.Ingress.Kubernetes.Replicas
-	data.EgressReplicaCount = istioComponent.Egress.Kubernetes.Replicas
-
-	if istioComponent.Pilot.Kubernetes.Affinity != nil {
-		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Affinity)
-		if err != nil {
-			return "", err
-		}
-		data.PilotAffinity = string(yml)
-	}
-
-	if istioComponent.Pilot.Kubernetes.Service != nil {
-		if istioComponent.Pilot.Kubernetes.Service.Spec != nil {
-			yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Service.Spec)
+	if istioComponent.Pilot != nil && istioComponent.Pilot.Kubernetes != nil {
+		kubernetes := istioComponent.Pilot.Kubernetes
+		data.PilotReplicaCount = kubernetes.Replicas
+		if kubernetes.Affinity != nil {
+			yml, err := yaml.Marshal(kubernetes.Affinity)
 			if err != nil {
 				return "", err
 			}
-			data.PilotService = string(yml)
+			data.PilotAffinity = string(yml)
 		}
-		if len(istioComponent.Pilot.Kubernetes.Service.Annotations) > 0 {
-			yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Service.Annotations)
+
+		if kubernetes.Service != nil {
+			if kubernetes.Service.Spec != nil {
+				yml, err := yaml.Marshal(kubernetes.Service.Spec)
+				if err != nil {
+					return "", err
+				}
+				data.PilotService = string(yml)
+			}
+			if len(kubernetes.Service.Annotations) > 0 {
+				yml, err := yaml.Marshal(kubernetes.Service.Annotations)
+				if err != nil {
+					return "", err
+				}
+				data.PilotServiceAnnotations = string(yml)
+			}
+		}
+	}
+
+	// Process externalIPs from installArgs first; if the Kubernetes.Service field is set, it will overwrite this
+	// - Webhook should prevent this
+	if len(externalIPs) > 0 {
+		// Only execute this if the Kubernetes.Service field is not set, and externalIPs was provided through installArgs
+		yml, err := yaml.Marshal(&corev1.ServiceSpec{ExternalIPs: externalIPs})
+		if err != nil {
+			return "", err
+		}
+		data.IngressService = string(yml)
+	}
+
+	if istioComponent.Ingress != nil && istioComponent.Ingress.Kubernetes != nil {
+		kubernetes := istioComponent.Ingress.Kubernetes
+		data.IngressReplicaCount = kubernetes.Replicas
+		if kubernetes.Service != nil {
+			if kubernetes.Service.Spec != nil {
+				yml, err := yaml.Marshal(kubernetes.Service.Spec)
+				if err != nil {
+					return "", err
+				}
+				data.IngressService = string(yml)
+			}
+			if len(kubernetes.Service.Annotations) > 0 {
+				yml, err := yaml.Marshal(kubernetes.Service.Annotations)
+				if err != nil {
+					return "", err
+				}
+				data.IngressServiceAnnotations = string(yml)
+			}
+		}
+		if kubernetes.Resources != nil {
+			yml, err := yaml.Marshal(kubernetes.Resources)
 			if err != nil {
 				return "", err
 			}
-			data.PilotServiceAnnotations = string(yml)
+			data.IngressResources = string(yml)
 		}
-	}
 
-	if istioComponent.Pilot.Kubernetes.Service != nil {
-		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Service.Spec)
-		if err != nil {
-			return "", err
-		}
-		data.PilotService = string(yml)
-	}
-
-	if istioComponent.Pilot.Kubernetes.Resources != nil {
-		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Resources)
-		if err != nil {
-			return "", err
-		}
-		data.PilotResources = string(yml)
-	}
-
-	if istioComponent.Pilot.Kubernetes.Affinity != nil {
-		yml, err := yaml.Marshal(istioComponent.Pilot.Kubernetes.Affinity)
-		if err != nil {
-			return "", err
-		}
-		data.PilotAffinity = string(yml)
-	}
-
-	if istioComponent.Ingress.Kubernetes.Service != nil {
-		if istioComponent.Ingress.Kubernetes.Service.Spec != nil {
-			yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Service.Spec)
+		if kubernetes.Affinity != nil {
+			yml, err := yaml.Marshal(kubernetes.Affinity)
 			if err != nil {
 				return "", err
 			}
-			data.IngressService = string(yml)
+			data.IngressAffinity = string(yml)
 		}
-		if len(istioComponent.Ingress.Kubernetes.Service.Annotations) > 0 {
-			yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Service.Annotations)
+	}
+
+	if istioComponent.Egress != nil && istioComponent.Egress.Kubernetes != nil {
+		egressSettings := istioComponent.Egress.Kubernetes
+		data.EgressReplicaCount = egressSettings.Replicas
+		if egressSettings.Service != nil {
+			if egressSettings.Service.Spec != nil {
+				yml, err := yaml.Marshal(egressSettings.Service.Spec)
+				if err != nil {
+					return "", err
+				}
+				data.EgressService = string(yml)
+			}
+			if len(egressSettings.Service.Annotations) > 0 {
+				yml, err := yaml.Marshal(egressSettings.Service.Annotations)
+				if err != nil {
+					return "", err
+				}
+				data.EgressServiceAnnotations = string(yml)
+			}
+		}
+		if egressSettings.Affinity != nil {
+			yml, err := yaml.Marshal(egressSettings.Affinity)
 			if err != nil {
 				return "", err
 			}
-			data.IngressServiceAnnotations = string(yml)
+			data.EgressAffinity = string(yml)
 		}
-	}
-
-	if istioComponent.Ingress.Kubernetes.Resources != nil {
-		yml, err := yaml.Marshal(istioComponent.Ingress.Kubernetes.Resources)
-		if err != nil {
-			return "", err
-		}
-		data.IngressResources = string(yml)
-	}
-
-	if istioComponent.Egress.Kubernetes.Affinity != nil {
-		yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Affinity)
-		if err != nil {
-			return "", err
-		}
-		data.EgressAffinity = string(yml)
-	}
-
-	if istioComponent.Egress.Kubernetes.Service != nil {
-		if istioComponent.Egress.Kubernetes.Service.Spec != nil {
-			yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Service.Spec)
+		if egressSettings.Resources != nil {
+			yml, err := yaml.Marshal(egressSettings.Resources)
 			if err != nil {
 				return "", err
 			}
-			data.EgressService = string(yml)
-		}
-		if len(istioComponent.Egress.Kubernetes.Service.Annotations) > 0 {
-			yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Service.Annotations)
-			if err != nil {
-				return "", err
-			}
-			data.EgressServiceAnnotations = string(yml)
+			data.EgressResources = string(yml)
 		}
 	}
-
-	if istioComponent.Egress.Kubernetes.Resources != nil {
-		yml, err := yaml.Marshal(istioComponent.Egress.Kubernetes.Resources)
-		if err != nil {
-			return "", err
-		}
-		data.EgressResources = string(yml)
-	}
-
-	data.ExternalIps = ""
-	if externalIP != "" {
-		data.ExternalIps = externalIP
-	}
-
 	// use template to get populate template with data
 	var b bytes.Buffer
 	t, err := template.New("istioGateways").Funcs(template.FuncMap{

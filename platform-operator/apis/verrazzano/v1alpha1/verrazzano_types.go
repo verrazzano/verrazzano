@@ -96,9 +96,6 @@ type CommonKubernetesSpec struct {
 	// Resources set the Kubernetes resource requirements
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Annotations specifies pod annotations to apply
-	// +optional
-	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // SecuritySpec defines the security configuration for Verrazzano

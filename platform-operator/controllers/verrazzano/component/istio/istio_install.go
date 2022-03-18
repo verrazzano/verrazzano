@@ -204,7 +204,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
-		istioOperatorYaml, err := BuildIstioOperatorYaml(cr.Spec.Components.Istio)
+		istioOperatorYaml, err := buildIstioOperatorYaml(cr.Spec.Components.Istio)
 		if err != nil {
 			return log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}

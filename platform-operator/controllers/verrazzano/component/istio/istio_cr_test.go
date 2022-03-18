@@ -451,9 +451,9 @@ spec:
                 weight: 30
 `
 
-// TestBuildIstioOperatorYaml tests the BuildIstioOperatorYaml function
+// TestBuildIstioOperatorYaml tests the buildIstioOperatorYaml function
 // GIVEN an Verrazzano CR Istio component
-// WHEN BuildIstioOperatorYaml is called
+// WHEN buildIstioOperatorYaml is called
 // THEN ensure that the result is correct.
 func TestBuildIstioOperatorYaml(t *testing.T) {
 	const indent = 2
@@ -482,7 +482,7 @@ func TestBuildIstioOperatorYaml(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			assert := assert.New(t)
-			s, err := BuildIstioOperatorYaml(test.value)
+			s, err := buildIstioOperatorYaml(test.value)
 			assert.NoError(err, s, "error merging yamls")
 			assert.YAMLEq(test.expected, s, "Result does not match expected value")
 		})

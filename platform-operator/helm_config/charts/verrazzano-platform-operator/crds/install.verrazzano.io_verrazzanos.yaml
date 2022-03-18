@@ -750,12 +750,6 @@ spec:
                                     type: array
                                 type: object
                             type: object
-                          annotations:
-                            additionalProperties:
-                              type: string
-                            description: Annotations specifies pod annotations to
-                              apply
-                            type: object
                           replicas:
                             description: Replicas specifies the number of pod instances
                               to run
@@ -1801,12 +1795,6 @@ spec:
                                           type: object
                                         type: array
                                     type: object
-                                type: object
-                              annotations:
-                                additionalProperties:
-                                  type: string
-                                description: Annotations specifies pod annotations
-                                  to apply
                                 type: object
                               replicas:
                                 description: Replicas specifies the number of pod
@@ -2885,12 +2873,6 @@ spec:
                                           type: object
                                         type: array
                                     type: object
-                                type: object
-                              annotations:
-                                additionalProperties:
-                                  type: string
-                                description: Annotations specifies pod annotations
-                                  to apply
                                 type: object
                               replicas:
                                 description: Replicas specifies the number of pod
@@ -3992,12 +3974,6 @@ spec:
                                           type: object
                                         type: array
                                     type: object
-                                type: object
-                              annotations:
-                                additionalProperties:
-                                  type: string
-                                description: Annotations specifies pod annotations
-                                  to apply
                                 type: object
                               replicas:
                                 description: Replicas specifies the number of pod
