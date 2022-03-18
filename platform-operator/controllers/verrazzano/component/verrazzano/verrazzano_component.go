@@ -163,23 +163,7 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 			return fmt.Errorf("can not change default volume size")
 		}
 	}
-	if getOpenSearchDataNodeStorageOverride(old) != getOpenSearchDataNodeStorageOverride(new) {
-		return fmt.Errorf("can not change nodes.data.requests.storage in elasticsearch installArgs")
-	}
 	return nil
-}
-
-func getOpenSearchDataNodeStorageOverride(cr *vzapi.Verrazzano) string {
-	openSearch := cr.Spec.Components.Elasticsearch
-	if openSearch == nil {
-		return ""
-	}
-	for _, arg := range openSearch.ESInstallArgs {
-		if arg.Name == "nodes.data.requests.storage" {
-			return arg.Value
-		}
-	}
-	return ""
 }
 
 // GetIngressNames - gets the names of the ingresses associated with this component
