@@ -15,8 +15,6 @@ import (
 	"strings"
 	"text/template"
 
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -1281,14 +1279,14 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 }
 
 // rebuildKeycloakConfiguration - rebuild the Keycloak configuration when using ephemeral storage
-// and settings have been lost.
+// and settings have been lost.  For example, if the MySQL pod restarts the configuration is lost.
 func rebuildKeycloakConfiguration(ctx spi.ComponentContext) error {
-	// Skip is using persistent storage
+	// Skip if using persistent storage
 	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource != nil {
 		return nil
 	}
 
-	// The Keycloak pod must be ready
+	// Wait for the Keycloak to be ready
 	pod := corev1.Pod{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: keycloakPodName}, &pod)
 	if err != nil {
@@ -1298,7 +1296,7 @@ func rebuildKeycloakConfiguration(ctx spi.ComponentContext) error {
 		return fmt.Errorf("Waiting for pod %s to be ready", keycloakPodName)
 	}
 
-	// Recycle the Keycloak pod is login fails
+	// Recycle the Keycloak pod if login fails
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
@@ -1306,7 +1304,7 @@ func rebuildKeycloakConfiguration(ctx spi.ComponentContext) error {
 	// Login to Keycloak
 	err = loginKeycloak(ctx, cfg, cli)
 	if err != nil {
-		pod.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = strconv.Itoa(int(pod.Generation))
+		// Restart the Keycloak pod when the login fails
 		err = ctx.Client().Delete(context.TODO(), &pod)
 		return err
 	}
