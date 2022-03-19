@@ -1307,7 +1307,7 @@ func rebuildKeycloakConfiguration(ctx spi.ComponentContext) error {
 	err = loginKeycloak(ctx, cfg, cli)
 	if err != nil {
 		pod.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = strconv.Itoa(int(pod.Generation))
-		err = ctx.Client().Update(context.TODO(), &pod)
+		err = ctx.Client().Delete(context.TODO(), &pod)
 		return err
 	}
 
