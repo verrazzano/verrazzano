@@ -15,6 +15,8 @@ import (
 	"strings"
 	"text/template"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -50,6 +52,7 @@ const (
 	vzUserName         = "verrazzano"
 	vzInternalPromUser = "verrazzano-prom-internal"
 	vzInternalEsUser   = "verrazzano-es-internal"
+	keycloakPodName    = "keycloak-0"
 )
 
 // Define the keycloak Key:Value pair for init container.
@@ -662,7 +665,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed retrieving logging into: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Component Keycloak failed logging into: stdout = %s: stderr = %s", stdOut, stdErr)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
@@ -1275,4 +1278,56 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
+}
+
+// rebuildKeycloakConfiguration - rebuild the Keycloak configuration when using ephemeral storage
+// and settings have been lost.
+func rebuildKeycloakConfiguration(ctx spi.ComponentContext) error {
+	// Skip is using persistent storage
+	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource != nil {
+		return nil
+	}
+
+	// The Keycloak pod must be ready
+	pod := corev1.Pod{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: keycloakPodName}, &pod)
+	if err != nil {
+		return err
+	}
+	if !isPodReady(pod) {
+		return fmt.Errorf("Waiting for pod %s to be ready", keycloakPodName)
+	}
+
+	// Recycle the Keycloak pod is login fails
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+	// Login to Keycloak
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		pod.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = strconv.Itoa(int(pod.Generation))
+		err = ctx.Client().Update(context.TODO(), &pod)
+		return err
+	}
+
+	// Recreate the keycloak realms when using ephemeral storage, the configuration
+	// is lost when the MySQL pod recycles.
+	err = configureKeycloakRealms(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// isPodReady determines if the pod is running by checking for a Ready condition with Status equal True
+func isPodReady(pod v1.Pod) bool {
+	conditions := pod.Status.Conditions
+	for j := range conditions {
+		if conditions[j].Type == "Ready" && conditions[j].Status == "True" {
+			return true
+		}
+	}
+	return false
 }

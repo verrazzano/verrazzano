@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package keycloak
 
 import (
@@ -147,13 +148,9 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Recreate the keycloak realms when using ephemeral storage, the configuration
-	// is lost when the MySQL pod recycles. temp
-	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource == nil {
-		err := configureKeycloakRealms(ctx)
-		if err != nil {
-			return err
-		}
+	// Determine if the Keycloak configuration needs to be rebuilt
+	if err := rebuildKeycloakConfiguration(ctx); err != nil {
+		return err
 	}
 
 	return updateKeycloakUris(ctx)
