@@ -54,6 +54,13 @@ const (
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
 )
 
+// Template for ClusterIssuer for looking up Acme certificates for controllerutil.CreateOrUpdate
+const clusterIssuerLookupTemplate = `
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: verrazzano-cluster-issuer`
+
 // Template for ClusterIssuer for Acme certificates
 const clusterIssuerTemplate = `
 apiVersion: cert-manager.io/v1
@@ -133,13 +140,13 @@ func (c certManagerComponent) createOrUpdateClusterIssuer(compContext spi.Compon
 	}
 	if !isCAValue {
 		// Create resources needed for Acme certificates
-		err := createAcmeResources(compContext)
+		err := createOrUpdateAcmeResources(compContext)
 		if err != nil {
 			return compContext.Log().ErrorfNewErr("Failed creating Acme resources: %v", err)
 		}
 	} else {
 		// Create resources needed for CA certificates
-		err := createCAResources(compContext)
+		err := createOrUpdateCAResources(compContext)
 		if err != nil {
 			return compContext.Log().ErrorfNewErr("Failed creating CA resources: %v", err)
 		}
@@ -314,8 +321,30 @@ func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
 	return acmeEnvironment != "" && acmeEnvironment != "production"
 }
 
-// createAcmeResources creates all of the post install resources necessary for cert-manager
-func createAcmeResources(compContext spi.ComponentContext) error {
+// createOrUpdateAcmeResources creates all of the post install resources necessary for cert-manager
+func createOrUpdateAcmeResources(compContext spi.ComponentContext) error {
+	// Create a lookup object
+	getCIObject, err := createAcmeCusterIssuerLookupObject(compContext.Log())
+	if err != nil {
+		return err
+	}
+	// Update or create the unstructured object
+	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), getCIObject, func() error {
+		ciObject, err := createACMEIssuerObject(compContext)
+		if err != nil {
+			return err
+		}
+		getCIObject.Object["spec"] = ciObject.Object["spec"]
+		return nil
+	}); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
+	}
+	// TODO: renew all certificates if operation == controllerutil.OperationResultUpdated
+	return nil
+}
+
+func createACMEIssuerObject(compContext spi.ComponentContext) (*unstructured.Unstructured, error) {
 	// Initialize Acme variables for the cluster issuer
 	var ociDNSConfigSecret string
 	var ociDNSZoneName string
@@ -328,7 +357,7 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	// Verify that the secret exists
 	secret := v1.Secret{}
 	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: ociDNSConfigSecret, Namespace: ComponentNamespace}, &secret); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to retrieve the OCI DNS config secret: %v", err)
+		return nil, compContext.Log().ErrorfNewErr("Failed to retrieve the OCI DNS config secret: %v", err)
 	}
 
 	emailAddress := vzCertAcme.EmailAddress
@@ -348,24 +377,7 @@ func createAcmeResources(compContext spi.ComponentContext) error {
 	}
 
 	ciObject, err := createAcmeClusterIssuer(compContext.Log(), clusterIssuerData)
-	if err != nil {
-		return err
-	}
-	// Create a copy of the object for the case where it's an update, as what we generate will get wiped out on the
-	// GET operation if the resource exists
-	getCIObj := ciObject.DeepCopy()
-	getCIObj.Object["spec"] = map[string]interface{}{}
-
-	// Update or create the unstructured object
-	compContext.Log().Debug("Applying ClusterIssuer with OCI DNS")
-	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), getCIObj, func() error {
-		getCIObj.Object["spec"] = ciObject.Object["spec"]
-		return nil
-	}); err != nil {
-		return compContext.Log().ErrorfNewErr("Failed to create or update the ClusterIssuer: %v", err)
-	}
-	// TODO: renew all certificates if operation == controllerutil.OperationResultUpdated
-	return nil
+	return ciObject, err
 }
 
 func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templateData) (*unstructured.Unstructured, error) {
@@ -390,7 +402,15 @@ func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templ
 	return ciObject, nil
 }
 
-func createCAResources(compContext spi.ComponentContext) error {
+func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
+	ciObject := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	if err := yaml.Unmarshal([]byte(clusterIssuerLookupTemplate), ciObject); err != nil {
+		return nil, log.ErrorfNewErr("Failed to unmarshal yaml: %v", err)
+	}
+	return ciObject, nil
+
+}
+func createOrUpdateCAResources(compContext spi.ComponentContext) error {
 	vzCertCA := compContext.EffectiveCR().Spec.Components.CertManager.Certificate.CA
 
 	// if the CA cert secret does not exist, create the Issuer and Certificate resources

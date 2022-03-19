@@ -274,7 +274,7 @@ func TestIsCABothPopulated(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestCreateCAResources tests the createCAResources function.
+// TestCreateCAResources tests the createOrUpdateCAResources function.
 func TestCreateCAResources(t *testing.T) {
 	// GIVEN that a secret with the cluster CA certificate does not exist
 	// WHEN a call is made to create the CA resources
@@ -284,7 +284,7 @@ func TestCreateCAResources(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(testScheme)
 
-	err := createCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	err := createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.NoError(t, err)
 
 	// validate that the Issuer, Certificate, and ClusterIssuer were created
@@ -311,7 +311,7 @@ func TestCreateCAResources(t *testing.T) {
 	}
 	client = fake.NewFakeClientWithScheme(testScheme, &secret)
 
-	err = createCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
+	err = createOrUpdateCAResources(spi.NewFakeContext(client, localvz, false, profileDir))
 	assert.NoError(t, err)
 
 	// validate that only the ClusterIssuer was created
