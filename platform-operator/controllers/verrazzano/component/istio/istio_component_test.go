@@ -455,6 +455,15 @@ func getBoolPtr(b bool) *bool {
 
 func Test_istioComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
+	affinityChange := &v1.Affinity{
+		NodeAffinity: &v1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+				NodeSelectorTerms: []v1.NodeSelectorTerm{
+					{MatchExpressions: []v1.NodeSelectorRequirement{{Key: "foo"}}},
+				},
+			},
+		},
+	}
 	tests := []struct {
 		name    string
 		old     *installv1alpha1.Verrazzano
@@ -483,6 +492,100 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 					Components: installv1alpha1.ComponentSpec{
 						Istio: &installv1alpha1.IstioComponent{
 							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-install-args",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{{Name: "foo", Value: "bar"}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-ingress-replicas",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Ingress: &installv1alpha1.IstioIngressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Replicas: 5,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-ingress-affinity",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Ingress: &installv1alpha1.IstioIngressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Affinity: affinityChange,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-egress-replicas",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Egress: &installv1alpha1.IstioEgressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Replicas: 5,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-eggress-affinity",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Egress: &installv1alpha1.IstioEgressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Affinity: affinityChange,
+									},
+								},
+							},
 						},
 					},
 				},
