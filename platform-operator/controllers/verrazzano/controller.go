@@ -92,6 +92,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
+	log.Info("MGIANATA entering Reconcile")
 
 	log.Oncef("Reconciling Verrazzano resource %v, generation %v, version %s", req.NamespacedName, vz.Generation, vz.Status.Version)
 	res, err := r.doReconcile(log, vz)
@@ -112,6 +113,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 // doReconcile the Verrazzano CR
 func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	ctx := context.TODO()
+	log.Info("MGIANATA entering doReconcile")
 
 	// Initialize once for this Verrazzano resource when the operator starts
 	result, err := r.initForVzResource(vz, log)
@@ -197,6 +199,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 			}
 		}
 		// Keep retrying to reconcile components until it completes
+		log.Info("MGIANATA calling reconcileComponents from ProcReadyState")
 		if result, err := r.reconcileComponents(vzctx); err != nil {
 			return newRequeueWithDelay(), err
 		} else if vzctrl.ShouldRequeue(result) {
@@ -257,6 +260,7 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 	if !actualCR.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.procDelete(ctx, log, actualCR)
 	}
+	log.Info("MGIANATA calling reconcileComponents from ProcInstallingState")
 
 	if result, err := r.reconcileComponents(vzctx); err != nil {
 		return newRequeueWithDelay(), err
