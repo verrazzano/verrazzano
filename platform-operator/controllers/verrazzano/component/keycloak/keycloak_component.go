@@ -68,6 +68,11 @@ func NewComponent() spi.Component {
 	}
 }
 
+func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+	ctx.Log().Infof("Component %s is running Reconcile override", ComponentName)
+	return nil
+}
+
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret. return error which will cause reque
 	secret := &corev1.Secret{}
@@ -167,7 +172,6 @@ func (c KeycloakComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // IsReady component check
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
-	ctx.Log().Errorf("Component %s checking IsReady", ComponentName)
 	if c.HelmComponent.IsReady(ctx) {
 		return isKeycloakReady(ctx)
 	}
