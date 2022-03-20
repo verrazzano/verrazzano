@@ -172,13 +172,8 @@ func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 	if err != nil {
 		return err
 	}
-	if oldSetting == nil && newSetting != nil || oldSetting != nil && newSetting == nil {
-		return fmt.Errorf("can not change default volume")
-	}
-	if oldSetting != nil && newSetting != nil {
-		if oldSetting.Storage != newSetting.Storage {
-			return fmt.Errorf("can not change default volume size")
-		}
+	if !reflect.DeepEqual(oldSetting, newSetting) {
+		return fmt.Errorf("Can not change volume settings for %s", ComponentJSONName)
 	}
 	return nil
 }

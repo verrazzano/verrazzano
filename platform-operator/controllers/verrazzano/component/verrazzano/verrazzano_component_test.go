@@ -510,6 +510,18 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "disable-console",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Console: &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			// Change to OS installargs allowed, persistence changes are supported
 			name: "change-os-installargs",
 			old:  &vzapi.Verrazzano{},
