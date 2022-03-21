@@ -1834,10 +1834,10 @@ spec:
                                 description: Service Allows customizing the Kubernetes
                                   service configuration
                                 properties:
-                                  annotations:
-                                    additionalProperties:
+                                  externalIPs:
+                                    items:
                                       type: string
-                                    type: object
+                                    type: array
                                   ports:
                                     items:
                                       description: ServicePort contains information
@@ -1909,6 +1909,12 @@ spec:
                                       - port
                                       type: object
                                     type: array
+                                type: object
+                              serviceAnnotations:
+                                additionalProperties:
+                                  type: string
+                                description: ServiceAnnotations Allows customizing
+                                  the Kubernetes service annotations
                                 type: object
                             type: object
                         type: object
@@ -2690,10 +2696,10 @@ spec:
                                 description: Service Allows customizing the Kubernetes
                                   service configuration
                                 properties:
-                                  annotations:
-                                    additionalProperties:
+                                  externalIPs:
+                                    items:
                                       type: string
-                                    type: object
+                                    type: array
                                   ports:
                                     items:
                                       description: ServicePort contains information
@@ -2765,6 +2771,12 @@ spec:
                                       - port
                                       type: object
                                     type: array
+                                type: object
+                              serviceAnnotations:
+                                additionalProperties:
+                                  type: string
+                                description: ServiceAnnotations Allows customizing
+                                  the Kubernetes service annotations
                                 type: object
                             type: object
                         type: object
@@ -3569,10 +3581,10 @@ spec:
                                 description: Service Allows customizing the Kubernetes
                                   service configuration
                                 properties:
-                                  annotations:
-                                    additionalProperties:
+                                  externalIPs:
+                                    items:
                                       type: string
-                                    type: object
+                                    type: array
                                   ports:
                                     items:
                                       description: ServicePort contains information
@@ -3644,6 +3656,12 @@ spec:
                                       - port
                                       type: object
                                     type: array
+                                type: object
+                              serviceAnnotations:
+                                additionalProperties:
+                                  type: string
+                                description: ServiceAnnotations Allows customizing
+                                  the Kubernetes service annotations
                                 type: object
                             type: object
                         type: object

@@ -191,18 +191,16 @@ func processIstioOverrides(istioComponent *vzapi.IstioComponent, externalIPs []s
 		}
 
 		if kubernetes.Service != nil {
-			if len(kubernetes.Service.Ports) > 0 {
-				svc := &corev1.ServiceSpec{
-					Ports: kubernetes.Service.Ports,
-				}
-				yml, err := yaml.Marshal(svc)
-				if err != nil {
-					return "", err
-				}
-				data.PilotService = string(yml)
+			svc := &corev1.ServiceSpec{
+				Ports: kubernetes.Service.Ports,
 			}
-			if len(kubernetes.Service.Annotations) > 0 {
-				yml, err := yaml.Marshal(kubernetes.Service.Annotations)
+			yml, err := yaml.Marshal(svc)
+			if err != nil {
+				return "", err
+			}
+			data.PilotService = string(yml)
+			if len(kubernetes.ServiceAnnotations) > 0 {
+				yml, err := yaml.Marshal(kubernetes.ServiceAnnotations)
 				if err != nil {
 					return "", err
 				}
@@ -226,18 +224,16 @@ func processIstioOverrides(istioComponent *vzapi.IstioComponent, externalIPs []s
 		kubernetes := istioComponent.Ingress.Kubernetes
 		data.IngressReplicaCount = kubernetes.Replicas
 		if kubernetes.Service != nil {
-			if len(kubernetes.Service.Ports) > 0 {
-				svc := &corev1.ServiceSpec{
-					Ports: kubernetes.Service.Ports,
-				}
-				yml, err := yaml.Marshal(svc)
-				if err != nil {
-					return "", err
-				}
-				data.IngressService = string(yml)
+			svc := &corev1.ServiceSpec{
+				Ports: kubernetes.Service.Ports,
 			}
-			if len(kubernetes.Service.Annotations) > 0 {
-				yml, err := yaml.Marshal(kubernetes.Service.Annotations)
+			yml, err := yaml.Marshal(svc)
+			if err != nil {
+				return "", err
+			}
+			data.IngressService = string(yml)
+			if len(kubernetes.ServiceAnnotations) > 0 {
+				yml, err := yaml.Marshal(kubernetes.ServiceAnnotations)
 				if err != nil {
 					return "", err
 				}
@@ -265,18 +261,16 @@ func processIstioOverrides(istioComponent *vzapi.IstioComponent, externalIPs []s
 		egressSettings := istioComponent.Egress.Kubernetes
 		data.EgressReplicaCount = egressSettings.Replicas
 		if egressSettings.Service != nil {
-			if len(egressSettings.Service.Ports) > 0 {
-				svc := &corev1.ServiceSpec{
-					Ports: egressSettings.Service.Ports,
-				}
-				yml, err := yaml.Marshal(svc)
-				if err != nil {
-					return "", err
-				}
-				data.EgressService = string(yml)
+			svc := &corev1.ServiceSpec{
+				Ports: egressSettings.Service.Ports,
 			}
-			if len(egressSettings.Service.Annotations) > 0 {
-				yml, err := yaml.Marshal(egressSettings.Service.Annotations)
+			yml, err := yaml.Marshal(svc)
+			if err != nil {
+				return "", err
+			}
+			data.EgressService = string(yml)
+			if len(egressSettings.ServiceAnnotations) > 0 {
+				yml, err := yaml.Marshal(egressSettings.ServiceAnnotations)
 				if err != nil {
 					return "", err
 				}

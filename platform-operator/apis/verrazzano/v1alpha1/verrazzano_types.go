@@ -510,12 +510,17 @@ type IstioKubernetesSection struct {
 	// Service Allows customizing the Kubernetes service configuration
 	// +optional
 	Service *KubernetesServiceSection `json:"service,omitempty"`
+	// ServiceAnnotations Allows customizing the Kubernetes service annotations
+	// +optional
+	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 }
 
 // KubernetesServiceSection specifies common Kubernetes Service settings that can be customized
 type KubernetesServiceSection struct {
-	Annotations map[string]string    `json:"annotations,omitempty"`
-	Ports       []corev1.ServicePort `json:"ports,omitempty"`
+	// +optional
+	ExternalIPs []string `json:"externalIPs,omitempty"`
+	// +optional
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }
 
 // IstioComponent specifies the Istio configuration
