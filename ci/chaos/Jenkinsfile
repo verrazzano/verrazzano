@@ -57,7 +57,7 @@ pipeline {
         choice (name: 'CHAOS_TEST_TYPE',
                 description: 'Type of chaos to inflict',
                 // 1st choice is the default value
-                choices: [ "uninstall.failed.upgrade", "helm.chart.corrupted", "vpo.killed" ])
+                choices: [ "uninstall.failed.upgrade", "helm.chart.corrupted", "vpo.killed", "ephemeral.storage.upgrade" ])
     }
 
     environment {
@@ -83,7 +83,9 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-vz-prod-kind-with-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND_PERSISTENCE = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND_EPHEMERAL = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE = "${env.INSTALL_CONFIG_FILE_KIND_PERSISTENCE}"
         INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -183,6 +185,9 @@ pipeline {
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_FOR_UPGRADE
                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
                     OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml"
+                    if (params.CHAOS_TEST_TYPE == "ephemeral.storage.upgrade") {
+                        env.INSTALL_CONFIG_FILE = env.INSTALL_CONFIG_FILE_KIND_EPHEMERAL
+                    }
                 }
             }
         }
@@ -209,7 +214,7 @@ pipeline {
                         mkdir -p ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                         kubectl -n verrazzano-install logs --selector=job-name=verrazzano-install-my-verrazzano --tail -1 > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install.log
                         kubectl -n verrazzano-install describe pod --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-install-job-pod.out
-                        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
+                        cp ${INSTALL_CONFIG_FILE} ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                         echo "Verrazzano Installation logs dumped to verrazzano-install.log"
                         echo "Verrazzano Install pod description dumped to verrazzano-install-job-pod.out"
                         echo "------------------------------------------"
@@ -219,7 +224,7 @@ pipeline {
                         VZ_TEST_METRIC = metricJobName('')
                         metricTimerStart("${VZ_TEST_METRIC}")
                     }
-                    archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
+                    archiveArtifacts artifacts: "**/logs/**,${env.INSTALL_CONFIG_FILE}", allowEmptyArchive: true
                 }
             }
         }
@@ -330,7 +335,7 @@ pipeline {
                     echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
                     # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
                     cd ${GO_REPO_PATH}/verrazzano
-                    cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    cp ${INSTALL_CONFIG_FILE} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     # Copy upgrade CR where it will be archived
                     cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
