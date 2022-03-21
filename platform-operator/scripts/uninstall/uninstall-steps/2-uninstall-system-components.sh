@@ -15,6 +15,10 @@ set -o pipefail
 
 function delete_external_dns() {
   log "Deleting external-dns"
+
+  # delete all ExternalDNS ingresses before deleting ExternalDNS
+  delete_k8s_resources ingress ":metadata.name,:metadata.annotations" "Could not delete Ingresses managed by ExternalDNS" '/external-dns/ {print $1}' \
+
   helm ls -n cert-manager \
     | awk '/external-dns/ {print $1}' \
     | xargsr helm uninstall -n cert-manager \
