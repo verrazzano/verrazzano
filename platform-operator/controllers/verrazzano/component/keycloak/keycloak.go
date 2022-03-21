@@ -1298,6 +1298,7 @@ func checkConfiguration(ctx spi.ComponentContext) error {
 		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", pod.Name)
 		return fmt.Errorf("Waiting for pod %s to be ready", pod.Name)
 	}
+	ctx.Log().Infof("Component Keycloak pod %s is ready", pod.Name)
 
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
