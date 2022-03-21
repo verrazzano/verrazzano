@@ -158,6 +158,8 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 		return r.ProcUninstallingState(vzctx)
 	case installv1alpha1.VzStateUpgrading:
 		return r.ProcUpgradingState(vzctx)
+	case installv1alpha1.VzStatePaused:
+		return r.ProcPausedUpgradeState(vzctx)
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
@@ -220,7 +222,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		return newRequeueWithDelay(), err
 	}
 
-	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
+	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
 	// admin cluster without needing a VMC.
 	if err := r.syncLocalRegistrationSecret(); err != nil {
 		log.Errorf("Failed to sync the local registration secret: %v", err)
@@ -300,22 +302,15 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return r.procDelete(context.TODO(), log, vz)
 	}
 
-	if operatorVersion, isNewerOperator := restartUpgradeWithNewerOperator(vz.Spec.Version); isNewerOperator {
+	// check for need to pause the upgrade due to VPO update
+	if bomVersion, isNewer := isOperatorNewerVersion(vz.Spec.Version); isNewer {
 		// upgrade needs to be restarted due to newer operator
-		log.Infof("Upgrade is being restarted and will upgrade to version %s", operatorVersion)
-		vz.Spec.Version = operatorVersion
-		err := r.Client.Update(context.TODO(), vz)
-		if err != nil {
-			log.Errorf("Update of VZ to version %s failed. Error: %v", operatorVersion, err)
-			return newRequeueWithDelay(), err
-		}
-		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
-		if err != nil {
-			log.Errorf("Update of VZ status to ready failed. Error: %v", err)
-			return newRequeueWithDelay(), err
-		}
+		log.Infof("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
 
-		return newRequeueWithDelay(), nil
+		err := r.updateStatus(log, vz,
+			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
+			installv1alpha1.CondUpgradePaused)
+		return newRequeueWithDelay(), err
 	}
 
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
@@ -325,6 +320,28 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	}
 	// Upgrade should always requeue to ensure that reconciler runs post upgrade to install
 	// components that may have been waiting for upgrade
+	return newRequeueWithDelay(), nil
+}
+
+// ProcPausedUpgradeState processes the CR while in the paused upgrade state
+func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+	vz := vzctx.ActualCR
+	log := vzctx.Log
+	log.Debug("Entering ProcPausedUpgradeState")
+
+	// Check if Verrazzano resource is being deleted
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(context.TODO(), log, vz)
+	}
+
+	// check if the VPO and VZ versions are the same and the upgrade can proceed
+	if isOperatorSameVersion(vz.Spec.Version) {
+		// upgrade can proceed from paused state
+		log.Debugf("Restarting upgrade since VZ version and VPO version match")
+		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+	}
+
 	return newRequeueWithDelay(), nil
 }
 
@@ -349,10 +366,10 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 
 	// if annotations didn't trigger a retry, see if a newer version of BOM should
 	if !retry {
-		if operatorVersion, ok := restartUpgradeWithNewerOperator(vz.Spec.Version); ok {
+		if bomVersion, isNewer := isOperatorNewerVersion(vz.Spec.Version); isNewer {
 			// can use the current VPO to attempt an upgrade
-			vz.Spec.Version = operatorVersion
-			err = r.Client.Update(ctx, vz)
+			vz.Spec.Version = bomVersion
+			err = r.Update(ctx, vz)
 			if err != nil {
 				return newRequeueWithDelay(), err
 			}
@@ -364,17 +381,6 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 	if retry {
 		// Log the retry and set the CompStateType to ready, then requeue
 		log.Debugf("Restart Version annotation has changed or a new VPO installed, retrying upgrade")
-		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
-		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
-	}
-
-	// If no retry specified by annotations, attempt to upgrade using current VPO version
-	if err := installv1alpha1.ValidateVersion(vzctx.ActualCR.Spec.Version); err != nil {
-		// new version is not nil, but we couldn't parse it
-		return newRequeueWithDelay(), err
-	} else {
-		// Log the retry and set the CompStateType to ready, then requeue
-		log.Debugf("Retrying upgrade")
 		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
@@ -597,17 +603,32 @@ func buildInternalConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-internal", name)
 }
 
-func restartUpgradeWithNewerOperator (vzVersion string) (string, bool) {
+func isOperatorSameVersion(vzVersion string) bool {
+	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
+	if ok {
+		return bomVersion.CompareTo(currentVersion) == 0
+	}
+	return false
+}
+
+func isOperatorNewerVersion(vzVersion string) (string, bool) {
+	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
+	if ok {
+		return bomVersion.ToString(), bomVersion.CompareTo(currentVersion) > 0
+	}
+	return "", false
+}
+
+func getVzAndOperatorVersions(vzVersion string) (*semver.SemVersion, *semver.SemVersion, bool) {
 	bomVersion, err := installv1alpha1.GetCurrentBomVersion()
 	if err != nil {
-		return "", false
+		return nil, nil, false
 	}
 	currentVersion, err := semver.NewSemVersion(vzVersion)
 	if err != nil {
-		return "", false
+		return nil, nil, false
 	}
-
-	return bomVersion.ToString(), bomVersion.CompareTo(currentVersion) > 0
+	return bomVersion, currentVersion, true
 }
 
 // updateStatus updates the status in the Verrazzano CR
@@ -699,6 +720,8 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 		return installv1alpha1.CompStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:
 		return installv1alpha1.CompStateUpgrading
+	case installv1alpha1.CondUpgradePaused:
+		return installv1alpha1.CompStateUpgrading
 	case installv1alpha1.CondUninstallComplete:
 		return installv1alpha1.CompStateReady
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
@@ -717,6 +740,8 @@ func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv
 		return installv1alpha1.VzStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:
 		return installv1alpha1.VzStateUpgrading
+	case installv1alpha1.CondUpgradePaused:
+		return installv1alpha1.VzStatePaused
 	case installv1alpha1.CondUninstallComplete:
 		return installv1alpha1.VzStateReady
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:

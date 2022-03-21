@@ -194,6 +194,9 @@ const (
 	// CondUpgradeStarted means that an upgrade has been started.
 	CondUpgradeStarted ConditionType = "UpgradeStarted"
 
+	// CondUpgradePaused means that an upgrade has been paused awaiting a VZ version update.
+	CondUpgradePaused ConditionType = "UpgradePaused"
+
 	// CondUpgradeFailed means the upgrade has failed during execution.
 	CondUpgradeFailed ConditionType = "UpgradeFailed"
 
@@ -227,6 +230,9 @@ const (
 
 	// VzStateUpgrading is the state when an upgrade is in progress
 	VzStateUpgrading VzStateType = "Upgrading"
+
+	// VzStatePaused is the state when an upgrade is paused due to version mismatch
+	VzStatePaused VzStateType = "Paused"
 
 	// VzStateReady is the state when a Verrazzano resource can perform an uninstall or upgrade
 	VzStateReady VzStateType = "Ready"
