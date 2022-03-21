@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -143,9 +144,25 @@ func (c verrazzanoComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+	// Do not allow disabling active components
+	if err := c.checkEnabled(old, new); err != nil {
+		return err
 	}
+	if !reflect.DeepEqual(getVzInstallArgs(old), getVzInstallArgs(new)) {
+		return fmt.Errorf("Update to installArgs not allowed for %s", ComponentJSONName)
+	}
+	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
+	if err := compareStorageOverrides(old, new); err != nil {
+		return err
+	}
+	// Do not allow Fluentd changes for now
+	if err := compareFluentd(old, new); err != nil {
+		return err
+	}
+	return nil
+}
+
+func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// compare the storage overrides and reject if the type or size is different
 	oldSetting, err := findStorageOverride(old)
 	if err != nil {
@@ -155,13 +172,88 @@ func (c verrazzanoComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if err != nil {
 		return err
 	}
-	if oldSetting == nil && newSetting != nil || oldSetting != nil && newSetting == nil {
-		return fmt.Errorf("can not change default volume")
+	if !reflect.DeepEqual(oldSetting, newSetting) {
+		return fmt.Errorf("Can not change volume settings for %s", ComponentJSONName)
 	}
-	if oldSetting != nil && newSetting != nil {
-		if oldSetting.Storage != newSetting.Storage {
-			return fmt.Errorf("can not change default volume size")
-		}
+	return nil
+}
+
+func compareFluentd(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow fluentd to be disabled
+	if vzconfig.IsFluentdEnabled(old) && !vzconfig.IsFluentdEnabled(new) {
+		return fmt.Errorf("Disabling component fluentd is not allowed")
+	}
+	// Do not allow any other changes to fluentd for now
+	oldFD := old.Spec.Components.Fluentd
+	newFD := new.Spec.Components.Fluentd
+	compName := "fluentd"
+	if !reflect.DeepEqual(getFluentdOCI(oldFD), getFluentdOCI(newFD)) {
+		return fmt.Errorf("Updates to OCI configuration not allowed for %s", compName)
+	}
+	if getFluentdEsURL(oldFD) != getFluentdEsURL(newFD) ||
+		getFluentdEsSecret(oldFD) != getFluentdEsSecret(newFD) {
+		return fmt.Errorf("Updates to Elasticsearch/Opensearch configuration not allowed for %s", compName)
+	}
+	if !reflect.DeepEqual(getFluentdExtraVolumeMounts(oldFD), getFluentdExtraVolumeMounts(newFD)) {
+		return fmt.Errorf("Updates to extraVolumeMounts not allowed for %s", compName)
+	}
+	return nil
+}
+
+func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow disabling of any component post-install for now
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	if vzconfig.IsConsoleEnabled(old) && !vzconfig.IsConsoleEnabled(new) {
+		return fmt.Errorf("Disabling component console not allowed")
+	}
+	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
+		return fmt.Errorf("Disabling component elasticsearch not allowed")
+	}
+	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
+		return fmt.Errorf("Disabling component grafana not allowed")
+	}
+	if vzconfig.IsPrometheusEnabled(old) && !vzconfig.IsPrometheusEnabled(new) {
+		return fmt.Errorf("Disabling component prometheus not allowed")
+	}
+	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
+		return fmt.Errorf("Disabling component kibana not allowed")
+	}
+	return nil
+}
+
+func getFluentdExtraVolumeMounts(fluentd *vzapi.FluentdComponent) []vzapi.VolumeMount {
+	if fluentd != nil {
+		return fluentd.ExtraVolumeMounts
+	}
+	return nil
+}
+
+func getFluentdOCI(fluentd *vzapi.FluentdComponent) *vzapi.OciLoggingConfiguration {
+	if fluentd != nil {
+		return fluentd.OCI
+	}
+	return nil
+}
+
+func getFluentdEsURL(fluentd *vzapi.FluentdComponent) string {
+	if fluentd != nil {
+		return fluentd.ElasticsearchURL
+	}
+	return ""
+}
+
+func getFluentdEsSecret(fluentd *vzapi.FluentdComponent) string {
+	if fluentd != nil {
+		return fluentd.ElasticsearchSecret
+	}
+	return ""
+}
+
+func getVzInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if vz != nil && vz.Spec.Components.Verrazzano != nil {
+		return vz.Spec.Components.Verrazzano.InstallArgs
 	}
 	return nil
 }

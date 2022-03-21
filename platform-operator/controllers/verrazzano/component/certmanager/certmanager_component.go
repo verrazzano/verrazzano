@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"path/filepath"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -71,8 +72,12 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(c.getCertificateSettings(old), c.getCertificateSettings(new)) {
+		return fmt.Errorf("Updates to certificate settings not allowed for %s", c.GetJSONName())
 	}
 	return nil
 }
@@ -127,4 +132,12 @@ func (c certManagerComponent) PostUpgrade(compContext spi.ComponentContext) erro
 		return nil
 	}
 	return c.createOrUpdateClusterIssuer(compContext)
+}
+
+func (c certManagerComponent) getCertificateSettings(vz *vzapi.Verrazzano) vzapi.Certificate {
+	var certSettings vzapi.Certificate
+	if vz.Spec.Components.CertManager != nil {
+		certSettings = vz.Spec.Components.CertManager.Certificate
+	}
+	return certSettings
 }

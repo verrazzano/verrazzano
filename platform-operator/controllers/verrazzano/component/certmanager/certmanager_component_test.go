@@ -11,7 +11,7 @@ import (
 
 func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
-	tests := []struct {
+	var tests = []struct {
 		name    string
 		old     *vzapi.Verrazzano
 		new     *vzapi.Verrazzano
@@ -39,6 +39,31 @@ func Test_certManagerComponent_ValidateUpdate(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						CertManager: &vzapi.CertManagerComponent{
 							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no change",
+			old:     &vzapi.Verrazzano{},
+			new:     &vzapi.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "update",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						CertManager: &vzapi.CertManagerComponent{
+							Certificate: vzapi.Certificate{
+								CA: vzapi.CA{
+									SecretName:               "newsecret",
+									ClusterResourceNamespace: "ns",
+								},
+							},
 						},
 					},
 				},
