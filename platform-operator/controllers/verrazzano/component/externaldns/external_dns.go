@@ -6,18 +6,18 @@ package externaldns
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
+	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strconv"
 )
 
 // ComponentName is the name of the component
@@ -94,19 +94,46 @@ func isExternalDNSReady(compContext spi.ComponentContext) bool {
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	// Append all helm overrides for external DNS
-	nameTimeString := fmt.Sprintf("v8o-local-%s-%s", compContext.EffectiveCR().Spec.EnvironmentName, strconv.FormatInt(time.Now().Unix(), 10))
+	dns := compContext.EffectiveCR().Spec.Components.DNS
+	// Should never fail the next error checks if IsEnabled() is correct, but can't hurt to check
+	if dns == nil {
+		return kvs, fmt.Errorf("DNS not configured for component %s", ComponentName)
+	}
+	oci := dns.OCI
+	if oci == nil {
+		return kvs, fmt.Errorf("OCI must be configured for component %s", ComponentName)
+	}
+	// OCI DNS is configured, append all helm overrides for external DNS
+	actualCR := compContext.ActualCR()
+	// TODO: during upgrade, lookup existing text owner ID to preserve ownership
+	//  - e.g., helm get values -n cert-manager external-dns -o json | jq -r '.txtOwnerId'
+	//  - or, parse it from deployment object
+	ownerString, err := buildOwnerString(actualCR)
+	if err != nil {
+		return kvs, err
+	}
+	txtPrefix := fmt.Sprintf("_%s-", ownerString)
 	arguments := []bom.KeyValue{
-		{Key: "domainFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneName},
-		{Key: "zoneIDFilters[0]", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSZoneOCID},
-		{Key: "ociDnsScope", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.DNSScope},
-		{Key: "txtOwnerId", Value: nameTimeString},
-		{Key: "txtPrefix", Value: "_" + nameTimeString},
+		{Key: "domainFilters[0]", Value: oci.DNSZoneName},
+		{Key: "zoneIDFilters[0]", Value: oci.DNSZoneOCID},
+		{Key: "ociDnsScope", Value: oci.DNSScope},
+		{Key: "txtOwnerId", Value: ownerString},
+		{Key: "txtPrefix", Value: txtPrefix},
 		{Key: "extraVolumes[0].name", Value: "config"},
-		{Key: "extraVolumes[0].secret.secretName", Value: compContext.EffectiveCR().Spec.Components.DNS.OCI.OCIConfigSecret},
+		{Key: "extraVolumes[0].secret.secretName", Value: oci.OCIConfigSecret},
 		{Key: "extraVolumeMounts[0].name", Value: "config"},
 		{Key: "extraVolumeMounts[0].mountPath", Value: "/etc/kubernetes/"},
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil
+}
+
+func buildOwnerString(cr *vzapi.Verrazzano) (string, error) {
+	hash := fnv.New32a()
+	_, err := hash.Write([]byte(cr.UID))
+	if err != nil {
+		return "", err
+	}
+	sum := hash.Sum32()
+	return fmt.Sprintf("v8o-%s-%s-%s", cr.Namespace, cr.Name, strconv.FormatInt(int64(sum), 10)), nil
 }
