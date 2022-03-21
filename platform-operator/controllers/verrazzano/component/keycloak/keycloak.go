@@ -584,7 +584,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	err = createVerrazzanoPkceClient(ctx, cfg, cli)
+	err = createOrUpdateVerrazzanoPkceClient(ctx, cfg, cli)
 	if err != nil {
 		return err
 	}
@@ -957,11 +957,17 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 	return nil
 }
 
-func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
+func createOrUpdateVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	data := templateData{}
 
 	keycloakClients, err := getKeycloakClients(ctx)
-	if err == nil && clientExists(keycloakClients, "verrazzano-pkce") {
+	if err != nil {
+		return err
+	}
+	if clientExists(keycloakClients, "verrazzano-pkce") {
+		if err := updateKeycloakUris(ctx); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -972,7 +978,7 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		ctx.Log().Errorf("Component Keycloak failed retrieving DNS sub domain: %v", err)
 		return err
 	}
-	ctx.Log().Debugf("createVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
+	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: DNSDomain returned %s", dnsSubDomain)
 	cr := ctx.EffectiveCR()
 	ingressType, err := vzconfig.GetServiceType(cr)
 	if err != nil {
@@ -1005,13 +1011,13 @@ func createVerrazzanoPkceClient(ctx spi.ComponentContext, cfg *restclient.Config
 		b.String() +
 		"END"
 
-	ctx.Log().Debugf("createVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
+	ctx.Log().Debugf("createOrUpdateVerrazzanoPkceClient: Create verrazzano-pkce client Cmd = %s", vzPkceCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(vzPkceCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed creating verrazzano-pkce client: stdout = %s, stderr = %s", stdout, stderr)
 		return err
 	}
-	ctx.Log().Debug("createVerrazzanoPkceClient: Created verrazzano-pkce client")
+	ctx.Log().Debug("createOrUpdateVerrazzanoPkceClient: Created verrazzano-pkce client")
 	return nil
 }
 

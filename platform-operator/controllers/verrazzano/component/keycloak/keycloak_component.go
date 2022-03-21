@@ -140,11 +140,11 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
-	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
-	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return updateKeycloakUris(ctx)
 }
 
