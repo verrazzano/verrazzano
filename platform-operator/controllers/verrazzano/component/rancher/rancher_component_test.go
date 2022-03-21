@@ -168,21 +168,21 @@ func TestIsReady(t *testing.T) {
 				UpdatedReplicas:   1,
 			},
 		},
+		//&appsv1.Deployment{
+		//	ObjectMeta: metav1.ObjectMeta{
+		//		Namespace: OperatorNamespace,
+		//		Name:      rancherOperatorDeployment,
+		//		Labels:    map[string]string{"app": rancherOperatorDeployment},
+		//	},
+		//	Status: appsv1.DeploymentStatus{
+		//		AvailableReplicas: 1,
+		//		Replicas:          1,
+		//		UpdatedReplicas:   1,
+		//	},
+		//},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: OperatorNamespace,
-				Name:      rancherOperatorDeployment,
-				Labels:    map[string]string{"app": rancherOperatorDeployment},
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 1,
-				Replicas:          1,
-				UpdatedReplicas:   1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: fleetLocalSystemNamespace,
 				Name:      fleetAgentDeployment,
 				Labels:    map[string]string{"app": fleetAgentDeployment},
 			},
@@ -238,19 +238,19 @@ func TestIsReady(t *testing.T) {
 				Replicas:          1,
 			},
 		},
+		//&appsv1.Deployment{
+		//	ObjectMeta: metav1.ObjectMeta{
+		//		Namespace: OperatorNamespace,
+		//		Name:      rancherOperatorDeployment,
+		//	},
+		//	Status: appsv1.DeploymentStatus{
+		//		AvailableReplicas: 0,
+		//		Replicas:          1,
+		//	},
+		//},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: OperatorNamespace,
-				Name:      rancherOperatorDeployment,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 0,
-				Replicas:          1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: fleetLocalSystemNamespace,
 				Name:      fleetAgentDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
