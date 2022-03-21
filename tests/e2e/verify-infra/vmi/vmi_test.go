@@ -301,7 +301,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		})
 	} else if pkg.IsProdProfile() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
-			Expect(len(volumeClaims)).To(Equal(7))
+			Expect(len(volumeClaims)).To(Equal(8))
 			assertPersistentVolume("vmi-system-prometheus", size)
 			assertPersistentVolume("vmi-system-grafana", size)
 			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
