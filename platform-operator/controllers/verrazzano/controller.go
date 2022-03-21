@@ -303,9 +303,9 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	}
 
 	// check for need to pause the upgrade due to VPO update
-	if bomVersion, isNewer := isOperatorNewerVersion(vz.Spec.Version); isNewer {
+	if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
 		// upgrade needs to be restarted due to newer operator
-		log.Infof("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
+		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
 
 		err := r.updateStatus(log, vz,
 			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
@@ -335,7 +335,7 @@ func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (
 	}
 
 	// check if the VPO and VZ versions are the same and the upgrade can proceed
-	if isOperatorSameVersion(vz.Spec.Version) {
+	if isOperatorSameVersionAsCR(vz.Spec.Version) {
 		// upgrade can proceed from paused state
 		log.Debugf("Restarting upgrade since VZ version and VPO version match")
 		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
@@ -366,7 +366,7 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 
 	// if annotations didn't trigger a retry, see if a newer version of BOM should
 	if !retry {
-		if bomVersion, isNewer := isOperatorNewerVersion(vz.Spec.Version); isNewer {
+		if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
 			// can use the current VPO to attempt an upgrade
 			vz.Spec.Version = bomVersion
 			err = r.Update(ctx, vz)
@@ -603,7 +603,7 @@ func buildInternalConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-internal", name)
 }
 
-func isOperatorSameVersion(vzVersion string) bool {
+func isOperatorSameVersionAsCR(vzVersion string) bool {
 	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
 	if ok {
 		return bomVersion.CompareTo(currentVersion) == 0
@@ -611,7 +611,7 @@ func isOperatorSameVersion(vzVersion string) bool {
 	return false
 }
 
-func isOperatorNewerVersion(vzVersion string) (string, bool) {
+func isOperatorNewerVersionThanCR(vzVersion string) (string, bool) {
 	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
 	if ok {
 		return bomVersion.ToString(), bomVersion.CompareTo(currentVersion) > 0
