@@ -264,9 +264,6 @@ pipeline {
                     # Run the image-helper to load the images into the OCIR registry in the runner's region
                     cd ${TARBALL_DIR}
                     ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
-                    docker rmi phx.ocir.io/stevengreenberginc/verrazzano-private-registry/gz/wls_monitoringexporter/b4/oracle/weblogic-monitoring-exporter:2.0.4
-                    docker pull phx.ocir.io/stevengreenberginc/verrazzano-private-registry/gz/wls_monitoringexporter/b4/oracle/weblogic-monitoring-exporter:2.0.4
-                    docker images | grep exporter
                 """
             }
         }
