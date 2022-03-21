@@ -139,7 +139,7 @@ func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
-		return fmt.Errorf("Can not disable %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	// Reject any other edits
 	if !reflect.DeepEqual(i.getInstallArgs(old), i.getInstallArgs(new)) {

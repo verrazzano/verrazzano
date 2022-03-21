@@ -181,7 +181,7 @@ func compareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error
 func compareFluentd(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow fluentd to be disabled
 	if vzconfig.IsFluentdEnabled(old) && !vzconfig.IsFluentdEnabled(new) {
-		return fmt.Errorf("Can not disable fluentd")
+		return fmt.Errorf("Disabling component fluentd is not allowed")
 	}
 	// Do not allow any other changes to fluentd for now
 	oldFD := old.Spec.Components.Fluentd
@@ -203,22 +203,22 @@ func compareFluentd(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 func (c verrazzanoComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Can not disable %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	if vzconfig.IsConsoleEnabled(old) && !vzconfig.IsConsoleEnabled(new) {
-		return fmt.Errorf("Can not disable the Console %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component console not allowed")
 	}
 	if vzconfig.IsElasticsearchEnabled(old) && !vzconfig.IsElasticsearchEnabled(new) {
-		return fmt.Errorf("can not disable Opensearch when previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component elasticsearch not allowed")
 	}
 	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
-		return fmt.Errorf("Can not disable grafana")
+		return fmt.Errorf("Disabling component grafana not allowed")
 	}
 	if vzconfig.IsPrometheusEnabled(old) && !vzconfig.IsPrometheusEnabled(new) {
-		return fmt.Errorf("Can not disable prometheus")
+		return fmt.Errorf("Disabling component prometheus not allowed")
 	}
 	if vzconfig.IsKibanaEnabled(old) && !vzconfig.IsKibanaEnabled(new) {
-		return fmt.Errorf("Can not disable kibana")
+		return fmt.Errorf("Disabling component kibana not allowed")
 	}
 	return nil
 }

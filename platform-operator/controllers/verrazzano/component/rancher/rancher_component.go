@@ -160,7 +160,7 @@ func (r rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
 func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
-		return fmt.Errorf("Can not disable %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return nil
 }

@@ -64,7 +64,7 @@ func (c coherenceComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c coherenceComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Can not disable %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return nil
 }

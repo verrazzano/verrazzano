@@ -170,7 +170,7 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("Can not disable %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	// Reject any other edits for now
 	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {

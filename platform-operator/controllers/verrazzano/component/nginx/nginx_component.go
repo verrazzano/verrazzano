@@ -79,7 +79,7 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
 		return fmt.Errorf("Updates to nginxInstallArgs not allowed for %s", ComponentJSONName)
