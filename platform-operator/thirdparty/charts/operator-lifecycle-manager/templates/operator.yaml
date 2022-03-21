@@ -1,0 +1,24 @@
+# kind: Namespace
+# apiVersion: v1
+# metadata:
+#   name: test 
+# ---
+# kind: OperatorGroup
+# apiVersion: operators.coreos.com/v1
+# metadata:
+#   name: operatorgroup
+#   namespace: test
+# spec:
+#   targetNamespaces:
+#   - test
+# ---
+# apiVersion: operators.coreos.com/v1alpha1
+# kind: Subscription
+# metadata:
+#   name: test
+#   namespace: test
+# spec:
+#   channel: stable
+#   name: microcks
+#   source: operatorhubio-catalog
+#   sourceNamespace: olm

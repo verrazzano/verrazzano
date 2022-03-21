@@ -1,0 +1,13 @@
+olm:
+  image: olcne-containers-stable-ol8.dockerhub-iad.oci.oraclecorp.com/olcne/operator-lifecycle-manager
+  tag: v0.19.1
+  imagePullPolicy: IfNotPresent
+
+catalog:
+  image: quay.io/operatorhubio/catalog
+  tag: latest
+  imagePullPolicy: IfNotPresent
+
+configmapServer:
+  image: quay.io/operator-framework/configmap-operator-registry
+  tag: latest
