@@ -191,8 +191,11 @@ func processIstioOverrides(istioComponent *vzapi.IstioComponent, externalIPs []s
 		}
 
 		if kubernetes.Service != nil {
-			if kubernetes.Service.Spec != nil {
-				yml, err := yaml.Marshal(kubernetes.Service.Spec)
+			if len(kubernetes.Service.Ports) > 0 {
+				svc := &corev1.ServiceSpec{
+					Ports: kubernetes.Service.Ports,
+				}
+				yml, err := yaml.Marshal(svc)
 				if err != nil {
 					return "", err
 				}
@@ -223,8 +226,11 @@ func processIstioOverrides(istioComponent *vzapi.IstioComponent, externalIPs []s
 		kubernetes := istioComponent.Ingress.Kubernetes
 		data.IngressReplicaCount = kubernetes.Replicas
 		if kubernetes.Service != nil {
-			if kubernetes.Service.Spec != nil {
-				yml, err := yaml.Marshal(kubernetes.Service.Spec)
+			if len(kubernetes.Service.Ports) > 0 {
+				svc := &corev1.ServiceSpec{
+					Ports: kubernetes.Service.Ports,
+				}
+				yml, err := yaml.Marshal(svc)
 				if err != nil {
 					return "", err
 				}
@@ -259,8 +265,11 @@ func processIstioOverrides(istioComponent *vzapi.IstioComponent, externalIPs []s
 		egressSettings := istioComponent.Egress.Kubernetes
 		data.EgressReplicaCount = egressSettings.Replicas
 		if egressSettings.Service != nil {
-			if egressSettings.Service.Spec != nil {
-				yml, err := yaml.Marshal(egressSettings.Service.Spec)
+			if len(egressSettings.Service.Ports) > 0 {
+				svc := &corev1.ServiceSpec{
+					Ports: egressSettings.Service.Ports,
+				}
+				yml, err := yaml.Marshal(svc)
 				if err != nil {
 					return "", err
 				}

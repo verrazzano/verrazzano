@@ -804,10 +804,12 @@ func (in *KubernetesServiceSection) DeepCopyInto(out *KubernetesServiceSection) 
 			(*out)[key] = val
 		}
 	}
-	if in.Spec != nil {
-		in, out := &in.Spec, &out.Spec
-		*out = new(v1.ServiceSpec)
-		(*in).DeepCopyInto(*out)
+	if in.Ports != nil {
+		in, out := &in.Ports, &out.Ports
+		*out = make([]v1.ServicePort, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 }
 

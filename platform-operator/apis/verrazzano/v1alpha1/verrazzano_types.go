@@ -514,8 +514,8 @@ type IstioKubernetesSection struct {
 
 // KubernetesServiceSection specifies common Kubernetes Service settings that can be customized
 type KubernetesServiceSection struct {
-	Annotations map[string]string   `json:"annotations,omitempty"`
-	Spec        *corev1.ServiceSpec `json:"spec,omitempty"`
+	Annotations map[string]string    `json:"annotations,omitempty"`
+	Ports       []corev1.ServicePort `json:"ports,omitempty"`
 }
 
 // IstioComponent specifies the Istio configuration
