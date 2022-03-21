@@ -1317,7 +1317,7 @@ func checkConfiguration(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Try getting the Keycloak groups.  If they exist, a configuration exists.
+	// Try getting the Keycloak groups.  If they exist, a configuration exists, no need to recreate.
 	_, err = getKeycloakGroups(ctx)
 	if err == nil {
 		return nil
