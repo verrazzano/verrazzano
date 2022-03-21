@@ -309,6 +309,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-2", size)
 			assertPersistentVolume("vmi-system-es-data", size)
 			assertPersistentVolume("vmi-system-es-data-1", size)
+			assertPersistentVolume("vmi-system-es-data-2", size)
 		})
 	}
 })
