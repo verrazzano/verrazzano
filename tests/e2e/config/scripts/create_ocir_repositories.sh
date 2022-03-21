@@ -176,7 +176,7 @@ function create_image_repos_from_archives() {
 
     # When OCIR_SCAN_TARGET_ID is set, all of the repositories used for scanning are created as private (we only use them for scanning)
     local is_public="false"
-    if [ "$from_repository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] && [ -z $OCIR_SCAN_TARGET_ID ]; then
+    if [ "$from_repository" == "rancher" ] || [ "$from_image_name" == "verrazzano-platform-operator" ] || [ "$from_image_name" == "weblogic-monitoring-exporter" ] && [ -z $OCIR_SCAN_TARGET_ID ]; then
       # Rancher repos must be public
       is_public="true"
     fi
