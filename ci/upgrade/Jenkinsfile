@@ -98,7 +98,7 @@ pipeline {
         APP_NAMEPACES="'todo-list bobs-books hello-helidon springboot sockshop'"
 
         // used to emit metrics
-         PROMETHEUS_GW_URL = credentials('prometheus-prod-url')
+         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
          PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
          TEST_ENV_LABEL = "kind"
          K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"

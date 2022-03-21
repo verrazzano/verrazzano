@@ -3,7 +3,7 @@
 
 {{- if .Values.fluentd.enabled }}
 ---
-apiVersion: v1ignore_key_not_exis
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Values.logging.name }}-init
