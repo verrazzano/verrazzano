@@ -20,6 +20,8 @@ spec:
         value: "4.8Gi"
       - name: nodes.data.requests.storage
         value: "50Gi"
+      - name: nodes.master.requests.storage
+        value: "50Gi"
     authproxy:
       kubernetes:
         replicas: 2
