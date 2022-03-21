@@ -1278,8 +1278,8 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
 }
 
-// checkConfiguration - check the Keycloak configuration when using ephemeral storage and if
-// necessary, restore it to the default settings.
+// checkConfiguration - check the Keycloak configuration when using ephemeral storage.
+// If necessary, restore it to the default settings.
 func checkConfiguration(ctx spi.ComponentContext) error {
 	// Skip if using persistent storage
 	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource != nil {
@@ -1291,14 +1291,13 @@ func checkConfiguration(ctx spi.ComponentContext) error {
 	pod := keycloakPod()
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed to get pod %s:", pod.Name, err)
+		ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", pod.Name, err)
 		return err
 	}
 	if !isPodReady(pod) {
 		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", pod.Name)
 		return fmt.Errorf("Waiting for pod %s to be ready", pod.Name)
 	}
-	ctx.Log().Infof("Component Keycloak pod %s is ready", pod.Name)
 
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
@@ -1318,10 +1317,17 @@ func checkConfiguration(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	// Try getting the Keycloak groups.  If they exist, a configuration exists.
+	_, err = getKeycloakGroups(ctx)
+	if err == nil {
+		return nil
+	}
+
 	// Recreate the Keycloak configuration if it has been lost.  The configureKeycloakRealms
 	// function will not recreate anything that already exists.
 	err = configureKeycloakRealms(ctx)
 	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed to configure realms: %v", err)
 		return err
 	}
 
