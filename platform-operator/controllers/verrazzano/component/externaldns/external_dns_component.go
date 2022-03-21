@@ -5,10 +5,8 @@ package externaldns
 
 import (
 	"fmt"
-	"path/filepath"
-	"reflect"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -70,9 +68,6 @@ func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 	// Do not allow any changes except to enable the component post-install
 	if e.IsEnabled(old) && !e.IsEnabled(new) {
 		return fmt.Errorf("Can not disable the OCI DNS configuration")
-	}
-	if !reflect.DeepEqual(old.Spec.Components.DNS, new.Spec.Components.DNS) {
-		return fmt.Errorf("Updates not allowed for DNS")
 	}
 	return nil
 }

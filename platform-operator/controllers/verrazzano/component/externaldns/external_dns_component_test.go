@@ -30,7 +30,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false, // For now, any changes to the DNS component are rejected
 		},
 		{
 			name: "disable",
@@ -66,7 +66,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false, // For now, any changes to the DNS component are rejected
 		},
 		{
 			name: "oci-to-external",
@@ -128,7 +128,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false, // For now, any changes to the DNS component are rejected
 		},
 		{
 			name: "wildcard-to-wildcard",
@@ -150,7 +150,7 @@ func Test_externalDNSComponent_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true, // For now, any changes to the DNS component are rejected
+			wantErr: false, // For now, any changes to the DNS component are rejected
 		},
 	}
 	for _, tt := range tests {
