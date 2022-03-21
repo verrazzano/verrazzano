@@ -154,7 +154,7 @@ var _ = t.Describe("Istio helm releases", Label("f:platform-lcm.upgrade"), func(
 })
 
 var _ = t.Describe("istioctl verify-install", func() {
-	framework.VzIt("should not return an error", func() {
+	t.It("should not return an error", func() {
 		Eventually(func() error {
 			stdout, _, err := istio.VerifyInstall(vzlog.DefaultLogger())
 			if err != nil {
