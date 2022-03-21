@@ -17,7 +17,8 @@ import (
 
 // Constants for Kubernetes resource names
 const (
-	fleetSystemNamespace = "fleet-system"
+	fleetSystemNamespace      = "cattle-fleet-system"
+	fleetLocalSystemNamespace = "cattle-fleet-local-system"
 	//OperatorNamespace         = "rancher-operator-system"
 	defaultSecretNamespace    = "cert-manager"
 	namespaceLabelKey         = "verrazzano.io/namespace"
@@ -88,7 +89,7 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 		//},
 		{
 			Name:      fleetAgentDeployment,
-			Namespace: fleetSystemNamespace,
+			Namespace: fleetLocalSystemNamespace,
 		},
 		{
 			Name:      fleetControllerDeployment,

@@ -250,7 +250,7 @@ func TestIsReady(t *testing.T) {
 		//},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: fleetSystemNamespace,
+				Namespace: fleetLocalSystemNamespace,
 				Name:      fleetAgentDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
