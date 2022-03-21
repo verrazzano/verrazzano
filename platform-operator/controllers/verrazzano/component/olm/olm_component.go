@@ -55,7 +55,7 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled olmComponent-specific enabled check for installation
-func (c olmComponent) IsEnabled(ctx spi.ComponentContext) bool {
+func (o olmComponent) IsEnabled(ctx spi.ComponentContext) bool {
 	comp := ctx.EffectiveCR().Spec.Components.OLM
 	if comp == nil || comp.Enabled == nil {
 		return true
@@ -64,8 +64,8 @@ func (c olmComponent) IsEnabled(ctx spi.ComponentContext) bool {
 }
 
 // IsReady component check
-func (c olmComponent) IsReady(ctx spi.ComponentContext) bool {
-	if c.HelmComponent.IsReady(ctx) {
+func (o olmComponent) IsReady(ctx spi.ComponentContext) bool {
+	if o.HelmComponent.IsReady(ctx) {
 		return isOLMReady(ctx)
 	}
 	return false
@@ -74,7 +74,7 @@ func (c olmComponent) IsReady(ctx spi.ComponentContext) bool {
 // PreInstall runs before operator-lifecycle-manager components are installed
 // The operator-lifecycle-manager namespace is created
 // The operator-lifecycle-manager manifest is patched if needed and applied to create necessary CRDs
-func (c olmComponent) PreInstall(compContext spi.ComponentContext) error {
+func (o olmComponent) PreInstall(compContext spi.ComponentContext) error {
 	// If it is a dry-run, do nothing
 	if compContext.IsDryRun() {
 		compContext.Log().Debug("operator-lifecycle-manager PreInstall dry run")
@@ -83,20 +83,26 @@ func (c olmComponent) PreInstall(compContext spi.ComponentContext) error {
 
 	// create operator-lifecycle-manager namespace
 	compContext.Log().Debug("Creating namespaces needed by operator-lifecycle-manager")
-	err := c.createOrUpdateNamespace(compContext, ComponentNamespace)
+	err := createOrUpdateNamespace(compContext, ComponentNamespace)
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to create the operator-lifecycle-manager namespace: %v", err)
 	}
-	err = c.createOrUpdateNamespace(compContext, OperatorNamespace)
+	err = createOrUpdateNamespace(compContext, OperatorNamespace)
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to create the operator-lifecycle-manager operators namespace: %v", err)
 	}
 
 	// Apply the operator-lifecycle-manager manifest, patching if needed
 	compContext.Log().Debug("Applying operator-lifecycle-manager crds")
-	err = c.applyManifest(compContext)
+	err = applyManifest(compContext)
 	if err != nil {
 		return compContext.Log().ErrorfNewErr("Failed to apply the operator-lifecycle-manager manifest: %v", err)
 	}
 	return nil
+}
+
+// Install operator-lifecycle-manager component
+func (o olmComponent) Install(ctx spi.ComponentContext) error {
+	err := o.HelmComponent.Install(ctx)
+	return err
 }

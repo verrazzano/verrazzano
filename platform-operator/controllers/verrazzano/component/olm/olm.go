@@ -120,7 +120,7 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides interface{}) (str
 }
 
 // createNamespace function creates a namespace with the given name
-func (c olmComponent) createOrUpdateNamespace(compContext spi.ComponentContext, namespaceName string) error {
+func createOrUpdateNamespace(compContext spi.ComponentContext, namespaceName string) error {
 	ns := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &ns, func() error {
 		return nil
@@ -131,7 +131,7 @@ func (c olmComponent) createOrUpdateNamespace(compContext spi.ComponentContext, 
 }
 
 // applyManifest applies the CRDs required for operator-lifecycle-manager
-func (c olmComponent) applyManifest(compContext spi.ComponentContext) error {
+func applyManifest(compContext spi.ComponentContext) error {
 	crdManifestDir := filepath.Join(config.GetThirdPartyManifestsDir(), crdDirectory)
 	// Exclude the input file, since it will be parsed into individual documents
 	// File containing OLM CRDs
