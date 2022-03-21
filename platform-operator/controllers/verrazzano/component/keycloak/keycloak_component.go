@@ -149,7 +149,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	// Determine if the Keycloak configuration needs to be rebuilt
-	if err := rebuildKeycloakConfiguration(ctx); err != nil {
+	if err := checkConfiguration(ctx); err != nil {
 		return err
 	}
 

@@ -682,7 +682,7 @@ func bashCMD(command string) []string {
 func keycloakPod() *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "keycloak-0",
+			Name:      keycloakPodName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -786,7 +786,7 @@ func createVerrazzanoUsersGroup(ctx spi.ComponentContext) (string, error) {
 	}
 
 	userGroup := "name=" + vzUsersGroup
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
 	ctx.Log().Debugf("createVerrazzanoUsersGroup: Create Verrazzano Users Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -816,7 +816,7 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 	}
 	adminGroup := "groups/" + userGroupID + "/children"
 	adminGroupName := "name=" + vzAdminGroup
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
 	ctx.Log().Debugf("createVerrazzanoAdminGroup: Create Verrazzano Admin Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -846,7 +846,7 @@ func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string)
 	}
 	monitorGroup := "groups/" + userGroupID + "/children"
 	monitorGroupName := "name=" + vzMonitorGroup
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
 	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Create Verrazzano Monitors Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -1102,7 +1102,7 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 func getKeycloakGroups(ctx spi.ComponentContext) (KeycloakGroups, error) {
 	var keycloakGroups KeycloakGroups
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Groups: %s", err)
@@ -1154,7 +1154,7 @@ func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
 func getKeycloakRoles(ctx spi.ComponentContext) (KeycloakRoles, error) {
 	var keycloakRoles KeycloakRoles
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Roles: %s", err)
@@ -1187,7 +1187,7 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
 	var keycloakUsers KeycloakUsers
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Users: %s", err)
@@ -1219,7 +1219,7 @@ func userExists(keycloakUsers KeycloakUsers, userName string) bool {
 func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	var keycloakClients KeycloakClients
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", err)
@@ -1278,39 +1278,47 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
 }
 
-// rebuildKeycloakConfiguration - rebuild the Keycloak configuration when using ephemeral storage
-// and settings have been lost.  For example, if the MySQL pod restarts the configuration is lost.
-func rebuildKeycloakConfiguration(ctx spi.ComponentContext) error {
+// checkConfiguration - check the Keycloak configuration when using ephemeral storage and if
+// necessary, restore it to the default settings.
+func checkConfiguration(ctx spi.ComponentContext) error {
 	// Skip if using persistent storage
 	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource != nil {
+		ctx.Log().Progress("Component Keycloak skipped checking configuration because persistent storage is being used")
 		return nil
 	}
 
-	// Wait for the Keycloak to be ready
-	pod := corev1.Pod{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: keycloakPodName}, &pod)
+	// Wait for the Keycloak pod to be ready
+	pod := keycloakPod()
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
 	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed to get pod %s:", pod.Name, err)
 		return err
 	}
 	if !isPodReady(pod) {
-		return fmt.Errorf("Waiting for pod %s to be ready", keycloakPodName)
+		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", pod.Name)
+		return fmt.Errorf("Waiting for pod %s to be ready", pod.Name)
 	}
 
-	// Recycle the Keycloak pod if login fails
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
-		return err
-	}
-	// Login to Keycloak
-	err = loginKeycloak(ctx, cfg, cli)
-	if err != nil {
-		// Restart the Keycloak pod when the login fails
-		err = ctx.Client().Delete(context.TODO(), &pod)
+		ctx.Log().Errorf("Component Keycloak failed to create client config: %v", err)
 		return err
 	}
 
-	// Recreate the keycloak realms when using ephemeral storage, the configuration
-	// is lost when the MySQL pod recycles.
+	// When the MySQL pod restarts and using ephemeral storage, the
+	// login to Keycloak will fail.  Need to recycle the Keycloak pod
+	// to resolve the condition.
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		err2 := ctx.Client().Delete(context.TODO(), pod)
+		if err2 != nil {
+			ctx.Log().Errorf("Component Keycloak failed to recycle pod %s: %v", pod.Name, err2)
+		}
+		return err
+	}
+
+	// Recreate the Keycloak configuration if it has been lost.  The configureKeycloakRealms
+	// function will not recreate anything that already exists.
 	err = configureKeycloakRealms(ctx)
 	if err != nil {
 		return err
@@ -1320,7 +1328,7 @@ func rebuildKeycloakConfiguration(ctx spi.ComponentContext) error {
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True
-func isPodReady(pod v1.Pod) bool {
+func isPodReady(pod *v1.Pod) bool {
 	conditions := pod.Status.Conditions
 	for j := range conditions {
 		if conditions[j].Type == "Ready" && conditions[j].Status == "True" {
