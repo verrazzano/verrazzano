@@ -23,10 +23,10 @@ const (
 )
 
 func DeployApplication(namespace, componentsPath, applicationPath, podName string, t *framework.TestFramework) {
-	pkg.Log(pkg.Info, "Deploy test application")
+	t.Logs.Info("Deploy test application")
 	start := time.Now()
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
 			"verrazzano-managed": "true",
@@ -34,17 +34,17 @@ func DeployApplication(namespace, componentsPath, applicationPath, podName strin
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
-	pkg.Log(pkg.Info, "Create component resources")
+	t.Logs.Info("Create component resources")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create application resources")
+	t.Logs.Info("Create application resources")
 	gomega.Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	pkg.Log(pkg.Info, fmt.Sprintf("Check pod %v is running", podName))
+	t.Logs.Infof("Check pod %v is running", podName)
 	gomega.Eventually(func() bool {
 		result, err := pkg.PodsRunning(namespace, []string{podName})
 		if err != nil {
@@ -57,34 +57,34 @@ func DeployApplication(namespace, componentsPath, applicationPath, podName strin
 }
 
 func UndeployApplication(namespace string, componentsPath string, applicationPath string, configMapName string, t *framework.TestFramework) {
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Delete application")
 	start := time.Now()
 	gomega.Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	gomega.Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	pkg.Log(pkg.Info, "Verify ConfigMap is Deleted")
+	t.Logs.Info("Verify ConfigMap is Deleted")
 	gomega.Eventually(func() bool {
 		configMap, _ := pkg.GetConfigMap(configMapName, namespace)
 		return (configMap == nil)
 	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	gomega.Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
+	t.Logs.Info("Wait for Finalizer to be removed")
 	gomega.Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(gomega.BeTrue())
 
-	pkg.Log(pkg.Info, "Wait for namespace to be deleted")
+	t.Logs.Info("Wait for namespace to be deleted")
 	gomega.Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)

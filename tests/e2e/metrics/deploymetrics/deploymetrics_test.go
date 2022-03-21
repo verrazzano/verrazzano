@@ -44,9 +44,9 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 })
 
 func deployMetricsApplication() {
-	pkg.Log(pkg.Info, "Deploy DeployMetrics Application")
+	t.Logs.Info("Deploy DeployMetrics Application")
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
@@ -55,12 +55,12 @@ func deployMetricsApplication() {
 		return pkg.CreateNamespace(testNamespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create component resource")
+	t.Logs.Info("Create component resource")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create application resource")
+	t.Logs.Info("Create application resource")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
@@ -69,7 +69,7 @@ func deployMetricsApplication() {
 		return pkg.ContainerImagePullWait(testNamespace, expectedPodsDeploymetricsApp)
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Verify deploymetrics-workload pod is running")
+	t.Logs.Info("Verify deploymetrics-workload pod is running")
 	Eventually(func() bool {
 		result, err := pkg.PodsRunning(testNamespace, expectedPodsDeploymetricsApp)
 		if err != nil {
@@ -81,19 +81,20 @@ func deployMetricsApplication() {
 }
 
 func undeployMetricsApplication() {
-	pkg.Log(pkg.Info, "Undeploy DeployMetrics Application")
+	t.Logs.Info("Undeploy DeployMetrics Application")
 
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-app.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFile("testdata/deploymetrics/deploymetrics-comp.yaml")
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
-	pkg.Log(pkg.Info, "Wait for pods to terminate")
+
+	t.Logs.Info("Wait for pods to terminate")
 	Eventually(func() bool {
 		podsNotRunning, _ := pkg.PodsNotRunning(testNamespace, expectedPodsDeploymetricsApp)
 		return podsNotRunning
@@ -103,17 +104,17 @@ func undeployMetricsApplication() {
 		return pkg.IsAppInPromConfig(promConfigJobName)
 	}, waitTimeout, pollingInterval).Should(BeFalse(), "Expected App to be removed from Prometheus Config")
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)
 	}, longWaitTimeout, longPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
+	t.Logs.Info("Wait for Finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(testNamespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Waiting for namespace deletion")
+	t.Logs.Info("Waiting for namespace deletion")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(testNamespace)
 		return err != nil && errors.IsNotFound(err)
