@@ -17,8 +17,8 @@ import (
 
 // Constants for Kubernetes resource names
 const (
-	fleetSystemNamespace      = "fleet-system"
-	OperatorNamespace         = "rancher-operator-system"
+	fleetSystemNamespace = "fleet-system"
+	//OperatorNamespace         = "rancher-operator-system"
 	defaultSecretNamespace    = "cert-manager"
 	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
@@ -27,7 +27,7 @@ const (
 	fleetControllerDeployment = "fleet-controller"
 	gitjobDeployment          = "gitjob"
 	rancherWebhookDeployment  = "rancher-webhook"
-	rancherOperatorDeployment = "rancher-operator"
+	//rancherOperatorDeployment = "rancher-operator"
 )
 
 // Helm Chart setter keys
@@ -82,10 +82,10 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 			Name:      rancherWebhookDeployment,
 			Namespace: ComponentNamespace,
 		},
-		{
-			Name:      rancherOperatorDeployment,
-			Namespace: OperatorNamespace,
-		},
+		//{
+		//	Name:      rancherOperatorDeployment,
+		//	Namespace: OperatorNamespace,
+		//},
 		{
 			Name:      fleetAgentDeployment,
 			Namespace: fleetSystemNamespace,

@@ -174,9 +174,9 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
 	c := ctx.Client()
 	log := ctx.Log()
-	if err := createRancherOperatorNamespace(log, c); err != nil {
-		return err
-	}
+	//if err := createRancherOperatorNamespace(log, c); err != nil {
+	//	return err
+	//}
 	if err := createCattleSystemNamespace(log, c); err != nil {
 		return err
 	}
