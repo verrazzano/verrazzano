@@ -16,7 +16,7 @@ spec:
         spec:
           cluster: HelloCoherence
           replicas: 1
-          image: registry/image:tag
+          image: ghcr.io/verrazzano/coherence-app:1.0.0-1-20220319111617-b157b52a
           imagePullPolicy: IfNotPresent
           application:
             type: spring
