@@ -100,36 +100,6 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, false)))
 }
 
-//  TestIsApplyCRDYamlValid tests the applyCRDYaml function
-//  GIVEN a call to ApplyCRDYaml
-//  WHEN the yaml is valid
-//  THEN no error is returned
-func TestIsApplyCRDYamlValid(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	config.TestHelmConfigDir = "../../../../helm_config"
-	assert.Nil(t, applyCRDYaml(fakeClient))
-}
-
-//  TestIsApplyCRDYamlInvalidPath tests the applyCRDYaml function
-//  GIVEN a call to ApplyCRDYaml
-//  WHEN the path is invalid
-//  THEN an appropriate error is returned
-func TestIsApplyCRDYamlInvalidPath(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	config.TestHelmConfigDir = "./testdata"
-	assert.Error(t, applyCRDYaml(fakeClient))
-}
-
-//  TestIsApplyCRDYamlInvalidChart tests the applyCRDYaml function
-//  GIVEN a call to ApplyCRDYaml
-//  WHEN the yaml is invalid
-//  THEN an appropriate error is returned
-func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	config.TestHelmConfigDir = "invalidPath"
-	assert.Error(t, applyCRDYaml(fakeClient))
-}
-
 // TestLabelAnnotateTraitDefinitions tests the labelAnnotateTraitDefinitions function
 // GIVEN a call to labelAnnotateTraitDefinitions
 // WHEN trait definitions do not have expected Helm label/annotations

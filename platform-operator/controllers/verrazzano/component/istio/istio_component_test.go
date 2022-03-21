@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/golang/mock/gomock"
@@ -27,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	gofake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -254,6 +257,10 @@ func TestPostUpgrade(t *testing.T) {
 
 	comp := istioComponent{}
 
+	// Setup fake client to provide workloads for restart platform testing
+	clientSet := gofake.NewSimpleClientset()
+	k8sutil.SetFakeClient(clientSet)
+
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helm.SetCmdRunner(fakeRunner{})
 	defer helm.SetDefaultRunner()
@@ -448,6 +455,15 @@ func getBoolPtr(b bool) *bool {
 
 func Test_istioComponent_ValidateUpdate(t *testing.T) {
 	disabled := false
+	affinityChange := &v1.Affinity{
+		NodeAffinity: &v1.NodeAffinity{
+			RequiredDuringSchedulingIgnoredDuringExecution: &v1.NodeSelector{
+				NodeSelectorTerms: []v1.NodeSelectorTerm{
+					{MatchExpressions: []v1.NodeSelectorRequirement{{Key: "foo"}}},
+				},
+			},
+		},
+	}
 	tests := []struct {
 		name    string
 		old     *installv1alpha1.Verrazzano
@@ -483,6 +499,100 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "change-install-args",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{{Name: "foo", Value: "bar"}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-ingress-replicas",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Ingress: &installv1alpha1.IstioIngressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Replicas: 5,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-ingress-affinity",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Ingress: &installv1alpha1.IstioIngressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Affinity: affinityChange,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-egress-replicas",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Egress: &installv1alpha1.IstioEgressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Replicas: 5,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-eggress-affinity",
+			old:  &installv1alpha1.Verrazzano{},
+			new: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Istio: &installv1alpha1.IstioComponent{
+							Egress: &installv1alpha1.IstioEgressSection{
+								Kubernetes: &installv1alpha1.IstioKubernetesSection{
+									CommonKubernetesSpec: installv1alpha1.CommonKubernetesSpec{
+										Affinity: affinityChange,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name:    "no change",
 			old:     &installv1alpha1.Verrazzano{},
 			new:     &installv1alpha1.Verrazzano{},
@@ -494,6 +604,134 @@ func Test_istioComponent_ValidateUpdate(t *testing.T) {
 			c := NewComponent()
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_istioComponent_ValidateInstall(t *testing.T) {
+	tests := []struct {
+		name    string
+		vz      *installv1alpha1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "IstioComponentEmpty",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallArgsEmpty",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallMissingKey",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:      "foo",
+									ValueList: []string{"1.1.1.1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallMissingIP",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:  "gateways.istio-ingressgateway.externalIPs",
+									Value: "1.1.1.1",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallInvalidIP",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:      "gateways.istio-ingressgateway.externalIPs",
+									ValueList: []string{"1.1.1.1.1"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "IstioInstallValidConfig",
+			vz: &installv1alpha1.Verrazzano{
+				Spec: installv1alpha1.VerrazzanoSpec{
+					Components: installv1alpha1.ComponentSpec{
+						Ingress: &installv1alpha1.IngressNginxComponent{
+							Type: installv1alpha1.NodePort,
+						},
+						Istio: &installv1alpha1.IstioComponent{
+							IstioInstallArgs: []installv1alpha1.InstallArgs{
+								{
+									Name:      "gateways.istio-ingressgateway.externalIPs",
+									ValueList: []string{"1.2.3.4"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

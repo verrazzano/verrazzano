@@ -5,7 +5,11 @@ package nginx
 
 import (
 	"fmt"
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
 	"path/filepath"
+	"reflect"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 
@@ -73,8 +77,45 @@ func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c nginxComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Block all changes for now, particularly around storage changes
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+		return fmt.Errorf("Updates to nginxInstallArgs not allowed for %s", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(c.getPorts(old), c.getPorts(new)) {
+		return fmt.Errorf("Updates to ports not allowed for %s", ComponentJSONName)
+	}
+	oldType, err := vzconfig.GetServiceType(old)
+	if err != nil {
+		return err
+	}
+	newType, err := vzconfig.GetServiceType(new)
+	if err != nil {
+		return err
+	}
+	if oldType != newType {
+		return fmt.Errorf("Updates to service type not allowed for %s", ComponentJSONName)
 	}
 	return nil
+}
+
+func (c nginxComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if vz != nil && vz.Spec.Components.Ingress != nil {
+		return vz.Spec.Components.Ingress.NGINXInstallArgs
+	}
+	return nil
+}
+
+func (c nginxComponent) getPorts(vz *vzapi.Verrazzano) []corev1.ServicePort {
+	if vz != nil && vz.Spec.Components.Ingress != nil {
+		return vz.Spec.Components.Ingress.Ports
+	}
+	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c nginxComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, c.Name())
 }

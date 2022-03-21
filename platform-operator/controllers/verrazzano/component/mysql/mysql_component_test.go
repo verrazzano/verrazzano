@@ -62,6 +62,34 @@ func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "change-install-args",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							MySQL: vzapi.MySQLComponent{
+								MySQLInstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
+							},
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							MySQL: vzapi.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "PVC to emptyDir in volumeSource",
 			old: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{

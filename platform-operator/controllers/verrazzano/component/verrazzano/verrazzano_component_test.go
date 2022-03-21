@@ -64,8 +64,9 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 //  WHEN I call PreUpgrade with defaults
 //  THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
-	// The actual pre-upgrade testing is performed by the TestFixupFluentdDaemonset unit tests, this just adds coverage
+	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
+	config.TestHelmConfigDir = "../../../../helm_config"
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewFakeClientWithScheme(testScheme), &vzapi.Verrazzano{}, false))
 	assert.NoError(t, err)
 }
@@ -367,6 +368,20 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "change-installargs",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Verrazzano: &vzapi.VerrazzanoComponent{
+							InstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name:    "no change",
 			old:     &vzapi.Verrazzano{},
 			new:     &vzapi.Verrazzano{},
@@ -476,6 +491,151 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 									Value: "2Gi",
 								},
 							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "disable-opensearch",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-console",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Console: &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			// Change to OS installargs allowed, persistence changes are supported
+			name: "change-os-installargs",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							ESInstallArgs: []vzapi.InstallArgs{{Name: "foo", Value: "bar"}},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "disable-grafana",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Grafana: &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-prometheus",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Prometheus: &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-osd",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Kibana: &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &disabled}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-fluentd",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{Enabled: &disabled},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-fluentd-oci",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							OCI: &vzapi.OciLoggingConfiguration{
+								APISecret: "secret",
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-fluentd-es-secret",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							ElasticsearchSecret: "secret",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-fluentd-es-url",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							ElasticsearchURL: "url",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-fluentd-extravolume",
+			old:  &vzapi.Verrazzano{},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Fluentd: &vzapi.FluentdComponent{
+							ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "foo"}},
 						},
 					},
 				},

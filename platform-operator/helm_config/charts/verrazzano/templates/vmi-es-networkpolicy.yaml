@@ -246,6 +246,7 @@ spec:
 ---
 # Network policy for Kibana
 # Ingress: allow from auth proxy to port 5601
+#          allow from VMO on port 5601
 #          allow from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -260,6 +261,14 @@ spec:
   policyTypes:
     - Ingress
   ingress:
+    # Allow ingress from Verrazzano Monitoring Operator
+    - from:
+        - podSelector:
+            matchLabels:
+              k8s-app: verrazzano-monitoring-operator
+      ports:
+        - port: 5601
+          protocol: TCP
     - from:
         - namespaceSelector:
             matchLabels:

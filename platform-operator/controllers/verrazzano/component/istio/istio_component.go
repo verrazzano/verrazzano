@@ -6,9 +6,11 @@ package istio
 import (
 	"context"
 	"fmt"
+	k8s "github.com/verrazzano/verrazzano/platform-operator/internal/nodeport"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -130,13 +132,45 @@ func (i istioComponent) Name() string {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return nil
+	return k8s.ValidateForExternalIPSWithNodePort(&vz.Spec, i.Name())
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
 	if i.IsEnabled(old) && !i.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Reject any other edits
+	if !reflect.DeepEqual(i.getInstallArgs(old), i.getInstallArgs(new)) {
+		return fmt.Errorf("Updates to installArgs not allowed for %s", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(i.getIngressSettings(old), i.getIngressSettings(new)) {
+		return fmt.Errorf("Updates to ingress not allowed for %s", ComponentJSONName)
+	}
+	if !reflect.DeepEqual(i.getEgressSettings(old), i.getEgressSettings(new)) {
+		return fmt.Errorf("Updates to egress not allowed for %s", ComponentJSONName)
+	}
+	return nil
+}
+
+func (i istioComponent) getIngressSettings(vz *vzapi.Verrazzano) *vzapi.IstioIngressSection {
+	if vz != nil && vz.Spec.Components.Istio != nil {
+		return vz.Spec.Components.Istio.Ingress
+	}
+	return nil
+}
+
+func (i istioComponent) getEgressSettings(vz *vzapi.Verrazzano) *vzapi.IstioEgressSection {
+	if vz != nil && vz.Spec.Components.Istio != nil {
+		return vz.Spec.Components.Istio.Egress
+	}
+	return nil
+}
+
+func (i istioComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if vz != nil && vz.Spec.Components.Istio != nil {
+		return vz.Spec.Components.Istio.IstioInstallArgs
 	}
 	return nil
 }

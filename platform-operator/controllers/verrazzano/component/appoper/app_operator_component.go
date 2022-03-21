@@ -12,6 +12,7 @@ import (
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
@@ -60,7 +61,7 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 
 // PreUpgrade processing for the application-operator
 func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	err := applyCRDYaml(ctx.Client())
+	err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir())
 	if err != nil {
 		return err
 	}
@@ -117,8 +118,9 @@ func (c applicationOperatorComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) b
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c applicationOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
-		return fmt.Errorf("can not disable previously enabled %s", ComponentJSONName)
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return nil
 }

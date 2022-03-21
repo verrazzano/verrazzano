@@ -68,7 +68,9 @@ func createVMI(ctx spi.ComponentContext) error {
 		vmi.Spec.CascadingDelete = true
 		vmi.Spec.Grafana = newGrafana(cr, storage, existingVMI)
 		vmi.Spec.Prometheus = newPrometheus(cr, storage, existingVMI)
-		opensearch, err := newOpenSearch(cr, storage, existingVMI, hasDataNodeStorageOverride(ctx.ActualCR()))
+		hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
+		hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
+		opensearch, err := newOpenSearch(cr, storage, existingVMI, hasDataNodeOverride, hasMasterNodeOverride)
 		if err != nil {
 			return err
 		}
@@ -141,13 +143,13 @@ func setStorageSize(storage *resourceRequestValues, storageObject *vmov1.Storage
 	}
 }
 
-func hasDataNodeStorageOverride(cr *vzapi.Verrazzano) bool {
+func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
 	openSearch := cr.Spec.Components.Elasticsearch
 	if openSearch == nil {
 		return false
 	}
 	for _, arg := range openSearch.ESInstallArgs {
-		if arg.Name == "nodes.data.requests.storage" {
+		if arg.Name == override {
 			return true
 		}
 	}
@@ -155,13 +157,19 @@ func hasDataNodeStorageOverride(cr *vzapi.Verrazzano) bool {
 	return false
 }
 
-func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, useDataOverride bool) (*vmov1.Elasticsearch, error) {
+//newOpenSearch creates a new OpenSearch resource for the VMI
+// The storage settings for OpenSearch nodes follow this order of precedence:
+// 1. ESInstallArgs values
+// 2. VolumeClaimTemplate overrides
+// 3. Profile values (which show as ESInstallArgs in the ActualCR)
+// The data node storage may be changed on update. The master node storage may NOT.
+func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}
-	opensearchValues := cr.Spec.Components.Elasticsearch
+	opensearchComponent := cr.Spec.Components.Elasticsearch
 	opensearch := &vmov1.Elasticsearch{
-		Enabled: opensearchValues.Enabled != nil && *opensearchValues.Enabled,
+		Enabled: opensearchComponent.Enabled != nil && *opensearchComponent.Enabled,
 		Storage: vmov1.Storage{},
 		MasterNode: vmov1.ElasticsearchNode{
 			Resources: vmov1.Resources{},
@@ -178,6 +186,37 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
+	// Set the values in the OpenSearch object from the Verrazzano component InstallArgs
+	if err := populateOpenSearchFromInstallArgs(opensearch, opensearchComponent); err != nil {
+		return nil, err
+	}
+
+	setVolumeClaimOverride := func(nodeStorage *vmov1.Storage, hasInstallOverride bool) *vmov1.Storage {
+		// Use the volume claim override IFF it is present AND the user did not specify a data node storage override
+		if !hasInstallOverride && storage != nil && len(storage.Storage) > 0 {
+			nodeStorage = &vmov1.Storage{
+				Size: storage.Storage,
+			}
+		}
+		return nodeStorage
+	}
+	opensearch.MasterNode.Storage = setVolumeClaimOverride(opensearch.MasterNode.Storage, hasMasterOverride)
+	opensearch.DataNode.Storage = setVolumeClaimOverride(opensearch.DataNode.Storage, hasDataOverride)
+
+	if vmi != nil {
+		// We currently do not support resizing master node PVC
+		opensearch.MasterNode.Storage = &vmi.Spec.Elasticsearch.Storage
+		if vmi.Spec.Elasticsearch.MasterNode.Storage != nil {
+			opensearch.MasterNode.Storage = vmi.Spec.Elasticsearch.MasterNode.Storage.DeepCopy()
+		}
+	}
+
+	return opensearch, nil
+}
+
+//populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
+// OpenSearch object
+func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensearchComponent *vzapi.ElasticsearchComponent) error {
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
 		var intVal int32
 		_, err := fmt.Sscan(arg.Value, &intVal)
@@ -187,44 +226,40 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		*val = intVal
 		return nil
 	}
-
 	// The install args were designed for helm chart, not controller code.
 	// The switch statement is a shim around this design.
-	for _, arg := range opensearchValues.ESInstallArgs {
+	for _, arg := range opensearchComponent.ESInstallArgs {
 		switch arg.Name {
 		case "nodes.master.replicas":
 			if err := intSetter(&opensearch.MasterNode.Replicas, arg); err != nil {
-				return nil, err
+				return err
 			}
 		case "nodes.master.requests.memory":
 			opensearch.MasterNode.Resources.RequestMemory = arg.Value
 		case "nodes.ingest.replicas":
 			if err := intSetter(&opensearch.IngestNode.Replicas, arg); err != nil {
-				return nil, err
+				return err
 			}
 		case "nodes.ingest.requests.memory":
 			opensearch.IngestNode.Resources.RequestMemory = arg.Value
 		case "nodes.data.replicas":
 			if err := intSetter(&opensearch.DataNode.Replicas, arg); err != nil {
-				return nil, err
+				return err
 			}
 		case "nodes.data.requests.memory":
 			opensearch.DataNode.Resources.RequestMemory = arg.Value
 		case "nodes.data.requests.storage":
-			opensearch.Storage.Size = arg.Value
+			opensearch.DataNode.Storage = &vmov1.Storage{
+				Size: arg.Value,
+			}
+		case "nodes.master.requests.storage":
+			opensearch.MasterNode.Storage = &vmov1.Storage{
+				Size: arg.Value,
+			}
 		}
 	}
 
-	// Use the volume claim override IFF it is present AND the user did not specify a data node storage override
-	if !useDataOverride && storage != nil && len(storage.Storage) > 0 {
-		opensearch.Storage.Size = storage.Storage
-	}
-
-	if vmi != nil {
-		opensearch.Storage = vmi.Spec.Elasticsearch.Storage
-	}
-
-	return opensearch, nil
+	return nil
 }
 
 func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {

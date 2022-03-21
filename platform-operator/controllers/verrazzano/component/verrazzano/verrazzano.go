@@ -18,8 +18,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -203,14 +205,17 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, _ string, namespace string, _ string) error {
-	if err := importToHelmChart(client); err != nil {
+func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmVzChartsDir()); err != nil {
 		return err
 	}
-	if err := ensureVMISecret(client); err != nil {
-
+	if err := importToHelmChart(ctx.Client()); err != nil {
+		return err
 	}
-	return fixupFluentdDaemonset(log, client, namespace)
+	if err := ensureVMISecret(ctx.Client()); err != nil {
+		return err
+	}
+	return fixupFluentdDaemonset(ctx.Log(), ctx.Client(), namespace)
 }
 
 func findStorageOverride(effectiveCR *vzapi.Verrazzano) (*resourceRequestValues, error) {
