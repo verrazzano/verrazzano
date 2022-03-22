@@ -76,6 +76,27 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 		Value: istioProxyImage,
 	})
 
+	// get weblogicMonitoringExporter image
+	var weblogicMonitoringExporterImage string
+	images, err = bomFile.BuildImageOverrides("weblogic-operator")
+	if err != nil {
+		return nil, err
+	}
+	for _, image := range images {
+		if image.Key == "weblogicMonitoringExporterImage" {
+			weblogicMonitoringExporterImage = image.Value
+		}
+	}
+	if len(weblogicMonitoringExporterImage) == 0 {
+		return nil, compContext.Log().ErrorNewErr("Failed to find weblogicMonitoringExporterImage in BOM")
+	}
+
+	// weblogicMonitoringExporterImage for ENV WEBLOGIC_MONITORING_EXPORTER_IMAGE
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "weblogicMonitoringExporterImage",
+		Value: weblogicMonitoringExporterImage,
+	})
+
 	return kvs, nil
 }
 
