@@ -111,7 +111,7 @@ func AppendOverrides(compContext spi.ComponentContext, releaseName string, names
 	if err != nil {
 		return kvs, err
 	}
-	txtPrefix, err := getOrBuildRecordPrefix(compContext, ownerString, releaseName, namespace)
+	txtPrefix, err := getOrBuildTXTRecordPrefix(compContext, ownerString, releaseName, namespace)
 	if err != nil {
 		return kvs, err
 	}
@@ -147,9 +147,9 @@ func getOrBuildOwnerID(compContext spi.ComponentContext, releaseName string, nam
 	return ownerString, nil
 }
 
-//getOrBuildRecordPrefix Get the TXT record prefix from the Helm release if it exists and preserve it, otherwise build
+//getOrBuildTXTRecordPrefix Get the TXT record prefix from the Helm release if it exists and preserve it, otherwise build
 //  new one off of the ownerID passed in
-func getOrBuildRecordPrefix(compContext spi.ComponentContext, ownerID string, releaseName string, namespace string) (string, error) {
+func getOrBuildTXTRecordPrefix(compContext spi.ComponentContext, ownerID string, releaseName string, namespace string) (string, error) {
 	value, found, err := helm.GetReleaseStringValue(compContext.Log(), prefixKey, releaseName, namespace)
 	if err != nil {
 		return "", err

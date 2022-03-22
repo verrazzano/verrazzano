@@ -214,8 +214,8 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildOwnerID and getOrBuildRecordPrefix functions
-// GIVEN calls to getOrBuildOwnerID and getOrBuildRecordPrefix
+// TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildOwnerID and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildOwnerID and getOrBuildTXTRecordPrefix
 //  WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
 //  THEN the function returns the stored helm values and no error
 func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
@@ -256,13 +256,13 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "storedOwnerId", ownerString)
 
-	txtPrefix, err := getOrBuildRecordPrefix(compContext, ownerString, ComponentName, ComponentNamespace)
+	txtPrefix, err := getOrBuildTXTRecordPrefix(compContext, ownerString, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
 	assert.Equal(t, "storedPrefix", txtPrefix)
 }
 
-// TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildOwnerID and getOrBuildRecordPrefix functions
-// GIVEN calls to getOrBuildOwnerID and getOrBuildRecordPrefix
+// TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildOwnerID and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildOwnerID and getOrBuildTXTRecordPrefix
 //  WHEN no stored helm values exist
 //  THEN the function returns the generated values and no error
 func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
@@ -289,7 +289,7 @@ func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, strings.HasPrefix(ownerString, "v8o-default-my-verrazzano-"))
 
-	txtPrefix, err := getOrBuildRecordPrefix(compContext, ownerString, ComponentName, ComponentNamespace)
+	txtPrefix, err := getOrBuildTXTRecordPrefix(compContext, ownerString, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
 	assert.True(t, strings.HasPrefix(txtPrefix, "_v8o-default-my-verrazzano-"))
 }
