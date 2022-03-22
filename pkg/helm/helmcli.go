@@ -368,10 +368,7 @@ func GetReleaseAppVersion(releaseName string, namespace string) (string, error) 
 //GetReleaseStringValue - Returns a Helm release value as a string
 func GetReleaseStringValue(log vzlog.VerrazzanoLogger, valueKey string, releaseName string, namespace string) (string, bool, error) {
 	value, found, err := GetReleaseValue(log, valueKey, releaseName, namespace)
-	if found {
-		return fmt.Sprintf("%v", value), found, err
-	}
-	return "", found, err
+	return fmt.Sprintf("%v", value), found, err
 }
 
 //GetReleaseValue - Returns a Helm release value as an object
@@ -387,7 +384,7 @@ func GetReleaseValue(log vzlog.VerrazzanoLogger, valueKey string, releaseName st
 		}
 		if mapVal, ok := valuesMap[valueKey]; ok {
 			log.Debugf("Using existing owner ID from helm release: %v", mapVal)
-			return fmt.Sprintf("%v", mapVal), true, nil
+			return mapVal, true, nil
 		}
 	}
 	return "", false, nil
