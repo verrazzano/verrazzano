@@ -2,6 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
+def INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
@@ -83,9 +84,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND_PERSISTENCE = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
         INSTALL_CONFIG_FILE_KIND_EPHEMERAL = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
-        INSTALL_CONFIG_FILE_KIND = "${env.INSTALL_CONFIG_FILE_KIND_PERSISTENCE}"
         INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -186,7 +185,7 @@ pipeline {
                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
                     OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml"
                     if (params.CHAOS_TEST_TYPE.equals("ephemeral.storage.upgrade")) {
-                        env.INSTALL_CONFIG_FILE_KIND = env.INSTALL_CONFIG_FILE_KIND_EPHEMERAL
+                        INSTALL_CONFIG_FILE_KIND = env.INSTALL_CONFIG_FILE_KIND_EPHEMERAL
                     }
                 }
             }
