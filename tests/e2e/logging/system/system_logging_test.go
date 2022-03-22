@@ -14,25 +14,23 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
 const (
-	shortPollingInterval       = 10 * time.Second
-	shortWaitTimeout           = 5 * time.Minute
-	searchTimeWindow           = "1h"
-	systemIndex                = "verrazzano-namespace-verrazzano-system"
-	installIndex               = "verrazzano-namespace-verrazzano-install"
-	certMgrIndex               = "verrazzano-namespace-cert-manager"
-	keycloakIndex              = "verrazzano-namespace-keycloak"
-	cattleSystemIndex          = "verrazzano-namespace-cattle-system"
-	fleetSystemIndex           = "verrazzano-namespace-fleet-system"
-	localPathStorageIndex      = "verrazzano-namespace-local-path-storage"
-	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
-	nginxIndex                 = "verrazzano-namespace-ingress-nginx"
-	monitoringIndex            = "verrazzano-namespace-monitoring"
+	shortPollingInterval  = 10 * time.Second
+	shortWaitTimeout      = 5 * time.Minute
+	searchTimeWindow      = "1h"
+	systemIndex           = "verrazzano-namespace-verrazzano-system"
+	installIndex          = "verrazzano-namespace-verrazzano-install"
+	certMgrIndex          = "verrazzano-namespace-cert-manager"
+	keycloakIndex         = "verrazzano-namespace-keycloak"
+	cattleSystemIndex     = "verrazzano-namespace-cattle-system"
+	fleetSystemIndex      = "verrazzano-namespace-cattle-fleet-system"
+	fleetLocalSystemIndex = "verrazzano-namespace-cattle-fleet-local-system"
+	localPathStorageIndex = "verrazzano-namespace-local-path-storage"
+	nginxIndex            = "verrazzano-namespace-ingress-nginx"
+	monitoringIndex       = "verrazzano-namespace-monitoring"
 )
 
 var (
@@ -227,17 +225,31 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
-	t.It("contains fleet-system index with valid records", func() {
+	t.It("contains cattle-fleet-system index with valid records", func() {
 		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the fleet-system namespace is retrieved
+		// WHEN the Elasticsearch index for the cattle-fleet-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
 			return pkg.LogIndexFound(fleetSystemIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index fleet-system")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-system")
 
 		if !validateFleetSystemLogs() {
 			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in fleet-system index")
+			t.Logs.Info("Found problems with log records in cattle-fleet-system index")
+		}
+	})
+
+	t.It("contains cattle-fleet-local-system index with valid records", func() {
+		// GIVEN existing system logs
+		// WHEN the Elasticsearch index for the cattle-fleet-local-system namespace is retrieved
+		// THEN verify that it is found
+		Eventually(func() bool {
+			return pkg.LogIndexFound(fleetLocalSystemIndex)
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-local-system")
+
+		if !validateFleetSystemLogs() {
+			// Don't fail for invalid logs until this is stable.
+			t.Logs.Info("Found problems with log records in cattle-fleet-local-system index")
 		}
 	})
 
@@ -265,20 +277,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			}
 		})
 	}
-
-	t.It("contains rancher-operator-system index with valid records", func() {
-		// GIVEN existing system logs
-		// WHEN the Elasticsearch index for the rancher-operator-system namespace is retrieved
-		// THEN verify that it is found
-		Eventually(func() bool {
-			return pkg.LogIndexFound(rancherOperatorSystemIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index rancher-operator-system")
-
-		if !validateRancherOperatorSystemLogs() {
-			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in rancher-operator-system index")
-		}
-	})
 
 	t.It("contains monitoring index with valid records", func() {
 		// GIVEN existing system logs
