@@ -97,14 +97,9 @@ func isExternalDNSReady(compContext spi.ComponentContext) bool {
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, releaseName string, namespace string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	dns := compContext.EffectiveCR().Spec.Components.DNS
-	// Should never fail the next error checks if IsEnabled() is correct, but can't hurt to check
-	if dns == nil {
-		return kvs, fmt.Errorf("DNS not configured for component %s", ComponentName)
-	}
-	oci := dns.OCI
-	if oci == nil {
-		return kvs, fmt.Errorf("OCI must be configured for component %s", ComponentName)
+	oci, err := getOCIDNS(compContext.EffectiveCR())
+	if err != nil {
+		return kvs, err
 	}
 	// OCI DNS is configured, append all helm overrides for external DNS
 	ownerString, err := getOrBuildOwnerID(compContext, releaseName, namespace)
@@ -131,6 +126,19 @@ func AppendOverrides(compContext spi.ComponentContext, releaseName string, names
 	return kvs, nil
 }
 
+func getOCIDNS(vz *vzapi.Verrazzano) (*vzapi.OCI, error) {
+	dns := vz.Spec.Components.DNS
+	// Should never fail the next error checks if IsEnabled() is correct, but can't hurt to check
+	if dns == nil {
+		return nil, fmt.Errorf("DNS not configured for component %s", ComponentName)
+	}
+	oci := dns.OCI
+	if oci == nil {
+		return nil, fmt.Errorf("OCI must be configured for component %s", ComponentName)
+	}
+	return oci, nil
+}
+
 //getOrBuildOwnerID Get the owner ID from the Helm release if it exists and preserve it, otherwise build a unique ID
 func getOrBuildOwnerID(compContext spi.ComponentContext, releaseName string, namespace string) (string, error) {
 	value, found, err := helm.GetReleaseStringValue(compContext.Log(), ownerIDHelmKey, releaseName, namespace)
@@ -140,7 +148,7 @@ func getOrBuildOwnerID(compContext spi.ComponentContext, releaseName string, nam
 	if found {
 		return value, nil
 	}
-	ownerString, err := buildOwnerString(compContext.ActualCR())
+	ownerString, err := buildOwnerString(compContext.ActualCR().UID)
 	if err != nil {
 		return "", err
 	}
@@ -161,12 +169,12 @@ func getOrBuildTXTRecordPrefix(compContext spi.ComponentContext, ownerID string,
 }
 
 //buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
-func buildOwnerString(cr *vzapi.Verrazzano) (string, error) {
+func buildOwnerString(uid types.UID) (string, error) {
 	hash := fnv.New32a()
-	_, err := hash.Write([]byte(cr.UID))
+	_, err := hash.Write([]byte(fmt.Sprintf("%v", uid)))
 	if err != nil {
 		return "", err
 	}
 	sum := hash.Sum32()
-	return fmt.Sprintf("v8o-%s-%s-%s", cr.Namespace, cr.Name, strconv.FormatUint(uint64(sum), 10)), nil
+	return fmt.Sprintf("v8o-%s", strconv.FormatUint(uint64(sum), 16)), nil
 }

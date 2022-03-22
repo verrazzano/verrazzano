@@ -28,7 +28,7 @@ const (
 
 // Default Verrazzano object
 var vz = &vzapi.Verrazzano{
-	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default"},
+	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -135,6 +135,19 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
+
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 9)
@@ -287,11 +300,12 @@ func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 
 	ownerString, err := getOrBuildOwnerID(compContext, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
-	assert.True(t, strings.HasPrefix(ownerString, "v8o-default-my-verrazzano-"))
+	assert.True(t, strings.HasPrefix(ownerString, "v8o-"))
+	assert.NotContains(t, ownerString, vz.Spec.EnvironmentName)
 
 	txtPrefix, err := getOrBuildTXTRecordPrefix(compContext, ownerString, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
-	assert.True(t, strings.HasPrefix(txtPrefix, "_v8o-default-my-verrazzano-"))
+	assert.True(t, strings.HasPrefix(txtPrefix, "_"+ownerString))
 }
 
 // Create a new deployment object for testing
