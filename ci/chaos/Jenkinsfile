@@ -186,7 +186,8 @@ pipeline {
                     echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
                     OPERATOR_YAML_FILE = "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml"
                     if (params.CHAOS_TEST_TYPE.equals("ephemeral.storage.upgrade")) {
-                        INSTALL_CONFIG_FILE_KIND = env.INSTALL_CONFIG_FILE_KIND_EPHEMERAL
+                        echo "Setting INSTALL_CONFIG_FILE_KIND"
+                        INSTALL_CONFIG_FILE_KIND = "${env.INSTALL_CONFIG_FILE_KIND_EPHEMERAL}"
                     }
                 }
             }
