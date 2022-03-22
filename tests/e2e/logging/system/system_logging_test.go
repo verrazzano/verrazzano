@@ -541,16 +541,6 @@ func validateLocalPathStorageLogs() bool {
 		noExceptions)
 }
 
-func validateRancherOperatorSystemLogs() bool {
-	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
-		rancherOperatorSystemIndex,
-		"kubernetes.namespace_name",
-		"rancher-operator-system",
-		searchTimeWindow,
-		noExceptions)
-}
-
 func validateNodeExporterLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
