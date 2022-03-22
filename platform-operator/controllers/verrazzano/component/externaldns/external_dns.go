@@ -28,6 +28,7 @@ const (
 	dnsPrivate             = "PRIVATE"
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 	ownerIDHelmKey         = "txtOwnerId"
+	prefixKey              = "txtPrefix"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -106,11 +107,14 @@ func AppendOverrides(compContext spi.ComponentContext, releaseName string, names
 		return kvs, fmt.Errorf("OCI must be configured for component %s", ComponentName)
 	}
 	// OCI DNS is configured, append all helm overrides for external DNS
-	ownerString, err := getOrBuildOwnerId(compContext, releaseName, namespace)
+	ownerString, err := getOrBuildOwnerID(compContext, releaseName, namespace)
 	if err != nil {
 		return kvs, err
 	}
-	txtPrefix := fmt.Sprintf("_%s-", ownerString)
+	txtPrefix, err := getOrBuildRecordPrefix(compContext, ownerString, releaseName, namespace)
+	if err != nil {
+		return kvs, err
+	}
 	compContext.Log().Debugf("Owner ID: %s, TXT record prefix: %s", ownerString, txtPrefix)
 	arguments := []bom.KeyValue{
 		{Key: "domainFilters[0]", Value: oci.DNSZoneName},
@@ -127,8 +131,8 @@ func AppendOverrides(compContext spi.ComponentContext, releaseName string, names
 	return kvs, nil
 }
 
-//getOrBuildOwnerId Get the owner ID from the Helm release if it exists and preserve it, otherwise build a unique ID
-func getOrBuildOwnerId(compContext spi.ComponentContext, releaseName string, namespace string) (string, error) {
+//getOrBuildOwnerID Get the owner ID from the Helm release if it exists and preserve it, otherwise build a unique ID
+func getOrBuildOwnerID(compContext spi.ComponentContext, releaseName string, namespace string) (string, error) {
 	value, found, err := helm.GetReleaseStringValue(compContext.Log(), ownerIDHelmKey, releaseName, namespace)
 	if err != nil {
 		return "", err
@@ -143,6 +147,19 @@ func getOrBuildOwnerId(compContext spi.ComponentContext, releaseName string, nam
 	return ownerString, nil
 }
 
+//getOrBuildRecordPrefix Get the TXT record prefix from the Helm release if it exists and preserve it, otherwise build
+//  new one off of the ownerID passed in
+func getOrBuildRecordPrefix(compContext spi.ComponentContext, ownerID string, releaseName string, namespace string) (string, error) {
+	value, found, err := helm.GetReleaseStringValue(compContext.Log(), prefixKey, releaseName, namespace)
+	if err != nil {
+		return "", err
+	}
+	if found {
+		return value, nil
+	}
+	return fmt.Sprintf("_%s-", ownerID), nil
+}
+
 //buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
 func buildOwnerString(cr *vzapi.Verrazzano) (string, error) {
 	hash := fnv.New32a()
@@ -151,5 +168,5 @@ func buildOwnerString(cr *vzapi.Verrazzano) (string, error) {
 		return "", err
 	}
 	sum := hash.Sum32()
-	return fmt.Sprintf("v8o-%s-%s-%s", cr.Namespace, cr.Name, strconv.FormatInt(int64(sum), 10)), nil
+	return fmt.Sprintf("v8o-%s-%s-%s", cr.Namespace, cr.Name, strconv.FormatUint(uint64(sum), 10)), nil
 }
