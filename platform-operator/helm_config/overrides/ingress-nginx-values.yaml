@@ -9,7 +9,6 @@ controller:
   config:
     client-body-buffer-size: 64k
     proxy-buffer-size: 8k
-    custom-http-errors: 301,304,307,308,401,403,404,407,408,409,413,414,415,416,418,421,429,431,500,501,502,503,504,505
   metrics:
     enabled: true
   publishService:
