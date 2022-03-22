@@ -132,15 +132,10 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 			}
 		})
 
-		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, func() {
+		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, kubeconfigPath, func() {
 			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" {
 				Eventually(func() (string, error) {
-					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
-						return "", err
-					}
-					api, err := pkg.GetAPIEndpoint(kubeConfigPath)
+					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Error getting API endpoint: %v", err))
 						return "", err
