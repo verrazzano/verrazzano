@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const deploymentName = "kube-prometheus-stack-operator"
+const deploymentName = "prometheus-operator-kube-p-operator"
 
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
 func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {

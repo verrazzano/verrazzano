@@ -11,18 +11,19 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 // ComponentName is the name of the component
-const ComponentName = "kube-prometheus-stack"
+const ComponentName = "prometheus-operator"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
 // ComponentJSONName is the json name of the component in the CRD
 const ComponentJSONName = "prometheusOperator"
+
+const chartName = "kube-prometheus-stack"
 
 type prometheusComponent struct {
 	helm.HelmComponent
@@ -33,12 +34,12 @@ func NewComponent() spi.Component {
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
 			JSONName:                ComponentJSONName,
-			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
+			ChartDir:                filepath.Join(config.GetThirdPartyDir(), chartName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
+			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{certmanager.ComponentName, verrazzano.ComponentName},
 		},
