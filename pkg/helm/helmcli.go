@@ -134,7 +134,6 @@ func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace stri
 	return valuesMap, nil
 }
 
-
 // Upgrade will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
 func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides HelmOverrides) (stdout []byte, stderr []byte, err error) {
@@ -394,7 +393,6 @@ func GetReleaseValue(log vzlog.VerrazzanoLogger, valueKey string, releaseName st
 	return "", false, nil
 }
 
-
 // getReleaseAppVersion extracts the release app_version from a "ls -o json" command for a specific release/namespace
 func getReleaseAppVersion(releaseName string, namespace string) (string, error) {
 	statusInfo, err := getReleases(namespace)
@@ -451,4 +449,3 @@ func SetCmdRunner(r vzos.CmdRunner) {
 func SetDefaultRunner() {
 	runner = vzos.DefaultRunner{}
 }
-
