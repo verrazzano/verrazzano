@@ -22,8 +22,6 @@ import (
 const (
 	minimumVersion = "1.3.0"
 	expected400    = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n</body>\n</html>"
-	expected401    = "<html>\n<head><title>401 Unauthorized</title></head>\n<body>\n<center><h1>401 Unauthorized</h1></center>\n</body>\n</html>"
-	expected404    = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n</body>\n</html>"
 )
 
 var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
@@ -58,8 +56,8 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 					}
 					req.SetBasicAuth(pkg.Username, password)
 					return checkNGINXErrorPage(req, 404)
-				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
-					"Expected response to include custom 404 error page")
+				}, waitTimeout, pollingInterval).Should(Not(ContainSubstring("nginx")),
+					"Expected response to not leak the name nginx")
 			}
 		})
 
@@ -88,8 +86,8 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 					}
 					req.SetBasicAuth(pkg.Username, "fake-password")
 					return checkNGINXErrorPage(req, 401)
-				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected401)),
-					"Expected response to include custom 401 error page")
+				}, waitTimeout, pollingInterval).Should(Not(ContainSubstring("nginx")),
+					"Expected response to not leak the name nginx")
 			}
 		})
 
@@ -124,8 +122,8 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 					}
 					req.SetBasicAuth(pkg.Username, password)
 					return checkNGINXErrorPage(req, 404)
-				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
-					"Expected response to include custom 404 error page")
+				}, waitTimeout, pollingInterval).Should(Not(ContainSubstring("nginx")),
+					"Expected response to not leak the name nginx")
 			}
 		})
 
@@ -155,7 +153,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 					}
 					return checkNGINXErrorPage(req, 400)
 				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected400)),
-					"Expected response to include custom 400 error page")
+					"Expected response to be the custom 400 error page")
 			}
 		})
 	})
