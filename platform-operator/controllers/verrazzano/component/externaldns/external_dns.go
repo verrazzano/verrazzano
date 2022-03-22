@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -26,6 +27,7 @@ const (
 	dnsGlobal              = "GLOBAL" //default
 	dnsPrivate             = "PRIVATE"
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
+	ownerIDHelmKey         = "txtOwnerId"
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -93,7 +95,7 @@ func isExternalDNSReady(compContext spi.ComponentContext) bool {
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install
-func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func AppendOverrides(compContext spi.ComponentContext, releaseName string, namespace string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	dns := compContext.EffectiveCR().Spec.Components.DNS
 	// Should never fail the next error checks if IsEnabled() is correct, but can't hurt to check
 	if dns == nil {
@@ -104,15 +106,12 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return kvs, fmt.Errorf("OCI must be configured for component %s", ComponentName)
 	}
 	// OCI DNS is configured, append all helm overrides for external DNS
-	actualCR := compContext.ActualCR()
-	// TODO: during upgrade, lookup existing text owner ID to preserve ownership
-	//  - e.g., helm get values -n cert-manager external-dns -o json | jq -r '.txtOwnerId'
-	//  - or, parse it from deployment object
-	ownerString, err := buildOwnerString(actualCR)
+	ownerString, err := getOrBuildOwnerId(compContext, releaseName, namespace)
 	if err != nil {
 		return kvs, err
 	}
 	txtPrefix := fmt.Sprintf("_%s-", ownerString)
+	compContext.Log().Debugf("Owner ID: %s, TXT record prefix: %s", ownerString, txtPrefix)
 	arguments := []bom.KeyValue{
 		{Key: "domainFilters[0]", Value: oci.DNSZoneName},
 		{Key: "zoneIDFilters[0]", Value: oci.DNSZoneOCID},
@@ -128,6 +127,23 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	return kvs, nil
 }
 
+//getOrBuildOwnerId Get the owner ID from the Helm release if it exists and preserve it, otherwise build a unique ID
+func getOrBuildOwnerId(compContext spi.ComponentContext, releaseName string, namespace string) (string, error) {
+	value, found, err := helm.GetReleaseStringValue(compContext.Log(), ownerIDHelmKey, releaseName, namespace)
+	if err != nil {
+		return "", err
+	}
+	if found {
+		return value, nil
+	}
+	ownerString, err := buildOwnerString(compContext.ActualCR())
+	if err != nil {
+		return "", err
+	}
+	return ownerString, nil
+}
+
+//buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
 func buildOwnerString(cr *vzapi.Verrazzano) (string, error) {
 	hash := fnv.New32a()
 	_, err := hash.Write([]byte(cr.UID))
