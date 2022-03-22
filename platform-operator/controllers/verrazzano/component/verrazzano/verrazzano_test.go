@@ -61,7 +61,8 @@ var (
 		{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "2.5Gi"},
 		{Key: "elasticSearch.nodes.data.replicas", Value: "3"},
 		{Key: "elasticSearch.nodes.data.requests.memory", Value: "4.8Gi"},
-		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"}}
+		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
+		{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"}}
 )
 
 func init() {
@@ -481,6 +482,7 @@ func Test_appendVMIValues(t *testing.T) {
 				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
 				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
 				{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
+				{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"},
 			},
 			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
 			expectedErr:  nil,
@@ -779,8 +781,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			//t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 10, 2 file override + 1 custom image overrides + 7 ES
-				expectedNumKvs = 10
+				// default is 11, 2 file override + 1 custom image overrides + 8 ES
+				expectedNumKvs = 11
 			}
 			assert.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file

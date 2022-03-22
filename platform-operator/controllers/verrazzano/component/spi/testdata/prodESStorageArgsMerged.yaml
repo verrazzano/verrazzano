@@ -1,10 +1,10 @@
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 metadata:
-  name: "prod-ingress-istio-override"
+  name: "prod-es-override"
 spec:
   profile: "prod"
-  environmentName: prodenv
+  environmentName: "prodenv"
   components:
     applicationOperator:
       enabled: true
@@ -43,19 +43,19 @@ spec:
         - name: nodes.master.replicas
           value: "3"
         - name: nodes.master.requests.memory
-          value: "1.4Gi"
-        - name: nodes.ingest.replicas
-          value: "1"
-        - name: nodes.ingest.requests.memory
-          value: "2.5Gi"
-        - name: nodes.data.replicas
-          value: "3"
-        - name: nodes.data.requests.memory
-          value: "4.8Gi"
-        - name: nodes.data.requests.storage
-          value: "50Gi"
+          value: "3G"
         - name: nodes.master.requests.storage
-          value: "50Gi"
+          value: "100Gi"
+        - name: nodes.ingest.replicas
+          value: "6"
+        - name: nodes.ingest.requests.memory
+          value: "32G"
+        - name: nodes.data.replicas
+          value: "6"
+        - name: nodes.data.requests.memory
+          value: "32G"
+        - name: nodes.data.requests.storage
+          value: "150Gi"
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
@@ -65,39 +65,8 @@ spec:
     ingress:
       enabled: true
       type: LoadBalancer
-      nginxInstallArgs:
-        - name: controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
-          value: "10Mbps"
-        - name: controller.service.externalTrafficPolicy
-          value: Local
-        - name: controller.autoscaling.enabled
-          value: "true"
-        - name: controller.autoscaling.minReplicas
-          value: "3"
-        - name: controller.service.externalIPs
-          valueList:
-            - 11.22.33.44
-      ports:
-        - name: http
-          nodePort: 30080
-          port: 80
-          protocol: TCP
-          targetPort: 0
-        - name: https
-          nodePort: 30443
-          port: 443
-          protocol: TCP
-          targetPort: 0
     istio:
       enabled: true
-      istioInstallArgs:
-        - name: gateways.istio-ingressgateway.serviceAnnotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape"
-          value: "10Mbps"
-        - name: gateways.istio-ingressgateway.replicaCount
-          value: "3"
-        - name: gateways.istio-ingressgateway.externalIPs
-          valueList:
-            - 11.22.33.44
       ingress:
         kubernetes:
           replicas: 2
