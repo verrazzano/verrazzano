@@ -420,6 +420,23 @@
           ]
         }
       ]
+    },
+    {
+      "name": "kube-prometheus-stack",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "kube-prometheus-stack",
+          "images": [
+            {
+              "image": "prometheus-operator",
+              "tag": "v0.49.0-1",
+              "helmFullImageKey": "prometheusOperator.image.repository",
+              "helmTagKey": "prometheusOperator.image.tag"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
