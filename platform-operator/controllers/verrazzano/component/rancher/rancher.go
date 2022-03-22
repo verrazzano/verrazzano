@@ -17,8 +17,11 @@ import (
 
 // Constants for Kubernetes resource names
 const (
-	fleetSystemNamespace      = "fleet-system"
-	OperatorNamespace         = "rancher-operator-system"
+	// note: VZ-5241 In Rancher 2.6.3 the agent was moved from cattle-fleet-system ns
+	// to a new cattle-fleet-local-system ns, the rancher-operator-system ns was
+	// removed, and the rancher-operator is no longer deployed
+	fleetSystemNamespace      = "cattle-fleet-system"
+	fleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
 	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
@@ -27,7 +30,6 @@ const (
 	fleetControllerDeployment = "fleet-controller"
 	gitjobDeployment          = "gitjob"
 	rancherWebhookDeployment  = "rancher-webhook"
-	rancherOperatorDeployment = "rancher-operator"
 )
 
 // Helm Chart setter keys
@@ -83,12 +85,8 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 			Namespace: ComponentNamespace,
 		},
 		{
-			Name:      rancherOperatorDeployment,
-			Namespace: OperatorNamespace,
-		},
-		{
 			Name:      fleetAgentDeployment,
-			Namespace: fleetSystemNamespace,
+			Namespace: fleetLocalSystemNamespace,
 		},
 		{
 			Name:      fleetControllerDeployment,

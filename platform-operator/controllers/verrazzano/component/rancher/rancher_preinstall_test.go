@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -17,38 +17,6 @@ import (
 	"strings"
 	"testing"
 )
-
-// TestCreateOperatorNamespace verifies creation of the Rancher operator namespace
-// GIVEN a CertManager component
-//  WHEN createRancherOperatorNamespace is called
-//  THEN createRancherOperatorNamespace the Rancher operator namespace should be created
-func TestCreateOperatorNamespace(t *testing.T) {
-	log := getTestLogger(t)
-
-	var tests = []struct {
-		testName string
-		c        client.Client
-	}{
-		{
-			"should create the Rancher operator namespace",
-			fake.NewFakeClientWithScheme(getScheme()),
-		},
-		{
-			"should not fail if the Rancher operator namespace already exists",
-			fake.NewFakeClientWithScheme(getScheme(), &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: OperatorNamespace,
-				},
-			}),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			assert.Nil(t, createRancherOperatorNamespace(log, tt.c))
-		})
-	}
-}
 
 // TestCreateCattleNamespace verifies creation of the cattle-system namespace
 // GIVEN a CertManager component
