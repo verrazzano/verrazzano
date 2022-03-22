@@ -167,8 +167,7 @@ func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 
 // PreInstall
 /* Sets up the environment for Rancher
-- Create the Rancher namespace if it is not present (cattle-namespace)
-- note: VZ-5241 the rancher-operator-namespace is no longer used in 2.6.3
+- Create the Rancher namespaces if they are not present (cattle-namespace, rancher-operator-namespace)
 - Copy TLS certificates for Rancher if using the default Verrazzano CA
 - Create additional LetsEncrypt TLS certificates for Rancher if using LE
 */
@@ -176,6 +175,9 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
 	c := ctx.Client()
 	log := ctx.Log()
+	if err := createRancherOperatorNamespace(log, c); err != nil {
+		return err
+	}
 	if err := createCattleSystemNamespace(log, c); err != nil {
 		return err
 	}
