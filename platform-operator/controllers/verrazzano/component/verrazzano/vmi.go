@@ -297,6 +297,15 @@ func ensureVMISecret(cli client.Client) error {
 			}
 			secret.Data["password"] = []byte(pw)
 		}
+		// Populating dummy keys for access and secret key so that they are never empty
+		if secret.Data[objectstoreAccessKey] == nil || secret.Data[objectstoreAccessSecretKey] == nil {
+			key, err := password.GeneratePassword(32)
+			if err != nil {
+				return err
+			}
+			secret.Data[objectstoreAccessKey] = []byte(key)
+			secret.Data[objectstoreAccessSecretKey] = []byte(key)
+		}
 		return nil
 	}); err != nil {
 		return err
