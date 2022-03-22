@@ -17,21 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//func createRancherOperatorNamespace(log vzlog.VerrazzanoLogger, c client.Client) error {
-//	namespace := &v1.Namespace{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name: OperatorNamespace,
-//		},
-//	}
-//	log.Debugf("Creating %s namespace", OperatorNamespace)
-//	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
-//		return nil
-//	}); err != nil {
-//		return err
-//	}
-//	return nil
-//}
-
 // createCattleSystemNamespace creates the cattle-system namespace if it does not exist
 func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) error {
 	namespace := &v1.Namespace{
