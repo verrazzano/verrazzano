@@ -111,6 +111,12 @@ func TestContextProfilesMerge(t *testing.T) {
 			expectedYAML: prodElasticSearchOveridesMerged,
 		},
 		{
+			name:         "TestProdProfileElasticsearchStorageArgs",
+			description:  "Tests prod profile with Elasticsearch storage installArgs",
+			actualCR:     prodElasticSearchStorageArgs,
+			expectedYAML: prodElasticSearchStorageMerged,
+		},
+		{
 			name:         "TestProdProfileIngressIstioOverrides",
 			description:  "Test prod profile with Istio and NGINX Ingress overrides",
 			actualCR:     prodIngressIstioOverrides,

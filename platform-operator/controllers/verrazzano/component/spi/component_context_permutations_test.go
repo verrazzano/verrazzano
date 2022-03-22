@@ -20,6 +20,7 @@ const (
 	devElasticSearchOveridesMerged  = "testdata/devESArgsStorageOverride.yaml"
 	devKeycloakOveridesMerged       = "testdata/devKeycloakInstallArgsStorageOverride.yaml"
 	prodElasticSearchOveridesMerged = "testdata/prodESOverridesMerged.yaml"
+	prodElasticSearchStorageMerged  = "testdata/prodESStorageArgsMerged.yaml"
 	prodIngressIstioOverridesMerged = "testdata/prodIngressIstioOverridesMerged.yaml"
 	prodFluentdOverridesMerged      = "testdata/prodFluentdOverridesMerged.yaml"
 	managedClusterEnableAllMerged   = "testdata/managedClusterEnableAllOverrideMerged.yaml"
@@ -254,6 +255,30 @@ var prodElasticSearchOverrides = vzapi.Verrazzano{
 					{Name: "nodes.ingest.requests.memory", Value: "32G"},
 					{Name: "nodes.data.replicas", Value: "6"},
 					{Name: "nodes.data.requests.memory", Value: "32G"},
+				},
+			},
+		},
+	},
+}
+
+var prodElasticSearchStorageArgs = vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "prod-es-override",
+	},
+	Spec: vzapi.VerrazzanoSpec{
+		EnvironmentName: "prodenv",
+		Profile:         "prod",
+		Components: vzapi.ComponentSpec{
+			Elasticsearch: &vzapi.ElasticsearchComponent{
+				ESInstallArgs: []vzapi.InstallArgs{
+					{Name: "nodes.master.replicas", Value: "3"},
+					{Name: "nodes.master.requests.memory", Value: "3G"},
+					{Name: "nodes.master.requests.storage", Value: "100Gi"},
+					{Name: "nodes.ingest.replicas", Value: "6"},
+					{Name: "nodes.ingest.requests.memory", Value: "32G"},
+					{Name: "nodes.data.replicas", Value: "6"},
+					{Name: "nodes.data.requests.memory", Value: "32G"},
+					{Name: "nodes.data.requests.storage", Value: "150Gi"},
 				},
 			},
 		},
