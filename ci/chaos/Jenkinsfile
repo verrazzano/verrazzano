@@ -292,10 +292,10 @@ pipeline {
                 ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${OLD_PODS_FILE}
                 cat ${OLD_PODS_FILE}
                 echo "Upgrading the Verrazzano platform operator"
-                if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                if [ "upgrade.failed.upgrade" == "${params.CHAOS_TEST_TYPE}" ]
                 then
                     kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/1.2.0/operator.yaml
-                elif [[ "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                elif [ "upgrade.failing.upgrade" == "${params.CHAOS_TEST_TYPE}" ]
                 then
                     # find a commit hash for a previous commit that can be used as the interim upgrade
                     INTERIM_UPGRADE_COMMIT=$(git rev-parse --short ${SHORT_COMMIT_HASH}^1)
