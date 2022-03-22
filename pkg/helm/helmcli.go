@@ -105,6 +105,36 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 	return stdout, nil
 }
 
+// GetValuesMap will run 'helm get values' command and return the output from the command as a map of Objects.
+func GetValuesMap(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (map[string]interface{}, error) {
+	// Helm get values command will get the current set values for the installed chart.
+	// The output will be used as input to the helm upgrade command.
+	args := []string{"get", "values", releaseName}
+	if namespace != "" {
+		args = append(args, "--namespace")
+		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "json")
+	}
+
+	cmd := exec.Command("helm", args...)
+	log.Debugf("Running command to get Helm values: %s", cmd.String())
+	stdout, stderr, err := runner.Run(cmd)
+	if err != nil {
+		log.Errorf("Failed to get Helm values for %s: stderr %s", releaseName, string(stderr))
+		return nil, err
+	}
+
+	var valuesMap map[string]interface{}
+	if err := json.Unmarshal(stdout, &valuesMap); err != nil {
+		return map[string]interface{}{}, err
+	}
+	//  Log get values output
+	log.Debugf("Successfully fetched Helm get values %s", releaseName)
+	return valuesMap, nil
+}
+
+
 // Upgrade will upgrade a Helm release with the specified charts.  The override files array
 // are in order with the first files in the array have lower precedence than latter files.
 func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides HelmOverrides) (stdout []byte, stderr []byte, err error) {
@@ -336,6 +366,35 @@ func GetReleaseAppVersion(releaseName string, namespace string) (string, error) 
 	return releaseAppVersionFn(releaseName, namespace)
 }
 
+//GetReleaseStringValue - Returns a Helm release value as a string
+func GetReleaseStringValue(log vzlog.VerrazzanoLogger, valueKey string, releaseName string, namespace string) (string, bool, error) {
+	value, found, err := GetReleaseValue(log, valueKey, releaseName, namespace)
+	if found {
+		return fmt.Sprintf("%v", value), found, err
+	}
+	return "", found, err
+}
+
+//GetReleaseValue - Returns a Helm release value as an object
+func GetReleaseValue(log vzlog.VerrazzanoLogger, valueKey string, releaseName string, namespace string) (interface{}, bool, error) {
+	isDeployed, err := IsReleaseDeployed(releaseName, namespace)
+	if err != nil {
+		return "", false, err
+	}
+	if isDeployed {
+		valuesMap, err := GetValuesMap(log, releaseName, namespace)
+		if err != nil {
+			return "", false, err
+		}
+		if mapVal, ok := valuesMap[valueKey]; ok {
+			log.Debugf("Using existing owner ID from helm release: %v", mapVal)
+			return fmt.Sprintf("%v", mapVal), true, nil
+		}
+	}
+	return "", false, nil
+}
+
+
 // getReleaseAppVersion extracts the release app_version from a "ls -o json" command for a specific release/namespace
 func getReleaseAppVersion(releaseName string, namespace string) (string, error) {
 	statusInfo, err := getReleases(namespace)
@@ -392,3 +451,4 @@ func SetCmdRunner(r vzos.CmdRunner) {
 func SetDefaultRunner() {
 	runner = vzos.DefaultRunner{}
 }
+
