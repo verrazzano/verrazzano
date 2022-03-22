@@ -22,6 +22,7 @@ import (
 const (
 	minimumVersion = "1.3.0"
 	expected400    = "<html>\n<head><title>400 Bad Request</title></head>\n<body>\n<center><h1>400 Bad Request</h1></center>\n</body>\n</html>"
+	expected404    = "<html>\n<head><title>404 Not Found</title></head>\n<body>\n<center><h1>404 Not Found</h1></center>\n</body>\n</html>"
 )
 
 var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-mgmt"), func() {
@@ -122,8 +123,8 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 					}
 					req.SetBasicAuth(pkg.Username, password)
 					return checkNGINXErrorPage(req, 404)
-				}, waitTimeout, pollingInterval).Should(Not(ContainSubstring("nginx")),
-					"Expected response to not leak the name nginx")
+				}, waitTimeout, pollingInterval).Should(Equal(strings.TrimSpace(expected404)),
+					"Expected response to include custom 404 error page")
 			}
 		})
 
