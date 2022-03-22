@@ -5,9 +5,11 @@ package wlsworkload
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"os"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -62,6 +64,7 @@ const weblogicDomainWithMonitoringExporter = `
    "spec": {
       "domainUID": "unit-test-domain",
       "monitoringExporter": {
+         "image": "my-weblogic-monitoring-exporter:1.0.0",
          "imagePullPolicy": "IfNotPresent",
          "configuration": {
             "metricsNameSnakeCase": true,
@@ -410,6 +413,9 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+
+	os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "my-weblogic-monitoring-exporter:a")
+	defer os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE")
 
 	// set the Fluentd image which is obtained via env then reset at end of test
 	initialDefaultFluentdImage := logging.DefaultFluentdImage
@@ -765,6 +771,9 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	workloadName := "unit-test-verrazzano-weblogic-workload"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
+
+	os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "")
+	defer os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE")
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -1682,6 +1691,12 @@ func validateDefaultMonitoringExporter(u *unstructured.Unstructured, t *testing.
 	_, found, err := unstructured.NestedFieldNoCopy(u.Object, specMonitoringExporterFields...)
 	asserts.Nil(t, err, "Expect no error finding monitoringExporter in WebLogic domain CR")
 	asserts.True(t, found, "Found monitoringExporter in WebLogic domain CR")
+	imageName, _, _ := unstructured.NestedFieldNoCopy(u.Object, append(specMonitoringExporterFields, "image")...)
+	if value := os.Getenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); len(value) > 0 {
+		asserts.Equal(t, value, imageName, "monitoringExporter.image should match in WebLogic domain CR")
+	} else {
+		asserts.Equal(t, nil, imageName, "monitoringExporter.image should match in WebLogic domain CR")
+	}
 	imagePullPolicy, _, _ := unstructured.NestedFieldNoCopy(u.Object, append(specMonitoringExporterFields, "imagePullPolicy")...)
 	asserts.Equal(t, "IfNotPresent", imagePullPolicy, "monitoringExporter.imagePullPolicy should be IfNotPresent in WebLogic domain CR")
 	domainQualifier, _, _ := unstructured.NestedBool(u.Object, append(specMonitoringExporterFields, "configuration", "domainQualifier")...)
@@ -1700,6 +1715,8 @@ func validateTestMonitoringExporter(u *unstructured.Unstructured, t *testing.T) 
 	_, found, err := unstructured.NestedFieldNoCopy(u.Object, specMonitoringExporterFields...)
 	asserts.Nil(t, err, "Expect no error finding monitoringExporter in WebLogic domain CR")
 	asserts.True(t, found, "Found monitoringExporter in WebLogic domain CR")
+	imageName, _, _ := unstructured.NestedFieldNoCopy(u.Object, append(specMonitoringExporterFields, "image")...)
+	asserts.Equal(t, "my-weblogic-monitoring-exporter:1.0.0", imageName, "monitoringExporter.image should match in WebLogic domain CR")
 	imagePullPolicy, _, _ := unstructured.NestedFieldNoCopy(u.Object, append(specMonitoringExporterFields, "imagePullPolicy")...)
 	asserts.Equal(t, "IfNotPresent", imagePullPolicy, "monitoringExporter.imagePullPolicy should be IfNotPresent in WebLogic domain CR")
 	domainQualifier, _, _ := unstructured.NestedBool(u.Object, append(specMonitoringExporterFields, "configuration", "domainQualifier")...)
