@@ -1,6 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  labels:
+    {{- include "ingress-nginx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: default-backend
   name: {{ include "ingress-nginx.defaultBackend.fullname" . }}-custom-error-pages
 data:
   301.html: |
@@ -185,3 +188,55 @@ data:
     <center><h1>505 HTTP Version Not Supported/h1></center>
     </body>
     </html>
+  301.json: |
+    { "message": "301 Moved Permanently" }
+  302.json: |
+    { "message": "302 Found" }
+  304.json: |
+    { "message": "304 Not Modified" }
+  307.json: |
+    { "message": "307 Temporary Redirect" }
+  308.json: |
+    { "message": "308 Permanent Redirect" }
+  400.json: |
+    { "message": "400 Bad Request" }
+  401.json: |
+    { "message": "401 Unauthorized" }
+  403.json: |
+    { "message": "403 Forbidden" }
+  404.json: |
+    { "message": "404 Not Found" }
+  407.json: |
+    { "message": "407 Proxy Authentication Required" }
+  408.json: |
+    { "message": "408 Request Timeout" }
+  409.json: |
+    { "message": "409 Conflict" }
+  413.json: |
+    { "message": "413 Payload Too Large" }
+  414.json: |
+    { "message": "414 URI Too Long" }
+  415.json: |
+    { "message": "415 Unsupported Media Type" }
+  416.json: |
+    { "message": "416 Range Not Satisfiable" }
+  418.json: |
+    { "message": "418 I'm a teapot" }
+  421.json: |
+    { "message": "421 Misdirected Request" }
+  429.json: |
+    { "message": "429 Too Many Requests" }
+  431.json: |
+    { "message": "431 Request Header Fields Too Large" }
+  500.json: |
+    { "message": "500 Internal Server Error" }
+  501.json: |
+    { "message": "501 Not Implemented" }
+  502.json: |
+    { "message": "502 Bad Gateway" }
+  503.json: |
+    { "message": "503 Service Unavailable" }
+  504.json: |
+    { "message": "504 Gateway Timeout" }
+  505.json: |
+    { "message": "505 HTTP Version Not Supported" }
