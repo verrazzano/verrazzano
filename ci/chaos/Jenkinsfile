@@ -292,11 +292,13 @@ pipeline {
                 ${TEST_SCRIPTS_DIR}/dump_pods.sh ${APP_NAMEPACES} > ${OLD_PODS_FILE}
                 cat ${OLD_PODS_FILE}
                 echo "Upgrading the Verrazzano platform operator"
-                if [ "upgrade.failed.upgrade" == "${params.CHAOS_TEST_TYPE}" ]
+                if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                 then
+                    echo "Upgrading VPO to version 1.2.0"
                     kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/1.2.0/operator.yaml
-                elif [ "upgrade.failing.upgrade" == "${params.CHAOS_TEST_TYPE}" ]
+                elif [[ "upgrade.failing.upgrade" == \${params.CHAOS_TEST_TYPE} ]]
                 then
+                    echo "Upgrading VPO to earlier version from master branch"
                     # find a commit hash for a previous commit that can be used as the interim upgrade
                     INTERIM_UPGRADE_COMMIT=$(git rev-parse --short ${SHORT_COMMIT_HASH}^1)
                     echo "commit: ${INTERIM_UPGRADE_COMMIT}"
@@ -310,6 +312,7 @@ pipeline {
                     kubectl apply -f ${WORKSPACE}/interim-operator.yaml
                 else
                     # Download the operator.yaml for the target version that we are upgrading to
+                    echo "Upgrading VPO to the version associated with the build commit"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
                     kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
