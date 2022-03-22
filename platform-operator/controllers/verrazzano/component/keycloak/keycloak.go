@@ -499,10 +499,39 @@ func updateKeycloakUris(ctx spi.ComponentContext) error {
 
 // configureKeycloakRealms configures the Verrazzano system realm
 func configureKeycloakRealms(ctx spi.ComponentContext) error {
+	// Make sure the Keycloak pod is ready
+	pod := keycloakPod()
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", pod.Name, err)
+		return err
+	}
+	if !isPodReady(pod) {
+		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", pod.Name)
+		return fmt.Errorf("Waiting for pod %s to be ready", pod.Name)
+	}
+
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
 	}
+
+	// If ephemeral storage is configured, additional steps may be required to
+	// rebuild the configuration lost due to MySQL pod getting restarted.
+	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource == nil {
+		// When the MySQL pod restarts and using ephemeral storage, the
+		// login to Keycloak will fail.  Need to recycle the Keycloak pod
+		// to resolve the condition.
+		err = loginKeycloak(ctx, cfg, cli)
+		if err != nil {
+			err2 := ctx.Client().Delete(context.TODO(), pod)
+			if err2 != nil {
+				ctx.Log().Errorf("Component Keycloak failed to recycle pod %s: %v", pod.Name, err2)
+			}
+			return err
+		}
+	}
+
 	// Login to Keycloak
 	err = loginKeycloak(ctx, cfg, cli)
 	if err != nil {
@@ -663,7 +692,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed logging into: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s", stdOut, stdErr)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
@@ -1276,62 +1305,6 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
-}
-
-// checkConfiguration - check the Keycloak configuration when using ephemeral storage.
-// If necessary, restore it to the default settings.
-func checkConfiguration(ctx spi.ComponentContext) error {
-	// Skip if using persistent storage
-	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource != nil {
-		ctx.Log().Progress("Component Keycloak skipped checking configuration because persistent storage is being used")
-		return nil
-	}
-
-	// Wait for the Keycloak pod to be ready
-	pod := keycloakPod()
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed to get pod %s: %v", pod.Name, err)
-		return err
-	}
-	if !isPodReady(pod) {
-		ctx.Log().Progressf("Component Keycloak waiting for pod %s to be ready", pod.Name)
-		return fmt.Errorf("Waiting for pod %s to be ready", pod.Name)
-	}
-
-	cfg, cli, err := k8sutil.ClientConfig()
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed to create client config: %v", err)
-		return err
-	}
-
-	// When the MySQL pod restarts and using ephemeral storage, the
-	// login to Keycloak will fail.  Need to recycle the Keycloak pod
-	// to resolve the condition.
-	err = loginKeycloak(ctx, cfg, cli)
-	if err != nil {
-		err2 := ctx.Client().Delete(context.TODO(), pod)
-		if err2 != nil {
-			ctx.Log().Errorf("Component Keycloak failed to recycle pod %s: %v", pod.Name, err2)
-		}
-		return err
-	}
-
-	// Try getting the Keycloak groups.  If they exist, a configuration exists, no need to recreate.
-	_, err = getKeycloakGroups(ctx)
-	if err == nil {
-		return nil
-	}
-
-	// Recreate the Keycloak configuration if it has been lost.  The configureKeycloakRealms
-	// function will not recreate anything that already exists.
-	err = configureKeycloakRealms(ctx)
-	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed to configure realms: %v", err)
-		return err
-	}
-
-	return nil
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True

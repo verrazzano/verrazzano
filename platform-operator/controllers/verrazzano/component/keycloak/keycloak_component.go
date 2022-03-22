@@ -148,12 +148,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Determine if the Keycloak configuration needs to be rebuilt
-	if err := checkConfiguration(ctx); err != nil {
-		return err
-	}
-
-	return updateKeycloakUris(ctx)
+	return configureKeycloakRealms(ctx)
 }
 
 // IsEnabled Keycloak-specific enabled check for installation
