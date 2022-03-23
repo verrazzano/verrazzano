@@ -1232,6 +1232,7 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 // Watch the pods in the keycloak namespace for this vz resource.  The reconcile loop will be called
 // when a pod is deleted.
 func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
+	log.Info("MGIANATA entering watchPods")
 
 	// Define a mapping to the Verrazzano resource
 	mapFn := handler.ToRequestsFunc(
@@ -1266,6 +1267,8 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		return err
 	}
 	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
+
+	log.Info("MGIANATA existing watchPods")
 
 	return nil
 }
