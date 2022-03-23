@@ -150,6 +150,7 @@ function delete_prometheus_operator {
   fi
 }
 
+action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
 action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
 action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
@@ -157,4 +158,3 @@ action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
-action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
