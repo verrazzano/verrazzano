@@ -230,6 +230,9 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		return newRequeueWithDelay(), err
 	}
 
+	// Repair the Keycloak configuration if MySQL restarted and is using ephemeral storage
+	log.Info("MGIANATA this is where call would be made to repair keycloak configuration")
+
 	// Change the state back to ready if install complete otherwise requeue
 	done, err := r.checkInstallComplete(vzctx)
 	if err != nil {
@@ -1244,15 +1247,15 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		})
 
 	// Watch pod delete
-	p := predicate.Funcs{
+	predicateFunc := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// Cast object to pod
 			pod := e.Object.(*corev1.Pod)
-			if !strings.Contains(pod.Name, mysql.ComponentName) {
-				log.Infof("Pod %s in namespace %deleted but does not contain %s", pod.Name, pod.Namespace, mysql.ComponentName)
+			if !strings.HasPrefix(pod.Name, mysql.ComponentName) {
+				// Do not process the event if the pod restarted is not MySQL
 				return false
 			}
-			log.Infof("Pod %s in namespace %s deleted", pod.Name, pod.Namespace)
+			log.Debugf("Pod %s in namespace %s deleted", pod.Name, pod.Namespace)
 			return true
 		},
 	}
@@ -1265,8 +1268,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: mapFn,
 		},
-		// Comment it if default predicate fun is used.
-		p)
+		predicateFunc)
 	if err != nil {
 		return err
 	}
