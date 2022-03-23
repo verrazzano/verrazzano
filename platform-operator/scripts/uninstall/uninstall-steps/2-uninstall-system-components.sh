@@ -66,24 +66,24 @@ function delete_cert_manager() {
   kubectl delete namespace cert-manager --ignore-not-found=true || err_return $? "Could not delete namespace cert-manager" || return $?
 }
 
-function cleanup_rancher_local_cluster() {
-  if kubectl get cluster local > /dev/null 2>&1 ; then
-    # Occasionally we have problems deleting 'local' Rancher cluster object nicely, and it gets stuck and puts any
-    # re-installed cluster in a bad state.  So here we force the delete of the object, wait for it, and then
-    # patch out any remaining finalizers and check one more time for delete success.
-    log "Found 'local' cluster object still present, removing..."
-    kubectl delete --wait=false clusters.management.cattle.io local || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
-    # Patch any dangling finalizers
-    kubectl patch clusters.management.cattle.io local -p '{"metadata":{"finalizers":null}}' --type=merge || true
-    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=1m || true
-    if kubectl get cluster local > /dev/null 2>&1 ; then
-      log "Unable to delete Rancher 'local' cluster object"
-    else
-      log "Rancher 'local' cluster deleted successfully"
-    fi
-  fi
-}
+#function cleanup_rancher_local_cluster() {
+#  if kubectl get cluster local > /dev/null 2>&1 ; then
+#    # Occasionally we have problems deleting 'local' Rancher cluster object nicely, and it gets stuck and puts any
+#    # re-installed cluster in a bad state.  So here we force the delete of the object, wait for it, and then
+#    # patch out any remaining finalizers and check one more time for delete success.
+#    log "Found 'local' cluster object still present, removing..."
+#    kubectl delete --wait=false clusters.management.cattle.io local || true
+#    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=2m || true
+#    # Patch any dangling finalizers
+#    kubectl patch clusters.management.cattle.io local -p '{"metadata":{"finalizers":null}}' --type=merge || true
+#    kubectl wait --for=delete -n kube-system clusters.management.cattle.io/local --timeout=1m || true
+#    if kubectl get cluster local > /dev/null 2>&1 ; then
+#      log "Unable to delete Rancher 'local' cluster object"
+#    else
+#      log "Rancher 'local' cluster deleted successfully"
+#    fi
+#  fi
+#}
 
 function delete_rancher() {
   local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
@@ -92,10 +92,13 @@ function delete_rancher() {
   fi
 
   # Clean up the local rancher cluster object if necessary
-  cleanup_rancher_local_cluster
+#  cleanup_rancher_local_cluster
+  kubectl config view --raw >> ./rancher-kubeconfig
+  /usr/local/bin/system-tools remove -c ./rancher-kubeconfig --force
+  rm ./rancher-kubeconfig
 
   # Deleting rancher components
-  log "Deleting rancher"
+  log "Deleting rancher helm charts (if any left over)"
   helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
     helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm -n fleet-system uninstall fleet-crd \
@@ -136,31 +139,34 @@ function delete_rancher() {
     crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
   done
 
-  # delete clusterrolebindings deployed by rancher
-  log "Deleting ClusterRoleBindings"
-  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
-    || return $? # return on pipefail
-
-  # delete clusterroles
-  log "Deleting ClusterRoles"
-  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
-    || return $? # return on pipefail
-
-  # delete rolebinding
-  log "Deleting RoleBindings"
-  local default_names=("default" "kube-node-lease" "kube-public" "kube-system")
-  for namespace in "${default_names[@]}"
-  do
-    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/clusterrolebinding-/' "${namespace}" \
-      || return $? # return on pipefail
-    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/^rb-/' "${namespace}" \
-      || return $? # return on pipefail
-  done
+#  # delete clusterrolebindings deployed by rancher
+#  log "Deleting ClusterRoleBindings"
+#  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
+#    || return $? # return on pipefail
+#
+#  # delete clusterroles
+#  log "Deleting ClusterRoles"
+#  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
+#    || return $? # return on pipefail
+#
+#  # delete rolebinding
+#  log "Deleting RoleBindings"
+#  local default_names=("default" "kube-node-lease" "kube-public" "kube-system")
+#  for namespace in "${default_names[@]}"
+#  do
+#    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/clusterrolebinding-/' "${namespace}" \
+#      || return $? # return on pipefail
+#    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/^rb-/' "${namespace}" \
+#      || return $? # return on pipefail
+#  done
 
   # delete configmap in kube-system
   log "Deleting ConfigMap"
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || err_return $? "Could not delete ConfigMap from Rancher in namespace kube-system" || return $?
   kubectl delete configmap rancher-controller-lock -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap rancher-controller-lock in namespace kube-system" || return $?
+
+  log "Delete the Rancher webhooks"
+#  TODO TODO TODO
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
