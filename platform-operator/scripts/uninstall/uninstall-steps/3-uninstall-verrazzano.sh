@@ -14,7 +14,6 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 set -o pipefail
 
 VERRAZZANO_NS=verrazzano-system
-VERRAZZANO_MONITORING_NS=verrazzano-monitoring
 
 function delete_verrazzano() {
   # delete helm installation of Verrazzano
@@ -140,16 +139,6 @@ function delete_kiali {
   kubectl delete -f ${KIALI_CHART_DIR}/crds || true
 }
 
-function delete_prometheus_operator {
-  CHART_DIR=${CHARTS_DIR}/kube-prometheus-stack
-  log "Uninstall the Prometheus operator"
-  if helm status prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" > /dev/null 2>&1 ; then
-    if ! helm uninstall prometheus-operator --namespace "${VERRAZZANO_MONITORING_NS}" ; then
-      error "Failed to uninstall the Prometheus operator."
-    fi
-  fi
-}
-
 action "Deleting Verrazzano Application Kubernetes operator" delete_application_operator || exit 1
 action "Deleting OAM Kubernetes operator" delete_oam_operator || exit 1
 action "Deleting Coherence Kubernetes operator" delete_coherence_operator || exit 1
@@ -157,4 +146,3 @@ action "Deleting WebLogic Kubernetes operator" delete_weblogic_operator || exit 
 action "Deleting Verrazzano AuthProxy" delete_authproxy || exit 1
 action "Deleting Verrazzano Components" delete_verrazzano || exit 1
 action "Deleting Kiali " delete_kiali || exit 1
-action "Deleting Prometheus operator " delete_prometheus_operator || exit 1
