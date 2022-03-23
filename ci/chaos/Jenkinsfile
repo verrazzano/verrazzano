@@ -289,7 +289,7 @@ pipeline {
                 SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
             }
             steps {
-            /*
+            
                 sh """
                     echo "Upgrading the Verrazzano platform operator"
                     if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
@@ -326,7 +326,7 @@ pipeline {
                     # need to sleep since the old operator needs to transition to terminating state
                     sleep 45
                 """
-            */
+
             }
             post {
                 always {
