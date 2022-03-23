@@ -756,6 +756,9 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.V
 			if err != nil {
 				return err
 			}
+			if configMap.Data == nil {
+				configMap.Data = map[string]string{}
+			}
 			configMap.Data[webLogicPluginConfigYamlKey] = string(bytes)
 			err = r.Client.Update(ctx, configMap)
 			if err != nil {

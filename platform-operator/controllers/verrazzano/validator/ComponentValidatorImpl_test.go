@@ -43,7 +43,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 9,
+			numberOfErrors: 8,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
@@ -59,7 +59,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 	}
 }
 
-// TestComponentValidatorImpl_ValidateUpdate tests the ValidateUpdate function
+// TestComponentValidatorImpl_ValidateInstall tests the ValidateUpdate function
 // GIVEN a valid CR
 // WHEN ValidateUpdate is called
 // THEN ensure that no error is raised
@@ -102,7 +102,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 6,
+			numberOfErrors: 5,
 		},
 		{
 			name: "disabled cert and ingress",
@@ -119,7 +119,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 11,
+			numberOfErrors: 10,
 		},
 	}
 	config.TestProfilesDir = "../../../manifests/profiles"
@@ -160,7 +160,7 @@ func Test_dependencyValidation(t *testing.T) {
 					},
 				},
 			},
-			numberOfErrors: 9,
+			numberOfErrors: 8,
 		},
 		{
 			name: "disabled istio",
