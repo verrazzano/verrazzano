@@ -1248,7 +1248,8 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 	// Watch pod delete
 	p := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			log.Infof("Pod in namespace %s deleted", keycloak.ComponentNamespace)
+			pod := e.Object.(*corev1.Pod)
+			log.Infof("Pod %s in namespace %s deleted", pod.Name, pod.Namespace)
 			return true
 		},
 	}
