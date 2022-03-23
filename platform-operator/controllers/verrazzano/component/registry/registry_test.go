@@ -21,7 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheusoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
@@ -64,7 +64,7 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[11].Name(), mysql.ComponentName)
 	assert.Equal(comps[12].Name(), keycloak.ComponentName)
 	assert.Equal(comps[13].Name(), kiali.ComponentName)
-	assert.Equal(comps[14].Name(), prometheus.ComponentName)
+	assert.Equal(comps[14].Name(), prometheusoper.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
