@@ -206,6 +206,10 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
+
+		// Repair the Keycloak configuration if MySQL restarted and is using ephemeral storage
+		log.Info("MGIANATA this is where call would be made to repair keycloak configuration")
+
 		return ctrl.Result{}, nil
 	}
 
@@ -229,9 +233,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		log.Errorf("Failed to sync the local registration secret: %v", err)
 		return newRequeueWithDelay(), err
 	}
-
-	// Repair the Keycloak configuration if MySQL restarted and is using ephemeral storage
-	log.Info("MGIANATA this is where call would be made to repair keycloak configuration")
 
 	// Change the state back to ready if install complete otherwise requeue
 	done, err := r.checkInstallComplete(vzctx)
