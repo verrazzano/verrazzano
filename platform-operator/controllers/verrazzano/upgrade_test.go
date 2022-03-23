@@ -1459,11 +1459,11 @@ func TestRetryUpgrade(t *testing.T) {
 	asserts.Equal(time.Duration(1), result.RequeueAfter)
 }
 
-// TestRetryUpgradeWithNewVPO tests the resumption of an upgrade for the following use case
+// TestTransitionToPausedUpgradeFromFailed tests the pause of an upgrade for the following use case
 // GIVEN a request to reconcile an verrazzano resource after a failed upgrade
 // WHEN when the VPO version is not the verrazzano version
-// THEN ensure the reconciler requeues with the Ready StateType
-func TestRetryUpgradeWithNewVPO(t *testing.T) {
+// THEN ensure the reconciler transitions to the paused StateType
+func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -1514,14 +1514,6 @@ func TestRetryUpgradeWithNewVPO(t *testing.T) {
 	// Expect a call to get the ClusterRoleBinding
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
-	// Expect a call to update annotations and ensure the new version is correct
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano) error {
-			asserts.Equal(verrazzano.Spec.Version, "1.0.1", "Incorrect version")
-			return nil
-		})
-
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
@@ -1529,8 +1521,8 @@ func TestRetryUpgradeWithNewVPO(t *testing.T) {
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			asserts.Len(verrazzano.Status.Conditions, 1, "Incorrect number of conditions")
-			asserts.Equal(verrazzano.Status.State, vzapi.VzStateReady, "Incorrect State")
+			asserts.Len(verrazzano.Status.Conditions, 2, "Incorrect number of conditions")
+			asserts.Equal(verrazzano.Status.State, vzapi.VzStatePaused, "Incorrect State")
 			return nil
 		})
 
@@ -1543,14 +1535,14 @@ func TestRetryUpgradeWithNewVPO(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(1), result.RequeueAfter)
+	asserts.Equal(time.Duration(2)*time.Second, result.RequeueAfter)
 }
 
-// TestTransitionToPausedUpgrade tests the pause of an upgrade for the following use case
-// GIVEN a request to reconcile an verrazzano resource during an upgrade
+// TestTransitionToPausedUpgradeFromStarted tests the pause of an upgrade for the following use case
+// GIVEN a request to reconcile an verrazzano resource during an upgrade that is in progress
 // WHEN when the VPO version is not the verrazzano version
 // THEN ensure the reconciler transitions to a paused StateType
-func TestTransitionToPausedUpgrade(t *testing.T) {
+func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"

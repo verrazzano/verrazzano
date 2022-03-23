@@ -306,13 +306,13 @@ pipeline {
                         echo "commit: ${INTERIM_UPGRADE_COMMIT}"
                         curl -o ${WORKSPACE}/interim-upgrade-bom.json https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_BUCKET}/o/${env.BRANCH_NAME}/${INTERIM_UPGRADE_COMMIT}/generated-verrazzano-bom.json
                         kubectl apply -f ${WORKSPACE}/interim-operator.yaml
-                    else
-                        # Download the operator.yaml for the target version that we are upgrading to
-                        echo "Upgrading VPO to the version associated with the build commit"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
-                        kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
                     fi
+
+                    # Download the operator.yaml for the target version that we are upgrading to
+                    echo "Upgrading VPO to the version associated with the build commit"
+                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
+                    kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
 
                     # ensure operator pod is up
                     kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
@@ -364,8 +364,12 @@ pipeline {
                         echo "Upgrading the Verrazzano installation to version ${}VERRAZZANO_DEV_VERSION}"
                         ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     else
-                        echo "Upgrading the Verrazzano installation to version ${}VERRAZZANO_INTERIM_VERSION}"
+                        echo "Upgrading the Verrazzano installation to version ${VERRAZZANO_INTERIM_VERSION}"
                         ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_INTERIM_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                        # create the re-upgrade CR for the tests
+                        cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-re-upgrade-cr.yaml
+                        ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-re-upgrade-cr.yaml
+                        cp ${WORKSPACE}/verrazzano-re-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
                     fi
                     # Copy upgrade CR where it will be archived
                     cp ${WORKSPACE}/verrazzano-upgrade-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
@@ -373,7 +377,6 @@ pipeline {
                     # Get the install job in verrazzano-install namespace
                     kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
 
-                    # Do the upgrade
                     echo "Following is the verrazzano CR file with the new version:"
                     cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
 
@@ -425,10 +428,15 @@ pipeline {
                         # Initiate upgrade
                         kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                         # wait for the expected error
-                        kubectl wait --timeout=5m --for=condition=UpgradeFailed verrazzano/my-verrazzano
+                        kubectl wait --timeout=15m --for=condition=UpgradeFailed verrazzano/my-verrazzano
                         # Upgrade to the latest VPO
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                         kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
+                        # wait for a paused state
+                        kubectl wait --timeout=10m --for=condition=UpgradePaused verrazzano/my-verrazzano
+                        # apply the CR
+                        echo "Following is the verrazzano CR file with the updated version:"
+                        cat ${WORKSPACE}/verrazzano-re-upgrade-cr.yaml
+                        kubectl apply -f ${WORKSPACE}/verrazzano-re-upgrade-cr.yaml
                     fi
 
                     if [[ "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
@@ -449,15 +457,13 @@ pipeline {
                         if [[ \${vz_status} == "UpgradeStarted" ]]
                         then
                             # Upgrade to the latest VPO
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                             kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
                             # wait for a paused state
-                            kubectl wait --timeout=5m --for=condition=UpgradePaused verrazzano/my-verrazzano
-                            # apply a CR with the corresponding version
-                            cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
-                            ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            kubectl wait --timeout=10m --for=condition=UpgradePaused verrazzano/my-verrazzano
                             # apply the CR
-                            kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            echo "Following is the verrazzano CR file with the updated version:"
+                            cat ${WORKSPACE}/verrazzano-re-upgrade-cr.yaml
+                            kubectl apply -f ${WORKSPACE}/verrazzano-re-upgrade-cr.yaml
                         fi
                     fi
 

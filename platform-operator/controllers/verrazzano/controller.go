@@ -367,14 +367,13 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 	// if annotations didn't trigger a retry, see if a newer version of BOM should
 	if !retry {
 		if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
-			// can use the current VPO to attempt an upgrade
-			vz.Spec.Version = bomVersion
-			err = r.Update(ctx, vz)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
+			// upgrade needs to be restarted due to newer operator
+			log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
 
-			retry = true
+			err := r.updateStatus(log, vz,
+				fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
+				installv1alpha1.CondUpgradePaused)
+			return newRequeueWithDelay(), err
 		}
 	}
 
