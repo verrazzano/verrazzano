@@ -42,13 +42,7 @@ func WhenPrometheusOperatorInstalledIt(description string, f interface{}) {
 }
 
 func VerifyCRDList(crds []string) (bool, error) {
-	for _, crd := range crds {
-		exists, err := pkg.DoesCRDExist(crd)
-		if err != nil || !exists {
-			return exists, err
-		}
-	}
-	return true, nil
+
 }
 
 var _ = t.AfterEach(func() {})
@@ -83,9 +77,16 @@ var _ = t.Describe("Prometheus Operator", Label("f:platform-lcm.install"), func(
 				"servicemonitors.monitoring.coreos.com",
 				"thanosrulers.monitoring.coreos.com",
 			}
-			Eventually(func() (bool, error) {
-				return VerifyCRDList(crds)
-			}, waitTimeout, pollingInterval).Should(BeTrue())
+			verifyCRDList := func() (bool, error) {
+				for _, crd := range crds {
+					exists, err := pkg.DoesCRDExist(crd)
+					if err != nil || !exists {
+						return exists, err
+					}
+				}
+				return true, nil
+			}
+			Eventually(verifyCRDList, waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		WhenPrometheusOperatorInstalledIt("should have the TLS secret", func() {
