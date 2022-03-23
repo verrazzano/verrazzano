@@ -227,8 +227,8 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildOwnerID and getOrBuildTXTRecordPrefix functions
-// GIVEN calls to getOrBuildOwnerID and getOrBuildTXTRecordPrefix
+// TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
 //  WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
 //  THEN the function returns the stored helm values and no error
 func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
@@ -265,17 +265,17 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme, localvz)
 	compContext := spi.NewFakeContext(client, vz, false)
 
-	ownerString, err := getOrBuildOwnerID(compContext, ComponentName, ComponentNamespace)
+	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
-	assert.Equal(t, "storedOwnerId", ownerString)
+	assert.Len(t, ids, 2)
 
-	txtPrefix, err := getOrBuildTXTRecordPrefix(compContext, ownerString, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
-	assert.Equal(t, "storedPrefix", txtPrefix)
+	assert.Equal(t, "storedOwnerId", ids[0])
+	assert.Equal(t, "storedPrefix", ids[1])
 }
 
-// TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildOwnerID and getOrBuildTXTRecordPrefix functions
-// GIVEN calls to getOrBuildOwnerID and getOrBuildTXTRecordPrefix
+// TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
 //  WHEN no stored helm values exist
 //  THEN the function returns the generated values and no error
 func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
@@ -298,14 +298,15 @@ func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme, localvz)
 	compContext := spi.NewFakeContext(client, vz, false)
 
-	ownerString, err := getOrBuildOwnerID(compContext, ComponentName, ComponentNamespace)
+	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
 	assert.NoError(t, err)
-	assert.True(t, strings.HasPrefix(ownerString, "v8o-"))
-	assert.NotContains(t, ownerString, vz.Spec.EnvironmentName)
+	assert.Len(t, ids, 2)
 
-	txtPrefix, err := getOrBuildTXTRecordPrefix(compContext, ownerString, ComponentName, ComponentNamespace)
+	assert.True(t, strings.HasPrefix(ids[0], "v8o-"))
+	assert.NotContains(t, ids[0], vz.Spec.EnvironmentName)
+
 	assert.NoError(t, err)
-	assert.True(t, strings.HasPrefix(txtPrefix, "_"+ownerString))
+	assert.True(t, strings.HasPrefix(ids[1], "_"+ids[0]))
 }
 
 // Create a new deployment object for testing

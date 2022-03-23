@@ -365,29 +365,39 @@ func GetReleaseAppVersion(releaseName string, namespace string) (string, error) 
 	return releaseAppVersionFn(releaseName, namespace)
 }
 
-//GetReleaseStringValue - Returns a Helm release value as a string
-func GetReleaseStringValue(log vzlog.VerrazzanoLogger, valueKey string, releaseName string, namespace string) (string, bool, error) {
-	value, found, err := GetReleaseValue(log, valueKey, releaseName, namespace)
-	return fmt.Sprintf("%v", value), found, err
+//GetReleaseStringValues - Returns a subset of Helm release values as a map of strings
+func GetReleaseStringValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseName string, namespace string) (map[string]string, error) {
+	values, err := GetReleaseValues(log, valueKeys, releaseName, namespace)
+	if err != nil {
+		return map[string]string{}, err
+	}
+	returnVals := map[string]string{}
+	for key, val := range values {
+		returnVals[key] = fmt.Sprintf("%v", val)
+	}
+	return returnVals, err
 }
 
-//GetReleaseValue - Returns a Helm release value as an object
-func GetReleaseValue(log vzlog.VerrazzanoLogger, valueKey string, releaseName string, namespace string) (interface{}, bool, error) {
+//GetReleaseValues - Returns a subset of Helm release values as a map of objects
+func GetReleaseValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseName string, namespace string) (map[string]interface{}, error) {
 	isDeployed, err := IsReleaseDeployed(releaseName, namespace)
 	if err != nil {
-		return "", false, err
+		return map[string]interface{}{}, err
 	}
+	var values = map[string]interface{}{}
 	if isDeployed {
 		valuesMap, err := GetValuesMap(log, releaseName, namespace)
 		if err != nil {
-			return "", false, err
+			return map[string]interface{}{}, err
 		}
-		if mapVal, ok := valuesMap[valueKey]; ok {
-			log.Debugf("Using existing owner ID from helm release: %v", mapVal)
-			return mapVal, true, nil
+		for _, valueKey := range valueKeys {
+			if mapVal, ok := valuesMap[valueKey]; ok {
+				log.Debugf("Found value for %s: %v", valueKey, mapVal)
+				values[valueKey] = mapVal
+			}
 		}
 	}
-	return "", false, nil
+	return values, nil
 }
 
 // getReleaseAppVersion extracts the release app_version from a "ls -o json" command for a specific release/namespace

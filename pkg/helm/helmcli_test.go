@@ -563,8 +563,8 @@ func Test_getChartInfoNotFound(t *testing.T) {
 	assert.Empty(t, state)
 }
 
-// TestGetReleaseValue tests the GetReleaseValue fn
-// GIVEN a call to GetReleaseValue
+// TestGetReleaseValue tests the GetReleaseValues fn
+// GIVEN a call to GetReleaseValues
 //  WHEN a valid helm release and namespace are deployed
 //  THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
 func TestGetReleaseValue(t *testing.T) {
@@ -594,25 +594,19 @@ func TestGetReleaseValue(t *testing.T) {
 	})
 	defer SetDefaultChartStatusFunction()
 
-	value, found, err := GetReleaseValue(vzlog.DefaultLogger(), "txtOwnerId", "external-dns", "cert-manager")
-	assert.True(t, found)
-	assert.NoError(t, err)
-	assert.Equal(t, "v8o-default-my-verrazzano-3201314693", value, "Did not find expected string value")
+	keys := []string{"txtOwnerId", "zoneIDFilters", "foo"}
+	value, err := GetReleaseValues(vzlog.DefaultLogger(), keys, "external-dns", "cert-manager")
 
-	fooVal, fooFound, err := GetReleaseValue(vzlog.DefaultLogger(), "foo", "external-dns", "cert-manager")
-	assert.False(t, fooFound)
+	expectedMap := map[string]interface{}{
+		"txtOwnerId":    "v8o-default-my-verrazzano-3201314693",
+		"zoneIDFilters": []interface{}{"ocid1.dns-zone.oc1..blahblahblah"},
+	}
 	assert.NoError(t, err)
-	assert.Equal(t, "", fooVal, "Found unexpected release value")
-
-	var expectedFilters interface{} = []interface{}{"ocid1.dns-zone.oc1..blahblahblah"}
-	filterVal, filterValVound, err := GetReleaseValue(vzlog.DefaultLogger(), "zoneIDFilters", "external-dns", "cert-manager")
-	assert.True(t, filterValVound)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedFilters, filterVal, "Did not find expected array value")
+	assert.Equal(t, expectedMap, value, "Map did not contain expected values")
 }
 
-// TestGetReleaseStringValue tests the GetReleaseStringValue fn
-// GIVEN a call to GetReleaseStringValue
+// TestGetReleaseStringValue tests the GetReleaseStringValues fn
+// GIVEN a call to GetReleaseStringValues
 //  WHEN a valid helm release and namespace are deployed
 //  THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
 func TestGetReleaseStringValue(t *testing.T) {
@@ -642,25 +636,19 @@ func TestGetReleaseStringValue(t *testing.T) {
 	})
 	defer SetDefaultChartStatusFunction()
 
-	value, found, err := GetReleaseStringValue(vzlog.DefaultLogger(), "txtOwnerId", "external-dns", "cert-manager")
-	assert.True(t, found)
-	assert.NoError(t, err)
-	assert.Equal(t, "v8o-default-my-verrazzano-3201314693", value, "Did not find expected string value")
+	keys := []string{"txtOwnerId", "zoneIDFilters", "foo"}
+	value, err := GetReleaseStringValues(vzlog.DefaultLogger(), keys, "external-dns", "cert-manager")
 
-	fooVal, fooFound, err := GetReleaseStringValue(vzlog.DefaultLogger(), "foo", "external-dns", "cert-manager")
-	assert.False(t, fooFound)
+	expectedMap := map[string]string{
+		"txtOwnerId":    "v8o-default-my-verrazzano-3201314693",
+		"zoneIDFilters": "[ocid1.dns-zone.oc1..blahblahblah]",
+	}
 	assert.NoError(t, err)
-	assert.Equal(t, "", fooVal, "Found unexpected release value")
-
-	expectedFilters := "[ocid1.dns-zone.oc1..blahblahblah]"
-	filterVal, filterValVound, err := GetReleaseStringValue(vzlog.DefaultLogger(), "zoneIDFilters", "external-dns", "cert-manager")
-	assert.True(t, filterValVound)
-	assert.NoError(t, err)
-	assert.Equal(t, expectedFilters, filterVal, "Did not find expected array value")
+	assert.Equal(t, expectedMap, value, "Map did not contain expected values")
 }
 
-// TestGetReleaseValueReleaseNotFound tests the GetReleaseValue fn
-// GIVEN a call to GetReleaseValue
+// TestGetReleaseValueReleaseNotFound tests the GetReleaseValues fn
+// GIVEN a call to GetReleaseValues
 //  WHEN a the helm release is NOT deployed
 //  THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
 func TestGetReleaseValueReleaseNotFound(t *testing.T) {
@@ -677,20 +665,20 @@ func TestGetReleaseValueReleaseNotFound(t *testing.T) {
 	})
 	defer SetDefaultChartStatusFunction()
 
-	value, found, err := GetReleaseValue(vzlog.DefaultLogger(), "txtOwnerId", "external-dns", "cert-manager")
-	assert.False(t, found)
+	keys := []string{"txtOwnerId", "external-dns"}
+	values, err := GetReleaseValues(vzlog.DefaultLogger(), keys, "external-dns", "cert-manager")
 	assert.NoErrorf(t, err, "Unexpected error: %v", err)
-	assert.Equal(t, "", value, "Found unexpected release value")
+	assert.Equal(t, map[string]interface{}{}, values, "Found unexpected release value")
 
 	expectedErr := fmt.Errorf("Helm error")
 	SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return ChartNotFound, expectedErr
 	})
-	helmErrVal, helmErrFound, helmErr := GetReleaseValue(vzlog.DefaultLogger(), "txtOwnerId", "external-dns", "cert-manager")
-	assert.False(t, helmErrFound)
+	values, helmErr := GetReleaseValues(vzlog.DefaultLogger(), keys, "external-dns", "cert-manager")
+	assert.NoErrorf(t, err, "Unexpected error: %v", err)
+	assert.Equal(t, map[string]interface{}{}, values, "Found unexpected release values")
 	assert.Error(t, helmErr, "Did not get expected error")
 	assert.Equal(t, expectedErr, helmErr)
-	assert.Equal(t, "", helmErrVal, "Found unexpected release value")
 }
 
 // Test_maskSensitiveData tests the maskSensitiveData function

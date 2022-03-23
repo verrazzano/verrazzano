@@ -102,20 +102,18 @@ func AppendOverrides(compContext spi.ComponentContext, releaseName string, names
 		return kvs, err
 	}
 	// OCI DNS is configured, append all helm overrides for external DNS
-	ownerString, err := getOrBuildOwnerID(compContext, releaseName, namespace)
+	ids, err := getOrBuildIDs(compContext, releaseName, namespace)
 	if err != nil {
 		return kvs, err
 	}
-	txtPrefix, err := getOrBuildTXTRecordPrefix(compContext, ownerString, releaseName, namespace)
-	if err != nil {
-		return kvs, err
-	}
-	compContext.Log().Debugf("Owner ID: %s, TXT record prefix: %s", ownerString, txtPrefix)
+	ownerID := ids[0]
+	txtPrefix := ids[1]
+	compContext.Log().Debugf("Owner ID: %s, TXT record prefix: %s", ownerID, txtPrefix)
 	arguments := []bom.KeyValue{
 		{Key: "domainFilters[0]", Value: oci.DNSZoneName},
 		{Key: "zoneIDFilters[0]", Value: oci.DNSZoneOCID},
 		{Key: "ociDnsScope", Value: oci.DNSScope},
-		{Key: "txtOwnerId", Value: ownerString},
+		{Key: "txtOwnerId", Value: ownerID},
 		{Key: "txtPrefix", Value: txtPrefix},
 		{Key: "extraVolumes[0].name", Value: "config"},
 		{Key: "extraVolumes[0].secret.secretName", Value: oci.OCIConfigSecret},
@@ -139,33 +137,27 @@ func getOCIDNS(vz *vzapi.Verrazzano) (*vzapi.OCI, error) {
 	return oci, nil
 }
 
-//getOrBuildOwnerID Get the owner ID from the Helm release if it exists and preserve it, otherwise build a unique ID
-func getOrBuildOwnerID(compContext spi.ComponentContext, releaseName string, namespace string) (string, error) {
-	value, found, err := helm.GetReleaseStringValue(compContext.Log(), ownerIDHelmKey, releaseName, namespace)
+//getOrBuildIDs Get the owner and TXT prefix IDs from the Helm release if they exist and preserve it, otherwise build a new ones
+func getOrBuildIDs(compContext spi.ComponentContext, releaseName string, namespace string) ([]string, error) {
+	values, err := helm.GetReleaseStringValues(compContext.Log(), []string{ownerIDHelmKey, prefixKey}, releaseName, namespace)
 	if err != nil {
-		return "", err
+		return []string{}, err
 	}
-	if found {
-		return value, nil
+	ownerID, ok := values[ownerIDHelmKey]
+	if !ok {
+		if ownerID, err = buildOwnerString(compContext.ActualCR().UID); err != nil {
+			return []string{}, err
+		}
 	}
-	ownerString, err := buildOwnerString(compContext.ActualCR().UID)
-	if err != nil {
-		return "", err
+	prefixKey, ok := values[prefixKey]
+	if !ok {
+		prefixKey = buildPrefixKey(ownerID)
 	}
-	return ownerString, nil
+	return []string{ownerID, prefixKey}, nil
 }
 
-//getOrBuildTXTRecordPrefix Get the TXT record prefix from the Helm release if it exists and preserve it, otherwise build
-//  new one off of the ownerID passed in
-func getOrBuildTXTRecordPrefix(compContext spi.ComponentContext, ownerID string, releaseName string, namespace string) (string, error) {
-	value, found, err := helm.GetReleaseStringValue(compContext.Log(), prefixKey, releaseName, namespace)
-	if err != nil {
-		return "", err
-	}
-	if found {
-		return value, nil
-	}
-	return fmt.Sprintf("_%s-", ownerID), nil
+func buildPrefixKey(ownerID string) string {
+	return fmt.Sprintf("_%s-", ownerID)
 }
 
 //buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
