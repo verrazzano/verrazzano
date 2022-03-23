@@ -463,9 +463,6 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	if err != nil {
 		return err
 	}
-	if len(gateway.Spec.Servers) > 0 {
-		hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
-	}
 
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
