@@ -41,10 +41,6 @@ func WhenPrometheusOperatorInstalledIt(description string, f interface{}) {
 	}
 }
 
-func VerifyCRDList(crds []string) (bool, error) {
-
-}
-
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Prometheus Operator", Label("f:platform-lcm.install"), func() {
