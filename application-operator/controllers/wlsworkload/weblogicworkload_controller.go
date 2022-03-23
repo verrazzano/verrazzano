@@ -19,6 +19,8 @@ import (
 
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
+
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -755,6 +757,9 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.V
 			bytes, err := yaml.JSONToYAML([]byte(defaultWDTConfigMapData))
 			if err != nil {
 				return err
+			}
+			if configMap.Data == nil {
+				configMap.Data = map[string]string{}
 			}
 			configMap.Data[webLogicPluginConfigYamlKey] = string(bytes)
 			err = r.Client.Update(ctx, configMap)
