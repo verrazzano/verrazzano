@@ -68,6 +68,11 @@ func NewComponent() spi.Component {
 	}
 }
 
+func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+	ctx.Log().Infof("MGIANATA reconcile called for component %s", ComponentName)
+	return nil
+}
+
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 	// Check Verrazzano Secret. return error which will cause reque
 	secret := &corev1.Secret{}
