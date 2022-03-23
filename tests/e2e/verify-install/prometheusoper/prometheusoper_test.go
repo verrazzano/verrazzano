@@ -17,6 +17,7 @@ import (
 const (
 	verrazzanoMonitoringNamespace = "verrazzano-monitoring"
 	prometheusOperatorPod         = "prometheus-operator-kube-p-operator"
+	prometheusTLSSecret           = "prometheus-operator-kube-p-admission"
 	waitTimeout                   = 3 * time.Minute
 	pollingInterval               = 10 * time.Second
 )
@@ -85,5 +86,8 @@ var _ = t.Describe("Prometheus Operator", Label("f:platform-lcm.install"), func(
 			Eventually(VerifyCRDList(crds), waitTimeout, pollingInterval).Should(BeTrue())
 		})
 
+		WhenPrometheusOperatorInstalledIt("should have the TLS secret", func() {
+			Eventually(pkg.SecretsCreated(verrazzanoMonitoringNamespace, prometheusTLSSecret), waitTimeout, pollingInterval).Should(BeTrue())
+		})
 	})
 })
