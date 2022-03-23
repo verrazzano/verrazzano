@@ -287,10 +287,6 @@ pipeline {
             }
             steps {
                 sh """
-                    # dump the app pods before updating the VPO so they can be compared after the VPO is updated
-                    echo "Application pods before VPO update:"
-                    ${TEST_SCRIPTS_DIR}/dump_pods.sh ${env.APP_NAMEPACES} > ${OLD_PODS_FILE}
-                    cat ${OLD_PODS_FILE}
                     SHORT_COMMIT_HASH=$(git rev-parse --short=8 HEAD)
                     echo "Upgrading the Verrazzano platform operator"
                     if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
