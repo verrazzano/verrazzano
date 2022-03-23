@@ -17,6 +17,7 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -1228,6 +1229,47 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 	return nil
 }
 
+// Watch the pods in the keycloak namespace for this vz resource.  The reconcile loop will be called
+// when a pod is deleted.
+func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
+
+	// Define a mapping to the Verrazzano resource
+	mapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			return []reconcile.Request{
+				{NamespacedName: types.NamespacedName{
+					Namespace: namespace,
+					Name:      name,
+				}},
+			}
+		})
+
+	// Watch pod delete
+	p := predicate.Funcs{
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			log.Infof("Pod in namespace %s deleted", keycloak.ComponentNamespace)
+			return true
+		},
+	}
+
+	// Watch pods and trigger reconciles for Verrazzano resources when a pod deletes
+	err := r.Controller.Watch(
+		&source.Kind{Type: &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Namespace: keycloak.ComponentNamespace},
+		}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: mapFn,
+		},
+		// Comment it if default predicate fun is used.
+		p)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
+
+	return nil
+}
+
 // initForVzResource will do initialization for the given Verrazzano resource.
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
@@ -1260,6 +1302,12 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	// Watch the jobs in the operator namespace for this VZ CR
 	if err := r.watchJobs(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Job watch for Verrrazzano CR %s: %v", vz.Name, err)
+		return newRequeueWithDelay(), err
+	}
+
+	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
+	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
+		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
 	}
 
