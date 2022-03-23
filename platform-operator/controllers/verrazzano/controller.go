@@ -1248,10 +1248,11 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			// Cast object to pod
 			pod := e.Object.(*corev1.Pod)
-			log.Infof("Pod %s in namespace %s deleted", pod.Name, pod.Namespace)
 			if !strings.Contains(pod.Name, mysql.ComponentName) {
+				log.Infof("Pod %s in namespace %deleted but does not contain %s", pod.Name, pod.Namespace, mysql.ComponentName)
 				return false
 			}
+			log.Infof("Pod %s in namespace %s deleted", pod.Name, pod.Namespace)
 			return true
 		},
 	}
