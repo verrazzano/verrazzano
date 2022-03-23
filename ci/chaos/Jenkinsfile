@@ -340,7 +340,8 @@ pipeline {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
-            }
+                 OCI_CLI_AUTH="instance_principal"
+           }
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
