@@ -337,6 +337,10 @@ pipeline {
         }
 
         stage("Upgrade Verrazzano and execute selected test") {
+            environment {
+                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+                OCI_OS_BUCKET="verrazzano-builds"
+            }
             steps {
                 script {
                     // Download the bom for the target version that we are upgrading to, then extract the version
@@ -348,7 +352,7 @@ pipeline {
                         VERRAZZANO_INTERIM_VERSION = sh(returnStdout: true, script: "cat ${WORKSPACE}/interim-upgrade-bom.json | jq -r '.version'").trim()
                     }
                     VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
-
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
                 }
                 sh """
                     # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
