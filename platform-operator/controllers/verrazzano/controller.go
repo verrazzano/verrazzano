@@ -17,7 +17,7 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -1248,8 +1248,12 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 	// Watch pod delete
 	p := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			// Cast object to pod
 			pod := e.Object.(*corev1.Pod)
 			log.Infof("Pod %s in namespace %s deleted", pod.Name, pod.Namespace)
+			if !strings.Contains(pod.Name, mysql.ComponentName) {
+				return false
+			}
 			return true
 		},
 	}
@@ -1257,7 +1261,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 	// Watch pods and trigger reconciles for Verrazzano resources when a pod deletes
 	err := r.Controller.Watch(
 		&source.Kind{Type: &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Namespace: keycloak.ComponentNamespace},
+			ObjectMeta: metav1.ObjectMeta{Namespace: mysql.ComponentNamespace},
 		}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: mapFn,
