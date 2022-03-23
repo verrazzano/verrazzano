@@ -38,5 +38,3 @@ security:
       name: group-of-monitors
 verrazzanoOperator:
   enabled: true
-prometheusOperator:
-  enabled: true
