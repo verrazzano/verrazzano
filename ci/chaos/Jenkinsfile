@@ -285,11 +285,10 @@ pipeline {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_BUCKET="verrazzano-builds"
             }
-            script {
-                SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-            }
             steps {
-
+                script {
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                }
                 sh """
                     echo "Upgrading the Verrazzano platform operator"
                     if [[ "upgrade.failed.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
