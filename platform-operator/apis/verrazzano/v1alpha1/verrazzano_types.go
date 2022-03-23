@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -362,7 +363,8 @@ type ElasticsearchComponent struct {
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
-	ESInstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+	Polices       []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
 }
 
 // KibanaComponent specifies the Kibana configuration.

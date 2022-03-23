@@ -186,6 +186,11 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *resourceRequestValues, vmi *vm
 		},
 	}
 
+	// Proxy any ISM policies to the VMI
+	for _, policy := range opensearchComponent.Polices {
+		opensearch.Policies = append(opensearch.Policies, *policy.DeepCopy())
+	}
+
 	// Set the values in the OpenSearch object from the Verrazzano component InstallArgs
 	if err := populateOpenSearchFromInstallArgs(opensearch, opensearchComponent); err != nil {
 		return nil, err
