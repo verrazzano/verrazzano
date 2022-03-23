@@ -348,9 +348,9 @@ pipeline {
                     // Download the bom for the target version that we are upgrading to, then extract the version
                     // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
                     VERRAZZANO_INTERIM_VERSION = "NONE"
-                    if ("upgrade.failed.upgrade".equals(params.CHAOS_TEST_TYPE) {
+                    if ("upgrade.failed.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = "1.2.0"
-                    } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE) {
+                    } else if ("upgrade.failing.upgrade".equals(params.CHAOS_TEST_TYPE)) {
                         VERRAZZANO_INTERIM_VERSION = sh(returnStdout: true, script: "cat ${WORKSPACE}/interim-upgrade-bom.json | jq -r '.version'").trim()
                     }
                     VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
