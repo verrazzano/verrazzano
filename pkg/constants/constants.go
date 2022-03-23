@@ -11,6 +11,9 @@ const RestartVersionAnnotation = "verrazzano.io/restart-version"
 // VerrazzanoRestartAnnotation is the annotation used to restart platform workloads
 const VerrazzanoRestartAnnotation = "verrazzano.io/restartedAt"
 
+// UpdateIngressTraitAnnotation Annotation applied to trigger an IngressTrait reconcile
+const UpdateIngressTraitAnnotation = "verrazzano.io/update-ingresstrait"
+
 // LifecycleActionAnnotation - the annotation perform lifecycle actions on a workload
 const LifecycleActionAnnotation = "verrazzano.io/lifecycle-action"
 
