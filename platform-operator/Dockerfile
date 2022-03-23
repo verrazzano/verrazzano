@@ -23,7 +23,7 @@ ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
 
 # Use olcne13, which is required for kubectl
 RUN yum update -y \
-    && yum install -y openssl jq patch \
+    && yum install -y openssl jq patch wget \
     && yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/olcne13/x86_64/ \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
     && yum install -y kubectl-1.20.11-4.el7 \
