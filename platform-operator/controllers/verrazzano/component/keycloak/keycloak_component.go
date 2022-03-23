@@ -70,7 +70,7 @@ func NewComponent() spi.Component {
 
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	ctx.Log().Infof("MGIANATA reconcile called for component %s", ComponentName)
-	return nil
+	return configureKeycloakRealms(ctx)
 }
 
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {

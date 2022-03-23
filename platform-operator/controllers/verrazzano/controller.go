@@ -207,9 +207,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 			return result, nil
 		}
 
-		// Repair the Keycloak configuration if MySQL restarted and is using ephemeral storage
-		log.Info("MGIANATA this is where call would be made to repair keycloak configuration")
-
 		return ctrl.Result{}, nil
 	}
 
