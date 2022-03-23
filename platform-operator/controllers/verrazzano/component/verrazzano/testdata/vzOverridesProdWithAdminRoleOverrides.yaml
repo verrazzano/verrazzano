@@ -37,3 +37,5 @@ security:
       name: fred-flintstone
 verrazzanoOperator:
   enabled: true
+prometheusOperator:
+  enabled: true
