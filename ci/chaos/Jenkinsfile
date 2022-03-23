@@ -295,7 +295,6 @@ pipeline {
                 }
                 sh """
                     # Download the operator.yaml for the target version that we are upgrading to
-                    echo "Upgrading VPO to the version associated with the build commit"
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                     cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
 
@@ -365,6 +364,7 @@ pipeline {
                     cp ${INSTALL_CONFIG_FILE_KIND} ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     if [[ "NONE" != ${VERRAZZANO_INTERIM_VERSION} ]]
+                    then
                         # create the interim VZ CR
                         ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_INTERIM_VERSION}  ${WORKSPACE}/verrazzano-interim-cr.yaml
                         cp ${WORKSPACE}/verrazzano-interim-cr.yaml ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs
