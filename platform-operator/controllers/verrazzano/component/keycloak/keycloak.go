@@ -518,7 +518,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 
 	// If ephemeral storage is configured, additional steps may be required to
 	// rebuild the configuration lost due to MySQL pod getting restarted.
-	if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource == nil {
+	if (ctx.EffectiveCR().Spec.Components.Keycloak != nil) && (ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource == nil) {
 		// When the MySQL pod restarts and using ephemeral storage, the
 		// login to Keycloak will fail.  Need to recycle the Keycloak pod
 		// to resolve the condition.
