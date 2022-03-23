@@ -37,7 +37,7 @@ func WhenPrometheusOperatorInstalledIt(description string, f interface{}) {
 	if supported {
 		t.It(description, f)
 	} else {
-		t.Logs.Infof("Skipping check '%v', the Proemtheus Operator is not supported", description)
+		t.Logs.Infof("Skipping check '%v', the Prometheus Operator is not supported", description)
 	}
 }
 
