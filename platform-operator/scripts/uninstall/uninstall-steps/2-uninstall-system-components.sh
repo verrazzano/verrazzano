@@ -165,8 +165,10 @@ function delete_rancher() {
   kubectl delete configmap cattle-controllers -n kube-system  --ignore-not-found=true || err_return $? "Could not delete ConfigMap from Rancher in namespace kube-system" || return $?
   kubectl delete configmap rancher-controller-lock -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap rancher-controller-lock in namespace kube-system" || return $?
 
-  log "Delete the Rancher webhooks"
-#  TODO TODO TODO
+  log "Delete the Rancher webhooks and left over charts"
+  #TODO TODO TODO
+  #TODO TODO TODO
+  #TODO TODO TODO
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
