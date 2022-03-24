@@ -10,6 +10,10 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -74,18 +78,79 @@ var (
 // Reconciler is used to reconcile an IngressTrait object
 type Reconciler struct {
 	client.Client
-	Log    *zap.SugaredLogger
-	Scheme *runtime.Scheme
+	Controller controller.Controller
+	Log        *zap.SugaredLogger
+	Scheme     *runtime.Scheme
 }
 
-// SetupWithManager creates a controller and adds it to the manager
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+// SetupWithManager creates a controller and adds it to the manager, and sets up any watches
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) (err error) {
+	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			RateLimiter: controllers.NewDefaultRateLimiter(),
 		}).
 		For(&vzapi.IngressTrait{}).
-		Complete(r)
+		Build(r)
+	if err != nil {
+		return err
+	}
+	return r.setupWatches()
+}
+
+func (r *Reconciler) setupWatches() error {
+	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
+	// - Define a mapping to the existing ingress traits and invoke the IngressTrait Reconciler
+	mapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			return r.createIngressTraitReconcileRequests()
+		})
+	// setup a watch on the Console ingress
+	return r.Controller.Watch(
+		&source.Kind{
+			Type: &k8net.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      constants.VzConsoleIngress,
+					Namespace: constants.VerrazzanoSystemNamespace,
+				},
+			},
+		},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: mapFn,
+		},
+		predicate.Funcs{
+			UpdateFunc: updateFunc,
+		},
+	)
+}
+
+func updateFunc(updateEvent event.UpdateEvent) bool {
+	oldIngress := updateEvent.ObjectOld.(*k8net.Ingress)
+	newIngress := updateEvent.ObjectNew.(*k8net.Ingress)
+	return !reflect.DeepEqual(oldIngress.Spec.TLS, newIngress.Spec.TLS)
+}
+
+//annotateIngressTraits Adds an annotation to existing IngressTrait objects to force them to reconcile;
+//  this is necessary when the DNS domain has been updated and we need to generate new records for applications using
+//  default hostnames that we generate.  Default hostnames are generated based on the main console/authproxy ingress,
+//  so we do it PostInstall/PostUpgrade of the Verrazzano component, which manages that ingress.
+func (r *Reconciler) createIngressTraitReconcileRequests() []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	ingressList := vzapi.IngressTraitList{}
+	if err := r.List(context.TODO(), &ingressList, &client.ListOptions{}); err != nil {
+		r.Log.Errorf("Failed to list ingress traits: %v", err)
+		return requests
+	}
+
+	for _, ingressTrait := range ingressList.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: ingressTrait.Namespace,
+				Name:      ingressTrait.Name,
+			},
+		})
+	}
+	return requests
 }
 
 // Reconcile reconciles an IngressTrait with other related resources required for ingress.
@@ -463,9 +528,9 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	if err != nil {
 		return err
 	}
-	//if len(gateway.Spec.Servers) > 0 {
-	//	hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
-	//}
+	if len(gateway.Spec.Servers) > 0 {
+		hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
+	}
 
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
@@ -500,15 +565,15 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 }
 
 // appendToConfiguredHosts appends the host lists ensuring uniqueness of entries
-//func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []string {
-//	for _, newHost := range hostsToAppend {
-//		_, hostFound := findHost(existingHosts, newHost)
-//		if !hostFound {
-//			existingHosts = append(existingHosts, strings.ToLower(newHost))
-//		}
-//	}
-//	return existingHosts
-//}
+func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []string {
+	for _, newHost := range hostsToAppend {
+		_, hostFound := findHost(existingHosts, newHost)
+		if !hostFound {
+			existingHosts = append(existingHosts, strings.ToLower(newHost))
+		}
+	}
+	return existingHosts
+}
 
 // findHost searches for a host in the provided list. If found it will
 // return it's key, otherwise it will return -1 and a bool of false.
@@ -858,15 +923,10 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 	var validHosts []string
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
-		if _, hostAlreadyPresent := findHost(validHosts, h); hostAlreadyPresent {
-			// Avoid duplicates
-			continue
-		}
 		// Ignore empty or wildcard hostname
 		if len(h) == 0 || strings.Contains(h, "*") {
 			continue
 		}
-		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
 	}
 	// Use default hostname if none of the user specified hosts were valid

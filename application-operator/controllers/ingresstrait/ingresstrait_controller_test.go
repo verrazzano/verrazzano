@@ -458,7 +458,7 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 						Name:     "https",
 						Number:   443,
 						Protocol: "HTTPS"},
-					Hosts: []string{"test-host" /*, "test2-host", "test3-host"*/},
+					Hosts: []string{"test-host", "test2-host", "test3-host"},
 				}}}
 			return nil
 		})
@@ -469,8 +469,8 @@ func TestSuccessfullyUpdateIngressWithCertSecret(t *testing.T) {
 			assert.Equal(istionet.ServerTLSSettings_SIMPLE, gateway.Spec.Servers[0].Tls.Mode, "Wrong Tls Mode")
 			assert.Equal("cert-secret", gateway.Spec.Servers[0].Tls.CredentialName, "Wrong secret name")
 			assert.Contains(gateway.Spec.Servers[0].Hosts, "test-host", "doesn't contain expected host")
-			//assert.Contains(gateway.Spec.Servers[0].Hosts, "test2-host", "doesn't contain expected host")
-			//assert.Contains(gateway.Spec.Servers[0].Hosts, "test3-host", "doesn't contain expected host")
+			assert.Contains(gateway.Spec.Servers[0].Hosts, "test2-host", "doesn't contain expected host")
+			assert.Contains(gateway.Spec.Servers[0].Hosts, "test3-host", "doesn't contain expected host")
 			return nil
 		})
 	// Expect a call to get the app config and return that it is not found.

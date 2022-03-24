@@ -5,6 +5,9 @@ package verrazzano
 
 import (
 	"fmt"
+	"path/filepath"
+	"reflect"
+
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -15,8 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
-	"reflect"
 )
 
 const (
@@ -115,13 +116,7 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 	// populate the ingress and certificate names before calling PostInstall on Helm component because those will be needed there
 	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
 	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
-	if err := c.HelmComponent.PostInstall(ctx); err != nil {
-		return err
-	}
-	if err := annotateIngressTraits(ctx); err != nil {
-		return err
-	}
-	return nil
+	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Verrazzano-post-upgrade processing
@@ -133,13 +128,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	cleanTempFiles(ctx)
-	if err := c.updateElasticsearchResources(ctx); err != nil {
-		return err
-	}
-	if err := annotateIngressTraits(ctx); err != nil {
-		return err
-	}
-	return nil
+	return c.updateElasticsearchResources(ctx)
 }
 
 // updateElasticsearchResources updates elasticsearch resources

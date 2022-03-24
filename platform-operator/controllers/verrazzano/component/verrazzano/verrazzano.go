@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"io/ioutil"
 	"os/exec"
 	"strconv"
@@ -458,39 +457,6 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Failed deleting temp files: %v", err)
 	}
-}
-
-//annotateIngressTraits Adds an annotation to existing IngressTrait objects to force them to reconcile;
-//  this is necessary when the DNS domain has been updated and we need to generate new records for applications using
-//  default hostnames that we generate.  Default hostnames are generated based on the main console/authproxy ingress,
-//  so we do it PostInstall/PostUpgrade of the Verrazzano component, which manages that ingress.
-func annotateIngressTraits(ctx spi.ComponentContext) error {
-	client := ctx.Client()
-	log := ctx.Log()
-	ingressList := vzapp.IngressTraitList{}
-	if err := client.List(context.TODO(), &ingressList, &clipkg.ListOptions{}); err != nil {
-		return log.ErrorfNewErr("Failed to listing ingress traits: %v", err)
-	}
-
-	for _, ingressTrait := range ingressList.Items {
-		updateIngressTrait := vzapp.IngressTrait{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ingressTrait.Name,
-				Namespace: ingressTrait.Namespace,
-			},
-		}
-		if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &updateIngressTrait, func() error {
-			log.Infof("Updating ingress trait %s/%s", updateIngressTrait.Namespace, updateIngressTrait.Name)
-			if updateIngressTrait.Annotations == nil {
-				updateIngressTrait.Annotations = make(map[string]string)
-			}
-			updateIngressTrait.Annotations[globalconst.UpdateIngressTraitAnnotation] = fmt.Sprintf("%v", metav1.Now())
-			return nil
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // fixupElasticSearchReplicaCount fixes the replica count set for single node Elasticsearch cluster
