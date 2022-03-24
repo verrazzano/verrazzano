@@ -339,7 +339,8 @@ func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (
 		// upgrade can proceed from paused state
 		log.Debugf("Restarting upgrade since VZ version and VPO version match")
 		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
-		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+		// requeue for a fairly long time considering this may be a terminating VPO
+		return vzctrl.NewRequeueWithDelay(30, 60, time.Second), err
 	}
 
 	return newRequeueWithDelay(), nil
