@@ -67,13 +67,16 @@ func NewComponent() spi.Component {
 	}
 }
 
+// Reconcile - the only condition currently being handled by this function is to restore
+// the Keycloak configuration when the MySQL pod gets restarted and ephemeral storage is being used.
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	// what if mysql recycles during upgrade phase right after it had been configured?
 	// also do a periodic check??
 	ctx.Log().Infof("MGIANATA reconcile called for component %s with VZ in state %s", ComponentName, ctx.EffectiveCR().Status.State)
-	// If the VZ is not ready, the install, update and upgrade flows will
-	// ensure the Keycloak configuration is created.
-	if ctx.EffectiveCR().Status.State == vzapi.VzStateReady {
+
+	// If the Keycloak component is ready, confirm the configuration is working.
+	// If ephemeral storage is being used, the Keycloak configuration will be rebuilt if needed.
+	if isKeycloakReady(ctx) {
 		ctx.Log().Infof("MGIANATA calling configureKeycloakRealms for component %s", ComponentName)
 		return configureKeycloakRealms(ctx)
 	}
