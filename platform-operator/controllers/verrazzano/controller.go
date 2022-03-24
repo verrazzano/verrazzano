@@ -340,7 +340,7 @@ func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (
 		log.Debugf("Restarting upgrade since VZ version and VPO version match")
 		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		// requeue for a fairly long time considering this may be a terminating VPO
-		return vzctrl.NewRequeueWithDelay(30, 60, time.Second), err
+		return vzctrl.NewRequeueWithDelay(45, 60, time.Second), err
 	}
 
 	return newRequeueWithDelay(), nil
