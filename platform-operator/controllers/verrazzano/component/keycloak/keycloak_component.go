@@ -69,12 +69,14 @@ func NewComponent() spi.Component {
 }
 
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
+	// what if mysql recycles during upgrade phase right after it had been configured?
+	// also do a periodic check??
 	ctx.Log().Infof("MGIANATA reconcile called for component %s", ComponentName)
 	return configureKeycloakRealms(ctx)
 }
 
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
-	// Check Verrazzano Secret. return error which will cause reque
+	// Check Verrazzano Secret. return error which will cause requeue
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: constants.VerrazzanoSystemNamespace,
