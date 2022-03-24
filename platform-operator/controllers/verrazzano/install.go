@@ -4,14 +4,13 @@
 package verrazzano
 
 import (
-	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -69,7 +68,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 		case vzapi.CompStateReady:
 			// For delete, we should look at the VZ resource delete timestamp and shift into Quiescing/Uninstalling state
 			compLog.Oncef("Component %s is ready", compName)
-			if err := comp.Reconcile(spiCtx); err != nil {
+			if err := comp.Reconcile(compContext); err != nil {
 				return newRequeueWithDelay(), err
 			}
 			// After restore '.status.instance' is empty and not updated. Below change will populate the correct values when comp state is Ready
