@@ -1693,7 +1693,7 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(1), result.RequeueAfter)
+	asserts.GreaterOrEqual(result.RequeueAfter.Seconds(), time.Duration(30).Seconds())
 }
 
 // TestDontRetryUpgrade tests the retryUpgrade method for the following use case
