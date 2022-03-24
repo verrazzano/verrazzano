@@ -1249,6 +1249,11 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		CreateFunc: func(e event.CreateEvent) bool {
 			// Cast object to pod
 			pod := e.Object.(*corev1.Pod)
+
+			// Filter events to only be for the MySQL namespace
+			if pod.Namespace != mysql.ComponentNamespace {
+				return false
+			}
 			log.Infof("MGIANATA CreateFunc called for pod %s in namespace %s", pod.Name, pod.Namespace)
 			if !strings.HasPrefix(pod.Name, mysql.ComponentName) {
 				// Do not process the event if the pod restarted is not MySQL
@@ -1261,9 +1266,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 
 	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
 	err := r.Controller.Watch(
-		&source.Kind{Type: &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Namespace: mysql.ComponentNamespace},
-		}},
+		&source.Kind{Type: &corev1.Pod{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: mapFn,
 		},
