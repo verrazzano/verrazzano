@@ -36,7 +36,7 @@ const (
 	osdCertificateName        = "system-tls-kibana"
 	prometheusCertificateName = "system-tls-prometheus"
 
-	backupSecretName           = "verrazzano-backup"
+	verrazzanoBackupScrtName   = "verrazzano-backup"
 	objectstoreAccessKey       = "object_store_access_key"
 	objectstoreAccessSecretKey = "object_store_secret_key"
 )

@@ -311,7 +311,7 @@ func ensureVMISecret(cli client.Client) error {
 func ensureBackupSecret(cli client.Client) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      backupSecretName,
+			Name:      verrazzanoBackupScrtName,
 			Namespace: globalconst.VerrazzanoSystemNamespace,
 		},
 		Data: map[string][]byte{},
