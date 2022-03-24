@@ -422,11 +422,11 @@
       ]
     },
     {
-      "name": "kube-prometheus-stack",
+      "name": "prometheus-operator",
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "kube-prometheus-stack",
+          "name": "prometheus-operator",
           "images": [
             {
               "image": "prometheus-operator",
