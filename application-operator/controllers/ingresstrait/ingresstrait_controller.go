@@ -476,8 +476,8 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 
 	r.Log.Infof("Mutating gateway %s for trait %s, vs: %s", gateway.Name, trait.Name, vsName)
 	// Add a server entry for each IngressTrait/VS to the Gateway
-	server := &istionet.Server {
-		Name: vsName,
+	server := &istionet.Server{
+		Name:  vsName,
 		Hosts: hosts,
 		Port: &istionet.Port{
 			Name:     fmt.Sprintf("https-%s", vsName),
