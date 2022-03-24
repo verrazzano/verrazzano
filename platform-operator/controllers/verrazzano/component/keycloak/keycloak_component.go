@@ -72,7 +72,13 @@ func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	// what if mysql recycles during upgrade phase right after it had been configured?
 	// also do a periodic check??
 	ctx.Log().Infof("MGIANATA reconcile called for component %s", ComponentName)
-	return configureKeycloakRealms(ctx)
+	// If the VZ is not ready, the install, update and upgrade flows will
+	// ensure the Keycloak configuration is created.
+	if ctx.EffectiveCR().Status.State == vzapi.VzStateReady {
+		ctx.Log().Infof("MGIANATA calling configureKeycloakRealms for component %s", ComponentName)
+		return configureKeycloakRealms(ctx)
+	}
+	return nil
 }
 
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {

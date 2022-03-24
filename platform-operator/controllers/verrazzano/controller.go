@@ -1230,8 +1230,8 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 	return nil
 }
 
-// Watch the pods in the keycloak namespace for this vz resource.  The reconcile loop will be called
-// when a pod is deleted.
+// Watch the pods in the keycloak namespace for this vz resource.  The loop to reconcile will be called
+// when a pod is created.
 func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 	// Define a mapping to the Verrazzano resource
 	mapFn := handler.ToRequestsFunc(
@@ -1244,21 +1244,21 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 			}
 		})
 
-	// Watch pod delete
+	// Watch pod create
 	predicateFunc := predicate.Funcs{
-		DeleteFunc: func(e event.DeleteEvent) bool {
+		CreateFunc: func(e event.CreateEvent) bool {
 			// Cast object to pod
 			pod := e.Object.(*corev1.Pod)
 			if !strings.HasPrefix(pod.Name, mysql.ComponentName) {
 				// Do not process the event if the pod restarted is not MySQL
 				return false
 			}
-			log.Debugf("Pod %s in namespace %s deleted", pod.Name, pod.Namespace)
+			log.Debugf("Pod %s in namespace %s created", pod.Name, pod.Namespace)
 			return true
 		},
 	}
 
-	// Watch pods and trigger reconciles for Verrazzano resources when a pod deletes
+	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
 	err := r.Controller.Watch(
 		&source.Kind{Type: &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{Namespace: mysql.ComponentNamespace},
