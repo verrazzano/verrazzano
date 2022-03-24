@@ -1249,6 +1249,7 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 		CreateFunc: func(e event.CreateEvent) bool {
 			// Cast object to pod
 			pod := e.Object.(*corev1.Pod)
+			log.Infof("MGIANATA CreateFunc called for pod %s in namespace %s", pod.Name, pod.Namespace)
 			if !strings.HasPrefix(pod.Name, mysql.ComponentName) {
 				// Do not process the event if the pod restarted is not MySQL
 				return false

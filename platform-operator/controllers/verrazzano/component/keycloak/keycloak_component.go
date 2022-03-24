@@ -9,15 +9,14 @@ import (
 	"path/filepath"
 	"reflect"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -71,7 +70,7 @@ func NewComponent() spi.Component {
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	// what if mysql recycles during upgrade phase right after it had been configured?
 	// also do a periodic check??
-	ctx.Log().Infof("MGIANATA reconcile called for component %s", ComponentName)
+	ctx.Log().Infof("MGIANATA reconcile called for component %s with VZ in state %s", ComponentName, ctx.EffectiveCR().Status.State)
 	// If the VZ is not ready, the install, update and upgrade flows will
 	// ensure the Keycloak configuration is created.
 	if ctx.EffectiveCR().Status.State == vzapi.VzStateReady {
