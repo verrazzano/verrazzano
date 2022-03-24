@@ -430,6 +430,10 @@ pipeline {
                         kubectl wait --timeout=15m --for=condition=UpgradeFailed verrazzano/my-verrazzano
                         # Upgrade to the latest VPO
                         kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
+                        # ensure operator pod is up
+                        kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                        # need to sleep since the old operator needs to transition to terminating state
+                        sleep 45
                         # wait for a paused state
                         kubectl wait --timeout=10m --for=condition=UpgradePaused verrazzano/my-verrazzano
                         # apply the CR
@@ -457,6 +461,10 @@ pipeline {
                         then
                             # Upgrade to the latest VPO
                             kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
+                            # ensure operator pod is up
+                            kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+                            # need to sleep since the old operator needs to transition to terminating state
+                            sleep 45
                             # wait for a paused state
                             kubectl wait --timeout=10m --for=condition=UpgradePaused verrazzano/my-verrazzano
                             # apply the CR
