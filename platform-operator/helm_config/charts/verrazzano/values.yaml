@@ -136,3 +136,9 @@ kubernetes:
 
 externaldns:
   enabled: false
+
+prometheusOperator:
+  enabled: true
+
+monitoring:
+  namespace: verrazzano-monitoring
