@@ -423,6 +423,22 @@ pipeline {
                     }
                 }
 
+                stage('Post-Update2 Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-update-tests"
+                    }
+                    steps {
+                        runGinkgoRandomize('update')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('Post-update2 Acceptance Tests') {
                     environment {
                         TEST_ENV = "KIND"
