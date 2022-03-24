@@ -472,9 +472,9 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	if err != nil {
 		return err
 	}
-	//if len(gateway.Spec.Servers) > 0 {
-	//	hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
-	//}
+	if len(gateway.Spec.Servers) > 0 {
+		hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
+	}
 
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
@@ -509,15 +509,15 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 }
 
 // appendToConfiguredHosts appends the host lists ensuring uniqueness of entries
-//func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []string {
-//	for _, newHost := range hostsToAppend {
-//		_, hostFound := findHost(existingHosts, newHost)
-//		if !hostFound {
-//			existingHosts = append(existingHosts, strings.ToLower(newHost))
-//		}
-//	}
-//	return existingHosts
-//}
+func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []string {
+	for _, newHost := range hostsToAppend {
+		_, hostFound := findHost(existingHosts, newHost)
+		if !hostFound {
+			existingHosts = append(existingHosts, strings.ToLower(newHost))
+		}
+	}
+	return existingHosts
+}
 
 // findHost searches for a host in the provided list. If found it will
 // return it's key, otherwise it will return -1 and a bool of false.
@@ -924,15 +924,10 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 	var validHosts []string
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
-		if _, hostAlreadyPresent := findHost(validHosts, h); hostAlreadyPresent {
-			// Avoid duplicates
-			continue
-		}
 		// Ignore empty or wildcard hostname
 		if len(h) == 0 || strings.Contains(h, "*") {
 			continue
 		}
-		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
 	}
 	// Use default hostname if none of the user specified hosts were valid
