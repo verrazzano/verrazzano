@@ -1254,9 +1254,9 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 			if pod.Namespace != mysql.ComponentNamespace {
 				return false
 			}
-			log.Infof("MGIANATA CreateFunc called for pod %s in namespace %s", pod.Name, pod.Namespace)
+
+			// Do not process the event if the pod restarted is not MySQL
 			if !strings.HasPrefix(pod.Name, mysql.ComponentName) {
-				// Do not process the event if the pod restarted is not MySQL
 				return false
 			}
 			log.Debugf("Pod %s in namespace %s created", pod.Name, pod.Namespace)
