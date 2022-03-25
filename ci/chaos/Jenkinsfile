@@ -383,6 +383,12 @@ pipeline {
 
                     echo "CHAOS TEST TYPE = ${params.CHAOS_TEST_TYPE}"
 
+                    if [[ "ephemeral.storage.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
+                    then
+                        # Initiate upgrade
+                        kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                    fi
+
                     if [[ "vpo.killed" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         # Initiate upgrade
