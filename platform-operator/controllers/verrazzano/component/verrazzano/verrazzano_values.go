@@ -38,6 +38,7 @@ type verrazzanoValues struct {
 	Security           *securityRoleBindingValues `json:"security,omitempty"`
 	Kubernetes         *kubernetesValues          `json:"kubernetes,omitempty"`
 	Externaldns        *externalDNSValues         `json:"externaldns,omitempty"`
+	PrometheusOperator *prometheusOperatorValues  `json:"prometheusOperator,omitempty"`
 }
 
 type subject struct {
@@ -204,4 +205,8 @@ type ociLoggingSettings struct {
 	DefaultAppLogID string `json:"defaultAppLogId"`
 	SystemLogID     string `json:"systemLogId"`
 	APISecret       string `json:"apiSecret,omitempty"`
+}
+
+type prometheusOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
 }

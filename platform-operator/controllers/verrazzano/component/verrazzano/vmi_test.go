@@ -267,3 +267,20 @@ func TestHasDataNodeStorageOverride(t *testing.T) {
 		})
 	}
 }
+
+// TestBackupSecret tests whether ensureBackupSecret are created
+// GIVEN a kubernetes client
+func TestBackupSecret(t *testing.T) {
+	client := createPreInstallTestClient()
+	err := ensureBackupSecret(client)
+	assert.Nil(t, err)
+}
+
+// TestSetupSharedVmiResources tests whether secrets resources are created
+// GIVEN a controller run-time context
+func TestSetupSharedVmiResources(t *testing.T) {
+	client := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	err := setupSharedVMIResources(ctx)
+	assert.Nil(t, err)
+}
