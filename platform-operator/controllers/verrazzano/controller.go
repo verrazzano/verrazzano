@@ -340,7 +340,7 @@ func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (
 		log.Debugf("Restarting upgrade since VZ version and VPO version match")
 		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		// requeue for a fairly long time considering this may be a terminating VPO
-		return vzctrl.NewRequeueWithDelay(45, 60, time.Second), err
+		return newRequeueWithDelay(), err
 	}
 
 	return newRequeueWithDelay(), nil
@@ -365,24 +365,22 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 		return newRequeueWithDelay(), err
 	}
 
-	// if annotations didn't trigger a retry, see if a newer version of BOM should
-	if !retry {
-		if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
-			// upgrade needs to be restarted due to newer operator
-			log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
-
-			err := r.updateStatus(log, vz,
-				fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
-				installv1alpha1.CondUpgradePaused)
-			return newRequeueWithDelay(), err
-		}
-	}
-
 	if retry {
 		// Log the retry and set the CompStateType to ready, then requeue
-		log.Debugf("Restart Version annotation has changed or a new VPO installed, retrying upgrade")
+		log.Debugf("Restart Version annotation has changed, retrying upgrade")
 		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+	}
+
+	// if annotations didn't trigger a retry, see if a newer version of BOM should
+	if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
+		// upgrade needs to be restarted due to newer operator
+		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
+
+		err := r.updateStatus(log, vz,
+			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
+			installv1alpha1.CondUpgradePaused)
+		return newRequeueWithDelay(), err
 	}
 
 	return ctrl.Result{}, nil
