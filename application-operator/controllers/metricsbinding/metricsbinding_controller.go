@@ -6,14 +6,14 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	vztemplate "github.com/verrazzano/verrazzano/application-operator/controllers/template"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	k8scorev1 "k8s.io/api/core/v1"
@@ -236,20 +236,22 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	// Get data from the configmap
 	promConfig, err := getConfigData(configMap)
 	if err != nil {
+		log.Errorf("Failed to get Prometheus config map %s: %v", configMap.GetName(), err)
 		return err
 	}
 
 	// Get the namespace for the template
 	workloadNamespace := k8scorev1.Namespace{}
-	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: template.GetNamespace()}, &workloadNamespace)
+	err = r.Client.Get(context.TODO(), k8sclient.ObjectKey{Name: metricsBinding.GetNamespace()}, &workloadNamespace)
 	if err != nil {
-		log.Errorf("Failed get the Namespace %s: %v", workloadNamespace.GetName(), err)
+		log.Errorf("Failed to get metrics binding namespace %s: %v", metricsBinding.GetName(), err)
 		return err
 	}
 
 	// Create Unstructured Namespace
 	workloadNamespaceUnstructuredMap, err := k8sruntime.DefaultUnstructuredConverter.ToUnstructured(&workloadNamespace)
 	if err != nil {
+		log.Errorf("Failed to get the unstructured for namespace %s: %v", workloadNamespace.GetName(), err)
 		return err
 	}
 	workloadNamespaceUnstructured := unstructured.Unstructured{Object: workloadNamespaceUnstructuredMap}
@@ -257,6 +259,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	// Get the workload object for the template processor
 	workloadObject, err := r.getWorkloadObject(metricsBinding)
 	if err != nil {
+		log.Errorf("Failed to get the workload object for metrics binding %s: %v", metricsBinding.GetName(), err)
 		return err
 	}
 
@@ -270,6 +273,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	templateProcessor := vztemplate.NewProcessor(r.Client, template.Spec.PrometheusConfig.ScrapeConfigTemplate)
 	scrapeConfigString, err := templateProcessor.Process(templateInputs)
 	if err != nil {
+		log.Errorf("Failed to process metrics template %s: %v", template.GetName(), err)
 		return err
 	}
 
@@ -298,10 +302,12 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 			// Remove and recreate scrape config
 			err = promConfig.ArrayRemoveP(index, prometheusScrapeConfigsLabel)
 			if err != nil {
+				log.Errorf("Failed to remove scrape config: %v", err)
 				return err
 			}
 			err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 			if err != nil {
+				log.Errorf("Failed to append scrape config: %v", err)
 				return err
 			}
 			existingUpdated = true
@@ -311,6 +317,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	if !existingUpdated {
 		err = promConfig.ArrayAppendP(newScrapeConfig.Data(), prometheusScrapeConfigsLabel)
 		if err != nil {
+			log.Errorf("Failed to append scrape config: %v", err)
 			return err
 		}
 	}
@@ -318,6 +325,7 @@ func (r *Reconciler) createOrUpdateScrapeConfig(metricsBinding *vzapi.MetricsBin
 	// Repopulate the ConfigMap data
 	newPromConfigData, err := yaml.JSONToYAML(promConfig.Bytes())
 	if err != nil {
+		log.Errorf("Failed to convert scrape config JSON to YAML: %v", err)
 		return err
 	}
 	configMap.Data[prometheusConfigKey] = string(newPromConfigData)
