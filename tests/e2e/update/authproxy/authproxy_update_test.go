@@ -71,9 +71,6 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
 			cr := waitForCRToBeReady()
-			if cr.Status.State != vzapi.VzStateReady {
-				Fail("CR is not ready")
-			}
 			if cr.Spec.Components.AuthProxy == nil {
 				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 			}
@@ -81,10 +78,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 				cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
 			}
 			cr.Spec.Components.AuthProxy.Kubernetes.Replicas = nodeCount
-			err := updateCR(cr)
-			if err != nil {
-				Fail(err.Error())
-			}
+			updateCR(cr)
 
 			expectedRunning := nodeCount
 			expectedPending := uint32(0)
@@ -95,9 +89,6 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
 			cr := waitForCRToBeReady()
-			if cr.Status.State != vzapi.VzStateReady {
-				Fail("CR is not ready")
-			}
 			if cr.Spec.Components.AuthProxy == nil {
 				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 			}
@@ -125,10 +116,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 					},
 				},
 			}
-			err := updateCR(cr)
-			if err != nil {
-				Fail(err.Error())
-			}
+			updateCR(cr)
 
 			expectedRunning := nodeCount - 1
 			expectedPending := uint32(2)
@@ -167,32 +155,33 @@ func waitForCRToBeReady() *vzapi.Verrazzano {
 	var cr *vzapi.Verrazzano
 	// Wait for the Verrazzano CR to be Ready
 	Eventually(func() error {
-		var err error
-		cr, err = pkg.GetVerrazzano()
+		cr, err := pkg.GetVerrazzano()
 		if err != nil {
 			return err
 		}
 		if cr.Status.State != vzapi.VzStateReady {
 			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 		}
-		return err
+		return nil
 	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
+	if cr.Status.State != vzapi.VzStateReady {
+		Fail("CR is not ready")
+	}
 	return cr
 }
 
-func updateCR(cr *vzapi.Verrazzano) error {
+func updateCR(cr *vzapi.Verrazzano) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
-		return err
+		Fail(err.Error())
 	}
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
-		return err
+		Fail(err.Error())
 	}
 	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("error updating Verrazzano instance: %v", err)
+		Fail(fmt.Sprintf("error updating Verrazzano instance: %v", err))
 	}
-	return nil
 }
