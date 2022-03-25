@@ -508,13 +508,27 @@ func (r *Reconciler) addLogging(ctx context.Context, log vzlog.VerrazzanoLogger,
 
 	// get the existing logHome setting - if it's set we use it otherwise we'll generate a logs location
 	// using an emptydir volume
-	logHome, _, _ := unstructured.NestedString(weblogic.Object, specLogHomeFields...)
-	_, logHomeEnabledSet, _ := unstructured.NestedBool(weblogic.Object, specLogHomeEnabledFields...)
-
 	volumeMountPath := scratchVolMountPath
+	volumeName := storageVolumeName
+	foundVolumeMount := false
+	logHome, _, _ := unstructured.NestedString(weblogic.Object, specLogHomeFields...)
 	if logHome != "" {
-		volumeMountPath = logHome
+		// find the existing volume mount for the logHome - the Fluentd volume mount needs to match
+		for _, mount := range extracted.VolumeMounts {
+			if strings.HasPrefix(logHome, mount.MountPath) {
+				volumeMountPath = mount.MountPath
+				volumeName = mount.Name
+				foundVolumeMount = true
+				break
+			}
+		}
+
+		if !foundVolumeMount {
+			// user specified logHome but it's not on any volume, Fluentd sidecar won't be able to collect logs
+			log.Info("Unable to find a volume mount for domain logHome, log collection will not work")
+		}
 	}
+	_, logHomeEnabledSet, _ := unstructured.NestedBool(weblogic.Object, specLogHomeEnabledFields...)
 
 	// fluentdPod starts with what's in the spec and we add in the FLUENTD things when Apply is
 	// called on the fluentdManager
@@ -529,7 +543,7 @@ func (r *Reconciler) addLogging(ctx context.Context, log vzlog.VerrazzanoLogger,
 		Log:                    zap.S(),
 		Client:                 r.Client,
 		ParseRules:             WlsFluentdParsingRules,
-		StorageVolumeName:      storageVolumeName,
+		StorageVolumeName:      volumeName,
 		StorageVolumeMountPath: volumeMountPath,
 		WorkloadType:           workloadType,
 	}

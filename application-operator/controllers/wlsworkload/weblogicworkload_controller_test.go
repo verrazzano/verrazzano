@@ -108,12 +108,18 @@ const weblogicDomainWithLogHome = `
 	  "serverPod": {
          "volumes": [
             {
-               "name": "weblogic-domain-storage-volume",
+               "name": "unit-test-logging-volume",
                "persistentVolumeClaim": {
                   "claimName": "unit-test-pvc"
                }
             }
-         ]
+         ],
+		 "volumeMounts": [
+			 {
+				 "name": "unit-test-logging-volume",
+				 "mountPath": "/unit_test"
+			 }
+		 ]
       }
    }
 }
@@ -2230,17 +2236,8 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 
 	appConfigName := "unit-test-app-config"
 	componentName := "unit-test-component"
-	fluentdImage := "unit-test-image:latest"
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: appConfigName,
 		constants.LabelWorkloadType: constants.WorkloadTypeWeblogic}
-
-	os.Setenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE", "my-weblogic-monitoring-exporter:a")
-	defer os.Unsetenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE")
-
-	// set the Fluentd image which is obtained via env then reset at end of test
-	initialDefaultFluentdImage := logging.DefaultFluentdImage
-	logging.DefaultFluentdImage = fluentdImage
-	defer func() { logging.DefaultFluentdImage = initialDefaultFluentdImage }()
 
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
@@ -2315,7 +2312,11 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
 			assert.Equal(weblogicKind, u.GetKind())
 
-			const expectedLogHome = "/unit_test/log_home"
+			const (
+				expectedLogHome         = "/unit_test/log_home"
+				expectedVolumeName      = "unit-test-logging-volume"
+				expectedVolumeMountPath = "/unit_test"
+			)
 
 			// make sure the user-specified logHome is set correctly
 			logHome, _, _ := unstructured.NestedString(u.Object, specLogHomeFields...)
@@ -2339,17 +2340,17 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 
 					// make sure the Fluentd container has the correct volume mount
 					mounts := c["volumeMounts"].([]interface{})
-					assertVolumeMount(t, "Fluentd container", mounts, storageVolumeName, expectedLogHome)
+					assertVolumeMount(t, "Fluentd container", mounts, expectedVolumeName, expectedVolumeMountPath, expectedLogHome)
 				}
 			}
 			assert.True(foundFluentdContainer, "Expected to find container with name %s", logging.FluentdStdoutSidecarName)
 
 			// make sure the serverPod volume mount is correct
 			serverPod, _, _ := unstructured.NestedMap(u.Object, specServerPodFields...)
-			assertVolumeMount(t, "serverPod", serverPod["volumeMounts"].([]interface{}), storageVolumeName, expectedLogHome)
+			assertVolumeMount(t, "serverPod", serverPod["volumeMounts"].([]interface{}), expectedVolumeName, expectedVolumeMountPath, expectedLogHome)
 
 			// make sure the serverPod volume has not been overwritten
-			assertVolume(t, serverPod["volumes"].([]interface{}), storageVolumeName, "unit-test-pvc")
+			assertVolume(t, serverPod["volumes"].([]interface{}), expectedVolumeName, "unit-test-pvc")
 
 			return nil
 		})
@@ -2406,14 +2407,15 @@ func assertPathsStartWith(t *testing.T, envs []interface{}, name string, startsW
 	assert.Fail("Failed", "Unable to find env var named %s", name)
 }
 
-// assertVolumeMount asserts that the volume mount mount path is a prefix of the log path
-func assertVolumeMount(t *testing.T, context string, mounts []interface{}, volumeName string, logPath string) {
+// assertVolumeMount asserts that the volume mount mount path is correct and is a prefix of the log path
+func assertVolumeMount(t *testing.T, context string, mounts []interface{}, volumeName string, mountPath string, logPath string) {
 	assert := asserts.New(t)
 
 	for _, mount := range mounts {
 		m := mount.(map[string]interface{})
 		if m["name"] == volumeName {
 			mp := m["mountPath"].(string)
+			assert.Equal(mountPath, mp)
 			assert.True(strings.HasPrefix(logPath, mp), "Expected %s volume mount %s mount path %s to be a prefix of %s", context, volumeName, mp, logPath)
 			return
 		}
