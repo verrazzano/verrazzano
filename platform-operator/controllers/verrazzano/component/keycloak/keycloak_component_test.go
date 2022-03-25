@@ -226,5 +226,5 @@ func TestKeycloakComponent_GetCertificateNames(t *testing.T) {
 	ctx := spi.NewFakeContext(client, vz, false)
 	names := NewComponent().GetCertificateNames(ctx)
 	assert.Len(t, names, 1)
-	assert.Equal(t, types.NamespacedName{Name: tlsSecretName, Namespace: ComponentNamespace}, names[0])
+	assert.Equal(t, types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}, names[0])
 }

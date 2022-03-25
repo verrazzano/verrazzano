@@ -31,7 +31,7 @@ const (
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
 	// Certificate names
-	tlsSecretName             = "verrazzano-tls"
+	verrazzanoCertificateName = "verrazzano-tls"
 	osCertificateName         = "system-tls-es-ingest"
 	grafanaCertificateName    = "system-tls-grafana"
 	osdCertificateName        = "system-tls-kibana"
@@ -304,7 +304,7 @@ func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 
 	certificateNames = append(certificateNames, types.NamespacedName{
 		Namespace: ComponentNamespace,
-		Name:      tlsSecretName,
+		Name:      verrazzanoCertificateName,
 	})
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {

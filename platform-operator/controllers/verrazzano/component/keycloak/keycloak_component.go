@@ -193,7 +193,7 @@ func (c KeycloakComponent) GetCertificateNames(ctx spi.ComponentContext) []types
 	return []types.NamespacedName{
 		{
 			Namespace: ComponentNamespace,
-			Name:      tlsSecretName,
+			Name:      keycloakCertificateName,
 		},
 	}
 }

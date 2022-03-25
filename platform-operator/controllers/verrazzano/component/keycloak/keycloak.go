@@ -37,21 +37,21 @@ import (
 )
 
 const (
-	dnsTarget          = "dnsTarget"
-	rulesHost          = "rulesHost"
-	tlsHosts           = "tlsHosts"
-	tlsSecret          = "tlsSecret"
-	tlsSecretName      = "keycloak-tls"
-	vzSysRealm         = "verrazzano-system"
-	vzUsersGroup       = "verrazzano-users"
-	vzAdminGroup       = "verrazzano-admins"
-	vzMonitorGroup     = "verrazzano-monitors"
-	vzSystemGroup      = "verrazzano-system-users"
-	vzAPIAccessRole    = "vz_api_access"
-	vzUserName         = "verrazzano"
-	vzInternalPromUser = "verrazzano-prom-internal"
-	vzInternalEsUser   = "verrazzano-es-internal"
-	keycloakPodName    = "keycloak-0"
+	dnsTarget               = "dnsTarget"
+	rulesHost               = "rulesHost"
+	tlsHosts                = "tlsHosts"
+	tlsSecret               = "tlsSecret"
+	keycloakCertificateName = "keycloak-tls"
+	vzSysRealm              = "verrazzano-system"
+	vzUsersGroup            = "verrazzano-users"
+	vzAdminGroup            = "verrazzano-admins"
+	vzMonitorGroup          = "verrazzano-monitors"
+	vzSystemGroup           = "verrazzano-system-users"
+	vzAPIAccessRole         = "vz_api_access"
+	vzUserName              = "verrazzano"
+	vzInternalPromUser      = "verrazzano-prom-internal"
+	vzInternalEsUser        = "verrazzano-es-internal"
+	keycloakPodName         = "keycloak-0"
 )
 
 // Define the keycloak Key:Value pair for init container.
@@ -416,7 +416,7 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: tlsSecretName,
+		Value: keycloakCertificateName,
 	})
 
 	return kvs, nil
@@ -1284,9 +1284,9 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 func isKeycloakReady(ctx spi.ComponentContext) bool {
 	// TLS cert from Cert Manager should be in Ready state
 	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: tlsSecretName, Namespace: ComponentNamespace}
+	namespacedName := types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", tlsSecretName)
+		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", keycloakCertificateName)
 		return false
 	}
 
