@@ -64,3 +64,8 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 	}
 	return false
 }
+
+// PreInstall updates resources necessary for the Prometheus Operator Component installation
+func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
+	return preInstall(ctx)
+}
