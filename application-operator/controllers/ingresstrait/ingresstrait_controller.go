@@ -97,62 +97,6 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) (err error) {
 	return r.setupWatches()
 }
 
-func (r *Reconciler) setupWatches() error {
-	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
-	// - Define a mapping to the existing ingress traits and invoke the IngressTrait Reconciler
-	mapFn := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
-			return r.createIngressTraitReconcileRequests()
-		})
-	// setup a watch on the Console ingress
-	return r.Controller.Watch(
-		&source.Kind{
-			Type: &k8net.Ingress{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      constants.VzConsoleIngress,
-					Namespace: constants.VerrazzanoSystemNamespace,
-				},
-			},
-		},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: mapFn,
-		},
-		predicate.Funcs{
-			UpdateFunc: updateFunc,
-		},
-	)
-}
-
-func updateFunc(updateEvent event.UpdateEvent) bool {
-	oldIngress := updateEvent.ObjectOld.(*k8net.Ingress)
-	newIngress := updateEvent.ObjectNew.(*k8net.Ingress)
-	return !reflect.DeepEqual(oldIngress.Spec.TLS, newIngress.Spec.TLS)
-}
-
-//annotateIngressTraits Adds an annotation to existing IngressTrait objects to force them to reconcile;
-//  this is necessary when the DNS domain has been updated and we need to generate new records for applications using
-//  default hostnames that we generate.  Default hostnames are generated based on the main console/authproxy ingress,
-//  so we do it PostInstall/PostUpgrade of the Verrazzano component, which manages that ingress.
-func (r *Reconciler) createIngressTraitReconcileRequests() []reconcile.Request {
-	requests := []reconcile.Request{}
-
-	ingressList := vzapi.IngressTraitList{}
-	if err := r.List(context.TODO(), &ingressList, &client.ListOptions{}); err != nil {
-		r.Log.Errorf("Failed to list ingress traits: %v", err)
-		return requests
-	}
-
-	for _, ingressTrait := range ingressList.Items {
-		requests = append(requests, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Namespace: ingressTrait.Namespace,
-				Name:      ingressTrait.Name,
-			},
-		})
-	}
-	return requests
-}
-
 // Reconcile reconciles an IngressTrait with other related resources required for ingress.
 // This also results in the status of the ingress trait resource being updated.
 // +kubebuilder:rbac:groups=oam.verrazzano.io,resources=ingresstraits,verbs=get;list;watch;create;update;patch;delete
@@ -698,6 +642,63 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	}
 
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
+}
+
+// setupWatches Sets up watches for the IngressTrait controller
+func (r *Reconciler) setupWatches() error {
+	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
+	return r.Controller.Watch(
+		&source.Kind{
+			Type: &k8net.Ingress{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      constants.VzConsoleIngress,
+					Namespace: constants.VerrazzanoSystemNamespace,
+				},
+			},
+		},
+		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
+		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
+		// VS and GW records for the associated apps.
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(
+				func(a handler.MapObject) []reconcile.Request {
+					return r.createIngressTraitReconcileRequests()
+				}),
+		},
+		predicate.Funcs{
+			UpdateFunc: isConsoleIngressUpdated,
+		},
+	)
+}
+
+// isConsoleIngressUpdated Predicate func used by the Ingress watcher, returns true if the TLS settings have changed;
+// - this is largely to attempt to scope the change detection to Host name changes
+func isConsoleIngressUpdated(updateEvent event.UpdateEvent) bool {
+	oldIngress := updateEvent.ObjectOld.(*k8net.Ingress)
+	newIngress := updateEvent.ObjectNew.(*k8net.Ingress)
+	return !reflect.DeepEqual(oldIngress.Spec, newIngress.Spec)
+}
+
+//createIngressTraitReconcileRequests Used by the Console ingress watcher to map a detected change in the ingress
+//  to requests to reconcile any existing application IngressTrait objects
+func (r *Reconciler) createIngressTraitReconcileRequests() []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	ingressTraitList := vzapi.IngressTraitList{}
+	if err := r.List(context.TODO(), &ingressTraitList, &client.ListOptions{}); err != nil {
+		r.Log.Errorf("Failed to list ingress traits: %v", err)
+		return requests
+	}
+
+	for _, ingressTrait := range ingressTraitList.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: ingressTrait.Namespace,
+				Name:      ingressTrait.Name,
+			},
+		})
+	}
+	return requests
 }
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.
