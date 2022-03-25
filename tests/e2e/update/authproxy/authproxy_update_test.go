@@ -26,25 +26,13 @@ import (
 
 const (
 	authProxyName   = "verrazzano-authproxy"
-	waitTimeout     = 3 * time.Minute
+	waitTimeout     = 5 * time.Minute
 	pollingInterval = 5 * time.Second
 )
 
 var t = framework.NewTestFramework("update authproxy")
-
-var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
-var nodeCount uint32 = 1
-
 var _ = t.BeforeSuite(func() {
-	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
-	if len(kindNodeCount) > 0 {
-		u, err := strconv.ParseUint(kindNodeCount, 10, 32)
-		if err != nil {
-			nodeCount = uint32(u)
-		}
-	}
-
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -54,7 +42,7 @@ var _ = t.BeforeSuite(func() {
 	// Get the Verrazzano CR
 	Eventually(func() error {
 		var err error
-		vzcr, err = pkg.GetVerrazzano()
+		_, err = pkg.GetVerrazzano()
 		if err != nil {
 			return err
 		}
@@ -67,6 +55,10 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
 		t.It("authproxy default replicas", func() {
+			vzcr, err := pkg.GetVerrazzano()
+			if err != nil {
+				Fail(err.Error())
+			}
 			expectedRunning := uint32(1)
 			expectedPending := uint32(0)
 			if vzcr.Spec.Profile == "production" || vzcr.Spec.Profile == "" {
@@ -78,8 +70,30 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
-			vzcr.Spec.Components.AuthProxy.Kubernetes.Replicas = nodeCount
-			err := updateCR(vzcr)
+			nodeCount := getNodeCount()
+
+			var cr *vzapi.Verrazzano
+			// Wait for the Verrazzano CR to be Ready
+			Eventually(func() error {
+				var err error
+				cr, err = pkg.GetVerrazzano()
+				if err != nil {
+					return err
+				}
+				if cr.Status.State != vzapi.VzStateReady {
+					return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+				}
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
+
+			if cr.Spec.Components.AuthProxy == nil {
+				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
+			}
+			if cr.Spec.Components.AuthProxy.Kubernetes == nil {
+				cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
+			}
+			cr.Spec.Components.AuthProxy.Kubernetes.Replicas = nodeCount
+			err := updateCR(cr)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -92,7 +106,27 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
-			vzcr.Spec.Components.AuthProxy.Kubernetes.Affinity = &corev1.Affinity{
+			var cr *vzapi.Verrazzano
+			// Wait for the Verrazzano CR to be Ready
+			Eventually(func() error {
+				var err error
+				cr, err = pkg.GetVerrazzano()
+				if err != nil {
+					return err
+				}
+				if cr.Status.State != vzapi.VzStateReady {
+					return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+				}
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
+
+			if cr.Spec.Components.AuthProxy == nil {
+				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
+			}
+			if cr.Spec.Components.AuthProxy.Kubernetes == nil {
+				cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
+			}
+			cr.Spec.Components.AuthProxy.Kubernetes.Affinity = &corev1.Affinity{
 				PodAntiAffinity: &corev1.PodAntiAffinity{
 					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
 						{
@@ -113,11 +147,12 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 					},
 				},
 			}
-			err := updateCR(vzcr)
+			err := updateCR(cr)
 			if err != nil {
 				Fail(err.Error())
 			}
 
+			nodeCount := getNodeCount()
 			expectedRunning := nodeCount - 1
 			expectedPending := uint32(2)
 			if nodeCount == 1 {
@@ -161,10 +196,21 @@ func updateCR(cr *vzapi.Verrazzano) error {
 	if err != nil {
 		return err
 	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos("")
+	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("error updating Verrazzano instance: %v", err)
 	}
 	return nil
+}
+
+func getNodeCount() uint32 {
+	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
+	if len(kindNodeCount) > 0 {
+		u, err := strconv.ParseUint(kindNodeCount, 10, 32)
+		if err == nil {
+			return uint32(u)
+		}
+	}
+	return 1
 }
