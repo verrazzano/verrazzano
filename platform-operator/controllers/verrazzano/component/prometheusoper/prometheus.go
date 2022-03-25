@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
@@ -44,7 +43,7 @@ func preInstall(ctx spi.ComponentContext) error {
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
 		return nil
 	}); err != nil {
-		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		return ctx.Log().ErrorfNewErr("Failed to create or update the Prometheus Operator: %v", err)
 	}
 	return nil
 }

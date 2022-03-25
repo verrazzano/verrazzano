@@ -149,7 +149,7 @@ function delete_prometheus_operator {
     fi
   fi
 
-  log "Deleting the verrazzano-monitoring namespace"
+  log "Deleting the ${VERRAZZANO_MONITORING_NS} namespace"
   kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
 }
 
