@@ -360,10 +360,6 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 
 // getVerrazzanoCACert returns the Verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := GetEnvName(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
 	return doGetCACertFromSecret("verrazzano-tls", "verrazzano-system", kubeconfigPath)
 }
 
@@ -374,10 +370,6 @@ func getRancherCACert(kubeconfigPath string) ([]byte, error) {
 
 // getKeycloakCACert returns the keycloak CA cert
 func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
-	envName, err := GetEnvName(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
 	return doGetCACertFromSecret("keycloak-tls", "keycloak", kubeconfigPath)
 }
 
