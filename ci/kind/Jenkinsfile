@@ -577,6 +577,7 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
+            emitJobMetrics()
             deleteDir()
         }
     }
