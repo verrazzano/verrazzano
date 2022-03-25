@@ -4,6 +4,7 @@
 package wlsworkload
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/json"
@@ -14,6 +15,9 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
+
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
@@ -57,11 +61,12 @@ const (
 	webLogicDomainUIDLabel                = "weblogic.domainUID"
 	webLogicPluginConfigYamlKey           = "WebLogicPlugin.yaml"
 	WDTConfigMapNameSuffix                = "-wdt-config-map"
-	kubeSystem                            = "kube-system"
+	controllerName                        = "weblogicworkload"
 )
 
-const defaultMonitoringExporterData = `
+const defaultMonitoringExporterTemplate = `
   {
+    {{.ImageSetting}}"imagePullPolicy": "IfNotPresent",
     "configuration": {
       "domainQualifier": true,
       "metricsNameSnakeCase": true,
@@ -168,10 +173,14 @@ const defaultMonitoringExporterData = `
            }
         }
       ]
-    },
-    "imagePullPolicy": "IfNotPresent"
+    }
   }
 `
+
+type defaultMonitoringExporterTemplateData struct {
+	ImageSetting string
+}
+
 const defaultWDTConfigMapData = `
   {
     "resources": {
@@ -228,7 +237,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.Namespace == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Weblogic workload resource %v should not be reconciled in kube-system namespace, ignoring", req.NamespacedName)
 		return reconcile.Result{}, nil
 	}
 
@@ -240,7 +251,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	log, err := clusters.GetResourceLogger("verrazzanoweblogicworkload", req.NamespacedName, workload)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for weblogic workload", err)
+		zap.S().Errorf("Failed to create controller logger for weblogic workload resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling weblogic workload resource %v, generation %v", req.NamespacedName, workload.Generation)
@@ -745,6 +756,9 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.V
 			if err != nil {
 				return err
 			}
+			if configMap.Data == nil {
+				configMap.Data = map[string]string{}
+			}
 			configMap.Data[webLogicPluginConfigYamlKey] = string(bytes)
 			err = r.Client.Update(ctx, configMap)
 			if err != nil {
@@ -860,9 +874,32 @@ func addDefaultMonitoringExporter(weblogic *unstructured.Unstructured) error {
 }
 
 func getDefaultMonitoringExporter() (interface{}, error) {
-	bytes := []byte(defaultMonitoringExporterData)
+	// get ImageSetting
+	imageSetting := ""
+	if value := os.Getenv("WEBLOGIC_MONITORING_EXPORTER_IMAGE"); len(value) > 0 {
+		imageSetting = fmt.Sprintf("\"image\": \"%s\",\n    ", value)
+	}
+
+	// Create the buffer and the cluster issuer data struct
+	templateData := defaultMonitoringExporterTemplateData{
+		ImageSetting: imageSetting,
+	}
+
+	// Parse the template string and create the template object
+	template, err := template.New("defaultMonitoringExporter").Parse(defaultMonitoringExporterTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute the template object with the given data
+	var buff bytes.Buffer
+	err = template.Execute(&buff, &templateData)
+	if err != nil {
+		return nil, err
+	}
+
 	var monitoringExporter map[string]interface{}
-	json.Unmarshal(bytes, &monitoringExporter)
+	json.Unmarshal(buff.Bytes(), &monitoringExporter)
 	result, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&monitoringExporter)
 	if err != nil {
 		return nil, err

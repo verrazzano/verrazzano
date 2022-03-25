@@ -89,12 +89,13 @@ func TestNewVMIResources(t *testing.T) {
 	assert.Equal(t, "128Mi", prometheus.Resources.RequestMemory)
 	assert.Equal(t, "50Gi", prometheus.Storage.Size)
 
-	opensearch, err := newOpenSearch(&vmiEnabledCR, r, nil)
+	opensearch, err := newOpenSearch(&vmiEnabledCR, r, nil, true, false)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, opensearch.MasterNode.Replicas)
 	assert.EqualValues(t, 2, opensearch.IngestNode.Replicas)
 	assert.EqualValues(t, 3, opensearch.DataNode.Replicas)
-	assert.Equal(t, "100Gi", opensearch.Storage.Size)
+	assert.Equal(t, "100Gi", opensearch.DataNode.Storage.Size)
+	assert.Equal(t, "50Gi", opensearch.MasterNode.Storage.Size)
 
 	opensearchDashboards := newOpenSearchDashboards(&vmiEnabledCR)
 	assert.Equal(t, "192Mi", opensearchDashboards.Resources.RequestMemory)
@@ -121,8 +122,34 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 		},
 	}
 
-	_, err := newOpenSearch(crBadArgs, r, nil)
+	_, err := newOpenSearch(crBadArgs, r, nil, false, false)
 	assert.Error(t, err)
+}
+
+func TestNewOpenSearchWithExistingVMI(t *testing.T) {
+	r := &resourceRequestValues{}
+	testvz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					ESInstallArgs: []vzapi.InstallArgs{},
+				},
+			},
+		},
+	}
+	testvmi := &vmov1.VerrazzanoMonitoringInstance{
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			Elasticsearch: vmov1.Elasticsearch{
+				Storage: vmov1.Storage{
+					Size: "1Gi",
+				},
+			},
+		},
+	}
+
+	openSearch, err := newOpenSearch(testvz, r, testvmi, false, false)
+	assert.NoError(t, err)
+	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
 }
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
@@ -180,8 +207,67 @@ func TestCreateVMI(t *testing.T) {
 	namespacedName := types.NamespacedName{Name: system, Namespace: globalconst.VerrazzanoSystemNamespace}
 	err = ctx.Client().Get(context.TODO(), namespacedName, vmi)
 	assert.NoError(t, err)
-	assert.Equal(t, "100Gi", vmi.Spec.Elasticsearch.Storage.Size)
+	assert.Equal(t, "100Gi", vmi.Spec.Elasticsearch.DataNode.Storage.Size)
 	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
 	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
 	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
+}
+
+// TestHasDataNodeStorageOverride tests the detection of data node storage overrides
+// GIVEN a Verrazzano CR
+// WHEN I check for data node storage overrides
+//  THEN hasNodeStorageOverride returns true or false depending on the CR values
+func TestHasDataNodeStorageOverride(t *testing.T) {
+	var tests = []struct {
+		name        string
+		cr          *vzapi.Verrazzano
+		hasOverride bool
+	}{
+		{
+			"no override when not enabled",
+			&vzapi.Verrazzano{},
+			false,
+		},
+		{
+			"detects override when override is used",
+			&vmiEnabledCR,
+			true,
+		},
+		{
+			"no detected override when none are present",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							MonitoringComponent: monitoringComponent,
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.hasOverride, hasNodeStorageOverride(tt.cr, "nodes.data.requests.storage"))
+		})
+	}
+}
+
+// TestBackupSecret tests whether ensureBackupSecret are created
+// GIVEN a kubernetes client
+func TestBackupSecret(t *testing.T) {
+	client := createPreInstallTestClient()
+	err := ensureBackupSecret(client)
+	assert.Nil(t, err)
+}
+
+// TestSetupSharedVmiResources tests whether secrets resources are created
+// GIVEN a controller run-time context
+func TestSetupSharedVmiResources(t *testing.T) {
+	client := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	err := setupSharedVMIResources(ctx)
+	assert.Nil(t, err)
 }

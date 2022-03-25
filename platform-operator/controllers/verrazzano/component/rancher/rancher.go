@@ -73,20 +73,33 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 func isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-	var deployments []types.NamespacedName
-	deployments = append(deployments, types.NamespacedName{
-		Name: ComponentName, Namespace: ComponentNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: rancherWebhookDeployment, Namespace: ComponentNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: rancherOperatorDeployment, Namespace: OperatorNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: fleetAgentDeployment, Namespace: fleetSystemNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: fleetControllerDeployment, Namespace: fleetSystemNamespace})
-	deployments = append(deployments, types.NamespacedName{
-		Name: gitjobDeployment, Namespace: fleetSystemNamespace})
+	deployments := []types.NamespacedName{
+		{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      rancherWebhookDeployment,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      rancherOperatorDeployment,
+			Namespace: OperatorNamespace,
+		},
+		{
+			Name:      fleetAgentDeployment,
+			Namespace: fleetSystemNamespace,
+		},
+		{
+			Name:      fleetControllerDeployment,
+			Namespace: fleetSystemNamespace,
+		},
+		{
+			Name:      gitjobDeployment,
+			Namespace: fleetSystemNamespace,
+		},
+	}
 
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(log, c, deployments, 1, prefix)
+	return status.DeploymentsAreReady(log, c, deployments, 1, prefix)
 }

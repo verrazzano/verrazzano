@@ -13,19 +13,6 @@ UNINSTALL_DIR=$SCRIPT_DIR/..
 
 set -o pipefail
 
-function delete_external_dns() {
-  log "Deleting external-dns"
-  helm ls -n cert-manager \
-    | awk '/external-dns/ {print $1}' \
-    | xargsr helm uninstall -n cert-manager \
-    || err_return $? "Could not delete external-dns from helm" || return $? # return on pipefail
-
-  # delete clusterrole and clusterrolebinding
-  log "Deleting ClusterRoles and ClusterRoleBindings for external-dns"
-  kubectl delete clusterrole external-dns --ignore-not-found=true || err_return $? "Could not delete ClusterRole external-dns" || return $?
-  kubectl delete clusterrolebinding external-dns --ignore-not-found=true || err_return $? "Could not delete ClusterRoleBinding external-dns" || return $?
-}
-
 function delete_nginx() {
   # uninstall ingress-nginx
   log "Deleting ingress-nginx"
@@ -228,6 +215,5 @@ function delete_rancher() {
 }
 
 action "Deleting Rancher Components" delete_rancher || exit 1
-action "Deleting External DNS Components" delete_external_dns || exit 1
 action "Deleting NGINX Components" delete_nginx || exit 1
 action "Deleting Cert Manager Components" delete_cert_manager || exit 1

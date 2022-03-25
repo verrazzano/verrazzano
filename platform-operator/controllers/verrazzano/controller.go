@@ -611,6 +611,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 	if conditionType == installv1alpha1.CondInstallComplete {
 		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
+		componentStatus.LastReconciledGeneration = cr.Generation
 	}
 	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
 
@@ -699,7 +700,7 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 			spiCtx.Log().Errorf("Failed to create component context: %v", err)
 			return false, err
 		}
-		if comp.IsEnabled(spiCtx) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
+		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
 			return false, nil
 		}
 	}
@@ -721,13 +722,17 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 
 	statusUpdated := false
 	for _, comp := range registry.GetComponents() {
-		if _, ok := cr.Status.Components[comp.Name()]; ok {
+		if status, ok := cr.Status.Components[comp.Name()]; ok {
+			if status.LastReconciledGeneration == 0 {
+				status.LastReconciledGeneration = cr.Generation
+			}
 			// Skip components that have already been processed
 			continue
 		}
 		if comp.IsOperatorInstallSupported() {
 			// If the component is installed then mark it as ready
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
+			lastReconciled := int64(0)
 			state := installv1alpha1.CompStateDisabled
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
@@ -737,11 +742,13 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 				}
 				if installed {
 					state = installv1alpha1.CompStateReady
+					lastReconciled = compContext.ActualCR().Generation
 				}
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
-				Name:  comp.Name(),
-				State: state,
+				Name:                     comp.Name(),
+				State:                    state,
+				LastReconciledGeneration: lastReconciled,
 			}
 			statusUpdated = true
 		}
@@ -902,7 +909,7 @@ func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
 		log.Errorf("Failed to get service %v: %v", nsn, err)
 		return "", err
 	}
-	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer {
+	if nginxService.Spec.Type == corev1.ServiceTypeLoadBalancer || nginxService.Spec.Type == corev1.ServiceTypeNodePort {
 		nginxIngress := nginxService.Status.LoadBalancer.Ingress
 		if len(nginxIngress) == 0 {
 			// In case of OLCNE, need to obtain the External IP from the Spec
@@ -912,8 +919,6 @@ func getIngressIP(log vzlog.VerrazzanoLogger, c client.Client) (string, error) {
 			return nginxService.Spec.ExternalIPs[0], nil
 		}
 		return nginxIngress[0].IP, nil
-	} else if nginxService.Spec.Type == corev1.ServiceTypeNodePort {
-		return "127.0.0.1", nil
 	}
 	err = fmt.Errorf("Failed because of unsupported service type %s for NGINX ingress", string(nginxService.Spec.Type))
 	log.Errorf("%v", err)

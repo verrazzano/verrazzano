@@ -1,0 +1,42 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v2
+description: kube-prometheus-stack collects Kubernetes manifests, Grafana dashboards, and Prometheus rules combined with documentation and scripts to provide easy to operate end-to-end Kubernetes cluster monitoring with Prometheus using the Prometheus Operator.
+icon: https://raw.githubusercontent.com/prometheus/prometheus.github.io/master/assets/prometheus_logo-cb55bb5c346.png
+engine: gotpl
+type: application
+maintainers:
+  - name: andrewgkew
+    email: andrew@quadcorps.co.uk
+  - name: bismarck
+  - name: desaintmartin
+    email: cedric@desaintmartin.fr
+  - name: gianrubio
+    email: gianrubio@gmail.com
+  - name: gkarthiks
+    email: github.gkarthiks@gmail.com
+  - name: GMartinez-Sisti
+    email: kube-prometheus-stack@sisti.pt
+  - name: scottrigby
+    email: scott@r6by.com
+  - name: Xtigyro
+    email: miroslav.hadzhiev@gmail.com
+name: kube-prometheus-stack
+sources:
+  - https://github.com/prometheus-community/helm-charts
+  - https://github.com/prometheus-operator/kube-prometheus
+version: 33.2.0
+appVersion: 0.54.1
+kubeVersion: ">=1.16.0-0"
+home: https://github.com/prometheus-operator/kube-prometheus
+keywords:
+- operator
+- prometheus
+- kube-prometheus
+annotations:
+  "artifacthub.io/operator": "true"
+  "artifacthub.io/links": |
+    - name: Chart Source
+      url: https://github.com/prometheus-community/helm-charts
+    - name: Upstream Project
+      url: https://github.com/prometheus-operator/kube-prometheus

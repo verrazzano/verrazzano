@@ -28,7 +28,12 @@ const (
 )
 
 func GetOpenSearchIndex(oldIndex, newIndex string) string {
-	isVersion1_3_0, err := IsVerrazzanoMinVersion("1.3.0")
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		return ""
+	}
+	isVersion1_3_0, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
 		ginkgo.Fail(err.Error())
 		return ""

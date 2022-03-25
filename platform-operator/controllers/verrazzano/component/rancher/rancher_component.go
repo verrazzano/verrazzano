@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -29,15 +30,22 @@ const ComponentName = common.RancherName
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = common.CattleSystem
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "rancher"
+
 type rancherComponent struct {
 	helm.HelmComponent
+}
+
+var certificates = []types.NamespacedName{
+	{Name: "tls-rancher-ingress", Namespace: ComponentNamespace},
 }
 
 func NewComponent() spi.Component {
 	return rancherComponent{
 		HelmComponent: helm.HelmComponent{
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 			ReleaseName:             common.RancherName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), common.RancherName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -45,6 +53,8 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:  secret.DefaultImagePullSecretKeyName,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:     AppendOverrides,
+			Certificates:            certificates,
+			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -138,12 +148,21 @@ func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyV
 
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
-func (r rancherComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Rancher
+func (r rancherComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Rancher
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Block all changes for now, particularly around storage changes
+	if r.IsEnabled(old) && !r.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return nil
 }
 
 // PreInstall

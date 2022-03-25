@@ -43,6 +43,18 @@ Although most images can be protected using credentials stored in an image pull 
     ```
     $ cat verrazzano-bom.json | jq -r '.components[].subcomponents[] | select(.name == "additional-rancher") | .images[] | "\(.image):\(.tag)"'
     ```
+* The fluentd kubernetes daemonset image.
+    ```
+    $ cat verrazzano-bom.json | jq -r '.components[].subcomponents[].images[] | select(.image == "fluentd-kubernetes-daemonset") | "\(.image):\(.tag)"'
+    ```
+* The istio proxy image.
+    ```
+    $ cat verrazzano-bom.json | jq -r '.components[].subcomponents[] |  select(.name == "istiod") | .images[] | select(.image == "proxyv2") | "\(.image):\(.tag)"'
+    ```
+* The WebLogic Monitoring Exporter image.
+    ```
+    $ cat verrazzano-bom.json | jq -r '.components[].subcomponents[].images[] | select(.image == "weblogic-monitoring-exporter") | "\(.image):\(.tag)"'
+    ```
 * The Verrazzano Platform Operator image identified by `$VPO_IMAGE`, as defined above.
 
 ## Install Verrazzano

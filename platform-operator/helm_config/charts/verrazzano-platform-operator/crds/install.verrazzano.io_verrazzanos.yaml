@@ -4255,6 +4255,12 @@ spec:
                       enabled:
                         type: boolean
                     type: object
+                  prometheusOperator:
+                    description: PrometheusOperator configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   rancher:
                     description: Rancher configuration
                     properties:
@@ -5965,6 +5971,11 @@ spec:
                         - type
                         type: object
                       type: array
+                    lastReconciledGeneration:
+                      description: The generation of the last VZ resource the Component
+                        was reconciled against
+                      format: int64
+                      type: integer
                     name:
                       description: Name of the component
                       type: string

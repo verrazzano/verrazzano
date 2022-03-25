@@ -1,10 +1,17 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package keycloak
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+	"reflect"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -26,6 +33,9 @@ const ComponentName = "keycloak"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.KeycloakNamespace
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "keycloak"
+
 // KeycloakComponent represents an Keycloak component
 type KeycloakComponent struct {
 	helm.HelmComponent
@@ -39,12 +49,13 @@ func NewComponent() spi.Component {
 	return KeycloakComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
 			//  Check on Image Pull Key
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:            []string{istio.ComponentName},
+			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendKeycloakOverrides,
 			IngressNames: []types.NamespacedName{
@@ -124,20 +135,25 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		}
 	}
 
+	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
-	return updateKeycloakUris(ctx)
+
+	return configureKeycloakRealms(ctx)
 }
 
 // IsEnabled Keycloak-specific enabled check for installation
-func (c KeycloakComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.Keycloak
+func (c KeycloakComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.Keycloak
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
@@ -150,4 +166,36 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isKeycloakReady(ctx)
 	}
 	return false
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Reject any other edits for now
+	if !reflect.DeepEqual(c.getInstallArgs(old), c.getInstallArgs(new)) {
+		return fmt.Errorf("Updates to istioInstallArgs not allowed for %s", ComponentJSONName)
+	}
+	return nil
+}
+
+func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+	if vz != nil && vz.Spec.Components.Keycloak != nil {
+		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
+	}
+	return nil
+}
+
+// GetCertificateNames - gets the names of the ingresses associated with this component
+func (c KeycloakComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+	var certificateNames []types.NamespacedName
+
+	certificateNames = append(certificateNames, types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      fmt.Sprintf("%s-secret", ctx.EffectiveCR().Spec.EnvironmentName),
+	})
+
+	return certificateNames
 }

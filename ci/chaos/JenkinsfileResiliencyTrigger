@@ -2,10 +2,12 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
         skipDefaultCheckout true
+        timestamps ()
     }
 
     agent {
@@ -16,6 +18,10 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
+    }
+
+    triggers {
+        cron(branchSpecificSchedule)
     }
 
     parameters {
@@ -139,6 +145,23 @@ pipeline {
                         }
                     }
                 }
+                stage('Upgrade using ephemeral storage') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                            string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                            string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                            string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                            string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                            string(name: 'CHAOS_TEST_TYPE', value: 'ephemeral.storage.upgrade')
+                                    ], wait: true
+                        }
+                    }
+                }
                 stage('Component helm install failure') {
                     steps {
                         script {
@@ -182,7 +205,7 @@ pipeline {
         }
         failure {
             script {
-                if (env.JOB_NAME == "verrazzano-chaos-tests/master" || env.JOB_NAME ==~ "verrazzano-chaos-tests/release-1.*") {
+                if (env.JOB_NAME == "verrazzano-upgrade-resiliency-tests/master" || env.JOB_NAME ==~ "verrazzano-upgrade-resiliency-tests/release-1.*") {
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
@@ -378,4 +401,13 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
+}
+
+def getCronSchedule() {
+    if (env.BRANCH_NAME.equals("master")) {
+        return "H */2 * * *"
+    } else if (env.BRANCH_NAME.startsWith("release-1")) {
+        return "@daily"
+    }
+    return ""
 }

@@ -28,7 +28,11 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Post upgrade", func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation
 	MinimumVerrazzanoIt := func(description string, f interface{}) {
-		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0")
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		}
+		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 		if err != nil {
 			Fail(err.Error())
 		}

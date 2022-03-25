@@ -39,7 +39,7 @@ const (
 var t = framework.NewTestFramework("rbac")
 
 var _ = t.BeforeSuite(func() {
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	Eventually(func() (*corev1.Namespace, error) {
 		return pkg.CreateNamespace(rbacTestNamespace, map[string]string{"verrazzano-managed": "true", "istio-injection": "enabled"})
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
@@ -55,7 +55,7 @@ var _ = t.AfterSuite(func() {
 		pkg.ExecuteClusterDumpWithEnvVarConfig()
 	}
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(rbacTestNamespace)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -70,16 +70,16 @@ var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 	t.Context("for verrazzano-project-admin.", func() {
 
 		t.It("Fail getting Pods in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  No")
+			t.Logs.Info("Can User List Pods in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectAdmin, rbacTestNamespace, "list", "pods")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL Authorization on user list pods: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL Authorization on user list pods: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
 		t.It("Create RoleBinding Admin for verrazzano-project-admin", func() {
-			pkg.Log(pkg.Info, "Create RoleBinding Admin for verrazzano-project-admin")
+			t.Logs.Info("Create RoleBinding Admin for verrazzano-project-admin")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "admin-binding", "admin")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -90,61 +90,61 @@ var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 		})
 
 		t.It("Succeed getting Pods in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User List Pods in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectAdmin, rbacTestNamespace, "list", "pods")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user list pods in rbactest namespace: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user list pods in rbactest namespace: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list pods. Timeout Expired")
 		})
 
 		t.It("Fail getting Pods in namespace verrazzano-system", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace verrazzano-system?  No")
+			t.Logs.Info("Can User List Pods in NameSpace verrazzano-system?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectAdmin, verrazzanoSystemNS, "list", "pods")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user list pods in verrazzano-system namespace: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user list pods in verrazzano-system namespace: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
 		t.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
+			t.Logs.Info("Can User create ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
 		t.It("Fail list ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  No")
+			t.Logs.Info("Can User list ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list ApplicationConfiguration. Timeout Expired")
 		})
 
 		t.It("Fail create OAM Component in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
+			t.Logs.Info("Can User create OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user create OAM Components: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create OAM Components. Timeout Expired")
 		})
 
 		t.It("Fail list OAM Component in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  No")
+			t.Logs.Info("Can User list OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user list OAM Components: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list OAM Components. Timeout Expired")
 		})
 
 		t.It("Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin", func() {
-			pkg.Log(pkg.Info, "Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin")
+			t.Logs.Info("Create RoleBinding verrazzano-project-admin-binding for verrazzano-project-admin")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectAdmin, rbacTestNamespace, "verrazzano-project-admin-binding", "verrazzano-project-admin")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -155,37 +155,37 @@ var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 		})
 
 		t.It("Succeed create ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User create ApplicationConfiguration in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
 		t.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list ApplicationConfiguration. Timeout Expired")
 		})
 
 		t.It("Succeed create OAM Components in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User create OAM Components in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "create", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user create OAM Components: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user create OAM Components. Timeout Expired")
 		})
 
 		t.It("Succeed list OAM Components in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User list OAM Components in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectAdmin, rbacTestNamespace, "list", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user list OAM Components: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list OAM Components. Timeout Expired")
 		})
@@ -197,16 +197,16 @@ var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 	t.Context("for verrazzano-project-monitor.", func() {
 
 		t.It("Fail getting Pods in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  No")
+			t.Logs.Info("Can User List Pods in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectMonitor, rbacTestNamespace, "list", "pods")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user list pods in rbactest namespace: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user list pods in rbactest namespace: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
 		t.It("Create RoleBinding Admin for verrazzano-project-monitor", func() {
-			pkg.Log(pkg.Info, "Create RoleBinding Admin for verrazzano-project-monitor")
+			t.Logs.Info("Create RoleBinding Admin for verrazzano-project-monitor")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "monitor-binding", "admin")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -217,61 +217,61 @@ var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 		})
 
 		t.It("Succeed getting Pods in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User List Pods in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectMonitor, rbacTestNamespace, "list", "pods")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user list pods in rbactest namespace: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user list pods in rbactest namespace: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list pods. Timeout Expired")
 		})
 
 		t.It("Fail getting Pods in namespace verrazzano-system", func() {
-			pkg.Log(pkg.Info, "Can User List Pods in NameSpace verrazzano-system?  No")
+			t.Logs.Info("Can User List Pods in NameSpace verrazzano-system?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanI(v80ProjectMonitor, verrazzanoSystemNS, "list", "pods")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user list pods in verrazzano-system namespace: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user list pods in verrazzano-system namespace: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list pods. Timeout Expired")
 		})
 
 		t.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
+			t.Logs.Info("Can User create ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user create ApplicationConfiguration. Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user create ApplicationConfiguration. Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
 		t.It("Fail list ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  No")
+			t.Logs.Info("Can User list ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user list ApplicationConfiguration. Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user list ApplicationConfiguration. Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list ApplicationConfiguration. Timeout Expired")
 		})
 
 		t.It("Fail create OAM Component in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
+			t.Logs.Info("Can User create OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user create OAM Components. Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user create OAM Components. Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create OAM Components. Timeout Expired")
 		})
 
 		t.It("Fail list OAM Component in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  No")
+			t.Logs.Info("Can User list OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user list OAM Components. Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user list OAM Components. Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user list OAM Components. Timeout Expired")
 		})
 
 		t.It("Create RoleBinding verrazzano-project-monitor-binding for cluster role verrazzano-project-monitor", func() {
-			pkg.Log(pkg.Info, "Create RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor")
+			t.Logs.Info("Create RoleBinding verrazzano-project-monitor-binding for verrazzano-project-monitor")
 			Eventually(func() error {
 				return pkg.CreateRoleBinding(v80ProjectMonitor, rbacTestNamespace, "verrazzano-project-monitor-binding", "verrazzano-project-monitor")
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -282,37 +282,37 @@ var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 		})
 
 		t.It("Fail create ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create ApplicationConfiguration in NameSpace rbactest?  No")
+			t.Logs.Info("Can User create ApplicationConfiguration in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user create ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create ApplicationConfiguration. Timeout Expired")
 		})
 
 		t.It("Succeed list ApplicationConfiguration in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User list ApplicationConfiguration in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "applicationconfigurations", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user list ApplicationConfiguration: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list ApplicationConfiguration.  Timeout Expired")
 		})
 
 		t.It("Fail create OAM Components in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User create OAM Components in NameSpace rbactest?  No")
+			t.Logs.Info("Can User create OAM Components in NameSpace rbactest?  No")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "create", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should FAIL on user create OAM Components: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should FAIL on user create OAM Components: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeFalse(), "FAIL: Passed Authorization on user create OAM Components.  Timeout Expired")
 		})
 
 		t.It("Succeed list OAM Components in namespace rbactest", func() {
-			pkg.Log(pkg.Info, "Can User list OAM Components in NameSpace rbactest?  Yes")
+			t.Logs.Info("Can User list OAM Components in NameSpace rbactest?  Yes")
 			Eventually(func() (bool, error) {
 				allowed, reason, err := pkg.CanIForAPIGroup(v80ProjectMonitor, rbacTestNamespace, "list", "components", "core.oam.dev")
-				pkg.Log(pkg.Info, fmt.Sprintf("Status: Should SUCCEED on user list OAM Components: Allowed = %t, reason = %s", allowed, reason))
+				t.Logs.Infof("Status: Should SUCCEED on user list OAM Components: Allowed = %t, reason = %s", allowed, reason)
 				return allowed, err
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "FAIL: Did Not Pass Authorization on user list OAM Components.  Timeout Expired")
 		})
@@ -333,11 +333,11 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 		})
 
 		t.It("Validate the secret of the Service Account of Verrazzano API", Label("f:security.apiproxy"), func() {
-			GinkgoWriter.Write([]byte("DEBUG - This test fails on 1.21 - extra debugging added\n"))
+			t.Logs.Info("DEBUG - This test fails on 1.21 - extra debugging added")
 			// Get secret for the SA
 			var pods *corev1.PodList
 			saSecret := serviceAccount.Secrets[0]
-			GinkgoWriter.Write([]byte("SA SECRET: " + saSecret.String() + "\n"))
+			t.Logs.Info("SA SECRET: " + saSecret.String())
 			var clientset *kubernetes.Clientset
 			Eventually(func() (*kubernetes.Clientset, error) {
 				var err error
@@ -362,14 +362,14 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 				// in k8s 1.20 and lower, the SA token is mounted as a regular volume mounted secret
 				for i := range pods.Items {
 					// Get the secret of the API proxy pod
-					GinkgoWriter.Write([]byte("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name + "\n"))
+					t.Logs.Info("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name)
 					if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
 						apiProxy := pods.Items[i]
 						for j := range apiProxy.Spec.Volumes {
 							if apiProxy.Spec.Volumes[j].Secret != nil {
-								GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=" + apiProxy.Spec.Volumes[j].Secret.SecretName + "\n"))
+								t.Logs.Info("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=" + apiProxy.Spec.Volumes[j].Secret.SecretName)
 							} else {
-								GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=NIL\n"))
+								t.Logs.Info("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SECRET=NIL")
 							}
 							if apiProxy.Spec.Volumes[j].Secret != nil && apiProxy.Spec.Volumes[j].Secret.SecretName == saSecret.Name {
 								secretMatched = true
@@ -384,17 +384,17 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 				// so we just check that there is a volume of type service account token and ignore the name
 				for i := range pods.Items {
 					// Get the secret of the API proxy pod
-					GinkgoWriter.Write([]byte("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name + "\n"))
+					t.Logs.Info("IN RANGE i=" + fmt.Sprint(i) + " POD=" + pods.Items[i].Name)
 					if strings.HasPrefix(pods.Items[i].Name, verrazzanoAPI) {
 						apiProxy := pods.Items[i]
 					inner:
 						for j := range apiProxy.Spec.Volumes {
-							GinkgoWriter.Write([]byte("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SOURCE=" + apiProxy.Spec.Volumes[j].VolumeSource.String() + "\n"))
+							t.Logs.Info("IN RANGE j=" + fmt.Sprint(j) + " VOLUME= " + apiProxy.Spec.Volumes[j].Name + " SOURCE=" + apiProxy.Spec.Volumes[j].VolumeSource.String())
 							if apiProxy.Spec.Volumes[j].VolumeSource.Projected != nil {
 								if apiProxy.Spec.Volumes[j].VolumeSource.Projected.Sources != nil {
 									for k := range apiProxy.Spec.Volumes[j].VolumeSource.Projected.Sources {
 										if apiProxy.Spec.Volumes[j].VolumeSource.Projected.Sources[k].ServiceAccountToken != nil {
-											GinkgoWriter.Write([]byte("Found a Service Account Token in the projected volume\n"))
+											t.Logs.Info("Found a Service Account Token in the projected volume")
 											secretMatched = true
 											break inner
 										}
@@ -473,7 +473,7 @@ var _ = t.Describe("Test Verrazzano API Service Account", func() {
 		})
 
 		t.It("Fail impersonating any other service account", func() {
-			pkg.Log(pkg.Info, "Can verrazzano-authproxy service account impersonate any other service account?  No")
+			t.Logs.Info("Can verrazzano-authproxy service account impersonate any other service account?  No")
 			allowed, reason, err := pkg.CanIForAPIGroupForServiceAccountOrUser("verrazzano-authproxy", "", "impersonate", "serviceaccounts", "core", true, verrazzanoSystemNS)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(allowed).To(BeFalse(), fmt.Sprintf("FAIL: Passed Authorization on impersonating service accounts: Allowed = %t, reason = %s", allowed, reason))

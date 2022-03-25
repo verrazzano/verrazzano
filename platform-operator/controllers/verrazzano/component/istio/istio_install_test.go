@@ -367,9 +367,6 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.DefaultNamespace, Resource: "Secret"}, constants.GlobalImagePullSecName))
@@ -396,9 +393,6 @@ func TestCreateCertSecret(t *testing.T) {
 func createCertSecretMock(t *testing.T) *mocks.MockClient {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.DefaultNamespace, Name: constants.GlobalImagePullSecName}, gomock.Not(gomock.Nil())).

@@ -1,10 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package namespace
 
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"time"
 
@@ -26,10 +28,10 @@ import (
 const (
 	namespaceControllerFinalizer = "verrazzano.io/namespace"
 	namespaceField               = "namespace"
-	kubeSystem                   = "kube-system"
+	controllerName               = "namespace"
 )
 
-// Reconciler reconciles a Verrazzano object
+// NamespaceController Reconciler reconciles a Verrazzano object
 type NamespaceController struct {
 	client.Client
 	scheme     *runtime.Scheme
@@ -65,7 +67,9 @@ func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
 	// If this is the case then return success
-	if req.Namespace == kubeSystem {
+	if req.NamespacedName.Name == vzconst.KubeSystem {
+		log := zap.S().With(vzlogInit.FieldResourceNamespace, req.Namespace, vzlogInit.FieldResourceName, req.Name, vzlogInit.FieldController, controllerName)
+		log.Infof("Namespace resource %v should not be reconciled, ignoring", req.NamespacedName.Name)
 		return reconcile.Result{}, nil
 	}
 
@@ -77,7 +81,7 @@ func (nc *NamespaceController) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 	log, err := clusters.GetResourceLogger("namespace", req.NamespacedName, &ns)
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for namespace", err)
+		zap.S().Errorf("Failed to create controller logger for namespace resource: %v", err)
 		return clusters.NewRequeueWithDelay(), nil
 	}
 	log.Oncef("Reconciling namespace resource %v, generation %v", req.NamespacedName, ns.Generation)

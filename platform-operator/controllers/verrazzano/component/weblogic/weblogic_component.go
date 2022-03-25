@@ -4,7 +4,10 @@
 package weblogic
 
 import (
+	"fmt"
 	"path/filepath"
+
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -20,6 +23,9 @@ const ComponentName = "weblogic-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
+// ComponentJSONName is the josn name of the verrazzano component in CRD
+const ComponentJSONName = "weblogicOperator"
+
 type weblogicComponent struct {
 	helm.HelmComponent
 }
@@ -28,6 +34,7 @@ func NewComponent() spi.Component {
 	return weblogicComponent{
 		helm.HelmComponent{
 			ReleaseName:             ComponentName,
+			JSONName:                ComponentJSONName,
 			ChartDir:                filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:          ComponentNamespace,
 			IgnoreNamespaceOverride: true,
@@ -42,12 +49,21 @@ func NewComponent() spi.Component {
 }
 
 // IsEnabled WebLogic-specific enabled check for installation
-func (c weblogicComponent) IsEnabled(ctx spi.ComponentContext) bool {
-	comp := ctx.EffectiveCR().Spec.Components.WebLogicOperator
+func (c weblogicComponent) IsEnabled(effectiveCR *vzapi.Verrazzano) bool {
+	comp := effectiveCR.Spec.Components.WebLogicOperator
 	if comp == nil || comp.Enabled == nil {
 		return true
 	}
 	return *comp.Enabled
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Do not allow disabling of any component post-install for now
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return nil
 }
 
 // IsReady component check

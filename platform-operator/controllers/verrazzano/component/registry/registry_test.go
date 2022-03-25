@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheusoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
@@ -48,7 +49,7 @@ func TestGetComponents(t *testing.T) {
 	assert := assert.New(t)
 	comps := GetComponents()
 
-	assert.Len(comps, 14, "Wrong number of components")
+	assert.Len(comps, 15, "Wrong number of components")
 	assert.Equal(comps[0].Name(), oam.ComponentName)
 	assert.Equal(comps[1].Name(), weblogic.ComponentName)
 	assert.Equal(comps[2].Name(), appoper.ComponentName)
@@ -63,6 +64,7 @@ func TestGetComponents(t *testing.T) {
 	assert.Equal(comps[11].Name(), mysql.ComponentName)
 	assert.Equal(comps[12].Name(), keycloak.ComponentName)
 	assert.Equal(comps[13].Name(), kiali.ComponentName)
+	assert.Equal(comps[14].Name(), prometheusoper.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -94,10 +96,9 @@ func TestComponentDependenciesMet(t *testing.T) {
 				Name:      "istiod",
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -106,10 +107,9 @@ func TestComponentDependenciesMet(t *testing.T) {
 				Name:      "istio-ingressgateway",
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
@@ -118,10 +118,9 @@ func TestComponentDependenciesMet(t *testing.T) {
 				Name:      "istio-egressgateway",
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 	)
@@ -150,10 +149,9 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 			Name:      "istiod",
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	})
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -201,10 +199,9 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 			Name:      "istiod",
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       0,
-			AvailableReplicas:   0,
-			UnavailableReplicas: 1,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   0,
 		},
 	})
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
@@ -441,10 +438,9 @@ func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
 			Name:      name,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	}
 }
@@ -461,6 +457,10 @@ func (f fakeComponent) Name() string {
 	return f.name
 }
 
+func (f fakeComponent) GetJSONName() string {
+	return f.name
+}
+
 func (f fakeComponent) GetDependencies() []string {
 	return f.dependencies
 }
@@ -469,7 +469,7 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return true
 }
 
-func (f fakeComponent) IsEnabled(_ spi.ComponentContext) bool {
+func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
 	return f.enabled
 }
 
@@ -514,5 +514,17 @@ func (f fakeComponent) Reconcile(_ spi.ComponentContext) error {
 }
 
 func (f fakeComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
+	return []types.NamespacedName{}
+}
+
+func (f fakeComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return nil
+}
+
+func (f fakeComponent) GetCertificateNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }

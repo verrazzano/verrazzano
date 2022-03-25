@@ -7,9 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
@@ -34,10 +33,13 @@ const (
 // isKialiReady checks if the Kiali deployment is ready
 func isKialiReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
-		{Name: kialiSystemName, Namespace: ComponentNamespace},
+		{
+			Name:      kialiSystemName,
+			Namespace: ComponentNamespace,
+		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides Build the set of Kiali overrides for the helm install

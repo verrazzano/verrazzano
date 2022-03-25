@@ -575,6 +575,10 @@ github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv
 github.com/verrazzano/pkg v0.0.2/go.mod h1:l9utTv9KBQZlJI/HYnw2NQwisYTeHeHl82XOlCiZygM=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.28 h1:NGAS27XLyM8vVWUUxmTFK5XyDdPyhSYferxUMuvcHno=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.28/go.mod h1:LhAarjsfEaFMH8HrOAFyTokjl3nssYLw9/ApkGfCWu4=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220307235804-23a918a3dd83 h1:rgEr+kouo2AZh/2xkvNIZGqky66nL6bYC7gPr6E6Erw=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220307235804-23a918a3dd83/go.mod h1:mzM50LGL8/NihjnqxF9JWyKBMBSGQ/UL8NLkqF5zGVQ=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220315200010-44708ce42c5a h1:WHSYtfJDKza34sAZPX1gu2idcR+kLDlbRyY3AnrIFxE=
+github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220315200010-44708ce42c5a/go.mod h1:mzM50LGL8/NihjnqxF9JWyKBMBSGQ/UL8NLkqF5zGVQ=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xlab/handysort v0.0.0-20150421192137-fb3537ed64a1/go.mod h1:QcJo0QPSfTONNIgpN5RA8prR7fF8nkF6cTWTcNerRO8=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=

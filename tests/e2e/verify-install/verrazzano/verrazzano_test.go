@@ -4,11 +4,13 @@
 package verrazzano_test
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,11 +34,15 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.BeforeSuite(func() {
 	var err error
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0")
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
-	isMinVersion120, err = pkg.IsVerrazzanoMinVersion("1.2.0")
+	isMinVersion120, err = pkg.IsVerrazzanoMinVersion("1.2.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -380,7 +386,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -388,7 +394,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion110 {
 				validateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -412,7 +418,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					Expect(len(affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution)).To(Equal(1))
 				}
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
 		})
 	})
@@ -424,7 +430,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-ingressgateway")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -432,7 +438,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion110 {
 				validateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -440,7 +446,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion120 {
 				validateIstioGatewayAffinity("istio-ingressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
 		})
 	})
@@ -452,7 +458,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-egressgateway")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -460,7 +466,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion110 {
 				validateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.1.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
 		})
 
@@ -468,7 +474,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			if isMinVersion120 {
 				validateIstioGatewayAffinity("istio-egressgateway", constants.IstioSystemNamespace)
 			} else {
-				pkg.Log(pkg.Info, "Skipping check, Verrazzano minimum version is not V1.2.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
 		})
 	})

@@ -76,7 +76,7 @@
       ]
     },
     {
-      "name":"external-dns",
+      "name": "external-dns",
       "subcomponents": [
         {
           "repository": "verrazzano",

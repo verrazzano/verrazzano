@@ -5,19 +5,35 @@ package verrazzano
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"math/big"
+	"os/exec"
+	"path/filepath"
+	"testing"
+	"time"
+
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
+	gofake "k8s.io/client-go/kubernetes/fake"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"os/exec"
-	"path/filepath"
-	"testing"
-	"time"
+
+	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
+
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
@@ -412,7 +428,7 @@ func TestUpgradeStarted(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(1), result.RequeueAfter)
+	asserts.True(result.RequeueAfter.Seconds() <= 3)
 }
 
 // TestDeleteDuringUpgrade tests the reconcileUpgrade method for the following use case
@@ -611,7 +627,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
-	asserts.Equal(time.Duration(1), result.RequeueAfter)
+	asserts.True(result.RequeueAfter.Seconds() <= 3)
 }
 
 // TestUpgradeCompleted tests the reconcileUpgrade method for the following use case
@@ -632,6 +648,11 @@ func TestUpgradeCompleted(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
@@ -641,9 +662,6 @@ func TestUpgradeCompleted(t *testing.T) {
 		}
 	})
 	defer registry.ResetGetComponentsFn()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -671,7 +689,7 @@ func TestUpgradeCompleted(t *testing.T) {
 				},
 			}
 			return nil
-		})
+		}).AnyTimes()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -689,7 +707,7 @@ func TestUpgradeCompleted(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
 			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
-		})
+		}).AnyTimes()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -697,7 +715,7 @@ func TestUpgradeCompleted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -727,16 +745,21 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{},
+			fakeComponent{
+				HelmComponent: helm2.HelmComponent{
+					ReleaseName: "fake",
+				},
+			},
 		}
 	})
 	defer registry.ResetGetComponentsFn()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
-	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -764,14 +787,12 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 				},
 			}
 			return nil
-		}).Times(2)
+		}).AnyTimes()
 
 	// Expect 2 calls to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
-	expectGetServiceAccountExists(mock, name, nil)
 
 	// Expect 2 calls to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
 
 	// Expect calls to get the status writer and return a mock.
@@ -784,7 +805,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
 			asserts.Equal(vzapi.CondUpgradeComplete, verrazzano.Status.Conditions[2].Type, "Incorrect conditions")
 			return nil
-		}).Times(2)
+		}).AnyTimes()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -792,9 +813,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	_, err := reconciler.Reconcile(request)
-	asserts.NoError(err)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
+
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
@@ -824,6 +844,11 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
+
 	registry.OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			fakeComponent{},
@@ -833,9 +858,6 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -863,7 +885,7 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 				},
 			}
 			return nil
-		})
+		}).AnyTimes()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -881,12 +903,12 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			asserts.Len(verrazzano.Status.Conditions, 3, "Incorrect number of conditions")
 			asserts.Equal(verrazzano.Status.Conditions[2].Type, vzapi.CondUpgradeComplete, "Incorrect conditions")
 			return fmt.Errorf("Unexpected status error")
-		})
+		}).AnyTimes()
 
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -956,14 +978,14 @@ func TestUpgradeHelmError(t *testing.T) {
 				},
 			}
 			return nil
-		})
+		}).AnyTimes()
 
 	// expect a call to list any pending upgrade secrets for the component
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, opts ...client.ListOption) error {
 			return nil
-		})
+		}).AnyTimes()
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
@@ -977,7 +999,7 @@ func TestUpgradeHelmError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(request)
+	result, err := reconcileLoop(reconciler, request)
 
 	// Validate the results
 	mocker.Finish()
@@ -1056,7 +1078,7 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconcileUpgradeLoop(reconciler, &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1072,6 +1094,8 @@ func TestUpgradeComponent(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
+	// Need to use real component name since upgrade loops through registry
+	componentName := oam.ComponentName
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
@@ -1082,6 +1106,11 @@ func TestUpgradeComponent(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
 
 	vz := vzapi.Verrazzano{}
 	vz.TypeMeta = metav1.TypeMeta{
@@ -1104,6 +1133,8 @@ func TestUpgradeComponent(t *testing.T) {
 		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
+	initStartingStates(&vz, componentName)
+
 	mockComp := mocks.NewMockComponent(mocker)
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
@@ -1117,18 +1148,15 @@ func TestUpgradeComponent(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
-	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().Name().Return("testcomp").Times(1)
-	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(1)
+	mockComp.EXPECT().Name().Return(componentName).AnyTimes()
+	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -1140,9 +1168,16 @@ func TestUpgradeComponent(t *testing.T) {
 			return nil
 		}).Times(1)
 
-	// Reconcile upgrade
+	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	numComponentStates := 7
+	var result ctrl.Result
+	for i := 0; i < numComponentStates; i++ {
+		result, err = reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+		if err != nil || !result.Requeue {
+			break
+		}
+	}
 
 	// Validate the results
 	mocker.Finish()
@@ -1150,11 +1185,11 @@ func TestUpgradeComponent(t *testing.T) {
 	asserts.Equal(false, result.Requeue)
 }
 
-// TestUpgradeComponentWithPendingUpgradeStatus tests the reconcileUpgrade method for the following use case
+// TestUpgradeComponentWithBlockingStatus tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile an upgrade
-// WHEN the component fails to upgrade since a pending upgrade exists
-// THEN the pending status secret is deleted so the upgrade can proceed
-func TestUpgradeComponentWithPendingUpgradeStatus(t *testing.T) {
+// WHEN the component fails to upgrade since a status other than "deployed" exists
+// THEN the offending secret is deleted so the upgrade can proceed
+func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"
 	name := "test"
@@ -1203,32 +1238,35 @@ func TestUpgradeComponentWithPendingUpgradeStatus(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
-	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).Times(1)
-	mockComp.EXPECT().Name().Return("testcomp").Times(1)
+	mockComp.EXPECT().Upgrade(gomock.Any()).Return(fmt.Errorf("Upgrade in progress")).AnyTimes()
+	mockComp.EXPECT().Name().Return("testcomp").Times(1).AnyTimes()
 
-	// expect a call to list any pending upgrade secrets for the component
+	// expect a call to list any secrets with a status other than "deployed" for the component
+	statuses := []string{"unknown", "uninstalled", "superseded", "failed", "uninstalling", "pending-install", "pending-upgrade", "pending-rollback"}
+	n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(statuses))))
+	status := statuses[int(n.Int64())]
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, secretList *v1.SecretList, opts ...client.ListOption) error {
 			secretList.Items = []v1.Secret{{
 				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{"name": "testcomp", "status": "pending-upgrade"},
+					Labels: map[string]string{"name": "testcomp", "status": status},
 				},
 			}}
 			return nil
-		})
+		}).AnyTimes()
 
 	// expect a call to delete the secret
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconcileUpgradeLoop(reconciler, &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1254,6 +1292,11 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+
+	// Setup fake client to provide workloads for restart platform testing
+	goClient, err := initFakeClient()
+	asserts.NoError(err)
+	k8sutil.SetFakeClient(goClient)
 
 	vz := vzapi.Verrazzano{}
 	vz.TypeMeta = metav1.TypeMeta{
@@ -1292,24 +1335,21 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Set enabled mock component expectations
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
-	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil)
+	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
-	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).Times(1)
+	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
 	// Set disabled mock component expectations
-	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1)
-	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil)
+	mockDisabledComp.EXPECT().Name().Return("DisabledComponent").Times(1).AnyTimes()
+	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil).AnyTimes()
 	mockDisabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Add mocks necessary for the system component restart
-	mock.AddRestartMocks()
 
 	// Expect a call to update the status of the Verrazzano resource
 	mockStatus.EXPECT().
@@ -1323,7 +1363,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.reconcileUpgrade(vzlog.DefaultLogger(), &vz)
+	result, err := reconcileUpgradeLoop(reconciler, &vz)
 
 	// Validate the results
 	mocker.Finish()
@@ -1954,4 +1994,76 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+}
+
+// initStartingStates inits the starting state for verrazzano and component upgrade
+func initStartingStates(cr *vzapi.Verrazzano, compName string) {
+	initStates(cr, vzStateStart, compName, compStateInit)
+}
+
+// initStates inits the specified state for verrazzano and component upgrade
+func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName string, compState ComponentUpgradeState) {
+	tracker := getUpgradeTracker(cr)
+	tracker.vzState = vzState
+	upgradeContext := tracker.getComponentUpgradeContext(compName)
+	upgradeContext.state = compState
+}
+
+// reconcileUpgradeLoop
+func reconcileUpgradeLoop(reconciler Reconciler, cr *vzapi.Verrazzano) (ctrl.Result, error) {
+	numComponentStates := 7
+	var err error
+	var result ctrl.Result
+	for i := 0; i < numComponentStates; i++ {
+		result, err = reconciler.reconcileUpgrade(vzlog.DefaultLogger(), cr)
+		if err != nil || !result.Requeue {
+			break
+		}
+	}
+	return result, err
+}
+
+// reconcileLoop
+func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, error) {
+	numComponentStates := 7
+	var err error
+	var result ctrl.Result
+	for i := 0; i < numComponentStates; i++ {
+		result, err = reconciler.Reconcile(request)
+		if err != nil || !result.Requeue {
+			break
+		}
+	}
+	return result, err
+}
+
+// initFakeClient inits a fake go-client and loads it with fake resources
+func initFakeClient() (kubernetes.Interface, error) {
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testDeployment",
+			Namespace: "verrazzano-system",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: nil,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "foo"},
+			},
+		},
+	}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testPod",
+			Namespace: "verrazzano-system",
+			Labels:    map[string]string{"app": "foo"},
+		},
+		Spec: v1.PodSpec{
+			Containers: []v1.Container{{
+				Name:  "c1",
+				Image: "myimage",
+			}},
+		},
+	}
+	clientSet := gofake.NewSimpleClientset(dep, pod)
+	return clientSet, nil
 }

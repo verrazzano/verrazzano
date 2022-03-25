@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -69,17 +70,39 @@ var _ = t.AfterSuite(func() {
 	}
 	// undeploy the application here
 	start := time.Now()
+
+	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
+	t.Logs.Info("Wait for application pods to terminate")
+	Eventually(func() bool {
+		podsTerminated, _ := pkg.PodsNotRunning("helidon-logging", expectedPodsHelloHelidon)
+		return podsTerminated
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
+
+	t.Logs.Info("Wait for Finalizer to be removed")
+	Eventually(func() bool {
+		return pkg.CheckNamespaceFinalizerRemoved("helidon-logging")
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
+	t.Logs.Info("Wait for namespace to be deleted")
+	Eventually(func() bool {
+		_, err := pkg.GetNamespace("helidon-logging")
+		return err != nil && errors.IsNotFound(err)
+	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 

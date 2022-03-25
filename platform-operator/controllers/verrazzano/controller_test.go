@@ -1426,6 +1426,12 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: "ingress-nginx", Name: "ingress-controller-ingress-nginx-controller"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, service *corev1.Service) error {
 			service.Spec.Type = corev1.ServiceTypeNodePort
+			service.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+				{
+					IP:       "11.22.33.44",
+					Hostname: "myhost",
+				},
+			}
 			return nil
 		})
 
@@ -1433,7 +1439,7 @@ func TestBuildIngressIPForNIPNodePort(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "default.127.0.0.1.nip.io", suffix)
+	assert.Equal(t, "default.11.22.33.44.nip.io", suffix)
 
 	// Validate the results
 	mocker.Finish()
@@ -1766,7 +1772,7 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 			clusterRoleBinding.RoleRef = crb.RoleRef
 			clusterRoleBinding.Subjects = crb.Subjects
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectGetServiceAccountExists expects a call to get the service account for the Verrazzano with the given
@@ -1779,7 +1785,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 			newSA := rbac.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectGetVerrazzanoExists expects a call to get a Verrazzano with the given namespace and name, and returns
@@ -1793,7 +1799,7 @@ func expectGetVerrazzanoExists(mock *mocks.MockClient, verrazzanoToUse vzapi.Ver
 			verrazzano.Spec.Components.DNS = verrazzanoToUse.Spec.Components.DNS
 			verrazzano.Status = verrazzanoToUse.Status
 			return nil
-		})
+		}).AnyTimes()
 }
 
 // expectDeleteServiceAccount expects a call to delete the service account used by install

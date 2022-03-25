@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -41,6 +42,11 @@ var keycloakErrorClientIds = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"client
 var testVZ = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "dev",
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				MySQL: vzapi.MySQLComponent{},
+			},
+		},
 	},
 }
 var crEnabled = vzapi.Verrazzano{
@@ -123,6 +129,21 @@ func fakeFailExecCommand(command string, args ...string) *exec.Cmd {
 	cmd := exec.Command(firstArg, cs...)
 	cmd.Env = []string{"GO_WANT_FAIL_HELPER_PROCESS=1"}
 	return cmd
+}
+
+// fakeConfigureRealmCommands Implements the default responses for TestConfigureKeycloakRealms
+// - these tests launch actual go test commands to spit out canned output and return codes
+// - this is to control how the test respond to multiple different commands in the flow
+// - because it's function-based, we can't have different responses based on the call ordering, unless we want to
+//   get funky with how we manage state, and implement the canned calls as a stack or something
+func fakeConfigureRealmCommands(command string, args ...string) *exec.Cmd {
+	kccommand := fmt.Sprintf("%s-%s", args[8], args[9])
+	switch kccommand {
+	case "get-clients":
+		return fakeExecCommand(command, args...)
+	default:
+		return fakeCreateUserGroupCommand(command, args...)
+	}
 }
 
 func TestFailHelperProcess(t *testing.T) {
@@ -338,67 +359,100 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 	k8sutil.ClientConfig = fakeRESTConfig
 	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
 
+	defaultBashFunc := func(inArgs ...string) (string, string, error) {
+		return "", "", nil
+	}
+
+	keycloakPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: ComponentNamespace,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
 	var tests = []struct {
 		name        string
 		c           client.Client
 		stdout      string
 		isErr       bool
 		errContains string
+		execFunc    func(command string, args ...string) *exec.Cmd
+		bashFunc    bashFuncSig
 	}{
 		{
 			"should fail when login fails",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, keycloakPod),
 			"blahblah",
 			true,
 			"secrets \"keycloak-http\" not found",
+			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is empty",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod),
 			"",
 			true,
 			"Component Keycloak failed; user group ID from Keycloak is zero length",
+			fakeCreateUserGroupCommandFail,
+			defaultBashFunc,
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod),
 			"",
 			true,
 			"failed parsing output returned from Users Group",
+			fakeCreateUserGroupParseCommandFail,
+			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret is not present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod),
 			"blahblah'id",
 			true,
 			"secrets \"verrazzano\" not found",
+			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail when Verrazzano secret has no password",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
-				},
-				Data: map[string][]byte{
-					"password": []byte(""),
-				},
-			}),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte(""),
+					},
+				}),
 			"blahblah'id",
 			true,
 			"password field empty in secret",
+			fakeCreateUserGroupCommand,
+			defaultBashFunc,
 		},
 		{
 			"should fail when nginx service is not present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
 				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",
@@ -420,18 +474,59 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			"blahblah'id",
 			true,
 			"services \"ingress-controller-ingress-nginx-controller\" not found",
+			fakeConfigureRealmCommands,
+			defaultBashFunc,
+		},
+		{
+			"bashFunc fails during updateKeycloakURIs",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-prom-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano-es-internal",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
+				}),
+			"blahblah'id",
+			true,
+			"updateKeycloakURIs failed",
+			fakeConfigureRealmCommands,
+			func(inArgs ...string) (string, string, error) {
+				return "", "Command failed", fmt.Errorf("updateKeycloakURIs failed")
+			},
 		},
 		{
 			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
 				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",
@@ -453,19 +548,17 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 			"blahblah'id",
 			false,
 			"",
+			fakeConfigureRealmCommands,
+			defaultBashFunc,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, false)
-			execCommand = fakeCreateUserGroupCommand
-			if tt.name == "should fail to retrieve user group ID from Keycloak when stdout is empty" {
-				execCommand = fakeCreateUserGroupCommandFail
-			}
-			if tt.name == "should fail to retrieve user group ID from Keycloak when stdout is incorrect" {
-				execCommand = fakeCreateUserGroupParseCommandFail
-			}
+			execCommand = tt.execFunc
+			bashFunc = tt.bashFunc
+			defer func() { bashFunc = vzos.RunBash }()
 			k8sutilfake.PodSTDOUT = tt.stdout
 			err := configureKeycloakRealms(ctx)
 			if tt.isErr {
@@ -627,7 +720,7 @@ func TestCreateOrUpdateAuthSecret(t *testing.T) {
 //  WHEN The Keycloak component is nil
 //  THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
@@ -637,7 +730,7 @@ func TestIsEnabledNilComponent(t *testing.T) {
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
@@ -647,7 +740,7 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledExplicit tests the IsEnabled function
@@ -657,7 +750,7 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsDisableExplicit tests the IsEnabled function
@@ -667,7 +760,7 @@ func TestIsEnabledExplicit(t *testing.T) {
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
@@ -678,7 +771,7 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.ManagedCluster
-	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledProdProfile tests the IsEnabled function
@@ -689,7 +782,7 @@ func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Prod
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledDevProfile tests the IsEnabled function
@@ -700,7 +793,7 @@ func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
 	cr.Spec.Profile = vzapi.Dev
-	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath)))
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, false, profilesRelativePath).EffectiveCR()))
 }
 
 func getBoolPtr(b bool) *bool {
@@ -1131,7 +1224,8 @@ func TestIsKeycloakReady(t *testing.T) {
 					Name:      ComponentName,
 				},
 				Status: appsv1.StatefulSetStatus{
-					ReadyReplicas: 1,
+					ReadyReplicas:   1,
+					UpdatedReplicas: 1,
 				},
 			}),
 			true,

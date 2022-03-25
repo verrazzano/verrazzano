@@ -18,6 +18,7 @@ import (
 	"text/template"
 	"time"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -60,7 +61,8 @@ var (
 		{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "2.5Gi"},
 		{Key: "elasticSearch.nodes.data.replicas", Value: "3"},
 		{Key: "elasticSearch.nodes.data.requests.memory", Value: "4.8Gi"},
-		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"}}
+		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
+		{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"}}
 )
 
 func init() {
@@ -71,7 +73,7 @@ func init() {
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
-
+	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
 }
 
@@ -255,7 +257,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 		},
 		{
 			name:         "BasicDevVerrazzanoNoOverrides",
-			description:  "Test basic prod no user overrides",
+			description:  "Test basic dev no user overrides",
 			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
 			expectedYAML: "testdata/vzValuesDevNoOverrides.yaml",
 			expectedErr:  nil,
@@ -275,14 +277,15 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Keycloak:      &vzapi.KeycloakComponent{Enabled: &falseValue},
-						Rancher:       &vzapi.RancherComponent{Enabled: &falseValue},
-						DNS:           &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						Console:            &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:         &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Kibana:             &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch:      &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:            &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Keycloak:           &vzapi.KeycloakComponent{Enabled: &falseValue},
+						Rancher:            &vzapi.RancherComponent{Enabled: &falseValue},
+						DNS:                &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
 					},
 				},
 			},
@@ -291,7 +294,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 		},
 		{
 			name:        "ProdWithExternaDNSEnabled",
-			description: "Test prod with OCI DNS enabled, should enable exeteran-dns component",
+			description: "Test prod with OCI DNS enabled, should enable external-dns component",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -480,6 +483,7 @@ func Test_appendVMIValues(t *testing.T) {
 				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
 				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
 				{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
+				{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"},
 			},
 			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
 			expectedErr:  nil,
@@ -573,14 +577,15 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Keycloak:      &vzapi.KeycloakComponent{Enabled: &falseValue},
-						Rancher:       &vzapi.RancherComponent{Enabled: &falseValue},
-						DNS:           &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						Console:            &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:         &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Kibana:             &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch:      &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:            &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Keycloak:           &vzapi.KeycloakComponent{Enabled: &falseValue},
+						Rancher:            &vzapi.RancherComponent{Enabled: &falseValue},
+						DNS:                &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
 					},
 				},
 			},
@@ -589,7 +594,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 		},
 		{
 			name:        "ProdWithExternaDNSEnabled",
-			description: "Test prod with OCI DNS enabled, should enable exeteran-dns component",
+			description: "Test prod with OCI DNS enabled, should enable external-dns component",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -778,8 +783,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			//t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 10, 2 file override + 1 custom image overrides + 7 ES
-				expectedNumKvs = 10
+				// default is 11, 2 file override + 1 custom image overrides + 8 ES
+				expectedNumKvs = 11
 			}
 			assert.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file
@@ -1500,10 +1505,9 @@ func TestIsReadySecretNotReady(t *testing.T) {
 			Name:      vmoDeployment,
 		},
 		Status: appsv1.DeploymentStatus{
-			Replicas:            1,
-			ReadyReplicas:       1,
-			AvailableReplicas:   1,
-			UnavailableReplicas: 0,
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
 		},
 	})
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
@@ -1530,96 +1534,96 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      verrazzanoConsoleDeployment,
+				Labels:    map[string]string{"app": verrazzanoConsoleDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      vmoDeployment,
+				Labels:    map[string]string{"k8s-app": vmoDeployment},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      grafanaDeployment,
+				Labels:    map[string]string{"app": "system-grafana"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
+				Labels:    map[string]string{"app": "system-kibana"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      prometheusDeployment,
+				Labels:    map[string]string{"app": "system-prometheus"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
+				Labels:    map[string]string{"app": "system-es-data", "index": "1"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment,
+				Labels:    map[string]string{"app": "system-es-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            2,
-				ReadyReplicas:       1,
-				AvailableReplicas:   1,
-				UnavailableReplicas: 0,
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1628,10 +1632,8 @@ func TestIsReady(t *testing.T) {
 				Name:      fluentDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberReady:            1,
+				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
-				NumberUnavailable:      0,
 			},
 		},
 		&appsv1.DaemonSet{
@@ -1640,20 +1642,19 @@ func TestIsReady(t *testing.T) {
 				Name:      nodeExporterDaemonset,
 			},
 			Status: appsv1.DaemonSetStatus{
-				DesiredNumberScheduled: 1,
-				NumberReady:            1,
+				UpdatedNumberScheduled: 1,
 				NumberAvailable:        1,
-				NumberUnavailable:      0,
 			},
 		},
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": "system-es-master"},
 			},
 			Status: appsv1.StatefulSetStatus{
 				ReadyReplicas:   1,
-				CurrentReplicas: 2,
+				UpdatedReplicas: 1,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
@@ -1685,20 +1686,19 @@ func TestIsReady(t *testing.T) {
 
 // TestIsReadyDeploymentNotAvailable tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when the VMO deployment is not available
+//  WHEN I call isVerrazzanoReady when the Verrazzano console deployment is not available
 //  THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(testScheme,
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      vmoDeployment,
+				Name:      verrazzanoConsoleDeployment,
 			},
 			Status: appsv1.DeploymentStatus{
-				Replicas:            1,
-				ReadyReplicas:       1,
-				AvailableReplicas:   0,
-				UnavailableReplicas: 0,
+				Replicas:          1,
+				AvailableReplicas: 1,
+				UpdatedReplicas:   0,
 			},
 		},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",

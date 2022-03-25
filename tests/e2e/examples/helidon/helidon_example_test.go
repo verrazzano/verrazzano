@@ -173,47 +173,47 @@ func helloHelidonPodsRunning() bool {
 func appEndpointAccessible(url string, hostname string) bool {
 	req, err := retryablehttp.NewRequest("GET", url, nil)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 
 	httpClient, err := pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 	req.Host = hostname
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 	bodyRaw, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected error=%v", err))
+		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
 	if resp.StatusCode != http.StatusOK {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected status code=%v", resp.StatusCode))
+		t.Logs.Errorf("Unexpected status code=%v", resp.StatusCode)
 		return false
 	}
 	// HTTP Server headers should never be returned.
 	for headerName, headerValues := range resp.Header {
 		if strings.EqualFold(headerName, "Server") {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected Server header=%v", headerValues))
+			t.Logs.Errorf("Unexpected Server header=%v", headerValues)
 			return false
 		}
 	}
 	bodyStr := string(bodyRaw)
 	if !strings.Contains(bodyStr, "Hello World") {
-		pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response body=%v", bodyStr))
+		t.Logs.Errorf("Unexpected response body=%v", bodyStr)
 		return false
 	}
 	return true

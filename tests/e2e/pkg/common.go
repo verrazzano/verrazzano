@@ -8,7 +8,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"net/http"
 	neturl "net/url"
 	"os"
@@ -449,4 +451,30 @@ func CheckAllImagesPulled(pods *v1.PodList, events *v1.EventList, namePrefixes [
 		Log(Info, fmt.Sprintf("%d images yet to be pulled", imagesYetToBePulled))
 	}
 	return imagesYetToBePulled == 0
+}
+
+// CheckNamespaceFinalizerRemoved checks whether namespace finalizers are removed
+func CheckNamespaceFinalizerRemoved(ns string) bool {
+	namespace, err := GetNamespace(ns)
+	if err != nil && errors.IsNotFound(err) {
+		return true
+	}
+
+	if err != nil {
+		Log(Info, fmt.Sprintf("Error in getting namespace %v", err))
+	}
+	return namespace.Finalizers == nil
+}
+
+// CheckNamespaceFinalizerRemoved checks whether namespace finalizers are removed, using the given Clientset
+func CheckNSFinalizerRemoved(ns string, clientset *kubernetes.Clientset) bool {
+	namespace, err := GetNamespaceWithClientSet(ns, clientset)
+	if err != nil && errors.IsNotFound(err) {
+		return true
+	}
+
+	if err != nil {
+		Log(Info, fmt.Sprintf("Error in getting namespace %v", err))
+	}
+	return namespace.Finalizers == nil
 }

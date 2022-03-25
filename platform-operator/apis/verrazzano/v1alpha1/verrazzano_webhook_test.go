@@ -1,14 +1,16 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
 
 import (
+	goerrors "errors"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -358,4 +360,24 @@ func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
 	defer func() { getControllerRuntimeClient = getClient }()
 
 	assert.NoError(t, vz.verifyPlatformOperatorSingleton())
+}
+
+// Test_combineErrors Tests combineErrors
+// GIVEN slices of errors
+// WHEN there is one or more errors
+// THEN a combined error is returned
+func Test_combineErrors(t *testing.T) {
+	var errs []error
+	err := combineErrors(errs)
+	assert.Nil(t, err)
+
+	errs = []error{goerrors.New("e1")}
+	err = combineErrors(errs)
+	assert.NotNil(t, err)
+	assert.Equal(t, "e1", err.Error())
+
+	errs = []error{goerrors.New("e1"), goerrors.New("e2"), goerrors.New("e3")}
+	err = combineErrors(errs)
+	assert.NotNil(t, err)
+	assert.Equal(t, "[e1, e2, e3]", err.Error())
 }

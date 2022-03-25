@@ -327,6 +327,11 @@
               "image": "weblogic-kubernetes-operator",
               "tag": "3.2.2",
               "helmFullImageKey": "image"
+            },
+            {
+              "image": "weblogic-monitoring-exporter",
+              "tag": "2.0.4",
+              "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
         }

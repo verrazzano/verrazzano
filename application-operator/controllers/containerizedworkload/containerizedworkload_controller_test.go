@@ -54,7 +54,7 @@ func newReconciler(c client.Client) Reconciler {
 func newRequest(namespace string, name string) ctrl.Request {
 	return ctrl.Request{
 		NamespacedName: types.NamespacedName{
-			Namespace: testNamespace,
+			Namespace: namespace,
 			Name:      name,
 		},
 	}
@@ -125,6 +125,24 @@ func TestReconcileRestart(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(false, result.Requeue)
+}
+
+// TestReconcileKubeSystem tests to make sure we do not reconcile
+// Any resource that belong to the kube-system namespace
+func TestReconcileKubeSystem(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, "test-verrazzano-containerized-workload")
+	reconciler := newReconciler(cli)
+	result, err := reconciler.Reconcile(request)
+
+	// Validate the results
+	mocker.Finish()
+	assert.NoError(err)
+	assert.True(result.IsZero())
 }
 
 // updateObjectFromYAMLTemplate updates an object from a populated YAML template file.
