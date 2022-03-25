@@ -363,8 +363,6 @@ type ElasticsearchComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	ESInstallArgs []InstallArgs `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
-	// +optional
-	RetentionPolicies RetentionPolicies `json:"retentionPolicies,omitempty"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
@@ -586,27 +584,6 @@ type InstallArgs struct {
 	// +optional
 	// +patchStrategy=replace
 	ValueList []string `json:"valueList,omitempty" patchStrategy:"replace"`
-}
-
-//RetentionPolicies defines the policies which may be configued in Verrazzano
-type RetentionPolicies struct {
-	// +optional
-	System RetentionPolicy `json:"system"`
-	// +optional
-	Application RetentionPolicy `json:"application"`
-}
-
-//RetentionPolicy defines configuration for an index retention policy
-type RetentionPolicy struct {
-	// If the RetentionPolicy should be applied
-	// +optional
-	Enabled *bool `json:"enabled"`
-	// Min index age for Retention Policy
-	// +optional
-	MinAge *string `json:"minAge"`
-}
-
-type RolloverPolicy struct {
 }
 
 // VolumeMount defines a hostPath type Volume mount
