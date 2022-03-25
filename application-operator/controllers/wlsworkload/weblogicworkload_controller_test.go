@@ -105,7 +105,7 @@ const weblogicDomainWithLogHome = `
    "spec": {
       "domainUID": "unit-test-domain",
       "logHome": "/unit_test/log_home",
-	  "serverPod": {
+      "serverPod": {
          "volumes": [
             {
                "name": "unit-test-logging-volume",
@@ -114,12 +114,12 @@ const weblogicDomainWithLogHome = `
                }
             }
          ],
-		 "volumeMounts": [
-			 {
-				 "name": "unit-test-logging-volume",
-				 "mountPath": "/unit_test"
-			 }
-		 ]
+         "volumeMounts": [
+            {
+               "name": "unit-test-logging-volume",
+               "mountPath": "/unit_test"
+            }
+         ]
       }
    }
 }
@@ -1158,7 +1158,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, namespace *corev1.Namespace) error {
 			return nil
 		})
-	// expect a call to attempt to get the domain CR
+	// expect a call to attempt to get the VerrazzanoWebLogicWorkload CR
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured) error {
@@ -1166,7 +1166,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
 			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
-			// return nil error because domain StatefulSet exists
+			// return nil error because the VerrazzanoWebLogicWorkload CR exists
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
