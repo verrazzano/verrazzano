@@ -12,7 +12,7 @@ elasticSearch:
   enabled: true
 logging:
   elasticsearchSecret: custom-elasticsearch-secret
-  elasticsearchURL: "http://myes.mydomain.com:9200"
+  elasticsearchURL: http://myes.mydomain.com:9200
 fluentd:
   enabled: true
   extraVolumeMounts:

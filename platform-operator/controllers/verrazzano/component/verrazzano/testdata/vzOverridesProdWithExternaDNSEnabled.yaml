@@ -10,8 +10,8 @@ elasticSearch:
 externaldns:
   enabled: true
 logging:
-  elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
   elasticsearchSecret: verrazzano-es-internal
+  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
 fluentd:
   enabled: true
 grafana:
