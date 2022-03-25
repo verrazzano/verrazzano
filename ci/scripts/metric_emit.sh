@@ -13,7 +13,6 @@ LABELS=$(echo $5 | tr -d \')
 LABELS="${LABELS},job=\"${JOB}\",branch=\"${BRANCH}\""
 STATUS=$6
 DURATION=$7
-TIMESTAMP=$(date +%s)
 TIME_METRIC=""
 if [ $DURATION -gt 0 ]
 then
