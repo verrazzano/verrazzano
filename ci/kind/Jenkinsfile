@@ -803,3 +803,10 @@ def setDisplayName() {
     }
     echo "End setDisplayName"
 }
+
+def emitJobMetrics() {
+    env.JOB_STATUS = "${currentBuild.currentResult}".trim()
+    long duration = "${currentBuild.duration}" as long;
+    env.DURATION = (duration/1000)
+    runGinkgo("framework/jobmetrics")
+}
