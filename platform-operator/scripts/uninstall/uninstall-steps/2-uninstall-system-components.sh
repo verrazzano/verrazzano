@@ -143,26 +143,26 @@ function delete_rancher() {
     crd_content=$(kubectl get crds --no-headers -o custom-columns=":metadata.name,:spec.group" | awk '/coreos.com|cattle.io/')
   done
 
-#  # delete clusterrolebindings deployed by rancher
-#  log "Deleting ClusterRoleBindings"
-#  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
-#    || return $? # return on pipefail
-#
-#  # delete clusterroles
-#  log "Deleting ClusterRoles"
-#  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
-#    || return $? # return on pipefail
-#
-#  # delete rolebinding
-#  log "Deleting RoleBindings"
-#  local default_names=("default" "kube-node-lease" "kube-public" "kube-system")
-#  for namespace in "${default_names[@]}"
-#  do
-#    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/clusterrolebinding-/' "${namespace}" \
-#      || return $? # return on pipefail
-#    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/^rb-/' "${namespace}" \
-#      || return $? # return on pipefail
-#  done
+  # delete clusterrolebindings deployed by rancher
+  log "Deleting ClusterRoleBindings"
+  delete_k8s_resources clusterrolebinding ":metadata.name,:metadata.labels" "Could not delete ClusterRoleBindings from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
+    || return $? # return on pipefail
+
+  # delete clusterroles
+  log "Deleting ClusterRoles"
+  delete_k8s_resources clusterrole ":metadata.name,:metadata.labels" "Could not delete ClusterRoles from Rancher" '/cattle.io|app:rancher|fleetworkspace-|fleet-|gitjob/ {print $1}' \
+    || return $? # return on pipefail
+
+  # delete rolebinding
+  log "Deleting RoleBindings"
+  local default_names=("default" "kube-node-lease" "kube-public" "kube-system")
+  for namespace in "${default_names[@]}"
+  do
+    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/clusterrolebinding-/' "${namespace}" \
+      || return $? # return on pipefail
+    delete_k8s_resources rolebinding ":metadata.name" "Could not delete RoleBindings from Rancher in namespace ${namespace}" '/^rb-/' "${namespace}" \
+      || return $? # return on pipefail
+  done
 
   # delete configmap in kube-system
   log "Deleting ConfigMap"
@@ -170,9 +170,12 @@ function delete_rancher() {
   kubectl delete configmap rancher-controller-lock -n kube-system --ignore-not-found=true || err_return $? "Could not delete ConfigMap rancher-controller-lock in namespace kube-system" || return $?
 
   log "Delete the Rancher webhooks and left over charts"
-  #TODO TODO TODO
-  #TODO TODO TODO
-  #TODO TODO TODO
+  # delete mutatingwebhookconfigurations
+  delete_k8s_resources mutatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete MutatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+    || return $? # return on pipefail
+  # delete validatingwebhookconfigurations
+  delete_k8s_resources validatingwebhookconfigurations ":metadata.name,:metadata.labels" "Could not delete ValidatingWebhookConfigurations from Rancher" '/cattle.io|app:rancher/ {print $1}' \
+    || return $? # return on pipefail
 
   log "Removing Rancher namespace finalizers"
   # delete namespace finalizers
