@@ -43,7 +43,7 @@ func preInstall(ctx spi.ComponentContext) error {
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
 		return nil
 	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the Prometheus Operator: %v", err)
+		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 	return nil
 }
