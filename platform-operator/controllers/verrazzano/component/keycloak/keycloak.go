@@ -41,6 +41,7 @@ const (
 	rulesHost          = "rulesHost"
 	tlsHosts           = "tlsHosts"
 	tlsSecret          = "tlsSecret"
+	tlsSecretName      = "keycloak-tls"
 	vzSysRealm         = "verrazzano-system"
 	vzUsersGroup       = "verrazzano-users"
 	vzAdminGroup       = "verrazzano-admins"
@@ -413,11 +414,9 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
-	installEnvName := getEnvironmentName(compContext.EffectiveCR().Spec.EnvironmentName)
-	tlsSecretValue := fmt.Sprintf("%s-secret", installEnvName)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: tlsSecretValue,
+		Value: tlsSecretName,
 	})
 
 	return kvs, nil
@@ -780,11 +779,6 @@ func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	}
 	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
 	return dnsDomain, nil
-}
-
-// getSecretName returns expected TLS secret name
-func getSecretName(vz *vzapi.Verrazzano) string {
-	return fmt.Sprintf("%s-secret", getEnvironmentName(vz.Spec.EnvironmentName))
 }
 
 func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
@@ -1289,11 +1283,10 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 
 func isKeycloakReady(ctx spi.ComponentContext) bool {
 	// TLS cert from Cert Manager should be in Ready state
-	secretName := getSecretName(ctx.EffectiveCR())
 	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
+	namespacedName := types.NamespacedName{Name: tlsSecretName, Namespace: ComponentNamespace}
 	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
+		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", tlsSecretName)
 		return false
 	}
 

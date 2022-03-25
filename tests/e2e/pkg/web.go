@@ -364,7 +364,7 @@ func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return doGetCACertFromSecret(envName+"-secret", "verrazzano-system", kubeconfigPath)
+	return doGetCACertFromSecret("verrazzano-tls", "verrazzano-system", kubeconfigPath)
 }
 
 // getRancherCACert returns the Rancher CA cert
@@ -378,7 +378,7 @@ func getKeycloakCACert(kubeconfigPath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return doGetCACertFromSecret(envName+"-secret", "keycloak", kubeconfigPath)
+	return doGetCACertFromSecret("keycloak-tls", "keycloak", kubeconfigPath)
 }
 
 // doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
