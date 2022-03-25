@@ -32,6 +32,7 @@ const (
 
 var t = framework.NewTestFramework("update authproxy")
 var kubeconfigPath string
+var nodeCount uint32 = 1
 var _ = t.BeforeSuite(func() {
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
@@ -39,15 +40,13 @@ var _ = t.BeforeSuite(func() {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 
-	// Get the Verrazzano CR
-	Eventually(func() error {
-		var err error
-		_, err = pkg.GetVerrazzano()
-		if err != nil {
-			return err
+	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
+	if len(kindNodeCount) > 0 {
+		u, err := strconv.ParseUint(kindNodeCount, 10, 32)
+		if err == nil {
+			nodeCount = uint32(u)
 		}
-		return err
-	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
+	}
 })
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
@@ -55,13 +54,14 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
 		t.It("authproxy default replicas", func() {
-			vzcr, err := pkg.GetVerrazzano()
-			if err != nil {
-				Fail(err.Error())
+			cr := waitForCRToBeReady()
+			if cr.Status.State != vzapi.VzStateReady {
+				Fail("CR is not ready")
 			}
+
 			expectedRunning := uint32(1)
 			expectedPending := uint32(0)
-			if vzcr.Spec.Profile == "production" || vzcr.Spec.Profile == "" {
+			if cr.Spec.Profile == "production" || cr.Spec.Profile == "" {
 				expectedRunning = 2
 			}
 			validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
@@ -70,22 +70,10 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
-			nodeCount := getNodeCount()
-
-			var cr *vzapi.Verrazzano
-			// Wait for the Verrazzano CR to be Ready
-			Eventually(func() error {
-				var err error
-				cr, err = pkg.GetVerrazzano()
-				if err != nil {
-					return err
-				}
-				if cr.Status.State != vzapi.VzStateReady {
-					return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
-				}
-				return err
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
-
+			cr := waitForCRToBeReady()
+			if cr.Status.State != vzapi.VzStateReady {
+				Fail("CR is not ready")
+			}
 			if cr.Spec.Components.AuthProxy == nil {
 				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 			}
@@ -106,20 +94,10 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
-			var cr *vzapi.Verrazzano
-			// Wait for the Verrazzano CR to be Ready
-			Eventually(func() error {
-				var err error
-				cr, err = pkg.GetVerrazzano()
-				if err != nil {
-					return err
-				}
-				if cr.Status.State != vzapi.VzStateReady {
-					return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
-				}
-				return err
-			}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
-
+			cr := waitForCRToBeReady()
+			if cr.Status.State != vzapi.VzStateReady {
+				Fail("CR is not ready")
+			}
 			if cr.Spec.Components.AuthProxy == nil {
 				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 			}
@@ -152,7 +130,6 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 				Fail(err.Error())
 			}
 
-			nodeCount := getNodeCount()
 			expectedRunning := nodeCount - 1
 			expectedPending := uint32(2)
 			if nodeCount == 1 {
@@ -165,10 +142,9 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 })
 
 func validatePods(deployName string, nameSpace string, expectedPodsRunning uint32, expectedPodsPending uint32) {
-	var pods []corev1.Pod
 	Eventually(func() bool {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
+		pods, err := pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": deployName}}, nameSpace)
 		if err != nil {
 			return false
 		}
@@ -187,6 +163,23 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 }
 
+func waitForCRToBeReady() *vzapi.Verrazzano {
+	var cr *vzapi.Verrazzano
+	// Wait for the Verrazzano CR to be Ready
+	Eventually(func() error {
+		var err error
+		cr, err = pkg.GetVerrazzano()
+		if err != nil {
+			return err
+		}
+		if cr.Status.State != vzapi.VzStateReady {
+			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+		}
+		return err
+	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
+	return cr
+}
+
 func updateCR(cr *vzapi.Verrazzano) error {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
@@ -202,15 +195,4 @@ func updateCR(cr *vzapi.Verrazzano) error {
 		return fmt.Errorf("error updating Verrazzano instance: %v", err)
 	}
 	return nil
-}
-
-func getNodeCount() uint32 {
-	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
-	if len(kindNodeCount) > 0 {
-		u, err := strconv.ParseUint(kindNodeCount, 10, 32)
-		if err == nil {
-			return uint32(u)
-		}
-	}
-	return 1
 }
