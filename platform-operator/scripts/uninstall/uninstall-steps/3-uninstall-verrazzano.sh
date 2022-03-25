@@ -148,6 +148,9 @@ function delete_prometheus_operator {
       error "Failed to uninstall the Prometheus operator."
     fi
   fi
+
+  log "Deleting the ${VERRAZZANO_MONITORING_NS} namespace"
+  kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
 }
 
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1

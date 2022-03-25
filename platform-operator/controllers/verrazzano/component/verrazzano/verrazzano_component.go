@@ -122,6 +122,8 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 // PostUpgrade Verrazzano-post-upgrade processing
 func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
+	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}

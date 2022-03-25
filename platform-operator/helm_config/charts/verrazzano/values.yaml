@@ -139,6 +139,3 @@ externaldns:
 
 prometheusOperator:
   enabled: true
-
-monitoring:
-  namespace: verrazzano-monitoring
