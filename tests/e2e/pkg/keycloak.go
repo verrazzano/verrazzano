@@ -50,7 +50,7 @@ func NewKeycloakAdminRESTClient() (*KeycloakRESTClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	httpClient, err := GetKeycloakHTTPClient(kubeconfigPath)
+	httpClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
