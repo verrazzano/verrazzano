@@ -1297,6 +1297,8 @@ data:
     nameserver=$(grep -i nameserver /etc/resolv.conf | awk '{split($0,line," "); print line[2]}')
     sed -i -e "s|_NAMESERVER_|${nameserver}|g" /etc/nginx/nginx.conf
 
+    mkdir -p /etc/nginx/logs
+
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
     cat /etc/ssl/certs/ca-bundle.crt > /etc/nginx/upstream.pem
@@ -1312,6 +1314,7 @@ data:
 
     sh -c "$startupDir/reload.sh &"
 
+    tail -f /var/log/nginx/error.log
   reload.sh: |
     #!/bin/bash
 
