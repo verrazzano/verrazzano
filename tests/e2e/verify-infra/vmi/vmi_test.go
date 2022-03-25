@@ -301,7 +301,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		})
 	} else if pkg.IsProdProfile() {
 		t.It("Check persistent volumes for prod cluster profile", func() {
-			Expect(len(volumeClaims)).To(Equal(7))
+			Expect(len(volumeClaims)).To(Equal(8))
 			assertPersistentVolume("vmi-system-prometheus", size)
 			assertPersistentVolume("vmi-system-grafana", size)
 			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-0", size)
@@ -309,6 +309,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			assertPersistentVolume("elasticsearch-master-vmi-system-es-master-2", size)
 			assertPersistentVolume("vmi-system-es-data", size)
 			assertPersistentVolume("vmi-system-es-data-1", size)
+			assertPersistentVolume("vmi-system-es-data-2", size)
 		})
 	}
 })
@@ -359,7 +360,7 @@ func elasticConnected() bool {
 func elasticHealth() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
 		return false
 	}
 	return elastic.CheckHealth(kubeconfigPath)
@@ -368,7 +369,7 @@ func elasticHealth() bool {
 func elasticIndicesHealth() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		t.Logs.Errorf("Failed to get default kubeconfig path: %s", err.Error())
 		return false
 	}
 	return elastic.CheckIndicesHealth(kubeconfigPath)
@@ -389,7 +390,7 @@ func assertDashboard(url string) {
 	searchDashboard := func() bool {
 		vmiHTTPClient, err := pkg.GetVerrazzanoRetryableHTTPClient()
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error getting HTTP client: %v", err))
+			t.Logs.Errorf("Error getting HTTP client: %v", err)
 			return false
 		}
 		vmiHTTPClient.HTTPClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
@@ -398,33 +399,33 @@ func assertDashboard(url string) {
 
 		req, err := retryablehttp.NewRequest("GET", searchURL, nil)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error creating HTTP request: %v", err))
+			t.Logs.Errorf("Error creating HTTP request: %v", err)
 			return false
 		}
 		req.SetBasicAuth(creds.Username, creds.Password)
 		resp, err := vmiHTTPClient.Do(req)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error making HTTP request: %v", err))
+			t.Logs.Errorf("Error making HTTP request: %v", err)
 			return false
 		}
 		if resp.StatusCode != http.StatusOK {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected HTTP status code: %d", resp.StatusCode))
+			t.Logs.Errorf("Unexpected HTTP status code: %d", resp.StatusCode)
 			return false
 		}
 		// assert that there is a single item in response
 		defer resp.Body.Close()
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unable to read body from response: %v", err))
+			t.Logs.Errorf("Unable to read body from response: %v", err)
 			return false
 		}
 		var response []map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &response); err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error unmarshaling response body: %v", err))
+			t.Logs.Errorf("Error unmarshaling response body: %v", err)
 			return false
 		}
 		if len(response) != 1 {
-			pkg.Log(pkg.Error, fmt.Sprintf("Unexpected response length: %d", len(response)))
+			t.Logs.Errorf("Unexpected response length: %d", len(response))
 			return false
 		}
 		return true

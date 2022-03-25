@@ -6,7 +6,6 @@ package keycloak
 import (
 	"errors"
 	"fmt"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"os"
 	"os/exec"
 	"testing"
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -42,6 +42,11 @@ var keycloakErrorClientIds = "[ {\n  \"id\" : \"a732-249893586af2\",\n  \"client
 var testVZ = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: "dev",
+		Components: vzapi.ComponentSpec{
+			Keycloak: &vzapi.KeycloakComponent{
+				MySQL: vzapi.MySQLComponent{},
+			},
+		},
 	},
 }
 var crEnabled = vzapi.Verrazzano{
@@ -358,6 +363,21 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		return "", "", nil
 	}
 
+	keycloakPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      keycloakPodName,
+			Namespace: ComponentNamespace,
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   v1.PodReady,
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
+	}
+
 	var tests = []struct {
 		name        string
 		c           client.Client
@@ -369,7 +389,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 	}{
 		{
 			"should fail when login fails",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, keycloakPod),
 			"blahblah",
 			true,
 			"secrets \"keycloak-http\" not found",
@@ -378,7 +398,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is empty",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod),
 			"",
 			true,
 			"Component Keycloak failed; user group ID from Keycloak is zero length",
@@ -387,7 +407,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should fail to retrieve user group ID from Keycloak when stdout is incorrect",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod),
 			"",
 			true,
 			"failed parsing output returned from Users Group",
@@ -396,7 +416,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should fail when Verrazzano secret is not present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod),
 			"blahblah'id",
 			true,
 			"secrets \"verrazzano\" not found",
@@ -405,15 +425,16 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should fail when Verrazzano secret has no password",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
-				},
-				Data: map[string][]byte{
-					"password": []byte(""),
-				},
-			}),
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte(""),
+					},
+				}),
 			"blahblah'id",
 			true,
 			"password field empty in secret",
@@ -422,15 +443,16 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should fail when nginx service is not present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
 				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",
@@ -457,15 +479,16 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"bashFunc fails during updateKeycloakURIs",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
 				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",
@@ -494,15 +517,16 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "verrazzano",
-					Namespace: "verrazzano-system",
+			fake.NewFakeClientWithScheme(k8scheme.Scheme, loginSecret, nginxService, keycloakPod,
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "verrazzano",
+						Namespace: "verrazzano-system",
+					},
+					Data: map[string][]byte{
+						"password": []byte("blah di blah"),
+					},
 				},
-				Data: map[string][]byte{
-					"password": []byte("blah di blah"),
-				},
-			},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano-prom-internal",

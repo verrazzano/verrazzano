@@ -35,7 +35,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 			if !isManagedClusterProfile {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+					t.Logs.Errorf("Error getting kubeconfig: %v", err)
 					Fail(err.Error())
 				}
 
@@ -46,18 +46,18 @@ var _ = t.Describe("VMI", Label("f:infra-lcm",
 					}
 					response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error fetching system VMI from api, error: %v", err))
+						t.Logs.Errorf("Error fetching system VMI from api, error: %v", err)
 						return false
 					}
 					if response.StatusCode != http.StatusOK {
-						pkg.Log(pkg.Error, fmt.Sprintf("Error fetching system VMI from api, response: %v", response))
+						t.Logs.Errorf("Error fetching system VMI from api, response: %v", response)
 						return false
 					}
 
 					var vmi map[string]interface{}
 					err = json.Unmarshal(response.Body, &vmi)
 					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Invalid response for system VMI from api, error: %v", err))
+						t.Logs.Errorf("Invalid response for system VMI from api, error: %v", err)
 						return false
 					}
 
@@ -129,12 +129,12 @@ var _ = t.AfterEach(func() {})
 func verifySystemVMIComponent(api *pkg.APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *pkg.UsernamePassword, ingressName, expectedURLPrefix string) bool {
 	ingress, err := api.GetIngress("verrazzano-system", ingressName)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting ingress from API: %v", err))
+		t.Logs.Errorf("Error getting ingress from API: %v", err)
 		return false
 	}
 	vmiComponentURL := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 	if !strings.HasPrefix(vmiComponentURL, expectedURLPrefix) {
-		pkg.Log(pkg.Error, fmt.Sprintf("URL '%s' does not have expected prefix: %s", vmiComponentURL, expectedURLPrefix))
+		t.Logs.Errorf("URL '%s' does not have expected prefix: %s", vmiComponentURL, expectedURLPrefix)
 		return false
 	}
 	return pkg.AssertURLAccessibleAndAuthorized(sysVmiHTTPClient, vmiComponentURL, vmiCredentials)

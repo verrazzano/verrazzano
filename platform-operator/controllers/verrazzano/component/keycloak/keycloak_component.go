@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package keycloak
 
 import (
@@ -146,7 +147,8 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
-	return updateKeycloakUris(ctx)
+
+	return configureKeycloakRealms(ctx)
 }
 
 // IsEnabled Keycloak-specific enabled check for installation

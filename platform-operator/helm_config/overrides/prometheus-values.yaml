@@ -1,0 +1,22 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+grafana:
+  enabled: false
+nodeExporter:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+prometheus:
+  enabled: true
+alertmanager:
+  enabled: true
+prometheusOperator:
+  admissionWebhooks:
+    enabled: true
+    certManager:
+      enabled: true
+    patch:
+      enabled: true
+  tls:
+    enabled: true

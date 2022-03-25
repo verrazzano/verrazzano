@@ -346,6 +346,8 @@ spec:
               value: {{ .Values.fluentdImage }}
             - name: ISTIO_PROXY_IMAGE
               value: {{ .Values.istioProxyImage }}
+            - name: WEBLOGIC_MONITORING_EXPORTER_IMAGE
+              value: {{ .Values.weblogicMonitoringExporterImage }}
       volumes:
         - name: webhook-certs
           emptyDir: {}

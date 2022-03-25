@@ -277,7 +277,11 @@ func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
 }
 
 func setupSharedVMIResources(ctx spi.ComponentContext) error {
-	return ensureVMISecret(ctx.Client())
+	err := ensureVMISecret(ctx.Client())
+	if err != nil {
+		return err
+	}
+	return ensureBackupSecret(ctx.Client())
 }
 
 func ensureVMISecret(cli client.Client) error {
@@ -296,6 +300,31 @@ func ensureVMISecret(cli client.Client) error {
 				return err
 			}
 			secret.Data["password"] = []byte(pw)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ensureBackupSecret(cli client.Client) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      verrazzanoBackupScrtName,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Data: map[string][]byte{},
+	}
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), cli, secret, func() error {
+		// Populating dummy keys for access and secret key so that they are never empty
+		if secret.Data[objectstoreAccessKey] == nil || secret.Data[objectstoreAccessSecretKey] == nil {
+			key, err := password.GeneratePassword(32)
+			if err != nil {
+				return err
+			}
+			secret.Data[objectstoreAccessKey] = []byte(key)
+			secret.Data[objectstoreAccessSecretKey] = []byte(key)
 		}
 		return nil
 	}); err != nil {

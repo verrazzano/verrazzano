@@ -11,6 +11,9 @@ const VerrazzanoSystemNamespace = "verrazzano-system"
 // VerrazzanoInstallNamespace is the namespace that the platform operator lives in
 const VerrazzanoInstallNamespace = "verrazzano-install"
 
+// VerrazzanoMonitoringNamespace is the namespace for monitoring components
+const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
+
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 

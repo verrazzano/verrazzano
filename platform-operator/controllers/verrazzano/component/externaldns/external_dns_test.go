@@ -4,6 +4,10 @@
 package externaldns
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/helm"
+	"k8s.io/apimachinery/pkg/runtime"
+	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,6 +28,7 @@ const (
 
 // Default Verrazzano object
 var vz = &vzapi.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{Name: "my-verrazzano", Namespace: "default", CreationTimestamp: metav1.Now()},
 	Spec: vzapi.VerrazzanoSpec{
 		EnvironmentName: "myenv",
 		Components: vzapi.ComponentSpec{
@@ -63,6 +68,25 @@ var ociInvalidScope = &vzapi.OCI{
 }
 
 var fakeComponent = externalDNSComponent{}
+
+var testScheme = runtime.NewScheme()
+
+func init() {
+	k8scheme.AddToScheme(testScheme)
+	vzapi.AddToScheme(testScheme)
+}
+
+// genericTestRunner is used to run generic OS commands with expected results
+type genericTestRunner struct {
+	stdOut []byte
+	stdErr []byte
+	err    error
+}
+
+// Run genericTestRunner executor
+func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
+	return r.stdOut, r.stdErr, r.err
+}
 
 // TestIsExternalDNSEnabled tests the IsEnabled fn
 // GIVEN a call to IsEnabled
@@ -111,6 +135,19 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 func TestAppendExternalDNSOverrides(t *testing.T) {
 	localvz := vz.DeepCopy()
 	localvz.Spec.Components.DNS.OCI = oci
+
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, localvz, false, profileDir), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 9)
@@ -188,6 +225,88 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 	localvz.Spec.Components.DNS.OCI = ociInvalidScope
 	err := fakeComponent.PreInstall(spi.NewFakeContext(client, localvz, false))
 	assert.Error(t, err)
+}
+
+// TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
+//  WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
+//  THEN the function returns the stored helm values and no error
+func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
+	jsonOut := []byte(`
+{
+  "domainFilters": [
+    "my.domain.io"
+  ],
+  "triggerLoopOnEvent": true,
+  "txtOwnerId": "storedOwnerId",
+  "txtPrefix": "storedPrefix",
+  "zoneIDFilters": [
+    "ocid1.dns-zone.oc1..blahblahblah"
+  ]
+}
+`)
+
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: jsonOut,
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	localvz := vz.DeepCopy()
+	localvz.UID = "uid"
+	localvz.Spec.Components.DNS.OCI = oci
+
+	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	compContext := spi.NewFakeContext(client, vz, false)
+
+	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
+	assert.NoError(t, err)
+	assert.Len(t, ids, 2)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "storedOwnerId", ids[0])
+	assert.Equal(t, "storedPrefix", ids[1])
+}
+
+// TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
+// GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
+//  WHEN no stored helm values exist
+//  THEN the function returns the generated values and no error
+func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
+	helm.SetCmdRunner(genericTestRunner{
+		stdOut: []byte(""),
+		stdErr: []byte{},
+		err:    nil,
+	})
+	defer helm.SetDefaultRunner()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartNotFound, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	localvz := vz.DeepCopy()
+	localvz.UID = "uid"
+	localvz.Spec.Components.DNS.OCI = oci
+
+	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	compContext := spi.NewFakeContext(client, vz, false)
+
+	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
+	assert.NoError(t, err)
+	assert.Len(t, ids, 2)
+
+	assert.True(t, strings.HasPrefix(ids[0], "v8o-"))
+	assert.NotContains(t, ids[0], vz.Spec.EnvironmentName)
+
+	assert.NoError(t, err)
+	assert.True(t, strings.HasPrefix(ids[1], "_"+ids[0]))
 }
 
 // Create a new deployment object for testing

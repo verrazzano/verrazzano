@@ -71,33 +71,33 @@ var _ = t.AfterSuite(func() {
 	// undeploy the application here
 	start := time.Now()
 
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Delete application")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for application pods to terminate")
+	t.Logs.Info("Wait for application pods to terminate")
 	Eventually(func() bool {
 		podsTerminated, _ := pkg.PodsNotRunning("helidon-logging", expectedPodsHelloHelidon)
 		return podsTerminated
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for Finalizer to be removed")
+	t.Logs.Info("Wait for Finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved("helidon-logging")
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Wait for namespace to be deleted")
+	t.Logs.Info("Wait for namespace to be deleted")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace("helidon-logging")
 		return err != nil && errors.IsNotFound(err)

@@ -9,7 +9,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"text/template"
 	"time"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -61,7 +61,8 @@ var (
 		{Key: "elasticSearch.nodes.ingest.requests.memory", Value: "2.5Gi"},
 		{Key: "elasticSearch.nodes.data.replicas", Value: "3"},
 		{Key: "elasticSearch.nodes.data.requests.memory", Value: "4.8Gi"},
-		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"}}
+		{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
+		{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"}}
 )
 
 func init() {
@@ -256,7 +257,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 		},
 		{
 			name:         "BasicDevVerrazzanoNoOverrides",
-			description:  "Test basic prod no user overrides",
+			description:  "Test basic dev no user overrides",
 			actualCR:     vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Profile: "dev"}},
 			expectedYAML: "testdata/vzValuesDevNoOverrides.yaml",
 			expectedErr:  nil,
@@ -276,14 +277,15 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Keycloak:      &vzapi.KeycloakComponent{Enabled: &falseValue},
-						Rancher:       &vzapi.RancherComponent{Enabled: &falseValue},
-						DNS:           &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						Console:            &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:         &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Kibana:             &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch:      &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:            &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Keycloak:           &vzapi.KeycloakComponent{Enabled: &falseValue},
+						Rancher:            &vzapi.RancherComponent{Enabled: &falseValue},
+						DNS:                &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
 					},
 				},
 			},
@@ -292,7 +294,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 		},
 		{
 			name:        "ProdWithExternaDNSEnabled",
-			description: "Test prod with OCI DNS enabled, should enable exeteran-dns component",
+			description: "Test prod with OCI DNS enabled, should enable external-dns component",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -481,6 +483,7 @@ func Test_appendVMIValues(t *testing.T) {
 				{Key: "elasticSearch.nodes.data.replicas", Value: "16"},
 				{Key: "elasticSearch.nodes.data.requests.memory", Value: "32G"},
 				{Key: "elasticSearch.nodes.data.requests.storage", Value: "50Gi"},
+				{Key: "elasticSearch.nodes.master.requests.storage", Value: "50Gi"},
 			},
 			expectedYAML: "testdata/vzValuesVMIProdWithESInstallArgs.yaml",
 			expectedErr:  nil,
@@ -574,14 +577,15 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 					Profile:         "dev",
 					EnvironmentName: "myenv",
 					Components: vzapi.ComponentSpec{
-						Console:       &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Prometheus:    &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Kibana:        &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Elasticsearch: &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Grafana:       &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
-						Keycloak:      &vzapi.KeycloakComponent{Enabled: &falseValue},
-						Rancher:       &vzapi.RancherComponent{Enabled: &falseValue},
-						DNS:           &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						Console:            &vzapi.ConsoleComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Prometheus:         &vzapi.PrometheusComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Kibana:             &vzapi.KibanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Elasticsearch:      &vzapi.ElasticsearchComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Grafana:            &vzapi.GrafanaComponent{MonitoringComponent: vzapi.MonitoringComponent{Enabled: &falseValue}},
+						Keycloak:           &vzapi.KeycloakComponent{Enabled: &falseValue},
+						Rancher:            &vzapi.RancherComponent{Enabled: &falseValue},
+						DNS:                &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "xip.io"}},
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue},
 					},
 				},
 			},
@@ -590,7 +594,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 		},
 		{
 			name:        "ProdWithExternaDNSEnabled",
-			description: "Test prod with OCI DNS enabled, should enable exeteran-dns component",
+			description: "Test prod with OCI DNS enabled, should enable external-dns component",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -779,8 +783,8 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 			//t.Logf("Num kvs: %d", actualNumKvs)
 			expectedNumKvs := test.numKeyValues
 			if expectedNumKvs == 0 {
-				// default is 10, 2 file override + 1 custom image overrides + 7 ES
-				expectedNumKvs = 10
+				// default is 11, 2 file override + 1 custom image overrides + 8 ES
+				expectedNumKvs = 11
 			}
 			assert.Equal(expectedNumKvs, actualNumKvs)
 			// Check Temp file

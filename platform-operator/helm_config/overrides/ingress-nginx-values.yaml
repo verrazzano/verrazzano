@@ -9,7 +9,6 @@ controller:
   config:
     client-body-buffer-size: 64k
     proxy-buffer-size: 8k
-    custom-http-errors: 301,304,307,308,400,401,403,404,407,408,409,413,414,415,416,418,421,429,431,500,501,502,503,504,505
   metrics:
     enabled: true
   publishService:
@@ -25,6 +24,16 @@ controller:
     traffic.sidecar.istio.io/excludeInboundPorts: "80,443"
     traffic.sidecar.istio.io/includeInboundPorts: ""
     sidecar.istio.io/rewriteAppHTTPProbers: "true"
+  extraVolumeMounts:
+    - mountPath: /usr/local/nginx/html
+      name: custom-400-error
+  extraVolumes:
+    - name: custom-400-error
+      configMap:
+        name: ingress-controller-ingress-nginx-defaultbackend-custom-error-pages
+        items:
+          - key: 400.html
+            path: 400.html
 defaultBackend:
   # NOTE: The image you're looking for isn't here. The nginx-ingress-default-backend image now comes from
   # the bill of materials file (verrazzano-bom.json).
@@ -146,55 +155,55 @@ defaultBackend:
             path: 504.htm
           - key: 505.html
             path: 505.htm
-          - key: 301.html
+          - key: 301.json
             path: 301.json
-          - key: 302.html
+          - key: 302.json
             path: 302.json
-          - key: 304.html
+          - key: 304.json
             path: 304.json
-          - key: 307.html
+          - key: 307.json
             path: 307.json
-          - key: 308.html
+          - key: 308.json
             path: 308.json
-          - key: 400.html
+          - key: 400.json
             path: 400.json
-          - key: 401.html
+          - key: 401.json
             path: 401.json
-          - key: 403.html
+          - key: 403.json
             path: 403.json
-          - key: 404.html
+          - key: 404.json
             path: 404.json
-          - key: 407.html
+          - key: 407.json
             path: 407.json
-          - key: 408.html
+          - key: 408.json
             path: 408.json
-          - key: 409.html
+          - key: 409.json
             path: 409.json
-          - key: 413.html
+          - key: 413.json
             path: 413.json
-          - key: 414.html
+          - key: 414.json
             path: 414.json
-          - key: 415.html
+          - key: 415.json
             path: 415.json
-          - key: 416.html
+          - key: 416.json
             path: 416.json
-          - key: 418.html
+          - key: 418.json
             path: 418.json
-          - key: 421.html
+          - key: 421.json
             path: 421.json
-          - key: 429.html
+          - key: 429.json
             path: 429.json
-          - key: 431.html
+          - key: 431.json
             path: 431.json
-          - key: 500.html
+          - key: 500.json
             path: 500.json
-          - key: 501.html
+          - key: 501.json
             path: 501.json
-          - key: 502.html
+          - key: 502.json
             path: 502.json
-          - key: 503.html
+          - key: 503.json
             path: 503.json
-          - key: 504.html
+          - key: 504.json
             path: 504.json
-          - key: 505.html
+          - key: 505.json
             path: 505.json

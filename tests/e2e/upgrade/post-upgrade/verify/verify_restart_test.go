@@ -119,7 +119,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 					return pkg.CheckPodsForEnvoySidecar(namespace, envoyImage)
 				}, timeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find envoy sidecar %s in %s namespace", envoyImage, namespace))
 			} else {
-				pkg.Log(pkg.Info, fmt.Sprintf("Skipping test since namespace %s doesn't exist", namespace))
+				t.Logs.Infof("Skipping test since namespace %s doesn't exist", namespace)
 			}
 		},
 		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", helloHelidonNamespace), helloHelidonNamespace, twoMinutes),
@@ -154,7 +154,7 @@ var _ = t.Describe("Istio helm releases", Label("f:platform-lcm.upgrade"), func(
 })
 
 var _ = t.Describe("istioctl verify-install", func() {
-	framework.VzIt("should not return an error", func() {
+	t.It("should not return an error", func() {
 		Eventually(func() error {
 			stdout, _, err := istio.VerifyInstall(vzlog.DefaultLogger())
 			if err != nil {
@@ -176,7 +176,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				}
 				Eventually(func() bool {
 					if isDisabled(componentName) {
-						pkg.Log(pkg.Info, fmt.Sprintf("Skipping disabled component %s", componentName))
+						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
 					deployment, err := pkg.GetDeployment(namespace, deploymentName)
@@ -233,7 +233,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				}
 				Eventually(func() bool {
 					if isDisabled(componentName) {
-						pkg.Log(pkg.Info, fmt.Sprintf("Skipping disabled component %s", componentName))
+						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
 					deployment, err := pkg.GetDeployment(namespace, deploymentName)
@@ -241,7 +241,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						// Deployment is optional, ignore if not found
 						// For example es-data and es-ingest won't be there for dev profile
 						if errors.IsNotFound(err) {
-							pkg.Log(pkg.Info, fmt.Sprintf("Skipping optional deployment %s since it is not found", deploymentName))
+							t.Logs.Infof("Skipping optional deployment %s since it is not found", deploymentName)
 							return true
 						}
 						return false
@@ -266,7 +266,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				}
 				Eventually(func() bool {
 					if isDisabled(componentName) {
-						pkg.Log(pkg.Info, fmt.Sprintf("Skipping disabled component %s", componentName))
+						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
 					sts, err := pkg.GetStatefulSet(namespace, stsName)
@@ -291,7 +291,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 				}
 				Eventually(func() bool {
 					if isDisabled(componentName) {
-						pkg.Log(pkg.Info, fmt.Sprintf("skipping disabled component %s", componentName))
+						t.Logs.Infof("skipping disabled component %s", componentName)
 						return true
 					}
 					ds, err := pkg.GetDaemonSet(namespace, dsName)

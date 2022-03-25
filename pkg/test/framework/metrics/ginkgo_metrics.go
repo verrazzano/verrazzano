@@ -64,11 +64,16 @@ func internalLogger() *zap.SugaredLogger {
 
 //NewLogger generates a new logger, and tees ginkgo output to the search db
 func NewLogger(pkg string, ind string) (*zap.SugaredLogger, error) {
+	var messageKey = zapcore.OmitKey
+	if ind == TestLogIndex {
+		messageKey = "msg"
+	}
 	cfg := zap.Config{
 		Encoding: "json",
 		Level:    zap.NewAtomicLevelAt(zapcore.InfoLevel),
 		EncoderConfig: zapcore.EncoderConfig{
-			MessageKey: zapcore.OmitKey,
+
+			MessageKey: messageKey,
 
 			LevelKey: zapcore.OmitKey,
 

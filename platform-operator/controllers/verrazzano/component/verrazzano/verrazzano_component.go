@@ -35,6 +35,10 @@ const (
 	grafanaCertificateName    = "system-tls-grafana"
 	osdCertificateName        = "system-tls-kibana"
 	prometheusCertificateName = "system-tls-prometheus"
+
+	verrazzanoBackupScrtName   = "verrazzano-backup"
+	objectstoreAccessKey       = "object_store_access_key"
+	objectstoreAccessSecretKey = "object_store_secret_key"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD

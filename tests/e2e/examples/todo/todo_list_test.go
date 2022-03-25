@@ -40,7 +40,7 @@ var _ = clusterDump.BeforeSuite(func() {
 		deployToDoListExample(namespace)
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
-	pkg.Log(pkg.Info, "Container image pull check")
+	t.Logs.Info("Container image pull check")
 	Eventually(func() bool {
 		return pkg.ContainerImagePullWait(namespace, []string{"mysql", "tododomain-adminserver"})
 	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
@@ -64,7 +64,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 })
 
 func deployToDoListExample(namespace string) {
-	pkg.Log(pkg.Info, "Deploy ToDoList example")
+	t.Logs.Info("Deploy ToDoList example")
 	wlsUser := "weblogic"
 	wlsPass := pkg.GetRequiredEnvVarOrFail("WEBLOGIC_PSW")
 	dbPass := pkg.GetRequiredEnvVarOrFail("DATABASE_PSW")
@@ -72,7 +72,7 @@ func deployToDoListExample(namespace string) {
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 
-	pkg.Log(pkg.Info, "Create namespace")
+	t.Logs.Info("Create namespace")
 	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
@@ -81,27 +81,27 @@ func deployToDoListExample(namespace string) {
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create Docker repository secret")
+	t.Logs.Info("Create Docker repository secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, "tododomain-repo-credentials", regServ, regUser, regPass)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create WebLogic credentials secret")
+	t.Logs.Info("Create WebLogic credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-weblogic-credentials", wlsUser, wlsPass, nil)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create database credentials secret")
+	t.Logs.Info("Create database credentials secret")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateCredentialsSecret(namespace, "tododomain-jdbc-tododb", wlsUser, dbPass, map[string]string{"weblogic.domainUID": "tododomain"})
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	pkg.Log(pkg.Info, "Create component resources")
+	t.Logs.Info("Create component resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/todo-list/todo-list-components.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Create application resources")
+	t.Logs.Info("Create application resources")
 	Eventually(func() error {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/todo-list/todo-list-application.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create application resource").ShouldNot(HaveOccurred())
@@ -109,35 +109,35 @@ func deployToDoListExample(namespace string) {
 }
 
 func undeployToDoListExample() {
-	pkg.Log(pkg.Info, "Undeploy ToDoList example")
-	pkg.Log(pkg.Info, "Delete application")
+	t.Logs.Info("Undeploy ToDoList example")
+	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/todo-list/todo-list-application.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Delete components")
+	t.Logs.Info("Delete components")
 	Eventually(func() error {
 		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/todo-list/todo-list-components.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for pods to terminate")
+	t.Logs.Info("Wait for pods to terminate")
 	Eventually(func() bool {
 		podsNotRunning, _ := pkg.PodsNotRunning(namespace, []string{"mysql", "tododomain-adminserver"})
 		return podsNotRunning
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Delete namespace")
+	t.Logs.Info("Delete namespace")
 	Eventually(func() error {
 		return pkg.DeleteNamespace(namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	pkg.Log(pkg.Info, "Wait for finalizer to be removed")
+	t.Logs.Info("Wait for finalizer to be removed")
 	Eventually(func() bool {
 		return pkg.CheckNamespaceFinalizerRemoved(namespace)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	pkg.Log(pkg.Info, "Deleted namespace check")
+	t.Logs.Info("Deleted namespace check")
 	Eventually(func() bool {
 		_, err := pkg.GetNamespace(namespace)
 		return err != nil && errors.IsNotFound(err)
@@ -146,7 +146,7 @@ func undeployToDoListExample() {
 	// GIVEN the ToDoList app is undeployed
 	// WHEN the app config certificate generated to support secure gateways is fetched
 	// THEN the certificate should have been cleaned up
-	pkg.Log(pkg.Info, "Deleted certificate check")
+	t.Logs.Info("Deleted certificate check")
 	Eventually(func() bool {
 		_, err := pkg.GetCertificate("istio-system", namespace+"-todo-appconf-cert")
 		return err != nil && errors.IsNotFound(err)
@@ -155,15 +155,15 @@ func undeployToDoListExample() {
 	// GIVEN the ToDoList app is undeployed
 	// WHEN the app config secret generated to support secure gateways is fetched
 	// THEN the secret should have been cleaned up
-	pkg.Log(pkg.Info, "Waiting for secret containing certificate to be deleted")
+	t.Logs.Info("Waiting for secret containing certificate to be deleted")
 	Eventually(func() bool {
 		_, err := pkg.GetSecret("istio-system", namespace+"-todo-appconf-cert-secret")
 		if err != nil && errors.IsNotFound(err) {
-			pkg.Log(pkg.Info, "Secret deleted")
+			t.Logs.Info("Secret deleted")
 			return true
 		}
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Error attempting to get secret: %v", err))
+			t.Logs.Errorf("Error attempting to get secret: %v", err)
 		}
 		return false
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "delete ingress trait secret")
@@ -429,22 +429,22 @@ func putGetTodoTask(host string, task string) bool {
 	url := fmt.Sprintf("https://%s/todo/rest/item/%s", host, task)
 	resp, err := pkg.PutWithHostHeader(url, "application/json", host, nil)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("PUT failed with error: %v", err))
+		t.Logs.Errorf("PUT failed with error: %v", err)
 		return false
 	}
 	if resp.StatusCode != http.StatusNoContent {
-		pkg.Log(pkg.Error, fmt.Sprintf("Put status code is: %d", resp.StatusCode))
+		t.Logs.Errorf("Put status code is: %d", resp.StatusCode)
 		return false
 	}
 	url = fmt.Sprintf("https://%s/todo/rest/items", host)
 	resp, err = pkg.GetWebPage(url, host)
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("GET failed with error: %v", err))
+		t.Logs.Errorf("GET failed with error: %v", err)
 		return false
 	}
 	if resp.StatusCode == http.StatusOK && resp.Body != nil {
 		return true
 	}
-	pkg.Log(pkg.Error, fmt.Sprintf("Get status code is: %d", resp.StatusCode))
+	t.Logs.Errorf("Get status code is: %d", resp.StatusCode)
 	return false
 }
