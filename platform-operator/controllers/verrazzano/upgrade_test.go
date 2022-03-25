@@ -20,7 +20,6 @@ import (
 
 	gofake "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -87,9 +86,6 @@ func TestUpgradeNoVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
-	verrazzano.ConfigureIndexManagement = func(_ spi.ComponentContext, _ string) error {
-		return nil
-	}
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().
@@ -189,9 +185,6 @@ func TestUpgradeSameVersion(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
-	verrazzano.ConfigureIndexManagement = func(_ spi.ComponentContext, _ string) error {
-		return nil
-	}
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
 	mock.EXPECT().

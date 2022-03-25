@@ -4,11 +4,6 @@ package verrazzano
 
 import (
 	"context"
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"os/exec"
 	"testing"
 
@@ -57,26 +52,6 @@ type genericTestRunner struct {
 // Run genericTestRunner executor
 func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error) {
 	return nil, nil, nil
-}
-
-func readyOpenSearchPods() *corev1.Pod {
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "pod",
-			Namespace: globalconst.VerrazzanoSystemNamespace,
-			Labels: map[string]string{
-				"app": workloadName,
-			},
-		},
-		Status: corev1.PodStatus{
-			ContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  containerName,
-					Ready: true,
-				},
-			},
-		},
-	}
 }
 
 // fakeUpgrade override the upgrade function during unit tests
@@ -134,13 +109,7 @@ func TestInstall(t *testing.T) {
 //  WHEN I call PostInstall
 //  THEN no error is returned
 func TestPostInstall(t *testing.T) {
-	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-	k8sutilfake.PodSTDOUT = `{"status": 404}`
-	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
-		config, k := k8sutilfake.NewClientsetConfig()
-		return config, k, nil
-	}
-	client := fake.NewFakeClientWithScheme(testScheme, readyOpenSearchPods())
+	client := fake.NewFakeClientWithScheme(testScheme)
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
@@ -289,13 +258,7 @@ func TestUpgrade(t *testing.T) {
 //  WHEN I call PostUpgrade
 //  THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(testScheme, readyOpenSearchPods())
-	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
-	k8sutilfake.PodSTDOUT = `{"status": 404}`
-	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
-		config, k := k8sutilfake.NewClientsetConfig()
-		return config, k, nil
-	}
+	client := fake.NewFakeClientWithScheme(testScheme)
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",

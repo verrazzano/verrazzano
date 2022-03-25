@@ -6,8 +6,6 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"io/ioutil"
 	"os/exec"
 	"strconv"
@@ -16,6 +14,8 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -26,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
-
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -46,8 +45,6 @@ const (
 	containerName = "es-master"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
-	notFound      = 404
-	searchPort    = "9200"
 
 	tmpFilePrefix        = "verrazzano-overrides-"
 	tmpSuffix            = "yaml"
