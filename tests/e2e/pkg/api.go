@@ -42,7 +42,7 @@ func GetAPIEndpoint(kubeconfigPath string) (*APIEndpoint, error) {
 	if err != nil {
 		return nil, err
 	}
-	keycloakHTTPClient, err := GetKeycloakHTTPClient(kubeconfigPath)
+	keycloakHTTPClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

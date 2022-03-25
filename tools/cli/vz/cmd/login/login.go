@@ -235,7 +235,7 @@ func checkNonEmptyJWTData(jwtData map[string]interface{}) bool {
 }
 
 // Obtain the certificate authority data
-// certificate authority data is stored as a secret named tls-rancher-ingress in cattle-system namespace
+// certificate authority data is stored as a secret named verrazzano-tls in verrazzano-system namespace
 // Use client cmd to extract the secret
 func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 	var cert []byte
@@ -245,8 +245,8 @@ func extractCAData(kubernetesInterface helpers.Kubernetes) ([]byte, error) {
 		return cert, err
 	}
 
-	secret, err := kclientset.CoreV1().Secrets("cattle-system").Get(context.Background(),
-		"tls-rancher-ingress",
+	secret, err := kclientset.CoreV1().Secrets("verrazzano-system").Get(context.Background(),
+		"verrazzano-tls",
 		metav1.GetOptions{},
 	)
 
