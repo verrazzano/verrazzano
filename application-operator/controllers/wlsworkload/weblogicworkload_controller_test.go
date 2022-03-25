@@ -1884,7 +1884,7 @@ func TestReconcileRestart(t *testing.T) {
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
 			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
-			// return nil error because domain StatefulSet exists
+			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
@@ -2027,7 +2027,7 @@ func TestReconcileStopDomain(t *testing.T) {
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
 			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
-			// return nil error because domain StatefulSet exists
+			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
@@ -2159,7 +2159,7 @@ func TestReconcileStartDomain(t *testing.T) {
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
 			unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
 			unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
-			// return nil error because domain StatefulSet exists
+			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
 		})
 	// expect a call to get the application configuration for the workload
