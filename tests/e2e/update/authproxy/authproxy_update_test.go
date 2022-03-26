@@ -55,9 +55,6 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
 		t.It("authproxy default replicas", func() {
 			cr := waitForCRToBeReady()
-			if cr.Status.State != vzapi.VzStateReady {
-				Fail("CR is not ready")
-			}
 
 			expectedRunning := uint32(1)
 			expectedPending := uint32(0)
@@ -148,25 +145,22 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 			}
 		}
 		return runningPods == expectedPodsRunning && pendingPods == expectedPodsPending
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
 }
 
 func waitForCRToBeReady() *vzapi.Verrazzano {
 	var cr *vzapi.Verrazzano
 	// Wait for the Verrazzano CR to be Ready
-	Eventually(func() error {
+	Eventually(func() bool {
 		cr, err := pkg.GetVerrazzano()
 		if err != nil {
-			return err
+			return false
 		}
-		if cr.Status.State != vzapi.VzStateReady {
-			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
+		if cr.Status.State == vzapi.VzStateReady {
+			return true
 		}
-		return nil
-	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
-	if cr.Status.State != vzapi.VzStateReady {
-		Fail("CR is not ready")
-	}
+		return false
+	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get Verrazzano CR with Ready state")
 	return cr
 }
 
