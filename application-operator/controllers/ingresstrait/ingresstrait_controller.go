@@ -174,11 +174,8 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 			if err != nil {
 				status.Errors = append(status.Errors, err)
 			} else {
-				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
-				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
-
 				// Must create GW before service so that external DNS sees the GW once the service is created
-				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, vsName, secretName, &status, log)
+				gateway := r.createOrUpdateGateway(ctx, trait, rule, gwName, secretName, &status, log)
 
 				// Find the services associated with the trait in the application configuration.
 				var services []*corev1.Service
@@ -190,6 +187,8 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 					return &status, reconcile.Result{Requeue: true, RequeueAfter: clusters.GetRandomRequeueDelay()}, err
 				}
 
+				vsName := fmt.Sprintf("%s-rule-%d-vs", trait.Name, index)
+				drName := fmt.Sprintf("%s-rule-%d-dr", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log)
 			}
@@ -435,8 +434,8 @@ func (r *Reconciler) validateConfiguredSecret(trait *vzapi.IngressTrait, status 
 
 // createOrUpdateGateway creates or updates the Gateway child resource of the trait.
 // Results are added to the status object.
-func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, gwName string, vsName string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) *istioclient.Gateway {
-	// Create a gateway populating only gwName metadata.
+func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, secretName string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) *istioclient.Gateway {
+	// Create a gateway populating only name metadata.
 	// This is used as default if the gateway needs to be created.
 	gateway := &istioclient.Gateway{
 		TypeMeta: metav1.TypeMeta{
@@ -444,18 +443,18 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 			Kind:       gatewayKind},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: trait.Namespace,
-			Name:      gwName}}
+			Name:      name}}
 
 	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, gateway, func() error {
-		return r.mutateGateway(gateway, trait, rule, vsName, secretName)
+		return r.mutateGateway(gateway, trait, rule, secretName)
 	})
 
 	// Return if no changes
-	if err == nil && res == controllerutil.OperationResultNone {
+	if res == controllerutil.OperationResultNone {
 		return gateway
 	}
 
-	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: gwName, Role: "gateway"}
+	ref := vzapi.QualifiedResourceRelation{APIVersion: gatewayAPIVersion, Kind: gatewayKind, Name: name, Role: "gateway"}
 	status.Relations = append(status.Relations, ref)
 	status.Results = append(status.Results, res)
 	status.Errors = append(status.Errors, err)
@@ -468,32 +467,31 @@ func (r *Reconciler) createOrUpdateGateway(ctx context.Context, trait *vzapi.Ing
 }
 
 // mutateGateway mutates the output Gateway child resource.
-func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule, vsName string, secretName string) error {
+func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.IngressTrait, rule vzapi.IngressRule, secretName string) error {
 	hosts, err := createHostsFromIngressTraitRule(r, rule, trait)
 	if err != nil {
 		return err
 	}
-
-	// Add a server entry for each IngressTrait/VS to the Gateway
-	server := &istionet.Server{
-		Name:  vsName,
-		Hosts: hosts,
-		Port: &istionet.Port{
-			Name:     fmt.Sprintf("https-%s", vsName),
-			Number:   443,
-			Protocol: "HTTPS",
-		},
-		Tls: &istionet.ServerTLSSettings{
-			Mode:           istionet.ServerTLSSettings_SIMPLE,
-			CredentialName: secretName,
-		},
+	if len(gateway.Spec.Servers) > 0 {
+		hosts = appendToConfiguredHosts(hosts, gateway.Spec.Servers[0].Hosts)
 	}
-	updatedServers := r.updateGatewayServersList(gateway.Spec.Servers, server)
-	gateway.Spec.Servers = updatedServers
 
 	// Set the spec content.
 	gateway.Spec.Selector = map[string]string{"istio": "ingressgateway"}
-
+	gateway.Spec.Servers = []*istionet.Server{
+		{
+			Hosts: hosts,
+			Port: &istionet.Port{
+				Name:     "https",
+				Number:   443,
+				Protocol: "HTTPS",
+			},
+			Tls: &istionet.ServerTLSSettings{
+				Mode:           istionet.ServerTLSSettings_SIMPLE,
+				CredentialName: secretName,
+			},
+		},
+	}
 	// Set the owner reference.
 	appName, ok := trait.Labels[oam.LabelAppName]
 	if ok {
@@ -510,31 +508,15 @@ func (r *Reconciler) mutateGateway(gateway *istioclient.Gateway, trait *vzapi.In
 	return nil
 }
 
-// updateGatewayServersList Update/add the Server entry for the IngressTrait VirtualService to the gateway servers list
-//   - There will be a 1:1 mapping of Server-to-VirtualService
-func (r *Reconciler) updateGatewayServersList(existingServers []*istionet.Server, server *istionet.Server) []*istionet.Server {
-	servers := existingServers
-	if len(servers) == 0 {
-		servers = append(servers, server)
-		r.Log.Infof("Added new server for %s", server.Name)
-		return servers
-	}
-	if len(servers) == 1 && len(servers[0].Name) == 0 {
-		// upgrade case, before 1.3 all VirtualServices associated with a Gateway shared a single unnamed Server object
-		// - replace the empty name server with the named one
-		servers[0] = server
-		r.Log.Infof("Replaced server %s", server.Name)
-		return servers
-	}
-	for index, existingServer := range servers {
-		if existingServer.Name == server.Name {
-			r.Log.Infof("Updating server %s", server.Name)
-			servers[index] = server
-			return servers
+// appendToConfiguredHosts appends the host lists ensuring uniqueness of entries
+func appendToConfiguredHosts(hostsToAppend []string, existingHosts []string) []string {
+	for _, newHost := range hostsToAppend {
+		_, hostFound := findHost(existingHosts, newHost)
+		if !hostFound {
+			existingHosts = append(existingHosts, strings.ToLower(newHost))
 		}
 	}
-	servers = append(servers, server)
-	return servers
+	return existingHosts
 }
 
 // findHost searches for a host in the provided list. If found it will
@@ -942,15 +924,10 @@ func createHostsFromIngressTraitRule(cli client.Reader, rule vzapi.IngressRule, 
 	var validHosts []string
 	for _, h := range rule.Hosts {
 		h = strings.TrimSpace(h)
-		if _, hostAlreadyPresent := findHost(validHosts, h); hostAlreadyPresent {
-			// Avoid duplicates
-			continue
-		}
 		// Ignore empty or wildcard hostname
 		if len(h) == 0 || strings.Contains(h, "*") {
 			continue
 		}
-		h = strings.ToLower(strings.TrimSpace(h))
 		validHosts = append(validHosts, h)
 	}
 	// Use default hostname if none of the user specified hosts were valid
