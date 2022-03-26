@@ -54,7 +54,11 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
 		t.It("authproxy default replicas", func() {
-			cr := waitForCRToBeReady()
+			waitForCRToBeReady()
+			cr, err := pkg.GetVerrazzano()
+			if err != nil {
+				Fail(err.Error())
+			}
 
 			expectedRunning := uint32(1)
 			expectedPending := uint32(0)
@@ -67,7 +71,11 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
-			cr := waitForCRToBeReady()
+			waitForCRToBeReady()
+			cr, err := pkg.GetVerrazzano()
+			if err != nil {
+				Fail(err.Error())
+			}
 			if cr.Spec.Components.AuthProxy == nil {
 				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 			}
@@ -85,7 +93,11 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
-			cr := waitForCRToBeReady()
+			waitForCRToBeReady()
+			cr, err := pkg.GetVerrazzano()
+			if err != nil {
+				Fail(err.Error())
+			}
 			if cr.Spec.Components.AuthProxy == nil {
 				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
 			}
@@ -148,20 +160,18 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
 }
 
-func waitForCRToBeReady() *vzapi.Verrazzano {
-	var cr *vzapi.Verrazzano
+func waitForCRToBeReady() {
 	// Wait for the Verrazzano CR to be Ready
-	Eventually(func() bool {
+	Eventually(func() error {
 		cr, err := pkg.GetVerrazzano()
 		if err != nil {
-			return false
+			return err
 		}
-		if cr.Status.State == vzapi.VzStateReady {
-			return true
+		if cr.Status.State != vzapi.VzStateReady {
+			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 		}
-		return false
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get Verrazzano CR with Ready state")
-	return cr
+		return nil
+	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
 }
 
 func updateCR(cr *vzapi.Verrazzano) {
