@@ -1859,43 +1859,6 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	vzapi.AddToScheme(k8scheme.Scheme)
 	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
 		&verrazzanoToUse,
-		&v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: keycloak.ComponentNamespace,
-				Name:      "default-secret",
-			},
-		},
-		&v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: keycloak.ComponentNamespace,
-				Name:      "keycloak-http",
-			},
-			Data: map[string][]byte{"password": {'f'}},
-		},
-		&appsv1.StatefulSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: keycloak.ComponentNamespace,
-				Name:      keycloak.ComponentName,
-			},
-			Status: appsv1.StatefulSetStatus{
-				ReadyReplicas:   1,
-				UpdatedReplicas: 1,
-			},
-		},
-		&v1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: keycloak.ComponentNamespace,
-				Name:      keycloak.KeycloakPodName,
-			},
-			Status: v1.PodStatus{
-				Conditions: []v1.PodCondition{
-					{
-						Type:   v1.PodReady,
-						Status: v1.ConditionTrue,
-					},
-				},
-			},
-		},
 		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{Namespace: "cattle-system", Name: "rancher"},
 			Spec: networkingv1.IngressSpec{
