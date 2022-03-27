@@ -365,7 +365,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 
 	keycloakPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      KeycloakPodName,
+			Name:      keycloakPodName,
 			Namespace: ComponentNamespace,
 		},
 		Status: v1.PodStatus{

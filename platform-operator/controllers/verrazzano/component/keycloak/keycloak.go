@@ -50,7 +50,7 @@ const (
 	vzUserName         = "verrazzano"
 	vzInternalPromUser = "verrazzano-prom-internal"
 	vzInternalEsUser   = "verrazzano-es-internal"
-	KeycloakPodName    = "keycloak-0"
+	keycloakPodName    = "keycloak-0"
 )
 
 // Define the keycloak Key:Value pair for init container.
@@ -711,7 +711,7 @@ func bashCMD(command string) []string {
 func keycloakPod() *v1.Pod {
 	return &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      KeycloakPodName,
+			Name:      keycloakPodName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -815,7 +815,7 @@ func createVerrazzanoUsersGroup(ctx spi.ComponentContext) (string, error) {
 	}
 
 	userGroup := "name=" + vzUsersGroup
-	cmd := execCommand("kubectl", "exec", KeycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", "groups", "-r", vzSysRealm, "-s", userGroup)
 	ctx.Log().Debugf("createVerrazzanoUsersGroup: Create Verrazzano Users Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -845,7 +845,7 @@ func createVerrazzanoAdminGroup(ctx spi.ComponentContext, userGroupID string) (s
 	}
 	adminGroup := "groups/" + userGroupID + "/children"
 	adminGroupName := "name=" + vzAdminGroup
-	cmd := execCommand("kubectl", "exec", KeycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", adminGroup, "-r", vzSysRealm, "-s", adminGroupName)
 	ctx.Log().Debugf("createVerrazzanoAdminGroup: Create Verrazzano Admin Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -875,7 +875,7 @@ func createVerrazzanoMonitorsGroup(ctx spi.ComponentContext, userGroupID string)
 	}
 	monitorGroup := "groups/" + userGroupID + "/children"
 	monitorGroupName := "name=" + vzMonitorGroup
-	cmd := execCommand("kubectl", "exec", KeycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "create", monitorGroup, "-r", vzSysRealm, "-s", monitorGroupName)
 	ctx.Log().Debugf("createVerrazzanoProjectMonitorsGroup: Create Verrazzano Monitors Group Cmd = %s", cmd.String())
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -1131,7 +1131,7 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 func getKeycloakGroups(ctx spi.ComponentContext) (KeycloakGroups, error) {
 	var keycloakGroups KeycloakGroups
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", KeycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "groups", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Groups: %s", err)
@@ -1183,7 +1183,7 @@ func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
 func getKeycloakRoles(ctx spi.ComponentContext) (KeycloakRoles, error) {
 	var keycloakRoles KeycloakRoles
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", KeycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Roles: %s", err)
@@ -1216,7 +1216,7 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 func getKeycloakUsers(ctx spi.ComponentContext) (KeycloakUsers, error) {
 	var keycloakUsers KeycloakUsers
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", KeycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "users", "-r", vzSysRealm)
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving Users: %s", err)
@@ -1248,7 +1248,7 @@ func userExists(keycloakUsers KeycloakUsers, userName string) bool {
 func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	var keycloakClients KeycloakClients
 	// Get the Client ID JSON array
-	cmd := execCommand("kubectl", "exec", KeycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+	cmd := execCommand("kubectl", "exec", keycloakPodName, "-n", ComponentNamespace, "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed retrieving clients: %s", err)
