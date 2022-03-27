@@ -14,8 +14,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -24,6 +22,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -88,6 +87,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
+	keycloakEnabled := false
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -98,6 +98,11 @@ func TestUpgradeNoVersion(t *testing.T) {
 				Namespace:  name.Namespace,
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
+			verrazzano.Spec.Components = vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &keycloakEnabled,
+				},
+			}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateReady,
 				Conditions: []vzapi.Condition{
@@ -107,6 +112,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 				},
 			}
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
+			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
 			return nil
 		})
 
@@ -187,6 +193,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
+	keycloakEnabled := false
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -199,6 +206,11 @@ func TestUpgradeSameVersion(t *testing.T) {
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "1.2.0"}
+			verrazzano.Spec.Components = vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &keycloakEnabled,
+				},
+			}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State:   vzapi.VzStateReady,
 				Version: "1.2.0",
@@ -209,6 +221,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 				},
 			}
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
+			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
 			return nil
 		})
 
@@ -2011,6 +2024,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	// Expect a call to get the verrazzano resource.
+	keycloakEnabled := false
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -2021,6 +2035,13 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 				Namespace:  name.Namespace,
 				Name:       name.Name,
 				Finalizers: []string{finalizerName}}
+			verrazzano.Spec = vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					Keycloak: &vzapi.KeycloakComponent{
+						Enabled: &keycloakEnabled,
+					},
+				},
+			}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State: vzapi.VzStateReady,
 				Conditions: []vzapi.Condition{
@@ -2030,6 +2051,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 				},
 			}
 			verrazzano.Status.Components = makeVerrazzanoComponentStatusMap()
+			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
 			return nil
 		})
 
