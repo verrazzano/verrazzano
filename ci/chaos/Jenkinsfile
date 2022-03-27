@@ -403,7 +403,7 @@ pipeline {
                         until [ `kubectl get pod -l app.kubernetes.io/name=keycloak -n keycloak -o jsonpath="{.items[0].metadata.resourceVersion}"` -ne \$RV ]
                         do
                             echo "Waiting for the keycloak pod to restart ..."
-                            sleep 5
+                            sleep 15
                         done
                         
                         # Wait for the Keycloak pod to be ready
