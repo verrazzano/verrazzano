@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+
 	networkingv1 "k8s.io/api/networking/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -173,6 +175,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 	}
 
 	// Expect a call to get the verrazzano resource.  Return resource with version
+	keycloakEnabled := false
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
@@ -187,6 +190,11 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 				Finalizers: []string{finalizerName}}
 			verrazzano.Spec = vzapi.VerrazzanoSpec{
 				Version: "1.2.0"}
+			verrazzano.Spec.Components = vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &keycloakEnabled,
+				},
+			}
 			verrazzano.Status = vzapi.VerrazzanoStatus{
 				State:   vzapi.VzStateReady,
 				Version: "1.2.0",
@@ -197,6 +205,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 				},
 			}
 			verrazzano.Status.Components = compStatusMap
+			verrazzano.Status.Components[keycloak.ComponentName].State = vzapi.CompStateDisabled
 			return nil
 		})
 
