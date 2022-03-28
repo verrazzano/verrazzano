@@ -429,7 +429,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-update-tests"
                     }
                     steps {
-                        runGinkgoRandomize('update')
+                        runGinkgo('update', "${dumpRoot}/update")
                     }
                     post {
                         always {
