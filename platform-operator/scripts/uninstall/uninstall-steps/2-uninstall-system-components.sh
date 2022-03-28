@@ -69,14 +69,14 @@ function delete_cert_manager() {
 function delete_rancher() {
   local rancher_exists=$(kubectl get namespace cattle-system --ignore-not-found)
   if [ -z "$rancher_exists" ] ; then
+    log "Rancher not found"
     return 0
   fi
 
   # Clean up the local rancher cluster object if necessary
 #  cleanup_rancher_local_cluster
-  kubectl config view --raw >> ./rancher-kubeconfig
-  /usr/local/bin/system-tools remove -c ./rancher-kubeconfig --force
-  rm ./rancher-kubeconfig
+  log "Running Rancher system-tools remove"
+  /usr/local/bin/system-tools remove -c /home/verrazzano/kubeconfig --force || err_return $? "Failed to run Rancher system-tools remove"
 
   # Deleting rancher components
   log "Deleting rancher helm charts (if any left over)"
