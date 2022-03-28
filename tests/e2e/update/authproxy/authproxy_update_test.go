@@ -48,8 +48,6 @@ var _ = t.BeforeSuite(func() {
 		}
 	}
 })
-var _ = t.AfterSuite(func() {})
-var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
