@@ -30,6 +30,59 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
+type CRModifier interface {
+	ModifyCR(cr *vzapi.Verrazzano)
+}
+
+type AuthProxyReplicasModifier struct {
+	replicas uint32
+}
+
+type AuthProxyPodPerNodeAffintyModifier struct {
+}
+
+func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.AuthProxy == nil {
+		cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
+	}
+	cr.Spec.Components.AuthProxy.Kubernetes.Replicas = u.replicas
+}
+
+func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	if cr.Spec.Components.AuthProxy == nil {
+		cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes.Affinity == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes.Affinity = &corev1.Affinity{}
+	}
+	if cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity == nil {
+		cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity = &corev1.PodAntiAffinity{}
+	}
+	list := cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution
+	list = append(list, corev1.PodAffinityTerm{
+		LabelSelector: &metav1.LabelSelector{
+			MatchLabels: nil,
+			MatchExpressions: []metav1.LabelSelectorRequirement{
+				{
+					Key:      "app",
+					Operator: "In",
+					Values: []string{
+						authProxyName,
+					},
+				},
+			},
+		},
+		TopologyKey: "kubernetes.io/hostname",
+	})
+	cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = list
+}
+
 var t = framework.NewTestFramework("update authproxy")
 var kubeconfigPath string
 var nodeCount uint32 = 1
@@ -52,11 +105,7 @@ var _ = t.BeforeSuite(func() {
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
 		t.It("authproxy default replicas", func() {
-			waitForCRToBeReady()
-			cr, err := pkg.GetVerrazzano()
-			if err != nil {
-				Fail(err.Error())
-			}
+			cr := getCR()
 
 			expectedRunning := uint32(1)
 			expectedPending := uint32(0)
@@ -69,19 +118,8 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
-			waitForCRToBeReady()
-			cr, err := pkg.GetVerrazzano()
-			if err != nil {
-				Fail(err.Error())
-			}
-			if cr.Spec.Components.AuthProxy == nil {
-				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
-			}
-			if cr.Spec.Components.AuthProxy.Kubernetes == nil {
-				cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
-			}
-			cr.Spec.Components.AuthProxy.Kubernetes.Replicas = nodeCount
-			updateCR(cr)
+			m := AuthProxyReplicasModifier{replicas: nodeCount}
+			updateCR(m)
 
 			expectedRunning := nodeCount
 			expectedPending := uint32(0)
@@ -91,39 +129,8 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
-			waitForCRToBeReady()
-			cr, err := pkg.GetVerrazzano()
-			if err != nil {
-				Fail(err.Error())
-			}
-			if cr.Spec.Components.AuthProxy == nil {
-				cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
-			}
-			if cr.Spec.Components.AuthProxy.Kubernetes == nil {
-				cr.Spec.Components.AuthProxy.Kubernetes = &vzapi.AuthProxyKubernetesSection{}
-			}
-			cr.Spec.Components.AuthProxy.Kubernetes.Affinity = &corev1.Affinity{
-				PodAntiAffinity: &corev1.PodAntiAffinity{
-					RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
-						{
-							LabelSelector: &metav1.LabelSelector{
-								MatchLabels: nil,
-								MatchExpressions: []metav1.LabelSelectorRequirement{
-									{
-										Key:      "app",
-										Operator: "In",
-										Values: []string{
-											authProxyName,
-										},
-									},
-								},
-							},
-							TopologyKey: "kubernetes.io/hostname",
-						},
-					},
-				},
-			}
-			updateCR(cr)
+			m := AuthProxyPodPerNodeAffintyModifier{}
+			updateCR(m)
 
 			expectedRunning := nodeCount - 1
 			expectedPending := uint32(2)
@@ -158,8 +165,8 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
 }
 
-func waitForCRToBeReady() {
-	// Wait for the Verrazzano CR to be Ready
+func getCR() *vzapi.Verrazzano {
+	// Wait for the CR to be Ready
 	Eventually(func() error {
 		cr, err := pkg.GetVerrazzano()
 		if err != nil {
@@ -170,9 +177,27 @@ func waitForCRToBeReady() {
 		}
 		return nil
 	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
+
+	// Get the CR
+	cr, err := pkg.GetVerrazzano()
+	if err != nil {
+		Fail(err.Error())
+	}
+	if cr == nil {
+		Fail("CR is nil")
+	}
+
+	return cr
 }
 
-func updateCR(cr *vzapi.Verrazzano) {
+func updateCR(m CRModifier) {
+	// Get the CR
+	cr := getCR()
+
+	// Modify the CR
+	m.ModifyCR(cr)
+
+	// Update the CR
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
