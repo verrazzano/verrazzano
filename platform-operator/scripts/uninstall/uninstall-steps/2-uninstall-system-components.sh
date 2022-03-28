@@ -78,6 +78,9 @@ function delete_rancher() {
   log "Running Rancher system-tools remove"
   /usr/local/bin/system-tools remove -c /home/verrazzano/kubeconfig --force || err_return $? "Failed to run Rancher system-tools remove"
 
+  # wait for it to be eventually consistent!!!!
+  sleep 5
+
   # Deleting rancher components
   log "Deleting rancher helm charts (if any left over)"
   set -xv
