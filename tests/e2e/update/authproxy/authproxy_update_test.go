@@ -34,6 +34,9 @@ type AuthProxyReplicasModifier struct {
 type AuthProxyPodPerNodeAffintyModifier struct {
 }
 
+type AuthProxyDefaultModifier struct {
+}
+
 func (u AuthProxyReplicasModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.AuthProxy == nil {
 		cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
@@ -76,8 +79,14 @@ func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.AuthProxy.Kubernetes.Affinity.PodAntiAffinity.RequiredDuringSchedulingIgnoredDuringExecution = list
 }
 
+func (u AuthProxyDefaultModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.AuthProxy = &vzapi.AuthProxyComponent{}
+}
+
 var t = framework.NewTestFramework("update authproxy")
+
 var nodeCount uint32 = 1
+
 var _ = t.BeforeSuite(func() {
 	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
 	if len(kindNodeCount) > 0 {
@@ -86,6 +95,19 @@ var _ = t.BeforeSuite(func() {
 			nodeCount = uint32(u)
 		}
 	}
+})
+
+var _ = t.AfterSuite(func() {
+	m := AuthProxyDefaultModifier{}
+	update.UpdateCR(m)
+	cr := update.GetCR()
+
+	expectedRunning := uint32(1)
+	expectedPending := uint32(0)
+	if cr.Spec.Profile == "production" || cr.Spec.Profile == "" {
+		expectedRunning = 2
+	}
+	validatePods(authProxyName, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 })
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
