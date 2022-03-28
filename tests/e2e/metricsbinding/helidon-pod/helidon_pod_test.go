@@ -29,7 +29,7 @@ var t = framework.NewTestFramework("podworkload")
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplication(namespace, yamlPath)
+	metricsbinding.DeployApplication(namespace, yamlPath, true)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
