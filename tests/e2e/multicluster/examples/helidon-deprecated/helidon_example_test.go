@@ -156,7 +156,7 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	t.Context("Logging", func() {
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-hello-helidon-dep", "verrazzano-application-hello-helidon-dep")
+		indexName := "verrazzano-application-hello-helidon-dep"
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
