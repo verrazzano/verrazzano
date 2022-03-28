@@ -24,7 +24,6 @@ spec:
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: weblogicloggingdomain-repo-credentials
-            - name: ghcr-creds
           domainHomeSourceType: "FromModel"
           includeServerOutInPodLog: true
           replicas: 1
