@@ -642,15 +642,9 @@ data:
       <parse>
         @type multi_format
         <pattern>
-          format /^(?:[^ ]*) (?:[^ ]*) (?:[^ ]*) \[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>[^\"]*?)(?: +\S*)?)?" (?<code>[^ ]*) (?:[^ ]*)(?: "(?:[^\"]*)" "(?:[^\"]*)") (?<message>[\s\S]*)$/
-          time_key time
-          time_format %d/%b/%Y:%H:%M:%S %z
-        </pattern>
-        # Kubernetes klog format
-        <pattern>
-          format /^(?<level>.)(\d{2}\d{2}) (?<logtime>\d{2}:\d{2}:\d{2}.\d{6})\s*?(?<message>[\s\S]*?)$/
-          time_key logtime
-          time_format %H:%M:%S.%N
+          format json
+          time_key @timestamp
+          time_format %Y-%m-%dT%H:%M:%S+%N
         </pattern>
         <pattern>
           format none
