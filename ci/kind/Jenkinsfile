@@ -525,7 +525,10 @@ pipeline {
             }
         }
         stage('Send Build Metrics') {
-            emitJobMetrics()
+            sh """
+                cd ${GO_REPO_PATH}/verrazzano
+                ginkgo -v tests/e2e/framework/jobmetrics/...
+            """
         }
     }
 
