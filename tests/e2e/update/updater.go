@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	ginkgov2 "github.com/onsi/ginkgo/v2"
+	gomege "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
@@ -28,7 +28,7 @@ type CRModifier interface {
 
 func GetCR() *vzapi.Verrazzano {
 	// Wait for the CR to be Ready
-	Eventually(func() error {
+	gomege.Eventually(func() error {
 		cr, err := pkg.GetVerrazzano()
 		if err != nil {
 			return err
@@ -37,15 +37,15 @@ func GetCR() *vzapi.Verrazzano {
 			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 		}
 		return nil
-	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
+	}, waitTimeout, pollingInterval).Should(gomege.BeNil(), "Expected to get Verrazzano CR with Ready state")
 
 	// Get the CR
 	cr, err := pkg.GetVerrazzano()
 	if err != nil {
-		Fail(err.Error())
+		ginkgov2.Fail(err.Error())
 	}
 	if cr == nil {
-		Fail("CR is nil")
+		ginkgov2.Fail("CR is nil")
 	}
 
 	return cr
@@ -62,19 +62,19 @@ func UpdateCR(m CRModifier) {
 	var err error
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		ginkgov2.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
-		Fail(err.Error())
+		ginkgov2.Fail(err.Error())
 	}
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
-		Fail(err.Error())
+		ginkgov2.Fail(err.Error())
 	}
 	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	if err != nil {
-		Fail(fmt.Sprintf("error updating Verrazzano instance: %v", err))
+		ginkgov2.Fail(fmt.Sprintf("error updating Verrazzano instance: %v", err))
 	}
 }
