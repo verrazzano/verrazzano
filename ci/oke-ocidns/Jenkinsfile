@@ -624,6 +624,16 @@ pipeline {
                               }
                            }
                         }
+                        stage('WebLogic logging') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-logging"
+                            }
+                            steps {
+                                script {
+                                    runGinkgoFailFast('examples/logging/weblogic')
+                                }
+                            }
+                        }
                     }
 
                 }
