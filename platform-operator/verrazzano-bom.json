@@ -218,7 +218,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "test",
+              "tag": "1.2.3-20220322132501-d846b79c388",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {
@@ -238,7 +238,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "test",
+              "tag": "v1.12.3-20220328141525-75f5b34",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
