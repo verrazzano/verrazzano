@@ -15,8 +15,9 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Emit job metrics,", func() {
 	t.It("at the end of each job", func() {
-		t.Metrics.With("job_duration", os.Getenv("DURATION"))
-		t.Metrics.With("job_status", os.Getenv("JOB_STATUS"))
+		t.Metrics.With("job_duration", os.Getenv("DURATION")).
+			With("job_status", os.Getenv("JOB_STATUS")).
+			Info()
 		metrics.Emit(t.Metrics)
 	})
 })

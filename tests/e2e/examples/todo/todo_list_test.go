@@ -179,8 +179,9 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 	t.Context("application Deployment.", func() {
 
 		t.It("test jobmetrics it", func() {
-			t.Metrics.With("job_duration", os.Getenv("DURATION"))
-			t.Metrics.With("job_status", os.Getenv("JOB_STATUS"))
+			t.Metrics.With("job_duration", os.Getenv("DURATION")).
+				With("job_status", os.Getenv("JOB_STATUS")).
+				Info()
 			metrics.Emit(t.Metrics)
 		})
 		// GIVEN the ToDoList app is deployed
