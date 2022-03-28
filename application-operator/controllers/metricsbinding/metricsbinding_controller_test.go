@@ -5,7 +5,6 @@ package metricsbinding
 
 import (
 	"context"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"strings"
 	"testing"
@@ -15,6 +14,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
@@ -182,8 +182,6 @@ func TestUpdateScrapeConfig(t *testing.T) {
 
 	localMetricsTemplate.Spec.PrometheusConfig.ScrapeConfigTemplate = string(scrapeConfigTemplate)
 
-	mock.EXPECT().Update(gomock.Any(), gomock.Not(gomock.Nil())).Return(nil)
-
 	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: testMetricsTemplateNamespace, Name: testMetricsTemplateName}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, template *vzapi.MetricsTemplate) error {
 			template.SetNamespace(metricsTemplate.Namespace)
@@ -203,10 +201,10 @@ func TestUpdateScrapeConfig(t *testing.T) {
 			return nil
 		})
 
-	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testDeploymentNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
+	mock.EXPECT().Get(gomock.Any(), gomock.Eq(client.ObjectKey{Name: testExistsDeploymentNamespace}), gomock.Not(gomock.Nil())).DoAndReturn(
 		func(ctx context.Context, key client.ObjectKey, namespace *k8score.Namespace) error {
 			namespace.Labels = map[string]string{"istio-injection": "enabled"}
-			namespace.Name = testDeploymentNamespace
+			namespace.Name = testExistsDeploymentNamespace
 			return nil
 		})
 

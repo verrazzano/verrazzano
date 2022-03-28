@@ -17,7 +17,7 @@ const (
 	shortPollingInterval = 10 * time.Second
 )
 
-func DeployApplication(namespace string, yamlPath string) {
+func DeployApplication(namespace string, yamlPath string, istioEnabled bool) {
 	pkg.Log(pkg.Info, "Deploy test application")
 	// Wait for namespace to finish deletion possibly from a prior run.
 	gomega.Eventually(func() bool {
@@ -27,9 +27,10 @@ func DeployApplication(namespace string, yamlPath string) {
 
 	pkg.Log(pkg.Info, "Create namespace")
 	gomega.Eventually(func() (*v1.Namespace, error) {
-		nsLabels := map[string]string{
-			"verrazzano-managed": "true",
-			"istio-injection":    "enabled"}
+		nsLabels := map[string]string{"verrazzano-managed": "true"}
+		if istioEnabled {
+			nsLabels["istio-injection"] = "enabled"
+		}
 		return pkg.CreateNamespace(namespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.BeNil())
 
