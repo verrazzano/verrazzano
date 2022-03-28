@@ -648,14 +648,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 func (r *Reconciler) setupWatches() error {
 	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
 	return r.Controller.Watch(
-		&source.Kind{
-			Type: &k8net.Ingress{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      constants.VzConsoleIngress,
-					Namespace: constants.VerrazzanoSystemNamespace,
-				},
-			},
-		},
+		&source.Kind{Type: &k8net.Ingress{}},
 		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
 		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
 		// VS and GW records for the associated apps.
@@ -666,15 +659,22 @@ func (r *Reconciler) setupWatches() error {
 				}),
 		},
 		predicate.Funcs{
-			UpdateFunc: isConsoleIngressUpdated,
+			UpdateFunc: func(updateEvent event.UpdateEvent) bool {
+				return r.isConsoleIngressUpdated(updateEvent)
+			},
 		},
 	)
 }
 
 // isConsoleIngressUpdated Predicate func used by the Ingress watcher, returns true if the TLS settings have changed;
 // - this is largely to attempt to scope the change detection to Host name changes
-func isConsoleIngressUpdated(updateEvent event.UpdateEvent) bool {
+func (r *Reconciler) isConsoleIngressUpdated(updateEvent event.UpdateEvent) bool {
 	oldIngress := updateEvent.ObjectOld.(*k8net.Ingress)
+	// We only need to check the Authproxy/console Ingress
+	if oldIngress.Namespace != vzconst.VerrazzanoSystemNamespace || oldIngress.Name != constants.VzConsoleIngress {
+		return false
+	}
+	r.Log.Debugf("Checking object %s/%s", oldIngress.Namespace, oldIngress.Name)
 	newIngress := updateEvent.ObjectNew.(*k8net.Ingress)
 	return !reflect.DeepEqual(oldIngress.Spec, newIngress.Spec)
 }
