@@ -164,6 +164,10 @@ func (r *Reconciler) resolvePendingUpgrades(compName string, compLog vzlog.Verra
 	}
 	// remove any pending upgrade secrets
 	for i := range helmSecrets.Items {
+		compLog.Infof("%s labels:", helmSecrets.Items[i].Name)
+		for k, v := range helmSecrets.Items[i].Labels {
+			compLog.Infof("key: %s, value: %s", k, v)
+		}
 		err := r.Client.Delete(context.TODO(), &helmSecrets.Items[i], &clipkg.DeleteOptions{})
 		if err != nil {
 			compLog.Errorf("Unable to remove pending upgrade helm secret for component %s: %v", compName, err)
