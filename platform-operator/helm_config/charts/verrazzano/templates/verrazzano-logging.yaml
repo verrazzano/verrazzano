@@ -167,7 +167,7 @@ data:
        @type record_transformer
        @id systemd_index
        <record>
-          target_index verrazzano-systemd-journal
+          tag systemd
        </record>
     </filter>
 

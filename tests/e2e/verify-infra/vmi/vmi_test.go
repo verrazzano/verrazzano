@@ -214,26 +214,6 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						[]pkg.Match{})
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 			})
-		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
-			t.It("should have ISM Policies for verrazzano-system and verrazzano-application", func() {
-				Eventually(func() bool {
-					systemPolicyExists, err := pkg.ISMPolicyExists("verrazzano-system")
-					if err != nil {
-						t.Logs.Error("failed to find system policy: verrazzano-system")
-						return false
-					}
-					applicationPolicyExists, err := pkg.ISMPolicyExists("verrazzano-application")
-					if err != nil {
-						t.Logs.Error("failed to find system policy: verrazzano-application")
-						return false
-					}
-
-					return systemPolicyExists && applicationPolicyExists
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-			})
-		}
-
 		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.logging.kibana"), func() {
 			kibanaPodsRunning := func() bool {
