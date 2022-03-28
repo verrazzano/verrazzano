@@ -63,6 +63,7 @@ spec:
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         maxSizeDisk:
+                          description: These fields are not used anywhere
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         minSizeDisk:
@@ -117,6 +118,7 @@ spec:
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                             maxSizeDisk:
+                              description: These fields are not used anywhere
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                             minSizeDisk:
@@ -164,6 +166,7 @@ spec:
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                             maxSizeDisk:
+                              description: These fields are not used anywhere
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                             minSizeDisk:
@@ -209,6 +212,7 @@ spec:
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                             maxSizeDisk:
+                              description: These fields are not used anywhere
                               pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                               type: string
                             minSizeDisk:
@@ -236,6 +240,46 @@ spec:
                       required:
                         - javaOpts
                       type: object
+                    policies:
+                      items:
+                        description: IndexManagementPolicy Defines a policy for managing
+                          indices
+                        properties:
+                          indexPattern:
+                            description: Index pattern the policy will be matched to
+                            type: string
+                          minIndexAge:
+                            description: Minimum age of an index before it is automatically
+                              deleted
+                            pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
+                            type: string
+                          policyName:
+                            description: Name of the policy
+                            type: string
+                          rollover:
+                            description: RolloverPolicy Settings for Index Management
+                              rollover
+                            properties:
+                              minDocCount:
+                                description: Minimum count of documents in an index
+                                  before it is rolled over
+                                type: integer
+                              minIndexAge:
+                                description: Minimum age of an index before it is rolled
+                                  over
+                                pattern: ^[0-9]+(d|h|m|s|ms|micros|nanos)$
+                                type: string
+                              minSize:
+                                description: Minimum size of an index before it is rolled
+                                  over e.g., 20mb, 5gb, etc.
+                                pattern: ^[0-9]+(b|kb|mb|gb|tb|pb)$
+                                type: string
+                            type: object
+                        required:
+                          - indexPattern
+                          - policyName
+                        type: object
+                      type: array
                     storage:
                       description: Storage details
                       properties:
@@ -270,6 +314,7 @@ spec:
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         maxSizeDisk:
+                          description: These fields are not used anywhere
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         minSizeDisk:
@@ -320,6 +365,7 @@ spec:
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         maxSizeDisk:
+                          description: These fields are not used anywhere
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         minSizeDisk:
@@ -365,6 +411,7 @@ spec:
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         maxSizeDisk:
+                          description: These fields are not used anywhere
                           pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                           type: string
                         minSizeDisk:
