@@ -80,6 +80,7 @@ function delete_rancher() {
 
   # Deleting rancher components
   log "Deleting rancher helm charts (if any left over)"
+  set -xv
   helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
   log "1"
@@ -95,6 +96,8 @@ function delete_rancher() {
   helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
     || err_return $? "Could not delete rancher-operator-system charts from helm" || return $? # return on pipefail
   log "5"
+  X=$(helm ls -n cattle-system)
+  log "$? : ${X}"
   helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
   log "6"
