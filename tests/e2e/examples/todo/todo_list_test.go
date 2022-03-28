@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -176,6 +177,12 @@ var _ = t.Describe("ToDo List test", Label("f:app-lcm.oam",
 	"f:app-lcm.weblogic-workload"), func() {
 
 	t.Context("application Deployment.", func() {
+
+		t.It("test jobmetrics it", func() {
+			t.Metrics.With("job_duration", os.Getenv("DURATION"))
+			t.Metrics.With("job_status", os.Getenv("JOB_STATUS"))
+			metrics.Emit(t.Metrics)
+		})
 		// GIVEN the ToDoList app is deployed
 		// WHEN the app config secret generated to support secure gateways is fetched
 		// THEN the secret should exist
