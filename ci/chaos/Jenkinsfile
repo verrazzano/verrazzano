@@ -903,3 +903,4 @@ def restartExampleApps() {
         kubectl rollout restart deployment -n hello-helidon
     """
 }
+
