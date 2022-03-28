@@ -26,6 +26,7 @@ type CRModifier interface {
 	ModifyCR(cr *vzapi.Verrazzano)
 }
 
+// GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
 func GetCR() *vzapi.Verrazzano {
 	// Wait for the CR to be Ready
 	gomege.Eventually(func() error {
@@ -51,6 +52,10 @@ func GetCR() *vzapi.Verrazzano {
 	return cr
 }
 
+// UpdateCR updates the CR with the given CRModifier.
+// First it waits for CR to be "Ready" before using the specified CRModifier modifies the CR.
+// Then, it updates the modified.
+// Any error during the process will cause Ginkgo Fail.
 func UpdateCR(m CRModifier) {
 	// Get the CR
 	cr := GetCR()
