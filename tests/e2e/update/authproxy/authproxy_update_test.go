@@ -4,15 +4,11 @@
 package authproxy
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
@@ -22,6 +18,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/update"
 )
 
 const (
@@ -29,10 +26,6 @@ const (
 	waitTimeout     = 5 * time.Minute
 	pollingInterval = 5 * time.Second
 )
-
-type CRModifier interface {
-	ModifyCR(cr *vzapi.Verrazzano)
-}
 
 type AuthProxyReplicasModifier struct {
 	replicas uint32
@@ -84,15 +77,8 @@ func (u AuthProxyPodPerNodeAffintyModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var t = framework.NewTestFramework("update authproxy")
-var kubeconfigPath string
 var nodeCount uint32 = 1
 var _ = t.BeforeSuite(func() {
-	var err error
-	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-
 	kindNodeCount := os.Getenv("KIND_NODE_COUNT")
 	if len(kindNodeCount) > 0 {
 		u, err := strconv.ParseUint(kindNodeCount, 10, 32)
@@ -105,7 +91,7 @@ var _ = t.BeforeSuite(func() {
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {
 		t.It("authproxy default replicas", func() {
-			cr := getCR()
+			cr := update.GetCR()
 
 			expectedRunning := uint32(1)
 			expectedPending := uint32(0)
@@ -119,7 +105,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
 			m := AuthProxyReplicasModifier{replicas: nodeCount}
-			updateCR(m)
+			update.UpdateCR(m)
 
 			expectedRunning := nodeCount
 			expectedPending := uint32(0)
@@ -130,7 +116,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
-			updateCR(m)
+			update.UpdateCR(m)
 
 			expectedRunning := nodeCount - 1
 			expectedPending := uint32(2)
@@ -163,52 +149,4 @@ func validatePods(deployName string, nameSpace string, expectedPodsRunning uint3
 		}
 		return runningPods == expectedPodsRunning && pendingPods == expectedPodsPending
 	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get correct number of running and pending pods")
-}
-
-func getCR() *vzapi.Verrazzano {
-	// Wait for the CR to be Ready
-	Eventually(func() error {
-		cr, err := pkg.GetVerrazzano()
-		if err != nil {
-			return err
-		}
-		if cr.Status.State != vzapi.VzStateReady {
-			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
-		}
-		return nil
-	}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR with Ready state")
-
-	// Get the CR
-	cr, err := pkg.GetVerrazzano()
-	if err != nil {
-		Fail(err.Error())
-	}
-	if cr == nil {
-		Fail("CR is nil")
-	}
-
-	return cr
-}
-
-func updateCR(m CRModifier) {
-	// Get the CR
-	cr := getCR()
-
-	// Modify the CR
-	m.ModifyCR(cr)
-
-	// Update the CR
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-	}
-	client, err := vpoClient.NewForConfig(config)
-	if err != nil {
-		Fail(err.Error())
-	}
-	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
-	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-	if err != nil {
-		Fail(fmt.Sprintf("error updating Verrazzano instance: %v", err))
-	}
 }
