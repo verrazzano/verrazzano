@@ -883,7 +883,7 @@ data:
       reload_on_failure true
       slow_flush_log_threshold 120s
 
-      hosts "#{ENV['OPENSEARCH_HOST']}"
+      hosts "#{ENV['ELASTICSEARCH_URL']}"
       ca_file "#{ENV['CA_FILE']}"
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
@@ -922,7 +922,7 @@ data:
       reload_on_failure true
       slow_flush_log_threshold 120s
 
-      hosts "#{ENV['OPENSEARCH_HOST']}"
+      hosts "#{ENV['ELASTICSEARCH_URL']}"
       ca_file "#{ENV['CA_FILE']}"
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
@@ -1123,7 +1123,7 @@ spec:
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
   {{- if .Values.logging.elasticsearchURL }}
-            - name: OPENSEARCH_HOST
+            - name: ELASTICSEARCH_URL
               value: "{{ .Values.logging.elasticsearchURL }}"
   {{- else }}
             - name: OPENSEARCH_HOST
