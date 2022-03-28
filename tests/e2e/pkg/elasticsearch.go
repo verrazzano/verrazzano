@@ -236,7 +236,8 @@ func LogIndexFound(indexName string) bool {
 func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	Log(Info, fmt.Sprintf("Looking for log index %s in cluster with kubeconfig %s", indexName, kubeconfigPath))
 	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
-		if name == indexName {
+		// TODO: Update following data stream index check for integer suffix
+		if name == indexName || strings.HasPrefix(name, ".ds-" + indexName + "-") {
 			return true
 		}
 	}

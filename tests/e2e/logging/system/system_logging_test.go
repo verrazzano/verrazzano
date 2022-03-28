@@ -33,6 +33,7 @@ const (
 	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
 	nginxIndex                 = "verrazzano-namespace-ingress-nginx"
 	monitoringIndex            = "verrazzano-namespace-monitoring"
+	systemDataStream           = "verrazzano-system"
 )
 
 var (
@@ -76,7 +77,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-system", "verrazzano-system")
+		indexName := pkg.GetOpenSearchIndex(systemIndex, systemDataStream)
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
@@ -103,7 +104,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the verrazzano-install namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-install", "verrazzano-system")
+		indexName := pkg.GetOpenSearchIndex(installIndex, systemDataStream)
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-install")
@@ -124,7 +125,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the verrazzano-system namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-system", "verrazzano-system")
+		indexName := pkg.GetOpenSearchIndex(systemIndex, systemDataStream)
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-system")
@@ -155,7 +156,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the cert-manager namespace is retrieved
 		// THEN verify that it is found
 
-		indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-cert-manager", "verrazzano-system")
+		indexName := pkg.GetOpenSearchIndex(certMgrIndex, systemDataStream)
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cert-manager")
@@ -182,7 +183,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the Keycloak namespace is retrieved
 		// THEN verify that it is found
-		indexName := pkg.GetOpenSearchIndex(keycloakIndex, "verrazzano-system")
+		indexName := pkg.GetOpenSearchIndex(keycloakIndex, systemDataStream)
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index verrazzano-namepace-keycloak")
@@ -204,8 +205,9 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the index for the ingress-nginx namespace is retrieved
 		// THEN verify that it is found
+		indexName := pkg.GetOpenSearchIndex(nginxIndex, systemDataStream)
 		Eventually(func() bool {
-			return pkg.LogIndexFound("verrazzano-namespace-ingress-nginx")
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find NGINX index ingress-nginx")
 
 		valid := true
@@ -220,8 +222,9 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cattle-system namespace is retrieved
 		// THEN verify that it is found
+		indexName := pkg.GetOpenSearchIndex(cattleSystemIndex, systemDataStream)
 		Eventually(func() bool {
-			return pkg.LogIndexFound(cattleSystemIndex)
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-system")
 
 		valid := true
@@ -237,8 +240,9 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the fleet-system namespace is retrieved
 		// THEN verify that it is found
+		indexName := pkg.GetOpenSearchIndex(fleetSystemIndex, systemDataStream)
 		Eventually(func() bool {
-			return pkg.LogIndexFound(fleetSystemIndex)
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index fleet-system")
 
 		if !validateFleetSystemLogs() {
@@ -260,8 +264,9 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 				t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
 			}
 			if !dnsPodExist {
+				indexName := pkg.GetOpenSearchIndex(localPathStorageIndex, systemDataStream)
 				Eventually(func() bool {
-					return pkg.LogIndexFound(localPathStorageIndex)
+					return pkg.LogIndexFound(indexName)
 				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
 
 				if !validateLocalPathStorageLogs() {
@@ -276,8 +281,9 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the rancher-operator-system namespace is retrieved
 		// THEN verify that it is found
+		indexName := pkg.GetOpenSearchIndex(rancherOperatorSystemIndex, systemDataStream)
 		Eventually(func() bool {
-			return pkg.LogIndexFound(rancherOperatorSystemIndex)
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index rancher-operator-system")
 
 		if !validateRancherOperatorSystemLogs() {
@@ -290,8 +296,9 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the monitoring namespace is retrieved
 		// THEN verify that it is found
+		indexName := pkg.GetOpenSearchIndex(monitoringIndex, systemDataStream)
 		Eventually(func() bool {
-			return pkg.LogIndexFound(monitoringIndex)
+			return pkg.LogIndexFound(indexName)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index monitoring")
 
 		if !validateNodeExporterLogs() {
@@ -411,7 +418,7 @@ func validateVOLogs() bool {
 func validatePrometheusLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, systemDataStream),
 		"kubernetes.container_name",
 		"prometheus",
 		searchTimeWindow,
@@ -421,7 +428,7 @@ func validatePrometheusLogs() bool {
 func validatePrometheusConfigReloaderLogs() bool {
 	return validateElasticsearchRecords(
 		noLevelElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, systemDataStream),
 		"kubernetes.container_name",
 		"config-reloader",
 		searchTimeWindow,
@@ -441,7 +448,7 @@ func validateCertManagerLogs() bool {
 func validateExternalDNSLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		certMgrIndex,
+		pkg.GetOpenSearchIndex(certMgrIndex, systemDataStream),
 		"kubernetes.labels.app_kubernetes_io/instance",
 		"external-dns",
 		searchTimeWindow,
@@ -451,7 +458,7 @@ func validateExternalDNSLogs() bool {
 func validateGrafanaLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, systemDataStream),
 		"kubernetes.labels.app.keyword",
 		"system-grafana",
 		searchTimeWindow,
@@ -464,7 +471,7 @@ func validateOpenSearchLogs() bool {
 	for _, appLabel := range openSearchAppComponents {
 		valid = validateElasticsearchRecords(
 			noLevelElasticsearchRecordValidator,
-			systemIndex,
+			pkg.GetOpenSearchIndex(systemIndex, systemDataStream),
 			"kubernetes.labels.app.keyword",
 			appLabel,
 			searchTimeWindow,
@@ -476,7 +483,7 @@ func validateOpenSearchLogs() bool {
 func validateWeblogicOperatorLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		systemIndex,
+		pkg.GetOpenSearchIndex(systemIndex, systemDataStream),
 		"kubernetes.labels.app.keyword",
 		"weblogic-operator",
 		searchTimeWindow,
@@ -496,7 +503,7 @@ func validateKeycloakLogs() bool {
 func validateIngressNginxLogs() bool {
 	return validateElasticsearchRecords(
 		noLevelElasticsearchRecordValidator,
-		nginxIndex,
+		pkg.GetOpenSearchIndex(nginxIndex, systemDataStream),
 		"kubernetes.labels.app_kubernetes_io/name",
 		"ingress-nginx",
 		searchTimeWindow,
@@ -516,7 +523,7 @@ func validateKeycloakMySQLLogs() bool {
 func validateRancherLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		cattleSystemIndex,
+		pkg.GetOpenSearchIndex(cattleSystemIndex, systemDataStream),
 		"kubernetes.labels.app.keyword",
 		"rancher",
 		searchTimeWindow,
@@ -526,7 +533,7 @@ func validateRancherLogs() bool {
 func validateRancherWebhookLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		cattleSystemIndex,
+		pkg.GetOpenSearchIndex(cattleSystemIndex, systemDataStream),
 		"kubernetes.labels.app.keyword",
 		"rancher-webhook",
 		searchTimeWindow,
@@ -535,7 +542,7 @@ func validateRancherWebhookLogs() bool {
 func validateFleetSystemLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		fleetSystemIndex,
+		pkg.GetOpenSearchIndex(fleetSystemIndex, systemDataStream),
 		"kubernetes.namespace_name",
 		"fleet-system",
 		searchTimeWindow,
@@ -545,7 +552,7 @@ func validateFleetSystemLogs() bool {
 func validateLocalPathStorageLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		localPathStorageIndex,
+		pkg.GetOpenSearchIndex(localPathStorageIndex, systemDataStream),
 		"kubernetes.namespace_name",
 		"local-path-storage",
 		searchTimeWindow,
@@ -555,7 +562,7 @@ func validateLocalPathStorageLogs() bool {
 func validateRancherOperatorSystemLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		rancherOperatorSystemIndex,
+		pkg.GetOpenSearchIndex(rancherOperatorSystemIndex, systemDataStream),
 		"kubernetes.namespace_name",
 		"rancher-operator-system",
 		searchTimeWindow,
@@ -565,7 +572,7 @@ func validateRancherOperatorSystemLogs() bool {
 func validateNodeExporterLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		monitoringIndex,
+		pkg.GetOpenSearchIndex(monitoringIndex, systemDataStream),
 		"kubernetes.labels.app.keyword",
 		"node-exporter",
 		searchTimeWindow,
