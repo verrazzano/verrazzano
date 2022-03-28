@@ -624,7 +624,7 @@ pipeline {
                             }
                             steps {
                                 script {
-                                    runGinkgoFailFast('examples/logging/weblogic')
+                                    runGinkgoFailFast('logging/weblogic')
                                 }
                             }
                         }
