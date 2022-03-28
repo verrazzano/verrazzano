@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -50,11 +51,15 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 			compLog.Debugf("Did not find status details in map for component %s", comp.Name())
 			continue
 		}
-		if checkConfigUpdated(spiCtx, componentStatus) {
+		if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
+			oldState := componentStatus.State
+			oldGen := componentStatus.InstallingGeneration
+			componentStatus.InstallingGeneration = 0
 			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			compLog.Oncef("Reset component %s state to %v for generation %v", compName, componentStatus.State, spiCtx.ActualCR().Generation)
+			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
+				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.InstallingGeneration)
 			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
 				err = r.setInstallingState(vzctx.Log, spiCtx.ActualCR())
 				compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
@@ -143,7 +148,17 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext) (ctr
 	return ctrl.Result{}, nil
 }
 
-func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails) bool {
+func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
+	vzState := ctx.ActualCR().Status.State
+	if vzState != vzapi.VzStateInstalling && vzState != vzapi.VzStateReady {
+		return false
+	}
+	if name == mysql.ComponentName { // CR.mysql is not allowed yet
+		return false
+	}
+	if componentStatus.InstallingGeneration > 0 {
+		return ctx.ActualCR().Generation > componentStatus.InstallingGeneration
+	}
 	return (componentStatus.State == vzapi.CompStateReady) &&
 		(ctx.ActualCR().Generation > componentStatus.LastReconciledGeneration)
 }

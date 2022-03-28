@@ -165,6 +165,8 @@ type ComponentStatusDetails struct {
 	Version string `json:"version,omitempty"`
 	// The generation of the last VZ resource the Component was reconciled against
 	LastReconciledGeneration int64 `json:"lastReconciledGeneration,omitempty"`
+	// The generation of the last VZ resource the Component is being installed against
+	InstallingGeneration int64 `json:"installingGeneration,omitempty"`
 }
 
 // ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with kubectl wait
