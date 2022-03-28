@@ -5,7 +5,6 @@ package jobmetrics
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"os"
 )
 
@@ -13,13 +12,11 @@ var t = framework.NewTestFramework("jobmetrics")
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.Describe("Emit job metrics", func() {
-	t.Context("for the job", func() {
+var _ = t.Describe("Emit job metrics,", func() {
+	t.Context("application Deployment.", func() {
 		t.It("at the end of each job", func() {
-			t.Metrics.With("job_duration", os.Getenv("DURATION")).
-				With("job_status", os.Getenv("JOB_STATUS")).
-				Info()
-			metrics.Emit(t.Metrics)
+			t.Metrics = t.Metrics.With("job_duration", os.Getenv("DURATION")).
+				With("job_status", os.Getenv("JOB_STATUS"))
 		})
 	})
 })

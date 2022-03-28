@@ -524,6 +524,9 @@ pipeline {
                 }
             }
         }
+        stage('Send Build Metrics') {
+            emitJobMetrics()
+        }
     }
 
     post {
@@ -577,7 +580,6 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
-            emitJobMetrics()
             deleteDir()
         }
     }
