@@ -34,6 +34,8 @@ spec:
         name: {{ .Values.console.name }}
         ports:
             - containerPort: 8000
+              name: http-console
+              protocol: TCP
         env:
           - name: VZ_API_URL
             value: "https://verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}"
@@ -46,7 +48,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-  - name: console
+  - name: http-console
     port: 8000
     protocol: TCP
     targetPort: 8000
