@@ -538,7 +538,7 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) err
 }
 
 // Validate the verrazzano-system service ports to make sure they follow Istio conventions for
-// naming ports.  Ports should have the prefix of "http", "https", "http-", or "https-".
+// naming ports.  Ports should have the prefix of "http-" or "https-" or be equal to "http" or "https".
 func validateVerrazzanoSystemServicePorts() error {
 	// Get the list of verrazzano-system services
 	var services *corev1.ServiceList
@@ -563,7 +563,7 @@ func validateVerrazzanoSystemServicePorts() error {
 			}
 			if checkName {
 				hasPrefix := false
-				if strings.HasPrefix(port.Name, "http") || strings.HasPrefix(port.Name, "https") ||
+				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 ||
 					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") {
 					hasPrefix = true
 				}
