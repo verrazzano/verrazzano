@@ -11,7 +11,7 @@ import (
 
 var t = framework.NewTestFramework("jobmetrics")
 
-var _ = t.Describe("Emit job metrics,", Label("f:mesh.ingress"), func() {
+var _ = t.Describe("Emit job metrics", Label("f:mesh.ingress"), func() {
 	t.It("at the end of each job", func() {
 		t.Metrics = t.Metrics.With("job_duration", os.Getenv("DURATION")).
 			With("job_status", os.Getenv("JOB_STATUS")).
