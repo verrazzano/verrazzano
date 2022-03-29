@@ -30,7 +30,6 @@ const (
 	KubernetesVersion = "kubernetes_version"
 	TestEnv           = "test_env"
 	Label             = "label"
-	BuildNumber       = "build_number"
 
 	MetricsIndex     = "metrics"
 	TestLogIndex     = "testlogs"
@@ -139,11 +138,6 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	testEnv := os.Getenv("TEST_ENV")
 	if testEnv != "" {
 		log = log.With(TestEnv, testEnv)
-	}
-
-	buildNumber := os.Getenv("BUILD_NUMBER")
-	if buildNumber != "" {
-		log = log.With(BuildNumber, buildNumber)
 	}
 
 	return log
