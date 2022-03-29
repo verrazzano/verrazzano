@@ -6,13 +6,10 @@ package system
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -27,8 +24,7 @@ const (
 	certMgrIndex               = "verrazzano-namespace-cert-manager"
 	keycloakIndex              = "verrazzano-namespace-keycloak"
 	cattleSystemIndex          = "verrazzano-namespace-cattle-system"
-	fleetLocalSystemIndex      = "verrazzano-namespace-fleet-local-system"
-	localPathStorageIndex      = "verrazzano-namespace-local-path-storage"
+	fleetSystemIndex           = "verrazzano-namespace-fleet-system"
 	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
 	nginxIndex                 = "verrazzano-namespace-ingress-nginx"
 	monitoringIndex            = "verrazzano-namespace-monitoring"
@@ -231,7 +227,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the cattle-fleet-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound(fleetLocalSystemIndex)
+			return pkg.LogIndexFound(fleetSystemIndex)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-system")
 
 		if !validateFleetSystemLogs() {
@@ -253,31 +249,6 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 			t.Logs.Info("Found problems with log records in cattle-fleet-local-system index")
 		}
 	})
-
-	testEnv := os.Getenv("TEST_ENV")
-	if testEnv != "LRE" {
-		t.It("contains local-path-storage index with valid records", func() {
-			// GIVEN existing system logs
-			// WHEN the Elasticsearch index for the local-path-storage namespace is retrieved
-			// THEN verify that it is found
-
-			dnsPodExist, err := pkg.DoesPodExist("cert-manager", "external-dns")
-			if err != nil {
-				dnsPodExist = false
-				t.Logs.Infof("Error calling DoesPodExist for external-dns: %s", err)
-			}
-			if !dnsPodExist {
-				Eventually(func() bool {
-					return pkg.LogIndexFound(localPathStorageIndex)
-				}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index local-path-storage")
-
-				if !validateLocalPathStorageLogs() {
-					// Don't fail for invalid logs until this is stable.
-					t.Logs.Info("Found problems with log records in local-path-storage index")
-				}
-			}
-		})
-	}
 
 	t.It("contains rancher-operator-system index with valid records", func() {
 		// GIVEN existing system logs
@@ -539,23 +510,12 @@ func validateRancherWebhookLogs() bool {
 		searchTimeWindow,
 		noExceptions)
 }
-
 func validateFleetSystemLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		fleetLocalSystemIndex,
+		fleetSystemIndex,
 		"kubernetes.namespace_name",
 		"fleet-system",
-		searchTimeWindow,
-		noExceptions)
-}
-
-func validateLocalPathStorageLogs() bool {
-	return validateElasticsearchRecords(
-		allElasticsearchRecordValidator,
-		localPathStorageIndex,
-		"kubernetes.namespace_name",
-		"local-path-storage",
 		searchTimeWindow,
 		noExceptions)
 }
