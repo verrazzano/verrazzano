@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
@@ -41,7 +42,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
-			Dependencies:            []string{certmanager.ComponentName},
+			Dependencies:            []string{certmanager.ComponentName, verrazzano.ComponentName},
 		},
 	}
 }
@@ -62,9 +63,4 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isPrometheusOperatorReady(ctx)
 	}
 	return false
-}
-
-// PreInstall updates resources necessary for the Prometheus Operator Component installation
-func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
 }
