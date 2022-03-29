@@ -9,14 +9,15 @@ import (
 	"path/filepath"
 	"reflect"
 
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -72,20 +73,8 @@ func NewComponent() spi.Component {
 	}
 }
 
-// Reconcile - the only condition currently being handled by this function is to restore
-// the Keycloak configuration when the MySQL pod gets restarted and ephemeral storage is being used.
-func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
-	// If the Keycloak component is ready, confirm the configuration is working.
-	// If ephemeral storage is being used, the Keycloak configuration will be rebuilt if needed.
-	if isKeycloakReady(ctx) {
-		ctx.Log().Debugf("Component %s calling configureKeycloakRealms from Reconcile", ComponentName)
-		return configureKeycloakRealms(ctx)
-	}
-	return fmt.Errorf("Component %s not ready yet to check configuration", ComponentName)
-}
-
 func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
-	// Check Verrazzano Secret. return error which will cause requeue
+	// Check Verrazzano Secret. return error which will cause reque
 	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: constants.VerrazzanoSystemNamespace,
