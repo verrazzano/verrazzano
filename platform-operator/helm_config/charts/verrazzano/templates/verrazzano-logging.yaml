@@ -1122,12 +1122,11 @@ spec:
               value: fluentd-standalone.conf
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
-  {{- if .Values.logging.elasticsearchURL }}
             - name: ELASTICSEARCH_URL
-              value: "{{ .Values.logging.elasticsearchURL }}"
+  {{- if .Values.logging.elasticsearchURL }}
+              value: {{ .Values.logging.elasticsearchURL }}
   {{- else }}
-            - name: OPENSEARCH_HOST
-              value: "http://verrazzano-authproxy-elasticsearch:8775"
+              value: http://verrazzano-authproxy-elasticsearch:8775
   {{- end }}
             - name: CLUSTER_NAME
               value: local
