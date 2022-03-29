@@ -117,6 +117,11 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        // used to push to sauron gateway
+        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
+        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
+        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
     }
 
     stages {
@@ -194,12 +199,6 @@ pipeline {
         }
 
         stage('Acceptance Tests') {
-            environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-
             stages {
                 stage('Prepare AT environment') {
                     environment {
@@ -525,14 +524,6 @@ pipeline {
                 }
             }
         }
-        stage('Send Build Metrics') {
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    ginkgo -v tests/e2e/framework/jobmetrics/...
-                """
-            }
-        }
     }
 
     post {
@@ -586,6 +577,7 @@ pipeline {
         }
         cleanup {
             metricBuildDuration()
+            emitJobMetrics()
             deleteDir()
         }
     }
