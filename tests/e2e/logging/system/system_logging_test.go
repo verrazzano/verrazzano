@@ -26,7 +26,7 @@ const (
 	certMgrIndex               = "verrazzano-namespace-cert-manager"
 	keycloakIndex              = "verrazzano-namespace-keycloak"
 	cattleSystemIndex          = "verrazzano-namespace-cattle-system"
-	fleetSystemIndex           = "verrazzano-namespace-fleet-system"
+	fleetLocalSystemIndex      = "verrazzano-namespace-fleet-local-system"
 	rancherOperatorSystemIndex = "verrazzano-namespace-rancher-operator-system"
 	nginxIndex                 = "verrazzano-namespace-ingress-nginx"
 	monitoringIndex            = "verrazzano-namespace-monitoring"
@@ -229,7 +229,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the cattle-fleet-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound(fleetSystemIndex)
+			return pkg.LogIndexFound(fleetLocalSystemIndex)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-system")
 
 		if !validateFleetSystemLogs() {
@@ -515,7 +515,7 @@ func validateRancherWebhookLogs() bool {
 func validateFleetSystemLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		fleetSystemIndex,
+		fleetLocalSystemIndex,
 		"kubernetes.namespace_name",
 		"fleet-system",
 		searchTimeWindow,
