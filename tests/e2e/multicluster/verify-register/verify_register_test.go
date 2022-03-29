@@ -138,8 +138,8 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		})
 
 		t.It("has the expected system logs from admin and managed cluster", func() {
-			verrazzanoIndex := "verrazzano-namespace-verrazzano-system"
-			systemdIndex := "verrazzano-systemd-journal"
+			verrazzanoIndex := pkg.GetOpenSearchSystemIndex("verrazzano-system")
+			systemdIndex := pkg.GetOpenSearchSystemIndex("systemd-journal")
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
