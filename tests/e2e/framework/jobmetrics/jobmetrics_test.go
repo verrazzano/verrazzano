@@ -7,7 +7,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/kubectl/pkg/util/logs"
 	"os"
 	"time"
 
@@ -26,9 +25,6 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Emit job metrics,", func() {
 	t.Context("application Deployment.", func() {
 		t.It("at the end of each job", func() {
-			log := logs.NewLogger("default")
-			log.Print("TEST HERE-----==============")
-			t.Logs.Info("HIT THIS TEST=============")
 			t.Metrics = t.Metrics.With("job_duration", os.Getenv("DURATION")).
 				With("job_status", os.Getenv("JOB_STATUS"))
 			Eventually(func() (*v1.SecretList, error) {
