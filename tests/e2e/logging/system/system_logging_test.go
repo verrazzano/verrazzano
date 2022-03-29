@@ -26,7 +26,7 @@ const (
 	certMgrIndex          = "verrazzano-namespace-cert-manager"
 	keycloakIndex         = "verrazzano-namespace-keycloak"
 	cattleSystemIndex     = "verrazzano-namespace-cattle-system"
-	fleetLocalSystemIndex = "verrazzano-namespace-fleet-local-system"
+	fleetLocalSystemIndex = "verrazzano-namespace-cattle-fleet-local-system"
 	nginxIndex            = "verrazzano-namespace-ingress-nginx"
 	monitoringIndex       = "verrazzano-namespace-monitoring"
 )
@@ -223,17 +223,17 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		}
 	})
 
-	t.It("contains cattle-fleet-system index with valid records", func() {
+	t.It("contains cattle-fleet-local-system index with valid records", func() {
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cattle-fleet-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
 			return pkg.LogIndexFound(fleetLocalSystemIndex)
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-system")
+		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-local-system")
 
 		if !validateFleetSystemLogs() {
 			// Don't fail for invalid logs until this is stable.
-			t.Logs.Info("Found problems with log records in cattle-fleet-system index")
+			t.Logs.Info("Found problems with log records in cattle-fleet-local-system index")
 		}
 	})
 
