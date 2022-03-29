@@ -53,9 +53,6 @@ const KeycloakNamespace = "keycloak"
 // RancherSystemNamespace - the Rancher cattle-system namespace
 const RancherSystemNamespace = "cattle-system"
 
-// RancherOperatorSystemNamespace - the Rancher operator system namespace
-const RancherOperatorSystemNamespace = "rancher-operator-system"
-
 // VerrazzanoMonitoringNamespace - the keycloak namespace
 const VerrazzanoMonitoringNamespace = "monitoring"
 

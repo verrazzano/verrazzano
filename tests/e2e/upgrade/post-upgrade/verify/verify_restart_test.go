@@ -219,7 +219,6 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment fleet-agent", "fleet-system", rancher.ComponentName, "fleet-agent"),
 			t.Entry("Checking Deployment fleet-controller", "fleet-system", rancher.ComponentName, "fleet-controller"),
 			t.Entry("Checking Deployment gitjob", "fleet-system", rancher.ComponentName, "gitjob"),
-			t.Entry("Checking Deployment rancher-operator", "rancher-operator-system", rancher.ComponentName, "rancher-operator"),
 		)
 	})
 

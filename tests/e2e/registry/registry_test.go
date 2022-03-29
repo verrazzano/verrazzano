@@ -5,10 +5,11 @@ package registry
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,7 +41,6 @@ var listOfNamespaces = []string{
 	"keycloak",
 	"local",
 	"monitoring",
-	"rancher-operator-system",
 	"verrazzano-install",
 	"verrazzano-mc",
 	"verrazzano-system",

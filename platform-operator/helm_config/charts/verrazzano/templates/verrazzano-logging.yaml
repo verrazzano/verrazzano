@@ -659,7 +659,7 @@ data:
     </filter>
 
     # filter to parse Rancher namespace container log files
-    <filter kubernetes.**cattle-system** kubernetes.**rancher-operator-system** kubernetes.**fleet-system** kubernetes.**local-path-provisioner**>
+    <filter kubernetes.**cattle-system** kubernetes.**fleet-system** kubernetes.**local-path-provisioner**>
       @type parser
       @id rancher
       key_name log
