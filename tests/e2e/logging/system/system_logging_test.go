@@ -18,9 +18,9 @@ import (
 )
 
 const (
-	shortPollingInterval       = 10 * time.Second
-	shortWaitTimeout           = 5 * time.Minute
-	searchTimeWindow           = "1h"
+	shortPollingInterval           = 10 * time.Second
+	shortWaitTimeout               = 5 * time.Minute
+	searchTimeWindow               = "1h"
 	systemNamespace                = "verrazzano-system"
 	installNamespace               = "verrazzano-install"
 	certMgrNamespace               = "cert-manager"

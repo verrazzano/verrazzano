@@ -39,12 +39,12 @@ func GetOpenSearchSystemIndex(name string) string {
 		return ""
 	}
 	if dataStreamVersion {
-		return  "verrazzano-system"
+		return "verrazzano-system"
 	}
 	if name == "systemd-journal" {
 		return "verrazzano-systemd-journal"
 	}
-	return "verrazzano-namespace-"+name
+	return "verrazzano-namespace-" + name
 }
 
 func GetOpenSearchAppIndex(namespace string) string {
@@ -59,9 +59,9 @@ func GetOpenSearchAppIndex(namespace string) string {
 		return ""
 	}
 	if dataStreamVersion {
-		return  "verrazzano-application-"+namespace
+		return "verrazzano-application-" + namespace
 	}
-	return "verrazzano-namespace-"+namespace
+	return "verrazzano-namespace-" + namespace
 }
 
 func UseExternalElasticsearch() bool {
@@ -257,7 +257,7 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	Log(Info, fmt.Sprintf("Looking for log index %s in cluster with kubeconfig %s", indexName, kubeconfigPath))
 	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
 		// If old index or data stream backend index, return true
-		backendIndexRe := regexp.MustCompile(`^\.ds-`+indexName+`-\d+$`)
+		backendIndexRe := regexp.MustCompile(`^\.ds-` + indexName + `-\d+$`)
 		if name == indexName || backendIndexRe.MatchString(name) {
 			return true
 		}
