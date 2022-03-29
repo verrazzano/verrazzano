@@ -4,8 +4,9 @@
 package keycloak
 
 import (
-	"k8s.io/apimachinery/pkg/types"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -225,5 +226,5 @@ func TestKeycloakComponent_GetCertificateNames(t *testing.T) {
 	ctx := spi.NewFakeContext(client, vz, false)
 	names := NewComponent().GetCertificateNames(ctx)
 	assert.Len(t, names, 1)
-	assert.Equal(t, types.NamespacedName{Name: "myenv-secret", Namespace: ComponentNamespace}, names[0])
+	assert.Equal(t, types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}, names[0])
 }

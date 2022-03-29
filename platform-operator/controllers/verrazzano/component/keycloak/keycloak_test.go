@@ -608,7 +608,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	})
 	assert.Contains(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: env + "-secret",
+		Value: keycloakCertificateName,
 	})
 }
 
@@ -634,7 +634,7 @@ func TestAppendKeycloakOverridesNoEnvironmentName(t *testing.T) {
 
 	assert.Contains(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: "default-secret",
+		Value: keycloakCertificateName,
 	})
 }
 
@@ -1180,7 +1180,7 @@ func TestUpdateKeycloakIngress(t *testing.T) {
 func TestIsKeycloakReady(t *testing.T) {
 	readySecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      getSecretName(testVZ),
+			Name:      keycloakCertificateName,
 			Namespace: ComponentNamespace,
 		},
 	}
@@ -1200,7 +1200,7 @@ func TestIsKeycloakReady(t *testing.T) {
 			"should not be ready when certificate has no status",
 			fake.NewFakeClientWithScheme(scheme, &certmanager.Certificate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      getSecretName(testVZ),
+					Name:      keycloakCertificateName,
 					Namespace: ComponentNamespace,
 				},
 			}),

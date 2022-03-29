@@ -44,6 +44,10 @@ type KeycloakComponent struct {
 // Verify that KeycloakComponent implements Component
 var _ spi.Component = KeycloakComponent{}
 
+var certificates = []types.NamespacedName{
+	{Namespace: ComponentNamespace, Name: keycloakCertificateName},
+}
+
 // NewComponent returns a new Keycloak component
 func NewComponent() spi.Component {
 	return KeycloakComponent{
@@ -58,6 +62,7 @@ func NewComponent() spi.Component {
 			Dependencies:            []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			SupportsOperatorInstall: true,
 			AppendOverridesFunc:     AppendKeycloakOverrides,
+			Certificates:            certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -135,15 +140,11 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		}
 	}
 
-	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
-	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Keycloak-post-upgrade processing, create or update the Kiali ingress
 func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	// populate the certificate names before calling PostInstall on Helm component because those will be needed there
-	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
@@ -186,16 +187,4 @@ func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallA
 		return vz.Spec.Components.Keycloak.KeycloakInstallArgs
 	}
 	return nil
-}
-
-// GetCertificateNames - gets the names of the ingresses associated with this component
-func (c KeycloakComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
-	var certificateNames []types.NamespacedName
-
-	certificateNames = append(certificateNames, types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      fmt.Sprintf("%s-secret", ctx.EffectiveCR().Spec.EnvironmentName),
-	})
-
-	return certificateNames
 }

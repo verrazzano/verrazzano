@@ -30,7 +30,8 @@ var (
 
 var _ = clusterDump.BeforeSuite(func() {
 	start := time.Now()
-	metricsbinding.DeployApplication(namespace, yamlPath, applicationPodPrefix, *t)
+	// Setting Istio disabled results in the Prometheus scrape target using http instead of https
+	metricsbinding.DeployApplication(namespace, yamlPath, applicationPodPrefix, false, *t)
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 

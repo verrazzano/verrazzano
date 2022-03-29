@@ -126,13 +126,25 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestNewOpenSearchWithExistingVMI(t *testing.T) {
+// TestNewOpenSearchValuesAreCopied tests that VMI and policy values are copied over to the new opensearch
+// GIVEN a Verrazzano CR and an existing VMI
+//  WHEN I create a new OpenSearch resource
+//  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
+func TestNewOpenSearchValuesAreCopied(t *testing.T) {
+	age := "1d"
 	r := &resourceRequestValues{}
 	testvz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					ESInstallArgs: []vzapi.InstallArgs{},
+					Polices: []vmov1.IndexManagementPolicy{
+						{
+							PolicyName:   "my-policy",
+							IndexPattern: "pattern",
+							MinIndexAge:  &age,
+						},
+					},
 				},
 			},
 		},
@@ -150,6 +162,7 @@ func TestNewOpenSearchWithExistingVMI(t *testing.T) {
 	openSearch, err := newOpenSearch(testvz, r, testvmi, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
+	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Polices, openSearch.Policies)
 }
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
