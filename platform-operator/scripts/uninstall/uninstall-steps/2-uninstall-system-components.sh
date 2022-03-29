@@ -78,32 +78,23 @@ function delete_rancher() {
   log "Running Rancher system-tools remove"
   /usr/local/bin/system-tools remove -c /home/verrazzano/kubeconfig --force || err_return $? "Failed to run Rancher system-tools remove"
 
-  # wait for it to be eventually consistent!!!!
-  sleep 5
+  # wait for the cleanup to be complete (enough) for us to proceed
+  kubectl wait --for=delete ns/cattle-system --timeout=120s
 
   # Deleting rancher components
   log "Deleting rancher helm charts (if any left over)"
-  set -xv
   helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n fleet-system \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
-  log "1"
   helm ls -n cattle-fleet-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n cattle-fleet-system \
     || err_return $? "Could not delete cattle-fleet-system charts from helm" || return $? # return on pipefail
-  log "2"
   helm ls -n cattle-fleet-local-system | awk '/fleet/ {print $1}' | xargsr helm uninstall -n cattle-fleet-local-system \
     || err_return $? "Could not delete cattle-fleet-local-system charts from helm" || return $? # return on pipefail
-  log "3"
   helm ls -n fleet-system | awk '/fleet/ {print $1}' | xargsr helm -n fleet-system uninstall \
     || err_return $? "Could not delete fleet-system charts from helm" || return $? # return on pipefail
-  log "4"
   helm ls -n rancher-operator-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n rancher-operator-system \
     || err_return $? "Could not delete rancher-operator-system charts from helm" || return $? # return on pipefail
-  log "5"
-  X=$(helm ls -n cattle-system)
-  log "$? : ${X}"
   helm ls -n cattle-system | awk '/rancher/ {print $1}' | xargsr helm uninstall -n cattle-system \
     || err_return $? "Could not delete cattle-system from helm" || return $? # return on pipefail
-  log "6"
 
   log "Delete the additional CA secret for Rancher"
   kubectl -n cattle-system delete secret tls-ca-additional 2>&1 > /dev/null || true
@@ -196,7 +187,7 @@ function delete_rancher() {
 
   # delete cattle namespaces
   log "Delete rancher namespace"
-  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|local|p-|user-|fleet|rancher/ {print $1}' \
+  delete_k8s_resources namespaces ":metadata.name" "Could not delete namespaces from Rancher" '/cattle-|p-|user-|fleet|rancher/ {print $1}' \
     || return $? # return on pipefail
 
   # delete annotations left in kube-system secrets
