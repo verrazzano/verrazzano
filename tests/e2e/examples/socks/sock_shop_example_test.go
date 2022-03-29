@@ -106,6 +106,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 	var hostname = ""
 	var err error
 	t.BeforeEach(func() {
+		Expect(os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))).To(BeNil())
 		Eventually(func() (string, error) {
 			hostname, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return hostname, err
