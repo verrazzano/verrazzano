@@ -175,6 +175,9 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the log records are retrieved from the Elasticsearch index
 		// THEN verify that at least one recent log record is found
+		const k8sContainerNameKeyword = "kubernetes.container_name.keyword"
+		const fluentdStdoutSidecarName = "fluentd-stdout-sidecar"
+
 		pkg.Concurrently(
 			func() {
 				t.It("Verify recent adminserver log record exists", func() {
@@ -185,7 +188,7 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 							"kubernetes.labels.weblogic_serverName": "AdminServer",
 							"kubernetes.container_name":             "weblogic-server",
 						})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent adminserver log record")
 				})
 			},
 			func() {
@@ -193,12 +196,12 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: k8sContainerNameKeyword, Value: fluentdStdoutSidecarName},
 								{Key: "messageID", Value: "BEA-"},
 								{Key: "serverName", Value: "weblogicloggingdomain-adminserver"},
 								{Key: "serverName2", Value: "AdminServer"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent pattern-matched adminserver log record")
 				})
 			},
 			func() {
@@ -206,12 +209,12 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: k8sContainerNameKeyword, Value: fluentdStdoutSidecarName},
 								{Key: "messageID", Value: "BEA-"},
 								{Key: "message", Value: "WebLogic Server"},
 								{Key: "subSystem", Value: "WebLogicServer"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent pattern-matched WebLogic Server log record")
 				})
 			},
 			func() {
@@ -219,11 +222,11 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: k8sContainerNameKeyword, Value: fluentdStdoutSidecarName},
 								{Key: "wls_log_stream", Value: "server_log"},
 								{Key: "stream", Value: "stdout"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server log record")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent fluentd-stdout-sidecar server log record")
 				})
 			},
 			func() {
@@ -231,11 +234,11 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: k8sContainerNameKeyword, Value: fluentdStdoutSidecarName},
 								{Key: "wls_log_stream", Value: "domain_log"},
 								{Key: "stream", Value: "stdout"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent domain log record")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent fluentd-stdout-sidecar domain log record")
 				})
 			},
 			func() {
@@ -243,11 +246,11 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 					Eventually(func() bool {
 						return pkg.FindLog(indexName,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name.keyword", Value: "fluentd-stdout-sidecar"},
+								{Key: "kubernetes.container_name.keyword", Value: fluentdStdoutSidecarName},
 								{Key: "wls_log_stream", Value: "server_nodemanager_log"},
 								{Key: "stream", Value: "stdout"}},
 							[]pkg.Match{})
-					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server nodemanager log record")
+					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent server fluentd-stdout-sidecar nodemanager log record")
 				})
 			},
 		)
