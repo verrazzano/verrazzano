@@ -370,7 +370,7 @@ type ElasticsearchComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	ESInstallArgs []InstallArgs                 `json:"installArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
-	Polices       []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
+	Policies      []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
 }
 
 // KibanaComponent specifies the Kibana configuration.
