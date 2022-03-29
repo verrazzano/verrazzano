@@ -4,7 +4,6 @@
 package weblogic
 
 import (
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -19,12 +18,10 @@ import (
 )
 
 const (
-	longWaitTimeout          = 20 * time.Minute
-	longPollingInterval      = 20 * time.Second
-	shortWaitTimeout         = 5 * time.Minute
-	shortPollingInterval     = 10 * time.Second
-	imagePullWaitTimeout     = 30 * time.Minute
-	imagePullPollingInterval = 30 * time.Second
+	longWaitTimeout      = 20 * time.Minute
+	longPollingInterval  = 20 * time.Second
+	shortWaitTimeout     = 5 * time.Minute
+	shortPollingInterval = 10 * time.Second
 )
 
 var (
@@ -85,18 +82,9 @@ var _ = t.BeforeSuite(func() {
 		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
-	t.Logs.Info("Wait for image pulls")
-	Eventually(func() bool {
-		return pkg.ContainerImagePullWait(namespace, expectedPods)
-	}, imagePullWaitTimeout, imagePullPollingInterval).Should(BeTrue())
-
 	t.Logs.Info("Wait for running pods")
 	Eventually(func() bool {
-		result, err := pkg.PodsRunning(namespace, expectedPods)
-		if err != nil {
-			AbortSuite(fmt.Sprintf("One or more pods are not running in namespace: %v, error: %v", namespace, err))
-		}
-		return result
+		return pkg.PodsRunning(namespace, expectedPods)
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 
 	beforeSuitePassed = true
