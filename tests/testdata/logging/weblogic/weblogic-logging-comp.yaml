@@ -1,0 +1,64 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: weblogic-logging-domain
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoWebLogicWorkload
+    spec:
+      template:
+        metadata:
+          name: weblogic-logging-domain
+        spec:
+          adminServer:
+            adminChannelPortForwardingEnabled: true
+          domainUID: weblogicloggingdomain
+          domainHome: /u01/domains/weblogicloggingdomain
+          auxiliaryImageVolumes:
+            - name: auxiliaryImageVolume1
+              mountPath: /auxiliary
+          image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
+          imagePullSecrets:
+            - name: weblogicloggingdomain-repo-credentials
+          domainHomeSourceType: "FromModel"
+          includeServerOutInPodLog: true
+          replicas: 1
+          webLogicCredentialsSecret:
+            name: weblogicloggingdomain-weblogic-credentials
+          configuration:
+            introspectorJobActiveDeadlineSeconds: 900
+            model:
+              domainType: WLS
+              modelHome: /auxiliary/models
+              wdtInstallHome: /auxiliary/weblogic-deploy
+              runtimeEncryptionSecret: weblogicloggingdomain-runtime-encrypt-secret
+          logHome: /mnt/shared/logs
+          serverPod:
+            podSecurityContext:
+              fsGroup: 0
+            labels:
+              app: weblogic-logging-domain
+              version: v1
+            auxiliaryImages:
+                - image: ghcr.io/verrazzano/weblogic-app:1.0.0-1-20220319111617-b157b52a
+                  volume: auxiliaryImageVolume1
+            env:
+              - name: JAVA_OPTIONS
+                value: "-Dweblogic.StdoutDebugEnabled=false"
+              - name: USER_MEM_ARGS
+                value: "-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m "
+              - name: WL_HOME
+                value: /u01/oracle/wlserver
+              - name: MW_HOME
+                value: /u01/oracle
+            volumeMounts:
+              - mountPath: /mnt/shared
+                name: weblogic-domain-storage-volume
+            volumes:
+              - name: weblogic-domain-storage-volume
+                persistentVolumeClaim:
+                  claimName: wls-pv-claim

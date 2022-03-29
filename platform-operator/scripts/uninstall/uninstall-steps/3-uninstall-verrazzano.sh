@@ -148,6 +148,13 @@ function delete_prometheus_operator {
       error "Failed to uninstall the Prometheus operator."
     fi
   fi
+
+  log "Deleting ${VERRAZZANO_MONITORING_NS} namespace finalizers"
+  patch_k8s_resources namespace ":metadata.name" "Could not remove finalizers from namespace ${VERRAZZANO_MONITORING_NS}" "/${VERRAZZANO_MONITORING_NS}/ {print \$1}" '{"metadata":{"finalizers":null}}' \
+    || return $? # return on pipefail
+
+  log "Deleting the ${VERRAZZANO_MONITORING_NS} namespace"
+  kubectl delete namespace "${VERRAZZANO_MONITORING_NS}" --ignore-not-found=true || err_return $? "Could not delete the ${VERRAZZANO_MONITORING_NS} namespace"
 }
 
 action "Deleting Prometheus operator " delete_prometheus_operator || exit 1

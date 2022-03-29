@@ -116,7 +116,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-  - name: api
+  - name: http-api
     port: {{ .Values.port }}
     protocol: TCP
     targetPort: {{ .Values.port }}
@@ -130,7 +130,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-    - name: auth-proxy
+    - name: http-authproxy
       port: {{ .Values.port }}
       protocol: TCP
       targetPort: {{ .Values.port }}

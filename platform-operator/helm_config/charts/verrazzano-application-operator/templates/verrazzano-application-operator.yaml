@@ -296,7 +296,7 @@ metadata:
     app: {{ .Values.name }}
 spec:
   ports:
-    - name: webhook
+    - name: https-webhook
       port: 443
       targetPort: 9443
   selector:
@@ -323,6 +323,10 @@ spec:
         - name: {{ .Values.name }}
           image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 9443
+              name: https-webhook
+              protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
           startupProbe:
