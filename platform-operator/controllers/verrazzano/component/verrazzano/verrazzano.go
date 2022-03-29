@@ -349,12 +349,6 @@ func createAndLabelNamespaces(ctx spi.ComponentContext) error {
 			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
 		}
 	}
-	if vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateAndLabelNamespace(ctx.Client(), globalconst.RancherOperatorSystemNamespace,
-			true, false); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Rancher operator system namespace %s: %v", globalconst.RancherOperatorSystemNamespace, err)
-		}
-	}
 	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
 	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating Rancher namespace: %v", err)
