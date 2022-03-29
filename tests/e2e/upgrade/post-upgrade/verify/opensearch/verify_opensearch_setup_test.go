@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	threeMinutes    = 3 * time.Minute
+	waitTimeout     = 15 * time.Minute
 	pollingInterval = 10 * time.Second
 )
 
@@ -56,6 +56,6 @@ var _ = t.Describe("Post upgrade", func() {
 				return pkg.IndicesNotExists(oldIndicesPatterns)
 			}
 			return true
-		}, threeMinutes, pollingInterval).Should(BeTrue(), "Expected not to find any old indices")
+		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected not to find any old indices")
 	})
 })
