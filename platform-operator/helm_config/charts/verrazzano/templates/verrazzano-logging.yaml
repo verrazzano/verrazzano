@@ -436,7 +436,6 @@ data:
       @id stdout_log_text
       key_name log
       reserve_data true
-      ignore_key_not_exist true
       emit_invalid_record_to_error true
       <parse>
          @type multi_format
@@ -455,7 +454,6 @@ data:
       @id parse_log_to_json
       key_name log
       reserve_data true
-      ignore_key_not_exist true
       emit_invalid_record_to_error true
       <parse>
         @type multi_format
