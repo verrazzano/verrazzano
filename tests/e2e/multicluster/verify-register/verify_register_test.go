@@ -35,7 +35,7 @@ const verrazzanoSystemNamespace = "verrazzano-system"
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var vmiEsIngressURL = getVmiEsIngressURL()
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
-var externalEsURL = pkg.GetExternalElasticSearchURL(adminKubeconfig)
+var externalEsURL = pkg.GetExternalOpenSearchURL(adminKubeconfig)
 
 var t = framework.NewTestFramework("register_test")
 
@@ -384,7 +384,7 @@ func assertRegistrationSecret() {
 }
 
 func getVmiEsIngressURL() string {
-	return fmt.Sprintf("%s:443", pkg.GetSystemElasticSearchIngressURL(adminKubeconfig))
+	return fmt.Sprintf("%s:443", pkg.GetSystemOpenSearchIngressURL(adminKubeconfig))
 }
 
 func getClusterNameMetricLabel(kubeconfigPath string) string {

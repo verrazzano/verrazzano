@@ -68,15 +68,16 @@ func UseExternalElasticsearch() bool {
 	return os.Getenv("EXTERNAL_ELASTICSEARCH") == "true"
 }
 
-// GetExternalElasticSearchURL gets the external Elasticsearch URL
-func GetExternalElasticSearchURL(kubeconfigPath string) string {
-	// the equivalent of kubectl get svc quickstart-es-http -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+// GetExternalOpenSearchURL gets the external Elasticsearch URL
+func GetExternalOpenSearchURL(kubeconfigPath string) string {
+	opensearchSvc := "opensearch-cluster-master"
+	// the equivalent of kubectl get svc opensearchSvc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
-	svc, err := clientset.CoreV1().Services("default").Get(context.TODO(), "quickstart-es-http", metav1.GetOptions{})
+	svc, err := clientset.CoreV1().Services("default").Get(context.TODO(), opensearchSvc, metav1.GetOptions{})
 	if err != nil {
 		Log(Info, fmt.Sprintf("Could not get services quickstart-es-http in sockshop: %v\n", err.Error()))
 		return ""
@@ -87,8 +88,8 @@ func GetExternalElasticSearchURL(kubeconfigPath string) string {
 	return ""
 }
 
-// GetSystemElasticSearchIngressURL gets the system Elasticsearch Ingress host in the given cluster
-func GetSystemElasticSearchIngressURL(kubeconfigPath string) string {
+// GetSystemOpenSearchIngressURL gets the system Elasticsearch Ingress host in the given cluster
+func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -107,9 +108,9 @@ func GetSystemElasticSearchIngressURL(kubeconfigPath string) string {
 // getElasticSearchURL returns VMI or external ES URL depending on env var EXTERNAL_ELASTICSEARCH
 func getElasticSearchURL(kubeconfigPath string) string {
 	if UseExternalElasticsearch() {
-		return GetExternalElasticSearchURL(kubeconfigPath)
+		return GetExternalOpenSearchURL(kubeconfigPath)
 	}
-	return GetSystemElasticSearchIngressURL(kubeconfigPath)
+	return GetSystemOpenSearchIngressURL(kubeconfigPath)
 }
 
 func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password string, err error) {
