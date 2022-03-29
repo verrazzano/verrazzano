@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -84,7 +83,6 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	t.BeforeEach(func() {
-		Expect(os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))).To(BeNil())
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err

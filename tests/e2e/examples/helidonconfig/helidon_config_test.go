@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -130,7 +129,6 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	// WHEN GetHostnameFromGateway is called
 	// THEN return the host name found in the gateway.
 	t.BeforeEach(func() {
-		Expect(os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))).To(BeNil())
 		Eventually(func() (string, error) {
 			host, err = k8sutil.GetHostnameFromGateway(namespace, "")
 			return host, err
