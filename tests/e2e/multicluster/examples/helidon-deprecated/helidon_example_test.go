@@ -5,6 +5,7 @@ package mchelidon
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
 	"strconv"
 	"time"
@@ -156,6 +157,9 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	t.Context("Logging", func() {
+		t.BeforeEach(func() {
+			Expect(os.Setenv(k8sutil.EnvVarTestKubeConfig, os.Getenv("ADMIN_KUBECONFIG"))).To(BeNil())
+		})
 		indexName := pkg.GetOpenSearchAppIndex(testNamespace)
 
 		// GIVEN an admin cluster and at least one managed cluster
