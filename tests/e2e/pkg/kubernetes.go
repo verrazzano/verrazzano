@@ -389,6 +389,26 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 	return !vzSemver.IsLessThan(minSemver), nil
 }
 
+// IsVerrazzanoBelowVersion returns true if the Verrazzano version < belowVersion
+func IsVerrazzanoBelowVersion(belowVersion string, kubeconfigpath string) (bool, error) {
+	vzVersion, err := GetVerrazzanoVersion(kubeconfigpath)
+	if err != nil {
+		return false, err
+	}
+	if len(vzVersion) == 0 {
+		return false, nil
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		return false, err
+	}
+	maxSemver, err := semver.NewSemVersion(belowVersion)
+	if err != nil {
+		return false, err
+	}
+	return vzSemver.IsLessThan(maxSemver), nil
+}
+
 // IsProdProfile returns true if the deployed resource is a 'prod' profile
 func IsProdProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -472,6 +492,19 @@ func IsOpenSearchEnabled(kubeconfigPath string) bool {
 	}
 	if vz != nil && vz.Spec.Components.Elasticsearch != nil && vz.Spec.Components.Elasticsearch.Enabled != nil {
 		return *vz.Spec.Components.Elasticsearch.Enabled
+	}
+	return true
+}
+
+// IsOpenSearchDashboardsEnabled returns true if the OpenSearchDashboards component is not set, or the value of its Enabled field otherwise
+func IsOpenSearchDashboardsEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error Verrazzano Resource: %v", err))
+		return true
+	}
+	if vz != nil && vz.Spec.Components.Kibana != nil && vz.Spec.Components.Kibana.Enabled != nil {
+		return *vz.Spec.Components.Kibana.Enabled
 	}
 	return true
 }

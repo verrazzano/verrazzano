@@ -11,8 +11,10 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"html/template"
 	"net/http"
+	url2 "net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +28,121 @@ const (
 	// ISO8601Layout defines the timestamp format
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
+
+// Retention/Rollover policy names in ISM plugin
+const (
+	SystemLogIsmPolicyName      = "verrazzano-system"
+	ApplicationLogIsmPolicyName = "verrazzano-application"
+)
+
+// Retention/Rollover policy type
+const (
+	System      = "system"
+	Application = "application"
+)
+
+// ISMPolicy definition
+type ISMPolicy struct {
+	PolicyId        string      `json:"policy_id"`
+	Description     string      `json:"description"`
+	LastUpdatedTime int64       `json:"last_updated_time"`
+	SchemaVersion   int         `json:"schema_version"`
+	DefaultState    string      `json:"default_state"`
+	States          []State     `json:"states"`
+	IsmTemplate     IsmTemplate `json:"ism_template"`
+}
+
+// State defined in ISM policy
+type State struct {
+	Name        string       `json:"name"`
+	Actions     []Action     `json:"actions"`
+	Transitions []Transition `json:"transitions"`
+}
+
+// Rollover or Delete action defined in ISM policy
+type Action struct {
+	Rollover struct {
+		MinIndexAge string `json:"min_index_age"`
+	} `json:"rollover,omitempty"`
+	Delete struct {
+		MinIndexAge string `json:"min_index_age"`
+	} `json:"delete,omitempty"`
+}
+
+// Transistion defined in ISM policy
+type Transition struct {
+	StateName  string            `json:"state_name"`
+	Conditions map[string]string `json:"conditions"`
+}
+
+// IsmTemplate defined in ISM policy
+type IsmTemplate []struct {
+	IndexPatterns   []string `json:"index_patterns"`
+	Priority        int      `json:"priority"`
+	LastUpdatedTime int64    `json:"last_updated_time"`
+}
+
+// IndexMetadata contains information about a particular
+type IndexMetadata struct {
+	Mapping struct {
+		TotalFields struct {
+			Limit string `json:"limit"`
+		} `json:"total_fields"`
+	} `json:"mapping"`
+	RefreshInterval    string `json:"refresh_interval"`
+	Hidden             string `json:"hidden"`
+	NumberOfShards     string `json:"number_of_shards"`
+	AutoExpandReplicas string `json:"auto_expand_replicas"`
+	ProvidedName       string `json:"provided_name"`
+	CreationDate       string `json:"creation_date"`
+	NumberOfReplicas   string `json:"number_of_replicas"`
+	Uuid               string `json:"uuid"`
+	Version            struct {
+		Created string `json:"created"`
+	} `json:"version"`
+}
+
+// IndexSettings  parent object containing the index metadata
+type IndexSettings struct {
+	Settings struct {
+		Index IndexMetadata `json:"index"`
+	} `json:"settings"`
+}
+
+// DataStream details
+type DataStream struct {
+	Name           string `json:"name"`
+	TimestampField struct {
+		Name string `json:"name"`
+	} `json:"timestamp_field"`
+	Indices []struct {
+		IndexName string `json:"index_name"`
+		IndexUuid string `json:"index_uuid"`
+	} `json:"indices"`
+	Generation int    `json:"generation"`
+	Status     string `json:"status"`
+	Template   string `json:"template"`
+}
+
+//SearchResult represents the result of an Opensearch search query
+type SearchResult struct {
+	Took     int  `json:"took"`
+	TimedOut bool `json:"timed_out"`
+	Shards   struct {
+		Total      int `json:"total"`
+		Successful int `json:"successful"`
+		Skipped    int `json:"skipped"`
+		Failed     int `json:"failed"`
+	} `json:"_shards"`
+	Hits struct {
+		Total struct {
+			Value    int    `json:"value"`
+			Relation string `json:"relation"`
+		} `json:"total"`
+		MaxScore interface{}   `json:"max_score"`
+		Hits     []interface{} `json:"hits"`
+	} `json:"hits"`
+}
 
 func GetOpenSearchSystemIndex(name string) string {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -112,6 +229,7 @@ func getElasticSearchURL(kubeconfigPath string) string {
 	return GetSystemElasticSearchIngressURL(kubeconfigPath)
 }
 
+// getElasticSearchUsernamePassword returns the username/password for connecting to opensearch
 func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password string, err error) {
 	if UseExternalElasticsearch() {
 		esSecret, err := GetSecretInCluster("verrazzano-system", "external-es-secret", kubeconfigPath)
@@ -146,6 +264,16 @@ func postElasticSearchWithBasicAuth(url, body, username, password, kubeconfigPat
 	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), retryableClient)
 }
 
+// deleteElasticSearchWithBasicAuth retries DELETE using basic auth
+func deleteElasticSearchWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
+	retryableClient, err := getElasticSearchClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return doReq(url, "DELETE", "application/json", "", username, password, strings.NewReader(body), retryableClient)
+}
+
+// getElasticSearchClient returns ES client to perform http operations
 func getElasticSearchClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	var retryableClient *retryablehttp.Client
 	var err error
@@ -241,6 +369,36 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 	return result
 }
 
+// queryDocumentsOlderThan searches the Elasticsearch index with the fields in the given cluster
+func queryDocumentsOlderThan(index string, retentionPeriod string, kubeconfigPath string) (SearchResult, error) {
+	var result SearchResult
+
+	// validate Retention period
+	_, err := CalculateSeconds(retentionPeriod)
+	if err != nil {
+		return result, err
+	}
+
+	query := "@timestamp:<now-" + retentionPeriod
+	url := fmt.Sprintf("%s/%s/_search?q=%s", getElasticSearchURL(kubeconfigPath), index, url2.QueryEscape(query))
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return result, nil
+	}
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, error=%v", url, err))
+		return result, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch query results: url=%s, status=%d", url, resp.StatusCode))
+		return result, nil
+	}
+	Log(Debug, fmt.Sprintf("records: %s", resp.Body))
+	json.Unmarshal(resp.Body, &result)
+	return result, nil
+}
+
 // LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -264,6 +422,142 @@ func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	}
 	Log(Error, fmt.Sprintf("Expected to find log index %s", indexName))
 	return false
+}
+
+// ContainsIndicesOlderThanRetentionPeriod returns true if there are any old (backing) indices present for
+// the given data stream that is older than the retention period. Returns false otherwise.
+func ContainsIndicesOlderThanRetentionPeriod(dataStreamName string, oldestTimestamp int64) (bool, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return false, err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	url := fmt.Sprintf("%s/_data_stream/%s", getElasticSearchURL(kubeconfigPath), dataStreamName)
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		var dataStreams map[string][]DataStream
+		json.Unmarshal(resp.Body, &dataStreams)
+		for _, dataStream := range dataStreams["data_streams"] {
+			for _, index := range dataStream.Indices {
+				indexMetadata, err := GetIndexMetadata(index.IndexName)
+				if err != nil {
+					return false, err
+				}
+				indexCreationTime, _ := strconv.ParseInt(indexMetadata.CreationDate, 10, 64)
+				if indexCreationTime < oldestTimestamp {
+					return true, nil
+				}
+			}
+		}
+	}
+	return false, nil
+}
+
+// GetApplicationDataStreamNames returns the data stream names of all application logs having
+// prefix 'verrazzano-application-'
+func GetApplicationDataStreamNames() ([]string, error) {
+	result := []string{}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return result, err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	url := fmt.Sprintf("%s/_data_stream", getElasticSearchURL(kubeconfigPath))
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		var dataStreams map[string][]DataStream
+		json.Unmarshal(resp.Body, &dataStreams)
+		for _, dataStream := range dataStreams["data_streams"] {
+			if strings.HasPrefix(dataStream.Name, "verrazzano-application-") {
+				result = append(result, dataStream.Name)
+			}
+		}
+	}
+	return result, nil
+}
+
+// DeleteApplicationDataStream deletes the given applicatoin data stream
+func DeleteApplicationDataStream(datastreamName string) error {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return err
+	}
+	url := fmt.Sprintf("%s/_data_stream/%s", getElasticSearchURL(kubeconfigPath), datastreamName)
+	resp, err := deleteElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusOK {
+		return nil
+	}
+	return nil
+}
+
+// GetIndexMetadata returns the metadata of the index
+func GetIndexMetadata(indexName string) (IndexMetadata, error) {
+	result := IndexMetadata{}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return result, err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	url := fmt.Sprintf("%s/%s/_settings", getElasticSearchURL(kubeconfigPath), indexName)
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		var settings map[string]IndexSettings
+		json.Unmarshal(resp.Body, &settings)
+		return settings[indexName].Settings.Index, nil
+	}
+	return result, nil
+}
+
+// GetIndexMetadataForDataStream returns the metadata of all backing indices of a given
+// datastream
+func GetIndexMetadataForDataStream(dataStreamName string) ([]IndexMetadata, error) {
+	result := []IndexMetadata{}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return result, err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	url := fmt.Sprintf("%s/%s/_settings", getElasticSearchURL(kubeconfigPath), dataStreamName)
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		var settings map[string]IndexSettings
+		json.Unmarshal(resp.Body, &settings)
+		for _, indexSettings := range settings {
+			result = append(result, indexSettings.Settings.Index)
+		}
+	}
+	return result, nil
 }
 
 // LogRecordFound confirms a recent log record for the index with matching fields can be found
@@ -293,6 +587,22 @@ func LogRecordFoundInCluster(indexName string, after time.Time, fields map[strin
 	return found
 }
 
+// ContainsDocsOlderThanRetentionPeriod returns true if the given index contains any doc that
+// is older than the retention period, returns false otherwise.
+func ContainsDocsOlderThanRetentionPeriod(indexName string, retentionPeriod string) (bool, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return false, err
+	}
+	oldRecordsSearchResult, err := queryDocumentsOlderThan(indexName, retentionPeriod, kubeconfigPath)
+	if err != nil {
+		return false, err
+	}
+	return oldRecordsSearchResult.Hits.Total.Value > 0, nil
+}
+
+// findHits returns the number of hits that match a given search query
 func findHits(searchResult map[string]interface{}, after *time.Time) bool {
 	hits := Jq(searchResult, "hits", "hits")
 	if hits == nil {
@@ -510,7 +820,66 @@ func ISMPolicyExists(policyName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return resp.StatusCode == 200, nil
+	return resp.StatusCode == http.StatusOK, nil
+}
+
+func GetISMPolicy(policyName string) (ISMPolicy, error) {
+	result := ISMPolicy{}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return result, err
+	}
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getElasticSearchURL(kubeconfigPath), policyName)
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		return result, err
+	}
+	if resp.StatusCode == http.StatusOK {
+		var ismPolicyJson map[string]ISMPolicy
+		json.Unmarshal(resp.Body, &ismPolicyJson)
+		return ismPolicyJson["policy"], nil
+	}
+	return result, nil
+}
+
+func GetRetentionPeriod(policyName string) (string, error) {
+	ismPolicy, err := GetISMPolicy(policyName)
+	if err != nil {
+		return "", err
+	} else {
+		for _, state := range ismPolicy.States {
+			if state.Name == "ingest" {
+				for _, transition := range state.Transitions {
+					if transition.StateName == "delete" {
+						minIndexAge := transition.Conditions["min_index_age"]
+						return minIndexAge, nil
+					}
+				}
+			}
+		}
+	}
+	return "", nil
+}
+
+func GetISMRolloverPeriod(policyName string) (string, error) {
+	ismPolicy, err := GetISMPolicy(policyName)
+	if err != nil {
+		return "", err
+	} else {
+		for _, state := range ismPolicy.States {
+			if state.Name == "ingest" {
+				for _, action := range state.Actions {
+					rolloverPeriod := action.Rollover.MinIndexAge
+					return rolloverPeriod, nil
+				}
+			}
+		}
+	}
+	return "", nil
 }
 
 func IndicesNotExists(patterns []string) bool {
@@ -528,6 +897,29 @@ func IndicesNotExists(patterns []string) bool {
 				return false
 			}
 		}
+	}
+	return true
+}
+
+func CheckForDataStream(name string) bool {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	url := fmt.Sprintf("%s/_data_stream/%s", getElasticSearchURL(kubeconfigPath), name)
+	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	if err != nil {
+		return false
+	}
+	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting Elasticsearch data streams: url=%s, error=%v", url, err))
+		return false
+	}
+	if resp.StatusCode != http.StatusOK {
+		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch data streams: url=%s, status=%d", url, resp.StatusCode))
+		return false
 	}
 	return true
 }

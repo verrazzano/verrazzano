@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +16,7 @@ import (
 	neturl "net/url"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,6 +44,16 @@ const (
 	CrashLoopBackOff    = "CrashLoopBackOff"
 	ImagePullBackOff    = "ImagePullBackOff"
 	InitContainerPrefix = "Init"
+)
+
+var (
+	agePattern       = "^(?P<number>\\d+)(?P<unit>[yMwdhHms])$"
+	reTimeUnit       = regexp.MustCompile(agePattern)
+	secondsPerMinute = int64(60)
+	secondsPerHour   = secondsPerMinute * 60
+	secondsPerDay    = secondsPerHour * 24
+	secondsPerWeek   = secondsPerDay * 7
+	defaultRetentionPeriod = "7d"
 )
 
 // UsernamePassword - Username and Password credentials
@@ -124,6 +136,66 @@ func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 	}
 	result, err := PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
 	return result, err
+}
+
+// GetVerrazzanoRetentionPolicy returns the retention policy configured in the VZ CR
+// If not explicitly configured, it returns the default retention policy with retention
+// period of 7 days.
+func GetVerrazzanoRetentionPolicy(retentionPolicyType string) (v12.IndexManagementPolicy, error) {
+	retentionPolicy := v12.IndexManagementPolicy{}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return retentionPolicy, fmt.Errorf("error getting kubeconfig, error: %v", err)
+	}
+	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
+		return retentionPolicy, fmt.Errorf("error getting clientset for cluster, error: %v", err)
+	}
+	var retentionPolicies  []v12.IndexManagementPolicy
+	if clientset.Spec.Components.Elasticsearch != nil {
+		retentionPolicies = clientset.Spec.Components.Elasticsearch.Polices
+	} else {
+		return retentionPolicy, nil
+	}
+	for _, retentionPolicyFromVZ:= range retentionPolicies {
+		if strings.HasPrefix(retentionPolicy.IndexPattern, "verrazzano-system") &&
+			retentionPolicyType == "system" {
+			retentionPolicy = retentionPolicyFromVZ
+			break;
+		} else if strings.HasPrefix(retentionPolicy.IndexPattern, "verrazzano-application") &&
+			retentionPolicyType == "application" {
+			retentionPolicy = retentionPolicyFromVZ
+			break;
+		}
+	}
+	if retentionPolicy.MinIndexAge == nil {
+		retentionPolicy.MinIndexAge = &defaultRetentionPeriod
+	}
+	return retentionPolicy, nil
+}
+
+// GetVerrazzanoRolloverPolicy returns the rollover policy configured in the VZ CR
+// TODO: This configuration is not implemented yet in VZ spec. Once Implemented,
+//       need to update this function. Currently it returns the default rollover
+///      policy of 1 day.
+func GetVerrazzanoRolloverPolicy(rolloverPolicyType string) (v12.RolloverPolicy, error) {
+	rolloverPolicy := v12.RolloverPolicy{}
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return rolloverPolicy, fmt.Errorf("error getting kubeconfig, error: %v", err)
+	}
+	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting clientset for cluster, error: %v", err))
+		return rolloverPolicy, fmt.Errorf("error getting clientset for cluster, error: %v", err)
+	}
+	if clientset.Spec.Components.Elasticsearch != nil {
+		return rolloverPolicy, nil
+	}
+	return rolloverPolicy, nil
 }
 
 // PodsRunning checks if all the pods identified by namePrefixes are ready and running in the given cluster
@@ -477,4 +549,32 @@ func CheckNSFinalizerRemoved(ns string, clientset *kubernetes.Clientset) bool {
 		Log(Info, fmt.Sprintf("Error in getting namespace %v", err))
 	}
 	return namespace.Finalizers == nil
+}
+
+// CalculateSeconds validates the duration pattern and if valid
+// calculates the seconds for the given duration.
+// eg: 1d returns integer of value 1 * 24 * 60 * 60
+func CalculateSeconds(age string) (int64, error) {
+	match := reTimeUnit.FindStringSubmatch(age)
+	if match == nil || len(match) < 2 {
+		return 0, fmt.Errorf("unable to convert %s to seconds due to invalid format", age)
+	}
+	n := match[1]
+	number, err := strconv.ParseInt(n, 10, 0)
+	if err != nil {
+		return 0, fmt.Errorf("unable to parse the specified time unit %s", n)
+	}
+	switch match[2] {
+	case "w":
+		return number * secondsPerWeek, nil
+	case "d":
+		return number * secondsPerDay, nil
+	case "h", "H":
+		return number * secondsPerHour, nil
+	case "m":
+		return number * secondsPerMinute, nil
+	case "s":
+		return number, nil
+	}
+	return 0, fmt.Errorf("conversion to seconds for time unit %s is unsupported", match[2])
 }
