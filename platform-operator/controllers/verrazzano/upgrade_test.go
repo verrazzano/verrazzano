@@ -73,6 +73,10 @@ type goodRunner struct {
 type badRunner struct {
 }
 
+// TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
+// GIVEN a request to reconcile an verrazzano resource after install is completed
+// WHEN a verrazzano version is empty
+// THEN ensure a condition with type UpgradeStarted is not added
 func TestUpgradeNoVersion(t *testing.T) {
 	initUnitTesing()
 	namespace := "verrazzano"

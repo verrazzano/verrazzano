@@ -145,7 +145,7 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 	})
 
 	t.Context("for Logging", Label("f:observability.logging.es"), func() {
-		indexName := "verrazzano-application-hello-helidon"
+		indexName := pkg.GetOpenSearchAppIndex(testNamespace)
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster

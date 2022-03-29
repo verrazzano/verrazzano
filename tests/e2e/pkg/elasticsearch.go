@@ -27,21 +27,41 @@ const (
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
-func GetOpenSearchIndex(oldIndex, newIndex string) string {
+func GetOpenSearchSystemIndex(name string) string {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		ginkgo.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		return ""
 	}
-	isVersion1_3_0, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
 		ginkgo.Fail(err.Error())
 		return ""
 	}
-	if isVersion1_3_0 {
-		return newIndex
+	if dataStreamVersion {
+		return  "verrazzano-system"
 	}
-	return oldIndex
+	if name == "systemd-journal" {
+		return "verrazzano-systemd-journal"
+	}
+	return "verrazzano-namespace-"+name
+}
+
+func GetOpenSearchAppIndex(namespace string) string {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		ginkgo.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		return ""
+	}
+	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+	if err != nil {
+		ginkgo.Fail(err.Error())
+		return ""
+	}
+	if dataStreamVersion {
+		return  "verrazzano-application-"+namespace
+	}
+	return "verrazzano-namespace-"+namespace
 }
 
 func UseExternalElasticsearch() bool {
@@ -236,8 +256,9 @@ func LogIndexFound(indexName string) bool {
 func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	Log(Info, fmt.Sprintf("Looking for log index %s in cluster with kubeconfig %s", indexName, kubeconfigPath))
 	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
-		// TODO: Update following data stream index check for integer suffix
-		if name == indexName || strings.HasPrefix(name, ".ds-"+indexName+"-") {
+		// If old index or data stream backend index, return true
+		backendIndexRe := regexp.MustCompile(`^\.ds-`+indexName+`-\d+$`)
+		if name == indexName || backendIndexRe.MatchString(name) {
 			return true
 		}
 	}

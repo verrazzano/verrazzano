@@ -172,7 +172,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 		t.It("Elasticsearch verrazzano-system Index should be accessible", Label("f:observability.logging.es"),
 			func() {
-				indexName := pkg.GetOpenSearchIndex("verrazzano-namespace-verrazzano-system", "verrazzano-system")
+				indexName := pkg.GetOpenSearchSystemIndex(verrazzanoNamespace)
 				pkg.Concurrently(
 					func() {
 						Eventually(func() bool {
@@ -204,7 +204,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 		t.It("Elasticsearch systemd journal Index should be accessible", Label("f:observability.logging.es"),
 			func() {
-				indexName := pkg.GetOpenSearchIndex("verrazzano-systemd-journal", "verrazzano-system")
+				indexName := pkg.GetOpenSearchSystemIndex("systemd-journal")
 				Eventually(func() bool {
 					return pkg.FindAnyLog(indexName,
 						[]pkg.Match{
@@ -214,6 +214,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						[]pkg.Match{})
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a systemd log record")
 			})
+
 		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.logging.kibana"), func() {
 			kibanaPodsRunning := func() bool {
