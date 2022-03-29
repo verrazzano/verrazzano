@@ -86,7 +86,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND_PERSISTENCE = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
         INSTALL_CONFIG_FILE_KIND_EPHEMERAL = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
         INSTALL_CONFIG_FILE_KIND = "${params.CHAOS_TEST_TYPE.equals("ephemeral.storage.upgrade") ? env.INSTALL_CONFIG_FILE_KIND_EPHEMERAL : env.INSTALL_CONFIG_FILE_KIND_PERSISTENCE}"
-        INSTALL_PROFILE = "prod"
+        INSTALL_PROFILE = "${params.CHAOS_TEST_TYPE.equals("ephemeral.storage.upgrade") ? "dev" : "prod"}"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
@@ -387,6 +387,12 @@ pipeline {
                     then
                         # Initiate upgrade
                         kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+
+                        # A successful completion of the upgrade means the Keycloak configuration was successfully rebuilt
+                        kubectl wait --timeout=20m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                        
+                        # Kill MySQL and wait for Keycloak to be healthy again
+                        ${GO_REPO_PATH}/verrazzano/ci/scripts/chaos_test_ephemeral_storage.sh
                     fi
 
                     if [[ "vpo.killed" == ${params.CHAOS_TEST_TYPE} ]]
@@ -542,6 +548,7 @@ pipeline {
                         echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
                         cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
                     fi
+                    
                 """
             }
             post {
