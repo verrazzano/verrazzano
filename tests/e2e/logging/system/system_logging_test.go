@@ -18,17 +18,17 @@ import (
 )
 
 const (
-	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
-	searchTimeWindow     = "1h"
-	systemIndex          = "verrazzano-namespace-verrazzano-system"
-	installIndex         = "verrazzano-namespace-verrazzano-install"
-	certMgrIndex         = "verrazzano-namespace-cert-manager"
-	keycloakIndex        = "verrazzano-namespace-keycloak"
-	cattleSystemIndex    = "verrazzano-namespace-cattle-system"
-	fleetSystemIndex     = "verrazzano-namespace-fleet-system"
-	nginxIndex           = "verrazzano-namespace-ingress-nginx"
-	monitoringIndex      = "verrazzano-namespace-monitoring"
+	shortPollingInterval  = 10 * time.Second
+	shortWaitTimeout      = 5 * time.Minute
+	searchTimeWindow      = "1h"
+	systemIndex           = "verrazzano-namespace-verrazzano-system"
+	installIndex          = "verrazzano-namespace-verrazzano-install"
+	certMgrIndex          = "verrazzano-namespace-cert-manager"
+	keycloakIndex         = "verrazzano-namespace-keycloak"
+	cattleSystemIndex     = "verrazzano-namespace-cattle-system"
+	fleetLocalSystemIndex = "verrazzano-namespace-fleet-local-system"
+	nginxIndex            = "verrazzano-namespace-ingress-nginx"
+	monitoringIndex       = "verrazzano-namespace-monitoring"
 )
 
 var (
@@ -228,7 +228,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		// WHEN the Elasticsearch index for the cattle-fleet-system namespace is retrieved
 		// THEN verify that it is found
 		Eventually(func() bool {
-			return pkg.LogIndexFound(fleetSystemIndex)
+			return pkg.LogIndexFound(fleetLocalSystemIndex)
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-fleet-system")
 
 		if !validateFleetSystemLogs() {
@@ -500,7 +500,7 @@ func validateRancherWebhookLogs() bool {
 func validateFleetSystemLogs() bool {
 	return validateElasticsearchRecords(
 		allElasticsearchRecordValidator,
-		fleetSystemIndex,
+		fleetLocalSystemIndex,
 		"kubernetes.namespace_name",
 		"fleet-system",
 		searchTimeWindow,
