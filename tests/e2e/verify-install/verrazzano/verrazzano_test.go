@@ -5,6 +5,7 @@ package verrazzano_test
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -478,6 +479,13 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			}
 		})
 	})
+
+	t.Describe("service resources in verrazzano-system", Label("f:platform-lcm.install"), func() {
+		t.It("have expected Istio port names", func() {
+			validateVerrazzanoSystemServicePorts()
+		})
+	})
+
 })
 
 func validateIstioGatewayAffinity(gwName string, gwNamespace string) error {
@@ -526,5 +534,42 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) err
 		}
 		return runningPods == *expectedPods
 	}, waitTimeout, pollingInterval).Should(BeTrue())
+	return nil
+}
+
+// Validate the verrazzano-system service ports to make sure they follow Istio conventions for
+// naming ports.  Ports should have the prefix of "http-" or "https-" or be equal to "http" or "https".
+func validateVerrazzanoSystemServicePorts() error {
+	// Get the list of verrazzano-system services
+	var services *corev1.ServiceList
+	Eventually(func() (*corev1.ServiceList, error) {
+		var err error
+		services, err = pkg.ListServices(constants.VerrazzanoSystemNamespace)
+		return services, err
+	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	exceptions := []string{
+		"coherence-operator-webhook",
+		"internal-weblogic-operator-svc",
+	}
+	for _, service := range services.Items {
+		for _, port := range service.Spec.Ports {
+			checkName := true
+			for _, exception := range exceptions {
+				if service.Name == exception {
+					checkName = false
+					break
+				}
+			}
+			if checkName {
+				hasPrefix := false
+				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 ||
+					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") {
+					hasPrefix = true
+				}
+				Expect(hasPrefix).Should(BeTrue(), fmt.Sprintf("Service \"%s\" port name \"%s\" is not a valid port name", service.Name, port.Name))
+			}
+		}
+	}
 	return nil
 }
