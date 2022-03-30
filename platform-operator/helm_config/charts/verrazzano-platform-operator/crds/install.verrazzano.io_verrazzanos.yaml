@@ -53,6 +53,12 @@ spec:
               components:
                 description: Core specifies core Verrazzano configuration
                 properties:
+                  alertmanager:
+                    description: Alertmanager configuration
+                    properties:
+                      enabled:
+                        type: boolean
+                    type: object
                   applicationOperator:
                     description: ApplicationOperator configuration
                     properties:

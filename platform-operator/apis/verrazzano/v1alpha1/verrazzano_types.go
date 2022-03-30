@@ -281,6 +281,10 @@ type ComponentSpec struct {
 	// +optional
 	CoherenceOperator *CoherenceOperatorComponent `json:"coherenceOperator,omitempty"`
 
+	// Alertmanager configuration
+	// +optional
+	Alertmanager *AlertmanagerComponent `json:"alertmanager,omitempty"`
+
 	// ApplicationOperator configuration
 	// +optional
 	ApplicationOperator *ApplicationOperatorComponent `json:"applicationOperator,omitempty"`
@@ -386,6 +390,12 @@ type GrafanaComponent struct {
 // PrometheusComponent specifies the Prometheus configuration.
 type PrometheusComponent struct {
 	MonitoringComponent `json:",inline"`
+}
+
+// AlertmanagerComponent specifies the Alertmanager configuration
+type AlertmanagerComponent struct {
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
 }
 
 // PrometheusOperatorComponent specifies the Prometheus Operator configuration

@@ -6,7 +6,9 @@ package prometheusoper
 import (
 	"context"
 	"fmt"
+	"strconv"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
@@ -46,4 +48,12 @@ func preInstall(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 	return nil
+}
+
+// AppendOverrides builds the set of external-dns overrides for the helm install
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	if alertmanager := compContext.EffectiveCR().Spec.Components.Alertmanager; alertmanager != nil && alertmanager.Enabled != nil {
+		kvs = append(kvs, bom.KeyValue{Key: "alertmanager.enabled", Value: strconv.FormatBool(*alertmanager.Enabled)})
+	}
+	return kvs, nil
 }

@@ -40,6 +40,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall: true,
 			MinVerrazzanoVersion:    constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:  "global.imagePullSecrets[0].name",
+			AppendOverridesFunc:     AppendOverrides,
 			ValuesFile:              filepath.Join(config.GetHelmOverridesDir(), "prometheus-values.yaml"),
 			Dependencies:            []string{certmanager.ComponentName},
 		},
