@@ -130,7 +130,7 @@ const WlsFluentdParsingRules = `<match fluent.**>
 `
 
 // getWlsSpecificContainerEnv builds WLS specific env vars
-func getWlsSpecificContainerEnv(name string) []v1.EnvVar {
+func getWlsSpecificContainerEnv(logHome string, domainName string) []v1.EnvVar {
 	return []v1.EnvVar{
 		{
 			Name: "DOMAIN_UID",
@@ -150,44 +150,51 @@ func getWlsSpecificContainerEnv(name string) []v1.EnvVar {
 		},
 		{
 			Name:  "SERVER_LOG_PATH",
-			Value: getWLSServerLogPath(name),
+			Value: getWLSServerLogPath(logHome, domainName),
 		},
 		{
 			Name:  "ACCESS_LOG_PATH",
-			Value: getWLSServerAccessLogPath(name),
+			Value: getWLSServerAccessLogPath(logHome, domainName),
 		},
 		{
 			Name:  "NODEMANAGER_LOG_PATH",
-			Value: getWLSServerNodeManagerPath(name),
+			Value: getWLSServerNodeManagerPath(logHome, domainName),
 		},
 		{
 			Name:  "DOMAIN_LOG_PATH",
-			Value: getWLSDomainLogPath(name),
+			Value: getWLSDomainLogPath(logHome, domainName),
 		},
 	}
 }
 
-func getWLSLogPath(name string) string {
-	return getWLSServerLogPath(name) + "," + getWLSServerAccessLogPath(name) + "," + getWLSServerNodeManagerPath(name) + "," + getWLSDomainLogPath(name)
+func getWLSLogPath(logHome string, domainName string) string {
+	return getWLSServerLogPath(logHome, domainName) + "," + getWLSServerAccessLogPath(logHome, domainName) + "," + getWLSServerNodeManagerPath(logHome, domainName) + "," + getWLSDomainLogPath(logHome, domainName)
 }
 
-func getWLSServerLogPath(name string) string {
-	return fmt.Sprintf("%s/$(SERVER_NAME).log", getWLSLogHome(name))
+func getWLSServerLogPath(logHome string, domainName string) string {
+	return getLogPath(logHome, domainName, "$(SERVER_NAME)")
 }
 
-func getWLSServerAccessLogPath(name string) string {
-	return fmt.Sprintf("%s/$(SERVER_NAME)_access.log", getWLSLogHome(name))
+func getWLSServerAccessLogPath(logHome string, domainName string) string {
+	return getLogPath(logHome, domainName, "$(SERVER_NAME)_access")
 }
 
-func getWLSServerNodeManagerPath(name string) string {
-	return fmt.Sprintf("%s/$(SERVER_NAME)_nodemanager.log", getWLSLogHome(name))
+func getWLSServerNodeManagerPath(logHome string, domainName string) string {
+	return getLogPath(logHome, domainName, "$(SERVER_NAME)_nodemanager")
 }
 
-func getWLSDomainLogPath(name string) string {
-	return fmt.Sprintf("%s/$(DOMAIN_UID).log", getWLSLogHome(name))
+func getWLSDomainLogPath(logHome string, domainName string) string {
+	return getLogPath(logHome, domainName, "$(DOMAIN_UID)")
 }
 
-// getWLSLogHome builds a log home give a resource name
-func getWLSLogHome(name string) string {
-	return fmt.Sprintf("%s/logs/%s", scratchVolMountPath, name)
+func getLogPath(logHome string, domainName string, logName string) string {
+	if logHome == "" {
+		logHome = getWLSLogHome(domainName)
+	}
+	return fmt.Sprintf("%s/%s.log", logHome, logName)
+}
+
+// getWLSLogHome builds a log home give a WebLogic domain name
+func getWLSLogHome(domainName string) string {
+	return fmt.Sprintf("%s/logs/%s", scratchVolMountPath, domainName)
 }

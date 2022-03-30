@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	"os"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -157,6 +159,8 @@ func (r *Reconciler) doReconcile(log vzlog.VerrazzanoLogger, vz *installv1alpha1
 		return r.ProcUninstallingState(vzctx)
 	case installv1alpha1.VzStateUpgrading:
 		return r.ProcUpgradingState(vzctx)
+	case installv1alpha1.VzStatePaused:
+		return r.ProcPausedUpgradeState(vzctx)
 	default:
 		panic("Invalid Verrazzano contoller state")
 	}
@@ -202,6 +206,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -219,7 +224,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		return newRequeueWithDelay(), err
 	}
 
-	// Sync the local cluster registration secret that allows the use of MCxyz resources on the
+	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
 	// admin cluster without needing a VMC.
 	if err := r.syncLocalRegistrationSecret(); err != nil {
 		log.Errorf("Failed to sync the local registration secret: %v", err)
@@ -299,6 +304,17 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return r.procDelete(context.TODO(), log, vz)
 	}
 
+	// check for need to pause the upgrade due to VPO update
+	if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
+		// upgrade needs to be restarted due to newer operator
+		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
+
+		err := r.updateStatus(log, vz,
+			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
+			installv1alpha1.CondUpgradePaused)
+		return newRequeueWithDelay(), err
+	}
+
 	if result, err := r.reconcileUpgrade(log, vz); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -309,12 +325,40 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	return newRequeueWithDelay(), nil
 }
 
+// ProcPausedUpgradeState processes the CR while in the paused upgrade state
+func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+	vz := vzctx.ActualCR
+	log := vzctx.Log
+	log.Debug("Entering ProcPausedUpgradeState")
+
+	// Check if Verrazzano resource is being deleted
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(context.TODO(), log, vz)
+	}
+
+	// check if the VPO and VZ versions are the same and the upgrade can proceed
+	if isOperatorSameVersionAsCR(vz.Spec.Version) {
+		// upgrade can proceed from paused state
+		log.Debugf("Restarting upgrade since VZ version and VPO version match")
+		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		// requeue for a fairly long time considering this may be a terminating VPO
+		return newRequeueWithDelay(), err
+	}
+
+	return newRequeueWithDelay(), nil
+}
+
 // ProcFailedState only allows uninstall
 func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	vz := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcFailedState")
 	ctx := context.TODO()
+
+	// Update uninstall status
+	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.procDelete(ctx, log, vz)
+	}
 
 	// Determine if the user specified to retry upgrade
 	retry, err := r.retryUpgrade(ctx, vz)
@@ -330,9 +374,15 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
 	}
 
-	// Update uninstall status
-	if !vz.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.procDelete(ctx, log, vz)
+	// if annotations didn't trigger a retry, see if a newer version of BOM should
+	if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
+		// upgrade needs to be restarted due to newer operator
+		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
+
+		err := r.updateStatus(log, vz,
+			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
+			installv1alpha1.CondUpgradePaused)
+		return newRequeueWithDelay(), err
 	}
 
 	return ctrl.Result{}, nil
@@ -553,6 +603,34 @@ func buildInternalConfigMapName(name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-internal", name)
 }
 
+func isOperatorSameVersionAsCR(vzVersion string) bool {
+	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
+	if ok {
+		return bomVersion.CompareTo(currentVersion) == 0
+	}
+	return false
+}
+
+func isOperatorNewerVersionThanCR(vzVersion string) (string, bool) {
+	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
+	if ok {
+		return bomVersion.ToString(), bomVersion.CompareTo(currentVersion) > 0
+	}
+	return "", false
+}
+
+func getVzAndOperatorVersions(vzVersion string) (*semver.SemVersion, *semver.SemVersion, bool) {
+	bomVersion, err := installv1alpha1.GetCurrentBomVersion()
+	if err != nil {
+		return nil, nil, false
+	}
+	currentVersion, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		return nil, nil, false
+	}
+	return bomVersion, currentVersion, true
+}
+
 // updateStatus updates the status in the Verrazzano CR
 func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
 	t := time.Now().UTC()
@@ -642,6 +720,8 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 		return installv1alpha1.CompStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:
 		return installv1alpha1.CompStateUpgrading
+	case installv1alpha1.CondUpgradePaused:
+		return installv1alpha1.CompStateUpgrading
 	case installv1alpha1.CondUninstallComplete:
 		return installv1alpha1.CompStateReady
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
@@ -660,6 +740,8 @@ func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv
 		return installv1alpha1.VzStateUninstalling
 	case installv1alpha1.CondUpgradeStarted:
 		return installv1alpha1.VzStateUpgrading
+	case installv1alpha1.CondUpgradePaused:
+		return installv1alpha1.VzStatePaused
 	case installv1alpha1.CondUninstallComplete:
 		return installv1alpha1.VzStateReady
 	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
@@ -1148,6 +1230,54 @@ func (r *Reconciler) watchJobs(namespace string, name string, log vzlog.Verrazza
 	return nil
 }
 
+// Watch the pods in the keycloak namespace for this vz resource.  The loop to reconcile will be called
+// when a pod is created.
+func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
+	// Define a mapping to the Verrazzano resource
+	mapFn := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			return []reconcile.Request{
+				{NamespacedName: types.NamespacedName{
+					Namespace: namespace,
+					Name:      name,
+				}},
+			}
+		})
+
+	// Watch pod create
+	predicateFunc := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			// Cast object to pod
+			pod := e.Object.(*corev1.Pod)
+
+			// Filter events to only be for the MySQL namespace
+			if pod.Namespace != mysql.ComponentNamespace {
+				return false
+			}
+
+			// Do not process the event if the pod restarted is not MySQL
+			if !strings.HasPrefix(pod.Name, mysql.ComponentName) {
+				return false
+			}
+			log.Debugf("Pod %s in namespace %s created", pod.Name, pod.Namespace)
+			return true
+		},
+	}
+
+	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
+	err := r.Controller.Watch(
+		&source.Kind{Type: &corev1.Pod{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: mapFn,
+		},
+		predicateFunc)
+	if err != nil {
+		return err
+	}
+	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
+	return nil
+}
+
 // initForVzResource will do initialization for the given Verrazzano resource.
 // Clean up old resources from a 1.0 release where jobs, etc were in the default namespace
 // Add a watch for each Verrazzano resource
@@ -1180,6 +1310,12 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 	// Watch the jobs in the operator namespace for this VZ CR
 	if err := r.watchJobs(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Job watch for Verrrazzano CR %s: %v", vz.Name, err)
+		return newRequeueWithDelay(), err
+	}
+
+	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
+	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
+		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
 	}
 

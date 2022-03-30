@@ -37,20 +37,21 @@ import (
 )
 
 const (
-	dnsTarget          = "dnsTarget"
-	rulesHost          = "rulesHost"
-	tlsHosts           = "tlsHosts"
-	tlsSecret          = "tlsSecret"
-	vzSysRealm         = "verrazzano-system"
-	vzUsersGroup       = "verrazzano-users"
-	vzAdminGroup       = "verrazzano-admins"
-	vzMonitorGroup     = "verrazzano-monitors"
-	vzSystemGroup      = "verrazzano-system-users"
-	vzAPIAccessRole    = "vz_api_access"
-	vzUserName         = "verrazzano"
-	vzInternalPromUser = "verrazzano-prom-internal"
-	vzInternalEsUser   = "verrazzano-es-internal"
-	keycloakPodName    = "keycloak-0"
+	dnsTarget               = "dnsTarget"
+	rulesHost               = "rulesHost"
+	tlsHosts                = "tlsHosts"
+	tlsSecret               = "tlsSecret"
+	keycloakCertificateName = "keycloak-tls"
+	vzSysRealm              = "verrazzano-system"
+	vzUsersGroup            = "verrazzano-users"
+	vzAdminGroup            = "verrazzano-admins"
+	vzMonitorGroup          = "verrazzano-monitors"
+	vzSystemGroup           = "verrazzano-system-users"
+	vzAPIAccessRole         = "vz_api_access"
+	vzUserName              = "verrazzano"
+	vzInternalPromUser      = "verrazzano-prom-internal"
+	vzInternalEsUser        = "verrazzano-es-internal"
+	keycloakPodName         = "keycloak-0"
 )
 
 // Define the keycloak Key:Value pair for init container.
@@ -413,11 +414,9 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 	})
 
 	// this secret contains the keycloak TLS certificate created by cert-manager during the original keycloak installation
-	installEnvName := getEnvironmentName(compContext.EffectiveCR().Spec.EnvironmentName)
-	tlsSecretValue := fmt.Sprintf("%s-secret", installEnvName)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   tlsSecret,
-		Value: tlsSecretValue,
+		Value: keycloakCertificateName,
 	})
 
 	return kvs, nil
@@ -780,11 +779,6 @@ func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	}
 	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
 	return dnsDomain, nil
-}
-
-// getSecretName returns expected TLS secret name
-func getSecretName(vz *vzapi.Verrazzano) string {
-	return fmt.Sprintf("%s-secret", getEnvironmentName(vz.Spec.EnvironmentName))
 }
 
 func createVerrazzanoSystemRealm(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
@@ -1288,15 +1282,6 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 }
 
 func isKeycloakReady(ctx spi.ComponentContext) bool {
-	// TLS cert from Cert Manager should be in Ready state
-	secretName := getSecretName(ctx.EffectiveCR())
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: secretName, Namespace: ComponentNamespace}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", secretName)
-		return false
-	}
-
 	statefulset := []types.NamespacedName{
 		{
 			Name:      ComponentName,

@@ -174,7 +174,7 @@ function validate_config_json {
 
 function get_verrazzano_ingress_ip {
   local ingress_type=$(get_config_value ".ingress.type")
-  if [ ${ingress_type} == "NodePort" ] || ; then
+  if [ ${ingress_type} == "NodePort" ]; then
     # on MAC and Windows, container IP is not accessible.  Port forwarding from 127.0.0.1 to container IP is needed.
     #ingress_ip="127.0.0.1"
     ingress_ip=$(kubectl get svc ingress-controller-ingress-nginx-controller -n ingress-nginx -o json | jq -r 'items[0].status.hostIP')

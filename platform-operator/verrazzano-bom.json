@@ -197,7 +197,7 @@
             },
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.3.0-20220322222552-9a1d217",
+              "tag": "1.3.0-20220329145541-9bc558a",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -243,7 +243,7 @@
             },
             {
               "image": "console",
-              "tag": "1.3.0-20220318195701-8937c08",
+              "tag": "1.3.0-20220330134752-bb0b72b",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -416,6 +416,23 @@
             {
               "image": "keycloak-oracle-theme",
               "tag": "1.3.0-20220226065029-dc513a7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prometheus-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-operator",
+          "images": [
+            {
+              "image": "prometheus-operator",
+              "tag": "v0.49.0-1",
+              "helmFullImageKey": "prometheusOperator.image.repository",
+              "helmTagKey": "prometheusOperator.image.tag"
             }
           ]
         }

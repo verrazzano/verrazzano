@@ -114,3 +114,11 @@ func IsExternalDNSEnabled(vz *vzapi.Verrazzano) bool {
 func IsVMOEnabled(vz *vzapi.Verrazzano) bool {
 	return IsPrometheusEnabled(vz) || IsKibanaEnabled(vz) || IsElasticsearchEnabled(vz) || IsGrafanaEnabled(vz)
 }
+
+// IsPrometheusOperatorEnabled returns false only if the Prometheus Operator is explicitly disabled in the CR
+func IsPrometheusOperatorEnabled(vz *vzapi.Verrazzano) bool {
+	if vz != nil && vz.Spec.Components.PrometheusOperator != nil && vz.Spec.Components.PrometheusOperator.Enabled != nil {
+		return *vz.Spec.Components.PrometheusOperator.Enabled
+	}
+	return true
+}

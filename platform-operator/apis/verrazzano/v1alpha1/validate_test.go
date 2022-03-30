@@ -531,6 +531,9 @@ func TestValidateInProgress(t *testing.T) {
 	vzOld.Status.State = VzStateReady
 	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
 
+	vzOld.Status.State = VzStatePaused
+	assert.NoError(t, ValidateInProgress(&vzOld, &vzNew))
+
 	vzOld.Status.State = VzStateInstalling
 	err := ValidateInProgress(&vzOld, &vzNew)
 	if assert.Error(t, err) {
@@ -599,6 +602,10 @@ func TestValidateEnable(t *testing.T) {
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 
 			test.vzOld.Status.State = VzStateInstalling
+			err = ValidateInProgress(&test.vzOld, &vzNew)
+			assert.NoError(t, err, "Unexpected error enabling Coherence")
+
+			test.vzOld.Status.State = VzStatePaused
 			err = ValidateInProgress(&test.vzOld, &vzNew)
 			assert.NoError(t, err, "Unexpected error enabling Coherence")
 

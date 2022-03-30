@@ -10,6 +10,10 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzlogInit "github.com/verrazzano/verrazzano/pkg/log"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -74,18 +78,23 @@ var (
 // Reconciler is used to reconcile an IngressTrait object
 type Reconciler struct {
 	client.Client
-	Log    *zap.SugaredLogger
-	Scheme *runtime.Scheme
+	Controller controller.Controller
+	Log        *zap.SugaredLogger
+	Scheme     *runtime.Scheme
 }
 
-// SetupWithManager creates a controller and adds it to the manager
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+// SetupWithManager creates a controller and adds it to the manager, and sets up any watches
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) (err error) {
+	r.Controller, err = ctrl.NewControllerManagedBy(mgr).
 		WithOptions(controller.Options{
 			RateLimiter: controllers.NewDefaultRateLimiter(),
 		}).
 		For(&vzapi.IngressTrait{}).
-		Complete(r)
+		Build(r)
+	if err != nil {
+		return err
+	}
+	return r.setupWatches()
 }
 
 // Reconcile reconciles an IngressTrait with other related resources required for ingress.
@@ -633,6 +642,63 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	}
 
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
+}
+
+// setupWatches Sets up watches for the IngressTrait controller
+func (r *Reconciler) setupWatches() error {
+	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
+	return r.Controller.Watch(
+		&source.Kind{Type: &k8net.Ingress{}},
+		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
+		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
+		// VS and GW records for the associated apps.
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(
+				func(a handler.MapObject) []reconcile.Request {
+					return r.createIngressTraitReconcileRequests()
+				}),
+		},
+		predicate.Funcs{
+			UpdateFunc: func(updateEvent event.UpdateEvent) bool {
+				return r.isConsoleIngressUpdated(updateEvent)
+			},
+		},
+	)
+}
+
+// isConsoleIngressUpdated Predicate func used by the Ingress watcher, returns true if the TLS settings have changed;
+// - this is largely to attempt to scope the change detection to Host name changes
+func (r *Reconciler) isConsoleIngressUpdated(updateEvent event.UpdateEvent) bool {
+	oldIngress := updateEvent.ObjectOld.(*k8net.Ingress)
+	// We only need to check the Authproxy/console Ingress
+	if oldIngress.Namespace != vzconst.VerrazzanoSystemNamespace || oldIngress.Name != constants.VzConsoleIngress {
+		return false
+	}
+	r.Log.Debugf("Checking object %s/%s", oldIngress.Namespace, oldIngress.Name)
+	newIngress := updateEvent.ObjectNew.(*k8net.Ingress)
+	return !reflect.DeepEqual(oldIngress.Spec, newIngress.Spec)
+}
+
+//createIngressTraitReconcileRequests Used by the Console ingress watcher to map a detected change in the ingress
+//  to requests to reconcile any existing application IngressTrait objects
+func (r *Reconciler) createIngressTraitReconcileRequests() []reconcile.Request {
+	requests := []reconcile.Request{}
+
+	ingressTraitList := vzapi.IngressTraitList{}
+	if err := r.List(context.TODO(), &ingressTraitList, &client.ListOptions{}); err != nil {
+		r.Log.Errorf("Failed to list ingress traits: %v", err)
+		return requests
+	}
+
+	for _, ingressTrait := range ingressTraitList.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: ingressTrait.Namespace,
+				Name:      ingressTrait.Name,
+			},
+		})
+	}
+	return requests
 }
 
 // createDestinationFromRuleOrService creates a destination from either the rule or the service.

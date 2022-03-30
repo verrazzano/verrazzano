@@ -126,13 +126,25 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestNewOpenSearchWithExistingVMI(t *testing.T) {
+// TestNewOpenSearchValuesAreCopied tests that VMI and policy values are copied over to the new opensearch
+// GIVEN a Verrazzano CR and an existing VMI
+//  WHEN I create a new OpenSearch resource
+//  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
+func TestNewOpenSearchValuesAreCopied(t *testing.T) {
+	age := "1d"
 	r := &resourceRequestValues{}
 	testvz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					ESInstallArgs: []vzapi.InstallArgs{},
+					Policies: []vmov1.IndexManagementPolicy{
+						{
+							PolicyName:   "my-policy",
+							IndexPattern: "pattern",
+							MinIndexAge:  &age,
+						},
+					},
 				},
 			},
 		},
@@ -150,6 +162,7 @@ func TestNewOpenSearchWithExistingVMI(t *testing.T) {
 	openSearch, err := newOpenSearch(testvz, r, testvmi, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
+	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Policies, openSearch.Policies)
 }
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
@@ -253,4 +266,21 @@ func TestHasDataNodeStorageOverride(t *testing.T) {
 			assert.Equal(t, tt.hasOverride, hasNodeStorageOverride(tt.cr, "nodes.data.requests.storage"))
 		})
 	}
+}
+
+// TestBackupSecret tests whether ensureBackupSecret are created
+// GIVEN a kubernetes client
+func TestBackupSecret(t *testing.T) {
+	client := createPreInstallTestClient()
+	err := ensureBackupSecret(client)
+	assert.Nil(t, err)
+}
+
+// TestSetupSharedVmiResources tests whether secrets resources are created
+// GIVEN a controller run-time context
+func TestSetupSharedVmiResources(t *testing.T) {
+	client := createPreInstallTestClient()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
+	err := setupSharedVMIResources(ctx)
+	assert.Nil(t, err)
 }

@@ -136,3 +136,6 @@ kubernetes:
 
 externaldns:
   enabled: false
+
+prometheusOperator:
+  enabled: true

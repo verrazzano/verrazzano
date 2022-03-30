@@ -31,13 +31,15 @@ const (
 	vzImagePullSecretKeyName = "global.imagePullSecrets[0]"
 
 	// Certificate names
+	verrazzanoCertificateName = "verrazzano-tls"
 	osCertificateName         = "system-tls-es-ingest"
 	grafanaCertificateName    = "system-tls-grafana"
 	osdCertificateName        = "system-tls-kibana"
 	prometheusCertificateName = "system-tls-prometheus"
 
+	verrazzanoBackupScrtName   = "verrazzano-backup"
 	objectstoreAccessKey       = "object_store_access_key"
-	objectstoreAccessSecretKey = "object_store_access_secret_key"
+	objectstoreAccessSecretKey = "object_store_secret_key"
 )
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
@@ -121,6 +123,8 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 // PostUpgrade Verrazzano-post-upgrade processing
 func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
+	c.HelmComponent.IngressNames = c.GetIngressNames(ctx)
+	c.HelmComponent.Certificates = c.GetCertificateNames(ctx)
 	if err := c.HelmComponent.PostUpgrade(ctx); err != nil {
 		return err
 	}
@@ -302,7 +306,7 @@ func (c verrazzanoComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 
 	certificateNames = append(certificateNames, types.NamespacedName{
 		Namespace: ComponentNamespace,
-		Name:      fmt.Sprintf("%s-secret", ctx.EffectiveCR().Spec.EnvironmentName),
+		Name:      verrazzanoCertificateName,
 	})
 
 	if vzconfig.IsElasticsearchEnabled(ctx.EffectiveCR()) {
