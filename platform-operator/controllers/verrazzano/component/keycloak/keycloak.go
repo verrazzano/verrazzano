@@ -1282,14 +1282,6 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 }
 
 func isKeycloakReady(ctx spi.ComponentContext) bool {
-	// TLS cert from Cert Manager should be in Ready state
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Progressf("Component Keycloak waiting for Certificate %v to exist", keycloakCertificateName)
-		return false
-	}
-
 	statefulset := []types.NamespacedName{
 		{
 			Name:      ComponentName,
