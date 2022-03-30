@@ -478,3 +478,14 @@ func CheckNSFinalizerRemoved(ns string, clientset *kubernetes.Clientset) bool {
 	}
 	return namespace.Finalizers == nil
 }
+
+func getKubeConfigPath(kubeconfigPath string) string {
+	var err error
+	if kubeconfigPath == "" {
+		kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %v", err))
+		}
+	}
+	return kubeconfigPath
+}

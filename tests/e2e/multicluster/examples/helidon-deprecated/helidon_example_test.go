@@ -160,7 +160,7 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 
 	t.Context("Logging", func() {
-		indexName := pkg.GetOpenSearchAppIndex(testNamespace)
+		indexName := pkg.GetOpenSearchAppIndexWithKC(testNamespace, adminKubeconfig)
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster

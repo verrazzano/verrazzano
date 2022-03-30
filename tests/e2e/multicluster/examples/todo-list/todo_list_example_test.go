@@ -88,9 +88,6 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.mc-app-lcm"), func() {
-	t.BeforeEach(func() {
-		Expect(os.Setenv(k8sutil.EnvVarTestKubeConfig, adminKubeconfig)).To(BeNil())
-	})
 	t.Context("Admin Cluster", func() {
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
@@ -215,7 +212,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 	})
 
 	t.Context("for Logging", Label("f:observability.logging.es"), func() {
-		indexName := pkg.GetOpenSearchAppIndex(testNamespace)
+		indexName := pkg.GetOpenSearchAppIndexWithKC(testNamespace, adminKubeconfig)
 
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster

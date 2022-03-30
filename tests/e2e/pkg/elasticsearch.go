@@ -26,12 +26,15 @@ const (
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
+//GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
+// to the verrazzano-system data stream
 func GetOpenSearchSystemIndex(name string) string {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %v", err))
-		return ""
-	}
+	return GetOpenSearchSystemIndexWithKC(name, "")
+}
+
+//GetOpenSearchSystemIndexWithKC is the same as GetOpenSearchSystemIndex but the kubeconfig may be specified for MC tests
+func GetOpenSearchSystemIndexWithKC(name, kubeconfigPath string) string {
+	kubeconfigPath = getKubeConfigPath(kubeconfigPath)
 	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to check for Verrazzano version: %v", err))
@@ -46,12 +49,15 @@ func GetOpenSearchSystemIndex(name string) string {
 	return "verrazzano-namespace-" + name
 }
 
+//GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
+// following the pattern 'verrazzano-application-<application name>'
 func GetOpenSearchAppIndex(namespace string) string {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %v", err))
-		return ""
-	}
+	return GetOpenSearchAppIndexWithKC(namespace, "")
+}
+
+//GetOpenSearchAppIndexWithKC is the same as GetOpenSearchAppIndex but kubeconfig may be specified for MC tests
+func GetOpenSearchAppIndexWithKC(namespace, kubeconfigPath string) string {
+	kubeconfigPath = getKubeConfigPath(kubeconfigPath)
 	dataStreamVersion, err := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to check for Verrazzano version: %v", err))
@@ -494,23 +500,6 @@ func PostElasticsearch(path string, body string) (*HTTPResponse, error) {
 	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
 	resp, err := postElasticSearchWithBasicAuth(url, body, username, password, configPath)
 	return resp, err
-}
-
-func ISMPolicyExists(policyName string) (bool, error) {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		return false, err
-	}
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
-	if err != nil {
-		return false, err
-	}
-	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getElasticSearchURL(kubeconfigPath), policyName)
-	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
-	if err != nil {
-		return false, err
-	}
-	return resp.StatusCode == 200, nil
 }
 
 func IndicesNotExists(patterns []string) bool {
