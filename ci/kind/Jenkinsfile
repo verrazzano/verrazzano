@@ -129,7 +129,6 @@ pipeline {
         stage('Clean workspace and checkout') {
             steps {
                 sh """
-                    ginkgo version
                     echo "${NODE_LABELS}"
                 """
 
