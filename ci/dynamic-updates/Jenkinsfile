@@ -117,6 +117,9 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        // how many nodes in the KIND cluster
+        KIND_NODE_COUNT = 2
     }
 
     stages {
@@ -411,6 +414,22 @@ pipeline {
                         script {
                             parallel generateVerifyInfraStages("${TEST_DUMP_ROOT}/post-update2-infra-tests")
                         }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('AuthProxy Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/authproxy-update"
+                    }
+                    steps {
+                        runGinkgo('update/authproxy')
                     }
                     post {
                         always {

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -14,6 +14,7 @@ CONNECT_JENKINS_RUNNER_TO_NETWORK=${6:-true}
 KIND_AT_CACHE=${7:-false}
 SETUP_CALICO=${8:-false}
 KIND_AT_CACHE_NAME=${9:-"NONE"}
+NODE_COUNT=${10:-1}
 KIND_IMAGE=""
 CALICO_SUFFIX=""
 
@@ -70,7 +71,13 @@ create_kind_cluster() {
   echo "Listing permissions for /dev/null"
   ls -l /dev/null
   echo "Using ${KIND_CONFIG_FILE}"
+  for (( n=2; n<=${NODE_COUNT}; n++ ))
+  do
+    echo "  - role: worker" >> ${KIND_CONFIG_FILE}
+    echo "    image: kindest/node:KIND_IMAGE" >> ${KIND_CONFIG_FILE}
+  done
   sed -i "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
+  cat ${KIND_CONFIG_FILE}
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} --config=${KIND_CONFIG_FILE}
   kubectl config set-context kind-${CLUSTER_NAME}
   sed -i -e "s|127.0.0.1.*|`docker inspect ${CLUSTER_NAME}-control-plane | jq '.[].NetworkSettings.Networks[].IPAddress' | sed 's/"//g'`:6443|g" ${KUBECONFIG}
