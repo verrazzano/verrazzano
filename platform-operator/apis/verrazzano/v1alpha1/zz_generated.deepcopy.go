@@ -8,6 +8,7 @@
 package v1alpha1
 
 import (
+	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -414,6 +415,13 @@ func (in *ElasticsearchComponent) DeepCopyInto(out *ElasticsearchComponent) {
 	if in.ESInstallArgs != nil {
 		in, out := &in.ESInstallArgs, &out.ESInstallArgs
 		*out = make([]InstallArgs, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.Polices != nil {
+		in, out := &in.Polices, &out.Polices
+		*out = make([]vmcontrollerv1.IndexManagementPolicy, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
