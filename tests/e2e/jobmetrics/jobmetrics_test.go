@@ -12,10 +12,11 @@ var t = framework.NewTestFramework("jobmetrics")
 
 var _ = t.AfterEach(func() {})
 
+// Send job metrics data using Jenkins environment variables
 var _ = t.Describe("Emit job metrics", func() {
 	t.It("at the end of each job", func() {
-		t.Metrics = t.Metrics.With("job_duration", os.Getenv("DURATION")).
+		t.Metrics = t.Metrics.With("job_duration_seconds", os.Getenv("DURATION")).
 			With("job_status", os.Getenv("JOB_STATUS")).
-			With("job_time_waiting", os.Getenv("TIME_WAITING"))
+			With("job_time_waiting_seconds", os.Getenv("TIME_WAITING"))
 	})
 })
