@@ -4,14 +4,15 @@
 package jobmetrics
 
 import (
-	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 )
 
 var t = framework.NewTestFramework("jobmetrics")
 
-var _ = t.Describe("Emit job metrics", Label("f:mesh.ingress"), func() {
+var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("Emit job metrics,", func() {
 	t.It("at the end of each job", func() {
 		t.Metrics = t.Metrics.With("job_duration", os.Getenv("DURATION")).
 			With("job_status", os.Getenv("JOB_STATUS")).
