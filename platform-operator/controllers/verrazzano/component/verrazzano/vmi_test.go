@@ -138,7 +138,7 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
 					ESInstallArgs: []vzapi.InstallArgs{},
-					Polices: []vmov1.IndexManagementPolicy{
+					Policies: []vmov1.IndexManagementPolicy{
 						{
 							PolicyName:   "my-policy",
 							IndexPattern: "pattern",
@@ -162,7 +162,7 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	openSearch, err := newOpenSearch(testvz, r, testvmi, false, false)
 	assert.NoError(t, err)
 	assert.Equal(t, "1Gi", openSearch.MasterNode.Storage.Size)
-	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Polices, openSearch.Policies)
+	assert.EqualValues(t, testvz.Spec.Components.Elasticsearch.Policies, openSearch.Policies)
 }
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
